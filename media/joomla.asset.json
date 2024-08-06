@@ -1,0 +1,29 @@
+{
+  "$schema": "https://developer.joomla.org/schemas/json-schema/web_assets.json",
+  "name": "com_alfa",
+  "version": "CVS: 1.0.1",
+  "license": "GNU General Public License version 2 or later; see LICENSE.txt",
+  "assets": [
+    {
+      "name": "com_alfa.admin",
+      "type": "style",
+      "uri": "com_alfa/admin.css"
+    },
+    {
+      "name": "com_alfa.admin",
+      "type": "script",
+      "uri": "com_alfa/admin.js",
+      "dependencies": [
+        "jquery"
+      ],
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+        "name": "com_alfa.list",
+        "type": "style",
+        "uri": "com_alfa/list.css"
+    }
+  ]
+}

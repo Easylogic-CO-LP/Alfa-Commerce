@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<metadata>
+	<layout title="COM_ALFA_TITLE_LIST_VIEW_ITEMS" option="View">
+        <message>
+                        <![CDATA[COM_ALFA_TITLE_LIST_VIEW_ITEMS_DESC]]>
+        </message>
+	</layout>
+	
+</metadata>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+  <fieldset>
+    <field name="id" type="text" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
+    <field name="state" default="1" type="list" label="JSTATUS" description="JFIELD_PUBLISHED_DESC" class="inputbox" size="1">
+      <option value="1">JPUBLISHED</option>
+      <option value="0">JUNPUBLISHED</option>
+      <option value="2">JARCHIVED</option>
+      <option value="-2">JTRASHED</option>
+    </field>
+    <field name="ordering"/>
+    <field name="checked_out" type="hidden" filter="unset"/>
+    <field name="checked_out_time" type="hidden" filter="unset"/>
+    <field name="created_by" type="createdby" default="0" label="JGLOBAL_FIELD_CREATED_BY_LABEL" description="JGLOBAL_FIELD_CREATED_BY_DESC" hidden="true" hint="COM_ALFA_FORM_LBL_ORDER_CREATED_BY"/>
+    <field name="modified_by" type="modifiedby" default="0" label="JGLOBAL_FIELD_MODIFIED_BY_LABEL" description="JGLOBAL_FIELD_MODIFIED_BY_DESC" hidden="true" hint="COM_ALFA_FORM_LBL_ORDER_MODIFIED_BY"/>
+    <field name="currency" filter="safehtml" type="text" readonly="true" label="COM_ALFA_FORM_LBL_ORDER_CURRENCY" description="COM_ALFA_FORM_DESC_ORDER_CURRENCY" hint="COM_ALFA_FORM_LBL_ORDER_CURRENCY"/>
+    <field name="payment" label="COM_ALFA_FORM_LBL_ORDER_PAYMENT" description="COM_ALFA_FORM_DESC_ORDER_PAYMENT" hint="COM_ALFA_FORM_LBL_ORDER_PAYMENT"/>
+    <field name="total" type="number" step="0.01" label="COM_ALFA_FORM_LBL_ORDER_TOTAL" description="COM_ALFA_FORM_DESC_ORDER_TOTAL" hint="COM_ALFA_FORM_LBL_ORDER_TOTAL"/>
+    <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL" description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>
+  </fieldset>
+</form>

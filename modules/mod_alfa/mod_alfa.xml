@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="module" version="4.0" method="upgrade" client="site">
+    <name>MOD_ALFA_NAME</name>
+    <creationDate>2024-05-10</creationDate>
+    <copyright>2024 Easylogic CO LP</copyright>
+    <license>GNU General Public License version 2 or later; see LICENSE.txt</license>
+    <author>Agamemnon Fakas</author>
+    <authorEmail>info@easylogic.gr</authorEmail>
+    <authorUrl>http://easylogic.gr</authorUrl>
+    <version>1.0.2</version>
+    <description>MOD_ALFA_DESCRIPTION</description>
+    <namespace path="src">Alfa\Module\Alfa</namespace>
+    
+    <files>
+        <filename module="mod_alfa">mod_alfa.php</filename>
+        <filename>index.html</filename>
+        <folder>src</folder>
+        <folder>tmpl</folder>
+    </files>
+    <media destination="mod_alfa" folder="media">
+        <folder>css</folder>
+        <folder>js</folder>
+        <filename>joomla.asset.json</filename>
+    </media>
+    <languages folder="language">
+        
+			<language tag="en-GB">en-GB/mod_alfa.ini</language>
+			<language tag="en-GB">en-GB/mod_alfa.sys.ini</language>
+    </languages>
+    <config>
+        <fields name="params">
+            <fieldset 
+                name="content_type" 
+                label="MOD_ALFA_CONTENT_TYPE_TAB_LBL"
+                description="MOD_ALFA_CONTENT_TYPE_TAB_DESC">
+                <field
+                    name="content_type" type="list"
+                    label="MOD_ALFA_CONTENT_TYPE_LBL"
+                    description="MOD_ALFA_CONTENT_TYPE_DESC">
+                    <option value="blank">MOD_ALFA_CUSTOM_CONTENT</option>
+                    <option value="list">MOD_ALFA_LIST</option>
+                    <option value="item">MOD_ALFA_ITEM</option>
+                </field>
+            </fieldset>
+            <fieldset 
+                name="blank_content" 
+                label="MOD_ALFA_CUSTOM_CONTENT_TAB_LBL"
+                description="MOD_ALFA_CUSTOM_CONTENT_TAB_DESC">
+                <field 
+                    name="html_content" type="editor" filter="safehtml"
+                    label="MOD_ALFA_HTML_LBL"
+                    description="MOD_ALFA_HTML_DESC" />
+            </fieldset>
+            <fieldset 
+                name="list_content" 
+                label="MOD_ALFA_LIST_CONTENT_TAB_LBL"
+                description="MOD_ALFA_LIST_CONTENT_TAB_DESC">
+                <field
+                    name="table" type="list"
+                    label="MOD_ALFA_TABLE_LBL"
+                    description="MOD_ALFA_TABLE_DESC">
+                    
+	<option value="#__alfa_manufacturers">#__alfa_manufacturers</option>
+	<option value="#__alfa_categories">#__alfa_categories</option>
+	<option value="#__alfa_items">#__alfa_items</option>
+	<option value="#__alfa_items_prices">#__alfa_items_prices</option>
+	<option value="#__alfa_items_manufacturers">#__alfa_items_manufacturers</option>
+	<option value="#__alfa_items_categories">#__alfa_items_categories</option>
+	<option value="#__alfa_users">#__alfa_users</option>
+	<option value="#__alfa_usergroups">#__alfa_usergroups</option>
+	<option value="#__alfa_customs">#__alfa_customs</option>
+	<option value="#__alfa_currencies">#__alfa_currencies</option>
+	<option value="#__alfa_coupons">#__alfa_coupons</option>
+	<option value="#__alfa_shipments">#__alfa_shipments</option>
+	<option value="#__alfa_payments">#__alfa_payments</option>
+	<option value="#__alfa_places">#__alfa_places</option>
+	<option value="#__alfa_settings">#__alfa_settings</option>
+	<option value="#__alfa_orders">#__alfa_orders</option>
+                </field>
+                <field 
+                    name="field" type="groupedlist" default=""
+                    label="MOD_ALFA_FIELD_LBL"
+                    description="MOD_ALFA_FIELD_DESC">
+                    
+	<group label="#__alfa_manufacturers">
+		<option value="#__alfa_manufacturers:created_by">created_by</option>
+		<option value="#__alfa_manufacturers:modified_by">modified_by</option>
+		<option value="#__alfa_manufacturers:name">name</option>
+		<option value="#__alfa_manufacturers:id">id</option>
+		<option value="#__alfa_manufacturers:alias">alias</option>
+		<option value="#__alfa_manufacturers:desc">desc</option>
+		<option value="#__alfa_manufacturers:meta_title">meta_title</option>
+		<option value="#__alfa_manufacturers:meta_desc">meta_desc</option>
+		<option value="#__alfa_manufacturers:website">website</option>
+	</group>
+	<group label="#__alfa_categories">
+		<option value="#__alfa_categories:created_by">created_by</option>
+		<option value="#__alfa_categories:modified_by">modified_by</option>
+		<option value="#__alfa_categories:parent_id">parent_id</option>
+		<option value="#__alfa_categories:id">id</option>
+		<option value="#__alfa_categories:name">name</option>
+		<option value="#__alfa_categories:alias">alias</option>
+		<option value="#__alfa_categories:meta_title">meta_title</option>
+		<option value="#__alfa_categories:meta_desc">meta_desc</option>
+	</group>
+	<group label="#__alfa_items">
+		<option value="#__alfa_items:created_by">created_by</option>
+		<option value="#__alfa_items:modified_by">modified_by</option>
+		<option value="#__alfa_items:name">name</option>
+		<option value="#__alfa_items:id">id</option>
+		<option value="#__alfa_items:short_desc">short_desc</option>
+		<option value="#__alfa_items:full_desc">full_desc</option>
+		<option value="#__alfa_items:sku">sku</option>
+		<option value="#__alfa_items:gtin">gtin</option>
+		<option value="#__alfa_items:mpn">mpn</option>
+		<option value="#__alfa_items:stock">stock</option>
+		<option value="#__alfa_items:stock_action">stock_action</option>
+		<option value="#__alfa_items:manage_stock">manage_stock</option>
+		<option value="#__alfa_items:alias">alias</option>
+		<option value="#__alfa_items:meta_title">meta_title</option>
+		<option value="#__alfa_items:meta_desc">meta_desc</option>
+	</group>
+	<group label="#__alfa_items_prices">
+		<option value="#__alfa_items_prices:id">id</option>
+		<option value="#__alfa_items_prices:created_by">created_by</option>
+		<option value="#__alfa_items_prices:modified_by">modified_by</option>
+		<option value="#__alfa_items_prices:value">value</option>
+		<option value="#__alfa_items_prices:override">override</option>
+		<option value="#__alfa_items_prices:start_date">start_date</option>
+		<option value="#__alfa_items_prices:quantity_start">quantity_start</option>
+		<option value="#__alfa_items_prices:end_date">end_date</option>
+		<option value="#__alfa_items_prices:quantity_end">quantity_end</option>
+		<option value="#__alfa_items_prices:tax_id">tax_id</option>
+		<option value="#__alfa_items_prices:discount_id">discount_id</option>
+	</group>
+	<group label="#__alfa_items_manufacturers">
+		<option value="#__alfa_items_manufacturers:id">id</option>
+		<option value="#__alfa_items_manufacturers:product_id">product_id</option>
+		<option value="#__alfa_items_manufacturers:manufacturer_id">manufacturer_id</option>
+	</group>
+	<group label="#__alfa_items_categories">
+		<option value="#__alfa_items_categories:id">id</option>
+		<option value="#__alfa_items_categories:product_id">product_id</option>
+		<option value="#__alfa_items_categories:manufacturer_id">manufacturer_id</option>
+	</group>
+	<group label="#__alfa_users">
+		<option value="#__alfa_users:id">id</option>
+		<option value="#__alfa_users:created_by">created_by</option>
+		<option value="#__alfa_users:modified_by">modified_by</option>
+	</group>
+	<group label="#__alfa_usergroups">
+		<option value="#__alfa_usergroups:created_by">created_by</option>
+		<option value="#__alfa_usergroups:modified_by">modified_by</option>
+		<option value="#__alfa_usergroups:id">id</option>
+		<option value="#__alfa_usergroups:prices_display">prices_display</option>
+		<option value="#__alfa_usergroups:name">name</option>
+		<option value="#__alfa_usergroups:prices_enable">prices_enable</option>
+	</group>
+	<group label="#__alfa_customs">
+		<option value="#__alfa_customs:id">id</option>
+		<option value="#__alfa_customs:created_by">created_by</option>
+		<option value="#__alfa_customs:modified_by">modified_by</option>
+		<option value="#__alfa_customs:type">type</option>
+		<option value="#__alfa_customs:name">name</option>
+		<option value="#__alfa_customs:desc">desc</option>
+		<option value="#__alfa_customs:required">required</option>
+		<option value="#__alfa_customs:categories">categories</option>
+		<option value="#__alfa_customs:items">items</option>
+	</group>
+	<group label="#__alfa_currencies">
+		<option value="#__alfa_currencies:id">id</option>
+		<option value="#__alfa_currencies:created_by">created_by</option>
+		<option value="#__alfa_currencies:modified_by">modified_by</option>
+		<option value="#__alfa_currencies:code">code</option>
+		<option value="#__alfa_currencies:name">name</option>
+		<option value="#__alfa_currencies:symbol">symbol</option>
+		<option value="#__alfa_currencies:number">number</option>
+	</group>
+	<group label="#__alfa_coupons">
+		<option value="#__alfa_coupons:id">id</option>
+		<option value="#__alfa_coupons:created_by">created_by</option>
+		<option value="#__alfa_coupons:modified_by">modified_by</option>
+		<option value="#__alfa_coupons:coupon_code">coupon_code</option>
+		<option value="#__alfa_coupons:num_of_uses">num_of_uses</option>
+		<option value="#__alfa_coupons:value_type">value_type</option>
+		<option value="#__alfa_coupons:value">value</option>
+		<option value="#__alfa_coupons:min_value">min_value</option>
+		<option value="#__alfa_coupons:max_value">max_value</option>
+		<option value="#__alfa_coupons:hidden">hidden</option>
+		<option value="#__alfa_coupons:start_date">start_date</option>
+		<option value="#__alfa_coupons:end_date">end_date</option>
+		<option value="#__alfa_coupons:associate_to_new_users">associate_to_new_users</option>
+		<option value="#__alfa_coupons:user_associated">user_associated</option>
+	</group>
+	<group label="#__alfa_shipments">
+		<option value="#__alfa_shipments:id">id</option>
+		<option value="#__alfa_shipments:created_by">created_by</option>
+		<option value="#__alfa_shipments:modified_by">modified_by</option>
+		<option value="#__alfa_shipments:name">name</option>
+	</group>
+	<group label="#__alfa_payments">
+		<option value="#__alfa_payments:id">id</option>
+		<option value="#__alfa_payments:created_by">created_by</option>
+		<option value="#__alfa_payments:modified_by">modified_by</option>
+		<option value="#__alfa_payments:name">name</option>
+	</group>
+	<group label="#__alfa_places">
+		<option value="#__alfa_places:id">id</option>
+		<option value="#__alfa_places:created_by">created_by</option>
+		<option value="#__alfa_places:modified_by">modified_by</option>
+		<option value="#__alfa_places:name">name</option>
+		<option value="#__alfa_places:number">number</option>
+		<option value="#__alfa_places:parent_id">parent_id</option>
+		<option value="#__alfa_places:code2">code2</option>
+		<option value="#__alfa_places:code3">code3</option>
+	</group>
+	<group label="#__alfa_settings">
+		<option value="#__alfa_settings:id">id</option>
+		<option value="#__alfa_settings:created_by">created_by</option>
+		<option value="#__alfa_settings:modified_by">modified_by</option>
+		<option value="#__alfa_settings:currency">currency</option>
+		<option value="#__alfa_settings:currency_display">currency_display</option>
+		<option value="#__alfa_settings:terms_accept">terms_accept</option>
+		<option value="#__alfa_settings:allow_guests">allow_guests</option>
+		<option value="#__alfa_settings:manage_stock">manage_stock</option>
+		<option value="#__alfa_settings:stock_action">stock_action</option>
+	</group>
+	<group label="#__alfa_orders">
+		<option value="#__alfa_orders:id">id</option>
+		<option value="#__alfa_orders:created_by">created_by</option>
+		<option value="#__alfa_orders:modified_by">modified_by</option>
+		<option value="#__alfa_orders:currency">currency</option>
+		<option value="#__alfa_orders:payment">payment</option>
+		<option value="#__alfa_orders:total">total</option>
+	</group>
+                </field>
+                <field 
+                    name="offset" type="text" default="0" filter="uint" class="input-small"
+                    label="MOD_ALFA_OFFSET_LBL"
+                    description="MOD_ALFA_OFFSET_DESC" />
+                <field 
+                    name="limit" type="text" default="10" filter="uint" class="input-small"
+                    label="MOD_ALFA_LIMIT_LBL"
+                    description="MOD_ALFA_LIMIT_DESC" />
+            </fieldset>
+            <fieldset 
+                name="item_content" 
+                label="MOD_ALFA_ITEM_CONTENT_TAB"
+                description="MOD_ALFA_ITEM_CONTENT_TAB_DESC">
+                <field
+                    name="item_table" type="list"
+                    label="MOD_ALFA_TABLE_LBL"
+                    description="MOD_ALFA_TABLE_DESC">
+                    
+	<option value="#__alfa_manufacturers">#__alfa_manufacturers</option>
+	<option value="#__alfa_categories">#__alfa_categories</option>
+	<option value="#__alfa_items">#__alfa_items</option>
+	<option value="#__alfa_items_prices">#__alfa_items_prices</option>
+	<option value="#__alfa_items_manufacturers">#__alfa_items_manufacturers</option>
+	<option value="#__alfa_items_categories">#__alfa_items_categories</option>
+	<option value="#__alfa_users">#__alfa_users</option>
+	<option value="#__alfa_usergroups">#__alfa_usergroups</option>
+	<option value="#__alfa_customs">#__alfa_customs</option>
+	<option value="#__alfa_currencies">#__alfa_currencies</option>
+	<option value="#__alfa_coupons">#__alfa_coupons</option>
+	<option value="#__alfa_shipments">#__alfa_shipments</option>
+	<option value="#__alfa_payments">#__alfa_payments</option>
+	<option value="#__alfa_places">#__alfa_places</option>
+	<option value="#__alfa_settings">#__alfa_settings</option>
+	<option value="#__alfa_orders">#__alfa_orders</option>
+                </field>
+                <field 
+                    name="item_id" type="text" filter="uint" class="input-small"
+                    label="MOD_ALFA_ITEM_ID_LBL"
+                    description="MOD_ALFA_ITEM_ID_DESC"
+                />
+            </fieldset>
+        </fields>
+    </config>
+    <updateservers>
+        <server type="extension" priority="1" name="com_alfa">https://cdn.demosites.gr/alfa-updates.xml</server>
+    </updateservers>
+</extension>

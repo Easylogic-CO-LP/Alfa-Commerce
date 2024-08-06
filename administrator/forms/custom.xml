@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+  <fieldset>
+    <field name="id" type="text" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
+    <field name="state" default="1" type="list" label="JSTATUS" description="JFIELD_PUBLISHED_DESC" class="inputbox" size="1">
+      <option value="1">JPUBLISHED</option>
+      <option value="0">JUNPUBLISHED</option>
+      <option value="2">JARCHIVED</option>
+      <option value="-2">JTRASHED</option>
+    </field>
+    <field name="ordering"/>
+    <field name="checked_out" type="hidden" filter="unset"/>
+    <field name="checked_out_time" type="hidden" filter="unset"/>
+    <field name="created_by" type="createdby" default="0" label="JGLOBAL_FIELD_CREATED_BY_LABEL" description="JGLOBAL_FIELD_CREATED_BY_DESC" hidden="true" hint="COM_ALFA_FORM_LBL_CUSTOM_CREATED_BY"/>
+    <field name="modified_by" type="modifiedby" default="0" label="JGLOBAL_FIELD_MODIFIED_BY_LABEL" description="JGLOBAL_FIELD_MODIFIED_BY_DESC" hidden="true" hint="COM_ALFA_FORM_LBL_CUSTOM_MODIFIED_BY"/>
+    <field name="type" type="list" label="COM_ALFA_FORM_LBL_CUSTOM_TYPE" description="COM_ALFA_FORM_DESC_CUSTOM_TYPE" hint="COM_ALFA_FORM_LBL_CUSTOM_TYPE">
+      <option value="text">COM_ALFA_CUSTOMS_TYPE_OPTION_TEXT</option>
+      <option value="textarea">COM_ALFA_CUSTOMS_TYPE_OPTION_TEXTAREA</option>
+      <option value="editor">COM_ALFA_CUSTOMS_TYPE_OPTION_EDITOR</option>
+      <option value="list">COM_ALFA_CUSTOMS_TYPE_OPTION_LIST</option>
+      <option value="color">COM_ALFA_CUSTOMS_TYPE_OPTION_COLOR</option>
+    </field>
+    <field name="name" size="400" filter="safehtml" type="text" required="true" translateLabel="true" label="COM_ALFA_FORM_LBL_CUSTOM_NAME" description="COM_ALFA_FORM_DESC_CUSTOM_NAME" hint="COM_ALFA_FORM_LBL_CUSTOM_NAME"/>
+    <field name="desc" cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText" type="editor" label="COM_ALFA_FORM_LBL_CUSTOM_DESC" description="COM_ALFA_FORM_DESC_CUSTOM_DESC" hint="COM_ALFA_FORM_LBL_CUSTOM_DESC"/>
+    <field name="required" type="list" label="COM_ALFA_FORM_LBL_CUSTOM_REQUIRED" description="COM_ALFA_FORM_DESC_CUSTOM_REQUIRED" hint="COM_ALFA_FORM_LBL_CUSTOM_REQUIRED">
+      <option value="0">COM_ALFA_CUSTOMS_REQUIRED_OPTION_0</option>
+      <option value="1">COM_ALFA_CUSTOMS_REQUIRED_OPTION_1</option>
+    </field>
+    <field name="categories" type="foreignkey" label="COM_ALFA_FORM_LBL_CUSTOM_CATEGORIES" description="COM_ALFA_FORM_DESC_CUSTOM_CATEGORIES" default="0" input_type="list" table="#__alfa_categories" key_field="id" translate="true" value_field="name" multiple="multiple"/>
+    <field name="items" type="foreignkey" label="COM_ALFA_FORM_LBL_CUSTOM_ITEMS" description="COM_ALFA_FORM_DESC_CUSTOM_ITEMS" default="0" input_type="list" table="#__alfa_items" key_field="id" translate="true" value_field="name" multiple="multiple"/>
+    <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL" description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>
+  </fieldset>
+</form>
