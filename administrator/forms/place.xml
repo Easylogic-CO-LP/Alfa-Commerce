@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+  <fieldset>
+    <field name="id" type="text" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
+    <field name="ordering"/>
+    <field name="checked_out" type="hidden" filter="unset"/>
+    <field name="checked_out_time" type="hidden" filter="unset"/>
+    <field name="created_by" type="createdby" default="0" label="JGLOBAL_FIELD_CREATED_BY_LABEL" description="JGLOBAL_FIELD_CREATED_BY_DESC" hidden="true" hint="COM_ALFA_FORM_LBL_PLACE_CREATED_BY"/>
+    <field name="modified_by" type="modifiedby" default="0" label="JGLOBAL_FIELD_MODIFIED_BY_LABEL" description="JGLOBAL_FIELD_MODIFIED_BY_DESC" hidden="true" hint="COM_ALFA_FORM_LBL_PLACE_MODIFIED_BY"/>
+    <field name="name" size="400" filter="safehtml" type="text" required="true" translateLabel="true" label="COM_ALFA_FORM_LBL_PLACE_NAME" description="COM_ALFA_FORM_DESC_PLACE_NAME" hint="COM_ALFA_FORM_LBL_PLACE_NAME"/>
+    <field name="state" default="1" type="list" label="JSTATUS" description="JFIELD_PUBLISHED_DESC" class="inputbox" size="1">
+      <option value="1">JPUBLISHED</option>
+      <option value="0">JUNPUBLISHED</option>
+      <option value="2">JARCHIVED</option>
+      <option value="-2">JTRASHED</option>
+    </field>
+    <field name="number" filter="safehtml" min="0" step="1" type="number" required="true" message="Currency Number Already Exists" label="COM_ALFA_FORM_LBL_PLACE_NUMBER" description="COM_ALFA_FORM_DESC_PLACE_NUMBER" hint="COM_ALFA_FORM_LBL_PLACE_NUMBER"/>
+    <field name="parent_id" default="0" label="COM_ALFA_FORM_LBL_PLACE_PARENT_ID" description="COM_ALFA_FORM_DESC_PLACE_PARENT_ID" hint="COM_ALFA_FORM_LBL_PLACE_PARENT_ID"/>
+    <field name="code2" maxlength="2" filter="safehtml" type="text" required="true" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_PLACE_CODE2" description="COM_ALFA_FORM_DESC_PLACE_CODE2" hint="COM_ALFA_FORM_LBL_PLACE_CODE2"/>
+    <field name="code3" maxlength="3" filter="safehtml" type="text" required="true" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_PLACE_CODE3" description="COM_ALFA_FORM_DESC_PLACE_CODE3" hint="COM_ALFA_FORM_LBL_PLACE_CODE3"/>
+    <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL" description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>
+  </fieldset>
+</form>
