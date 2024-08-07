@@ -73,5 +73,28 @@ class AlfaHelper
 
 		return $result;
 	}
+
+    /**
+     * Build a nested array of anything with depth level ( should contain id and parent_id to work ).
+     *
+     * @param array $items E.g The list of categories.
+     * @param int $parentId The parent ID to start building from. ( Begins with zero so we dont set it )
+     * @param int $depth The current depth level ( Auto setted while recursing )
+     * @return array The nested array of items with depth level ( e.g the fixed categories with children and depth attached)
+     */
+    public static function buildNestedArray($items, $parentId = 0, $depth = 0)
+    {
+        $tree = array();
+        foreach ($items as $item) {
+            if ($item->parent_id == $parentId) {
+                $id = $item->id;
+                $item->depth = $depth; // Assign the current depth level
+                $item->children = self::buildNestedArray($items, $id, $depth + 1);
+                $tree[$id] = $item;
+            }
+        }
+        return $tree;
+    }
+
 }
 
