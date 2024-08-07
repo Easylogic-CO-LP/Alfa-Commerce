@@ -181,10 +181,7 @@ class ItemModel extends AdminModel
 		$app    = Factory::getApplication();
 		$db 	= Factory::getDbo();
 
-
-		if($data['alias'] == null){
-			$data['alias'] = $data['title'];
-		}
+		$data['alias'] = $data['alias'] ?: $data['name'];
 
 		if ($app->get('unicodeslugs') == 1){
 			$data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
