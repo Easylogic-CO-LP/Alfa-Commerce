@@ -24,18 +24,29 @@ HTMLHelper::_('bootstrap.tooltip');
 
 <form
 	action="<?php echo Route::_('index.php?option=com_alfa&layout=edit&id=' . (int) $this->item->id); ?>"
-	method="post" enctype="multipart/form-data" name="adminForm" id="category-form" class="form-validate form-horizontal">
+	method="post" enctype="multipart/form-data" name="adminForm" id="category-form" class="form-validate form-horizontal" aria-label="<?php echo Text::_('COM_ALFA_CATEGORY_FORM_TITLE_' . ((int) $this->item->id === 0 ? 'NEW' : 'EDIT'), true); ?>">
+    <div class="row title-alias form-vertical mb-3">
+        <div class="col-12 col-md-6">
+            <?php echo $this->form->renderField('name'); ?>
+        </div>
+        <div class="col-12 col-md-6">
+            <?php echo $this->form->renderField('alias'); ?>
+        </div>
+    </div>
 
-	
 	<?php echo HTMLHelper::_('uitab.startTabSet', 'myTab', array('active' => 'category')); ?>
 	<?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'category', Text::_('COM_ALFA_TAB_CATEGORY', true)); ?>
 	<div class="row-fluid">
 		<div class="col-md-12 form-horizontal">
 			<fieldset class="adminform">
 				<legend><?php echo Text::_('COM_ALFA_FIELDSET_CATEGORY'); ?></legend>
+				<?php echo $this->form->renderField('test_cats'); ?>
+
+				<input type="number" name="toonoma" value="12" />
+
+
 				<?php echo $this->form->renderField('parent_id'); ?>
 				<?php echo $this->form->renderField('id'); ?>
-				<?php echo $this->form->renderField('name'); ?>
 				<?php echo $this->form->renderField('state'); ?>
 			</fieldset>
 		</div>
@@ -46,7 +57,7 @@ HTMLHelper::_('bootstrap.tooltip');
 		<div class="col-md-12 form-horizontal">
 			<fieldset class="adminform">
 				<legend><?php echo Text::_('COM_ALFA_FIELDSET_SEARCHENGINES'); ?></legend>
-				<?php echo $this->form->renderField('alias'); ?>
+
 				<?php echo $this->form->renderField('meta_title'); ?>
 				<?php echo $this->form->renderField('meta_desc'); ?>
 				<?php if ($this->state->params->get('save_history', 1)) : ?>
