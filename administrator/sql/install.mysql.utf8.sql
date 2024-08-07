@@ -104,11 +104,10 @@ CREATE INDEX `#__alfa_items_prices_tax_id` ON `#__alfa_items_prices`(`tax_id`);
 CREATE INDEX `#__alfa_items_prices_discount_id` ON `#__alfa_items_prices`(`discount_id`);
 
 CREATE TABLE IF NOT EXISTS `#__alfa_items_manufacturers` (
-`id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-
 `product_id` INT(11)  NULL  DEFAULT 0,
 `manufacturer_id` INT(11)  NULL  DEFAULT 0,
-PRIMARY KEY (`id`)
+KEY `idx_product_id` (`product_id`),
+KEY `idx_manufacturer_id` (`manufacturer_id`)
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
 
 CREATE INDEX `#__alfa_items_manufacturers_product_id` ON `#__alfa_items_manufacturers`(`product_id`);
@@ -116,10 +115,10 @@ CREATE INDEX `#__alfa_items_manufacturers_product_id` ON `#__alfa_items_manufact
 CREATE INDEX `#__alfa_items_manufacturers_manufacturer_id` ON `#__alfa_items_manufacturers`(`manufacturer_id`);
 
 CREATE TABLE IF NOT EXISTS `#__alfa_items_categories` (
-`id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-
 `product_id` INT(11)  NULL  DEFAULT 0,
-`manufacturer_id` INT(11)  NULL  DEFAULT 0,
+`category_id` INT(11)  NULL  DEFAULT 0,
+KEY `idx_product_id` (`product_id`),
+KEY `idx_category_id` (`category_id`)
 PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
 
