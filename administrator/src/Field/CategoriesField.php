@@ -42,19 +42,13 @@ class CategoriesField extends ListField
 
         $nestedCategories = AlfaHelper::buildNestedArray($categories);
         AlfaHelper::iterateNestedArray($nestedCategories, function ($node, $fullPath) {
-            $this->options[] = array('value' => $node->id, 'text' => $fullPath);
+            $this->options['cat-' . $node->id] = array('value' => $node->id, 'text' => $fullPath);
         }, false);
 
         if ($this->element['removeCurrent'] == "true") {
-            if (($keyToRemove = AlfaHelper::search($this->options, 'value', $this->form->getData()->get('id'))) !== FALSE) {
-                $key = $keyToRemove[0]['value']; // to ksero einai cringe
-                $filteredArray = array_filter($this->options, function ($item) use ($key) {
-                    return $item['value'] != $key;
-                });
-                $this->options = array_values($filteredArray);
-            }
+            $idToRemove = $this->form->getData()->get('id');
+            unset($this->options['cat-' . $idToRemove]);
         }
-
         return array_merge(parent::getOptions(), $this->options);
     }
 
