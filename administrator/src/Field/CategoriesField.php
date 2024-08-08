@@ -29,54 +29,33 @@ class CategoriesField extends ListField
 
     protected $type = 'categories';
 
-    // protected function getInput() {
-
-    //     $id = $this->list_id;
-    //     $my_var = $this->depends_on;
-    //     $name = $this->name;
-
-    //     $html = '<select id='.$id.'><option value="0">Option 1</option>
-    //           <option value="1">--Option 2</option>
-    //           <option value="3">--Option 3</option>
-    //           <option value="3">---Option 3</option>
-    //           <option value="4">Option 4</option>
-    //           <option value="5">-Option 5</option>
-    //           <option value="6">Option 6</option></select>';
-    //     return $html;
-
-    // }
+    protected $options = [];
 
     protected function getOptions()
     {
-
         $app = Factory::getApplication();
         $component = $app->bootComponent('com_alfa');
         $factory = $component->getMVCFactory();
         $model = $factory->createModel('Categories', 'Administrator');
-        $model->setState('filter.state','*');
+        $model->setState('filter.state', '*');
         $categories = $model->getItems();// Fetch the item using the model's getItem method.
 
-//          array('value' => 0, 'text' => $this->default-selection)
-        $options = array();
-        // foreach($rows as $row){
-        // array_push($options, array('value' => 1, 'text' => 'to1' ));
-        // array_push($options, array('value' => 2, 'text' => 'to2' ));
-        // array_push($options, array('value' => 3, 'text' => 'to3' ));
-        // }
+        $nestedCategories = AlfaHelper::buildNestedArray($categories);
+        AlfaHelper::iterateNestedArray($nestedCategories, function ($node, $fullPath) {
+            $this->options[] = array('value' => $node->id, 'text' => $fullPath);
+        }, false);
 
-        // options[]    = HTMLHelper::_('select.option', '', $header_title);
-
-        // // pre-select values 2 and 3
-        // $this->value = array(2, 3);
-        foreach ($categories as $category) {
-            parent::addOption($category->name, ['value' => $category->id]);
+        if ($this->element['removeCurrent'] == "true") {
+            if (($keyToRemove = AlfaHelper::search($this->options, 'value', $this->form->getData()->get('id'))) !== FALSE) {
+                $key = $keyToRemove[0]['value']; // to ksero einai cringe
+                $filteredArray = array_filter($this->options, function ($item) use ($key) {
+                    return $item['value'] != $key;
+                });
+                $this->options = array_values($filteredArray);
+            }
         }
-        $result = AlfaHelper::buildNestedArray($categories);
 
-            // Merge any additional options in the XML definition.
-            $options = array_merge(parent::getOptions(), $options);
-            // parent::getOptions();
-            return $options;
+        return array_merge(parent::getOptions(), $this->options);
     }
 
     public function getAttribute($attr_name, $default = null)
