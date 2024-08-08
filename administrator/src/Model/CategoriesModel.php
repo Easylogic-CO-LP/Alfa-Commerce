@@ -186,6 +186,8 @@ class CategoriesModel extends ListModel
 		$orderCol  = $this->state->get('list.ordering', 'id');
 		$orderDirn = $this->state->get('list.direction', 'ASC');
 
+        $query->order('a.parent_id ASC');
+
 		if ($orderCol && $orderDirn)
 		{
 			$query->order($db->escape($orderCol . ' ' . $orderDirn));
