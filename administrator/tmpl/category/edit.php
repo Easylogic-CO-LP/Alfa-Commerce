@@ -40,11 +40,6 @@ HTMLHelper::_('bootstrap.tooltip');
 		<div class="col-md-12 form-horizontal">
 			<fieldset class="adminform">
 				<legend><?php echo Text::_('COM_ALFA_FIELDSET_CATEGORY'); ?></legend>
-				<?php echo $this->form->renderField('test_cats'); ?>
-
-				<input type="number" name="toonoma" value="12" />
-
-
 				<?php echo $this->form->renderField('parent_id'); ?>
 				<?php echo $this->form->renderField('id'); ?>
 				<?php echo $this->form->renderField('state'); ?>
@@ -57,7 +52,6 @@ HTMLHelper::_('bootstrap.tooltip');
 		<div class="col-md-12 form-horizontal">
 			<fieldset class="adminform">
 				<legend><?php echo Text::_('COM_ALFA_FIELDSET_SEARCHENGINES'); ?></legend>
-
 				<?php echo $this->form->renderField('meta_title'); ?>
 				<?php echo $this->form->renderField('meta_desc'); ?>
 				<?php if ($this->state->params->get('save_history', 1)) : ?>

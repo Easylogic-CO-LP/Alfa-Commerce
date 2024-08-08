@@ -3,10 +3,8 @@
   <fieldset>
 
 
-    <field name="test_cats" type="categories" list_id="" label="to label" description="perigrafi">
-
-      <option value="">no selection</option>
-
+    <field name="parent_id" type="categories" removeCurrent="true" layout="joomla.form.field.list-fancy-select" label="COM_ALFA_FORM_LBL_CATEGORY_PARENT_ID" description="perigrafi">
+      <option value="0">COM_ALFA_FROM_CATEGORY_NO_OPTION</option>
     </field>
 
     <field name="ordering"/>
@@ -15,13 +13,13 @@
     <field name="created_by" type="createdby" default="0" label="JGLOBAL_FIELD_CREATED_BY_LABEL" description="JGLOBAL_FIELD_CREATED_BY_DESC" hidden="true" hint="COM_ALFA_FORM_LBL_CATEGORY_CREATED_BY"/>
     <field name="modified_by" type="modifiedby" default="0" label="JGLOBAL_FIELD_MODIFIED_BY_LABEL" description="JGLOBAL_FIELD_MODIFIED_BY_DESC" hidden="true" hint="COM_ALFA_FORM_LBL_CATEGORY_MODIFIED_BY"/>
 <!--    <field name="parent_id" default="0" label="COM_ALFA_FORM_LBL_CATEGORY_PARENT_ID" description="COM_ALFA_FORM_DESC_CATEGORY_PARENT_ID" hint="COM_ALFA_FORM_LBL_CATEGORY_PARENT_ID"/>-->
-    <field name="parent_id" type="sql"
-           input_type="list"
-           label="Parent Category"
-           description=""
-           layout="joomla.form.field.list-fancy-select"
-           query="SELECT `id`, `name` AS val FROM `#__alfa_categories`" key_field="id" value_field="val"
-    />
+<!--    <field name="parent_id" type="sql"-->
+<!--           input_type="list"-->
+<!--           label="Parent Category"-->
+<!--           description=""-->
+<!--           layout="joomla.form.field.list-fancy-select"-->
+<!--           query="SELECT `id`, `name` AS val FROM `#__alfa_categories`" key_field="id" value_field="val"-->
+<!--    />-->
     <field name="id" type="text" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
     <field name="name" maxlength="400" filter="safehtml" type="text" required="true" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_CATEGORY_NAME" description="COM_ALFA_FORM_DESC_CATEGORY_NAME" hint="COM_ALFA_FORM_LBL_CATEGORY_NAME"/>
     <field name="state" default="1" type="list" label="JSTATUS" description="JFIELD_PUBLISHED_DESC" class="inputbox" size="1">
