@@ -14,6 +14,7 @@
       <option value="2">JARCHIVED</option>
       <option value="-2">JTRASHED</option>
     </field>
+     <field name="name" size="400" filter="safehtml" type="text" required="true" translateLabel="true" label="COM_ALFA_FORM_LBL_MANUFACTURER_NAME" description="COM_ALFA_FORM_DESC_MANUFACTURER_NAME" hint="COM_ALFA_FORM_LBL_MANUFACTURER_NAME"/>
     <field name="alias" type="text" class="inputbox" generator="name" label="JFIELD_ALIAS_LABEL" description="COM_ALFA_FORM_DESC_MANUFACTURER_ALIAS" hint="COM_ALFA_FORM_LBL_MANUFACTURER_ALIAS"/>
     <field name="desc" cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText" type="editor" label="COM_ALFA_FORM_LBL_MANUFACTURER_DESC" description="COM_ALFA_FORM_DESC_MANUFACTURER_DESC" hint="COM_ALFA_FORM_LBL_MANUFACTURER_DESC"/>
     <field name="meta_title" maxlength="255" filter="safehtml" type="text" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_MANUFACTURER_META_TITLE" description="COM_ALFA_FORM_DESC_MANUFACTURER_META_TITLE" hint="COM_ALFA_FORM_LBL_MANUFACTURER_META_TITLE"/>

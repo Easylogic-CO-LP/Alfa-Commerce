@@ -22,13 +22,20 @@ $wa->useScript('keepalive')
 HTMLHelper::_('bootstrap.tooltip');
 ?>
 
+
 <form
 	action="<?php echo Route::_('index.php?option=com_alfa&layout=edit&id=' . (int) $this->item->id); ?>"
 	method="post" enctype="multipart/form-data" name="adminForm" id="manufacturer-form" class="form-validate form-horizontal">
 
-	
-				<?php echo $this->form->renderField('name'); ?>
-				<?php echo $this->form->renderField('alias'); ?>
+	  	  <div class="row name-alias form-vertical mb-3">
+			   <div class="col-12 col-md-6">
+			       <?php echo $this->form->renderField('name'); ?>
+			   </div>
+			   <div class="col-12 col-md-6">
+			       <?php echo $this->form->renderField('alias'); ?>
+			   </div>
+		   </div>
+
 	<?php echo HTMLHelper::_('uitab.startTabSet', 'myTab', array('active' => 'manufacturer')); ?>
 	<?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'manufacturer', Text::_('COM_ALFA_TAB_MANUFACTURER', true)); ?>
 	<div class="row-fluid">
@@ -72,6 +79,10 @@ HTMLHelper::_('bootstrap.tooltip');
 	<?php echo HTMLHelper::_('uitab.endTabSet'); ?>
 
 	<input type="hidden" name="task" value=""/>
+	<?php echo HTMLHelper::_('form.token'); ?>
+
+</form>
+
 	<?php echo HTMLHelper::_('form.token'); ?>
 
 </form>
