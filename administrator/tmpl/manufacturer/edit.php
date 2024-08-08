@@ -74,7 +74,7 @@ HTMLHelper::_('bootstrap.tooltip');
 	<input type="hidden" name="jform[checked_out_time]" value="<?php echo $this->item->checked_out_time; ?>" />
 	<?php echo $this->form->renderField('created_by'); ?>
 	<?php echo $this->form->renderField('modified_by'); ?>
-
+	<?php echo HTMLHelper::_('uitab.endTab'); ?>
 	
 	<?php echo HTMLHelper::_('uitab.endTabSet'); ?>
 
