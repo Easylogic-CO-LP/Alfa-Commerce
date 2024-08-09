@@ -23,25 +23,28 @@ PRIMARY KEY (`id`)
 CREATE TABLE IF NOT EXISTS `#__alfa_categories` (
 `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
 
-`ordering` INT(11)  NULL  DEFAULT 0,
-`checked_out` INT(11)  UNSIGNED,
-`checked_out_time` DATETIME NULL  DEFAULT NULL ,
-`created_by` INT(11)  NULL  DEFAULT 0,
-`modified_by` INT(11)  NULL  DEFAULT 0,
 `parent_id` INT(11)  NULL  DEFAULT 0,
 `name` VARCHAR(400)  NOT NULL ,
+`desc` TEXT NULL ,
 `state` TINYINT(1)  NULL  DEFAULT 1,
 `alias` VARCHAR(255) COLLATE utf8_bin NULL ,
 `meta_title` VARCHAR(255)  NULL  DEFAULT "",
 `meta_desc` TEXT NULL ,
+`ordering` INT(11)  NULL  DEFAULT 0,
+`publish_up` datetime DEFAULT NULL,
+`publish_down` datetime DEFAULT NULL,
+`checked_out` INT(11)  UNSIGNED,
+`checked_out_time` DATETIME NULL  DEFAULT NULL ,
+`created_by` INT(11)  NULL  DEFAULT 0,
+`modified_by` INT(11)  NULL  DEFAULT 0,
+`modified` datetime NOT NULL,
 PRIMARY KEY (`id`)
+,KEY `idx_parent_id` (`parent_id`)
 ,KEY `idx_checked_out` (`checked_out`)
 ,KEY `idx_created_by` (`created_by`)
 ,KEY `idx_modified_by` (`modified_by`)
 ,KEY `idx_state` (`state`)
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
-
-CREATE INDEX `#__alfa_categories_parent_id` ON `#__alfa_categories`(`parent_id`);
 
 CREATE TABLE IF NOT EXISTS `#__alfa_items` (
 `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -70,10 +73,6 @@ PRIMARY KEY (`id`)
 ,KEY `idx_created_by` (`created_by`)
 ,KEY `idx_modified_by` (`modified_by`)
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
-
-CREATE INDEX `#__alfa_items_stock_action` ON `#__alfa_items`(`stock_action`);
-
-CREATE INDEX `#__alfa_items_manage_stock` ON `#__alfa_items`(`manage_stock`);
 
 CREATE TABLE IF NOT EXISTS `#__alfa_items_prices` (
 `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -267,13 +266,12 @@ CREATE TABLE IF NOT EXISTS `#__alfa_places` (
 `code2` VARCHAR(2)  NOT NULL ,
 `code3` VARCHAR(3)  NOT NULL ,
 PRIMARY KEY (`id`)
+,KEY `idx_parent_id` (`parent_id`)
 ,KEY `idx_checked_out` (`checked_out`)
 ,KEY `idx_created_by` (`created_by`)
 ,KEY `idx_modified_by` (`modified_by`)
 ,KEY `idx_state` (`state`)
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
-
-CREATE INDEX `#__alfa_places_parent_id` ON `#__alfa_places`(`parent_id`);
 
 CREATE TABLE IF NOT EXISTS `#__alfa_settings` (
 `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -289,16 +287,13 @@ CREATE TABLE IF NOT EXISTS `#__alfa_settings` (
 `manage_stock` TINYINT(1)  NULL  DEFAULT 0,
 `stock_action` TINYINT(1)  NULL  DEFAULT 0,
 PRIMARY KEY (`id`)
+,KEY `idx_currency` (`currency`)
+,KEY `idx_manage_stock` (`manage_stock`)
+,KEY `idx_stock_action` (`stock_action`)
 ,KEY `idx_checked_out` (`checked_out`)
 ,KEY `idx_created_by` (`created_by`)
 ,KEY `idx_modified_by` (`modified_by`)
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
-
-CREATE INDEX `#__alfa_settings_currency` ON `#__alfa_settings`(`currency`);
-
-CREATE INDEX `#__alfa_settings_manage_stock` ON `#__alfa_settings`(`manage_stock`);
-
-CREATE INDEX `#__alfa_settings_stock_action` ON `#__alfa_settings`(`stock_action`);
 
 CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
 `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -314,12 +309,11 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
 `total` FLOAT NULL  DEFAULT 0,
 PRIMARY KEY (`id`)
 ,KEY `idx_state` (`state`)
+,KEY `idx_payment` (`payment`)
 ,KEY `idx_checked_out` (`checked_out`)
 ,KEY `idx_created_by` (`created_by`)
 ,KEY `idx_modified_by` (`modified_by`)
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
-
-CREATE INDEX `#__alfa_orders_payment` ON `#__alfa_orders`(`payment`);
 
 
 INSERT INTO `#__content_types` (`type_title`, `type_alias`, `table`, `rules`, `field_mappings`, `content_history_options`)
