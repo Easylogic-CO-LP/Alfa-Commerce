@@ -114,6 +114,7 @@ class CategoryModel extends AdminModel
 	*/
 	public function save($data)
 	{
+
 		$app    = Factory::getApplication();
 		if ($data['alias'] == null)
 			{

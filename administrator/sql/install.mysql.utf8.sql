@@ -99,33 +99,20 @@ PRIMARY KEY (`id`)
 ,KEY `idx_modified_by` (`modified_by`)
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX `#__alfa_items_prices_tax_id` ON `#__alfa_items_prices`(`tax_id`);
-
-CREATE INDEX `#__alfa_items_prices_discount_id` ON `#__alfa_items_prices`(`discount_id`);
-
 CREATE TABLE IF NOT EXISTS `#__alfa_items_manufacturers` (
-`id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-
 `product_id` INT(11)  NULL  DEFAULT 0,
 `manufacturer_id` INT(11)  NULL  DEFAULT 0,
-PRIMARY KEY (`id`)
+KEY `idx_product_id` (`product_id`),
+KEY `idx_manufacturer_id` (`manufacturer_id`)
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
-
-CREATE INDEX `#__alfa_items_manufacturers_product_id` ON `#__alfa_items_manufacturers`(`product_id`);
-
-CREATE INDEX `#__alfa_items_manufacturers_manufacturer_id` ON `#__alfa_items_manufacturers`(`manufacturer_id`);
 
 CREATE TABLE IF NOT EXISTS `#__alfa_items_categories` (
-`id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-
 `product_id` INT(11)  NULL  DEFAULT 0,
-`manufacturer_id` INT(11)  NULL  DEFAULT 0,
-PRIMARY KEY (`id`)
+`category_id` INT(11)  NULL  DEFAULT 0,
+KEY `idx_product_id` (`product_id`),
+KEY `idx_category_id` (`category_id`)
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX `#__alfa_items_categories_product_id` ON `#__alfa_items_categories`(`product_id`);
-
-CREATE INDEX `#__alfa_items_categories_manufacturer_id` ON `#__alfa_items_categories`(`manufacturer_id`);
 
 CREATE TABLE IF NOT EXISTS `#__alfa_users` (
 `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -344,7 +331,7 @@ SELECT * FROM ( SELECT 'Manufacturer','com_alfa.manufacturer','{"special":{"dbta
                                     ELSE ''
                                     END as field_mappings, '{"formFile":"administrator\/components\/com_alfa\/forms\/manufacturer.xml", "hideFields":["checked_out","checked_out_time","params","language" ,"meta_desc"], "ignoreChanges":["modified_by", "modified", "checked_out", "checked_out_time"], "convertToInt":["publish_up", "publish_down"], "displayLookup":[{"sourceColumn":"catid","targetTable":"#__categories","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"group_id","targetTable":"#__usergroups","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"created_by","targetTable":"#__users","targetColumn":"id","displayColumn":"name"},{"sourceColumn":"access","targetTable":"#__viewlevels","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"modified_by","targetTable":"#__users","targetColumn":"id","displayColumn":"name"}]}') AS tmp
 WHERE NOT EXISTS (
-	SELECT type_alias FROM `#__content_types` WHERE (`type_alias` = 'com_alfa.manufacturer')
+    SELECT type_alias FROM `#__content_types` WHERE (`type_alias` = 'com_alfa.manufacturer')
 ) LIMIT 1;
 
 INSERT INTO `#__content_types` (`type_title`, `type_alias`, `table`, `rules`, `field_mappings`, `content_history_options`)
@@ -356,7 +343,7 @@ SELECT * FROM ( SELECT 'Category','com_alfa.category','{"special":{"dbtable":"#_
                                     ELSE ''
                                     END as field_mappings, '{"formFile":"administrator\/components\/com_alfa\/forms\/category.xml", "hideFields":["checked_out","checked_out_time","params","language" ,"meta_desc"], "ignoreChanges":["modified_by", "modified", "checked_out", "checked_out_time"], "convertToInt":["publish_up", "publish_down"], "displayLookup":[{"sourceColumn":"catid","targetTable":"#__categories","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"group_id","targetTable":"#__usergroups","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"created_by","targetTable":"#__users","targetColumn":"id","displayColumn":"name"},{"sourceColumn":"access","targetTable":"#__viewlevels","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"modified_by","targetTable":"#__users","targetColumn":"id","displayColumn":"name"}]}') AS tmp
 WHERE NOT EXISTS (
-	SELECT type_alias FROM `#__content_types` WHERE (`type_alias` = 'com_alfa.category')
+    SELECT type_alias FROM `#__content_types` WHERE (`type_alias` = 'com_alfa.category')
 ) LIMIT 1;
 
 INSERT INTO `#__content_types` (`type_title`, `type_alias`, `table`, `rules`, `field_mappings`, `content_history_options`)
@@ -368,7 +355,7 @@ SELECT * FROM ( SELECT 'Item','com_alfa.item','{"special":{"dbtable":"#__alfa_it
                                     ELSE ''
                                     END as field_mappings, '{"formFile":"administrator\/components\/com_alfa\/forms\/item.xml", "hideFields":["checked_out","checked_out_time","params","language" ,"meta_desc"], "ignoreChanges":["modified_by", "modified", "checked_out", "checked_out_time"], "convertToInt":["publish_up", "publish_down"], "displayLookup":[{"sourceColumn":"catid","targetTable":"#__categories","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"group_id","targetTable":"#__usergroups","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"created_by","targetTable":"#__users","targetColumn":"id","displayColumn":"name"},{"sourceColumn":"access","targetTable":"#__viewlevels","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"modified_by","targetTable":"#__users","targetColumn":"id","displayColumn":"name"}]}') AS tmp
 WHERE NOT EXISTS (
-	SELECT type_alias FROM `#__content_types` WHERE (`type_alias` = 'com_alfa.item')
+    SELECT type_alias FROM `#__content_types` WHERE (`type_alias` = 'com_alfa.item')
 ) LIMIT 1;
 
 INSERT INTO `#__content_types` (`type_title`, `type_alias`, `table`, `rules`, `field_mappings`, `content_history_options`)
@@ -380,7 +367,7 @@ SELECT * FROM ( SELECT 'Custom','com_alfa.custom','{"special":{"dbtable":"#__alf
                                     ELSE ''
                                     END as field_mappings, '{"formFile":"administrator\/components\/com_alfa\/forms\/custom.xml", "hideFields":["checked_out","checked_out_time","params","language" ,"desc"], "ignoreChanges":["modified_by", "modified", "checked_out", "checked_out_time"], "convertToInt":["publish_up", "publish_down"], "displayLookup":[{"sourceColumn":"catid","targetTable":"#__categories","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"group_id","targetTable":"#__usergroups","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"created_by","targetTable":"#__users","targetColumn":"id","displayColumn":"name"},{"sourceColumn":"access","targetTable":"#__viewlevels","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"modified_by","targetTable":"#__users","targetColumn":"id","displayColumn":"name"}]}') AS tmp
 WHERE NOT EXISTS (
-	SELECT type_alias FROM `#__content_types` WHERE (`type_alias` = 'com_alfa.custom')
+    SELECT type_alias FROM `#__content_types` WHERE (`type_alias` = 'com_alfa.custom')
 ) LIMIT 1;
 
 INSERT INTO `#__content_types` (`type_title`, `type_alias`, `table`, `rules`, `field_mappings`, `content_history_options`)
@@ -392,7 +379,7 @@ SELECT * FROM ( SELECT 'Shipment Method','com_alfa.shipment','{"special":{"dbtab
                                     ELSE ''
                                     END as field_mappings, '{"formFile":"administrator\/components\/com_alfa\/forms\/shipment.xml", "hideFields":["checked_out","checked_out_time","params","language"], "ignoreChanges":["modified_by", "modified", "checked_out", "checked_out_time"], "convertToInt":["publish_up", "publish_down"], "displayLookup":[{"sourceColumn":"catid","targetTable":"#__categories","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"group_id","targetTable":"#__usergroups","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"created_by","targetTable":"#__users","targetColumn":"id","displayColumn":"name"},{"sourceColumn":"access","targetTable":"#__viewlevels","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"modified_by","targetTable":"#__users","targetColumn":"id","displayColumn":"name"}]}') AS tmp
 WHERE NOT EXISTS (
-	SELECT type_alias FROM `#__content_types` WHERE (`type_alias` = 'com_alfa.shipment')
+    SELECT type_alias FROM `#__content_types` WHERE (`type_alias` = 'com_alfa.shipment')
 ) LIMIT 1;
 
 INSERT INTO `#__content_types` (`type_title`, `type_alias`, `table`, `rules`, `field_mappings`, `content_history_options`)
@@ -404,7 +391,7 @@ SELECT * FROM ( SELECT 'Payment Method','com_alfa.payment','{"special":{"dbtable
                                     ELSE ''
                                     END as field_mappings, '{"formFile":"administrator\/components\/com_alfa\/forms\/payment.xml", "hideFields":["checked_out","checked_out_time","params","language"], "ignoreChanges":["modified_by", "modified", "checked_out", "checked_out_time"], "convertToInt":["publish_up", "publish_down"], "displayLookup":[{"sourceColumn":"catid","targetTable":"#__categories","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"group_id","targetTable":"#__usergroups","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"created_by","targetTable":"#__users","targetColumn":"id","displayColumn":"name"},{"sourceColumn":"access","targetTable":"#__viewlevels","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"modified_by","targetTable":"#__users","targetColumn":"id","displayColumn":"name"}]}') AS tmp
 WHERE NOT EXISTS (
-	SELECT type_alias FROM `#__content_types` WHERE (`type_alias` = 'com_alfa.payment')
+    SELECT type_alias FROM `#__content_types` WHERE (`type_alias` = 'com_alfa.payment')
 ) LIMIT 1;
 
 INSERT INTO `#__content_types` (`type_title`, `type_alias`, `table`, `rules`, `field_mappings`, `content_history_options`)
@@ -416,5 +403,5 @@ SELECT * FROM ( SELECT 'Setting','com_alfa.setting','{"special":{"dbtable":"#__a
                                     ELSE ''
                                     END as field_mappings, '{"formFile":"administrator\/components\/com_alfa\/forms\/setting.xml", "hideFields":["checked_out","checked_out_time","params","language"], "ignoreChanges":["modified_by", "modified", "checked_out", "checked_out_time"], "convertToInt":["publish_up", "publish_down"], "displayLookup":[{"sourceColumn":"catid","targetTable":"#__categories","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"group_id","targetTable":"#__usergroups","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"created_by","targetTable":"#__users","targetColumn":"id","displayColumn":"name"},{"sourceColumn":"access","targetTable":"#__viewlevels","targetColumn":"id","displayColumn":"title"},{"sourceColumn":"modified_by","targetTable":"#__users","targetColumn":"id","displayColumn":"name"},{"sourceColumn":"currency","targetTable":"#__alfa_currencies","targetColumn":"id","displayColumn":"name"}]}') AS tmp
 WHERE NOT EXISTS (
-	SELECT type_alias FROM `#__content_types` WHERE (`type_alias` = 'com_alfa.setting')
+    SELECT type_alias FROM `#__content_types` WHERE (`type_alias` = 'com_alfa.setting')
 ) LIMIT 1;
