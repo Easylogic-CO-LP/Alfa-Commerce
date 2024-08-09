@@ -27,20 +27,24 @@
     <field name="meta_desc" cols="30" rows="3" filter="safehtml" type="textarea" label="JFIELD_META_DESCRIPTION_LABEL" description="COM_ALFA_FORM_DESC_ITEM_META_DESC" hint="COM_ALFA_FORM_LBL_ITEM_META_DESC"/>
     <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL" description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>
 
-    <field name="categories" type="sql"
-       input_type="list"
-       required="true"
-        multiple="true"
-        label="Categories"
-        description=""
-        layout="joomla.form.field.list-fancy-select"
-        query="SELECT `id`, `name` AS val FROM `#__alfa_categories`" key_field="id" value_field="val"
-     />
+    <field name="categories" type="categories" showPath="true" multiple="true" layout="joomla.form.field.list-fancy-select" label="COM_ALFA_FORM_LBL_CATEGORY_PARENT_ID" description="perigrafi">
+      <option value="0">COM_ALFA_FROM_CATEGORY_NO_OPTION</option>
+    </field>
+
+<!--    <field name="categories" type="sql"-->
+<!--       input_type="list"-->
+<!--       required="true"-->
+<!--        multiple="true"-->
+<!--        label="Categories"-->
+<!--        description=""-->
+<!--        layout="joomla.form.field.list-fancy-select"-->
+<!--        query="SELECT `id`, `name` AS val FROM `#__alfa_categories`" key_field="id" value_field="val"-->
+<!--     />-->
 
     <field
       name="manufacturers" type="sql"
       input_type="list"
-      required="true"
+      required="false"
       multiple="true"
       label="Manufacturers"
       description=""
