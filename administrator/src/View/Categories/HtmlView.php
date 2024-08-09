@@ -59,43 +59,16 @@ class HtmlView extends BaseHtmlView
             throw new \Exception(implode("\n", $errors));
         }
 
-        // Modify names for nested categories
-        // Create associative array based on names
-        $nestedCategoryNames = AlfaHelper::buildNestedArray($this->items);
-        AlfaHelper::iterateNestedArray($nestedCategoryNames, function ($node, $fullPath) {
-            $this->sortedNames[] = $node->name; // Collect names
-            $this->nestedNames[$node->name] = $fullPath; // Map names to full paths
-        }, false);
-
-        // Create a mapping from names to objects
-        $nameToObjectMap = [];
-        foreach ($this->items as $item) {
-            $nameToObjectMap[$item->name] = $item;
-        }
-
-        // Create a new array based on the sorted names
-        $sortedItems = [];
-        foreach ($this->sortedNames as $name) {
-            if (isset($nameToObjectMap[$name])) {
-                $sortedItems[] = $nameToObjectMap[$name];
-            }
-        }
-
-        // Map sorted items to include full path as names
-        $fullPathNames = [];
-        foreach ($this->sortedNames as $name) {
-            if (isset($this->nestedNames[$name])) {
-                $fullPathNames[$name] = $this->nestedNames[$name];
-            }
-        }
-
-        // Update names in sorted items with full paths
-        foreach ($sortedItems as $item) {
-            $item->name = $fullPathNames[$item->name];
-        }
-
-        // Assign sorted items back
-        $this->items = $sortedItems;
+//	    $listOrdering = $this->state['list.ordering'];
+//	    $listDirection = $this->state['list.direction'];
+//print_r($listOrdering);
+//exit;
+        // Create associative array
+//        $nestedCategories = AlfaHelper::buildNestedArray($this->items);
+//	    // Sprt array and its nested arrays
+//	    AlfaHelper::sort_nested_items($nestedCategories,'name','asc');
+//	    // Flatten the array
+//		$this->items = AlfaHelper::flatten_nested_items($nestedCategories);
 
         $this->addToolbar();
 

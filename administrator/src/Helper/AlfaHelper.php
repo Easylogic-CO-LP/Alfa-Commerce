@@ -8,6 +8,7 @@
  */
 
 namespace Alfa\Component\Alfa\Administrator\Helper;
+
 // No direct access
 defined('_JEXEC') or die;
 
@@ -23,57 +24,6 @@ use \Joomla\CMS\Object\CMSObject;
 class AlfaHelper
 {
     /**
-     * Gets the files attached to an item
-     *
-     * @param int $pk The item's id
-     *
-     * @param string $table The table's name
-     *
-     * @param string $field The field's name
-     *
-     * @return  array  The files
-     */
-    public static function getFiles($pk, $table, $field)
-    {
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $query = $db->getQuery(true);
-
-        $query
-            ->select($field)
-            ->from($table)
-            ->where('id = ' . (int)$pk);
-
-        $db->setQuery($query);
-
-        return explode(',', $db->loadResult());
-    }
-
-    /**
-     * Gets a list of the actions that can be performed.
-     *
-     * @return  CMSObject
-     *
-     * @since   1.0.1
-     */
-    public static function getActions()
-    {
-        $user = Factory::getApplication()->getIdentity();
-        $result = new CMSObject;
-
-        $assetName = 'com_alfa';
-
-        $actions = array(
-            'core.admin', 'core.manage', 'core.create', 'core.edit', 'core.edit.own', 'core.edit.state', 'core.delete'
-        );
-
-        foreach ($actions as $action) {
-            $result->set($action, $user->authorise($action, $assetName));
-        }
-
-        return $result;
-    }
-
-    /**
      * Build a nested array of anything with depth level ( should contain id and parent_id to work ).
      *
      * @param array $items E.g The list of categories.
@@ -81,73 +31,201 @@ class AlfaHelper
      * @param int $depth The current depth level ( Auto setted while recursing )
      * @return array The nested array of items with depth level ( e.g the fixed categories with children and depth attached)
      */
-    public static function buildNestedArray($items, $parentId = 0, $depth = 0)
+    public static function buildNestedArray($items, $childrenField='children' , $parentId = 0, $depth = 0)
     {
         $tree = array();
         foreach ($items as $item) {
             if ($item->parent_id == $parentId) {
                 $id = $item->id;
                 $item->depth = $depth; // Assign the current depth level
-                $item->children = self::buildNestedArray($items, $id, $depth + 1);
+                $item->{$$childrenField} = self::buildNestedArray($items, $id, $depth + 1);
                 $tree[$id] = $item;
             }
         }
         return $tree;
     }
 
-    public static function iterateNestedArray($tree, $callback, $fullPath = false, $parentNames = '')
+
+    public static function sort_items($object1, $object2, $property, $order = 'asc')
     {
-        foreach ($tree as $node) {
-
-            // Build the full path or hierarchical representation of category names based on the format
-            if ($fullPath) {
-                $currentPath = empty($parentNames) ? $node->name : $parentNames . ' / ' . $node->name;
-            } else {
-                $currentPath = str_repeat('- ', $node->depth) . $node->name;
-            }
-
-            // Apply the callback function to the current node with the full path or hierarchical representation
-            $callback($node, $currentPath);
-
-            // If the node has children, recursively iterate through them
-            if (!empty($node->children)) {
-                self::iterateNestedArray($node->children, $callback, $fullPath, $currentPath);
-            }
-        }
-    }
-    public static function sort_items($object1, $object2, $property, $order = 'asc', $isNumeric = true)
-    {
-        if ($isNumeric) {
+	    if (is_numeric($object1->$property) && is_numeric($object2->$property)) {
             $result = ($object1->$property == $object2->$property) ? 0 : (($object1->$property > $object2->$property) ? 1 : -1);
         } else {
             $result = strcasecmp($object1->$property, $object2->$property);
         }
-        return ($order == 'asc') ? $result : -$result;
+        return (strtolower($order) == 'asc') ? $result : -$result;
     }
 
-    public static function search($array, $key, $value) {
-        $results = array();
+	public static function sort_nested_items(&$items, $property = 'name', $order = 'asc',$childrenField = 'children') {
+		// Sort the current level of items
+		usort($items, function ($option1, $option2) use ($property, $order) {
+			return self::sort_items($option1, $option2, $property, $order);
+		});
 
-        // if it is an array
-        if (is_array($array)) {
+		// Recursively sort the children
+		foreach ($items as &$item) {
+			if (isset($item->{$childrenField}) && is_array($item->{$childrenField})) {
+				self::sort_nested_items($item->{$childrenField}, $property, $order);
+			}
+		}
+	}
 
-            // if array has required key and value
-            // matched store result
-            if (isset($array[$key]) && $array[$key] == $value) {
-                $results[] = $array;
-            }
 
-            // Iterate for each element in array
-            foreach ($array as $subarray) {
+//	public static function flatten_nested_items($items,$childrenField = 'children') {
+//		$flatArray = [];
+//
+//		foreach ($items as $item) {
+//			// Clone the item to avoid modifying the original structure
+//			$flattenedItem = clone $item;
+//
+//			// Remove the children property
+//			unset($flattenedItem->{$childrenField});
+//
+//			// Add the item without children to the flat array
+//			$flatArray[] = $flattenedItem;
+//
+//			// If the item has children, recursively flatten them
+//			if (isset($item->{$childrenField}) && is_array($item->{$childrenField})) {
+//				$flatArray = array_merge($flatArray, self::flatten_nested_items($item->{$childrenField}));
+//			}
+//		}
+//
+//		return $flatArray;
+//	}
 
-                // recur through each element and append result
-                $results = array_merge($results,
-                    self::search($subarray, $key, $value));
-            }
-        }
+	public static function flatten_nested_items($items, $pathField = 'name', $pathSeparator = '/', $childrenField = 'children',$parentPath = '') {
+		$flatArray = [];
 
-        return $results;
-    }
+		foreach ($items as $item) {
+			// Clone the item to avoid modifying the original structure
+			$flattenedItem = clone $item;
+
+			// If pathField is provided, build the path
+			if ($pathField) {
+				// If parentPath is empty, avoid adding a leading separator
+				$currentPath = $parentPath ? $parentPath . $pathSeparator . $item->{$pathField} : $item->{$pathField};
+
+				// Add the current path to the flattened item
+				$flattenedItem->path = $currentPath;
+			}
+
+			// Remove the children property to avoid recursion issues
+			unset($flattenedItem->{$childrenField});
+
+			// Add the item without children to the flat array
+			$flatArray[] = $flattenedItem;
+
+			// If the item has children, recursively flatten them, passing the current path as the parent path
+			if (isset($item->{$childrenField}) && is_array($item->{$childrenField})) {
+				$flatArray = array_merge($flatArray, self::flatten_nested_items($item->{$childrenField},  $pathField,$pathSeparator,$childrenField, $currentPath));
+			}
+		}
+
+		return $flatArray;
+	}
+
+
+	public static function addHierarchyData($items, $pathField='name',$pathSeparator = '/',$parentPath = '',$parentId = 0, $depth = 0)
+	{
+		$hierarchyData = array();
+		foreach ($items as $item) {
+			if ($item->parent_id == $parentId) {
+				$item->depth = $depth; // Assign the current depth level
+
+				if ($pathField && property_exists($item, $pathField)) {
+					// If parentPath is empty, avoid adding a leading separator
+					$currentPath = $parentPath ? $parentPath . $pathSeparator . $item->{$pathField} : $item->{$pathField};
+					// Add the current path to the flattened item
+					$item->path = $currentPath;
+				} else {
+					// Handle cases where the property does not exist or $pathField is invalid
+					$item->path = $parentPath; // or set some default value
+				}
+
+				$hierarchyData[] = $item; // Add the item to the array
+				// Recursively add next items to the array
+				$hierarchyData = array_merge($hierarchyData, self::addHierarchyData($items, $pathField, $pathSeparator, $currentPath, $item->id, $depth + 1));
+
+			}
+		}
+		return $hierarchyData;
+	}
+
+//addHierarchyMetadata
+//hierarchyMetadata
+
+
+	/* public static function iterateNestedArray($tree, $callback, $fullPath = false, $parentNames = '')
+	   {
+		   foreach ($tree as $node) {
+
+			   // Build the full path or hierarchical representation of category names based on the format
+			   if ($fullPath) {
+				   $currentPath = empty($parentNames) ? $node->name : $parentNames . ' / ' . $node->name;
+			   } else {
+				   $currentPath = str_repeat('- ', $node->depth) . $node->name;
+			   }
+
+			   // Apply the callback function to the current node with the full path or hierarchical representation
+			   $callback($node, $currentPath);
+
+			   // If the node has children, recursively iterate through them
+			   if (!empty($node->children)) {
+				   self::iterateNestedArray($node->children, $callback, $fullPath, $currentPath);
+			   }
+		   }
+	   }*/
+
+	/**
+	 * Gets the files attached to an item
+	 *
+	 * @param int $pk The item's id
+	 *
+	 * @param string $table The table's name
+	 *
+	 * @param string $field The field's name
+	 *
+	 * @return  array  The files
+	 */
+	public static function getFiles($pk, $table, $field)
+	{
+		$db = Factory::getContainer()->get('DatabaseDriver');
+		$query = $db->getQuery(true);
+
+		$query
+			->select($field)
+			->from($table)
+			->where('id = ' . (int)$pk);
+
+		$db->setQuery($query);
+
+		return explode(',', $db->loadResult());
+	}
+
+	/**
+	 * Gets a list of the actions that can be performed.
+	 *
+	 * @return  CMSObject
+	 *
+	 * @since   1.0.1
+	 */
+	public static function getActions()
+	{
+		$user = Factory::getApplication()->getIdentity();
+		$result = new CMSObject;
+
+		$assetName = 'com_alfa';
+
+		$actions = array(
+			'core.admin', 'core.manage', 'core.create', 'core.edit', 'core.edit.own', 'core.edit.state', 'core.delete'
+		);
+
+		foreach ($actions as $action) {
+			$result->set($action, $user->authorise($action, $assetName));
+		}
+
+		return $result;
+	}
 
 }
 

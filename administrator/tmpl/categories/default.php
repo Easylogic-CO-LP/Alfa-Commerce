@@ -19,8 +19,10 @@ use \Joomla\CMS\Layout\LayoutHelper;
 use \Joomla\CMS\Language\Text;
 use Joomla\CMS\Session\Session;
 
-HTMLHelper::_('bootstrap.tooltip');
-HTMLHelper::_('behavior.multiselect');
+/** @var \Alfa\Component\Alfa\Administrator\View\Categories\HtmlView $this */
+
+//HTMLHelper::_('bootstrap.tooltip');
+//HTMLHelper::_('behavior.multiselect');
 
 // Import CSS
 $wa =  $this->document->getWebAssetManager();
@@ -140,7 +142,9 @@ if (!empty($saveOrder))
 								<?php endif; ?>
 								<?php if ($canEdit) : ?>
 									<a href="<?php echo Route::_('index.php?option=com_alfa&task=category.edit&id='.(int) $item->id); ?>">
-									<?php echo $this->escape($item->name); ?>
+									<?php echo str_repeat('- ', $item->depth) . $this->escape($item->name); ?>
+
+<!--									(--><?php //echo $this->escape($item->path); ?><!--)-->
 									</a>
 								<?php else : ?>
 												<?php echo $this->escape($item->name); ?>
