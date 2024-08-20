@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="component" method="upgrade">
+    <name>com_alfa</name>
+    <creationDate>2024-05-10</creationDate>
+    <copyright>2024 Easylogic CO LP</copyright>
+    <license>GNU General Public License version 2 or later; see LICENSE.txt</license>
+    <author>Agamemnon Fakas</author>
+    <authorEmail>info@easylogic.gr</authorEmail>
+    <authorUrl>http://easylogic.gr</authorUrl>
+    <version>1.0.2</version>
+    <description>The smartest,fastest and easiest ecommerce solution for companies developed with love by Easylogic.</description>
+    <namespace path="src">Alfa\Component\Alfa</namespace>
+    
+    <scriptfile>script.php</scriptfile>
+    
+    <install> <!-- Runs on install -->
+        <sql>
+            <file driver="mysql" charset="utf8">sql/install.mysql.utf8.sql</file>
+        </sql>
+    </install>
+    <update> <!-- Runs on update -->
+        <schemas>
+            <schemapath type="mysql">sql/updates</schemapath>
+        </schemas>
+    </update>
+    <uninstall> <!-- Runs on uninstall -->
+        <sql>
+            <file driver="mysql" charset="utf8">sql/uninstall.mysql.utf8.sql</file>
+        </sql>
+    </uninstall>
+
+    <api>
+		<files folder="api">
+			<folder>src</folder>
+		</files>
+	</api>
+
+    <files folder="site">
+        <folder>src</folder>
+        <folder>forms</folder>
+        <folder>tmpl</folder>
+    </files>
+    <media destination="com_alfa" folder="media">
+        <folder>css</folder>
+        <folder>js</folder>
+        <filename>joomla.asset.json</filename>
+    </media>
+    <languages folder="site/languages">
+			<language tag="en-GB">en-GB/com_alfa.ini</language>
+    </languages>
+    <administration>
+        <menu>COM_ALFA</menu>
+        <submenu>
+            
+            <menu link="option=com_alfa&amp;view=categories" view="categories" alt="Alfa/Categories">COM_ALFA_TITLE_CATEGORIES</menu>
+
+            <menu link="option=com_alfa&amp;view=items" view="items" alt="Alfa/Items">COM_ALFA_TITLE_ITEMS</menu>
+
+            <menu link="option=com_alfa&amp;view=orders" view="orders" alt="Alfa/Orders">COM_ALFA_TITLE_ORDERS</menu>
+
+            <menu link="option=com_alfa&amp;view=coupons" view="coupons" alt="Alfa/Coupons">COM_ALFA_TITLE_COUPONS</menu>
+
+            <menu link="option=com_alfa&amp;view=users" view="users" alt="Alfa/Users">COM_ALFA_TITLE_USERS</menu>
+
+            <menu link="option=com_alfa&amp;view=usergroups" view="usergroups" alt="Alfa/Usergroups">COM_ALFA_TITLE_USERGROUPS</menu>
+
+            <menu link="option=com_alfa&amp;view=customs" view="customs" alt="Alfa/Customs">COM_ALFA_TITLE_CUSTOMS</menu>
+
+			<menu link="option=com_alfa&amp;view=manufacturers" view="manufacturers" alt="Alfa/Manufacturers">COM_ALFA_TITLE_MANUFACTURERS</menu>
+			
+			<menu link="option=com_alfa&amp;view=shipments" view="shipments" alt="Alfa/Shipments">COM_ALFA_TITLE_SHIPMENTS</menu>
+
+            <menu link="option=com_alfa&amp;view=payments" view="payments" alt="Alfa/Payments">COM_ALFA_TITLE_PAYMENTS</menu>
+
+            <menu link="option=com_alfa&amp;view=places" view="places" alt="Alfa/Places">COM_ALFA_TITLE_PLACES</menu>
+
+			<menu link="option=com_alfa&amp;view=currencies" view="currencies" alt="Alfa/Currencies">COM_ALFA_TITLE_CURRENCIES</menu>
+
+			<menu link="option=com_alfa&amp;view=settings" view="settings" alt="Alfa/Settings">COM_ALFA_TITLE_SETTINGS</menu>
+
+        </submenu>
+        <files folder="administrator">
+            <filename>access.xml</filename>
+            <filename>config.xml</filename>
+            <folder>forms</folder>
+            <folder>src</folder>
+            <folder>tmpl</folder>
+            <folder>services</folder>
+            <folder>layouts</folder>
+            <folder>presets</folder>
+            <folder>sql</folder>
+        </files>
+        <languages folder="administrator/languages">
+            
+			<language tag="en-GB">en-GB/com_alfa.ini</language>
+			<language tag="en-GB">en-GB/com_alfa.sys.ini</language>
+        </languages>
+    </administration>
+<!--     <config>
+        <fields name="params">
+            <fieldset name="component">
+                <field name="save_history" default="0" />
+            </fieldset>
+        </fields>
+    </config> -->
+    <plugins>
+		<plugin group="finder" plugin="alfamanufacturers"/>
+		<plugin group="finder" plugin="alfacategories"/>
+		<plugin group="finder" plugin="alfaitems"/>
+		<plugin group="webservices" plugin="alfa"/>
+    </plugins>
+    <modules>
+		<module module="mod_alfa" />
+	</modules>
+
+    <updateservers>
+        <server type="extension" priority="1" name="com_alfa">https://cdn.demosites.gr/alfa-updates.xml</server>
+    </updateservers>
+</extension>
