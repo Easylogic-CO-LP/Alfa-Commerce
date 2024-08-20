@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use \Joomla\CMS\Table\Table;
 use \Joomla\CMS\Factory;
 use \Joomla\CMS\Language\Text;
@@ -135,6 +136,9 @@ class ItemModel extends AdminModel
 
 	            $db->setQuery($query);
 	            $item->manufacturers = $db->loadColumn();
+
+	            $item->allowedUsers = AlfaHelper::getAllowedUsers($item->id, '#__alfa_items_users', 'item_id');
+            	$item->allowedUserGroups = AlfaHelper::getAllowedUserGroups($item->id, '#__alfa_items_usergroups', 'item_id');
 			}
 
 			return $item;
@@ -188,6 +192,11 @@ class ItemModel extends AdminModel
 		} else {
 			$data['alias'] = OutputFilter::stringURLSafe($data['alias']);
 		}
+
+		$data['modified'] = date('Y-m-d H:i:s');
+
+        AlfaHelper::setAllowedUsers($data['id'], $data['allowedUsers'], '#__alfa_items_users', 'item_id');
+        AlfaHelper::setAllowedUserGroups($data['id'], $data['allowedUserGroups'], '#__alfa_items_usergroups', 'item_id');
 
 
 		// if ($table->load(['slug' => $data['slug']])) { //checks for duplicates
