@@ -99,12 +99,6 @@ $input = Factory::getApplication()->getInput();
     </div>
     <?php echo HTMLHelper::_('uitab.endTab'); ?>
 
-    <!--    <input type="hidden" name="jform[ordering]" value="--><?php //echo $this->item->ordering; ?><!--" />-->
-    <!--    <input type="hidden" name="jform[checked_out]" value="-->
-    <?php //echo $this->item->checked_out; ?><!--" />-->
-    <!--    <input type="hidden" name="jform[checked_out_time]" value="-->
-    <?php //echo $this->item->checked_out_time; ?><!--" />-->
-
 
     <?php echo HTMLHelper::_('uitab.endTabSet'); ?>
 
