@@ -33,18 +33,25 @@ class CategoriesField extends ListField
 
     protected function getOptions()
     {
-        $disableDescendants = $this->element['disableDescendants']=='true' ? true : false;
-        $showPath      = $this->element['showPath']=='true' ? true : false;
-        $orderBy      = $this->element['orderBy'] ?? 'name';
-        $orderDir      = $this->element['orderDir'] ?? 'ASC';
+        $disableDescendants = $this->element['disableDescendants'] == 'true' ? true : false;
+        $showPath = $this->element['showPath'] == 'true' ? true : false;
+        $orderBy = $this->element['orderBy'] ?? 'name';
+        $orderDir = $this->element['orderDir'] ?? 'ASC';
         $currentCategoryIdField = $this->element['currentIdField'] ?? 'id';//by default as the current category id we get the name="id" field from the form
+
+        $model = $this->element['model'] ?? 'categories';//model to use getItems from ( default is categories model )
 
         $this->options = parent::getOptions();
 
-        $app       = Factory::getApplication();
+        $app = Factory::getApplication();
         $component = $app->bootComponent('com_alfa');
-        $factory   = $component->getMVCFactory();
-        $model     = $factory->createModel('Categories', 'Administrator');
+        $factory = $component->getMVCFactory();
+        $model = $factory->createModel($model, 'Administrator');
+
+        if (!$model) {
+            return $this->options;
+        }
+
         $model->setState('filter.state', '*');
 
         $model->getState('list.ordering');//we should use get before set the list state fields
@@ -60,8 +67,7 @@ class CategoriesField extends ListField
         $disableMode = false;
         $disableParentCategoryLevel = null;
 
-        foreach ($categories as $category)
-        {
+        foreach ($categories as $category) {
             $disableCurrent = false;//by default disable the current category will be false
 
             // Check if we should start disabling descendants
@@ -72,18 +78,18 @@ class CategoriesField extends ListField
 
             // If we're in disable mode, disable until we reach a category with a depth greater than current
             if ($disableMode) {
-                if($category->depth >= $disableParentCategoryLevel){
+                if ($category->depth >= $disableParentCategoryLevel) {
                     $disableCurrent = true;
-                }else{
+                } else {
                     $disableMode = false;
                 }
             }
 
             $this->options['cat-' . $category->id] =
                 array('value' => $category->id,
-                    'text'  => ($showPath
-                        ?$category->path
-                        :str_repeat('-', $category->depth).$category->name
+                    'text' => ($showPath
+                        ? $category->path
+                        : str_repeat('-', $category->depth) . $category->name
                     ),
                     'disable' => $disableCurrent, // Adding the disabled attribute
                 );
@@ -91,8 +97,8 @@ class CategoriesField extends ListField
 
         }
 
-//		$removeCurrent = $this->element['removeCurrent']=='true' ? true : false;
-//		if ($removeCurrent){ unset($this->options['cat-' . $currentCategoryId]); }
+//      $removeCurrent = $this->element['removeCurrent']=='true' ? true : false;
+//      if ($removeCurrent){ unset($this->options['cat-' . $currentCategoryId]); }
 
         return $this->options;
 

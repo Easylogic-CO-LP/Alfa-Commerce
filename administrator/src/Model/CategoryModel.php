@@ -117,21 +117,14 @@ class CategoryModel extends AdminModel
                 $currentId = intval($data['id']);
             } else { // is new
                 $currentId = intval($this->getState($this->getName() . '.id')); //get the id from setted joomla state
-                $data['allowedUsers'] = [];
-                $data['allowedUserGroups'] = [];
             }
-            if ($data['alias'] == null) {
-                if ($app->get('unicodeslugs') == 1) {
-                    $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['title']);
-                } else {
-                    $data['alias'] = OutputFilter::stringURLSafe($data['title']);
-                }
+
+            $data['alias'] = $data['alias'] ?: $data['name'];
+
+            if ($app->get('unicodeslugs') == 1) {
+                $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
             } else {
-                if ($app->get('unicodeslugs') == 1) {
-                    $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
-                } else {
-                    $data['alias'] = OutputFilter::stringURLSafe($data['alias']);
-                }
+                $data['alias'] = OutputFilter::stringURLSafe($data['alias']);
             }
 
             AlfaHelper::setAllowedUsers($currentId, $data['allowedUsers'], '#__alfa_categories_users', 'category_id');
