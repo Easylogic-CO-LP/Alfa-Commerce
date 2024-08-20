@@ -11,12 +11,12 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use \Joomla\CMS\Table\Table;
 use \Joomla\CMS\Factory;
 use \Joomla\CMS\Language\Text;
 use \Joomla\CMS\Plugin\PluginHelper;
 use \Joomla\CMS\MVC\Model\AdminModel;
-use \Joomla\CMS\Helper\TagsHelper;
 use \Joomla\CMS\Filter\OutputFilter;
 use \Joomla\CMS\Event\Model;
 
@@ -110,24 +110,32 @@ class CategoryModel extends AdminModel
      */
     public function save($data)
     {
+        if (parent::save($data)) {
+            $app = Factory::getApplication();
+            if ($data['alias'] == null) {
+                if ($app->get('unicodeslugs') == 1) {
+                    $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['title']);
+                } else {
+                    $data['alias'] = OutputFilter::stringURLSafe($data['title']);
+                }
+            } else {
+                if ($app->get('unicodeslugs') == 1) {
+                    $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
+                } else {
+                    $data['alias'] = OutputFilter::stringURLSafe($data['alias']);
+                }
+            }
+            $data['modified'] = date('Y-m-d H:i:s');
 
-        $app = Factory::getApplication();
-        if ($data['alias'] == null) {
-            if ($app->get('unicodeslugs') == 1) {
-                $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['title']);
-            } else {
-                $data['alias'] = OutputFilter::stringURLSafe($data['title']);
-            }
-        } else {
-            if ($app->get('unicodeslugs') == 1) {
-                $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
-            } else {
-                $data['alias'] = OutputFilter::stringURLSafe($data['alias']);
-            }
+            AlfaHelper::setAllowedUsers($data['id'], $data['allowedUsers'], '#__alfa_categories_users', 'category_id');
+            AlfaHelper::setAllowedUserGroups($data['id'], $data['allowedUserGroups'], '#__alfa_categories_usergroups', 'category_id');
+
+            return true;
         }
-        $data['modified'] = date('Y-m-d H:i:s');
-        return parent::save($data);
+        return false;
     }
+
+
 
     /**
      * Method to get the data that should be injected in the form.
@@ -170,7 +178,10 @@ class CategoryModel extends AdminModel
                 $item->params = json_encode($item->params);
             }
 
+            // $item->allowedUsers = [900,899];
             // Do any procesing on fields here if needed
+            $item->allowedUsers = AlfaHelper::getAllowedUsers($item->id, '#__alfa_categories_users', 'category_id');
+            $item->allowedUserGroups = AlfaHelper::getAllowedUserGroups($item->id, '#__alfa_categories_usergroups', 'category_id');
         }
 
         return $item;
@@ -261,17 +272,17 @@ class CategoryModel extends AdminModel
      */
     protected function prepareTable($table)
     {
-//		if (empty($table->id))
-//		{
-//			// Set ordering to the last item if not set
-//			if (@$table->ordering === '')
-//			{
-//				$db = $this->getDbo();
-//				$db->setQuery('SELECT MAX(ordering) FROM #__alfa_categories');
-//				$max             = $db->loadResult();
-//				$table->ordering = $max + 1;
-//			}
-//		}
+//      if (empty($table->id))
+//      {
+//          // Set ordering to the last item if not set
+//          if (@$table->ordering === '')
+//          {
+//              $db = $this->getDbo();
+//              $db->setQuery('SELECT MAX(ordering) FROM #__alfa_categories');
+//              $max             = $db->loadResult();
+//              $table->ordering = $max + 1;
+//          }
+//      }
 
         if (empty($table->publish_up)) {
             $table->publish_up = null;
