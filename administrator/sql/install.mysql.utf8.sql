@@ -45,6 +45,18 @@ PRIMARY KEY (`id`)
 ,KEY `idx_state` (`state`)
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `#__alfa_categories_users` (
+    `category_id` INT(11) NOT NULL,
+    `user_id` INT(11) NOT NULL,
+    KEY (`category_id`, `user_id`)
+) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `#__alfa_categories_usergroups` (
+    `category_id` INT(11) NOT NULL,
+    `usergroup_id` INT(11) NOT NULL,
+    KEY (`category_id`, `usergroup_id`)
+) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `#__alfa_items` (
 `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
 `name` VARCHAR(255)  NOT NULL ,

@@ -16,7 +16,6 @@ use \Joomla\CMS\Factory;
 use \Joomla\CMS\Language\Text;
 use \Joomla\CMS\Plugin\PluginHelper;
 use \Joomla\CMS\MVC\Model\AdminModel;
-use \Joomla\CMS\Helper\TagsHelper;
 use \Joomla\CMS\Filter\OutputFilter;
 use \Joomla\CMS\Event\Model;
 
@@ -110,23 +109,113 @@ class CategoryModel extends AdminModel
      */
     public function save($data)
     {
+        if (parent::save($data)) {
+            $app = Factory::getApplication();
+            if ($data['alias'] == null) {
+                if ($app->get('unicodeslugs') == 1) {
+                    $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['title']);
+                } else {
+                    $data['alias'] = OutputFilter::stringURLSafe($data['title']);
+                }
+            } else {
+                if ($app->get('unicodeslugs') == 1) {
+                    $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
+                } else {
+                    $data['alias'] = OutputFilter::stringURLSafe($data['alias']);
+                }
+            }
+            $data['modified'] = date('Y-m-d H:i:s');
 
-        $app = Factory::getApplication();
-        if ($data['alias'] == null) {
-            if ($app->get('unicodeslugs') == 1) {
-                $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['title']);
-            } else {
-                $data['alias'] = OutputFilter::stringURLSafe($data['title']);
-            }
-        } else {
-            if ($app->get('unicodeslugs') == 1) {
-                $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
-            } else {
-                $data['alias'] = OutputFilter::stringURLSafe($data['alias']);
-            }
+            $this->setAllowedUsers($data);
+            $this->setAllowedUserGroups($data);
+
+            return true;
         }
-        $data['modified'] = date('Y-m-d H:i:s');
-        return parent::save($data);
+        return false;
+    }
+
+    /**
+     * @param $data
+     * @return void
+     */
+    protected function setAllowedUsers($data)
+    {
+        $db = $this->getDatabase();
+        $category = $this->getItem();
+        // save users per category on categories_users
+        $query = $db->getQuery(true);
+        $query->delete('#__alfa_categories_users')->where('category_id = ' . $category->id);
+        $db->setQuery($query);
+        $db->execute();
+
+        foreach ($data['allowedUsers'] as $allowedUser) {
+            $query = $db->getQuery(true);
+            $query->insert('#__alfa_categories_users')
+                ->set('category_id = ' . $category->id)
+                ->set('user_id = ' . intval($allowedUser));
+            $db->setQuery($query);
+            $db->execute();
+        }
+    }
+
+    /**
+     * @param $data
+     * @return void
+     */
+    protected function setAllowedUserGroups($data)
+    {
+        $db = $this->getDatabase();
+        $category = $this->getItem();
+        // save users per category on categories_users
+        $query = $db->getQuery(true);
+        $query->delete('#__alfa_categories_usergroups')->where('category_id = ' . $category->id);
+        $db->setQuery($query);
+        $db->execute();
+
+        foreach ($data['allowedUserGroups'] as $allowedUserGroup) {
+            $query = $db->getQuery(true);
+            $query->insert('#__alfa_categories_usergroups')
+                ->set('category_id = ' . $category->id)
+                ->set('usergroup_id = ' . intval($allowedUserGroup));
+            $db->setQuery($query);
+            $db->execute();
+        }
+    }
+
+    /**
+     * @param $categoryId
+     * @return mixed
+     */
+    protected function getAllowedUsers($categoryId)
+    {
+        // load selected categories for item
+        $db = $this->getDatabase();
+        $query = $db->getQuery(true);
+        $query
+            ->select('au.user_id')
+            ->from('#__alfa_categories_users AS au')
+            ->where('au.category_id = '. intval($categoryId));
+
+        $db->setQuery($query);
+        $result = $db->loadColumn();
+
+        return $db->loadColumn();
+    }
+
+    protected function getAllowedUserGroups($categoryId)
+    {
+        // load selected categories for item
+        $db = $this->getDatabase();
+        $query = $db->getQuery(true);
+        $query
+            ->select('aug.usergroup_id')
+            ->from('#__alfa_categories_usergroups AS aug')
+            ->where('aug.category_id = '. intval($categoryId));
+
+        $db->setQuery($query);
+        $result = $db->loadColumn();
+
+        return $db->loadColumn();
     }
 
     /**
@@ -170,7 +259,10 @@ class CategoryModel extends AdminModel
                 $item->params = json_encode($item->params);
             }
 
+            // $item->allowedUsers = [900,899];
             // Do any procesing on fields here if needed
+            $item->allowedUsers = $this->getAllowedUsers($item->id);
+            $item->allowedUserGroups = $this->getAllowedUserGroups($item->id);
         }
 
         return $item;
@@ -261,17 +353,17 @@ class CategoryModel extends AdminModel
      */
     protected function prepareTable($table)
     {
-//		if (empty($table->id))
-//		{
-//			// Set ordering to the last item if not set
-//			if (@$table->ordering === '')
-//			{
-//				$db = $this->getDbo();
-//				$db->setQuery('SELECT MAX(ordering) FROM #__alfa_categories');
-//				$max             = $db->loadResult();
-//				$table->ordering = $max + 1;
-//			}
-//		}
+//      if (empty($table->id))
+//      {
+//          // Set ordering to the last item if not set
+//          if (@$table->ordering === '')
+//          {
+//              $db = $this->getDbo();
+//              $db->setQuery('SELECT MAX(ordering) FROM #__alfa_categories');
+//              $max             = $db->loadResult();
+//              $table->ordering = $max + 1;
+//          }
+//      }
 
         if (empty($table->publish_up)) {
             $table->publish_up = null;
