@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use \Joomla\CMS\Table\Table;
 use \Joomla\CMS\Factory;
 use \Joomla\CMS\Language\Text;
@@ -126,97 +127,15 @@ class CategoryModel extends AdminModel
             }
             $data['modified'] = date('Y-m-d H:i:s');
 
-            $this->setAllowedUsers($data);
-            $this->setAllowedUserGroups($data);
+            AlfaHelper::setAllowedUsers($data['id'], $data['allowedUsers'], '#__alfa_categories_users', 'category_id');
+            AlfaHelper::setAllowedUserGroups($data['id'], $data['allowedUserGroups'], '#__alfa_categories_usergroups', 'category_id');
 
             return true;
         }
         return false;
     }
 
-    /**
-     * @param $data
-     * @return void
-     */
-    protected function setAllowedUsers($data)
-    {
-        $db = $this->getDatabase();
-        $category = $this->getItem();
-        // save users per category on categories_users
-        $query = $db->getQuery(true);
-        $query->delete('#__alfa_categories_users')->where('category_id = ' . $category->id);
-        $db->setQuery($query);
-        $db->execute();
 
-        foreach ($data['allowedUsers'] as $allowedUser) {
-            $query = $db->getQuery(true);
-            $query->insert('#__alfa_categories_users')
-                ->set('category_id = ' . $category->id)
-                ->set('user_id = ' . intval($allowedUser));
-            $db->setQuery($query);
-            $db->execute();
-        }
-    }
-
-    /**
-     * @param $data
-     * @return void
-     */
-    protected function setAllowedUserGroups($data)
-    {
-        $db = $this->getDatabase();
-        $category = $this->getItem();
-        // save users per category on categories_users
-        $query = $db->getQuery(true);
-        $query->delete('#__alfa_categories_usergroups')->where('category_id = ' . $category->id);
-        $db->setQuery($query);
-        $db->execute();
-
-        foreach ($data['allowedUserGroups'] as $allowedUserGroup) {
-            $query = $db->getQuery(true);
-            $query->insert('#__alfa_categories_usergroups')
-                ->set('category_id = ' . $category->id)
-                ->set('usergroup_id = ' . intval($allowedUserGroup));
-            $db->setQuery($query);
-            $db->execute();
-        }
-    }
-
-    /**
-     * @param $categoryId
-     * @return mixed
-     */
-    protected function getAllowedUsers($categoryId)
-    {
-        // load selected categories for item
-        $db = $this->getDatabase();
-        $query = $db->getQuery(true);
-        $query
-            ->select('au.user_id')
-            ->from('#__alfa_categories_users AS au')
-            ->where('au.category_id = '. intval($categoryId));
-
-        $db->setQuery($query);
-        $result = $db->loadColumn();
-
-        return $db->loadColumn();
-    }
-
-    protected function getAllowedUserGroups($categoryId)
-    {
-        // load selected categories for item
-        $db = $this->getDatabase();
-        $query = $db->getQuery(true);
-        $query
-            ->select('aug.usergroup_id')
-            ->from('#__alfa_categories_usergroups AS aug')
-            ->where('aug.category_id = '. intval($categoryId));
-
-        $db->setQuery($query);
-        $result = $db->loadColumn();
-
-        return $db->loadColumn();
-    }
 
     /**
      * Method to get the data that should be injected in the form.
@@ -261,8 +180,8 @@ class CategoryModel extends AdminModel
 
             // $item->allowedUsers = [900,899];
             // Do any procesing on fields here if needed
-            $item->allowedUsers = $this->getAllowedUsers($item->id);
-            $item->allowedUserGroups = $this->getAllowedUserGroups($item->id);
+            $item->allowedUsers = AlfaHelper::getAllowedUsers($item->id, '#__alfa_categories_users', 'category_id');
+            $item->allowedUserGroups = AlfaHelper::getAllowedUserGroups($item->id, '#__alfa_categories_usergroups', 'category_id');
         }
 
         return $item;
