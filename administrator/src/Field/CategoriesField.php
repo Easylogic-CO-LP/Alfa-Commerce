@@ -39,14 +39,14 @@ class CategoriesField extends ListField
         $orderDir = $this->element['orderDir'] ?? 'ASC';
         $currentCategoryIdField = $this->element['currentIdField'] ?? 'id';//by default as the current category id we get the name="id" field from the form
 
-        $model = $this->element['model'] ?? 'categories';//model to use getItems from ( default is categories model )
+        $modelName = $this->element['model'] ?? 'categories';//model to use getItems from ( default is categories model )
 
         $this->options = parent::getOptions();
 
         $app = Factory::getApplication();
         $component = $app->bootComponent('com_alfa');
         $factory = $component->getMVCFactory();
-        $model = $factory->createModel($model, 'Administrator');
+        $model = $factory->createModel($modelName, 'Administrator');
 
         if (!$model) {
             return $this->options;
