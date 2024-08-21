@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use \Joomla\CMS\Table\Table;
 use \Joomla\CMS\Factory;
 use \Joomla\CMS\Language\Text;
@@ -148,8 +149,9 @@ class PlaceModel extends AdminModel
 				{
 					$item->params = json_encode($item->params);
 				}
-				
-				// Do any procesing on fields here if needed
+                // Do any procesing on fields here if needed
+                $item->allowedUsers = AlfaHelper::getAllowedUsers($item->id, '#__alfa_categories_users', 'category_id');
+                $item->allowedUserGroups = AlfaHelper::getAllowedUserGroups($item->id, '#__alfa_categories_usergroups', 'category_id');
 			}
 
 			return $item;
@@ -247,18 +249,18 @@ class PlaceModel extends AdminModel
 	 */
 	protected function prepareTable($table)
 	{
-		jimport('joomla.filter.output');
+        $table->modified = Factory::getDate()->toSql();
 
-		if (empty($table->id))
-		{
-			// Set ordering to the last item if not set
-			if (@$table->ordering === '')
-			{
-				$db = $this->getDbo();
-				$db->setQuery('SELECT MAX(ordering) FROM #__alfa_places');
-				$max             = $db->loadResult();
-				$table->ordering = $max + 1;
-			}
-		}
+        if (empty($table->publish_up)) {
+            $table->publish_up = null;
+        }
+
+        if (empty($table->publish_down)) {
+            $table->publish_down = null;
+        }
+
+        $table->version++;
+
+        return parent::prepareTable($table);
 	}
 }
