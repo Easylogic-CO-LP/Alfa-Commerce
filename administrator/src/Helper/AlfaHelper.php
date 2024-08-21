@@ -165,8 +165,8 @@ class AlfaHelper
      */
     public static function setAllowedUserGroups($fieldId, $userGroupArray, $table, $field)
     {
-    
-        if (intval($fieldId) <= 0 || empty($usersArray) || empty($table) || empty($field)) {
+
+        if (intval($fieldId) <= 0 || empty($userGroupArray) || empty($table) || empty($field)) {
             return false;
         }
         

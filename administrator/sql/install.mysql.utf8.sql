@@ -182,17 +182,16 @@ PRIMARY KEY (`id`)
 
 CREATE TABLE IF NOT EXISTS `#__alfa_currencies` (
 `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-
+`number` DOUBLE NOT NULL DEFAULT 0,
+`code` VARCHAR(255)  NULL  DEFAULT "",
+`name` VARCHAR(255)  NOT NULL ,
+`symbol` VARCHAR(255)  NULL  DEFAULT "",
 `state` TINYINT(1)  NULL  DEFAULT 1,
 `ordering` INT(11)  NULL  DEFAULT 0,
 `checked_out` INT(11)  UNSIGNED,
 `checked_out_time` DATETIME NULL  DEFAULT NULL ,
 `created_by` INT(11)  NULL  DEFAULT 0,
 `modified_by` INT(11)  NULL  DEFAULT 0,
-`code` VARCHAR(255)  NULL  DEFAULT "",
-`name` VARCHAR(255)  NOT NULL ,
-`symbol` VARCHAR(255)  NULL  DEFAULT "",
-`number` DOUBLE NOT NULL DEFAULT 0,
 PRIMARY KEY (`id`)
 ,KEY `idx_state` (`state`)
 ,KEY `idx_checked_out` (`checked_out`)
@@ -264,15 +263,16 @@ PRIMARY KEY (`id`)
 CREATE TABLE IF NOT EXISTS `#__alfa_places` (
 `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
 
+`name` VARCHAR(255)  NOT NULL ,
+`number` DOUBLE NOT NULL DEFAULT 0,
+`parent_id` INT(11)  NULL  DEFAULT 0,
+`state` TINYINT(1)  NOT NULL  DEFAULT 1,
 `ordering` INT(11)  NULL  DEFAULT 0,
 `checked_out` INT(11)  UNSIGNED,
 `checked_out_time` DATETIME NULL  DEFAULT NULL ,
 `created_by` INT(11)  NULL  DEFAULT 0,
 `modified_by` INT(11)  NULL  DEFAULT 0,
-`name` VARCHAR(255)  NOT NULL ,
-`state` TINYINT(1)  NOT NULL  DEFAULT 1,
-`number` DOUBLE NOT NULL DEFAULT 0,
-`parent_id` INT(11)  NULL  DEFAULT 0,
+`modified` datetime NOT NULL,
 `code2` VARCHAR(2)  NOT NULL ,
 `code3` VARCHAR(3)  NOT NULL ,
 PRIMARY KEY (`id`)
@@ -281,6 +281,18 @@ PRIMARY KEY (`id`)
 ,KEY `idx_created_by` (`created_by`)
 ,KEY `idx_modified_by` (`modified_by`)
 ,KEY `idx_state` (`state`)
+) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `#__alfa_places_users` (
+    `place_id` INT(11) NOT NULL,
+    `user_id` INT(11) NOT NULL,
+    KEY (`place_id`, `user_id`)
+) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `#__alfa_places_usergroups` (
+    `place_id` INT(11) NOT NULL,
+    `usergroup_id` INT(11) NOT NULL,
+    KEY (`place_id`, `usergroup_id`)
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `#__alfa_settings` (

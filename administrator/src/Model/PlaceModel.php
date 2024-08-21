@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use \Joomla\CMS\Table\Table;
 use \Joomla\CMS\Factory;
 use \Joomla\CMS\Language\Text;
@@ -102,9 +103,35 @@ class PlaceModel extends AdminModel
 		return $form;
 	}
 
-	
+    public function save($data)
+    {
+        $app = Factory::getApplication();
 
-	/**
+        $currentId = 0;
+        if ($data['id'] > 0) { //not a new
+            $currentId = intval($data['id']);
+        } else { // is new
+            $currentId = intval($this->getState($this->getName() . '.id')); //get the id from setted joomla state
+        }
+
+        $data['alias'] = $data['alias'] ?: $data['name'];
+        if ($app->get('unicodeslugs') == 1) {
+            $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
+        } else {
+            $data['alias'] = OutputFilter::stringURLSafe($data['alias']);
+        }
+
+        if (!parent::save($data)){return false;}
+
+        AlfaHelper::setAllowedUsers($currentId, $data['allowedUsers'], '#__alfa_places_users', 'place_id');
+        AlfaHelper::setAllowedUserGroups($currentId, $data['allowedUserGroups'], '#__alfa_places_usergroups', 'place_id');
+
+        return true;
+
+    }
+
+
+    /**
 	 * Method to get the data that should be injected in the form.
 	 *
 	 * @return  mixed  The data for the form.
@@ -148,8 +175,9 @@ class PlaceModel extends AdminModel
 				{
 					$item->params = json_encode($item->params);
 				}
-				
-				// Do any procesing on fields here if needed
+                // Do any procesing on fields here if needed
+                $item->allowedUsers = AlfaHelper::getAllowedUsers($item->id, '#__alfa_places_users', 'place_id');
+                $item->allowedUserGroups = AlfaHelper::getAllowedUserGroups($item->id, '#__alfa_places_usergroups', 'place_id');
 			}
 
 			return $item;
@@ -247,18 +275,18 @@ class PlaceModel extends AdminModel
 	 */
 	protected function prepareTable($table)
 	{
-		jimport('joomla.filter.output');
+        $table->modified = Factory::getDate()->toSql();
 
-		if (empty($table->id))
-		{
-			// Set ordering to the last item if not set
-			if (@$table->ordering === '')
-			{
-				$db = $this->getDbo();
-				$db->setQuery('SELECT MAX(ordering) FROM #__alfa_places');
-				$max             = $db->loadResult();
-				$table->ordering = $max + 1;
-			}
-		}
+//        if (empty($table->publish_up)) {
+//            $table->publish_up = null;
+//        }
+//
+//        if (empty($table->publish_down)) {
+//            $table->publish_down = null;
+//        }
+
+//        $table->version++;
+
+        return parent::prepareTable($table);
 	}
 }
