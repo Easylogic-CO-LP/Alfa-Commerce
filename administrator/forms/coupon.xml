@@ -1,94 +1,106 @@
 <?xml version="1.0" encoding="utf-8"?>
 <form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
-  <fieldset>
-    <field name="id" type="text" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
-    <field name="state" default="1" type="list" label="JSTATUS" description="JFIELD_PUBLISHED_DESC" class="inputbox" size="1">
-      <option value="1">JPUBLISHED</option>
-      <option value="0">JUNPUBLISHED</option>
-      <option value="2">JARCHIVED</option>
-      <option value="-2">JTRASHED</option>
-    </field>
-    <field name="ordering"/>
-    <field name="checked_out" type="hidden" filter="unset"/>
-    <field name="checked_out_time" type="hidden" filter="unset"/>
-    <field name="created_by" type="createdby" default="0" label="JGLOBAL_FIELD_CREATED_BY_LABEL" description="JGLOBAL_FIELD_CREATED_BY_DESC" hidden="true" hint="COM_ALFA_FORM_LBL_COUPON_CREATED_BY"/>
-    <field name="coupon_code" maxlength="255" filter="safehtml" type="text" required="true" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_COUPON_COUPON_CODE" description="COM_ALFA_FORM_DESC_COUPON_COUPON_CODE" hint="COM_ALFA_FORM_LBL_COUPON_COUPON_CODE"/>
-    <field name="num_of_uses" filter="safehtml" min="0" step="1" type="number" required="true" label="COM_ALFA_FORM_LBL_COUPON_NUM_OF_USES" description="COM_ALFA_FORM_DESC_COUPON_NUM_OF_USES" hint="COM_ALFA_FORM_LBL_COUPON_NUM_OF_USES"/>
-    <field name="value_type" default="0" type="list" label="COM_ALFA_FORM_LBL_COUPON_VALUE_TYPE" description="COM_ALFA_FORM_DESC_COUPON_VALUE_TYPE" hint="COM_ALFA_FORM_LBL_COUPON_VALUE_TYPE">
-      <option value="0">COM_ALFA_COUPONS_VALUE_TYPE_OPTION_0</option>
-      <option value="1">COM_ALFA_COUPONS_VALUE_TYPE_OPTION_1</option>
-    </field>
-    <field name="value" required="true" label="COM_ALFA_FORM_LBL_COUPON_VALUE" description="COM_ALFA_FORM_DESC_COUPON_VALUE" hint="COM_ALFA_FORM_LBL_COUPON_VALUE"/>
-    <field name="min_value" filter="safehtml" step="0.01" type="number" label="COM_ALFA_FORM_LBL_COUPON_MIN_VALUE" description="COM_ALFA_FORM_DESC_COUPON_MIN_VALUE" hint="COM_ALFA_FORM_LBL_COUPON_MIN_VALUE"/>
-    <field name="max_value" filter="safehtml" min="0" step="0.01" type="number" default="0" label="COM_ALFA_FORM_LBL_COUPON_MAX_VALUE" description="COM_ALFA_FORM_DESC_COUPON_MAX_VALUE" hint="COM_ALFA_FORM_LBL_COUPON_MAX_VALUE"/>
-    <field name="hidden" default="0" type="list" label="COM_ALFA_FORM_LBL_COUPON_HIDDEN" description="COM_ALFA_FORM_DESC_COUPON_HIDDEN" hint="COM_ALFA_FORM_LBL_COUPON_HIDDEN">
-      <option value="0">COM_ALFA_COUPONS_HIDDEN_OPTION_0</option>
-      <option value="1">COM_ALFA_COUPONS_HIDDEN_OPTION_1</option>
-    </field>
-    <field name="meta_title" maxlength="255" filter="safehtml" type="text" translateLabel="true"
-           translateDescription="true" label="COM_ALFA_FORM_LBL_CATEGORY_META_TITLE"
-           description="COM_ALFA_FORM_DESC_CATEGORY_META_TITLE" hint="COM_ALFA_FORM_LBL_CATEGORY_META_TITLE"/>
+    <fieldset>
+        <field name="id" type="text" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
+        <field name="state" default="1" type="list" label="JSTATUS" description="JFIELD_PUBLISHED_DESC" class="inputbox"
+               size="1">
+            <option value="1">JPUBLISHED</option>
+            <option value="0">JUNPUBLISHED</option>
+            <option value="2">JARCHIVED</option>
+            <option value="-2">JTRASHED</option>
+        </field>
 
-    <field name="meta_desc" cols="30" rows="3" filter="safehtml" type="textarea"
-           label="JFIELD_META_DESCRIPTION_LABEL" description="COM_ALFA_FORM_DESC_CATEGORY_META_DESC"
-           hint="COM_ALFA_FORM_LBL_CATEGORY_META_DESC"/>
-    <field name="publish_up" class="inputbox" format="%Y-%m-%d %H:%M:%S" timeformat="24" filter="server_utc" translateformat="false" showtime="true" singleheader="false" todaybutton="true" weeknumbers="true" filltable="false" type="calendar" label="COM_ALFA_FORM_LBL_COUPON_START_DATE" description="COM_ALFA_FORM_DESC_COUPON_START_DATE" hint="COM_ALFA_FORM_LBL_COUPON_START_DATE"/>
-    <field name="publish_down" class="inputbox" format="%Y-%m-%d %H:%M:%S" timeformat="24" filter="server_utc" translateformat="false" showtime="true" singleheader="false" todaybutton="true" weeknumbers="true" filltable="false" type="calendar" label="COM_ALFA_FORM_LBL_COUPON_END_DATE" description="COM_ALFA_FORM_DESC_COUPON_END_DATE" hint="COM_ALFA_FORM_LBL_COUPON_END_DATE"/>
-    <field name="publish_up" type="calendar" showtime="true" format="%Y-%m-%d %H:%M" filter="USER_UTC"
-           label="COM_ALFA_FORM_LBL_COUPON_START_DATE" description="COM_ALFA_FORM_DESC_COUPON_START_DATE" hint="COM_ALFA_FORM_LBL_COUPON_START_DATE"/>
+        <field name="coupon_code" maxlength="255" filter="safehtml" type="text" required="true" translateLabel="true"
+               translateDescription="true" label="COM_ALFA_FORM_LBL_COUPON_COUPON_CODE"
+               description="COM_ALFA_FORM_DESC_COUPON_COUPON_CODE" hint="COM_ALFA_FORM_LBL_COUPON_COUPON_CODE"/>
+        <field name="num_of_uses" filter="safehtml" min="0" step="1" type="number" required="true"
+               label="COM_ALFA_FORM_LBL_COUPON_NUM_OF_USES" description="COM_ALFA_FORM_DESC_COUPON_NUM_OF_USES"
+               hint="COM_ALFA_FORM_LBL_COUPON_NUM_OF_USES"/>
+        <field name="value_type" default="0" type="list" label="COM_ALFA_FORM_LBL_COUPON_VALUE_TYPE"
+               description="COM_ALFA_FORM_DESC_COUPON_VALUE_TYPE" hint="COM_ALFA_FORM_LBL_COUPON_VALUE_TYPE">
+            <option value="0">COM_ALFA_COUPONS_VALUE_TYPE_OPTION_0</option>
+            <option value="1">COM_ALFA_COUPONS_VALUE_TYPE_OPTION_1</option>
+        </field>
+        <field name="value" required="true" label="COM_ALFA_FORM_LBL_COUPON_VALUE"
+               description="COM_ALFA_FORM_DESC_COUPON_VALUE" hint="COM_ALFA_FORM_LBL_COUPON_VALUE"/>
+        <field name="min_value" filter="safehtml" step="0.01" type="number" label="COM_ALFA_FORM_LBL_COUPON_MIN_VALUE"
+               description="COM_ALFA_FORM_DESC_COUPON_MIN_VALUE" hint="COM_ALFA_FORM_LBL_COUPON_MIN_VALUE"/>
+        <field name="max_value" filter="safehtml" min="0" step="0.01" type="number" default="0"
+               label="COM_ALFA_FORM_LBL_COUPON_MAX_VALUE" description="COM_ALFA_FORM_DESC_COUPON_MAX_VALUE"
+               hint="COM_ALFA_FORM_LBL_COUPON_MAX_VALUE"/>
 
-    <field name="publish_down" type="calendar" showtime="true" format="%Y-%m-%d %H:%M" filter="USER_UTC"
-           label="COM_ALFA_FORM_CATEGORY_LBL_PUBLISH_DOWN" description="COM_ALFA_CATEGORY_PUBLISH_DOWN_DESC"/>
-    <field
-            name="checked_out"
-            type="hidden"
-            filter="unset"
-    />
+        <field name="hidden" default="0" type="list" label="COM_ALFA_FORM_LBL_COUPON_HIDDEN"
+               description="COM_ALFA_FORM_DESC_COUPON_HIDDEN" hint="COM_ALFA_FORM_LBL_COUPON_HIDDEN">
+            <option value="0">COM_ALFA_COUPONS_HIDDEN_OPTION_0</option>
+            <option value="1">COM_ALFA_COUPONS_HIDDEN_OPTION_1</option>
+        </field>
 
-    <field
-            name="checked_out_time"
-            type="hidden"
-            filter="unset"
-    />
+        <field name="user_associated" default="0" type="list" label="COM_ALFA_FORM_LBL_COUPON_USER_ASSOCIATED"
+               description="COM_ALFA_FORM_DESC_COUPON_USER_ASSOCIATED" hint="COM_ALFA_FORM_LBL_COUPON_USER_ASSOCIATED">
+            <option value="0">COM_ALFA_COUPONS_USER_ASSOCIATED_OPTION_0</option>
+            <option value="1">COM_ALFA_COUPONS_USER_ASSOCIATED_OPTION_1</option>
+        </field>
 
-    <field
-            name="created_by" type="createdby"
-            default="0" label="JGLOBAL_FIELD_CREATED_BY_LABEL"
-            description="JGLOBAL_FIELD_CREATED_BY_DESC"
-            hidden="true"
-            hint="COM_ALFA_FORM_LBL_ITEM_CREATED_BY"
-    />
+        <field name="associate_to_new_users" type="list" label="COM_ALFA_FORM_LBL_COUPON_ASSOCIATE_TO_NEW_USERS"
+               description="COM_ALFA_FORM_DESC_COUPON_ASSOCIATE_TO_NEW_USERS" hint="COM_ALFA_FORM_LBL_COUPON_ASSOCIATE_TO_NEW_USERS"
+               showon="user_associated:1">
+            <option value="0">COM_ALFA_COUPONS_ASSOCIATE_TO_NEW_USERS_OPTION_0</option>
+            <option value="1">COM_ALFA_COUPONS_ASSOCIATE_TO_NEW_USERS_OPTION_1</option>
+        </field>
 
-    <field
-            name="modified"
-            type="calendar"
-            label="JGLOBAL_FIELD_MODIFIED_LABEL"
-            class="form-control"
-            translateformat="true"
-            showtime="true"
-            readonly="true"
-            filter="user_utc"
-    />
+        <field name="publish_up" type="calendar" showtime="true" format="%Y-%m-%d %H:%M" filter="USER_UTC"
+               label="COM_ALFA_FORM_LBL_COUPON_START_DATE" description="COM_ALFA_FORM_DESC_COUPON_START_DATE"
+               hint="COM_ALFA_FORM_LBL_COUPON_START_DATE"/>
 
-    <field
-            name="modified_by"
-            type="user"
-            label="JGLOBAL_FIELD_MODIFIED_BY_LABEL"
-            description="JGLOBAL_FIELD_MODIFIED_BY_DESC"
-            hint="COM_ALFA_FORM_LBL_COUPON_MODIFIED_BY"
-            class="readonly"
-            readonly="true"
-            filter="unset"
-            validate="UserId"
-    />
-    <field name="associate_to_new_users" type="list" label="COM_ALFA_FORM_LBL_COUPON_END_DATE" description="COM_ALFA_FORM_DESC_COUPON_END_DATE" hint="COM_ALFA_FORM_LBL_COUPON_END_DATE" showon="user_associated:1">
-      <option value="0">COM_ALFA_COUPONS_ASSOCIATE_TO_NEW_USERS_OPTION_0</option>
-      <option value="1">COM_ALFA_COUPONS_ASSOCIATE_TO_NEW_USERS_OPTION_1</option>
-    </field>
-    <field name="user_associated" default="0" type="list" label="COM_ALFA_FORM_LBL_COUPON_USER_ASSOCIATED" description="COM_ALFA_FORM_DESC_COUPON_USER_ASSOCIATED" hint="COM_ALFA_FORM_LBL_COUPON_USER_ASSOCIATED">
-      <option value="0">COM_ALFA_COUPONS_USER_ASSOCIATED_OPTION_0</option>
-      <option value="1">COM_ALFA_COUPONS_USER_ASSOCIATED_OPTION_1</option>
-    </field>
-    <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL" description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>
-  </fieldset>
+        <field name="publish_down" type="calendar" showtime="true" format="%Y-%m-%d %H:%M" filter="USER_UTC"
+               label="COM_ALFA_FORM_CATEGORY_LBL_PUBLISH_DOWN" description="COM_ALFA_CATEGORY_PUBLISH_DOWN_DESC"/>
+        <field
+                name="checked_out"
+                type="hidden"
+                filter="unset"
+        />
+
+        <field
+                name="checked_out_time"
+                type="hidden"
+                filter="unset"
+        />
+
+        <field
+                name="created_by" type="createdby"
+                default="0" label="JGLOBAL_FIELD_CREATED_BY_LABEL"
+                description="JGLOBAL_FIELD_CREATED_BY_DESC"
+                hidden="true"
+                hint="COM_ALFA_FORM_LBL_ITEM_CREATED_BY"
+        />
+
+        <field
+                name="modified"
+                type="calendar"
+                label="JGLOBAL_FIELD_MODIFIED_LABEL"
+                class="form-control"
+                translateformat="true"
+                showtime="true"
+                readonly="true"
+                filter="user_utc"
+        />
+
+        <field
+                name="modified_by"
+                type="user"
+                label="JGLOBAL_FIELD_MODIFIED_BY_LABEL"
+                description="JGLOBAL_FIELD_MODIFIED_BY_DESC"
+                hint="COM_ALFA_FORM_LBL_COUPON_MODIFIED_BY"
+                class="readonly"
+                readonly="true"
+                filter="unset"
+                validate="UserId"
+        />
+
+        <field name="ordering"/>
+
+
+        <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL"
+               description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>
+    </fieldset>
 </form>
