@@ -105,35 +105,29 @@ class PlaceModel extends AdminModel
 
     public function save($data)
     {
-        if (parent::save($data)) {
-            $app = Factory::getApplication();
+        $app = Factory::getApplication();
 
-            $currentId = 0;
-            if ($data['id'] > 0) { //not a new
-                $currentId = intval($data['id']);
-            } else { // is new
-                $currentId = intval($this->getState($this->getName() . '.id')); //get the id from setted joomla state
-            }
-
-            $data['alias'] = $data['alias'] ?: $data['name'];
-
-            if ($app->get('unicodeslugs') == 1) {
-                $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
-
-            } else {
-                if ($app->get('unicodeslugs') == 1) {
-                    $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
-                } else {
-                    $data['alias'] = OutputFilter::stringURLSafe($data['alias']);
-                }
-            }
-
-            AlfaHelper::setAllowedUsers($currentId, $data['allowedUsers'], '#__alfa_places_users', 'place_id');
-            AlfaHelper::setAllowedUserGroups($currentId, $data['allowedUserGroups'], '#__alfa_places_usergroups', 'place_id');
-
-            return true;
+        $currentId = 0;
+        if ($data['id'] > 0) { //not a new
+            $currentId = intval($data['id']);
+        } else { // is new
+            $currentId = intval($this->getState($this->getName() . '.id')); //get the id from setted joomla state
         }
-        return false;
+
+        $data['alias'] = $data['alias'] ?: $data['name'];
+        if ($app->get('unicodeslugs') == 1) {
+            $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
+        } else {
+            $data['alias'] = OutputFilter::stringURLSafe($data['alias']);
+        }
+
+        if (!parent::save($data)){return false;}
+
+        AlfaHelper::setAllowedUsers($currentId, $data['allowedUsers'], '#__alfa_places_users', 'place_id');
+        AlfaHelper::setAllowedUserGroups($currentId, $data['allowedUserGroups'], '#__alfa_places_usergroups', 'place_id');
+
+        return true;
+
     }
 
 
@@ -182,8 +176,8 @@ class PlaceModel extends AdminModel
 					$item->params = json_encode($item->params);
 				}
                 // Do any procesing on fields here if needed
-                $item->allowedUsers = AlfaHelper::getAllowedUsers($item->id, '#__alfa_categories_users', 'category_id');
-                $item->allowedUserGroups = AlfaHelper::getAllowedUserGroups($item->id, '#__alfa_categories_usergroups', 'category_id');
+                $item->allowedUsers = AlfaHelper::getAllowedUsers($item->id, '#__alfa_places_users', 'place_id');
+                $item->allowedUserGroups = AlfaHelper::getAllowedUserGroups($item->id, '#__alfa_places_usergroups', 'place_id');
 			}
 
 			return $item;
@@ -283,15 +277,15 @@ class PlaceModel extends AdminModel
 	{
         $table->modified = Factory::getDate()->toSql();
 
-        if (empty($table->publish_up)) {
-            $table->publish_up = null;
-        }
+//        if (empty($table->publish_up)) {
+//            $table->publish_up = null;
+//        }
+//
+//        if (empty($table->publish_down)) {
+//            $table->publish_down = null;
+//        }
 
-        if (empty($table->publish_down)) {
-            $table->publish_down = null;
-        }
-
-        $table->version++;
+//        $table->version++;
 
         return parent::prepareTable($table);
 	}

@@ -66,6 +66,8 @@ $input = Factory::getApplication()->getInput();
 
             <?php echo $this->form->renderField('code3'); ?>
 
+            <?php echo $this->form->renderField('number'); ?>
+
         </div>
     </div>
 
@@ -78,9 +80,6 @@ $input = Factory::getApplication()->getInput();
             <fieldset id="fieldset-publishingdata" class="options-form">
                 <legend><?php echo Text::_('JGLOBAL_FIELDSET_PUBLISHING'); ?></legend>
                 <div>
-                    <?php echo $this->form->renderField('publish_up'); ?>
-
-                    <?php echo $this->form->renderField('publish_down'); ?>
 
                     <?php echo $this->form->renderField('allowedUsers'); ?>
 
