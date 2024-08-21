@@ -63,6 +63,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items` (
 `checked_out` INT(11)  UNSIGNED,
 `checked_out_time` DATETIME NULL  DEFAULT NULL ,
 `created_by` INT(11)  NULL  DEFAULT 0,
+`publish_up` datetime DEFAULT NULL,
+`publish_down` datetime DEFAULT NULL,
 `modified` datetime NOT NULL,
 `modified_by` INT(11)  NULL  DEFAULT 0,
 `ordering` INT(11)  NULL  DEFAULT 0,
