@@ -112,6 +112,7 @@ class CategoryModel extends AdminModel
     {
         if (parent::save($data)) {
             $app = Factory::getApplication();
+
             $currentId = 0;
             if ($data['id'] > 0) { //not a new
                 $currentId = intval($data['id']);
@@ -123,8 +124,13 @@ class CategoryModel extends AdminModel
 
             if ($app->get('unicodeslugs') == 1) {
                 $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
+
             } else {
-                $data['alias'] = OutputFilter::stringURLSafe($data['alias']);
+                if ($app->get('unicodeslugs') == 1) {
+                    $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
+                } else {
+                    $data['alias'] = OutputFilter::stringURLSafe($data['alias']);
+                }
             }
 
             AlfaHelper::setAllowedUsers($currentId, $data['allowedUsers'], '#__alfa_categories_users', 'category_id');
@@ -134,6 +140,7 @@ class CategoryModel extends AdminModel
         }
         return false;
     }
+
 
 
     /**
@@ -282,6 +289,7 @@ class CategoryModel extends AdminModel
 //              $table->ordering = $max + 1;
 //          }
 //      }
+
         $table->modified = Factory::getDate()->toSql();
 
         if (empty($table->publish_up)) {

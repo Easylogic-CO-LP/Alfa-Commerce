@@ -70,6 +70,7 @@ class CategoriesField extends ListField
         foreach ($categories as $category) {
             $disableCurrent = false;//by default disable the current category will be false
 
+
             // Check if we should start disabling descendants
             if ($disableDescendants && $currentCategoryId == $category->id) {
                 $disableMode = true;
@@ -87,6 +88,7 @@ class CategoriesField extends ListField
 
             $this->options['cat-' . $category->id] =
                 array('value' => $category->id,
+
                     'text' => ($showPath
                         ? $category->path
                         : str_repeat('-', $category->depth) . $category->name
@@ -96,6 +98,7 @@ class CategoriesField extends ListField
 
 
         }
+
 
 //      $removeCurrent = $this->element['removeCurrent']=='true' ? true : false;
 //      if ($removeCurrent){ unset($this->options['cat-' . $currentCategoryId]); }

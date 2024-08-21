@@ -94,6 +94,7 @@ class AlfaHelper
 //      return $flatArray;
 //  }
 
+
     public static function flatten_nested_items($items, $pathField = 'name', $pathSeparator = '/', $childrenField = 'children', $parentPath = '')
     {
         $flatArray = [];
@@ -164,9 +165,11 @@ class AlfaHelper
      */
     public static function setAllowedUserGroups($fieldId, $userGroupArray, $table, $field)
     {
+
         (intval($fieldId) <= 0 || empty($userGroupArray) || empty($table) || empty($field))
             return false;
         }
+
         $db = Factory::getContainer()->get('DatabaseDriver');
         // save users per category on categories_users
         $query = $db->getQuery(true);
@@ -194,6 +197,7 @@ class AlfaHelper
      */
     public static function getAllowedUserGroups($fieldId, $table, $field)
     {
+
         if (intval($fieldId) <= 0 || empty($table) || empty($field)) {
             return [];
         }
@@ -272,15 +276,9 @@ class AlfaHelper
     }
 
 
-
-//addHierarchyMetadata
-//hierarchyMetadata
-
-
     /* public static function iterateNestedArray($tree, $callback, $fullPath = false, $parentNames = '')
        {
            foreach ($tree as $node) {
-
                // Build the full path or hierarchical representation of category names based on the format
                if ($fullPath) {
                    $currentPath = empty($parentNames) ? $node->name : $parentNames . ' / ' . $node->name;
