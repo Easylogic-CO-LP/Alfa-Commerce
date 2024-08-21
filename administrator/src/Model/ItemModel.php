@@ -193,10 +193,8 @@ class ItemModel extends AdminModel
 			$data['alias'] = OutputFilter::stringURLSafe($data['alias']);
 		}
 
-		$data['modified'] = date('Y-m-d H:i:s');
-
-        AlfaHelper::setAllowedUsers($data['id'], $data['allowedUsers'], '#__alfa_items_users', 'item_id');
-        AlfaHelper::setAllowedUserGroups($data['id'], $data['allowedUserGroups'], '#__alfa_items_usergroups', 'item_id');
+	        AlfaHelper::setAllowedUsers($data['id'], $data['allowedUsers'], '#__alfa_items_users', 'item_id');
+	        AlfaHelper::setAllowedUserGroups($data['id'], $data['allowedUserGroups'], '#__alfa_items_usergroups', 'item_id');
 
 
 		// if ($table->load(['slug' => $data['slug']])) { //checks for duplicates
@@ -214,54 +212,54 @@ class ItemModel extends AdminModel
 		// $origTable = clone $this->getTable();
 
 		$currentId = 0;
-        if($data['id']>0){ //not a new
-        	$currentId = intval($data['id']);
-    	}else{ // is new
-    		$currentId = intval($this->getState($this->getName().'.id'));//get the id from setted joomla state
-    	}
+	        if($data['id']>0){ //not a new
+	        	$currentId = intval($data['id']);
+	    	}else{ // is new
+	    		$currentId = intval($this->getState($this->getName().'.id'));//get the id from setted joomla state
+	    	}
 
-    	// save item categories to items_categories table
-    	$query = $db->getQuery(true);
-        $query->delete('#__alfa_items_categories')->where('product_id = '. $currentId);
-        $db->setQuery($query);
-        $db->execute();
-
-        if (is_array($data['categories']) || is_object($data['categories'])){
-          foreach ($data['categories'] as $categoryId) {
-                $query = $db->getQuery(true);
-                $query->insert('#__alfa_items_categories')
-                        ->set(array(
-                                    ('product_id = '. $currentId),
-                                    ('category_id = '. intval($categoryId))
-                ));
-                $db->setQuery($query);
-                $db->execute();
-            }
-        }
-
-    	// save item manufacturers to items_manufacturers table
-    	$query = $db->getQuery(true);
-        $query->delete('#__alfa_items_manufacturers')->where('product_id = '. $currentId);
-        $db->setQuery($query);
-        $db->execute();
-
-        if (is_array($data['manufacturers']) || is_object($data['manufacturers'])){
-          foreach ($data['manufacturers'] as $manufacturerId) {
-                $query = $db->getQuery(true);
-                $query->insert('#__alfa_items_manufacturers')
-                        ->set(array(
-                                    ('product_id = '. $currentId),
-                                    ('manufacturer_id = '. intval($manufacturerId))
-                ));
-                $db->setQuery($query);
-                $db->execute();
-            }
-        }
+	    	// save item categories to items_categories table
+	    	$query = $db->getQuery(true);
+	        $query->delete('#__alfa_items_categories')->where('product_id = '. $currentId);
+	        $db->setQuery($query);
+	        $db->execute();
+	
+	        if (is_array($data['categories']) || is_object($data['categories'])){
+	          foreach ($data['categories'] as $categoryId) {
+	                $query = $db->getQuery(true);
+	                $query->insert('#__alfa_items_categories')
+	                        ->set(array(
+	                                    ('product_id = '. $currentId),
+	                                    ('category_id = '. intval($categoryId))
+	                ));
+	                $db->setQuery($query);
+	                $db->execute();
+	            }
+	        }
+	
+	    	// save item manufacturers to items_manufacturers table
+	    	$query = $db->getQuery(true);
+	        $query->delete('#__alfa_items_manufacturers')->where('product_id = '. $currentId);
+	        $db->setQuery($query);
+	        $db->execute();
+	
+	        if (is_array($data['manufacturers']) || is_object($data['manufacturers'])){
+	          foreach ($data['manufacturers'] as $manufacturerId) {
+	                $query = $db->getQuery(true);
+	                $query->insert('#__alfa_items_manufacturers')
+	                        ->set(array(
+	                                    ('product_id = '. $currentId),
+	                                    ('manufacturer_id = '. intval($manufacturerId))
+	                ));
+	                $db->setQuery($query);
+	                $db->execute();
+	            }
+	        }
 
 
 		return true;
 		// return parent::save($data);
-		}
+	}
 
 
 
@@ -374,28 +372,36 @@ class ItemModel extends AdminModel
 	// }
     protected function prepareTable($table)
     {
+	$table->modified = Factory::getDate()->toSql();
+
+	if (empty($table->publish_up)) {
+            $table->publish_up = null;
+        }
+        if (empty($table->publish_down)) {
+            $table->publish_down = null;
+        }
         // $date = Factory::getDate()->toSql();
 
         // $table->name = htmlspecialchars_decode($table->name, ENT_QUOTES);
 
         // $table->generateAlias();
 
-        if (empty($table->id)) {
-            // Set the values
-            $table->created = $date;
+        // if (empty($table->id)) {
+        //     // Set the values
+        //     $table->created = $date;
 
-            // Set ordering to the last item if not set
-            if (empty($table->ordering)) {
-                $db    = $this->getDatabase();
-                $query = $db->getQuery(true)
-                    ->select('MAX(ordering)')
-                    ->from($db->quoteName('#__alfa_items'));
-                $db->setQuery($query);
-                $max = $db->loadResult();
+        //     // Set ordering to the last item if not set
+        //     if (empty($table->ordering)) {
+        //         $db    = $this->getDatabase();
+        //         $query = $db->getQuery(true)
+        //             ->select('MAX(ordering)')
+        //             ->from($db->quoteName('#__alfa_items'));
+        //         $db->setQuery($query);
+        //         $max = $db->loadResult();
 
-                $table->ordering = $max + 1;
-            }
-        } 
+        //         $table->ordering = $max + 1;
+        //     }
+        // } 
         // else {
         //     // Set the values
         //     $table->modified    = $date;
@@ -403,7 +409,7 @@ class ItemModel extends AdminModel
         // }
 
         // Increment the content version number.
-        $table->version++;
+        // $table->version++;
     }
 
 
