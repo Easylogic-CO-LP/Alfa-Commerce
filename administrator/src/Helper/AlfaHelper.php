@@ -164,7 +164,7 @@ class AlfaHelper
      */
     public static function setAllowedUserGroups($fieldId, $userGroupArray, $table, $field)
     {
-        if (intval($fieldId) <= 0) {
+        (intval($fieldId) <= 0 || empty($userGroupArray) || empty($table) || empty($field))
             return false;
         }
         $db = Factory::getContainer()->get('DatabaseDriver');
@@ -194,7 +194,7 @@ class AlfaHelper
      */
     public static function getAllowedUserGroups($fieldId, $table, $field)
     {
-        if (intval($fieldId) <= 0) {
+        if (intval($fieldId) <= 0 || empty($table) || empty($field)) {
             return [];
         }
 
@@ -222,7 +222,7 @@ class AlfaHelper
      */
     public static function setAllowedUsers($fieldId, $usersArray, $table, $field)
     {
-        if (intval($fieldId) <= 0) {
+        if (intval($fieldId) <= 0 || empty($usersArray) || empty($table) || empty($field)) {
             return false;
         }
 
@@ -253,7 +253,7 @@ class AlfaHelper
      */
     public static function getAllowedUsers($fieldId, $table, $field)
     {
-        if (intval($fieldId) <= 0) {
+        if (intval($fieldId) <= 0 || empty($table) || empty($field)) {
             return [];
         }
 
