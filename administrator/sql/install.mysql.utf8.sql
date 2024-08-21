@@ -263,18 +263,21 @@ PRIMARY KEY (`id`)
 
 CREATE TABLE IF NOT EXISTS `#__alfa_places` (
 `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-
-`ordering` INT(11)  NULL  DEFAULT 0,
+`parent_id` INT(11)  NULL  DEFAULT 0,
+`name` VARCHAR(400)  NOT NULL ,
+`desc` TEXT NULL ,
+`alias` VARCHAR(255) COLLATE utf8_bin NULL ,
+`meta_title` VARCHAR(255)  NULL  DEFAULT "",
+`meta_desc` TEXT NULL ,
+`state` TINYINT(1)  NULL  DEFAULT 1,
+`publish_up` datetime DEFAULT NULL,
+`publish_down` datetime DEFAULT NULL,
 `checked_out` INT(11)  UNSIGNED,
 `checked_out_time` DATETIME NULL  DEFAULT NULL ,
 `created_by` INT(11)  NULL  DEFAULT 0,
+`modified` datetime NOT NULL,
 `modified_by` INT(11)  NULL  DEFAULT 0,
-`name` VARCHAR(255)  NOT NULL ,
-`state` TINYINT(1)  NOT NULL  DEFAULT 1,
-`number` DOUBLE NOT NULL DEFAULT 0,
-`parent_id` INT(11)  NULL  DEFAULT 0,
-`code2` VARCHAR(2)  NOT NULL ,
-`code3` VARCHAR(3)  NOT NULL ,
+`ordering` INT(11)  NULL  DEFAULT 0,
 PRIMARY KEY (`id`)
 ,KEY `idx_parent_id` (`parent_id`)
 ,KEY `idx_checked_out` (`checked_out`)
