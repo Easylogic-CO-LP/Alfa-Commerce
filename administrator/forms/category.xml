@@ -6,6 +6,7 @@
 
         <field name="parent_id"
                type="categories"
+               model="categories"
                showPath="false"
                orderBy="id"
                orderDir="desc"
