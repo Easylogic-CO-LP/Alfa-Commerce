@@ -112,12 +112,19 @@ class CategoryModel extends AdminModel
     {
         if (parent::save($data)) {
             $app = Factory::getApplication();
-            if ($data['alias'] == null) {
-                if ($app->get('unicodeslugs') == 1) {
-                    $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['title']);
-                } else {
-                    $data['alias'] = OutputFilter::stringURLSafe($data['title']);
-                }
+
+            $currentId = 0;
+            if ($data['id'] > 0) { //not a new
+                $currentId = intval($data['id']);
+            } else { // is new
+                $currentId = intval($this->getState($this->getName() . '.id')); //get the id from setted joomla state
+            }
+
+            $data['alias'] = $data['alias'] ?: $data['name'];
+
+            if ($app->get('unicodeslugs') == 1) {
+                $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
+
             } else {
                 if ($app->get('unicodeslugs') == 1) {
                     $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
@@ -125,10 +132,9 @@ class CategoryModel extends AdminModel
                     $data['alias'] = OutputFilter::stringURLSafe($data['alias']);
                 }
             }
-            $data['modified'] = date('Y-m-d H:i:s');
 
-            AlfaHelper::setAllowedUsers($data['id'], $data['allowedUsers'], '#__alfa_categories_users', 'category_id');
-            AlfaHelper::setAllowedUserGroups($data['id'], $data['allowedUserGroups'], '#__alfa_categories_usergroups', 'category_id');
+            AlfaHelper::setAllowedUsers($currentId, $data['allowedUsers'], '#__alfa_categories_users', 'category_id');
+            AlfaHelper::setAllowedUserGroups($currentId, $data['allowedUserGroups'], '#__alfa_categories_usergroups', 'category_id');
 
             return true;
         }
@@ -284,6 +290,8 @@ class CategoryModel extends AdminModel
 //          }
 //      }
 
+        $table->modified = Factory::getDate()->toSql();
+
         if (empty($table->publish_up)) {
             $table->publish_up = null;
         }
@@ -291,6 +299,8 @@ class CategoryModel extends AdminModel
         if (empty($table->publish_down)) {
             $table->publish_down = null;
         }
+
+        $table->version++;
 
         return parent::prepareTable($table);
     }

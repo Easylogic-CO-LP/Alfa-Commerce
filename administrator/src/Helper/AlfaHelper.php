@@ -72,27 +72,28 @@ class AlfaHelper
     }
 
 
-//	public static function flatten_nested_items($items,$childrenField = 'children') {
-//		$flatArray = [];
+//  public static function flatten_nested_items($items,$childrenField = 'children') {
+//      $flatArray = [];
 //
-//		foreach ($items as $item) {
-//			// Clone the item to avoid modifying the original structure
-//			$flattenedItem = clone $item;
+//      foreach ($items as $item) {
+//          // Clone the item to avoid modifying the original structure
+//          $flattenedItem = clone $item;
 //
-//			// Remove the children property
-//			unset($flattenedItem->{$childrenField});
+//          // Remove the children property
+//          unset($flattenedItem->{$childrenField});
 //
-//			// Add the item without children to the flat array
-//			$flatArray[] = $flattenedItem;
+//          // Add the item without children to the flat array
+//          $flatArray[] = $flattenedItem;
 //
-//			// If the item has children, recursively flatten them
-//			if (isset($item->{$childrenField}) && is_array($item->{$childrenField})) {
-//				$flatArray = array_merge($flatArray, self::flatten_nested_items($item->{$childrenField}));
-//			}
-//		}
+//          // If the item has children, recursively flatten them
+//          if (isset($item->{$childrenField}) && is_array($item->{$childrenField})) {
+//              $flatArray = array_merge($flatArray, self::flatten_nested_items($item->{$childrenField}));
+//          }
+//      }
 //
-//		return $flatArray;
-//	}
+//      return $flatArray;
+//  }
+
 
     public static function flatten_nested_items($items, $pathField = 'name', $pathSeparator = '/', $childrenField = 'children', $parentPath = '')
     {
@@ -164,6 +165,11 @@ class AlfaHelper
      */
     public static function setAllowedUserGroups($fieldId, $userGroupArray, $table, $field)
     {
+
+        (intval($fieldId) <= 0 || empty($userGroupArray) || empty($table) || empty($field))
+            return false;
+        }
+
         $db = Factory::getContainer()->get('DatabaseDriver');
         // save users per category on categories_users
         $query = $db->getQuery(true);
@@ -191,6 +197,11 @@ class AlfaHelper
      */
     public static function getAllowedUserGroups($fieldId, $table, $field)
     {
+
+        if (intval($fieldId) <= 0 || empty($table) || empty($field)) {
+            return [];
+        }
+
         // load selected categories for item
         $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true);
@@ -200,7 +211,6 @@ class AlfaHelper
             ->where($db->quoteName($field) . ' = ' . intval($fieldId));
 
         $db->setQuery($query);
-        $result = $db->loadColumn();
 
         return $db->loadColumn();
     }
@@ -216,6 +226,10 @@ class AlfaHelper
      */
     public static function setAllowedUsers($fieldId, $usersArray, $table, $field)
     {
+        if (intval($fieldId) <= 0 || empty($usersArray) || empty($table) || empty($field)) {
+            return false;
+        }
+
         $db = Factory::getContainer()->get('DatabaseDriver');
         // save users per category on categories_users
         $query = $db->getQuery(true);
@@ -243,6 +257,10 @@ class AlfaHelper
      */
     public static function getAllowedUsers($fieldId, $table, $field)
     {
+        if (intval($fieldId) <= 0 || empty($table) || empty($field)) {
+            return [];
+        }
+
         // load selected categories for item
         $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true);
@@ -258,15 +276,9 @@ class AlfaHelper
     }
 
 
-
-//addHierarchyMetadata
-//hierarchyMetadata
-
-
     /* public static function iterateNestedArray($tree, $callback, $fullPath = false, $parentNames = '')
        {
            foreach ($tree as $node) {
-
                // Build the full path or hierarchical representation of category names based on the format
                if ($fullPath) {
                    $currentPath = empty($parentNames) ? $node->name : $parentNames . ' / ' . $node->name;
@@ -336,4 +348,3 @@ class AlfaHelper
     }
 
 }
-
