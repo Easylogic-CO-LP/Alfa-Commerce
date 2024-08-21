@@ -219,13 +219,6 @@ class ItemModel extends AdminModel
 			$data['alias'] = OutputFilter::stringURLSafe($data['alias']);
 		}
 
-<<<<<<< Updated upstream
-	        AlfaHelper::setAllowedUsers($data['id'], $data['allowedUsers'], '#__alfa_items_users', 'item_id');
-	        AlfaHelper::setAllowedUserGroups($data['id'], $data['allowedUserGroups'], '#__alfa_items_usergroups', 'item_id');
-
-
-=======
->>>>>>> Stashed changes
 		// if ($table->load(['slug' => $data['slug']])) { //checks for duplicates
         //     $data['slug'].= '-'.$pk;//if slug exists add the id after
         //     // = OutputFilter::stringURLSafe($data['name'].'-'.$pk);
@@ -239,55 +232,6 @@ class ItemModel extends AdminModel
 		if (!parent::save($data))return false;
 
 		$currentId = 0;
-<<<<<<< Updated upstream
-	        if($data['id']>0){ //not a new
-	        	$currentId = intval($data['id']);
-	    	}else{ // is new
-	    		$currentId = intval($this->getState($this->getName().'.id'));//get the id from setted joomla state
-	    	}
-
-	    	// save item categories to items_categories table
-	    	$query = $db->getQuery(true);
-	        $query->delete('#__alfa_items_categories')->where('product_id = '. $currentId);
-	        $db->setQuery($query);
-	        $db->execute();
-	
-	        if (is_array($data['categories']) || is_object($data['categories'])){
-	          foreach ($data['categories'] as $categoryId) {
-	                $query = $db->getQuery(true);
-	                $query->insert('#__alfa_items_categories')
-	                        ->set(array(
-	                                    ('product_id = '. $currentId),
-	                                    ('category_id = '. intval($categoryId))
-	                ));
-	                $db->setQuery($query);
-	                $db->execute();
-	            }
-	        }
-	
-	    	// save item manufacturers to items_manufacturers table
-	    	$query = $db->getQuery(true);
-	        $query->delete('#__alfa_items_manufacturers')->where('product_id = '. $currentId);
-	        $db->setQuery($query);
-	        $db->execute();
-	
-	        if (is_array($data['manufacturers']) || is_object($data['manufacturers'])){
-	          foreach ($data['manufacturers'] as $manufacturerId) {
-	                $query = $db->getQuery(true);
-	                $query->insert('#__alfa_items_manufacturers')
-	                        ->set(array(
-	                                    ('product_id = '. $currentId),
-	                                    ('manufacturer_id = '. intval($manufacturerId))
-	                ));
-	                $db->setQuery($query);
-	                $db->execute();
-	            }
-	        }
-
-
-		return true;
-		// return parent::save($data);
-=======
 		if($data['id']>0){ //not a new
 			$currentId = intval($data['id']);
 		}else{ // is new
@@ -395,7 +339,6 @@ class ItemModel extends AdminModel
             }
 
 
->>>>>>> Stashed changes
 	}
 
 
@@ -485,16 +428,6 @@ class ItemModel extends AdminModel
 
     protected function prepareTable($table)
     {
-<<<<<<< Updated upstream
-	$table->modified = Factory::getDate()->toSql();
-
-	if (empty($table->publish_up)) {
-            $table->publish_up = null;
-        }
-        if (empty($table->publish_down)) {
-            $table->publish_down = null;
-        }
-=======
 
     	$table->modified = Factory::getDate()->toSql();
 
@@ -508,7 +441,6 @@ class ItemModel extends AdminModel
 
         return parent::prepareTable($table);
         
->>>>>>> Stashed changes
         // $date = Factory::getDate()->toSql();
 
         // $table->name = htmlspecialchars_decode($table->name, ENT_QUOTES);
