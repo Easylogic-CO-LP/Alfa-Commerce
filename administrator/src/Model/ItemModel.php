@@ -47,6 +47,55 @@ class ItemModel extends AdminModel
      *
      * @since   1.6
 	 */
+
+
+	protected $item = null;
+	protected $batch_copymove = false;
+
+    protected $batch_commands = [
+        'category_id' => 'batchCategory',
+        'manufacturer_id' => 'batchManufacturer',
+    ];
+
+    protected function batchManufacturer($value, $pks, $contexts)
+    {
+	    $app = Factory::getApplication();
+
+	    if(sizeof($value) == 1 && $value[0]==''){
+	    	$app->enqueueMessage('Manufacturers not changed', 'info');
+	    	return true;
+	    }
+
+        foreach ($pks as $id) {
+        
+        	$this->setManufacturers($id,$value);
+
+        }
+
+		$app->enqueueMessage('Manufacturers setted successfully', 'info');
+
+        return true;
+    }
+
+	protected function batchCategory($value, $pks, $contexts)
+    {
+	    $app = Factory::getApplication();
+   		
+	    if(sizeof($value) == 1 && $value[0]==''){
+	    	$app->enqueueMessage('Categories not changed', 'info');
+	    	return true;
+	    }
+
+        foreach ($pks as $id) {
+          $this->setCategories($id,$value);
+        }
+
+		$app->enqueueMessage('Categories setted successfully', 'info');
+   
+        return true;
+    }
+
+
 	public function getForm($data = array(), $loadData = true)
 	{
 		// Initialise variables.
@@ -105,37 +154,15 @@ class ItemModel extends AdminModel
 		
 			if ($item = parent::getItem($pk))
 			{
-				// if (isset($item->params))
-				// {
-				// 	$item->params = json_encode($item->params);
-				// }
-				$db = Factory::getDbo();
+				if (isset($item->params))
+				{
+					$item->params = json_encode($item->params);
+				}
 
-				// Do any procesing on fields here if needed
-				
-				// load selected categories for item
-				$query = $db->getQuery(true);
-	            $query
-	                ->select('c.id')
-	                ->from('#__alfa_items_categories as ic')
-	                ->innerJoin('#__alfa_categories as c on (c.id = ic.category_id)')
-	                ->where(sprintf('ic.product_id = %d', $item->id));
-	                // ->order('c.name asc');
+				$item->categories = $this->getCategories($item->id);
 
-	            $db->setQuery($query);
-	            $item->categories = $db->loadColumn();
 
-	            // load selected categories for item
-				$query = $db->getQuery(true);
-	            $query
-	                ->select('c.id')
-	                ->from('#__alfa_items_manufacturers as ic')
-	                ->innerJoin('#__alfa_manufacturers as c on (c.id = ic.manufacturer_id)')
-	                ->where(sprintf('ic.product_id = %d', $item->id));
-	                // ->order('c.name asc');
-
-	            $db->setQuery($query);
-	            $item->manufacturers = $db->loadColumn();
+				$item->manufacturers = $this->getManufacturers($item->id);
 
 	            $item->allowedUsers = AlfaHelper::getAllowedUsers($item->id, '#__alfa_items_users', 'item_id');
             	$item->allowedUserGroups = AlfaHelper::getAllowedUserGroups($item->id, '#__alfa_items_usergroups', 'item_id');
@@ -182,9 +209,8 @@ class ItemModel extends AdminModel
 	*/
 	public function save($data)
 	{
-		$app    = Factory::getApplication();
-		$db 	= Factory::getDbo();
-
+		$app = Factory::getApplication();
+		
 		$data['alias'] = $data['alias'] ?: $data['name'];
 
 		if ($app->get('unicodeslugs') == 1){
@@ -193,10 +219,13 @@ class ItemModel extends AdminModel
 			$data['alias'] = OutputFilter::stringURLSafe($data['alias']);
 		}
 
+<<<<<<< Updated upstream
 	        AlfaHelper::setAllowedUsers($data['id'], $data['allowedUsers'], '#__alfa_items_users', 'item_id');
 	        AlfaHelper::setAllowedUserGroups($data['id'], $data['allowedUserGroups'], '#__alfa_items_usergroups', 'item_id');
 
 
+=======
+>>>>>>> Stashed changes
 		// if ($table->load(['slug' => $data['slug']])) { //checks for duplicates
         //     $data['slug'].= '-'.$pk;//if slug exists add the id after
         //     // = OutputFilter::stringURLSafe($data['name'].'-'.$pk);
@@ -205,13 +234,12 @@ class ItemModel extends AdminModel
 		// 	if ($table->load(['slug' => $data['slug']])) {
 
 		// }
+		// $origTable = clone $this->getTable();
 
 		if (!parent::save($data))return false;
 
-
-		// $origTable = clone $this->getTable();
-
 		$currentId = 0;
+<<<<<<< Updated upstream
 	        if($data['id']>0){ //not a new
 	        	$currentId = intval($data['id']);
 	    	}else{ // is new
@@ -259,6 +287,115 @@ class ItemModel extends AdminModel
 
 		return true;
 		// return parent::save($data);
+=======
+		if($data['id']>0){ //not a new
+			$currentId = intval($data['id']);
+		}else{ // is new
+			$currentId = intval($this->getState($this->getName().'.id'));//get the id from setted joomla state
+		}
+
+		$this->setCategories($currentId,$data['categories']);
+        $this->setManufacturers($currentId,$data['manufacturers']);
+
+		AlfaHelper::setAllowedUsers($data['id'], $data['allowedUsers'], '#__alfa_items_users', 'item_id');
+		AlfaHelper::setAllowedUserGroups($data['id'], $data['allowedUserGroups'], '#__alfa_items_usergroups', 'item_id');
+    
+
+		return true;
+		// return parent::save($data);
+	}
+
+
+	public function getManufacturers($id){
+    	$id = intval($id);
+    	if($id<=0){return [];}
+		
+		$db = Factory::getDbo();
+		$query = $db->getQuery(true);
+        $query
+            ->select('c.manufacturer_id')
+            ->from('#__alfa_items_manufacturers as c')
+            ->where('c.product_id= '. ($id));
+
+        $db->setQuery($query);
+        return $db->loadColumn();
+	}
+
+
+	public function getCategories($id){
+		$id = intval($id);
+    	if($id<=0){return [];}
+
+		$db = Factory::getDbo();
+		$query = $db->getQuery(true);
+        $query
+            ->select('c.category_id')
+            ->from('#__alfa_items_categories as c')
+            ->where('c.product_id = '. ($id));
+
+        $db->setQuery($query);
+        return $db->loadColumn();
+	}
+
+	public function setManufacturers($id, $manufacturers){
+		    if (!is_array($manufacturers)) {
+
+		        return false;
+		    }
+
+
+			$db = Factory::getDbo();
+
+			$query = $db->getQuery(true);
+			$query->delete('#__alfa_items_manufacturers')->where('product_id = '. $id);
+			$db->setQuery($query);
+			$db->execute();
+
+
+			foreach ($manufacturers as $manufacturerId) {
+                
+                if($manufacturerId=='')continue;
+
+                $query = $db->getQuery(true);
+                $query->insert('#__alfa_items_manufacturers')
+                        ->set(array(
+                                    ('product_id = '. $id),
+                                    ('manufacturer_id = '. intval($manufacturerId))
+                ));
+                $db->setQuery($query);
+                $db->execute();
+            }
+
+	}
+
+	public function setCategories($id, $categories){
+		    if (!is_array($categories)) {
+		        return false;
+		    }
+
+
+			$db = Factory::getDbo();
+        	 // save item categories to items_categories table
+			$query = $db->getQuery(true);
+			$query->delete('#__alfa_items_categories')->where('product_id = '. $id);
+			$db->setQuery($query);
+			$db->execute();
+
+			foreach ($categories as $categoryId) {
+                if($categoryId=='')continue;
+
+                $query = $db->getQuery(true);
+                $query->insert('#__alfa_items_categories')
+                        ->set(array(
+                                    ('product_id = '. $id),
+                                    ('category_id = '. intval($categoryId))
+                ));
+                $db->setQuery($query);
+                $db->execute();
+            }
+
+
+>>>>>>> Stashed changes
 	}
 
 
@@ -345,33 +482,10 @@ class ItemModel extends AdminModel
 	// 	return true;
 	// }
 
-	/**
-	 * Prepare and sanitise the table prior to saving.
-	 *
-	 * @param   Table  $table  Table Object
-	 *
-	 * @return  void
-	 *
-	 * @since   1.0.1
-	 */
-	// protected function prepareTable($table)
-	// {
-	// 	jimport('joomla.filter.output');
 
-	// 	if (empty($table->id))
-	// 	{
-	// 		// Set ordering to the last item if not set
-	// 		if (@$table->ordering === '')
-	// 		{
-	// 			$db = $this->getDbo();
-	// 			$db->setQuery('SELECT MAX(ordering) FROM #__alfa_items');
-	// 			$max             = $db->loadResult();
-	// 			$table->ordering = $max + 1;
-	// 		}
-	// 	}
-	// }
     protected function prepareTable($table)
     {
+<<<<<<< Updated upstream
 	$table->modified = Factory::getDate()->toSql();
 
 	if (empty($table->publish_up)) {
@@ -380,6 +494,21 @@ class ItemModel extends AdminModel
         if (empty($table->publish_down)) {
             $table->publish_down = null;
         }
+=======
+
+    	$table->modified = Factory::getDate()->toSql();
+
+        if (empty($table->publish_up)) {
+            $table->publish_up = null;
+        }
+
+        if (empty($table->publish_down)) {
+            $table->publish_down = null;
+        }
+
+        return parent::prepareTable($table);
+        
+>>>>>>> Stashed changes
         // $date = Factory::getDate()->toSql();
 
         // $table->name = htmlspecialchars_decode($table->name, ENT_QUOTES);
@@ -413,166 +542,4 @@ class ItemModel extends AdminModel
     }
 
 
-
-     /**
-     * Function that can be overridden to do any data cleanup after batch copying data
-     *
-     * @param   TableInterface  $table  The table object containing the newly created item
-     * @param   integer         $newId  The id of the new item
-     * @param   integer         $oldId  The original item id
-     *
-     * @return  void
-     *
-     * @since  3.8.12
-     */
-    // protected function cleanupPostBatchCopy(TableInterface $table, $newId, $oldId)
-    // {
-        // Check if the article was featured and update the #__content_frontpage table
-        // if ($table->featured == 1) {
-        //     $db    = $this->getDatabase();
-        //     $query = $db->getQuery(true)
-        //         ->select(
-        //             [
-        //                 $db->quoteName('featured_up'),
-        //                 $db->quoteName('featured_down'),
-        //             ]
-        //         )
-        //         ->from($db->quoteName('#__content_frontpage'))
-        //         ->where($db->quoteName('content_id') . ' = :oldId')
-        //         ->bind(':oldId', $oldId, ParameterType::INTEGER);
-
-        //     $featured = $db->setQuery($query)->loadObject();
-
-        //     if ($featured) {
-        //         $query = $db->getQuery(true)
-        //             ->insert($db->quoteName('#__content_frontpage'))
-        //             ->values(':newId, 0, :featuredUp, :featuredDown')
-        //             ->bind(':newId', $newId, ParameterType::INTEGER)
-        //             ->bind(':featuredUp', $featured->featured_up, $featured->featured_up ? ParameterType::STRING : ParameterType::NULL)
-        //             ->bind(':featuredDown', $featured->featured_down, $featured->featured_down ? ParameterType::STRING : ParameterType::NULL);
-
-        //         $db->setQuery($query);
-        //         $db->execute();
-        //     }
-        // }
-
-        // $this->workflowCleanupBatchMove($oldId, $newId);
-
-        // $oldItem = $this->getTable();
-        // $oldItem->load($oldId);
-        // $fields = FieldsHelper::getFields('com_content.article', $oldItem, true);
-
-        // $fieldsData = [];
-
-        // if (!empty($fields)) {
-        //     $fieldsData['com_fields'] = [];
-
-        //     foreach ($fields as $field) {
-        //         $fieldsData['com_fields'][$field->name] = $field->rawvalue;
-        //     }
-        // }
-
-        // Factory::getApplication()->triggerEvent('onContentAfterSave', ['com_content.article', &$this->table, false, $fieldsData]);
-    // }
-
-    /**
-     * Batch move categories to a new category.
-     *
-     * @param   integer  $value     The new category ID.
-     * @param   array    $pks       An array of row IDs.
-     * @param   array    $contexts  An array of item contexts.
-     *
-     * @return  boolean  True on success.
-     *
-     * @since   3.8.6
-     */
-    protected function batchMove($value, $pks, $contexts)
-    {
-    	$this->setError(Text::_('heyy'));
-    	return false;
-        // if (empty($this->batchSet)) {
-        //     // Set some needed variables.
-        //     $this->user           = $this->getCurrentUser();
-        //     $this->table          = $this->getTable();
-        //     $this->tableClassName = \get_class($this->table);
-        //     $this->contentType    = new UCMType();
-        //     $this->type           = $this->contentType->getTypeByTable($this->tableClassName);
-        // }
-
-        // print_r($this->batchSet);
-        // return;
-
-        // $categoryId = (int) $value;
-
-        // if (!$this->checkCategoryId($categoryId)) {
-        //     return false;
-        // }
-
-        // PluginHelper::importPlugin('system');
-
-        // Parent exists so we proceed
-        foreach ($pks as $pk) {
-            // if (!$this->user->authorise('core.edit', $contexts[$pk])) {
-            //     $this->setError(Text::_('JLIB_APPLICATION_ERROR_BATCH_CANNOT_EDIT'));
-
-            //     return false;
-            // }
-
-            // // Check that the row actually exists
-            // if (!$this->table->load($pk)) {
-            //     if ($error = $this->table->getError()) {
-            //         // Fatal error
-            //         $this->setError($error);
-
-            //         return false;
-            //     }
-
-            //     // Not fatal error
-            //     $this->setError(Text::sprintf('JLIB_APPLICATION_ERROR_BATCH_MOVE_ROW_NOT_FOUND', $pk));
-            //     continue;
-            // }
-
-            // $fields = FieldsHelper::getFields('com_content.article', $this->table, true);
-
-            // $fieldsData = [];
-
-            // if (!empty($fields)) {
-            //     $fieldsData['com_fields'] = [];
-
-            //     foreach ($fields as $field) {
-            //         $fieldsData['com_fields'][$field->name] = $field->rawvalue;
-            //     }
-            // }
-
-            // // Set the new category ID
-            // $this->table->catid = $categoryId;
-
-            // // We don't want to modify tags - so remove the associated tags helper
-            // if ($this->table instanceof TaggableTableInterface) {
-            //     $this->table->clearTagsHelper();
-            // }
-
-            // // Check the row.
-            // if (!$this->table->check()) {
-            //     $this->setError($this->table->getError());
-
-            //     return false;
-            // }
-
-            // // Store the row.
-            // if (!$this->table->store()) {
-            //     $this->setError($this->table->getError());
-
-            //     return false;
-            // }
-
-            // Run event for moved article
-            // Factory::getApplication()->triggerEvent('onContentAfterSave', ['com_content.article', &$this->table, false, $fieldsData]);
-        }
-
-        // Clean the cache
-        $this->cleanCache();
-
-        return true;
-    }
 }
