@@ -169,14 +169,15 @@ class AlfaHelper
         if (intval($fieldId) <= 0 || empty($userGroupArray) || empty($table) || empty($field)) {
             return false;
         }
-
+        
+    
         $db = Factory::getContainer()->get('DatabaseDriver');
         // save users per category on categories_users
         $query = $db->getQuery(true);
         $query->delete($db->quoteName($table))->where($db->quoteName($field) . ' = ' . $fieldId);
         $db->setQuery($query);
         $db->execute();
-
+    
         foreach ($userGroupArray as $allowedUserGroup) {
             $query = $db->getQuery(true);
             $query->insert($db->quoteName($table))
@@ -186,7 +187,7 @@ class AlfaHelper
             $db->execute();
         }
     }
-
+    
     /**
      * Retrieves all the allowed user groups from the database. Reusable for all forms that have allowed user groups as a field.
      *
