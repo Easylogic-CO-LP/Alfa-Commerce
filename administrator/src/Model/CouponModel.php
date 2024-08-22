@@ -307,6 +307,8 @@ class CouponModel extends AdminModel
 	 */
 	protected function prepareTable($table)
 	{
+        $table->modified = Factory::getDate()->toSql();
+
 		jimport('joomla.filter.output');
 
 		if (empty($table->id))
