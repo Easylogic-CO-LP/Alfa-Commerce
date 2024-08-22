@@ -186,6 +186,8 @@ class PlacesModel extends ListModel
 		$orderCol  = $this->state->get('list.ordering', 'id');
 		$orderDirn = $this->state->get('list.direction', 'ASC');
 
+        $query->order('a.parent_id ASC');
+
 		if ($orderCol && $orderDirn)
 		{
 			$query->order($db->escape($orderCol . ' ' . $orderDirn));
@@ -201,9 +203,19 @@ class PlacesModel extends ListModel
 	 */
 	public function getItems()
 	{
-		$items = parent::getItems();
-		
+        $items = parent::getItems();
 
-		return $items;
+        $items = AlfaHelper::addHierarchyData($items);
+
+        //		TROPOS 1
+        //		$categories = AlfaHelper::addHierarchyData($categories,'name','/');
+
+        //		TROPOS 2
+        //	    $nestedCategories = AlfaHelper::buildNestedArray($categories);
+        //		AlfaHelper::sort_nested_items($nestedCategories,'name','desc');
+        //	    $flattenArray = AlfaHelper::flatten_nested_items($nestedCategories,'id','/');
+
+
+        return $items;
 	}
 }

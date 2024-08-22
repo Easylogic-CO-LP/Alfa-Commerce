@@ -27,50 +27,84 @@ use Joomla\CMS\HTML\HTMLHelper;
 class CategoriesField extends ListField
 {
 
-	protected $type = 'categories';
+    protected $type = 'categories';
 
-	protected $options = [];
+    protected $options = [];
 
-	protected function getOptions()
-	{
-		$removeCurrent = $this->element['removeCurrent']=='true' ? true : false;
-		$showPath      = $this->element['showPath']=='true' ? true : false;
+    protected function getOptions()
+    {
+        $disableDescendants = $this->element['disableDescendants'] == 'true' ? true : false;
+        $showPath = $this->element['showPath'] == 'true' ? true : false;
+        $orderBy = $this->element['orderBy'] ?? 'name';
+        $orderDir = $this->element['orderDir'] ?? 'ASC';
+        $currentCategoryIdField = $this->element['currentIdField'] ?? 'id';//by default as the current category id we get the name="id" field from the form
 
-		$this->options = parent::getOptions();
+        $modelName = $this->element['model'] ?? 'categories';//model to use getItems from ( default is categories model )
 
-		$app       = Factory::getApplication();
-		$component = $app->bootComponent('com_alfa');
-		$factory   = $component->getMVCFactory();
-		$model     = $factory->createModel('Categories', 'Administrator');
-		$model->setState('filter.state', '*');
+        $this->options = parent::getOptions();
 
-		//		TODO: set filtering by name ( is not setting )
-		//	    $app->input->set('list.ordering', 'name');
-		//	    $app->input->set('list.direction', 'DESC');
-		//	    $model->setState('list.ordering', 'name');
-		//	    $model->setState('list.direction', 'ASC');
+        $app = Factory::getApplication();
+        $component = $app->bootComponent('com_alfa');
+        $factory = $component->getMVCFactory();
+        $model = $factory->createModel($modelName, 'Administrator');
 
-		$categories = $model->getItems();
+        if (!$model) {
+            return $this->options;
+        }
 
-		foreach ($categories as $category)
-		{
-			$this->options['cat-' . $category->id] =
-				array('value' => $category->id,
-				      'text'  => ($showPath
-					                ?$category->path
-					                :str_repeat('-', $category->depth).$category->name
-				                )
-	                );
-	    }
+        $model->setState('filter.state', '*');
 
-		if ($removeCurrent)
-		{
-			$idToRemove = $this->form->getData()->get('id');
-			unset($this->options['cat-' . $idToRemove]);
-		}
+        $model->getState('list.ordering');//we should use get before set the list state fields
 
-		return $this->options;
+        $model->setState('list.ordering', $orderBy);
+        $model->setState('list.direction', $orderDir);
 
-	}
+        $categories = $model->getItems();
+
+        $currentCategoryId = $this->form->getData()->get($currentCategoryIdField);//current category id , gets the form field
+
+        // Track if we are in descendant disabling mode
+        $disableMode = false;
+        $disableParentCategoryLevel = null;
+
+        foreach ($categories as $category) {
+            $disableCurrent = false;//by default disable the current category will be false
+
+
+            // Check if we should start disabling descendants
+            if ($disableDescendants && $currentCategoryId == $category->id) {
+                $disableMode = true;
+                $disableParentCategoryLevel = $category->depth; // Capture the level of the current category
+            }
+
+            // If we're in disable mode, disable until we reach a category with a depth greater than current
+            if ($disableMode) {
+                if ($category->depth >= $disableParentCategoryLevel) {
+                    $disableCurrent = true;
+                } else {
+                    $disableMode = false;
+                }
+            }
+
+            $this->options['cat-' . $category->id] =
+                array('value' => $category->id,
+
+                    'text' => ($showPath
+                        ? $category->path
+                        : str_repeat('-', $category->depth) . $category->name
+                    ),
+                    'disable' => $disableCurrent, // Adding the disabled attribute
+                );
+
+
+        }
+
+
+//      $removeCurrent = $this->element['removeCurrent']=='true' ? true : false;
+//      if ($removeCurrent){ unset($this->options['cat-' . $currentCategoryId]); }
+
+        return $this->options;
+
+    }
 
 }

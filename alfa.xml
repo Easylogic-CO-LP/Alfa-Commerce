@@ -10,9 +10,9 @@
     <version>1.0.2</version>
     <description>The smartest,fastest and easiest ecommerce solution for companies developed with love by Easylogic.</description>
     <namespace path="src">Alfa\Component\Alfa</namespace>
-
+    
     <scriptfile>script.php</scriptfile>
-
+    
     <install> <!-- Runs on install -->
         <sql>
             <file driver="mysql" charset="utf8">sql/install.mysql.utf8.sql</file>
@@ -30,10 +30,10 @@
     </uninstall>
 
     <api>
-        <files folder="api">
-            <folder>src</folder>
-        </files>
-    </api>
+		<files folder="api">
+			<folder>src</folder>
+		</files>
+	</api>
 
     <files folder="site">
         <folder>src</folder>
@@ -46,12 +46,12 @@
         <filename>joomla.asset.json</filename>
     </media>
     <languages folder="site/languages">
-        <language tag="en-GB">en-GB/com_alfa.ini</language>
+			<language tag="en-GB">en-GB/com_alfa.ini</language>
     </languages>
     <administration>
         <menu>COM_ALFA</menu>
         <submenu>
-
+            
             <menu link="option=com_alfa&amp;view=categories" view="categories" alt="Alfa/Categories">COM_ALFA_TITLE_CATEGORIES</menu>
 
             <menu link="option=com_alfa&amp;view=items" view="items" alt="Alfa/Items">COM_ALFA_TITLE_ITEMS</menu>
@@ -64,19 +64,19 @@
 
             <menu link="option=com_alfa&amp;view=usergroups" view="usergroups" alt="Alfa/Usergroups">COM_ALFA_TITLE_USERGROUPS</menu>
 
-            <menu link="option=com_alfa&amp;view=manufacturers" view="manufacturers" alt="Alfa/Manufacturers">COM_ALFA_TITLE_MANUFACTURERS</menu>
-
             <menu link="option=com_alfa&amp;view=customs" view="customs" alt="Alfa/Customs">COM_ALFA_TITLE_CUSTOMS</menu>
 
-            <menu link="option=com_alfa&amp;view=shipments" view="shipments" alt="Alfa/Shipments">COM_ALFA_TITLE_SHIPMENTS</menu>
+			<menu link="option=com_alfa&amp;view=manufacturers" view="manufacturers" alt="Alfa/Manufacturers">COM_ALFA_TITLE_MANUFACTURERS</menu>
+			
+			<menu link="option=com_alfa&amp;view=shipments" view="shipments" alt="Alfa/Shipments">COM_ALFA_TITLE_SHIPMENTS</menu>
 
             <menu link="option=com_alfa&amp;view=payments" view="payments" alt="Alfa/Payments">COM_ALFA_TITLE_PAYMENTS</menu>
 
-            <menu link="option=com_alfa&amp;view=currencies" view="currencies" alt="Alfa/Currencies">COM_ALFA_TITLE_CURRENCIES</menu>
-
             <menu link="option=com_alfa&amp;view=places" view="places" alt="Alfa/Places">COM_ALFA_TITLE_PLACES</menu>
 
-            <menu link="option=com_alfa&amp;view=settings" view="settings" alt="Alfa/Settings">COM_ALFA_TITLE_SETTINGS</menu>
+			<menu link="option=com_alfa&amp;view=currencies" view="currencies" alt="Alfa/Currencies">COM_ALFA_TITLE_CURRENCIES</menu>
+
+			<menu link="option=com_alfa&amp;view=settings" view="settings" alt="Alfa/Settings">COM_ALFA_TITLE_SETTINGS</menu>
 
         </submenu>
         <files folder="administrator">
@@ -91,24 +91,29 @@
             <folder>sql</folder>
         </files>
         <languages folder="administrator/languages">
-
-            <language tag="en-GB">en-GB/com_alfa.ini</language>
-            <language tag="en-GB">en-GB/com_alfa.sys.ini</language>
+            
+			<language tag="en-GB">en-GB/com_alfa.ini</language>
+			<language tag="en-GB">en-GB/com_alfa.sys.ini</language>
         </languages>
     </administration>
-
+<!--     <config>
+        <fields name="params">
+            <fieldset name="component">
+                <field name="save_history" default="0" />
+            </fieldset>
+        </fields>
+    </config> -->
     <plugins>
-        <plugin group="finder" plugin="alfamanufacturers"/>
-        <plugin group="finder" plugin="alfacategories"/>
-        <plugin group="finder" plugin="alfaitems"/>
-        <plugin group="webservices" plugin="alfa"/>
+		<plugin group="finder" plugin="alfamanufacturers"/>
+		<plugin group="finder" plugin="alfacategories"/>
+		<plugin group="finder" plugin="alfaitems"/>
+		<plugin group="webservices" plugin="alfa"/>
     </plugins>
     <modules>
-        <module module="mod_alfa" />
-    </modules>
+		<module module="mod_alfa" />
+	</modules>
 
     <updateservers>
         <server type="extension" priority="1" name="com_alfa">https://cdn.demosites.gr/alfa-updates.xml</server>
     </updateservers>
-
 </extension>
