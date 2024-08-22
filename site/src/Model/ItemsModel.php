@@ -12,244 +12,365 @@ namespace Alfa\Component\Alfa\Site\Model;
 defined('_JEXEC') or die;
 
 use \Joomla\CMS\Factory;
-use \Joomla\CMS\Language\Text;
-use \Joomla\CMS\MVC\Model\ListModel;
-use \Joomla\Component\Fields\Administrator\Helper\FieldsHelper;
-use \Joomla\CMS\Helper\TagsHelper;
-use \Joomla\CMS\Layout\FileLayout;
-use \Joomla\Database\ParameterType;
 use \Joomla\Utilities\ArrayHelper;
+use \Joomla\CMS\Language\Text;
+use \Joomla\CMS\Table\Table;
+use \Joomla\CMS\MVC\Model\ItemModel as BaseItemModel;
+use \Joomla\CMS\Helper\TagsHelper;
+use \Joomla\CMS\Object\CMSObject;
+use \Joomla\CMS\User\UserFactoryInterface;
 use \Alfa\Component\Alfa\Site\Helper\AlfaHelper;
-
+use \Joomla\Database\ParameterType;
 
 /**
- * Methods supporting a list of Alfa records.
+ * Alfa model.
  *
  * @since  1.0.1
  */
-class ItemsModel extends ListModel
+class ItemModel extends BaseItemModel
 {
-	/**
-	 * Constructor.
-	 *
-	 * @param   array  $config  An optional associative array of configuration settings.
-	 *
-	 * @see    JController
-	 * @since  1.0.1
-	 */
-	public function __construct($config = array())
-	{
-		if (empty($config['filter_fields']))
-		{
-			$config['filter_fields'] = array(
-				'state', 'a.state',
-				'ordering', 'a.ordering',
-				'created_by', 'a.created_by',
-				'modified_by', 'a.modified_by',
-				'name', 'a.name',
-				'id', 'a.id',
-				'short_desc', 'a.short_desc',
-				'full_desc', 'a.full_desc',
-				'sku', 'a.sku',
-				'gtin', 'a.gtin',
-				'mpn', 'a.mpn',
-				'stock', 'a.stock',
-				'stock_action', 'a.stock_action',
-				'manage_stock', 'a.manage_stock',
-				'alias', 'a.alias',
-				'meta_title', 'a.meta_title',
-				'meta_desc', 'a.meta_desc',
-			);
-		}
+    public $_item;
 
-		parent::__construct($config);
-	}
+    /**
+     * Method to auto-populate the model state.
+     *
+     * Note. Calling getState in this method will result in recursion.
+     *
+     * @return  void
+     *
+     * @throws Exception
+     * @since   1.0.1
+     *
+     */
+    protected function populateState()
+    {
+        $app = Factory::getApplication('com_alfa');
+        $user = $app->getIdentity();
 
-	
+        // Check published state
+        if ((!$user->authorise('core.edit.state', 'com_alfa')) && (!$user->authorise('core.edit', 'com_alfa'))) {
+            $this->setState('filter.published', 1);
+            $this->setState('filter.archived', 2);
+        }
 
-	/**
-	 * Method to auto-populate the model state.
-	 *
-	 * Note. Calling getState in this method will result in recursion.
-	 *
-	 * @param   string  $ordering   Elements order
-	 * @param   string  $direction  Order direction
-	 *
-	 * @return  void
-	 *
-	 * @throws  Exception
-	 *
-	 * @since   1.0.1
-	 */
-	protected function populateState($ordering = null, $direction = null)
-	{
-		// List state information.
-		parent::populateState('a.id', 'DESC');
+        // Load state from the request userState on edit or from the passed variable on default
+        if (Factory::getApplication()->input->get('layout') == 'edit') {
+            $id = Factory::getApplication()->getUserState('com_alfa.edit.item.id');
+        } else {
+            $id = Factory::getApplication()->input->get('id');
+            Factory::getApplication()->setUserState('com_alfa.edit.item.id', $id);
+        }
 
-		$app = Factory::getApplication();
-		$list = $app->getUserState($this->context . '.list');
+        $this->setState('item.id', $id);
 
-		$value = $app->getUserState($this->context . '.list.limit', $app->get('list_limit', 25));
-		$list['limit'] = $value;
-		
-		$this->setState('list.limit', $value);
+        // Load the parameters.
+        $params = $app->getParams();
+        $params_array = $params->toArray();
 
-		$value = $app->input->get('limitstart', 0, 'uint');
-		$this->setState('list.start', $value);
+        if (isset($params_array['item_id'])) {
+            $this->setState('item.id', $params_array['item_id']);
+        }
 
-		$ordering  = $this->getUserStateFromRequest($this->context .'.filter_order', 'filter_order', 'a.id');
-		$direction = strtoupper($this->getUserStateFromRequest($this->context .'.filter_order_Dir', 'filter_order_Dir', 'DESC'));
-		
-		if(!empty($ordering) || !empty($direction))
-		{
-			$list['fullordering'] = $ordering . ' ' . $direction;
-		}
+        $this->setState('params', $params);
+    }
 
-		$app->setUserState($this->context . '.list', $list);
+    /**
+     * Method to get an object.
+     *
+     * @param integer $id The id of the object to get.
+     *
+     * @return  mixed    Object on success, false on failure.
+     *
+     * @throws Exception
+     */
+    public function getItem($pk = null)
+    {
+        $user = $this->getCurrentUser();
 
-		
+        $pk = (int)($pk ?: $this->getState('item.id'));
 
-		$context = $this->getUserStateFromRequest($this->context.'.filter.search', 'filter_search');
-		$this->setState('filter.search', $context);
+        if ($this->_item === null) {
+            $this->_item = [];
+        }
 
-		// Split context into component and optional section
-		if (!empty($context))
-		{
-			$parts = FieldsHelper::extract($context);
 
-			if ($parts)
-			{
-				$this->setState('filter.component', $parts[0]);
-				$this->setState('filter.section', $parts[1]);
-			}
-		}
-	}
+        if (!isset($this->_item[$pk])) {
+            try {
+                $db = $this->getDatabase();
+                $query = $db->getQuery(true);
+                $query->select(
+                    $this->getState(
+                        'item.select',
+                        [
+                            // from items
+                            $db->quoteName('a.name'),
+                            $db->quoteName('a.short_desc'),
+                            $db->quoteName('a.full_desc'),
+                            $db->quoteName('a.sku'),
+                            $db->quoteName('a.gtin'),
+                            $db->quoteName('a.mpn'),
+                            $db->quoteName('a.stock'),
+                            $db->quoteName('a.stock_action'),
+                            $db->quoteName('a.manage_stock'),
+                            $db->quoteName('a.alias'),
+                            $db->quoteName('a.meta_title'),
+                            $db->quoteName('a.meta_desc'),
+                        ]
+                    )
+                )
+                    ->from($db->quoteName('#__alfa_items', 'a'))
+                    ->where(
+                        [
+                            $db->quoteName('a.id') . ' = :pk',
+                            // $db->quoteName('c.published') . ' > 0',
+                        ]
+                    )
+                    ->bind(':pk', $pk, ParameterType::INTEGER);
+                $db->setQuery($query);
+                $data = $db->loadObject();
 
-	/**
-	 * Build an SQL query to load the list data.
-	 *
-	 * @return  DatabaseQuery
-	 *
-	 * @since   1.0.1
-	 */
-	protected function getListQuery()
-	{
-			// Create a new query object.
-			$db    = $this->getDbo();
-			$query = $db->getQuery(true);
+                $categories = $this->getItemCategories($pk);
 
-			// Select the required fields from the table.
-			$query->select(
-						$this->getState(
-								'list.select', 'DISTINCT a.*'
-						)
-				);
+                $data->categories = [];
+                foreach ($categories as $category) {
+                    $data->categories[$category['id']] = $category['name'];
+                }
 
-			$query->from('`#__alfa_items` AS a');
-			
-		// Join over the users for the checked out user.
-		$query->select('uc.name AS uEditor');
-		$query->join('LEFT', '#__users AS uc ON uc.id=a.checked_out');
+                $manufacturers = $this->getItemManufacturers($pk);
 
-		// Join over the created by field 'created_by'
-		$query->join('LEFT', '#__users AS created_by ON created_by.id = a.created_by');
+                foreach ($manufacturers as $manufacturer) {
+                    $data->manufacturers[$manufacturer['id']] = $manufacturer['name'];
+                }
 
-		// Join over the created by field 'modified_by'
-		$query->join('LEFT', '#__users AS modified_by ON modified_by.id = a.modified_by');
-			
-		if (!Factory::getApplication()->getIdentity()->authorise('core.edit', 'com_alfa'))
-		{
-			$query->where('a.state = 1');
-		}
-		else
-		{
-			$query->where('(a.state IN (0, 1))');
-		}
+                // TODO: getItemPrices()
+                // $prices = $this->getItemPrices($pk);
+                $this->_item[$pk] = $data;
 
-			// Filter by search in title
-			$search = $this->getState('filter.search');
+            } catch (\Exception $e) {
+                if ($e->getCode() == 404) {
+                    // Need to go through the error handler to allow Redirect to work.
+                    throw $e;
+                }
 
-			if (!empty($search))
-			{
-				if (stripos($search, 'id:') === 0)
-				{
-					$query->where('a.id = ' . (int) substr($search, 3));
-				}
-				else
-				{
-					$search = $db->Quote('%' . $db->escape($search, true) . '%');
-					$query->where('( a.name LIKE ' . $search . ' )');
-				}
-			}
-			
+                $this->setError($e);
+                $this->_item[$pk] = false;
+            }
+        }
 
-			
-			
-			// Add the list ordering clause.
-			$orderCol  = $this->state->get('list.ordering', 'a.id');
-			$orderDirn = $this->state->get('list.direction', 'DESC');
+        return $this->_item[$pk];
+    }
 
-			if ($orderCol && $orderDirn)
-			{
-				$query->order($db->escape($orderCol . ' ' . $orderDirn));
-			}
+    public function getItemCategories($pk)
+    {
+        $db = $this->getDatabase();
+        $query = $db->getQuery(true);
+        $query->select(
+            [
+                $db->quoteName('c.name'),
+                $db->quoteName('c.id'),
+            ]
+        )
+            ->from($db->quoteName('#__alfa_categories', 'c'))
+            ->join(
+                'INNER',
+                $db->quoteName('#__alfa_items_categories', 'ic'),
+                $db->quoteName('c.id') . ' = ' . $db->quoteName('ic.category_id'),
+            )
+            ->where($db->quoteName('ic.product_id') . ' = ' . $db->quote($pk));
 
-			return $query;
-	}
+        $db->setQuery($query);
 
-	/**
-	 * Method to get an array of data items
-	 *
-	 * @return  mixed An array of data on success, false on failure.
-	 */
-	public function getItems()
-	{
-		$items = parent::getItems();
-		
+        return $db->loadAssocList();
+    }
 
-		return $items;
-	}
 
-	/**
-	 * Overrides the default function to check Date fields format, identified by
-	 * "_dateformat" suffix, and erases the field if it's not correct.
-	 *
-	 * @return void
-	 */
-	protected function loadFormData()
-	{
-		$app              = Factory::getApplication();
-		$filters          = $app->getUserState($this->context . '.filter', array());
-		$error_dateformat = false;
+    public function getItemManufacturers($pk)
+    {
+        $db = $this->getDatabase();
+        $query = $db->getQuery(true);
+        $query->select(
+            [
+                $db->quoteName('m.name'),
+                $db->quoteName('m.id'),
+            ]
+        )
+            ->from($db->quoteName('#__alfa_manufacturers', 'm'))
+            ->join(
+                'INNER',
+                $db->quoteName('#__alfa_items_manufacturers', 'im'),
+                $db->quoteName('m.id') . ' = ' . $db->quoteName('im.manufacturer_id'),
+            )
+            ->where($db->quoteName('im.product_id') . ' = ' . $db->quote($pk));
 
-		foreach ($filters as $key => $value)
-		{
-			if (strpos($key, '_dateformat') && !empty($value) && $this->isValidDate($value) == null)
-			{
-				$filters[$key]    = '';
-				$error_dateformat = true;
-			}
-		}
+        $db->setQuery($query);
 
-		if ($error_dateformat)
-		{
-			$app->enqueueMessage(Text::_("COM_ALFA_SEARCH_FILTER_DATE_FORMAT"), "warning");
-			$app->setUserState($this->context . '.filter', $filters);
-		}
+        return $db->loadAssocList();
+    }
 
-		return parent::loadFormData();
-	}
+    public function getItemPrices($pk)
+    {
 
-	/**
-	 * Checks if a given date is valid and in a specified format (YYYY-MM-DD)
-	 *
-	 * @param   string  $date  Date to be checked
-	 *
-	 * @return bool
-	 */
-	private function isValidDate($date)
-	{
-		$date = str_replace('/', '-', $date);
-		return (date_create($date)) ? Factory::getDate($date)->format("Y-m-d") : null;
-	}
+    }
+
+    /**
+     * Get an instance of Table class
+     *
+     * @param string $type Name of the Table class to get an instance of.
+     * @param string $prefix Prefix for the table class name. Optional.
+     * @param array $config Array of configuration values for the Table object. Optional.
+     *
+     * @return  Table|bool Table if success, false on failure.
+     */
+    public function getTable($type = 'Item', $prefix = 'Administrator', $config = array())
+    {
+        return parent::getTable($type, $prefix, $config);
+    }
+
+    /**
+     * Get the id of an item by alias
+     * @param string $alias Item alias
+     *
+     * @return  mixed
+     *
+     * @deprecated  No replacement
+     */
+    public function getItemIdByAlias($alias)
+    {
+        $table = $this->getTable();
+        $properties = $table->getProperties();
+        $result = null;
+        $aliasKey = null;
+        if (method_exists($this, 'getAliasFieldNameByView')) {
+            $aliasKey = $this->getAliasFieldNameByView('item');
+        }
+
+
+        if (key_exists('alias', $properties)) {
+            $table->load(array('alias' => $alias));
+            $result = $table->id;
+        } elseif (isset($aliasKey) && key_exists($aliasKey, $properties)) {
+            $table->load(array($aliasKey => $alias));
+            $result = $table->id;
+        }
+
+        return $result;
+
+    }
+
+    /**
+     * Method to check in an item.
+     *
+     * @param integer $id The id of the row to check out.
+     *
+     * @return  boolean True on success, false on failure.
+     *
+     * @since   1.0.1
+     */
+    public function checkin($id = null)
+    {
+        // Get the id.
+        $id = (!empty($id)) ? $id : (int)$this->getState('item.id');
+
+        if ($id) {
+            // Initialise the table
+            $table = $this->getTable();
+
+            // Attempt to check the row in.
+            if (method_exists($table, 'checkin')) {
+                if (!$table->checkin($id)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+
+    }
+
+    /**
+     * Method to check out an item for editing.
+     *
+     * @param integer $id The id of the row to check out.
+     *
+     * @return  boolean True on success, false on failure.
+     *
+     * @since   1.0.1
+     */
+    public function checkout($id = null)
+    {
+        // Get the user id.
+        $id = (!empty($id)) ? $id : (int)$this->getState('item.id');
+
+
+        if ($id) {
+            // Initialise the table
+            $table = $this->getTable();
+
+            // Get the current user object.
+            $user = Factory::getApplication()->getIdentity();
+
+            // Attempt to check the row out.
+            if (method_exists($table, 'checkout')) {
+                if (!$table->checkout($user->get('id'), $id)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+
+    }
+
+    /**
+     * Publish the element
+     *
+     * @param int $id Item id
+     * @param int $state Publish state
+     *
+     * @return  boolean
+     */
+    public function publish($id, $state)
+    {
+        $table = $this->getTable();
+
+        $table->load($id);
+        $table->state = $state;
+
+        return $table->store();
+
+    }
+
+    /**
+     * Method to delete an item
+     *
+     * @param int $id Element id
+     *
+     * @return  bool
+     */
+    public function delete($id)
+    {
+        $table = $this->getTable();
+
+
+        return $table->delete($id);
+
+    }
+
+    public function getAliasFieldNameByView($view)
+    {
+        switch ($view) {
+            case 'manufacturer':
+            case 'manufacturerform':
+                return 'alias';
+                break;
+            case 'category':
+            case 'categoryform':
+                return 'alias';
+                break;
+            case 'item':
+            case 'itemform':
+                return 'alias';
+                break;
+        }
+    }
 }
