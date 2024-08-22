@@ -27,13 +27,6 @@ $user = $this->getCurrentUser();
 <div class="p-3">
     <div class="row">
         
-        <div class="form-group col-md-12">
-          <?php echo LayoutHelper::render('batch.user'); ?>
-        </div>
-    </div>
-
-    <div class="row">
-        
         <div class="form-group col-md-6">
             <?php echo LayoutHelper::render('batch.categories'); ?>
         </div>
@@ -43,6 +36,18 @@ $user = $this->getCurrentUser();
         </div>
        
     </div>
+
+    <div class="row">
+        
+        <div class="form-group col-md-6">
+          <?php echo LayoutHelper::render('batch.user'); ?>
+        </div>
+
+       <div class="form-group col-md-6">
+            <?php echo LayoutHelper::render('batch.usergroups'); ?>
+        </div>
+    </div>
+
     
 </div>
 <div class="btn-toolbar p-3">

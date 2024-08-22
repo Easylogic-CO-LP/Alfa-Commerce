@@ -55,7 +55,45 @@ class ItemModel extends AdminModel
     protected $batch_commands = [
         'category_id' => 'batchCategory',
         'manufacturer_id' => 'batchManufacturer',
+        'user_id' => 'batchUser',
+        'usergroup_id' => 'batchUserGroup',
     ];
+
+     protected function batchUser($value, $pks, $contexts)
+    {
+	    $app = Factory::getApplication();
+
+	    if(sizeof($value) == 1 && $value[0]==''){
+	    	$app->enqueueMessage('Users not changed', 'info');
+	    	return true;
+	    }
+
+        foreach ($pks as $id) {
+        	AlfaHelper::setAllowedUsers($id, $value, '#__alfa_items_users', 'item_id');
+        }
+
+		$app->enqueueMessage('Users setted successfully', 'info');
+
+        return true;
+    }
+
+     protected function batchUserGroup($value, $pks, $contexts)
+    {
+	    $app = Factory::getApplication();
+
+	    if(sizeof($value) == 1 && $value[0]==''){
+	    	$app->enqueueMessage('Usergroup not changed', 'info');
+	    	return true;
+	    }
+
+        foreach ($pks as $id) {
+        	AlfaHelper::setAllowedUserGroups($id, $value, '#__alfa_items_usergroups', 'item_id');
+        }
+
+		$app->enqueueMessage('Usergroup setted successfully', 'info');
+
+        return true;
+    }
 
     protected function batchManufacturer($value, $pks, $contexts)
     {
@@ -160,8 +198,6 @@ class ItemModel extends AdminModel
 				}
 
 				$item->categories = $this->getCategories($item->id);
-
-
 				$item->manufacturers = $this->getManufacturers($item->id);
 
 	            $item->allowedUsers = AlfaHelper::getAllowedUsers($item->id, '#__alfa_items_users', 'item_id');
@@ -341,9 +377,6 @@ class ItemModel extends AdminModel
 
 	}
 
-
-
-	
 
 	/**
 	 * Method to duplicate an Item From List
