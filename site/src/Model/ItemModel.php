@@ -15,7 +15,7 @@ use \Joomla\CMS\Factory;
 use \Joomla\Utilities\ArrayHelper;
 use \Joomla\CMS\Language\Text;
 use \Joomla\CMS\Table\Table;
-use \Joomla\CMS\MVC\Model\ItemModel;
+use \Joomla\CMS\MVC\Model\ItemModel as BaseItemModel;
 use \Joomla\CMS\Helper\TagsHelper;
 use \Joomla\CMS\Object\CMSObject;
 use \Joomla\CMS\User\UserFactoryInterface;
@@ -26,14 +26,9 @@ use \Alfa\Component\Alfa\Site\Helper\AlfaHelper;
  *
  * @since  1.0.1
  */
-class ItemModel extends ItemModel
+class ItemModel extends BaseItemModel
 {
 	public $_item;
-
-	
-
-	
-
 	/**
 	 * Method to auto-populate the model state.
 	 *
@@ -153,6 +148,31 @@ class ItemModel extends ItemModel
 			$user = $userFactory->loadUserById($this->_item->modified_by);
 			$this->_item->modified_by_name = $user->name;
 		}
+
+        $db = Factory::getDbo();
+        // load selected categories for item
+        $query = $db->getQuery(true);
+        $query
+            ->select('c.id')
+            ->from('#__alfa_items_categories as ic')
+            ->innerJoin('#__alfa_categories as c on (c.id = ic.category_id)')
+            ->where(sprintf('ic.product_id = %d', $id));
+        // ->order('c.name asc');
+
+        $db->setQuery($query);
+        $this->_item->categories = $db->loadColumn();
+
+        // load selected categories for item
+        $query = $db->getQuery(true);
+        $query
+            ->select('c.id')
+            ->from('#__alfa_items_manufacturers as ic')
+            ->innerJoin('#__alfa_manufacturers as c on (c.id = ic.manufacturer_id)')
+            ->where(sprintf('ic.product_id = %d', $id));
+        // ->order('c.name asc');
+
+        $db->setQuery($query);
+        $this->_item->manufacturers = $db->loadColumn();
 
 		return $this->_item;
 	}
