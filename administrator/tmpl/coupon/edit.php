@@ -20,6 +20,9 @@ $wa = $this->document->getWebAssetManager();
 $wa->useScript('keepalive')
 	->useScript('form.validate');
 HTMLHelper::_('bootstrap.tooltip');
+
+$input = Factory::getApplication()->getInput();
+
 ?>
 
 <form
@@ -40,11 +43,27 @@ HTMLHelper::_('bootstrap.tooltip');
 				<?php echo $this->form->renderField('min_value'); ?>
 				<?php echo $this->form->renderField('max_value'); ?>
 				<?php echo $this->form->renderField('hidden'); ?>
-				<?php echo $this->form->renderField('start_date'); ?>
-				<?php echo $this->form->renderField('end_date'); ?>
-				<?php echo $this->form->renderField('associate_to_new_users'); ?>
-				<?php echo $this->form->renderField('user_associated'); ?>
-			</fieldset>
+
+                <?php echo $this->form->renderField('publish_up'); ?>
+
+                <?php echo $this->form->renderField('publish_down'); ?>
+
+                <?php echo $this->form->renderField('user_associated'); ?>
+
+                <?php echo $this->form->renderField('associate_to_new_users'); ?>
+
+                <?php echo $this->form->renderField('allowedUsers'); ?>
+
+                <?php echo $this->form->renderField('allowedUserGroups'); ?>
+
+                <?php echo $this->form->renderField('created_by'); ?>
+
+                <?php echo $this->form->renderField('modified'); ?>
+
+                <?php echo $this->form->renderField('modified_by'); ?>
+
+                <?php echo $this->form->renderField('id'); ?>
+            </fieldset>
 		</div>
 	</div>
 	<?php echo HTMLHelper::_('uitab.endTab'); ?>
@@ -53,13 +72,12 @@ HTMLHelper::_('bootstrap.tooltip');
 	<input type="hidden" name="jform[ordering]" value="<?php echo $this->item->ordering; ?>" />
 	<input type="hidden" name="jform[checked_out]" value="<?php echo $this->item->checked_out; ?>" />
 	<input type="hidden" name="jform[checked_out_time]" value="<?php echo $this->item->checked_out_time; ?>" />
-	<?php echo $this->form->renderField('created_by'); ?>
-	<?php echo $this->form->renderField('modified_by'); ?>
 
-	
-	<?php echo HTMLHelper::_('uitab.endTabSet'); ?>
+    <?php echo HTMLHelper::_('uitab.endTabSet'); ?>
 
-	<input type="hidden" name="task" value=""/>
+    <input type="hidden" name="task" value="">
+    <input type="hidden" name="return" value="<?php echo $input->getBase64('return'); ?>">
+
 	<?php echo HTMLHelper::_('form.token'); ?>
 
 </form>

@@ -208,6 +208,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_coupons` (
 `checked_out_time` DATETIME NULL  DEFAULT NULL ,
 `created_by` INT(11)  NULL  DEFAULT 0,
 `modified_by` INT(11)  NULL  DEFAULT 0,
+`modified` datetime NOT NULL,
 `coupon_code` VARCHAR(255)  NOT NULL ,
 `num_of_uses` DOUBLE NOT NULL DEFAULT 0,
 `value_type` VARCHAR(255)  NULL  DEFAULT "0",
@@ -215,8 +216,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_coupons` (
 `min_value` DOUBLE NULL ,
 `max_value` DOUBLE NULL DEFAULT 0,
 `hidden` VARCHAR(255)  NULL  DEFAULT "0",
-`start_date` DATETIME NULL  DEFAULT NULL ,
-`end_date` DATETIME NULL  DEFAULT NULL ,
+`publish_up` DATETIME NULL  DEFAULT NULL ,
+`publish_down` DATETIME NULL  DEFAULT NULL ,
 `associate_to_new_users` VARCHAR(255)  NULL  DEFAULT "",
 `user_associated` VARCHAR(255)  NULL  DEFAULT "0",
 PRIMARY KEY (`id`)
