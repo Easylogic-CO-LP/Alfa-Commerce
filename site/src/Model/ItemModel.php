@@ -115,23 +115,10 @@ class ItemModel extends BaseItemModel
                             $db->quoteName('a.alias'),
                             $db->quoteName('a.meta_title'),
                             $db->quoteName('a.meta_desc'),
-                            // from categories
-                            $db->quoteName('c.name', 'category_name'),
-                            $db->quoteName('c.id', 'category_id'),
                         ]
                     )
                 )
                     ->from($db->quoteName('#__alfa_items', 'a'))
-                    ->join(
-                        'INNER',
-                        $db->quoteName('#__alfa_items_categories', 'ic'),
-                        $db->quoteName('a.id') . ' = ' . $db->quoteName('ic.product_id')
-                    )
-                    ->join(
-                        'INNER',
-                        $db->quoteName('#__alfa_categories', 'c'),
-                        $db->quoteName('ic.category_id') . ' = ' . $db->quoteName('c.id')
-                    )
                     ->where(
                         [
                             $db->quoteName('a.id') . ' = :pk',
@@ -140,22 +127,23 @@ class ItemModel extends BaseItemModel
                     )
                     ->bind(':pk', $pk, ParameterType::INTEGER);
                 $db->setQuery($query);
-                $data = $db->loadObjectList();
+                $data = $db->loadObject();
 
-                $categories = [];
+                $categories = $this->getItemCategories($pk);
 
-                foreach ($data as $item) {
-                    $categories[$item->category_id] = $item->category_name;
+                $data->categories = [];
+                foreach ($categories as $category) {
+                    $data->categories[$category['id']] = $category['name'];
                 }
 
-                if (!empty($data)) {
-                    $data[0]->categories = $categories;
-                    $data = $data[0];
+                $manufacturers = $this->getItemManufacturers($pk);
+
+                foreach ($manufacturers as $manufacturer) {
+                    $data->manufacturers[$manufacturer['id']] = $manufacturer['name'];
                 }
 
-                unset($data->category_name);
-                unset($data->category_id);
-
+                // TODO: getItemPrices()
+                // $prices = $this->getItemPrices($pk);
                 $this->_item[$pk] = $data;
 
             } catch (\Exception $e) {
@@ -170,225 +158,59 @@ class ItemModel extends BaseItemModel
         }
 
         return $this->_item[$pk];
-//                     ->select(
-//                         [
-//                             $db->quoteName('c.id','category_id'),
-//                             $db->quoteName('c.name/title','category_title'),
-//                             $db->quoteName('c.title', 'category_title'),
-//                             $db->quoteName('c.alias', 'category_alias'),
-//                             $db->quoteName('c.access', 'category_access'),
-//                             $db->quoteName('c.language', 'category_language'),
-//                             $db->quoteName('fp.ordering'),
-//                             $db->quoteName('u.name', 'author'),
-//                             $db->quoteName('parent.title', 'parent_title'),
-//                             $db->quoteName('parent.id', 'parent_id'),
-//                             $db->quoteName('parent.path', 'parent_route'),
-//                             $db->quoteName('parent.alias', 'parent_alias'),
-//                             $db->quoteName('parent.language', 'parent_language'),
-//                             'ROUND(' . $db->quoteName('v.rating_sum') . ' / ' . $db->quoteName('v.rating_count') . ', 1) AS '
-//                                 . $db->quoteName('rating'),
-//                             $db->quoteName('v.rating_count', 'rating_count'),
-//                         ]
-//                     )
-
-//                     ->join('LEFT', $db->quoteName('#__alfa_categories', 'c'), $db->quoteName('parent.id') . ' = ' . $db->quoteName('c.parent_id'))
-//                     ->join('LEFT', $db->quoteName('#__alfa_items_categories', 'ca'), $db->quoteName('parent.id') . ' = ' . $db->quoteName('c.parent_id'))
-
-        //
-        //
-
-
-//                    ->innerJoin('#__alfa_categories as c on (c.id = ic.category_id)')
-        //     ->where(sprintf('ic.product_id = %d', $id));
-        // ->order('c.name asc');
-
-        // ->join('LEFT', $db->quoteName('#__content_frontpage', 'fp'), $db->quoteName('fp.content_id') . ' = ' . $db->quoteName('a.id'))
-        // ->join('LEFT', $db->quoteName('#__users', 'u'), $db->quoteName('u.id') . ' = ' . $db->quoteName('a.created_by'))
-        // ->join('LEFT', $db->quoteName('#__categories', 'parent'), $db->quoteName('parent.id') . ' = ' . $db->quoteName('c.parent_id'))
-        // ->join('LEFT', $db->quoteName('#__content_rating', 'v'), $db->quoteName('a.id') . ' = ' . $db->quoteName('v.content_id'))
-
-
-        // Filter by language
-        // if ($this->getState('filter.language')) {
-        //     $query->whereIn($db->quoteName('a.language'), [Factory::getLanguage()->getTag(), '*'], ParameterType::STRING);
-        // }
-
-        // if (
-        //     !$user->authorise('core.edit.state', 'com_content.article.' . $pk)
-        //     && !$user->authorise('core.edit', 'com_content.article.' . $pk)
-        // ) {
-        //     // Filter by start and end dates.
-        //     $nowDate = Factory::getDate()->toSql();
-
-        //     $query->extendWhere(
-        //         'AND',
-        //         [
-        //             $db->quoteName('a.publish_up') . ' IS NULL',
-        //             $db->quoteName('a.publish_up') . ' <= :publishUp',
-        //         ],
-        //         'OR'
-        //     )
-        //         ->extendWhere(
-        //             'AND',
-        //             [
-        //                 $db->quoteName('a.publish_down') . ' IS NULL',
-        //                 $db->quoteName('a.publish_down') . ' >= :publishDown',
-        //             ],
-        //             'OR'
-        //         )
-        //         ->bind([':publishUp', ':publishDown'], $nowDate);
-        // }
-
-        // Filter by published state.
-        // $published = $this->getState('filter.published');
-        // $archived  = $this->getState('filter.archived');
-
-        // if (is_numeric($published)) {
-        //     $query->whereIn($db->quoteName('a.state'), [(int) $published, (int) $archived]);
-        // }
-
-
-        // if (empty($data)) {
-        //     throw new \Exception(Text::_('COM_CONTENT_ERROR_ARTICLE_NOT_FOUND'), 404);
-        // }
-
-        // // Check for published state if filter set.
-        // if ((is_numeric($published) || is_numeric($archived)) && ($data->state != $published && $data->state != $archived)) {
-        //     throw new \Exception(Text::_('COM_CONTENT_ERROR_ARTICLE_NOT_FOUND'), 404);
-        // }
-
-        // Convert parameter fields to objects.
-        // $registry = new Registry($data->attribs);
-
-        // $data->params = clone $this->getState('params');
-        // $data->params->merge($registry);
-
-        // $data->metadata = new Registry($data->metadata);
-
-        // Technically guest could edit an article, but lets not check that to improve performance a little.
-        // if (!$user->get('guest')) {
-        //     $userId = $user->get('id');
-        //     $asset  = 'com_content.article.' . $data->id;
-
-        //     // Check general edit permission first.
-        //     if ($user->authorise('core.edit', $asset)) {
-        //         $data->params->set('access-edit', true);
-        //     } elseif (!empty($userId) && $user->authorise('core.edit.own', $asset)) {
-        //         // Now check if edit.own is available.
-        //         // Check for a valid user and that they are the owner.
-        //         if ($userId == $data->created_by) {
-        //             $data->params->set('access-edit', true);
-        //         }
-        //     }
-        // }
-
-        // Compute view access permissions.
-        // if ($access = $this->getState('filter.access')) {
-        //     // If the access filter has been set, we already know this user can view.
-        //     $data->params->set('access-view', true);
-        // } else {
-        //     // If no access filter is set, the layout takes some responsibility for display of limited information.
-        //     $user   = $this->getCurrentUser();
-        //     $groups = $user->getAuthorisedViewLevels();
-
-        //     if ($data->catid == 0 || $data->category_access === null) {
-        //         $data->params->set('access-view', \in_array($data->access, $groups));
-        //     } else {
-        //         $data->params->set('access-view', \in_array($data->access, $groups) && \in_array($data->category_access, $groups));
-        //     }
-        // }
-
-
-        // OLD CODE
-
-
-        // if ($this->_item === null)
-        // {
-        // 	$this->_item = false;
-
-        // 	if (empty($id))
-        // 	{
-        // 		$id = $this->getState('item.id');
-        // 	}
-
-        // 	// Get a level row instance.
-        // 	$table = $this->getTable();
-
-        // 	// Attempt to load the row.
-        // 	if ($table && $table->load($id))
-        // 	{
-
-
-        // 		// Check published state.
-        // 		if ($published = $this->getState('filter.published'))
-        // 		{
-        // 			if (isset($table->state) && $table->state != $published)
-        // 			{
-        // 				throw new \Exception(Text::_('COM_ALFA_ITEM_NOT_LOADED'), 403);
-        // 			}
-        // 		}
-
-        // 		// Convert the Table to a clean CMSObject.
-        // 		$properties  = $table->getProperties(1);
-        // 		$this->_item = ArrayHelper::toObject($properties, CMSObject::class);
-
-
-        // 	}
-
-        // 	if (empty($this->_item))
-        // 	{
-        // 		throw new \Exception(Text::_('COM_ALFA_ITEM_NOT_LOADED'), 404);
-        // 	}
-        // }
-
-        //  $container = \Joomla\CMS\Factory::getContainer();
-
-        //  $userFactory = $container->get(UserFactoryInterface::class);
-
-        // if (isset($this->_item->created_by))
-        // {
-        // 	$user = $userFactory->loadUserById($this->_item->created_by);
-        // 	$this->_item->created_by_name = $user->name;
-        // }
-
-        //  $container = \Joomla\CMS\Factory::getContainer();
-
-        //  $userFactory = $container->get(UserFactoryInterface::class);
-
-        // if (isset($this->_item->modified_by))
-        // {
-        // 	$user = $userFactory->loadUserById($this->_item->modified_by);
-        // 	$this->_item->modified_by_name = $user->name;
-        // }
-
-        // $db = Factory::getDbo();
-        // // load selected categories for item
-        // $query = $db->getQuery(true);
-        // $query
-        //     ->select('c.id')
-        //     ->from('#__alfa_items_categories as ic')
-        //     ->innerJoin('#__alfa_categories as c on (c.id = ic.category_id)')
-        //     ->where(sprintf('ic.product_id = %d', $id));
-        // // ->order('c.name asc');
-
-        // $db->setQuery($query);
-        // $this->_item->categories = $db->loadColumn();
-
-        // // load selected categories for item
-        // $query = $db->getQuery(true);
-        // $query
-        //     ->select('c.id')
-        //     ->from('#__alfa_items_manufacturers as ic')
-        //     ->innerJoin('#__alfa_manufacturers as c on (c.id = ic.manufacturer_id)')
-        //     ->where(sprintf('ic.product_id = %d', $id));
-        // // ->order('c.name asc');
-
-        // $db->setQuery($query);
-        // $this->_item->manufacturers = $db->loadColumn();
-
-        // return $this->_item;
     }
 
+    public function getItemCategories($pk)
+    {
+        $db = $this->getDatabase();
+        $query = $db->getQuery(true);
+        $query->select(
+            [
+                $db->quoteName('c.name'),
+                $db->quoteName('c.id'),
+            ]
+        )
+            ->from($db->quoteName('#__alfa_categories', 'c'))
+            ->join(
+                'INNER',
+                $db->quoteName('#__alfa_items_categories', 'ic'),
+                $db->quoteName('c.id') . ' = ' . $db->quoteName('ic.category_id'),
+            )
+            ->where($db->quoteName('ic.product_id') . ' = ' . $db->quote($pk));
+
+        $db->setQuery($query);
+
+        return $db->loadAssocList();
+    }
+
+
+    public function getItemManufacturers($pk)
+    {
+        $db = $this->getDatabase();
+        $query = $db->getQuery(true);
+        $query->select(
+            [
+                $db->quoteName('m.name'),
+                $db->quoteName('m.id'),
+            ]
+        )
+            ->from($db->quoteName('#__alfa_manufacturers', 'm'))
+            ->join(
+                'INNER',
+                $db->quoteName('#__alfa_items_manufacturers', 'im'),
+                $db->quoteName('m.id') . ' = ' . $db->quoteName('im.manufacturer_id'),
+            )
+            ->where($db->quoteName('im.product_id') . ' = ' . $db->quote($pk));
+
+        $db->setQuery($query);
+
+        return $db->loadAssocList();
+    }
+
+    public function getItemPrices($pk)
+    {
+
+    }
 
     /**
      * Get an instance of Table class

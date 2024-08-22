@@ -77,7 +77,8 @@
                hint="COM_ALFA_FORM_LBL_COUPON_START_DATE"/>
 
         <field name="publish_down" type="calendar" showtime="true" format="%Y-%m-%d %H:%M" filter="USER_UTC"
-               label="COM_ALFA_FORM_CATEGORY_LBL_PUBLISH_DOWN" description="COM_ALFA_CATEGORY_PUBLISH_DOWN_DESC"/>
+               label="COM_ALFA_FORM_LBL_COUPON_END_DATE" description="COM_ALFA_FORM_DESC_COUPON_END_DATE"
+               hint="COM_ALFA_FORM_LBL_COUPON_END_DATE"/>
         <field
                 name="checked_out"
                 type="hidden"
