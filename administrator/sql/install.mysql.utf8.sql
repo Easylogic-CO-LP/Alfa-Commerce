@@ -72,6 +72,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items` (
 `meta_title` VARCHAR(255)  NULL  DEFAULT "",
 `meta_desc` TEXT NULL ,
 `state` TINYINT(1)  NULL  DEFAULT 1,
+`publish_up` datetime DEFAULT NULL,
+`publish_down` datetime DEFAULT NULL,
 `checked_out` INT(11)  UNSIGNED,
 `checked_out_time` DATETIME NULL  DEFAULT NULL ,
 `created_by` INT(11)  NULL  DEFAULT 0,
@@ -83,6 +85,18 @@ PRIMARY KEY (`id`)
 ,KEY `idx_checked_out` (`checked_out`)
 ,KEY `idx_created_by` (`created_by`)
 ,KEY `idx_modified_by` (`modified_by`)
+) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `#__alfa_items_users` (
+    `item_id` INT(11) NOT NULL,
+    `user_id` INT(11) NOT NULL,
+    KEY (`item_id`, `user_id`)
+) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `#__alfa_items_usergroups` (
+    `item_id` INT(11) NOT NULL,
+    `usergroup_id` INT(11) NOT NULL,
+    KEY (`item_id`, `usergroup_id`)
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `#__alfa_items_prices` (
