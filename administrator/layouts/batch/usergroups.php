@@ -1,5 +1,5 @@
-<label id="batch-user-lbl" for="batch-user-id">
-    User to select:
+<label id="batch-usergroup-lbl" for="batch-usergroup-id">
+    Usergroup to select:
 </label>
 
 <?php
@@ -14,20 +14,20 @@ $db = Factory::getContainer()->get('DatabaseDriver');
 $query = $db->getQuery(true);
 
 // Select the columns you want to retrieve.
-$query->select($db->quoteName(['id','name']))
-    ->from($db->quoteName('#__users'));
+$query->select($db->quoteName(['id', 'title']))
+    ->from($db->quoteName('#__usergroups'));
 
 // Set the query and load the result.
 $db->setQuery($query);
 
 // Load the result as an associative array.
-$users = $db->loadAssocList();
+$usergroups = $db->loadAssocList();
 
 // Create options array for the select list
 $options = array();
 
-foreach ($users as $user) {
-    $options[] = HTMLHelper::_('select.option', $user['id'], $user['name']);
+foreach ($usergroups as $usergroup) {
+    $options[] = HTMLHelper::_('select.option', $usergroup['id'], $usergroup['title']);
 }
 
 Factory::getApplication()->getDocument()->getWebAssetManager()
@@ -41,9 +41,9 @@ Factory::getApplication()->getDocument()->getWebAssetManager()
     <?php echo HTMLHelper::_(
     'select.genericlist',
     $options,
-    'batch[user_id][]',
+    'batch[usergroup_id][]',
     array(
-        'list.attr' => 'class="form-select" id="batch-user-id" multiple data-placeholder="- Select a user -"',
+        'list.attr' => 'class="form-select" id="batch-usergroup-id" multiple data-placeholder="- Select a usergroup -"',
         'list.select' => ''
     ),
 );

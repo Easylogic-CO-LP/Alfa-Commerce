@@ -1,5 +1,5 @@
-<label id="batch-user-lbl" for="batch-user-id">
-    User to select:
+<label id="batch-manufacturer-lbl" for="batch-manufacturer-id">
+    Manufacturer to select:
 </label>
 
 <?php
@@ -14,20 +14,20 @@ $db = Factory::getContainer()->get('DatabaseDriver');
 $query = $db->getQuery(true);
 
 // Select the columns you want to retrieve.
-$query->select($db->quoteName(['id','name']))
-    ->from($db->quoteName('#__users'));
+$query->select($db->quoteName(['id', 'name']))
+    ->from($db->quoteName('#__alfa_manufacturers'));
 
 // Set the query and load the result.
 $db->setQuery($query);
 
 // Load the result as an associative array.
-$users = $db->loadAssocList();
+$manufacturers = $db->loadAssocList();
 
 // Create options array for the select list
 $options = array();
-
-foreach ($users as $user) {
-    $options[] = HTMLHelper::_('select.option', $user['id'], $user['name']);
+// $options[] = HTMLHelper::_('select.option', '', '- Keep current manufacturer -');
+foreach ($manufacturers as $manufacturer) {
+    $options[] = HTMLHelper::_('select.option', $manufacturer['id'], $manufacturer['name']);
 }
 
 Factory::getApplication()->getDocument()->getWebAssetManager()
@@ -41,9 +41,9 @@ Factory::getApplication()->getDocument()->getWebAssetManager()
     <?php echo HTMLHelper::_(
     'select.genericlist',
     $options,
-    'batch[user_id][]',
+    'batch[manufacturer_id][]',
     array(
-        'list.attr' => 'class="form-select" id="batch-user-id" multiple data-placeholder="- Select a user -"',
+        'list.attr' => 'class="form-select" id="batch-manufacturer-id" multiple data-placeholder="- Select a manufacturer -"',
         'list.select' => ''
     ),
 );
