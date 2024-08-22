@@ -37,6 +37,7 @@ $wa = $this->document->getWebAssetManager();
 $wa->useStyle('com_alfa.list');
 ?>
 
+
 <form action="<?php echo htmlspecialchars(Uri::getInstance()->toString()); ?>" method="post"
 	  name="adminForm" id="adminForm">
 	<?php if(!empty($this->filterForm)) { echo LayoutHelper::render('joomla.searchtools.default', array('view' => $this)); } ?>
@@ -120,6 +121,7 @@ $wa->useStyle('com_alfa.list');
 	<?php echo HTMLHelper::_('form.token'); ?>
 </form>
 
+
 <?php
 	if($canDelete) {
 		$wa->addInlineScript("
@@ -136,3 +138,21 @@ $wa->useStyle('com_alfa.list');
 		", [], [], ["jquery"]);
 	}
 ?>
+
+
+<div class="manufs">
+    <?php foreach ($this->items as $i => $item) :?>
+
+        <a href="<?php echo Route::_('index.php?option=com_alfa&view=manufacturer&id=' . (int) $item->id); ?>">
+           <div class="part_manuf">
+           <span> Κατασκευαστής: </span>
+           <?php echo $this->escape($item->name); ?>
+           </div>
+        </a>
+        <div class="manuf_desc">
+            <span> Περιγραφή: </span>
+            <?php echo $item->desc;?>
+        </div>
+
+    <?php endforeach; ?>
+</div>

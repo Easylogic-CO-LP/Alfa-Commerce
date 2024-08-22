@@ -5,3 +5,32 @@
  * @license     GNU General Public License version 2 or later; see LICENSE.txt
  * @author      Agamemnon Fakas <info@easylogic.gr>
  */
+
+ .manufs {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-weight:500;
+    margin: 0.4px;
+    padding: 2px;
+    font-size: 18px;
+    border-style: double;
+    background-color: MintCream ;
+    width: 600px;
+}
+
+.part_manuf{
+    color:#BA55D3;
+}
+
+.part_manuf span{
+    font-weight:bold;
+}
+
+.manuf_desc span{
+    font-weight:bold;
+}
+
+.manuf_desc{
+    color:#9370DB;
+}
