@@ -48,6 +48,30 @@
             <option value="1">COM_ALFA_COUPONS_ASSOCIATE_TO_NEW_USERS_OPTION_1</option>
         </field>
 
+        <field
+                name="allowedUsers" type="sql"
+                input_type="list"
+                required="false"
+                multiple="true"
+                label="COM_ALFA_FORM_COUPON_ALLOWEDUSERS_LBL"
+                description="COM_ALFA_FORM_COUPON_ALLOWEDUSERS_DESC"
+                layout="joomla.form.field.list-fancy-select"
+                query="SELECT `id`, `name` FROM `#__users`" key_field="id" value_field="name"
+                showon="user_associated:1"
+        />
+
+        <field
+                name="allowedUserGroups"
+                type="UserGroupList"
+                label="COM_ALFA_FORM_COUPON_ALLOWEDUSERGROUPS_LBL"
+                description="COM_ALFA_FORM_COUPON_ALLOWEDUSERGROUPS_DESC"
+                layout="joomla.form.field.list-fancy-select"
+                multiple="true"
+                checksuperusergroup="1"
+                default="8"
+                showon="user_associated:1"
+        />
+
         <field name="publish_up" type="calendar" showtime="true" format="%Y-%m-%d %H:%M" filter="USER_UTC"
                label="COM_ALFA_FORM_LBL_COUPON_START_DATE" description="COM_ALFA_FORM_DESC_COUPON_START_DATE"
                hint="COM_ALFA_FORM_LBL_COUPON_START_DATE"/>
