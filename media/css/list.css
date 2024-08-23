@@ -6,31 +6,20 @@
  * @author      Agamemnon Fakas <info@easylogic.gr>
  */
 
- .manufs {
+ .list-container{
     display: flex;
-    flex-direction: column;
-    gap: 10px;
-    font-weight:500;
-    margin: 0.4px;
-    padding: 2px;
-    font-size: 18px;
-    border-style: double;
-    background-color: MintCream ;
-    width: 600px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
-.part_manuf{
-    color:#BA55D3;
+.list-item {
+    width: 250px;
+    border: 1px solid black;
+    text-align: center;
 }
 
-.part_manuf span{
-    font-weight:bold;
-}
-
-.manuf_desc span{
-    font-weight:bold;
-}
-
-.manuf_desc{
-    color:#9370DB;
+.list-item img{
+    width: 100%;
+    object-fit: contain;
 }
