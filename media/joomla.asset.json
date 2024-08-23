@@ -21,9 +21,25 @@
       }
     },
     {
+      "name": "com_alfa.product",
+      "type": "script",
+      "uri": "com_alfa/product.js",
+      "dependencies": [
+        "jquery"
+      ],
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
         "name": "com_alfa.list",
         "type": "style",
         "uri": "com_alfa/list.css"
+    },
+    {
+        "name": "com_alfa.product",
+        "type": "style",
+        "uri": "com_alfa/product.css"
     }
   ]
 }
