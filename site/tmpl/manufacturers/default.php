@@ -50,23 +50,6 @@ $wa->useStyle('com_alfa.list');
 	<?php echo HTMLHelper::_('form.token'); ?>
 </form>
 
-
-<?php
-	if($canDelete) {
-		$wa->addInlineScript("
-			jQuery(document).ready(function () {
-				jQuery('.delete-button').click(deleteItem);
-			});
-
-			function deleteItem() {
-
-				if (!confirm(\"" . Text::_('COM_ALFA_DELETE_MESSAGE') . "\")) {
-					return false;
-				}
-			}
-		", [], [], ["jquery"]);
-	}
-?>
 <section>
     <div class="manufacturer-list list-container">
         <?php foreach ($this->items as $item) : ?>
@@ -76,7 +59,7 @@ $wa->useStyle('com_alfa.list');
                         <img src="https://americanathleticshoe.com/cdn/shop/t/23/assets/placeholder_600x.png?v=113555733946226816651665571258">
                         </a>
                     </div>
-                <div class="manufacturer-title">
+		<div class="manufacturer-title">
                     <a href="<?php echo Route::_('index.php?option=com_alfa&view=item&id=' . (int)$item->id); ?>">
                         <?php echo $this->escape($item->name); ?></a>
                     </div>
