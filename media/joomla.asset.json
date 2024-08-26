@@ -10,12 +10,24 @@
       "uri": "com_alfa/admin.css"
     },
     {
+      "name": "com_alfa.product",
+      "type": "style",
+      "uri": "com_alfa/product.css"
+    },
+    {
+      "name": "com_alfa.glightbox",
+      "type": "style",
+      "uri": "com_alfa/glightbox.min.css"
+    },
+    {
+      "name": "com_alfa.keen-slider",
+      "type": "style",
+      "uri": "com_alfa/keen-slider.min.css"
+    },
+    {
       "name": "com_alfa.admin",
       "type": "script",
       "uri": "com_alfa/admin.js",
-      "dependencies": [
-        "jquery"
-      ],
       "attributes": {
         "defer": true
       }
@@ -24,9 +36,22 @@
       "name": "com_alfa.product",
       "type": "script",
       "uri": "com_alfa/product.js",
-      "dependencies": [
-        "jquery"
-      ],
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_alfa.glightbox",
+      "type": "script",
+      "uri": "com_alfa/glightbox.min.js",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_alfa.keen-slider",
+      "type": "script",
+      "uri": "com_alfa/keen-slider.min.js",
       "attributes": {
         "defer": true
       }
@@ -35,11 +60,6 @@
         "name": "com_alfa.list",
         "type": "style",
         "uri": "com_alfa/list.css"
-    },
-    {
-        "name": "com_alfa.product",
-        "type": "style",
-        "uri": "com_alfa/product.css"
     }
   ]
 }

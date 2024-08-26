@@ -6,11 +6,12 @@
  * @author      Agamemnon Fakas <info@easylogic.gr>
  */
 
- .list-container{
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 8px;
+/* LIST CONTAINER */
+
+.list-container {
+    display: grid;
+    grid-gap: 0rem;
+    grid-template-columns: repeat(auto-fill,minmax(300px,1fr));
 }
 
 .list-item {
@@ -19,7 +20,14 @@
     text-align: center;
 }
 
-.list-item img{
+.list-item img {
     width: 100%;
     object-fit: contain;
+}
+
+/* PRODUCT */
+
+.product-title {
+    margin: 0.7rem 0;
+    padding: 0 10px;
 }
