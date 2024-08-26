@@ -179,36 +179,6 @@ class ItemModel extends AdminModel
 	}
 
 	/**
-	 * Method to get a single record.
-	 *
-	 * @param   integer  $pk  The id of the primary key.
-	 *
-	 * @return  mixed    Object on success, false on failure.
-	 *
-	 * @since   1.0.1
-	 */
-	public function getItem($pk = null)
-	{
-		
-			if ($item = parent::getItem($pk))
-			{
-				if (isset($item->params))
-				{
-					$item->params = json_encode($item->params);
-				}
-
-				$item->categories = $this->getCategories($item->id);
-				$item->manufacturers = $this->getManufacturers($item->id);
-
-	            $item->allowedUsers = AlfaHelper::getAllowedUsers($item->id, '#__alfa_items_users', 'item_id');
-            	$item->allowedUserGroups = AlfaHelper::getAllowedUserGroups($item->id, '#__alfa_items_usergroups', 'item_id');
-			}
-
-			return $item;
-		
-	}
-
-	/**
 	 * Method to get the data that should be injected in the form.
 	 *
 	 * @return  mixed  The data for the form.
@@ -233,6 +203,39 @@ class ItemModel extends AdminModel
 
 		return $data;
 	}
+
+
+	/**
+	 * Method to get a single record.
+	 *
+	 * @param   integer  $pk  The id of the primary key.
+	 *
+	 * @return  mixed    Object on success, false on failure.
+	 *
+	 * @since   1.0.1
+	 */
+	public function getItem($pk = null)
+	{
+		
+			if ($item = parent::getItem($pk))
+			{
+				if (isset($item->params))
+				{
+					$item->params = json_encode($item->params);
+				}
+
+				$item->categories = $this->getCategories($item->id);
+				$item->manufacturers = $this->getManufacturers($item->id);
+				$item->prices = $this->getPrices($item->id);
+	            $item->allowedUsers = AlfaHelper::getAllowedUsers($item->id, '#__alfa_items_users', 'item_id');
+            	$item->allowedUserGroups = AlfaHelper::getAllowedUserGroups($item->id, '#__alfa_items_usergroups', 'item_id');
+
+			}
+
+			return $item;
+		
+	}
+
 
 	/**
 	* Method to save the form data.
@@ -276,10 +279,9 @@ class ItemModel extends AdminModel
 
 		$this->setCategories($currentId,$data['categories']);
         $this->setManufacturers($currentId,$data['manufacturers']);
-
+        $this->setPrices($currentId,$data['prices']);
 		AlfaHelper::setAllowedUsers($data['id'], $data['allowedUsers'], '#__alfa_items_users', 'item_id');
 		AlfaHelper::setAllowedUserGroups($data['id'], $data['allowedUserGroups'], '#__alfa_items_usergroups', 'item_id');
-    
 
 		return true;
 		// return parent::save($data);
@@ -306,7 +308,8 @@ class ItemModel extends AdminModel
 		$id = intval($id);
     	if($id<=0){return [];}
 
-		$db = Factory::getDbo();
+    	// Factory::getContainer()->get('DatabaseDriver');
+		$db = $this->getDatabase();
 		$query = $db->getQuery(true);
         $query
             ->select('c.category_id')
@@ -316,6 +319,99 @@ class ItemModel extends AdminModel
         $db->setQuery($query);
         return $db->loadColumn();
 	}
+
+	public function getPrices($id){
+	    $id = intval($id);
+	    if($id <= 0) {
+	        return [];
+	    }
+
+	    // Get the database object
+	    $db = $this->getDatabase();
+
+	    // Build the query to select all relevant fields
+	    $query = $db->getQuery(true);
+	    $query
+	        ->select('*')
+	        ->from('#__alfa_items_prices')
+	        ->where('product_id = ' . $db->quote($id));
+
+	    // Execute the query
+	    $db->setQuery($query);
+
+	    // Return the result as an associative array
+	    return $db->loadAssocList();
+	}
+
+
+	public function setPrices($productId, $prices){
+	    if (!is_array($prices) || $productId<=0) {
+	        return false;
+	    }
+
+	    $db = $this->getDatabase();
+
+
+	    // Get all existing price IDs for the product
+	    $query = $db->getQuery(true);
+	    $query->select('id')
+	          ->from('#__alfa_items_prices')
+	          ->where('product_id = ' . intval($productId));
+	    $db->setQuery($query);
+	    $existingPriceIds = $db->loadColumn();  // Array of existing price IDs
+
+	    // Extract incoming IDs from the $prices array
+	    $incomingIds = array();
+	    foreach ($prices as $price) {
+	        if (isset($price['id']) && intval($price['id']) > 0) {//not those except new with id 0
+	            $incomingIds[] = intval($price['id']);
+	        }
+	    }
+
+	    // Find differences
+	    $idsToDelete = array_diff($existingPriceIds, $incomingIds);
+
+	    //  Delete records that are no longer present in incoming prices array
+	    if (!empty($idsToDelete)) {
+	        $query = $db->getQuery(true);
+	        $query->delete('#__alfa_items_prices')->whereIn('id ', $idsToDelete);
+	        $db->setQuery($query);
+	        $db->execute();
+	    }
+
+	    foreach ($prices as $price) {
+
+	    	$priceObject = new \stdClass();
+	        $priceObject->id        = isset($price['id']) ? intval($price['id']) : 0;
+	        $priceObject->product_id = $productId;
+	        $priceObject->value     = isset($price['value']) ? floatval($price['value']) : 0.0;
+	        $priceObject->country_id    = isset($price['country_id']) ? intval($price['country_id']) : 0;
+	        $priceObject->usergroup_id  = isset($price['usergroup_id']) ? intval($price['usergroup_id']) : 0;
+	        $priceObject->user_id         = isset($price['user_id']) ? intval($price['user_id']) : 0;
+	        $priceObject->currency_id   = isset($price['currency_id']) ? intval($price['currency_id']) : 0;
+	        $priceObject->modify = isset($price['modify']) ? intval($price['modify']) : 0;
+	        $priceObject->modify_function = isset($price['modify_function']) ? $price['modify_function'] : NULL;
+	        $priceObject->modify_type = isset($price['modify_type']) ? $price['modify_type'] : NULL;
+	        $priceObject->publish_up  = !empty($price['publish_up']) ? Factory::getDate($price['publish_up'])->toSql() : NULL;
+	        $priceObject->publish_down    = !empty($price['publish_down']) ? Factory::getDate($price['publish_down'])->toSql() : NULL;
+	        $priceObject->quantity_start = isset($price['quantity_start']) ? intval($price['quantity_start']) : NULL;
+	        $priceObject->quantity_end = isset($price['quantity_end']) ? intval($price['quantity_end']) : NULL;
+
+	        $query = $db->getQuery(true);
+
+	        if ($priceObject->id > 0 && in_array($priceObject->id, $existingPriceIds)) {
+	        	$updateNulls = true;
+	        	$db->updateObject('#__alfa_items_prices', $priceObject, 'id', $updateNulls);
+	        }else{
+	        	$db->insertObject('#__alfa_items_prices', $priceObject);
+	        }
+
+	    }
+
+	    return true;
+
+	}
+
 
 	public function setManufacturers($id, $manufacturers){
 		    if (!is_array($manufacturers)) {
