@@ -19,79 +19,43 @@ use \Joomla\CMS\Session\Session;
 use Joomla\Utilities\ArrayHelper;
 
 
+$user       = Factory::getApplication()->getIdentity();
+$userId     = $user->get('id');
+
+// Import CSS
+$wa = $this->document->getWebAssetManager();
+$wa->useStyle('com_alfa.manufacturer');
 ?>
 
-<div class="manufacturer_fields">
+    <section>
+        <div class="manufacturer_fields">
 
-    <table class="table">
+                <article>
+                    <div class="manufacturer-img">
+                        <img src="https://americanathleticshoe.com/cdn/shop/t/23/assets/placeholder_600x.png?v=113555733946226816651665571258">
+                    </div>
+                    <div class="manufacturer-name">
+                        <h3><?php echo $this->item->name; ?></h3>
+                    </div>
+
+                    <div class="manufacturer-description">
+                        <?php echo $this->item->desc; ?>
+                    </div>
+
+                    <div class="manufacturer-products">
+                        <a href="<?php echo Route::_('index.php?option=com_alfa&view=items');?>">Προβολή όλων των προϊόντων</a>
+                    </div>
+
+                </article>
+
+        </div>
+    </section>
 
 
-        <tr>
-            <th><?php echo Text::_('COM_ALFA_FORM_LBL_MANUFACTURER_NAME'); ?></th>
-            <td><?php echo $this->manufacturer->name; ?></td>
-        </tr>
 
-        <tr>
-            <th><?php echo Text::_('COM_ALFA_FORM_LBL_MANUFACTURER_ID'); ?></th>
-            <td><?php echo $this->manufacturer->id; ?></td>
-        </tr>
 
-        <tr>
-            <th><?php echo Text::_('COM_ALFA_FORM_LBL_MANUFACTURER_SHORT_DESC'); ?></th>
-            <td><?php echo nl2br($this->manufacturer->short_desc); ?></td>
-        </tr>
 
-        <tr>
-            <th><?php echo Text::_('COM_ALFA_FORM_LBL_MANUFACTURER_FULL_DESC'); ?></th>
-            <td><?php echo nl2br($this->manufacturer->full_desc); ?></td>
-        </tr>
 
-        <tr>
-            <th><?php echo Text::_('COM_ALFA_FORM_LBL_MANUFACTURER_SKU'); ?></th>
-            <td><?php echo $this->manufacturer->sku; ?></td>
-        </tr>
 
-        <tr>
-            <th><?php echo Text::_('COM_ALFA_FORM_LBL_MANUFACTURER_GTIN'); ?></th>
-            <td><?php echo $this->manufacturer->gtin; ?></td>
-        </tr>
 
-        <tr>
-            <th><?php echo Text::_('COM_ALFA_FORM_LBL_MANUFACTURER_MPN'); ?></th>
-            <td><?php echo $this->manufacturer->mpn; ?></td>
-        </tr>
-
-        <tr>
-            <th><?php echo Text::_('COM_ALFA_FORM_LBL_MANUFACTURER_STOCK'); ?></th>
-            <td><?php echo $this->manufacturer->stock; ?></td>
-        </tr>
-
-        <tr>
-            <th><?php echo Text::_('COM_ALFA_FORM_LBL_MANUFACTURER_STOCK_ACTION'); ?></th>
-            <td><?php echo $this->manufacturer->stock_action; ?></td>
-        </tr>
-
-        <tr>
-            <th><?php echo Text::_('COM_ALFA_FORM_LBL_MANUFACTURER_MANAGE_STOCK'); ?></th>
-            <td><?php echo $this->manufacturer->manage_stock; ?></td>
-        </tr>
-
-        <tr>
-            <th><?php echo Text::_('COM_ALFA_FORM_LBL_MANUFACTURER_ALIAS'); ?></th>
-            <td><?php echo $this->manufacturer->alias; ?></td>
-        </tr>
-
-        <tr>
-            <th><?php echo Text::_('COM_ALFA_FORM_LBL_MANUFACTURER_META_TITLE'); ?></th>
-            <td><?php echo $this->manufacturer->meta_title; ?></td>
-        </tr>
-
-        <tr>
-            <th><?php echo Text::_('COM_ALFA_FORM_LBL_MANUFACTURER_META_DESC'); ?></th>
-            <td><?php echo nl2br($this->manufacturer->meta_desc); ?></td>
-        </tr>
-
-    </table>
-
-</div>
 

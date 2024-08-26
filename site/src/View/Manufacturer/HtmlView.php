@@ -21,15 +21,16 @@ use \Joomla\CMS\Language\Text;
  *
  * @since  1.0.1
  */
-class HtmlView extends BaseHtmlView
+class  HtmlView extends BaseHtmlView
 {
     protected $state;
 
-    protected $manufacturer;
+    protected $item;
 
     protected $form;
 
     protected $params;
+
 
     /**
      * Display the view
@@ -46,10 +47,10 @@ class HtmlView extends BaseHtmlView
         $user = $app->getIdentity();
 
         $this->state  = $this->get('State');
-        $this->manufacturer = $this->get('Manufacturer');
+        $this->item = $this->get('Item');
         $this->params = $app->getParams('com_alfa');
 
-       /* if (!empty($this->manufacturer))
+       /* if (!empty($this->item))
         {
 
         }*/
@@ -103,7 +104,7 @@ class HtmlView extends BaseHtmlView
             $this->params->def('page_heading', Text::_('COM_ALFA_DEFAULT_PAGE_TITLE'));
         }
 
-        $title = $this->params->get('page_title', '');
+        $title = $this->item->name;
 
         if (empty($title))
         {
@@ -135,18 +136,17 @@ class HtmlView extends BaseHtmlView
             $this->document->setMetadata('robots', $this->params->get('robots'));
         }
 
-
         // Add Breadcrumbs
         $pathway = $app->getPathway();
         $breadcrumbList = Text::_('COM_ALFA_TITLE_MANUFACTURERS');
 
         if(!in_array($breadcrumbList, $pathway->getPathwayNames())) {
-            $pathway->addManufacturer($breadcrumbList, "index.php?option=com_alfa&view=manufacturers");
+            $pathway->addItem($breadcrumbList, "index.php?option=com_alfa&view=manufacturers");
         }
-        $breadcrumbTitle = Text::_('COM_ALFA_TITLE_MANUFACTURER');
+        $breadcrumbTitle = $this->item->name;
 
         if(!in_array($breadcrumbTitle, $pathway->getPathwayNames())) {
-            $pathway->addManufacturer($breadcrumbTitle);
+            $pathway->addItem($breadcrumbTitle);
         }
 
     }
