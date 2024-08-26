@@ -11,7 +11,7 @@
                 label="COM_TEST_FIELDSET_MANUFACTURER_ID_SELECT_LABEL">
             <field
                     name="id"
-                    query="SELECT `id`, `name` FROM #__test_manufacturers ORDER BY `id`"
+                    query="SELECT `id`, `name` FROM #__alfa_manufacturers ORDER BY `id`"
                     type="sql"
                     key_field="id"
                     value_field="name"
@@ -20,7 +20,6 @@
                     description="JGLOBAL_SHOW_TITLE_DESC">
             </field>
 
-            <field type="text" name='blabla' label="Keimeno"/>
         </fieldset>
     </fields>
 </metadata>
