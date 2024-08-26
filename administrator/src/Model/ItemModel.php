@@ -179,6 +179,37 @@ class ItemModel extends AdminModel
 	}
 
 	/**
+	 * Method to get a single record.
+	 *
+	 * @param   integer  $pk  The id of the primary key.
+	 *
+	 * @return  mixed    Object on success, false on failure.
+	 *
+	 * @since   1.0.1
+	 */
+  
+	public function getItem($pk = null)
+	{
+		
+			if ($item = parent::getItem($pk))
+			{
+				if (isset($item->params))
+				{
+					$item->params = json_encode($item->params);
+				}
+
+				$item->categories = $this->getCategories($item->id);
+				$item->manufacturers = $this->getManufacturers($item->id);
+				$item->prices = $this->getPrices($item->id);
+	            $item->allowedUsers = AlfaHelper::getAllowedUsers($item->id, '#__alfa_items_users', 'item_id');
+            	$item->allowedUserGroups = AlfaHelper::getAllowedUserGroups($item->id, '#__alfa_items_usergroups', 'item_id');
+			}
+
+			return $item;
+		
+	}
+
+	/**
 	 * Method to get the data that should be injected in the form.
 	 *
 	 * @return  mixed  The data for the form.
@@ -277,6 +308,7 @@ class ItemModel extends AdminModel
 			$currentId = intval($this->getState($this->getName().'.id'));//get the id from setted joomla state
 		}
 
+
 		$this->setCategories($currentId,$data['categories']);
         $this->setManufacturers($currentId,$data['manufacturers']);
         $this->setPrices($currentId,$data['prices']);
@@ -310,6 +342,7 @@ class ItemModel extends AdminModel
 
     	// Factory::getContainer()->get('DatabaseDriver');
 		$db = $this->getDatabase();
+
 		$query = $db->getQuery(true);
         $query
             ->select('c.category_id')
@@ -319,6 +352,7 @@ class ItemModel extends AdminModel
         $db->setQuery($query);
         return $db->loadColumn();
 	}
+
 
 	public function getPrices($id){
 	    $id = intval($id);
@@ -411,7 +445,6 @@ class ItemModel extends AdminModel
 	    return true;
 
 	}
-
 
 	public function setManufacturers($id, $manufacturers){
 		    if (!is_array($manufacturers)) {

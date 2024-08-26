@@ -85,6 +85,7 @@
             default="8"
         />
 
+
      <!-- <field 
           name="categories" type="sql"
           input_type="list"
