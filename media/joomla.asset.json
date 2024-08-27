@@ -10,9 +10,19 @@
       "uri": "com_alfa/admin.css"
     },
     {
+        "name": "com_alfa.list",
+        "type": "style",
+        "uri": "com_alfa/list.css"
+    },
+    {
       "name": "com_alfa.product",
       "type": "style",
       "uri": "com_alfa/product.css"
+    },
+    {
+      "name": "com_alfa.manufacturer",
+      "type": "style",
+      "uri": "com_alfa/manufacturer.css"
     },
     {
       "name": "com_alfa.glightbox",
@@ -55,11 +65,6 @@
       "attributes": {
         "defer": true
       }
-    },
-    {
-        "name": "com_alfa.list",
-        "type": "style",
-        "uri": "com_alfa/list.css"
     }
   ]
 }
