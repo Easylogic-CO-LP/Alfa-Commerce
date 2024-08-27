@@ -53,23 +53,32 @@ $wa->useStyle('com_alfa.list');
 	<?php echo HTMLHelper::_('form.token'); ?>
 </form>
 
+
 <section>
-	<div class="manufacturer-list list-container">
-		<?php foreach ($this->items as $item) : ?>
-			<article>
-				<div class="manufacturer-item list-item">
-					<a href="<?php echo Route::_('index.php?option=com_alfa&view=items'); ?>">
-						<img src="https://americanathleticshoe.com/cdn/shop/t/23/assets/placeholder_600x.png?v=113555733946226816651665571258">
-					</a>
-				</div>
-				<div class="manufacturer-title">
-					<a href="<?php echo Route::_('index.php?option=com_alfa&view=items'); ?>">
-						<?php echo $this->escape($item->name); ?></a>
-				</div>
-				<div class="manufacturer-description">
-					<?php echo ($item->desc); ?>
-				</div>
-			</article>
-		<?php endforeach; ?>
-	</div>
+    <div class="manufacturer-list list-container">
+        <?php foreach ($this->items as $item) : ?>
+            <article>
+                <div class="manufacturer-item list-item">
+                    <a href="<?php echo Route::_('index.php?option=com_alfa&view=items');?>">
+                        <img src="https://americanathleticshoe.com/cdn/shop/t/23/assets/placeholder_600x.png?v=113555733946226816651665571258">
+                        </a>
+                    </div>
+                <div class="manufacturer-title">
+                    <h3><?php echo $item->name; ?></h3>
+                </div>
+        
+                <div class="manufacturer-description">
+                    <?php echo($item->desc); ?>
+                </div>
+        
+                <div class="manufacturer-products">
+                    <a href="<?php echo Route::_('index.php?option=com_alfa&view=items');?>">Προβολή όλων των προϊόντων</a>
+                </div>
+              
+                <div class="manufacturer-url">
+                    <a href="<?php echo Route::_('index.php?option=com_alfa&view=manufacturer&id=' . (int) $item->id); ?>">Λεπτομέρειες κατασκευαστή</a>
+                </div>
+                </article>
+            <?php endforeach; ?>
+        </div>
 </section>
