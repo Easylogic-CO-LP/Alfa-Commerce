@@ -114,14 +114,12 @@
           label="COM_ALFA_FORM_FIELDSET_PRICE"
           description="COM_ALFA_FORM_FIELDSET_PRICE_DESC"
           multiple="true"
-          min="1"
           >
           <form>
             <field 
               name="value" 
               type="number"  
               label="COM_ALFA_FORM_PRICE"
-              required="true"
               description="COM_ALFA_FORM_FIELDSET_PRICE_DESC"
             />
 
