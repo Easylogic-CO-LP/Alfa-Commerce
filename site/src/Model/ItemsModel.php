@@ -220,6 +220,11 @@ class ItemsModel extends ListModel
     // e.g. $selectFields =['name', 'alias']
     public function getRecordsByIds($ids, $table, $selectFields = ['name'], $idFieldName = 'id')
     {
+        // Check if $ids is empty or null, and return an empty array if so
+        if (empty($ids) || !is_array($ids)) {
+            return [];
+        }
+
         $ids = array_unique($ids);//make sure ids array for where in are unique
 
         // Get the database connection and a query object
@@ -277,6 +282,11 @@ class ItemsModel extends ListModel
      */
     private function extractIds($ids)
     {
+        // Check if $ids is null or empty
+        if (is_null($ids) || $ids === '') {
+            return [];
+        }
+
         return array_map('trim', explode(',', $ids));
     }
 
