@@ -110,7 +110,8 @@
 		<plugin group="webservices" plugin="alfa"/>
     </plugins>
     <modules>
-		<module module="mod_alfa" />
+        <module module="mod_alfa" />
+		<module module="mod_alfa_search" />
 	</modules>
 
     <updateservers>
