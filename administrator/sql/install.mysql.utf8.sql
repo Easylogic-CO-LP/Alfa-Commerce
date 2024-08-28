@@ -123,7 +123,6 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_prices` (
     KEY `idx_country_id` (`country_id`)
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
 
-
 CREATE TABLE IF NOT EXISTS `#__alfa_items_manufacturers` (
 `product_id` INT(11)  NULL  DEFAULT 0,
 `manufacturer_id` INT(11)  NULL  DEFAULT 0,
