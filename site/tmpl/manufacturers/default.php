@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -38,30 +39,10 @@ $wa->useStyle('com_alfa.list');
 ?>
 
 <form action="<?php echo htmlspecialchars(Uri::getInstance()->toString()); ?>" method="post"
-	  name="adminForm" id="adminForm">
-	<?php if(!empty($this->filterForm)) { echo LayoutHelper::render('joomla.searchtools.default', array('view' => $this)); } ?>
-	<div class="table-responsive">
-		<table class="table table-striped" id="manufacturerList">
-			<thead>
-			<tr>
-				
-					<th class=''>
-						<?php echo HTMLHelper::_('grid.sort',  'COM_ALFA_MANUFACTURERS_ID', 'a.id', $listDirn, $listOrder); ?>
-					</th>
-
-					<th class=''>
-						<?php echo HTMLHelper::_('grid.sort',  'COM_ALFA_MANUFACTURERS_NAME', 'a.name', $listDirn, $listOrder); ?>
-					</th>
-
-					<th >
-						<?php echo HTMLHelper::_('grid.sort', 'JPUBLISHED', 'a.state', $listDirn, $listOrder); ?>
-					</th>
-
-						<?php if ($canEdit || $canDelete): ?>
-					<th class="center">
-						<?php echo Text::_('COM_ALFA_MANUFACTURERS_ACTIONS'); ?>
-					</th>
-					<?php endif; ?>
+	name="adminForm" id="adminForm">
+	<?php if (!empty($this->filterForm)) {
+		echo LayoutHelper::render('joomla.searchtools.default', array('view' => $this));
+	} ?>
 
 			</tr>
 			</thead>
@@ -113,26 +94,39 @@ $wa->useStyle('com_alfa.list');
 			<?php echo Text::_('COM_ALFA_ADD_ITEM'); ?></a>
 	<?php endif; ?>
 
-	<input type="hidden" name="task" value=""/>
-	<input type="hidden" name="boxchecked" value="0"/>
-	<input type="hidden" name="filter_order" value=""/>
-	<input type="hidden" name="filter_order_Dir" value=""/>
+	<input type="hidden" name="task" value="" />
+	<input type="hidden" name="boxchecked" value="0" />
+	<input type="hidden" name="filter_order" value="" />
+	<input type="hidden" name="filter_order_Dir" value="" />
 	<?php echo HTMLHelper::_('form.token'); ?>
 </form>
 
-<?php
-	if($canDelete) {
-		$wa->addInlineScript("
-			jQuery(document).ready(function () {
-				jQuery('.delete-button').click(deleteItem);
-			});
 
-			function deleteItem() {
-
-				if (!confirm(\"" . Text::_('COM_ALFA_DELETE_MESSAGE') . "\")) {
-					return false;
-				}
-			}
-		", [], [], ["jquery"]);
-	}
-?>
+<section>
+    <div class="manufacturer-list list-container">
+        <?php foreach ($this->items as $item) : ?>
+            <article>
+                <div class="manufacturer-item list-item">
+                    <a href="<?php echo Route::_('index.php?option=com_alfa&view=items');?>">
+                        <img src="https://americanathleticshoe.com/cdn/shop/t/23/assets/placeholder_600x.png?v=113555733946226816651665571258">
+                        </a>
+                    </div>
+                <div class="manufacturer-title">
+                    <h3><?php echo $item->name; ?></h3>
+                </div>
+        
+                <div class="manufacturer-description">
+                    <?php echo($item->desc); ?>
+                </div>
+        
+                <div class="manufacturer-products">
+                    <a href="<?php echo Route::_('index.php?option=com_alfa&view=items');?>">Προβολή όλων των προϊόντων</a>
+                </div>
+              
+                <div class="manufacturer-url">
+                    <a href="<?php echo Route::_('index.php?option=com_alfa&view=manufacturer&id=' . (int) $item->id); ?>">Λεπτομέρειες κατασκευαστή</a>
+                </div>
+                </article>
+            <?php endforeach; ?>
+        </div>
+</section>

@@ -35,6 +35,7 @@ $canDelete = $user->authorise('core.delete', 'com_alfa');
 // Import CSS
 $wa = $this->document->getWebAssetManager();
 $wa->useStyle('com_alfa.list');
+
 ?>  
 
     <form action="<?php echo htmlspecialchars(Uri::getInstance()->toString()); ?>" method="post" name="adminForm" id="adminForm">
@@ -47,10 +48,13 @@ $wa->useStyle('com_alfa.list');
       <?php echo HTMLHelper::_('form.token'); ?>
     </form>
 
+
     <section>
         <div class="list-container products-list">
             <?php foreach ($this->items as $item) : ?>
+
                 <?php //echo '<pre>'; print_r($item); echo '</pre>';?>
+
                 <article class="list-item product-item">
                     <div>
                         <a href="<?php echo Route::_('index.php?option=com_alfa&view=item&id=' . (int)$item->id); ?>">

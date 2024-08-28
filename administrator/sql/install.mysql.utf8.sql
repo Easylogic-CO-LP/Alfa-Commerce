@@ -45,18 +45,6 @@ PRIMARY KEY (`id`)
 ,KEY `idx_state` (`state`)
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `#__alfa_categories_users` (
-    `category_id` INT(11) NOT NULL,
-    `user_id` INT(11) NOT NULL,
-    KEY (`category_id`, `user_id`)
-) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `#__alfa_categories_usergroups` (
-    `category_id` INT(11) NOT NULL,
-    `usergroup_id` INT(11) NOT NULL,
-    KEY (`category_id`, `usergroup_id`)
-) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
-
 CREATE TABLE IF NOT EXISTS `#__alfa_items` (
 `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
 `name` VARCHAR(255)  NOT NULL ,
@@ -100,27 +88,41 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_usergroups` (
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `#__alfa_items_prices` (
-`id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-`state` TINYINT(1)  NULL  DEFAULT 1,
-`ordering` INT(11)  NULL  DEFAULT 0,
-`checked_out` INT(11)  UNSIGNED,
-`checked_out_time` DATETIME NULL  DEFAULT NULL ,
-`created_by` INT(11)  NULL  DEFAULT 0,
-`modified_by` INT(11)  NULL  DEFAULT 0,
-`value` DOUBLE NULL DEFAULT 0,
-`override` DOUBLE NULL DEFAULT 0,
-`start_date` DATETIME NULL  DEFAULT NULL ,
-`quantity_start` FLOAT NULL  DEFAULT 0,
-`end_date` DATETIME NULL  DEFAULT NULL ,
-`quantity_end` FLOAT NULL  DEFAULT 0,
-`tax_id` INT(11)  NULL  DEFAULT 0,
-`discount_id` INT(11)  NULL  DEFAULT 0,
-PRIMARY KEY (`id`)
-,KEY `idx_state` (`state`)
-,KEY `idx_checked_out` (`checked_out`)
-,KEY `idx_created_by` (`created_by`)
-,KEY `idx_modified_by` (`modified_by`)
+    `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+    `value` DOUBLE NULL DEFAULT 0,
+    `modify` TINYINT(1)  NOT NULL DEFAULT 0,  -- 0 means no modification applied, 1 means apply modification
+    `modify_function` ENUM('add', 'remove') NULL DEFAULT 'add',  -- Add or remove value
+    `modify_type` ENUM('amount', 'percentage') NULL DEFAULT 'amount', -- Type of modification
+
+    `product_id` INT(11) UNSIGNED NOT NULL,
+    `currency_id` INT(11) UNSIGNED NULL DEFAULT NULL,
+    `usergroup_id` INT(11) UNSIGNED NULL DEFAULT NULL,
+    `user_id` INT(11) UNSIGNED NULL DEFAULT NULL,
+    `country_id` INT(11) UNSIGNED NULL DEFAULT NULL,
+
+    `publish_up` DATETIME NULL DEFAULT NULL,
+    `publish_down` DATETIME NULL DEFAULT NULL,
+    `quantity_start` FLOAT NULL DEFAULT 0,
+    `quantity_end` FLOAT NULL DEFAULT 0,
+    `tax_id` INT(11) NULL DEFAULT 0,
+    `discount_id` INT(11) NULL DEFAULT 0,
+    `state` TINYINT(1) NULL DEFAULT 1,
+    `ordering` INT(11) NULL DEFAULT 0,
+
+    `created_by` INT(11) NULL DEFAULT 0,
+    `modified_by` INT(11) NULL DEFAULT 0,
+
+    PRIMARY KEY (`id`),
+    KEY `idx_state` (`state`),
+    KEY `idx_created_by` (`created_by`),
+    KEY `idx_modified_by` (`modified_by`),
+    KEY `idx_product_id` (`product_id`),
+    KEY `idx_currency_id` (`currency_id`),
+    KEY `idx_usergroup_id` (`usergroup_id`),
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_country_id` (`country_id`)
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
+
 
 CREATE TABLE IF NOT EXISTS `#__alfa_items_manufacturers` (
 `product_id` INT(11)  NULL  DEFAULT 0,
@@ -196,16 +198,17 @@ PRIMARY KEY (`id`)
 
 CREATE TABLE IF NOT EXISTS `#__alfa_currencies` (
 `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-`number` DOUBLE NOT NULL DEFAULT 0,
-`code` VARCHAR(255)  NULL  DEFAULT "",
-`name` VARCHAR(255)  NOT NULL ,
-`symbol` VARCHAR(255)  NULL  DEFAULT "",
+
 `state` TINYINT(1)  NULL  DEFAULT 1,
 `ordering` INT(11)  NULL  DEFAULT 0,
 `checked_out` INT(11)  UNSIGNED,
 `checked_out_time` DATETIME NULL  DEFAULT NULL ,
 `created_by` INT(11)  NULL  DEFAULT 0,
 `modified_by` INT(11)  NULL  DEFAULT 0,
+`code` VARCHAR(255)  NULL  DEFAULT "",
+`name` VARCHAR(255)  NOT NULL ,
+`symbol` VARCHAR(255)  NULL  DEFAULT "",
+`number` DOUBLE NOT NULL DEFAULT 0,
 PRIMARY KEY (`id`)
 ,KEY `idx_state` (`state`)
 ,KEY `idx_checked_out` (`checked_out`)
@@ -222,7 +225,6 @@ CREATE TABLE IF NOT EXISTS `#__alfa_coupons` (
 `checked_out_time` DATETIME NULL  DEFAULT NULL ,
 `created_by` INT(11)  NULL  DEFAULT 0,
 `modified_by` INT(11)  NULL  DEFAULT 0,
-`modified` datetime NOT NULL,
 `coupon_code` VARCHAR(255)  NOT NULL ,
 `num_of_uses` DOUBLE NOT NULL DEFAULT 0,
 `value_type` VARCHAR(255)  NULL  DEFAULT "0",
@@ -230,8 +232,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_coupons` (
 `min_value` DOUBLE NULL ,
 `max_value` DOUBLE NULL DEFAULT 0,
 `hidden` VARCHAR(255)  NULL  DEFAULT "0",
-`publish_up` DATETIME NULL  DEFAULT NULL ,
-`publish_down` DATETIME NULL  DEFAULT NULL ,
+`start_date` DATETIME NULL  DEFAULT NULL ,
+`end_date` DATETIME NULL  DEFAULT NULL ,
 `associate_to_new_users` VARCHAR(255)  NULL  DEFAULT "",
 `user_associated` VARCHAR(255)  NULL  DEFAULT "0",
 PRIMARY KEY (`id`)
@@ -290,16 +292,15 @@ PRIMARY KEY (`id`)
 CREATE TABLE IF NOT EXISTS `#__alfa_places` (
 `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
 
-`name` VARCHAR(255)  NOT NULL ,
-`number` DOUBLE NOT NULL DEFAULT 0,
-`parent_id` INT(11)  NULL  DEFAULT 0,
-`state` TINYINT(1)  NOT NULL  DEFAULT 1,
 `ordering` INT(11)  NULL  DEFAULT 0,
 `checked_out` INT(11)  UNSIGNED,
 `checked_out_time` DATETIME NULL  DEFAULT NULL ,
 `created_by` INT(11)  NULL  DEFAULT 0,
 `modified_by` INT(11)  NULL  DEFAULT 0,
-`modified` datetime NOT NULL,
+`name` VARCHAR(255)  NOT NULL ,
+`state` TINYINT(1)  NOT NULL  DEFAULT 1,
+`number` DOUBLE NOT NULL DEFAULT 0,
+`parent_id` INT(11)  NULL  DEFAULT 0,
 `code2` VARCHAR(2)  NOT NULL ,
 `code3` VARCHAR(3)  NOT NULL ,
 PRIMARY KEY (`id`)
@@ -308,18 +309,6 @@ PRIMARY KEY (`id`)
 ,KEY `idx_created_by` (`created_by`)
 ,KEY `idx_modified_by` (`modified_by`)
 ,KEY `idx_state` (`state`)
-) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `#__alfa_places_users` (
-    `place_id` INT(11) NOT NULL,
-    `user_id` INT(11) NOT NULL,
-    KEY (`place_id`, `user_id`)
-) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `#__alfa_places_usergroups` (
-    `place_id` INT(11) NOT NULL,
-    `usergroup_id` INT(11) NOT NULL,
-    KEY (`place_id`, `usergroup_id`)
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `#__alfa_settings` (
