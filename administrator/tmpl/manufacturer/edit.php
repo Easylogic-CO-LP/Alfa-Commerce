@@ -101,6 +101,7 @@ $input = Factory::getApplication()->getInput();
     <input type="hidden" name="task" value="">
     <input type="hidden" name="return" value="<?php echo $input->getBase64('return'); ?>">
 
+
     <?php echo HTMLHelper::_('form.token'); ?>
 
 </form>

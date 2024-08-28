@@ -248,6 +248,7 @@ class ItemModel extends AdminModel
 	*/
 	public function save($data)
 	{
+
 		$app = Factory::getApplication();
 		
 		$data['alias'] = $data['alias'] ?: $data['name'];

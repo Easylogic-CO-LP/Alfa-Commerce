@@ -30,6 +30,7 @@ $input = Factory::getApplication()->getInput();
         method="post" enctype="multipart/form-data" name="adminForm" id="category-form"
         class="form-validate form-horizontal"
         aria-label="<?php echo Text::_('COM_ALFA_CATEGORY_FORM_TITLE_' . ((int)$this->item->id === 0 ? 'NEW' : 'EDIT'), true); ?>">
+
     <div class="row title-alias form-vertical mb-3">
         <div class="col-12 col-md-6">
             <?php echo $this->form->renderField('name'); ?>
@@ -38,6 +39,7 @@ $input = Factory::getApplication()->getInput();
             <?php echo $this->form->renderField('alias'); ?>
         </div>
     </div>
+
 
     <?php echo HTMLHelper::_('uitab.startTabSet', 'myTab', array('active' => 'category')); ?>
     <?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'category', Text::_('COM_ALFA_TAB_CATEGORY', true)); ?>

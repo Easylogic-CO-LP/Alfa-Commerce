@@ -38,13 +38,12 @@ class AlfaHelper
             if ($item->parent_id == $parentId) {
                 $id = $item->id;
                 $item->depth = $depth; // Assign the current depth level
-                $item->{$$childrenField} = self::buildNestedArray($items, $id, $depth + 1);
+                $item->{$childrenField} = self::buildNestedArray($items, $id, $depth + 1);
                 $tree[$id] = $item;
             }
         }
         return $tree;
     }
-
 
     public static function sort_items($object1, $object2, $property, $order = 'asc')
     {
@@ -202,6 +201,7 @@ class AlfaHelper
         if (intval($fieldId) <= 0 || empty($table) || empty($field)) {
             return [];
         }
+
 
         // load selected categories for item
         $db = Factory::getContainer()->get('DatabaseDriver');
