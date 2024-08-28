@@ -1,0 +1,44 @@
+.alfasearch-wrapper {
+    position: relative;
+    width: 1000px;
+}
+
+.searchbar-popup {
+    position: absolute;
+    z-index: 100;
+    background-color: white;
+    width: 1000px;
+    border: 1px solid lightgrey;
+    border-top: none;
+    display: none;
+    padding: 20px;
+}
+
+.product-item:not(:last-child) {
+    border-bottom: 1px solid lightgray;
+}
+
+.active {
+    display: block;
+}
+
+.search-container {
+    position: relative;
+}
+
+
+.loading-img {
+    display: none;
+    justify-content: center;
+    align-items: center;
+    margin-right: 7px;
+    width: 20px;
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+}
+
+.loading-img.show {
+    display: flex;
+}

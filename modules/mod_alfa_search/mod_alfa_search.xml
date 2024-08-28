@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension type="module" client="site" method="upgrade">
+    <name>MOD_ALFA_SEARCH_NAME</name>
+    <author>Alex K</author>
+    <creationDate>2024-8-26</creationDate>
+    <copyright>(C) 2024 Open Source Matters, Inc.</copyright>
+    <license>GNU General Public License version 2 or later; see LICENSE.txt</license>
+    <authorEmail>alexkapnotidis@gmail.com</authorEmail>
+    <version>1.0.0</version>
+    <description>MOD_ALFA_SEARCH_DESC</description>
+    <namespace path="src">Alfa\Module\AlfaSearch</namespace>
+    <files>
+        <folder module="mod_alfa_search">services</folder>
+        <folder>src</folder>
+        <folder>tmpl</folder>
+    </files>
+    <media destination="mod_alfa_search" folder="media">
+        <filename>joomla.asset.json</filename>
+        <folder>js</folder>
+        <folder>css</folder>
+    </media>
+    <languages folder="language">
+        <language tag="en-GB">en-GB/mod_alfa_search.ini</language>
+        <language tag="en-GB">en-GB/mod_alfa_search.sys.ini</language>
+    </languages>
+    <!--<help
+   key="Site_Modules:mod_AlfaSearch" />-->
+    <config>
+        <fields name="params">
+            <fieldset name="basic">
+                <field name="loadingImageType" type="list" default="0" label="Loading Image"
+                       description="Image path or Inline SVG">
+                    <option value="0">Image</option>
+                    <option value="1">Inline SVG</option>
+                </field>
+
+                <field
+                        name="loadingImageFile"
+                        type="media"
+                        label="Select Site Logo Image"
+                        description="Select an image to use as the site logo"
+                        default=""
+                        required="false"
+                        showon="loadingImageType:0"
+                />
+
+                <field
+                        name="loadingImageInline"
+                        type="textarea"
+                        label="Enter Inline SVG"
+                        description="Insert SVG markup to use as the site logo"
+                        filter="raw"
+                        showon="loadingImageType:1"
+                        rows="5"
+                        cols="30"
+                />
+
+                <field
+                    type="number"
+                    name="minCharacters"
+                    label="Enter minimum amount of characters for search to work"
+                    default="2"
+                    min="1"
+                    step="1"
+                />
+            </fieldset>
+            <fieldset name="advanced">
+                <field
+                        name="layout"
+                        type="modulelayout"
+                        label="JFIELD_ALT_LAYOUT_LABEL"
+                        class="form-select"
+                        validate="moduleLayout"
+                />
+
+                <field
+                        name="moduleclass_sfx"
+                        type="textarea"
+                        label="COM_MODULES_FIELD_MODULECLASS_SFX_LABEL"
+                        rows="3"
+                        validate="CssIdentifier"
+                />
+
+                <field
+                        name="cache"
+                        type="list"
+                        label="COM_MODULES_FIELD_CACHING_LABEL"
+                        default="1"
+                        filter="integer"
+                        validate="options"
+                >
+                    <option value="1">JGLOBAL_USE_GLOBAL</option>
+                    <option value="0">COM_MODULES_FIELD_VALUE_NOCACHING</option>
+                </field>
+
+                <field
+                        name="cache_time"
+                        type="number"
+                        label="COM_MODULES_FIELD_CACHE_TIME_LABEL"
+                        default="900"
+                        filter="integer"
+                />
+
+                <field
+                        name="cachemode"
+                        type="hidden"
+                        default="static"
+                >
+                    <option value="static"></option>
+                </field>
+            </fieldset>
+        </fields>
+    </config>
+</extension>
