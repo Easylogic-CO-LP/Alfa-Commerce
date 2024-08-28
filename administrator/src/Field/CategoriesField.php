@@ -33,31 +33,78 @@ class CategoriesField extends ListField
 
     protected function getOptions()
     {
+        $disableDescendants = $this->element['disableDescendants'] == 'true' ? true : false;
+        $showPath = $this->element['showPath'] == 'true' ? true : false;
+        $orderBy = $this->element['orderBy'] ?? 'name';
+        $orderDir = $this->element['orderDir'] ?? 'ASC';
+        $currentCategoryIdField = $this->element['currentIdField'] ?? 'id';//by default as the current category id we get the name="id" field from the form
+
+        $modelName = $this->element['model'] ?? 'categories';//model to use getItems from ( default is categories model )
+
+        $this->options = parent::getOptions();
+
         $app = Factory::getApplication();
         $component = $app->bootComponent('com_alfa');
         $factory = $component->getMVCFactory();
-        $model = $factory->createModel('Categories', 'Administrator');
-        $model->setState('filter.state', '*');
-        $categories = $model->getItems();// Fetch the item using the model's getItem method.
+        $model = $factory->createModel($modelName, 'Administrator');
 
-        $nestedCategories = AlfaHelper::buildNestedArray($categories);
-        AlfaHelper::iterateNestedArray($nestedCategories, function ($node, $fullPath) {
-            $this->options['cat-' . $node->id] = array('value' => $node->id, 'text' => $fullPath);
-        }, false);
-
-        if ($this->element['removeCurrent'] == "true") {
-            $idToRemove = $this->form->getData()->get('id');
-            unset($this->options['cat-' . $idToRemove]);
+        if (!$model) {
+            return $this->options;
         }
-        return array_merge(parent::getOptions(), $this->options);
+
+        $model->setState('filter.state', '*');
+
+        $model->getState('list.ordering');//we should use get before set the list state fields
+
+        $model->setState('list.ordering', $orderBy);
+        $model->setState('list.direction', $orderDir);
+
+        $categories = $model->getItems();
+
+        $currentCategoryId = $this->form->getData()->get($currentCategoryIdField);//current category id , gets the form field
+
+        // Track if we are in descendant disabling mode
+        $disableMode = false;
+        $disableParentCategoryLevel = null;
+
+        foreach ($categories as $category) {
+            $disableCurrent = false;//by default disable the current category will be false
+
+
+            // Check if we should start disabling descendants
+            if ($disableDescendants && $currentCategoryId == $category->id) {
+                $disableMode = true;
+                $disableParentCategoryLevel = $category->depth; // Capture the level of the current category
+            }
+
+            // If we're in disable mode, disable until we reach a category with a depth greater than current
+            if ($disableMode) {
+                if ($category->depth >= $disableParentCategoryLevel) {
+                    $disableCurrent = true;
+                } else {
+                    $disableMode = false;
+                }
+            }
+
+            $this->options['cat-' . $category->id] =
+                array('value' => $category->id,
+
+                    'text' => ($showPath
+                        ? $category->path
+                        : str_repeat('-', $category->depth) . $category->name
+                    ),
+                    'disable' => $disableCurrent, // Adding the disabled attribute
+                );
+
+
+        }
+
+
+//      $removeCurrent = $this->element['removeCurrent']=='true' ? true : false;
+//      if ($removeCurrent){ unset($this->options['cat-' . $currentCategoryId]); }
+
+        return $this->options;
+
     }
 
-    public function getAttribute($attr_name, $default = null)
-    {
-        // if (!empty($this->element[$attr_name])) {
-        //     return $this->element[$attr_name];
-        // } else {
-        //     return $default;
-        // }
-    }
 }

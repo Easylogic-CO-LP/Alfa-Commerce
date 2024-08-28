@@ -277,20 +277,60 @@ class ManufacturerModel extends AdminModel
 	 *
 	 * @since   1.0.1
 	 */
-	protected function prepareTable($table)
-	{
-		jimport('joomla.filter.output');
 
-		if (empty($table->id))
-		{
-			// Set ordering to the last item if not set
-			if (@$table->ordering === '')
-			{
-				$db = $this->getDbo();
-				$db->setQuery('SELECT MAX(ordering) FROM #__alfa_manufacturers');
-				$max             = $db->loadResult();
-				$table->ordering = $max + 1;
-			}
-		}
-	}
+	    /**
+     * Prepare and sanitise the table prior to saving.
+     *
+     * @param Table $table Table Object
+     *
+     * @return  void
+     *
+     * @since   1.0.1
+     */
+    protected function prepareTable($table)
+    {
+	//		if (empty($table->id))
+	//		{
+	//			// Set ordering to the last item if not set
+	//			if (@$table->ordering === '')
+	//			{
+	//				$db = $this->getDbo();
+	//				$db->setQuery('SELECT MAX(ordering) FROM #__alfa_categories');
+	//				$max             = $db->loadResult();
+	//				$table->ordering = $max + 1;
+	//			}
+	//		}
+    		
+    		$table->modified = Factory::getDate()->toSql();
+
+    		// if (empty($table->modified)) {
+
+    		// }
+
+	        if (empty($table->publish_up)) {
+	            $table->publish_up = null;
+	        }
+
+	        if (empty($table->publish_down)) {
+	            $table->publish_down = null;
+	        }
+
+	        return parent::prepareTable($table);
+	    }
+	// protected function prepareTable($table)
+	// {
+	// 	jimport('joomla.filter.output');
+
+	// 	if (empty($table->id))
+	// 	{
+	// 		// Set ordering to the last item if not set
+	// 		if (@$table->ordering === '')
+	// 		{
+	// 			$db = $this->getDbo();
+	// 			$db->setQuery('SELECT MAX(ordering) FROM #__alfa_manufacturers');
+	// 			$max             = $db->loadResult();
+	// 			$table->ordering = $max + 1;
+	// 		}
+	// 	}
+	// }
 }
