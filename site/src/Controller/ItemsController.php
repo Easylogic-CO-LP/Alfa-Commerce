@@ -27,6 +27,18 @@ use Joomla\Utilities\ArrayHelper;
  */
 class ItemsController extends FormController
 {
+
+    public function display($cachable = false, $urlparams = array())
+    {
+        $viewType = $this->input->get('format', 'html');
+        $view = $this->input->get('view', 'items');
+
+        $this->input->set('format', $viewType); // Force JSON format
+        parent::display($cachable, $urlparams);
+
+        return $this;
+    }
+
 	/**
 	 * Proxy for getModel.
 	 *

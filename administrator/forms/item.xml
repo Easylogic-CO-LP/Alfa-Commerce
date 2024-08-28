@@ -10,8 +10,6 @@
     <field name="ordering"/>
     <field name="checked_out" type="hidden" filter="unset"/>
     <field name="checked_out_time" type="hidden" filter="unset"/>
-    <field name="created_by" type="createdby" default="0" label="JGLOBAL_FIELD_CREATED_BY_LABEL" description="JGLOBAL_FIELD_CREATED_BY_DESC" hidden="true" hint="COM_ALFA_FORM_LBL_ITEM_CREATED_BY"/>
-    <field name="modified_by" type="modifiedby" default="0" label="JGLOBAL_FIELD_MODIFIED_BY_LABEL" description="JGLOBAL_FIELD_MODIFIED_BY_DESC" hidden="true" hint="COM_ALFA_FORM_LBL_ITEM_MODIFIED_BY"/>
     <field name="name" size="400" filter="safehtml" type="text" required="true" translateLabel="true" label="COM_ALFA_FORM_LBL_ITEM_NAME" description="COM_ALFA_FORM_DESC_ITEM_NAME" hint="COM_ALFA_FORM_LBL_ITEM_NAME"/>
     <field name="id" type="text" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
     <field name="short_desc" cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText" type="editor" label="COM_ALFA_FORM_LBL_ITEM_SHORT_DESC" description="COM_ALFA_FORM_DESC_ITEM_SHORT_DESC" hint="COM_ALFA_FORM_LBL_ITEM_SHORT_DESC"/>
@@ -27,26 +25,244 @@
     <field name="meta_desc" cols="30" rows="3" filter="safehtml" type="textarea" label="JFIELD_META_DESCRIPTION_LABEL" description="COM_ALFA_FORM_DESC_ITEM_META_DESC" hint="COM_ALFA_FORM_LBL_ITEM_META_DESC"/>
     <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL" description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>
 
-    <field name="categories" type="sql"
-       input_type="list"
-       required="true"
-        multiple="true"
-        label="Categories"
-        description=""
-        layout="joomla.form.field.list-fancy-select"
-        query="SELECT `id`, `name` AS val FROM `#__alfa_categories`" key_field="id" value_field="val"
-     />
+    <field name="categories" type="categories" showPath="true" multiple="true" layout="joomla.form.field.list-fancy-select" label="Categories" description="perigrafi">
+      <option value="0">COM_ALFA_FROM_CATEGORY_NO_OPTION</option>
+    </field>
+
+    <field name="publish_up" type="calendar" showtime="true" format="%Y-%m-%d %H:%M" filter="USER_UTC"
+      label="COM_ALFA_FORM_CATEGORY_LBL_PUBLISH_UP" description="COM_ALFA_CATEGORY_PUBLISH_UP_DESC"/>
+
+    <field name="publish_down" type="calendar" showtime="true" format="%Y-%m-%d %H:%M" filter="USER_UTC"
+      label="COM_ALFA_FORM_CATEGORY_LBL_PUBLISH_DOWN" description="COM_ALFA_CATEGORY_PUBLISH_DOWN_DESC"/>
+
+    <field
+            name="modified"
+            type="calendar"
+            label="JGLOBAL_FIELD_MODIFIED_LABEL"
+            class="form-control"
+            translateformat="true"
+            showtime="true"
+            readonly="true"
+            filter="user_utc"
+        />
+
+      <field
+            name="created_by"
+            type="user"
+            label="JGLOBAL_FIELD_CREATED_BY_LABEL"
+            validate="UserId"
+        />
+
+        <field
+            name="modified_by"
+            type="user"
+            label="JGLOBAL_FIELD_MODIFIED_BY_LABEL"
+            class="readonly"
+            readonly="true"
+            filter="unset"
+            validate="UserId"
+        />
+
+      <field 
+            name="allowedUsers" type="sql"
+            input_type="list"
+            required="false"
+            multiple="true"
+            label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERS_LBL"
+            description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERS_DESC"
+            layout="joomla.form.field.list-fancy-select"
+            query="SELECT `id`, `name` FROM `#__users`" key_field="id" value_field="name"
+        />
+
+      <field
+            name="allowedUserGroups"
+            type="UserGroupList"
+            label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_LBL"
+            description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_DESC"
+            layout="joomla.form.field.list-fancy-select"
+            multiple="true"
+            checksuperusergroup="1"
+            default="8"
+        />
+
+
+     <!-- <field 
+          name="categories" type="sql"
+          input_type="list"
+          required="true"
+          multiple="true"
+          label="Categories"
+          description=""
+          layout="joomla.form.field.list-fancy-select"
+          query="SELECT `id`, `name` AS val FROM `#__alfa_categories`" key_field="id" value_field="val" 
+        /> -->
 
     <field
       name="manufacturers" type="sql"
       input_type="list"
-      required="true"
+      required="false"
       multiple="true"
-      label="Manufacturers"
-      description=""
+      label="COM_ALFA_FORM_LBL_MANUFACTURERS"
+      description="COM_ALFA_FORM_DESC_MANUFACTURERS"
       layout="joomla.form.field.list-fancy-select"
       query="SELECT `id`, `name` AS val FROM `#__alfa_manufacturers`" key_field="id" value_field="val"
     /> 
 
+    <field
+          name="prices"
+          type="subform"
+          label="COM_ALFA_FORM_FIELDSET_PRICE"
+          description="COM_ALFA_FORM_FIELDSET_PRICE_DESC"
+          multiple="true"
+          min="1"
+          >
+          <form>
+            <field 
+              name="value" 
+              type="number"  
+              label="COM_ALFA_FORM_PRICE"
+              required="true"
+              description="COM_ALFA_FORM_FIELDSET_PRICE_DESC"
+            />
+
+            <field
+              name="currency_id" 
+              type="sql"
+              input_type="list"
+              required="false"
+              multiple="false"
+              label="COM_ALFA_FORM_CURRENCIES"
+              description="COM_ALFA_FORM_CURRENCIES_DESC"
+              layout="joomla.form.field.list-fancy-select"
+              query="SELECT `id`, `name` AS val FROM `#__alfa_currencies`" key_field="id" value_field="val"
+              header="All currencies"
+            />
+
+            <field
+              name="country_id" type="sql"
+              input_type="list"
+              required="false"
+              multiple="false"
+              label="COM_ALFA_FORM_COUNTRIES"
+              description="COM_ALFA_FORM_COUNTRIES_DESC"
+              layout="joomla.form.field.list-fancy-select"
+              query="SELECT `id`, `name` AS val FROM `#__alfa_places`" key_field="id" value_field="val"
+              header="All countries"
+            /> 
+
+           <field
+              name="usergroup_id"
+              type="UserGroupList"
+              label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_LBL"
+              description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_DESC"
+              layout="joomla.form.field.list-fancy-select"
+              multiple="false"
+              checksuperusergroup="1"
+              default="8"
+              header="All User Groups"
+            />
+
+            <field 
+              name="user_id" 
+              type="sql"
+              input_type="list"
+              required="false"
+              multiple="false"
+              label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERS_LBL"
+              description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERS_DESC"
+              layout="joomla.form.field.list-fancy-select"
+              query="SELECT `id`, `name` FROM `#__users`" key_field="id" value_field="name"
+              header="All users"
+           />
+
+            <field 
+              name="quantity_start" 
+              type="number"  
+              label="COM_ALFA_FORM_LBL_QUANTITY_START"
+              required="false"
+              description="COM_ALFA_FORM_LBL_QUANTITY_START_DESC"
+            />
+
+            <field 
+              name="quantity_end" 
+              type="number"  
+              label="COM_ALFA_FORM_LBL_QUANTITY_END"
+              required="false"
+              description="COM_ALFA_FORM_LBL_QUANTITY_END_DESC"
+            />
+
+           <field 
+              name="publish_up" 
+              type="calendar" 
+              showtime="true" 
+              format="%Y-%m-%d %H:%M" 
+              filter="USER_UTC"
+              label="COM_ALFA_FORM_CATEGORY_LBL_PUBLISH_UP" 
+              description="COM_ALFA_CATEGORY_PUBLISH_UP_DESC"
+            />
+
+            <field 
+              name="publish_down" 
+              type="calendar" 
+              showtime="true" 
+              format="%Y-%m-%d %H:%M" 
+              filter="USER_UTC"
+              label="COM_ALFA_FORM_CATEGORY_LBL_PUBLISH_DOWN" 
+              description="COM_ALFA_CATEGORY_PUBLISH_DOWN_DESC"
+            />
+
+            <field 
+                name="modify"
+                type="radio" 
+                label="COM_ALFA_FORM_LBL_MODIFY"
+                default="1"
+                layout="joomla.form.field.radio.switcher" >
+                <option value="0">JNO</option>
+                <option value="1">JYES</option>
+            </field>
+
+           <field 
+              name="modify_function" 
+              type="radio"
+              class="btn-group"
+              label="COM_ALFA_FORM_LBL_MODIFY_FUNCTION"
+              showon="modify:1">
+              <option value="add">Add</option>
+              <option value="remove">Remove</option>
+            </field>
+
+            <field 
+              name="modify_type" 
+              type="radio"
+              class="btn-group"
+              label="COM_ALFA_FORM_LBL_MODIFY_TYPE"
+              showon="modify:1">
+              <option value="amount">Amount</option>
+              <option value="percentage">Percentage</option>
+            </field>
+
+
+
+            <field 
+                name="status"
+                type="radio" 
+                label="COM_ALFA_FORM_LBL_STATUS"
+                default="1"
+                layout="joomla.form.field.radio.switcher" >
+                <option value="0">JNO</option>
+                <option value="1">JYES</option>
+            </field>
+
+            <field 
+              name="id" 
+              type="text" 
+              readonly="true" 
+              class="readonly" 
+              default="0" 
+              description="JGLOBAL_FIELD_ID_DESC"
+            />
+
+          </form>
+        </field>
   </fieldset>
 </form>

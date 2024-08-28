@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use \Joomla\CMS\Table\Table;
 use \Joomla\CMS\Factory;
 use \Joomla\CMS\Language\Text;
@@ -101,6 +102,35 @@ class CouponModel extends AdminModel
 
 		return $form;
 	}
+
+    /**
+     * Method to save the form data.
+     *
+     * @param array $data The form data.
+     *
+     * @return  boolean  True on success, False on error.
+     *
+     * @since   1.6
+     */
+    public function save($data)
+    {
+        if (parent::save($data)) {
+            $app = Factory::getApplication();
+
+            $currentId = 0;
+            if ($data['id'] > 0) { //not a new
+                $currentId = intval($data['id']);
+            } else { // is new
+                $currentId = intval($this->getState($this->getName() . '.id')); //get the id from setted joomla state
+            }
+
+            AlfaHelper::setAllowedUsers($currentId, $data['allowedUsers'], '#__alfa_coupons_users', 'coupon_id');
+            AlfaHelper::setAllowedUserGroups($currentId, $data['allowedUserGroups'], '#__alfa_coupons_usergroups', 'coupon_id');
+
+            return true;
+        }
+        return false;
+    }
 
 	
 
@@ -210,6 +240,8 @@ class CouponModel extends AdminModel
 				}
 				
 				// Do any procesing on fields here if needed
+                $item->allowedUsers = AlfaHelper::getAllowedUsers($item->id, '#__alfa_coupons_users', 'coupon_id');
+                $item->allowedUserGroups = AlfaHelper::getAllowedUserGroups($item->id, '#__alfa_coupons_usergroups', 'coupon_id');
 			}
 
 			return $item;
@@ -307,6 +339,8 @@ class CouponModel extends AdminModel
 	 */
 	protected function prepareTable($table)
 	{
+        $table->modified = Factory::getDate()->toSql();
+
 		jimport('joomla.filter.output');
 
 		if (empty($table->id))

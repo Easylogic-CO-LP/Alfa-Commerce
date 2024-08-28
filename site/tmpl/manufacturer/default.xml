@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<metadata>
+    <layout title="COM_TEST_TITLE_MANUFACTURER_VIEW_MANUFACTURER" option="View">
+        <message>
+            <![CDATA[COM_TEST_TITLE_MANUFACTURER_VIEW_MANUFACTURER_DESC]]>
+        </message>
+    </layout>
+    <fields name="request">
+        <fieldset
+                name="request"
+                label="COM_TEST_FIELDSET_MANUFACTURER_ID_SELECT_LABEL">
+            <field
+                    name="id"
+                    query="SELECT `id`, `name` FROM #__alfa_manufacturers ORDER BY `id`"
+                    type="sql"
+                    key_field="id"
+                    value_field="name"
+                    label="COM_TEST_MANUFACTURER_ID_SELECT_LABEL"
+                    require="true"
+                    description="JGLOBAL_SHOW_TITLE_DESC">
+            </field>
+
+        </fieldset>
+    </fields>
+</metadata>

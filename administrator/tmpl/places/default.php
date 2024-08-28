@@ -146,11 +146,12 @@ if (!empty($saveOrder))
 								<?php endif; ?>
 								<?php if ($canEdit) : ?>
 									<a href="<?php echo Route::_('index.php?option=com_alfa&task=place.edit&id='.(int) $item->id); ?>">
-									<?php echo $this->escape($item->name); ?>
+									<?php echo str_repeat('-',$item->depth) . ' ' . $this->escape($item->name); ?>
 									</a>
 								<?php else : ?>
-												<?php echo $this->escape($item->name); ?>
+												<?php echo str_repeat('-',$item->depth) . ' ' . $this->escape($item->name); ?>
 								<?php endif; ?>
+
 							</td>
 							<td>
 								<?php echo $item->code2; ?>

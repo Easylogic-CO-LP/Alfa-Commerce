@@ -1,0 +1,23 @@
+{
+  "$schema": "https://developer.joomla.org/schemas/json-schema/web_assets.json",
+  "name": "mod_alfa_search",
+  "version": "1.0.0",
+  "description": "Joomla Module for Alfa Commerce searching utility.",
+  "license": "GPL-2.0-or-later",
+  "assets": [
+    {
+      "name": "mod_alfa_search.searchbar",
+      "type": "script",
+      "uri": "mod_alfa_search/searchbar.js",
+      "attributes": {
+        "type": "module"
+      },
+      "version": "1.0.0"
+    },
+    {
+      "name": "mod_alfa_search.searchbar",
+      "type": "style",
+      "uri": "mod_alfa_search/searchbar.css"
+    }
+  ]
+}

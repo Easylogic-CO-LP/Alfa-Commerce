@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<form>
+<form >
     <fields name="filter">
         <field name="search" type="text" description="COM_ALFA_SEARCH_FILTER_SUBMIT"
                label="COM_USERS_FILTER_SEARCH_DESC"
@@ -14,7 +14,12 @@
             <option value="">JOPTION_SELECT_PUBLISHED</option>
         </field>
 
-        
+        <!--        TODO: get the categories to filter-->
+        <!--        addFieldPrefix="Alfa\Component\Alfa\Administrator\Field"-->
+        <!--        <field name="categories" type="categories" removeCurrent="false" layout="joomla.form.field.list-fancy-select" label="COM_ALFA_FORM_LBL_CATEGORY_PARENT_ID" description="perigrafi">-->
+        <!--            <option value="0">COM_ALFA_FROM_CATEGORY_NO_OPTION</option>-->
+        <!--        </field>-->
+
 
     </fields>
 

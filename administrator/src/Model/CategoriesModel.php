@@ -130,7 +130,7 @@ class CategoriesModel extends ListModel
 	protected function getListQuery()
 	{
 		// Create a new query object.
-		$db    = $this->getDbo();
+		$db    = $this->getDatabase();
 		$query = $db->getQuery(true);
 
 		// Select the required fields from the table.
@@ -204,7 +204,17 @@ class CategoriesModel extends ListModel
 	public function getItems()
 	{
 		$items = parent::getItems();
-		
+
+		$items = AlfaHelper::addHierarchyData($items);
+
+		//		TROPOS 1
+		//		$categories = AlfaHelper::addHierarchyData($categories,'name','/');
+
+		//		TROPOS 2
+		//	    $nestedCategories = AlfaHelper::buildNestedArray($categories);
+		//		AlfaHelper::sort_nested_items($nestedCategories,'name','desc');
+		//	    $flattenArray = AlfaHelper::flatten_nested_items($nestedCategories,'id','/');
+
 
 		return $items;
 	}
