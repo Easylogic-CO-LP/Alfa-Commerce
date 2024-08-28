@@ -80,7 +80,7 @@ class HtmlView extends BaseHtmlView
 
 		$canDo = AlfaHelper::getActions();
 
-		ToolbarHelper::title(Text::_('COM_ALFA_TITLE_CATEGORY'), "generic");
+		ToolbarHelper::title(Text::_('COM_ALFA_TITLE_CATEGORY' . ($isNew ? '_NEW' : '_EDIT')), "generic");
 
 		// If not checked out, can save the item.
 		if (!$checkedOut && ($canDo->get('core.edit') || ($canDo->get('core.create'))))
