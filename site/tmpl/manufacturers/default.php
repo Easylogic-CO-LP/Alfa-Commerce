@@ -44,56 +44,6 @@ $wa->useStyle('com_alfa.list');
 		echo LayoutHelper::render('joomla.searchtools.default', array('view' => $this));
 	} ?>
 
-			</tr>
-			</thead>
-			<tfoot>
-			<tr>
-				<td colspan="<?php echo isset($this->items[0]) ? count(get_object_vars($this->items[0])) : 10; ?>">
-					<div class="pagination">
-						<?php echo $this->pagination->getPagesLinks(); ?>
-					</div>
-				</td>
-			</tr>
-			</tfoot>
-			<tbody>
-			<?php foreach ($this->items as $i => $item) : ?>
-				<?php $canEdit = $user->authorise('core.edit', 'com_alfa'); ?>
-				
-				<tr class="row<?php echo $i % 2; ?>">
-					
-					<td>
-						<?php echo $item->id; ?>
-					</td>
-					<td>
-						<?php echo $item->name; ?>
-					</td>
-					<td>
-						<?php $class = ($canChange) ? 'active' : 'disabled'; ?>
-						<a class="btn btn-micro <?php echo $class; ?>" href="<?php echo ($canChange) ? Route::_('index.php?option=com_alfa&task=manufacturer.publish&id=' . $item->id . '&state=' . (($item->state + 1) % 2), false, 2) : '#'; ?>">
-						<?php if ($item->state == 1): ?>
-							<i class="icon-publish"></i>
-						<?php else: ?>
-							<i class="icon-unpublish"></i>
-						<?php endif; ?>
-						</a>
-					</td>
-					<?php if ($canEdit || $canDelete): ?>
-						<td class="center">
-						</td>
-					<?php endif; ?>
-
-				</tr>
-			<?php endforeach; ?>
-			</tbody>
-		</table>
-	</div>
-	<?php if ($canCreate) : ?>
-		<a href="<?php echo Route::_('index.php?option=com_alfa&task=manufacturerform.edit&id=0', false, 0); ?>"
-		   class="btn btn-success btn-small"><i
-				class="icon-plus"></i>
-			<?php echo Text::_('COM_ALFA_ADD_ITEM'); ?></a>
-	<?php endif; ?>
-
 	<input type="hidden" name="task" value="" />
 	<input type="hidden" name="boxchecked" value="0" />
 	<input type="hidden" name="filter_order" value="" />
