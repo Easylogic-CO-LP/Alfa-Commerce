@@ -1,0 +1,170 @@
+/**
+ * @version     CVS: 1.0.1
+ * @package     com_alfa
+ * @copyright   2024 Easylogic CO LP
+ * @license     GNU General Public License version 2 or later; see LICENSE.txt
+ * @author      Agamemnon Fakas <info@easylogic.gr>
+ */
+
+.product-info-section h1 {
+    font-size: 1.3rem;
+}
+
+/* PRODUCT IMAGES SECTION */
+
+.main-images img {
+    width: 100%;
+}
+
+.thumbnail-images {
+    gap: 6px;
+}
+
+.thumbnail-images .active {
+    border: 2px solid blue;
+}
+
+.thumbnail-images .product-image{
+    width: 100px;
+    height: auto;
+}
+/* PRODUCT AMOUNT */
+
+.add-to-cart-container {
+    display: flex;
+    gap: 8px;
+}
+
+.custom-number-container {
+    display: flex;
+    align-items: center;
+    width: fit-content;
+    margin: 4px 0;
+}
+
+.custom-number-input {
+    width: 50px !important;
+    height: 100%;
+    text-align: center;
+    font-size: 1.5rem;
+    border: 1px solid lightgray;
+    border-radius: 5px;
+    padding: 5px;
+    margin: 0 1px;
+    /* Hides the default spinner buttons in the input */
+    -moz-appearance: textfield;
+}
+
+.custom-number-input::-webkit-outer-spin-button,
+.custom-number-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.custom-decrement, .custom-increment {
+    width: 30px;
+    height: 100%;
+    font-size: 1.5rem;
+    border: none;
+    color: black;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* .custom-decrement:hover, .custom-increment:hover {
+    background-color: lightblue;
+} */
+
+/* .custom-decrement:active, .custom-increment:active {
+    background-color: blue;
+} */
+
+/* ADD TO CART BUTTON */
+
+.add-to-cart-btn {
+    border: none;
+    height: 100%;
+    width: fit-content;
+    padding: 10px 20px;
+    border-radius: 5px;
+    background-color: blue;
+    color: white;
+}
+
+/* WISHLIST BUTTON */
+
+.wishlist-btn {
+    border: none;
+    border-radius: 50%;
+    padding: 10px;
+    margin: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+    box-shadow: 4px -2px 10px 4px rgba(0, 0, 0, 0.1);
+}
+
+.wishlist-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* TAB STYLING */
+
+.product-desc-details {
+    padding: 20px 30px;
+    border: 1px solid lightgray;
+}
+
+.tab {
+    height: 48px;
+    margin-bottom: 20px;
+    padding: 0;
+    border-bottom: 2px solid lightgray;
+    list-style: none;
+    position: relative;
+}
+
+.tab li {
+    float: left;
+    cursor: pointer;
+    margin-right: 4px;
+    margin-bottom: -2px;
+    position: relative;
+    z-index: 1;
+}
+
+.tab button {
+    background-color: inherit;
+    border: none;
+    outline: none;
+    font-size: 17px;
+    padding: 10px 15px;
+}
+
+.tab button:hover {
+    border-bottom: 3px solid blue;
+    margin-bottom: -2px;
+}
+
+.tab button.active {
+    color: blue;
+    border-bottom: 3px solid blue;
+    margin-bottom: -2px;
+    z-index: 2;
+}
+
+.tabcontent {
+    display: none;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+}
+
+#description {
+    display: block;
+    opacity: 1;
+}

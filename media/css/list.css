@@ -5,3 +5,29 @@
  * @license     GNU General Public License version 2 or later; see LICENSE.txt
  * @author      Agamemnon Fakas <info@easylogic.gr>
  */
+
+
+/* LIST CONTAINER */
+
+.list-container {
+    display: grid;
+    grid-gap: 1rem;
+    grid-template-columns: repeat(auto-fill,minmax(300px,1fr));
+}
+
+.list-item {
+    border: 1px solid black;
+    text-align: center;
+}
+
+.list-item img {
+    width: 100%;
+    object-fit: contain;
+}
+
+/* PRODUCT */
+
+.product-title {
+    margin: 0.7rem 0;
+    padding: 0 10px;
+}
