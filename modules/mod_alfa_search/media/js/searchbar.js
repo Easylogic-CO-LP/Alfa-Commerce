@@ -1,17 +1,3 @@
-// document.addEventListener("DOMContentLoaded", () => {
-//     const searchBar = document.querySelector(".searchbar");
-//     const searchPopup = document.querySelector(".searchbar-popup");
-//
-//     searchBar.addEventListener("focus", () => {
-//         searchPopup.classList.add("active");
-//     });
-//
-//     searchBar.addEventListener("blur", () => {
-//         searchPopup.classList.remove("active");
-//     });
-// });
-
-
 document.addEventListener("DOMContentLoaded", () => {
     const searchContainer = document.querySelector('.search-container');
     const searchField = document.querySelector('.searchbar');
@@ -24,6 +10,32 @@ document.addEventListener("DOMContentLoaded", () => {
     searchField.addEventListener("focus", (e) => {
         searchPopup.classList.add("active");
     });
+
+    // Keyboard Shortcuts Start
+    const searchBar = document.querySelector('.searchbar');
+    document.addEventListener('keydown', function (event) {
+        // console.log('Key pressed:', event.key);
+        if (event.key === '/' && !event.ctrlKey && !event.altKey && !event.metaKey) {
+            if (document.activeElement === searchBar) {
+                return;
+            }
+            event.preventDefault();
+            if (searchBar) {
+                // console.log('Clicking search bar');
+                searchBar.focus();
+            } else {
+                // console.log('Search bar not found');
+            }
+        }
+        if (event.key === 'Escape') {
+            if (document.activeElement === searchBar) {
+                event.preventDefault(); // Prevent any default behavior for 'Escape' if needed
+                searchBar.blur(); // Remove focus from the search bar
+            }
+        }
+    });
+    // Keyboard Shortcuts End
+
 
     // searchContainer.addEventListener("focusout", (e) => {
     //     searchPopup.classList.remove("active");
@@ -86,7 +98,6 @@ document.addEventListener("DOMContentLoaded", () => {
         let dataRaw = data.data.suggestions;
         console.log(dataRaw);
         if (dataRaw) {
-
             dataRaw.forEach(item => {
                 searchPopup.innerHTML += item;
                 //         const resultItem = document.createElement("a");
@@ -95,8 +106,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 //         resultItem.textContent = item.alias; // Assuming each result has a 'title' property
                 //         searchPopup.appendChild(resultItem);
             });
-        } else {
-            searchPopup.innerHTML = 'No results found';
         }
     }
 });

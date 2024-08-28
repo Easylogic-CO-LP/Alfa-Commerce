@@ -56,13 +56,66 @@
                 />
 
                 <field
-                    type="number"
-                    name="minCharacters"
-                    label="Enter minimum amount of characters for search to work"
-                    default="2"
-                    min="1"
-                    step="1"
+                        type="number"
+                        name="minCharacters"
+                        label="Enter minimum amount of characters for search to work"
+                        default="2"
+                        min="1"
+                        step="1"
                 />
+
+                <field
+                        name="show_description"
+                        type="radio"
+                        label="Show description"
+                        default="1"
+                        layout="joomla.form.field.radio.switcher">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+
+
+                <field
+                        name="description_limit"
+                        type="number"
+                        label="Description limit"
+                        required="false"
+                        default="50"
+                        min="1"
+                        showon="show_description:1"
+                />
+
+                <field
+                        name="show_categories"
+                        type="radio"
+                        label="Show categories"
+                        default="0"
+                        layout="joomla.form.field.radio.switcher">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+
+                <field
+                        name="show_manufacturers"
+                        type="radio"
+                        label="Show manufacturers"
+                        default="0"
+                        layout="joomla.form.field.radio.switcher">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+
+
+                <!--                <field-->
+                <!--                        name="modify_function"-->
+                <!--                        type="radio"-->
+                <!--                        class="btn-group"-->
+                <!--                        label="COM_ALFA_FORM_LBL_MODIFY_FUNCTION"-->
+                <!--                        >-->
+                <!--                    <option value="add">Add</option>-->
+                <!--                    <option value="remove">Remove</option>-->
+                <!--                </field>-->
+                <!--   description length -->
             </fieldset>
             <fieldset name="advanced">
                 <field

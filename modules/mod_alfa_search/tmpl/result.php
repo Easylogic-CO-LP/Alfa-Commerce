@@ -1,68 +1,103 @@
 <?php
-/**
- *---------------------------------------------------------------------------------------
- * @package       VP Ajax Search Module
- *---------------------------------------------------------------------------------------
- * @copyright     Copyright (C) 2012-2022 VirtuePlanet Services LLP. All rights reserved.
- * @license       GNU General Public License version 2 or later; see LICENSE.txt
- * @authors       Abhishek Das
- * @email         info@virtueplanet.com
- * @link          https://www.virtueplanet.com
- *---------------------------------------------------------------------------------------
- */
 
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
 
 defined('_JEXEC') or die;
 
-// $unitDesc = JText::sprintf ('COM_VIRTUEMART_PRODUCT_UNITPRICE', vmText::_('COM_VIRTUEMART_UNIT_SYMBOL_' . $product->product_unit));
+// $displayData array is passed through the helper file on the render function
+$products = $displayData['products'] ?? null;  //products data
+$categories = $displayData['categories'] ?? null;  //categories data
+$manufacturers = $displayData['manufacturers'] ?? null;  //manufacturers data
 
-// $url = Route::_('index.php?option=com_virtuemart&view=productdetails&virtuemart_product_id=' . $product->virtuemart_product_id . '&virtuemart_category_id=' . $product->virtuemart_category_id);
+$params = $displayData['params'] ?? null;  //module params
 
-if (!isset($product)) {
-    $product = $displayData['product'];
-}
-// print_r($product);
+if (!$params) return;
+
+$showDescription = $params->get('show_description', 1);
+$descriptionLimit = $params->get('description_limit', 50);
+$showCategories = $params->get('show_categories', 0);
+$showManufacturers = $params->get('show_manufacturers', 0);
 
 ?>
 
-    <div class="product-item">
-        <a href="<?php echo Route::_('index.php?option=com_alfa&view=item&id=' . (int)$product->id); ?>">
-            <h3><?php echo $product->name; ?></h3>
-        </a>
-        <p><?php echo $product->short_desc; ?></p>
-        <!--    <p>--><?php //echo $product->full_desc; ?><!--</p>-->
-    </div>
-<?php /*
-<!-- <div class="searched-product">
-	< ?php if($params->get('show_images', 1) && !empty($product->images[0])) : ?>
-		<div class="searched-product-image">
-			<a href="< ?php echo $url ?>">
-				< ?php echo $product->images[0]->displayMediaThumb ('class="img-responsive"', false); ?>
-			</a>
-		</div>
-	< ?php endif; ?>
-	<div class="searched-product-info">
-		<div class="searched-product-info-inner">
-			<div class="searched-product-title">
-				<a href="< ?php echo $url ?>">< ?php echo $product->product_name ?></a>
-			</div>
-			< ?php if($showPrice) : ?>
-				< ?php if($product->prices['salesPrice'] <= 0 && VmConfig::get ('askprice', 1) && isset($product->images[0]) && !$product->images[0]->file_is_downloadable) : ?>
-					< ?php $ask_url = JRoute::_('index.php?option=com_virtuemart&view=productdetails&task=askquestion&virtuemart_product_id=' . $product->virtuemart_product_id . '&virtuemart_category_id=' . $product->virtuemart_category_id . '&tmpl=component', false); ?>
-					<a class="btn btn-info btn-sm" href="< ?php echo $url ?>">< ?php echo JText::_ ('COM_VIRTUEMART_PRODUCT_ASKPRICE') ?></a>
-				< ?php else : ?>
-					<div class="searched-product-price">
-						< ?php if($priceType == 'unitPrice') : ?>
-							< ?php echo $currency->createPriceDiv('unitPrice', $unitDesc, $product->prices); ?>
-						< ?php else : ?>
-							< ?php echo $currency->createPriceDiv($priceType, '', $product->prices); ?>
-						< ?php endif; ?>
-					</div>
-				< ?php endif; ?>
-			< ?php endif; ?>
-		</div>
-	</div>
-</div> -->
-*/
+    <h3><?php echo Text::_('MOD_ALFA_SEARCH_RESULT_PRODUCTS_HEADING'); ?></h3>
+<?php if (empty($products)): ?>
+    <div><?php echo Text::_('MOD_ALFA_SEARCH_RESULT_EMPTY'); ?></div>
+<?php else: ?>
+    <?php foreach ($products as $product): ?>
+        <div class="search-product-item">
+            <a href="<?php echo Route::_('index.php?option=com_alfa&view=item&id=' . (int)$product->id); ?>">
+                <div class="search-image-container">
+                    <img src="https://americanathleticshoe.com/cdn/shop/t/23/assets/placeholder_600x.png?v=113555733946226816651665571258" alt="hi">
+                </div>
+                <div class="search-info-container">
+                    <div class="search-product-title">
+                        <h3><?php echo $product->name; ?></h3>
+                    </div>
+                    <?php if ($showDescription): ?>
+                        <div class="search-product-description">
+                            <?php echo mb_strimwidth($product->short_desc, 0, $descriptionLimit, '...'); ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </a>
+
+        </div>
+    <?php
+    endforeach;
+endif;
+?>
+
+<?php if ($showCategories): ?>
+    <h3><?php echo Text::_('MOD_ALFA_SEARCH_RESULT_CATEGORIES_HEADING'); ?></h3>
+    <?php if (empty($categories)): ?>
+        <div><?php echo Text::_('MOD_ALFA_SEARCH_RESULT_EMPTY'); ?></div>
+    <?php else: ?>
+        <?php foreach ($categories as $category): ?>
+            <div class="search-category-item">
+                <div class="search-category-title">
+                    <!-- TODO: prosthiki filtrou sto forms/filter_items.xml kai epeita sto model / project task sto github  -->
+                    <a href="<?php echo Route::_('index.php?option=com_alfa&view=items&filter[category_id]=' . (int)$category->id); ?>">
+                        <h3><?php echo $category->name; ?></h3>
+                    </a>
+                </div>
+
+                <?php if ($showDescription): ?>
+                    <div class="search-category-description">
+                        <?php echo htmlspecialchars(mb_strimwidth($category->short_desc, 0, $descriptionLimit, '...')); ?>
+                    </div>
+                <?php endif; ?>
+
+            </div>
+        <?php
+        endforeach;
+    endif;
+endif;
+?>
+<?php if ($showManufacturers): ?>
+    <h3><?php echo Text::_('MOD_ALFA_SEARCH_RESULT_MANUFACTURERS_HEADING'); ?></h3>
+    <?php if (empty($manufacturers)): ?>
+        <div><?php echo Text::_('MOD_ALFA_SEARCH_RESULT_EMPTY'); ?></div>
+    <?php else: ?>
+        <?php foreach ($manufacturers as $manufacturer): ?>
+            <div class="search-manufacturer-item">
+                <div class="search-manufacturer-title">
+                    <!-- TODO: prosthiki filtrou sto forms/filter_items.xml kai epeita sto model / project task sto github  -->
+                    <a href="<?php echo Route::_('index.php?option=com_alfa&view=items&filter[manufacturer_id]=' . (int)$manufacturer->id); ?>">
+                        <h3><?php echo $manufacturer->name; ?></h3>
+                    </a>
+                </div>
+
+                <?php if ($showDescription): ?>
+                    <div class="search-manufacturer-description">
+                        <?php echo htmlspecialchars(mb_strimwidth($manufacturer->short_desc, 0, $descriptionLimit, '...')); ?>
+                    </div>
+                <?php endif; ?>
+
+            </div>
+        <?php
+        endforeach;
+    endif;
+endif;
 ?>

@@ -1,21 +1,59 @@
 .alfasearch-wrapper {
     position: relative;
-    width: 1000px;
+    width: 100%;
+    max-width: 1000px;
 }
 
 .searchbar-popup {
     position: absolute;
     z-index: 100;
     background-color: white;
-    width: 1000px;
+    width: 100%;
     border: 1px solid lightgrey;
+    border-radius: 0 0 12px 12px;
     border-top: none;
     display: none;
     padding: 20px;
 }
 
-.product-item:not(:last-child) {
+.search-product-item {
+    width: 100%;
+    margin-bottom: 12px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: all 0.1s linear;
+}
+
+.search-product-item:hover {
+    background-color: lightgray;
+}
+
+.search-product-item:not(:last-child) {
     border-bottom: 1px solid lightgray;
+}
+
+.search-product-item a {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    align-items: stretch;
+    justify-content: start;
+    height: 100%;
+    width: 100%;
+    padding: 10px 18px;
+}
+
+.search-image-container {
+    width: 150px;
+}
+
+.search-info-container {
+    width: 50%;
+    max-width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 .active {
@@ -25,7 +63,6 @@
 .search-container {
     position: relative;
 }
-
 
 .loading-img {
     display: none;
