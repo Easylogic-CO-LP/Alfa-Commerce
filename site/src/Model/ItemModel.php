@@ -142,8 +142,14 @@ class ItemModel extends BaseItemModel
                     $data->manufacturers[$manufacturer['id']] = $manufacturer['name'];
                 }
 
-                // TODO: getItemPrices()
-                // $prices = $this->getItemPrices($pk);
+                
+                $data->prices = $this->getPrices($pk);
+
+                // $data->prices = [];
+                // foreach ($prices as $price) {
+                //     $data->prices[$price['id']] = $price['value'];
+                // }
+
                 $this->_item[$pk] = $data;
 
             } catch (\Exception $e) {
@@ -207,10 +213,49 @@ class ItemModel extends BaseItemModel
         return $db->loadAssocList();
     }
 
-    public function getItemPrices($pk)
-    {
+    public function getPrices($id){
+        $id = intval($id);
+        if($id <= 0) {
+            return [];
+        }
 
+        // Get the database object
+        $db = $this->getDatabase();
+
+        // Build the query to select all relevant fields
+        $query = $db->getQuery(true);
+        $query
+            ->select('*')
+            ->from('#__alfa_items_prices')
+            ->where('product_id = ' . $db->quote($id));
+
+        // Execute the query
+        $db->setQuery($query);
+
+        // Return the result as an associative array
+        return $db->loadAssocList('id');
     }
+
+
+    // public function getItemPrices($pk)
+    // {
+    //     $db = $this->getDatabase();
+    //     $query = $db->getQuery(true);
+
+    //     $query->select(
+    //         [
+    //             $db->quoteName('p.value'),
+    //             $db->quoteName('p.id'),
+    //         ]
+    //     )
+    //         ->from($db->quoteName('#__alfa_items_prices', 'p'))
+    //         ->where($db->quoteName('p.product_id') . ' = ' . $db->quote($pk));
+
+    //     $db->setQuery($query);
+
+    //     return $db->loadAssocList();
+
+    // }
 
     /**
      * Get an instance of Table class
