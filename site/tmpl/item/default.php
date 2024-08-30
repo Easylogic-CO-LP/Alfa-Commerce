@@ -101,7 +101,6 @@ $wa->useScript('com_alfa.product')->useScript('com_alfa.product.recalculate');
                     </div>
                 </div>
 
-                <h3><?php echo Text::_('COM_ALFA_ITEM_PRICE'); ?></h3>
                 <div class="product-price" >
                      <?php echo LayoutHelper::render('price',$this->item->price); //passed data as $displayData in layout ?>
                 </div>
