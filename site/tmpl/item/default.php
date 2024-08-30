@@ -17,11 +17,12 @@ use \Joomla\CMS\Router\Route;
 use \Joomla\CMS\Language\Text;
 use \Joomla\CMS\Session\Session;
 use Joomla\Utilities\ArrayHelper;
+use Joomla\CMS\Layout\LayoutHelper;
 
 // Import CSS
 $wa = $this->document->getWebAssetManager();
 $wa->useStyle('com_alfa.product');
-$wa->useScript('com_alfa.product');
+$wa->useScript('com_alfa.product')->useScript('com_alfa.product.recalculate');
 ?>
 
 <section>
@@ -43,9 +44,9 @@ $wa->useScript('com_alfa.product');
                 <?php endif; ?>
                 <div class="add-to-cart-container mb-3">
                     <div class="custom-number-container">
-                        <button class="custom-decrement" onclick="decrementValue()">-</button>
-                        <input type="number" id="customNumberInput" class="custom-number-input" min="1" value="1">
-                        <button class="custom-increment" onclick="incrementValue()">+</button>
+                        <button class="custom-decrement" data-action="decrement">-</button>
+                        <input type="number" name="quantity" id="customNumberInput" class="custom-number-input" min="1" value="1">
+                        <button class="custom-increment" data-action="increment">+</button>
                     </div>
                     <div class="add-to-cart">
                         <button class="add-to-cart-btn">
@@ -70,6 +71,7 @@ $wa->useScript('com_alfa.product');
                         </button>
                     </div>
                 </div>
+
                 <div class="product-desc-details">
                     <ul class="tab">
                         <li>
@@ -81,6 +83,9 @@ $wa->useScript('com_alfa.product');
                                     onclick="openTab(event, 'details')"><?php echo Text::_('COM_ALFA_ITEM_LBL_DETAILS'); ?></button>
                         </li>
                     </ul>
+
+                    
+
                     <div id="description" class="tabcontent">
                         <?php echo nl2br($this->item->full_desc); ?>
                     </div>
@@ -95,10 +100,21 @@ $wa->useScript('com_alfa.product');
                         <?php endforeach; ?>
                     </div>
                 </div>
+
+                <h3><?php echo Text::_('COM_ALFA_ITEM_PRICE'); ?></h3>
+                <div class="product-price" >
+                     <?php echo LayoutHelper::render('price',$this->item->price); //passed data as $displayData in layout ?>
+                </div>
+
+                <?php //echo 'Price: <pre>';print_r($this->item->price); echo '</pre>'; ?>
+                
             </section>
         </div>
     </div>
 </section>
+
+<input type="hidden" name="product_id" value="<?php echo $this->item->id;?>">
+
 <?php
 echo '<pre>';
 print_r($this->item);

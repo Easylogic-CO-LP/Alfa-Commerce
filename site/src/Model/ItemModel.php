@@ -20,6 +20,8 @@ use \Joomla\CMS\Helper\TagsHelper;
 use \Joomla\CMS\Object\CMSObject;
 use \Joomla\CMS\User\UserFactoryInterface;
 use \Alfa\Component\Alfa\Site\Helper\AlfaHelper;
+use \Alfa\Component\Alfa\Site\Helper\ProductHelper;
+use \Alfa\Component\Alfa\Site\Helper\PriceCalculator;
 use \Joomla\Database\ParameterType;
 
 /**
@@ -103,6 +105,7 @@ class ItemModel extends BaseItemModel
                         'item.select',
                         [
                             // from items
+                            $db->quoteName('a.id'),
                             $db->quoteName('a.name'),
                             $db->quoteName('a.short_desc'),
                             $db->quoteName('a.full_desc'),
@@ -143,7 +146,14 @@ class ItemModel extends BaseItemModel
                 }
 
                 
-                $data->prices = $this->getPrices($pk);
+                // Calculate the dynamic price
+                $quantity = 1; // You can pass a different quantity based on user input
+                $userGroupId=0;
+                $currencyId=0;
+                $priceCalculator = new PriceCalculator($pk, $quantity, $userGroupId, $currencyId);
+                $data->price = $priceCalculator->calculatePrice();
+
+                // $data->prices = $this->getPrices($pk);
 
                 // $data->prices = [];
                 // foreach ($prices as $price) {
@@ -213,49 +223,30 @@ class ItemModel extends BaseItemModel
         return $db->loadAssocList();
     }
 
-    public function getPrices($id){
-        $id = intval($id);
-        if($id <= 0) {
-            return [];
-        }
+    // id is the product_id
+    // public function getPrices($id){
+    //     $id = intval($id);
+    //     if($id <= 0) {
+    //         return [];
+    //     }
 
-        // Get the database object
-        $db = $this->getDatabase();
-
-        // Build the query to select all relevant fields
-        $query = $db->getQuery(true);
-        $query
-            ->select('*')
-            ->from('#__alfa_items_prices')
-            ->where('product_id = ' . $db->quote($id));
-
-        // Execute the query
-        $db->setQuery($query);
-
-        // Return the result as an associative array
-        return $db->loadAssocList('id');
-    }
-
-
-    // public function getItemPrices($pk)
-    // {
+    //     // Get the database object
     //     $db = $this->getDatabase();
+
+    //     // Build the query to select all relevant fields
     //     $query = $db->getQuery(true);
+    //     $query
+    //         ->select('*')
+    //         ->from('#__alfa_items_prices')
+    //         ->where('product_id = ' . $db->quote($id));
 
-    //     $query->select(
-    //         [
-    //             $db->quoteName('p.value'),
-    //             $db->quoteName('p.id'),
-    //         ]
-    //     )
-    //         ->from($db->quoteName('#__alfa_items_prices', 'p'))
-    //         ->where($db->quoteName('p.product_id') . ' = ' . $db->quote($pk));
-
+    //     // Execute the query
     //     $db->setQuery($query);
 
-    //     return $db->loadAssocList();
-
+    //     // Return the result as an associative array
+    //     return $db->loadAssocList('id');
     // }
+
 
     /**
      * Get an instance of Table class
