@@ -214,6 +214,7 @@ class ItemModel extends AdminModel
 	 *
 	 * @since   1.0.1
 	 */
+  
 	public function getItem($pk = null)
 	{
 		
@@ -234,7 +235,7 @@ class ItemModel extends AdminModel
 
 			return $item;
 		
-	}
+  }
 
 
 	/**
