@@ -28,37 +28,11 @@
     <config>
         <fields name="params">
             <fieldset name="basic">
-                <field name="loadingImageType" type="list" default="0" label="Loading Image"
-                       description="Image path or Inline SVG">
-                    <option value="0">Image</option>
-                    <option value="1">Inline SVG</option>
-                </field>
-
-                <field
-                        name="loadingImageFile"
-                        type="media"
-                        label="Select Site Logo Image"
-                        description="Select an image to use as the site logo"
-                        default=""
-                        required="false"
-                        showon="loadingImageType:0"
-                />
-
-                <field
-                        name="loadingImageInline"
-                        type="textarea"
-                        label="Enter Inline SVG"
-                        description="Insert SVG markup to use as the site logo"
-                        filter="raw"
-                        showon="loadingImageType:1"
-                        rows="5"
-                        cols="30"
-                />
 
                 <field
                         type="number"
                         name="minCharacters"
-                        label="Enter minimum amount of characters for search to work"
+                        label="MOD_ALFA_SEARCH_MINCHARS_LBL"
                         default="2"
                         min="1"
                         step="1"
@@ -67,7 +41,7 @@
                 <field
                         name="show_description"
                         type="radio"
-                        label="Show description"
+                        label="MOD_ALFA_SEARCH_SHOW_DESC_LBL"
                         default="1"
                         layout="joomla.form.field.radio.switcher">
                     <option value="0">JNO</option>
@@ -78,7 +52,7 @@
                 <field
                         name="description_limit"
                         type="number"
-                        label="Description limit"
+                        label="MOD_ALFA_SEARCH_DESC_LIMIT_LBL"
                         required="false"
                         default="50"
                         min="1"
@@ -88,7 +62,7 @@
                 <field
                         name="show_categories"
                         type="radio"
-                        label="Show categories"
+                        label="MOD_ALFA_SEARCH_SHOW_CATEGORIES_LBL"
                         default="0"
                         layout="joomla.form.field.radio.switcher">
                     <option value="0">JNO</option>
@@ -96,14 +70,70 @@
                 </field>
 
                 <field
+                        type="number"
+                        name="categories_limit"
+                        label="MOD_ALFA_CATEGORIES_LIMIT_LBL"
+                        default="6"
+                        min="1"
+                        step="1"
+                        showon="show_categories:1"
+                />
+
+                <field
                         name="show_manufacturers"
                         type="radio"
-                        label="Show manufacturers"
+                        label="MOD_ALFA_SHOW_MANUFACTURERS_LBL"
                         default="0"
                         layout="joomla.form.field.radio.switcher">
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>
+
+                <field
+                        type="number"
+                        name="manufacturers_limit"
+                        label="MOD_ALFA_MANUFACTURERS_LIMIT_LBL"
+                        default="6"
+                        min="1"
+                        step="1"
+                        showon="show_manufacturers:1"
+                />
+
+                <field
+                        name="loadingImageSpacer"
+                        type="spacer"
+                        label="MOD_ALFA_SEARCH_LOADING_IMAGE_SPACER_LBL"
+                />
+
+                <field name="loadingImageType" type="radio" class="btn-group" default="3"
+                       label="MOD_ALFA_SEARCH_LOADING_IMAGE_TYPE_LBL"
+                       description="MOD_ALFA_SEARCH_LOADING_IMAGE_TYPE_DESC">
+                    <option value="0">Image</option>
+                    <option value="1">Inline SVG</option>
+                    <option value="2">None</option>
+                    <option value="3">Default</option>
+                </field>
+
+                <field
+                        name="loadingImageFile"
+                        type="media"
+                        label="MOD_ALFA_SEARCH_LOADING_IMAGE_FILE_LBL"
+                        description="MOD_ALFA_SEARCH_LOADING_IMAGE_FILE_DESC"
+                        default=""
+                        required="false"
+                        showon="loadingImageType:0"
+                />
+
+                <field
+                        name="loadingImageInline"
+                        type="textarea"
+                        label="MOD_ALFA_SEARCH_LOADING_IMAGE_INLINE_LBL"
+                        description="MOD_ALFA_SEARCH_LOADING_IMAGE_INLINE_DESC"
+                        filter="raw"
+                        showon="loadingImageType:1"
+                        rows="5"
+                        cols="30"
+                />
 
 
                 <!--                <field-->

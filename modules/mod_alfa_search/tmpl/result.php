@@ -26,24 +26,21 @@ $showManufacturers = $params->get('show_manufacturers', 0);
     <div><?php echo Text::_('MOD_ALFA_SEARCH_RESULT_EMPTY'); ?></div>
 <?php else: ?>
     <?php foreach ($products as $product): ?>
-        <div class="search-product-item">
-            <a href="<?php echo Route::_('index.php?option=com_alfa&view=item&id=' . (int)$product->id); ?>">
-                <div class="search-image-container">
-                    <img src="https://americanathleticshoe.com/cdn/shop/t/23/assets/placeholder_600x.png?v=113555733946226816651665571258" alt="hi">
+        <a class="search-product-item" href="<?php echo Route::_('index.php?option=com_alfa&view=item&id=' . (int)$product->id); ?>" tabindex="0">
+            <div class="search-image-container">
+                <img src="https://americanathleticshoe.com/cdn/shop/t/23/assets/placeholder_600x.png?v=113555733946226816651665571258" alt="<?php echo $product->name; ?>">
+            </div>
+            <div class="search-info-container">
+                <div class="search-product-title">
+                    <h3><?php echo $product->name; ?></h3>
                 </div>
-                <div class="search-info-container">
-                    <div class="search-product-title">
-                        <h3><?php echo $product->name; ?></h3>
+                <?php if ($showDescription): ?>
+                    <div class="search-product-description">
+                        <?php echo mb_strimwidth($product->short_desc, 0, $descriptionLimit, '...'); ?>
                     </div>
-                    <?php if ($showDescription): ?>
-                        <div class="search-product-description">
-                            <?php echo mb_strimwidth($product->short_desc, 0, $descriptionLimit, '...'); ?>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </a>
-
-        </div>
+                <?php endif; ?>
+            </div>
+        </a>
     <?php
     endforeach;
 endif;
@@ -55,12 +52,10 @@ endif;
         <div><?php echo Text::_('MOD_ALFA_SEARCH_RESULT_EMPTY'); ?></div>
     <?php else: ?>
         <?php foreach ($categories as $category): ?>
-            <div class="search-category-item">
+            <a class="search-category-item" href="<?php echo Route::_('index.php?option=com_alfa&view=items&filter[category_id]=' . (int)$category->id); ?>" tabindex="0">
                 <div class="search-category-title">
                     <!-- TODO: prosthiki filtrou sto forms/filter_items.xml kai epeita sto model / project task sto github  -->
-                    <a href="<?php echo Route::_('index.php?option=com_alfa&view=items&filter[category_id]=' . (int)$category->id); ?>">
-                        <h3><?php echo $category->name; ?></h3>
-                    </a>
+                    <h3><?php echo $category->name; ?></h3>
                 </div>
 
                 <?php if ($showDescription): ?>
@@ -69,7 +64,7 @@ endif;
                     </div>
                 <?php endif; ?>
 
-            </div>
+            </a>
         <?php
         endforeach;
     endif;
@@ -81,12 +76,10 @@ endif;
         <div><?php echo Text::_('MOD_ALFA_SEARCH_RESULT_EMPTY'); ?></div>
     <?php else: ?>
         <?php foreach ($manufacturers as $manufacturer): ?>
-            <div class="search-manufacturer-item">
+            <a class="search-manufacturer-item" tabindex="0">
                 <div class="search-manufacturer-title">
                     <!-- TODO: prosthiki filtrou sto forms/filter_items.xml kai epeita sto model / project task sto github  -->
-                    <a href="<?php echo Route::_('index.php?option=com_alfa&view=items&filter[manufacturer_id]=' . (int)$manufacturer->id); ?>">
-                        <h3><?php echo $manufacturer->name; ?></h3>
-                    </a>
+                    <h3><?php echo $manufacturer->name; ?></h3>
                 </div>
 
                 <?php if ($showDescription): ?>
@@ -95,7 +88,7 @@ endif;
                     </div>
                 <?php endif; ?>
 
-            </div>
+            </a>
         <?php
         endforeach;
     endif;
