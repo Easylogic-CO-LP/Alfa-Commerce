@@ -179,37 +179,6 @@ class ItemModel extends AdminModel
 	}
 
 	/**
-	 * Method to get a single record.
-	 *
-	 * @param   integer  $pk  The id of the primary key.
-	 *
-	 * @return  mixed    Object on success, false on failure.
-	 *
-	 * @since   1.0.1
-	 */
-  
-	public function getItem($pk = null)
-	{
-		
-			if ($item = parent::getItem($pk))
-			{
-				if (isset($item->params))
-				{
-					$item->params = json_encode($item->params);
-				}
-
-				$item->categories = $this->getCategories($item->id);
-				$item->manufacturers = $this->getManufacturers($item->id);
-				$item->prices = $this->getPrices($item->id);
-	            $item->allowedUsers = AlfaHelper::getAllowedUsers($item->id, '#__alfa_items_users', 'item_id');
-            	$item->allowedUserGroups = AlfaHelper::getAllowedUserGroups($item->id, '#__alfa_items_usergroups', 'item_id');
-			}
-
-			return $item;
-		
-	}
-
-	/**
 	 * Method to get the data that should be injected in the form.
 	 *
 	 * @return  mixed  The data for the form.
@@ -245,6 +214,7 @@ class ItemModel extends AdminModel
 	 *
 	 * @since   1.0.1
 	 */
+  
 	public function getItem($pk = null)
 	{
 		
@@ -265,7 +235,7 @@ class ItemModel extends AdminModel
 
 			return $item;
 		
-	}
+  }
 
 
 	/**
@@ -279,6 +249,7 @@ class ItemModel extends AdminModel
 	*/
 	public function save($data)
 	{
+
 		$app = Factory::getApplication();
 		
 		$data['alias'] = $data['alias'] ?: $data['name'];

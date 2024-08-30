@@ -93,13 +93,11 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_prices` (
     `modify` TINYINT(1)  NOT NULL DEFAULT 0,  -- 0 means no modification applied, 1 means apply modification
     `modify_function` ENUM('add', 'remove') NULL DEFAULT 'add',  -- Add or remove value
     `modify_type` ENUM('amount', 'percentage') NULL DEFAULT 'amount', -- Type of modification
-
     `product_id` INT(11) UNSIGNED NOT NULL,
     `currency_id` INT(11) UNSIGNED NULL DEFAULT NULL,
     `usergroup_id` INT(11) UNSIGNED NULL DEFAULT NULL,
     `user_id` INT(11) UNSIGNED NULL DEFAULT NULL,
     `country_id` INT(11) UNSIGNED NULL DEFAULT NULL,
-
     `publish_up` DATETIME NULL DEFAULT NULL,
     `publish_down` DATETIME NULL DEFAULT NULL,
     `quantity_start` FLOAT NULL DEFAULT NULL,
@@ -108,10 +106,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_prices` (
     `discount_id` INT(11) NULL DEFAULT 0,
     `state` TINYINT(1) NULL DEFAULT 1,
     `ordering` INT(11) NULL DEFAULT 0,
-
     `created_by` INT(11) NULL DEFAULT 0,
     `modified_by` INT(11) NULL DEFAULT 0,
-
     PRIMARY KEY (`id`),
     KEY `idx_state` (`state`),
     KEY `idx_created_by` (`created_by`),

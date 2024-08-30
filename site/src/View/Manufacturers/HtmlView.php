@@ -122,7 +122,7 @@ class HtmlView extends BaseHtmlView
 		
             // Add Breadcrumbs
             $pathway = $app->getPathway();
-                        $breadcrumbTitle = Text::_('COM_ALFA_TITLE_MANUFACTURERS');
+            $breadcrumbTitle = Text::_('COM_ALFA_TITLE_MANUFACTURER');
 
                         if(!in_array($breadcrumbTitle, $pathway->getPathwayNames())) {
                             $pathway->addItem($breadcrumbTitle);
