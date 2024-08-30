@@ -1,11 +1,14 @@
-.jcc-color-box {
-    float: left;
-    width: 15px;
-    height: 15px;
-    margin-right: 5px;
-    border: 1px solid rgba(0, 0, 0, .2);
+.product-prices-subform-wrapper .subform-repeatable-group{
+    display: flex;
+    flex-wrap: wrap;
 }
 
-.other-filters{
-    padding: 0 14px;
+.product-prices-subform-wrapper .control-group{
+    display: flex;
+    flex-direction: column;
+}
+
+.product-prices-subform-wrapper .control-label{
+    padding: 0;
+    margin: 0 5px;
 }

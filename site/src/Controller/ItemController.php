@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Site\Controller;
 
 \defined('_JEXEC') or die;
 
+use Exception;
 use \Joomla\CMS\Application\SiteApplication;
 use \Joomla\CMS\Factory;
 use \Joomla\CMS\Language\Multilanguage;
@@ -18,7 +19,13 @@ use \Joomla\CMS\Language\Text;
 use \Joomla\CMS\MVC\Controller\BaseController;
 use \Joomla\CMS\Router\Route;
 use \Joomla\CMS\Uri\Uri;
+use Joomla\CMS\User\UserFactoryInterface;
 use \Joomla\Utilities\ArrayHelper;
+use \Joomla\CMS\Response\JsonResponse;
+use Joomla\CMS\Layout\LayoutHelper;
+
+// use \Alfa\Component\Alfa\Site\Helper\ProductHelper;
+use \Alfa\Component\Alfa\Site\Helper\PriceCalculator;
 
 /**
  * Item class.
@@ -27,194 +34,156 @@ use \Joomla\Utilities\ArrayHelper;
  */
 class ItemController extends BaseController
 {
-	/**
-	 * Method to check out an item for editing and redirect to the edit form.
-	 *
-	 * @return  void
-	 *
-	 * @since   1.0.1
-	 *
-	 * @throws  Exception
-	 */
-	public function edit()
-	{
-		// Get the previous edit id (if any) and the current edit id.
-		$previousId = (int) $this->app->getUserState('com_alfa.edit.item.id');
-		$editId     = $this->input->getInt('id', 0);
 
-		// Set the user id for the user to edit in the session.
-		$this->app->setUserState('com_alfa.edit.item.id', $editId);
+//     $app = Factory::getApplication();
 
-		// Get the model.
-		$model = $this->getModel('Item', 'Site');
 
-		// Check out the item
-		if ($editId)
-		{
-			$model->checkout($editId);
-		}
+//         $limit        = $input->getInt('limit', 6);
+    // $limitstart   = $input->getInt('limitstart', 0);
+    // $keyword = $input->getString('query', '');
+    public function recalculate()
+    {
 
-		// Check in the previous user.
-		if ($previousId && $previousId !== $editId)
-		{
-			$model->checkin($previousId);
-		}
+        $errorOccured = false;
 
-		// Redirect to the edit screen.
-		$this->setRedirect(Route::_('index.php?option=com_alfa&view=itemform&layout=edit', false));
-	}
+        $input = $this->app->input;
 
-	/**
-	 * Method to save data
-	 *
-	 * @return    void
-	 *
-	 * @throws  Exception
-	 * @since   1.0.1
-	 */
-	public function publish()
-	{
-		// Checking if the user can remove object
-		$user = $this->app->getIdentity();
+        $quantity = $input->getInt('quantity', 1);
+        $productId = $input->getInt('product_id', 0);
 
-		if ($user->authorise('core.edit', 'com_alfa') || $user->authorise('core.edit.state', 'com_alfa'))
-		{
-			$model = $this->getModel('Item', 'Site');
+        // $this->app->enqueueMessage('to minima 1');
 
-			// Get the user data.
-			$id    = $this->input->getInt('id');
-			$state = $this->input->getInt('state');
+        // $this->app->enqueueMessage('egine ekeino');
 
-			// Attempt to save the data.
-			$return = $model->publish($id, $state);
+//		$model = $this->getModel('Item');
+//		$item = $model->getItem($id);
 
-			// Check for errors.
-			if ($return === false)
-			{
-				$this->setMessage(Text::sprintf('Save failed: %s', $model->getError()), 'warning');
-			}
+        // $data = ['thesi1'=>'periexomeno 1','asda'=>'awkdawodwa'];
+        // $items = $this->getModel()->getItems();
 
-			// Clear the profile id from the session.
-			$this->app->setUserState('com_alfa.edit.item.id', null);
+        $calculator = new PriceCalculator($productId, $quantity, $userGroupId, $currencyId);
 
-			// Flush the data from the session.
-			$this->app->setUserState('com_alfa.edit.item.data', null);
+        // Calculate price
+        $price = $calculator->calculatePrice();
 
-			// Redirect to the list screen.
-			$this->setMessage(Text::_('COM_ALFA_ITEM_SAVED_SUCCESSFULLY'));
-			$menu = Factory::getApplication()->getMenu();
-			$item = $menu->getActive();
+        $priceLayout = LayoutHelper::render('price', $price);
 
-			if (!$item)
-			{
-				// If there isn't any menu item active, redirect to list view
-				$this->setRedirect(Route::_('index.php?option=com_alfa&view=items', false));
-			}
-			else
-			{
-				$this->setRedirect(Route::_('index.php?Itemid='. $item->id, false));
-			}
-		}
-		else
-		{
-			throw new \Exception(500);
-		}
-	}
+        // $price = ProductHelper::getPrices($productId,$quantity);
 
-	/**
-	 * Check in record
-	 *
-	 * @return  boolean  True on success
-	 *
-	 * @since   1.0.1
-	 */
-	public function checkin()
-	{
-		// Check for request forgeries.
-		$this->checkToken('GET');
+        $response = new JsonResponse($priceLayout, 'Prices return successfully', $errorOccured);
+// echo $productId;
 
-		$id 	= $this->input->getInt('id', 0);
-		$model 	= $this->getModel();
-		$item 	= $model->getItem($id);
+        echo $response;
+        $this->app->close();
+        // echo json_encode('test');
+        // exit;
+    }
 
-		// Checking if the user can remove object
-		$user = $this->app->getIdentity();
+    public function addProductsToDatabase($cartId, $productId, $quantity)
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
 
-		if ($user->authorise('core.manage', 'com_alfa') || $item->checked_out == $user->id) { 
+        $productColumns = array(
+            $db->quoteName('id_cart') . ' = ' . $db->quote($cartId),
+            $db->quoteName('id_product') . ' = ' . $db->quote($productId),
+            $db->quoteName('quantity') . ' = ' . $db->quote($quantity),
+            $db->quoteName('date_add') . ' = ' . $db->quote(Factory::getDate()->toSql()),
+        );
 
-			$return = $model->checkin($id);
+        $query = $db->getQuery(true);
+        $query->insert('#__alfa_cart_product')
+            ->set($productColumns);
+        $db->setQuery($query);
+        $db->execute();
+    }
 
-			if ($return === false)
-			{
-				// Checkin failed.
-				$message = Text::sprintf('JLIB_APPLICATION_ERROR_CHECKIN_FAILED', $model->getError());
-				$this->setRedirect(Route::_('index.php?option=com_alfa&view=item' . '&id=' . $id, false), $message, 'error');
-				return false;
-			}
-			else
-			{
-				// Checkin succeeded.
-				$message = Text::_('COM_ALFA_CHECKEDIN_SUCCESSFULLY');
-				$this->setRedirect(Route::_('index.php?option=com_alfa&view=item' . '&id=' . $id, false), $message);
-				return true;
-			}
-		}
-		else
-		{
-			throw new \Exception(Text::_('JERROR_ALERTNOAUTHOR'), 403);
-		}
-	}
+    public function addToCart()
+    {
+        $errorOccured = false;
 
-	/**
-	 * Remove data
-	 *
-	 * @return void
-	 *
-	 * @throws Exception
-	 */
-	public function remove()
-	{
-		// Checking if the user can remove object
-		$user = $this->app->getIdentity();
+        $input = $this->app->input;
 
-		if ($user->authorise('core.delete', 'com_alfa'))
-		{
-			$model = $this->getModel('Item', 'Site');
+        $quantity = $input->getInt('quantity', 1);
+        $productId = $input->getInt('product_id', 0);
+        $userId = Factory::getApplication()->getIdentity()->id;
+        $data = [];
 
-			// Get the user data.
-			$id = $this->input->getInt('id', 0);
+        $cookieName = 'recognize_key';
+        $cookieValue = rand();
+        $rkCookie = $this->app->input->cookie->get($cookieName, '');
 
-			// Attempt to save the data.
-			$return = $model->delete($id);
+        if ($rkCookie == '') {
+            // Define the cookie parameters
+            $expires = time() + 3600 * 24; // Cookie expires in 1 hour
+            $path = '/'; // Cookie is available across the entire domain
+            $domain = ''; // Leave empty for the current domain
+            $secure = true; // Set to true if using HTTPS
+            $httponly = true; // Cookie is not accessible via JavaScript
+            $samesite = 'Strict'; // Can be 'Strict', 'Lax', or 'None'
+            $this->app->input->cookie->set(
+                $cookieName,
+                $cookieValue,
+                [
+                    'expires' => $expires,
+                    'path' => $path,
+                    'domain' => $domain,
+                    'secure' => $secure,
+                    'httponly' => $httponly,
+                    'samesite' => $samesite
+                ]);
+            $rkCookie = $this->app->input->cookie->get($cookieName, $cookieValue);
+        }
 
-			// Check for errors.
-			if ($return === false)
-			{
-				$this->setMessage(Text::sprintf('Delete failed', $model->getError()), 'warning');
-			}
-			else
-			{
-				// Check in the profile.
-				if ($return)
-				{
-					$model->checkin($return);
-				}
+        $db = Factory::getContainer()->get('DatabaseDriver');
 
-				$this->app->setUserState('com_alfa.edit.item.id', null);
-				$this->app->setUserState('com_alfa.edit.item.data', null);
+        try {
+            $query = $db->getQuery(true);
+            $query->select($db->quoteName('id_cart'))
+                ->from($db->quoteName('#__alfa_cart'));
+            if ($userId > 0) {
+                $query->where($db->quoteName('id_customer') . ' = ' . $db->quote($userId));
+            } else {
+                $query->where($db->quoteName('recognize_key') . ' = ' . $db->quote($rkCookie));
+            }
+            $db->setQuery($query);
+            $cartId = intval($db->loadResult());
 
-				$this->app->enqueueMessage(Text::_('COM_ALFA_ITEM_DELETED_SUCCESSFULLY'), 'success');
-				$this->app->redirect(Route::_('index.php?option=com_alfa&view=items', false));
-			}
+            if (!$cartId) {
 
-			// Redirect to the list screen.
-			$menu = Factory::getApplication()->getMenu();
-			$item = $menu->getActive();
-			$this->setRedirect(Route::_($item->link, false));
-		}
-		else
-		{
-			throw new \Exception(500);
-		}
-	}
+                $cartObject = new \stdClass();
+                $cartObject->id_shop_group = 1;
+                $cartObject->id_carrier = 1;
+                $cartObject->delivery_option = 'walking';
+                $cartObject->id_lang = 1;
+                $cartObject->id_address_delivery = 1;
+                $cartObject->id_address_invoice = 1;
+                $cartObject->id_currency = 1;
+                $cartObject->id_customer = $userId;
+                $cartObject->date_add = Factory::getDate()->toSql();
+                $cartObject->date_upd = Factory::getDate()->toSql();
+                $cartObject->recognize_key = $rkCookie;
+
+                $db->insertObject('#__alfa_cart', $cartObject);
+                $cartId = $db->insertid();
+
+            }
+
+            $this->addProductsToDatabase($cartId, $productId, $quantity);
+            $data['insert_query'] = ['success', $cartId]; //TODO: remove ids from errors
+
+        } catch (Exception $e) {
+            $data['error_message'] = $e->getMessage(); //TODO: remove ids from errors
+            $errorOccured = true;
+        }
+
+        $response = new JsonResponse($data, $errorOccured ? 'Item failed to be added' : 'Item added successfully', $errorOccured);
+        echo $response;
+        $this->app->close();
+        // $response = new JsonResponse($priceLayout,'Prices return successfully',$errorOccured);
+        // echo $productId;
+        // echo json_encode('test');
+        // exit;
+    }
+
+
 }

@@ -20,7 +20,7 @@ use \Joomla\CMS\Layout\FileLayout;
 use \Joomla\Database\ParameterType;
 use \Joomla\Utilities\ArrayHelper;
 use \Alfa\Component\Alfa\Site\Helper\AlfaHelper;
-
+use \Alfa\Component\Alfa\Site\Helper\ProductHelper;
 
 /**
  * Methods supporting a list of Alfa records.
@@ -137,7 +137,8 @@ class ItemsModel extends ListModel
             $this->getState('list.select',
                 'DISTINCT a.*,
 								GROUP_CONCAT(cat.category_id ORDER BY cat.category_id ASC) AS category_ids,
-								GROUP_CONCAT(man.manufacturer_id ORDER BY man.manufacturer_id ASC) AS manufacturer_ids'
+								GROUP_CONCAT(man.manufacturer_id ORDER BY man.manufacturer_id ASC) AS manufacturer_ids,
+                                GROUP_CONCAT(pr.id ORDER BY pr.id ASC) AS price_ids'
             )
         );
 
@@ -147,6 +148,7 @@ class ItemsModel extends ListModel
         // Join the `#__items_categories` table to get category IDs.
         $query->join('LEFT', '#__alfa_items_categories AS cat ON a.id = cat.product_id');
         $query->join('LEFT', '#__alfa_items_manufacturers AS man ON a.id = man.product_id');
+        $query->join('LEFT', '#__alfa_items_prices AS pr ON a.id = pr.product_id');
 
         $query->where('a.state = 1');
 
@@ -191,11 +193,13 @@ class ItemsModel extends ListModel
      *
      * @return  mixed An array of data on success, false on failure.
      */
+
+
    public function getItems(){
 
         $items = parent::getItems();
 
-        $allCategoryIds = $allManufacturerIds = [];
+        $allCategoryIds = $allManufacturerIds = $allPriceIds = [];
 
         foreach ($items as $item) {
             // Extract IDs from a comma-separated string, trimming whitespace and merge into a single array
@@ -207,10 +211,13 @@ class ItemsModel extends ListModel
         $categoriesMapping = $this->getRecordsByIds($allCategoryIds, '#__alfa_categories', ['name']);
         $manufacturersMapping = $this->getRecordsByIds($allManufacturerIds, '#__alfa_manufacturers', ['name']);
 
+        // $pricesMapping = $this->getRecordsByIds($allPriceIds, '#__alfa_items_prices', ['value']);
+
         // Assign mapped names to items
         foreach ($items as $item) {
             $item->categories = $this->mapIdsToNames($item->category_ids, $categoriesMapping);
             $item->manufacturers = $this->mapIdsToNames($item->manufacturer_ids, $manufacturersMapping);
+            
         }
 
         return $items;
