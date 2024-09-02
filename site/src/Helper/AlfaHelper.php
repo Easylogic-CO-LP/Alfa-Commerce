@@ -34,20 +34,20 @@ class AlfaHelper
 	 *
 	 * @return  array  The files
 	 */
-	public static function getFiles($pk, $table, $field)
-	{
-		$db = Factory::getContainer()->get('DatabaseDriver');
-		$query = $db->getQuery(true);
+	// public static function getFiles($pk, $table, $field)
+	// {
+	// 	$db = Factory::getContainer()->get('DatabaseDriver');
+	// 	$query = $db->getQuery(true);
 
-		$query
-			->select($field)
-			->from($table)
-			->where('id = ' . (int) $pk);
+	// 	$query
+	// 		->select($field)
+	// 		->from($table)
+	// 		->where('id = ' . (int) $pk);
 
-		$db->setQuery($query);
+	// 	$db->setQuery($query);
 
-		return explode(',', $db->loadResult());
-	}
+	// 	return explode(',', $db->loadResult());
+	// }
 
 	/**
 	 * Gets the edit permission for an user
@@ -56,16 +56,16 @@ class AlfaHelper
 	 *
 	 * @return  bool
 	 */
-	public static function canUserEdit($item)
-	{
-		$permission = false;
-		$user       = Factory::getApplication()->getIdentity();
+	// public static function canUserEdit($item)
+	// {
+	// 	$permission = false;
+	// 	$user       = Factory::getApplication()->getIdentity();
 
-		if ($user->authorise('core.edit', 'com_alfa') || (isset($item->created_by) && $user->authorise('core.edit.own', 'com_alfa') && $item->created_by == $user->id) || $user->authorise('core.create', 'com_alfa'))
-		{
-			$permission = true;
-		}
+	// 	if ($user->authorise('core.edit', 'com_alfa') || (isset($item->created_by) && $user->authorise('core.edit.own', 'com_alfa') && $item->created_by == $user->id) || $user->authorise('core.create', 'com_alfa'))
+	// 	{
+	// 		$permission = true;
+	// 	}
 
-		return $permission;
-	}
+	// 	return $permission;
+	// }
 }

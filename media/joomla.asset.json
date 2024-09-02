@@ -51,6 +51,22 @@
       }
     },
     {
+      "name": "com_alfa.product.addtocart",
+      "type": "script",
+      "uri": "com_alfa/addtocart.js",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_alfa.product.recalculate",
+      "type": "script",
+      "uri": "com_alfa/recalculate.js",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
       "name": "com_alfa.glightbox",
       "type": "script",
       "uri": "com_alfa/glightbox.min.js",

@@ -66,6 +66,9 @@ $wa->useStyle('com_alfa.list');
                         <a href="<?php echo Route::_('index.php?option=com_alfa&view=item&id=' . (int)$item->id); ?>">
                             <?php echo $this->escape($item->name); ?></a>
                     </div>
+                    <div class="product-price">
+                            <?php echo '<pre>';print_r($item->price_ids); echo '</pre>'; ?>
+                    </div>
                 </article>
             <?php endforeach; ?>
         </div>
