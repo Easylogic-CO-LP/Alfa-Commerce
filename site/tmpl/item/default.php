@@ -25,6 +25,7 @@ $wa->useStyle('com_alfa.product');
 $wa->useScript('com_alfa.product')
     ->useScript('com_alfa.product.recalculate')
     ->useScript('com_alfa.product.addtocart');
+
 ?>
 
 <section>
@@ -76,7 +77,6 @@ $wa->useScript('com_alfa.product')
                     </div>
                 </div>
 
-                <h3><?php echo Text::_('COM_ALFA_ITEM_PRICE'); ?></h3>
                 <div class="product-price" >
                      <?php echo LayoutHelper::render('price',$this->item->price); //passed data as $displayData in layout ?>
                 </div>
@@ -88,10 +88,4 @@ $wa->useScript('com_alfa.product')
     </div>
 </section>
 
-
 <input type="hidden" name="product_id" value="<?php echo $this->item->id;?>">
-<?php
-//echo '<pre>';
-//print_r($this->item);
-//echo '</pre>';
-?>
