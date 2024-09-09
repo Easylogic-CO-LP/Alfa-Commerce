@@ -102,8 +102,9 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_prices` (
 
     `publish_up` DATETIME NULL DEFAULT NULL,
     `publish_down` DATETIME NULL DEFAULT NULL,
-    `quantity_start` FLOAT NULL DEFAULT 0,
-    `quantity_end` FLOAT NULL DEFAULT 0,
+    `quantity_start` FLOAT NULL DEFAULT NULL,
+    `quantity_end` FLOAT NULL DEFAULT NULL,
+
     `tax_id` INT(11) NULL DEFAULT 0,
     `discount_id` INT(11) NULL DEFAULT 0,
     `state` TINYINT(1) NULL DEFAULT 1,
@@ -150,7 +151,6 @@ CREATE TABLE IF NOT EXISTS `#__alfa_tax_rules` (
   KEY `idx_place_id` (`place_id`),
   KEY `idx_category_id` (`category_id`)
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
-
 
 CREATE TABLE IF NOT EXISTS `#__alfa_items_manufacturers` (
 `product_id` INT(11)  NULL  DEFAULT 0,
