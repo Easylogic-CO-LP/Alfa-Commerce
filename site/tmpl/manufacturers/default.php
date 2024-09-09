@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -37,16 +38,16 @@ $wa = $this->document->getWebAssetManager();
 $wa->useStyle('com_alfa.list');
 ?>
 
-
 <form action="<?php echo htmlspecialchars(Uri::getInstance()->toString()); ?>" method="post"
-	  name="adminForm" id="adminForm">
-	<?php if(!empty($this->filterForm)) { echo LayoutHelper::render('joomla.searchtools.default', array('view' => $this)); } ?>
+	name="adminForm" id="adminForm">
+	<?php if (!empty($this->filterForm)) {
+		echo LayoutHelper::render('joomla.searchtools.default', array('view' => $this));
+	} ?>
 
-
-	<input type="hidden" name="task" value=""/>
-	<input type="hidden" name="boxchecked" value="0"/>
-	<input type="hidden" name="filter_order" value=""/>
-	<input type="hidden" name="filter_order_Dir" value=""/>
+	<input type="hidden" name="task" value="" />
+	<input type="hidden" name="boxchecked" value="0" />
+	<input type="hidden" name="filter_order" value="" />
+	<input type="hidden" name="filter_order_Dir" value="" />
 	<?php echo HTMLHelper::_('form.token'); ?>
 </form>
 
