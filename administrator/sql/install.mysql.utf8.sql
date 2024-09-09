@@ -123,6 +123,34 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_prices` (
     KEY `idx_country_id` (`country_id`)
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `#__alfa_taxes` (
+    `id` int(11) UNSIGNED NOT NULL,
+    `name` varchar(400) NOT NULL,
+    `desc` text DEFAULT NULL,
+    `value` int(11) NOT NULL,
+    `state` tinyint(1) DEFAULT 1,
+    `checked_out` int(11) UNSIGNED DEFAULT NULL,
+    `checked_out_time` datetime DEFAULT NULL,
+    `created_by` int(11) DEFAULT 0,
+    `modified` datetime NOT NULL,
+    `modified_by` int(11) DEFAULT 0,
+    `ordering` int(11) DEFAULT 0,
+    KEY `idx_state` (`state`),
+    KEY `idx_checked_out` (`checked_out`),
+    KEY `idx_created_by` (`created_by`),
+    KEY `idx_modified_by` (`modified_by`)
+) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `#__alfa_tax_rules` (
+  `id` int(11) UNSIGNED NOT NULL,
+  `tax_id` int(11) NOT NULL,
+  `place_id` int(11) UNSIGNED NOT NULL,
+  `category_id` int(11) UNSIGNED NOT NULL,
+  KEY `idx_tax_id` (`tax_id`),
+  KEY `idx_place_id` (`place_id`),
+  KEY `idx_category_id` (`category_id`)
+) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
+
 
 CREATE TABLE IF NOT EXISTS `#__alfa_items_manufacturers` (
 `product_id` INT(11)  NULL  DEFAULT 0,
