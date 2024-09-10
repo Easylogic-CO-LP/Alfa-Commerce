@@ -68,13 +68,14 @@ $wa->useStyle('com_alfa.list');
                 <div class="manufacturer-description">
                     <?php echo($item->desc); ?>
                 </div>
-        
                 <div class="manufacturer-products">
-                    <a href="<?php echo Route::_('index.php?option=com_alfa&view=items');?>">Προβολή όλων των προϊόντων</a>
+                    <a href="<?php echo Route::_('index.php?option=com_alfa&view=items');?>">
+                    <?php echo Text::_('COM_ALFA_MANUFACTURER_SHOW_ALL_PRODUCTS'); ?> </a>
                 </div>
               
                 <div class="manufacturer-url">
-                    <a href="<?php echo Route::_('index.php?option=com_alfa&view=manufacturer&id=' . (int) $item->id); ?>">Λεπτομέρειες κατασκευαστή</a>
+                    <a href="<?php echo Route::_('index.php?option=com_alfa&view=manufacturer&id=' . (int) $item->id); ?>">
+                        <?php echo Text::_('COM_ALFA_MANUFACTURER_DETAILS'); ?> </a>
                 </div>
                 </article>
             <?php endforeach; ?>
