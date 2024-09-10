@@ -72,7 +72,9 @@
 
             <menu link="option=com_alfa&amp;view=payments" view="payments" alt="Alfa/Payments">COM_ALFA_TITLE_PAYMENTS</menu>
 
-            <menu link="option=com_alfa&amp;view=places" view="places" alt="Alfa/Places">COM_ALFA_TITLE_PLACES</menu>
+		<menu link="option=com_alfa&amp;view=taxes" view="taxes" alt="Alfa/Taxes">COM_ALFA_TITLE_TAXES</menu>
+         
+		<menu link="option=com_alfa&amp;view=places" view="places" alt="Alfa/Places">COM_ALFA_TITLE_PLACES</menu>
 
 			<menu link="option=com_alfa&amp;view=currencies" view="currencies" alt="Alfa/Currencies">COM_ALFA_TITLE_CURRENCIES</menu>
 
