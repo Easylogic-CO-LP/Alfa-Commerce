@@ -43,7 +43,8 @@ $wa->useStyle('com_alfa.manufacturer');
                     </div>
 
                     <div class="manufacturer-products">
-                        <a href="<?php echo Route::_('index.php?option=com_alfa&view=items');?>">Προβολή όλων των προϊόντων</a>
+                        <a href="<?php echo Route::_('index.php?option=com_alfa&view=items') ;?>">
+                       <?php echo Text::_('COM_ALFA_MANUFACTURER_SHOW_ALL_PRODUCTS'); ?> </a>
                     </div>
 
                 </article>
