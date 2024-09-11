@@ -381,6 +381,40 @@ PRIMARY KEY (`id`)
 ,KEY `idx_modified_by` (`modified_by`)
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `#__alfa_cart` (
+    `id_cart` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+    `id_shop_group` INT(11) UNSIGNED NOT NULL DEFAULT '1',
+    `id_carrier` INT(10) UNSIGNED NOT NULL,
+    `delivery_option` MEDIUMTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+    `id_lang` INT(10) UNSIGNED NOT NULL,
+    `id_address_delivery` INT(10) UNSIGNED NOT NULL,
+    `id_address_invoice` INT(10) UNSIGNED NOT NULL,
+    `id_currency` INT(10) UNSIGNED NOT NULL,
+    `id_customer` INT(10) UNSIGNED NOT NULL,
+    `date_add` DATETIME NOT NULL,
+    `date_upd` DATETIME NOT NULL,
+    `recognize_key` MEDIUMTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+    PRIMARY KEY (`id_cart`),
+    KEY `idx_shop_group` (`id_shop_group`),
+    KEY `idx_carrier` (`id_carrier`),
+    KEY `idx_lang` (`id_lang`),
+    KEY `idx_address_delivery` (`id_address_delivery`),
+    KEY `idx_address_invoice` (`id_address_invoice`),
+    KEY `idx_currency` (`id_currency`),
+    KEY `idx_customer` (`id_customer`),
+    KEY `idx_date_add` (`date_add`),
+    KEY `idx_date_upd` (`date_upd`)
+) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `#__alfa_cart_product` (
+    `id_cart` INT(10) UNSIGNED NOT NULL,
+    `id_product` INT(10) UNSIGNED NOT NULL,
+    `quantity` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+    `date_add` DATETIME NOT NULL,
+    PRIMARY KEY (`id_cart`, `id_product`),
+    KEY `idx_date_add` (`date_add`)
+) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
+
 
 INSERT INTO `#__content_types` (`type_title`, `type_alias`, `table`, `rules`, `field_mappings`, `content_history_options`)
 SELECT * FROM ( SELECT 'Manufacturer','com_alfa.manufacturer','{"special":{"dbtable":"#__alfa_manufacturers","key":"id","type":"ManufacturerTable","prefix":"Joomla\\\\Component\\\\Alfa\\\\Administrator\\\\Table\\\\"}}', CASE 
