@@ -90,7 +90,9 @@ class PriceCalculator
         // $priceWithTax = $price + $tax;
 
         // apply the tax
-        $priceWithTax = $this->applyTax($price, 24);
+        $currentProductTax = $this->findTax();
+
+        $priceWithTax = $this->applyTax($price, $currentProductTax);
 
         // Apply tax to the discounted price
         // $priceWithTax = $price + $tax; //if we want to have function to get only the tax and add it to the price
@@ -192,6 +194,24 @@ class PriceCalculator
         return $price * ($taxRate / 100);
         // return $price + ($price * $taxRate);
     }
+
+
+    
+    // Find tax for the current product
+    protected function findTax()
+    {
+        $productId = $this->productId;
+        // TODO: Briskoume se poies kathgories anhkei to proion apo to product id kai ton pinaka #_alfa_items_categories
+
+
+        // TODO: pernoume th plhroforia apo ton #__tax_rules simfwna me to category pou brisketai to proion
+
+        // TODO: epistrefoume to value apo ton #__taxes opou to id einai to tax_id pou brikame apo ton tax_rules
+        
+        return 24;
+        // return $price + ($price * $taxRate);
+    }
+
 
     // Apply tax to the price
     protected function applyTax($price, $taxRate)

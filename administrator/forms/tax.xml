@@ -107,7 +107,6 @@
               label="COM_ALFA_FORM_FIELDSET_TAX_RULES"
               description="COM_ALFA_FORM_FIELDSET_TAX_DESC"
               multiple="true"
-              min="1"
       >
          <form>
               
