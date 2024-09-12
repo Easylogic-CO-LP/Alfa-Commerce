@@ -125,7 +125,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_prices` (
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `#__alfa_taxes` (
-    `id` int(11) UNSIGNED NOT NULL,
+    `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
     `name` varchar(400) NOT NULL,
     `desc` text DEFAULT NULL,
     `value` int(11) NOT NULL,
@@ -136,6 +136,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_taxes` (
     `modified` datetime NOT NULL,
     `modified_by` int(11) DEFAULT 0,
     `ordering` int(11) DEFAULT 0,
+    PRIMARY KEY (`id`),
     KEY `idx_state` (`state`),
     KEY `idx_checked_out` (`checked_out`),
     KEY `idx_created_by` (`created_by`),
@@ -143,13 +144,14 @@ CREATE TABLE IF NOT EXISTS `#__alfa_taxes` (
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `#__alfa_tax_rules` (
-  `id` int(11) UNSIGNED NOT NULL,
-  `tax_id` int(11) NOT NULL,
-  `place_id` int(11) UNSIGNED NOT NULL,
-  `category_id` int(11) UNSIGNED NOT NULL,
-  KEY `idx_tax_id` (`tax_id`),
-  KEY `idx_place_id` (`place_id`),
-  KEY `idx_category_id` (`category_id`)
+    `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+    `tax_id` int(11) NOT NULL,
+    `place_id` int(11) UNSIGNED NOT NULL,
+    `category_id` int(11) UNSIGNED NOT NULL,
+    PRIMARY KEY (`id`),
+    KEY `idx_tax_id` (`tax_id`),
+    KEY `idx_place_id` (`place_id`),
+    KEY `idx_category_id` (`category_id`)
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `#__alfa_items_manufacturers` (
