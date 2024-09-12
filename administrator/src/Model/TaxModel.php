@@ -241,7 +241,7 @@ class TaxModel extends AdminModel
         //  Delete records that are no longer present in incoming taxes array
         if (!empty($idsToDelete)) {
             $query = $db->getQuery(true);
-            $query->delete('#__alfa_tax_rules')->whereIn('tax_id ', $idsToDelete);
+            $query->delete('#__alfa_tax_rules')->whereIn('id', $idsToDelete);
             $db->setQuery($query);
             $db->execute();
         }
@@ -270,86 +270,7 @@ class TaxModel extends AdminModel
     }
 
 
-
-    /**
-	 * Method to duplicate an Tax
-	 *
-	 * @param   array  &$pks  An array of primary key IDs.
-	 *
-	 * @return  boolean  True if successful.
-	 *
-	 * @throws  Exception
-	 */
-	// public function duplicate(&$pks)
-	// {
-	// 	$app = Factory::getApplication();
-	// 	$user = $app->getIdentity();
-    //     $dispatcher = $this->getDispatcher();
-
-	// 	// Access checks.
-	// 	if (!$user->authorise('core.create', 'com_alfa'))
-	// 	{
-	// 		throw new \Exception(Text::_('JERROR_CORE_CREATE_NOT_PERMITTED'));
-	// 	}
-
-	// 	$context    = $this->option . '.' . $this->name;
-
-	// 	// Include the plugins for the save events.
-	// 	PluginHelper::importPlugin($this->events_map['save']);
-
-	// 	$table = $this->getTable();
-
-	// 	foreach ($pks as $pk)
-	// 	{
-			
-	// 			if ($table->load($pk, true))
-	// 			{
-	// 				// Reset the id to create a new record.
-	// 				$table->id = 0;
-
-	// 				if (!$table->check())
-	// 				{
-	// 					throw new \Exception($table->getError());
-	// 				}
-					
-
-	// 				// Trigger the before save event.
-	// 				$beforeSaveEvent = new Model\BeforeSaveEvent($this->event_before_save, [
-	// 					'context' => $context,
-	// 					'subject' => $table,
-	// 					'isNew'   => true,
-	// 					'data'    => $table,
-	// 				]);
-					
-	// 					// Trigger the before save event.
-	// 					$result = $dispatcher->dispatch($this->event_before_save, $beforeSaveEvent)->getArgument('result', []);
-					
-					
-	// 				if (in_array(false, $result, true) || !$table->store())
-	// 				{
-	// 					throw new \Exception($table->getError());
-	// 				}
-
-	// 				// Trigger the after save event.
-	// 				$dispatcher->dispatch($this->event_after_save, new Model\AfterSaveEvent($this->event_after_save, [
-	// 					'context' => $context,
-	// 					'subject' => $table,
-	// 					'isNew'   => true,
-	// 					'data'    => $table,
-	// 				]));				
-	// 			}
-	// 			else
-	// 			{
-	// 				throw new \Exception($table->getError());
-	// 			}
-			
-	// 	}
-
-	// 	// Clean cache
-	// 	$this->cleanCache();
-
-	// 	return true;
-	// }
+    // TODO: ON DELETE TO DELETE ALSO THE TAX_RULES ASSOCIATED WITH OR DO IT WITH REFERENCE TABLE #__tax id AUTOMATICALLY IN SQL
 
 	/**
 	 * Prepare and sanitise the table prior to saving.
