@@ -383,7 +383,7 @@ PRIMARY KEY (`id`)
 ,KEY `idx_modified_by` (`modified_by`)
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF EXISTS `#__alfa_cart` (
+CREATE TABLE IF NOT EXISTS `#__alfa_cart` (
     `id_cart` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
     `id_shop_group` INT(11) UNSIGNED NOT NULL DEFAULT '1',
     `id_carrier` INT(10) UNSIGNED NOT NULL,
@@ -408,7 +408,7 @@ CREATE TABLE IF EXISTS `#__alfa_cart` (
     KEY `idx_date_upd` (`date_upd`)
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF EXISTS `#__alfa_cart_product` (
+CREATE TABLE IF NOT EXISTS `#__alfa_cart_product` (
     `id_cart` INT(10) UNSIGNED NOT NULL,
     `id_product` INT(10) UNSIGNED NOT NULL,
     `quantity` INT(10) UNSIGNED NOT NULL DEFAULT '0',
