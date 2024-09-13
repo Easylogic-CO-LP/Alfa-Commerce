@@ -399,8 +399,8 @@ class ItemModel extends AdminModel
 	        $priceObject->modify_type = isset($price['modify_type']) ? $price['modify_type'] : NULL;
 	        $priceObject->publish_up  = !empty($price['publish_up']) ? Factory::getDate($price['publish_up'])->toSql() : NULL;
 	        $priceObject->publish_down    = !empty($price['publish_down']) ? Factory::getDate($price['publish_down'])->toSql() : NULL;
-	        $priceObject->quantity_start = isset($price['quantity_start']) ? intval($price['quantity_start']) : NULL;
-	        $priceObject->quantity_end = isset($price['quantity_end']) ? intval($price['quantity_end']) : NULL;
+	        $priceObject->quantity_start = !empty($price['quantity_start']) ? intval($price['quantity_start']) : NULL;
+	        $priceObject->quantity_end = !empty($price['quantity_end']) ? intval($price['quantity_end']) : NULL;
 
 	        $query = $db->getQuery(true);
 
