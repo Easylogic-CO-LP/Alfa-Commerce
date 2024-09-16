@@ -35,6 +35,7 @@ HTMLHelper::_('bootstrap.tooltip');
             <fieldset class="adminform">
                 <?php echo $this->form->renderField('name'); ?>
                 <?php echo $this->form->renderField('value'); ?>
+                <?php echo $this->form->renderField('behavior'); ?>
                 <?php echo $this->form->renderField('desc'); ?>
                 <?php echo $this->form->renderField('checked_out'); ?>
                 <?php echo $this->form->renderField('checked_out_time'); ?>
