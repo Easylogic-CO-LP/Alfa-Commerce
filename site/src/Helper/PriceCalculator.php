@@ -81,7 +81,7 @@ class PriceCalculator
         $priceWithTax = $price;
         
         // Apply discounts
-        $price = $this->applyDiscount($price,10);
+        // $price = $this->applyDiscount($price,99);
 
         // Calculate the total tax applicable
         
@@ -90,7 +90,8 @@ class PriceCalculator
         // $priceWithTax = $price + $tax;
 
         // apply the tax
-        $priceWithTax = $this->applyTax($price, 24);
+        $currentProductTaxes = $this->findTaxes();
+        $priceWithTax = $this->applyTax($price, $currentProductTaxes);
 
         // Apply tax to the discounted price
         // $priceWithTax = $price + $tax; //if we want to have function to get only the tax and add it to the price
@@ -107,7 +108,8 @@ class PriceCalculator
         return [
             'base_price' => $basePrice,
             'discounted_price' => $price,
-            'price_with_tax' => $priceWithTax
+            'price_with_tax' => $priceWithTax,
+            'taxes' => $currentProductTaxes,
         ];
     }
 
@@ -193,11 +195,80 @@ class PriceCalculator
         // return $price + ($price * $taxRate);
     }
 
-    // Apply tax to the price
-    protected function applyTax($price, $taxRate)
+
+    // TODO: Add places check except from categories only when functionallity is added to alfa commerce simfwna me th topothesia tou xrhsth pou exei dhlwsei
+    // Find tax for the current product
+    protected function findTaxes()
     {
-        // TODOL add logic with taxes database connection
-        return $price + ($price * ($taxRate / 100));
+        $db = Factory::getDbo();
+        $productId = $this->productId;
+        //Briskoume se poies kathgories anhkei to proion apo to product id kai ton pinaka #_alfa_items_categories
+
+        $query = $db->getQuery(true);
+        $query
+            ->select('category_id')
+            ->from('#__alfa_items_categories')
+            ->where('product_id = ' . $db->quote($productId));
+        $db->setQuery($query);
+
+        $categoriesArray = $db->loadColumn();
+        $categoriesArray[] = 0; //0 means for All categories so the product cannot exist in this so to get the taxRules for all categories by adding 0
+
+        //pernoume th plhroforia apo ton #__tax_rules simfwna me to category pou brisketai to proion
+        $query = $db->getQuery(true);
+        $query
+            ->select('tax_id')
+            ->from('#__alfa_tax_rules')
+            ->whereIn('category_id', $categoriesArray)
+            ->group('tax_id');
+        $db->setQuery($query);
+
+        $taxesArray = $db->loadColumn();
+       
+
+        //epistrefoume to value apo ton #__taxes opou to id einai to tax_id pou brikame apo ton tax_rules
+        $query = $db->getQuery(true);
+        $query
+            ->select('id,value,behavior')
+            ->from('#__alfa_taxes')
+            ->where('state = 1')
+            ->whereIn('id' , $taxesArray);
+        $db->setQuery($query);
+
+        $taxes = $db->loadObjectList();
+        $tax_value_array = [0];//define the first tax by default to 0 so the for loop work fine if the first rule has behavior one after another
+
+        foreach($taxes as $tax){
+            if(empty($tax->value)){continue;}
+
+            if($tax->behavior=='0'){//only this tax
+                $tax_value_array[0] = $tax->value;
+                break;
+            }else if($tax->behavior=='1'){//combined   10%,2%    $calculated_tax_value = 12%
+                $tax_value_array[0] += $tax->value;
+            }else if($tax->behavior=='2'){//one after another 10%,2%    $calculated_tax_value = price*10% + price*2%
+                $tax_value_array[] = $tax->value;
+            }
+        }
+
+        // tax_value_array have on first position all combined or only this tax value and on next places the one after another values
+        return $tax_value_array;
+    }
+
+
+    // Apply tax to the price
+    protected function applyTax($price, $taxRates)
+    {
+        if(empty($taxRates) || !is_array($taxRates)){ return $price; }
+
+        $price_calculated = $price;
+       
+        // tax_value_array have on first position all combined or only this tax value and on next places the one after another values
+        foreach($taxRates as $taxRate){
+            $price_calculated += $this->getPercentage($price_calculated,$taxRate);    
+        }
+        
+        return $price_calculated;
         // return $price + ($price * $taxRate);
     }
 
@@ -209,17 +280,21 @@ class PriceCalculator
                 if ($priceRule['modify_type'] == 'amount') {
                     return $price + $priceRule['value'];
                 } elseif ($priceRule['modify_type'] == 'percentage') {
-                    return $price + ($price * ($priceRule['value'] / 100));
+                    return $price + $this->getPercentage($price,$priceRule['value']);
                 }
                 break;
             case 'remove':
                 if ($priceRule['modify_type'] == 'amount') {
                     return $price - $priceRule['value'];
                 } elseif ($priceRule['modify_type'] == 'percentage') {
-                    return $price - ($price * ($priceRule['value'] / 100));
+                    return $price - $this->getPercentage($price,$priceRule['value']);
                 }
                 break;
         }
         return $price;
+    }
+
+    protected function getPercentage($value,$percent){
+        return ($value * ($percent / 100));
     }
 }

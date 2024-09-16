@@ -38,6 +38,7 @@
     <files folder="site">
         <folder>src</folder>
         <folder>forms</folder>
+	<folder>layouts</folder>
         <folder>tmpl</folder>
     </files>
     <media destination="com_alfa" folder="media">

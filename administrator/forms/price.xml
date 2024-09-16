@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <form>
-
     <field 
       hiddenLabel="true"
       parentclass="price-field col-12 mb-0"
       name="value" 
       type="number"
-      required="true"
+      required="false"
       label="COM_ALFA_FORM_PRICE"
       description="COM_ALFA_FORM_FIELDSET_PRICE_DESC"
     />
@@ -108,11 +107,12 @@
     
     <field 
         parentclass="price-modify-field col-lg-4 pe-3 mb-0"
+        class="btn-group"
         name="modify"
-        type="radio" 
+        type="radio"
         label="COM_ALFA_FORM_LBL_MODIFY"
         default="1"
-        layout="joomla.form.field.radio.switcher" >
+        >
         <option value="0">JNO</option>
         <option value="1">JYES</option>
     </field>
@@ -122,8 +122,7 @@
         class="btn-group"
         name="modify_function" 
         type="radio"
-        label="COM_ALFA_FORM_LBL_MODIFY_FUNCTION"
-        showon="modify:1">
+        label="COM_ALFA_FORM_LBL_MODIFY_FUNCTION">
         <option value="add">Add</option>
         <option value="remove">Remove</option>
       </field>
@@ -133,19 +132,19 @@
         class="btn-group"
         name="modify_type" 
         type="radio"
-        label="COM_ALFA_FORM_LBL_MODIFY_TYPE"
-        showon="modify:1">
+        label="COM_ALFA_FORM_LBL_MODIFY_TYPE">
         <option value="amount">Amount</option>
         <option value="percentage">Percentage</option>
       </field>
 
     <field 
         parentclass="price-status-field col-12 mb-0"
-        name="status"
-        type="radio" 
+        class="btn-group"
+        name="price_status"
+        type="radio"
         label="COM_ALFA_FORM_LBL_STATUS"
         default="1"
-        layout="joomla.form.field.radio.switcher" >
+         >
         <option value="0">JNO</option>
         <option value="1">JYES</option>
     </field>
@@ -160,6 +159,5 @@
       default="0" 
       description="JGLOBAL_FIELD_ID_DESC"
     />
-
 
 </form>

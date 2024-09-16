@@ -43,6 +43,19 @@
       />
 
       <field
+              name="behavior"
+              type="radio"
+              label="Behavior"
+              class="btn-group"
+              default="0"
+              validate="options"
+      >
+          <option value="0">Only this tax</option>
+          <option value="1">Combined</option>
+          <option value="2">One after another</option>
+      </field>
+
+      <field
               name="state"
               type="list"
               label="JSTATUS"
@@ -107,7 +120,7 @@
               label="COM_ALFA_FORM_FIELDSET_TAX_RULES"
               description="COM_ALFA_FORM_FIELDSET_TAX_DESC"
               multiple="true"
-              min="1"
+              min='1'
       >
          <form>
               
@@ -120,7 +133,7 @@
                      label="COM_ALFA_FORM_TAXRULES_PLACE_LBL"
                      layout="joomla.form.field.list-fancy-select"
                      query="SELECT `id`, `name` AS val FROM `#__alfa_places`" key_field="id" value_field="val"
-                     header="COM_ALFA_FORM_PLACE_NO_OPTION"
+                     header="COM_ALFA_FORM_PLACE_ALL"
              />
 
              <field
@@ -131,7 +144,7 @@
                      layout="joomla.form.field.list-fancy-select"
                      label="COM_ALFA_FORM_TAXRULES_CATEGORY_LBL"
                      description="description"
-                     header="COM_ALFA_FORM_CATEGORY_NO_OPTION"/>
+                     header="COM_ALFA_FORM_CATEGORY_ALL"/>
 
              <field
                      name="id"

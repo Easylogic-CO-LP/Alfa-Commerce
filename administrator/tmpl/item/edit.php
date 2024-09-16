@@ -17,7 +17,8 @@ use \Joomla\CMS\Router\Route;
 use \Joomla\CMS\Language\Text;
 
 $wa = $this->document->getWebAssetManager();
-$wa->useScript('keepalive')
+$wa->useStyle('com_alfa.admin')
+	->useScript('keepalive')
 	->useScript('form.validate');
 
 

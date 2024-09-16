@@ -75,7 +75,7 @@ $wa->useStyle('com_alfa.list');
               
                 <div class="manufacturer-url">
                     <a href="<?php echo Route::_('index.php?option=com_alfa&view=manufacturer&id=' . (int) $item->id); ?>">
-                        <?php echo Text::_('COM_ALFA_MANUFACTURER_DETAILS_OF_PRODUCTS'); ?> </a>
+                        <?php echo Text::_('COM_ALFA_MANUFACTURER_DETAILS'); ?> </a>
                 </div>
                 </article>
             <?php endforeach; ?>
