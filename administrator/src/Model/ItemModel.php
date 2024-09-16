@@ -379,7 +379,7 @@ class ItemModel extends AdminModel
 	    //  Delete records that are no longer present in incoming prices array
 	    if (!empty($idsToDelete)) {
 	        $query = $db->getQuery(true);
-	        $query->delete('#__alfa_items_prices')->whereIn('id ', $idsToDelete);
+	        $query->delete('#__alfa_items_prices')->whereIn('id', $idsToDelete);
 	        $db->setQuery($query);
 	        $db->execute();
 	    }

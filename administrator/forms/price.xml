@@ -107,8 +107,9 @@
     
     <field 
         parentclass="price-modify-field col-lg-4 pe-3 mb-0"
+        class="btn-group"
         name="modify"
-        type="radio" 
+        type="radio"
         label="COM_ALFA_FORM_LBL_MODIFY"
         default="1"
         >
@@ -138,8 +139,9 @@
 
     <field 
         parentclass="price-status-field col-12 mb-0"
+        class="btn-group"
         name="price_status"
-        type="radio" 
+        type="radio"
         label="COM_ALFA_FORM_LBL_STATUS"
         default="1"
          >
