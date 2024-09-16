@@ -76,10 +76,6 @@ $wa->useScript('com_alfa.product')
                         <?php endforeach; ?>
                     </div>
                 </div>
-                PRICE DATA
-
-                <?php echo'<pre>';print_r($this->item->price);echo'</pre>'; ?>
-                
 
                 <div class="product-price" >
                      <?php echo LayoutHelper::render('price',$this->item->price); //passed data as $displayData in layout ?>
