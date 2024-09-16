@@ -129,6 +129,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_taxes` (
     `name` varchar(400) NOT NULL,
     `desc` text DEFAULT NULL,
     `value` int(11) NOT NULL,
+    `behavior` TINYINT(1) NOT NULL COMMENT '0 only this tax, 1 combine , 2 one after another',
     `state` tinyint(1) DEFAULT 1,
     `checked_out` int(11) UNSIGNED DEFAULT NULL,
     `checked_out_time` datetime DEFAULT NULL,
