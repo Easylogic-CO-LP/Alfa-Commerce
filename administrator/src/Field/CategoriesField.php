@@ -66,6 +66,10 @@ class CategoriesField extends ListField
         // Track if we are in descendant disabling mode
         $disableMode = false;
         $disableParentCategoryLevel = null;
+        // echo '<pre>';
+        // print_r($categories);
+        // echo '</pre>';
+        // TODO: FIX can select on the same level sometimes
 
         foreach ($categories as $category) {
             $disableCurrent = false;//by default disable the current category will be false
@@ -79,7 +83,7 @@ class CategoriesField extends ListField
 
             // If we're in disable mode, disable until we reach a category with a depth greater than current
             if ($disableMode) {
-                if ($category->depth >= $disableParentCategoryLevel) {
+                if ($category->depth > $disableParentCategoryLevel) {
                     $disableCurrent = true;
                 } else {
                     $disableMode = false;

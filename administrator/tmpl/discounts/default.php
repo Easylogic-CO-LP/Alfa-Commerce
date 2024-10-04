@@ -37,13 +37,13 @@ $saveOrder = $listOrder == 'a.ordering';
 
 if (!empty($saveOrder))
 {
-	$saveOrderingUrl = 'index.php?option=com_alfa&task=items.saveOrderAjax&tmpl=component&' . Session::getFormToken() . '=1';
+	$saveOrderingUrl = 'index.php?option=com_alfa&task=discounts.saveOrderAjax&tmpl=component&' . Session::getFormToken() . '=1';
 	HTMLHelper::_('draggablelist.draggable');
 }
 
 ?>
 
-<form action="<?php echo Route::_('index.php?option=com_alfa&view=items'); ?>" method="post"
+<form action="<?php echo Route::_('index.php?option=com_alfa&view=discounts'); ?>" method="post"
 	  name="adminForm" id="adminForm">
 	<div class="row">
 		<div class="col-md-12">
@@ -51,7 +51,7 @@ if (!empty($saveOrder))
 			<?php echo LayoutHelper::render('joomla.searchtools.default', array('view' => $this)); ?>
 
 				<div class="clearfix"></div>
-				<table class="table table-striped" id="itemList">
+				<table class="table table-striped" id="discountList">
 					<thead>
 					<tr>
 						<th class="w-1 text-center">
@@ -72,15 +72,9 @@ if (!empty($saveOrder))
 						<?php echo HTMLHelper::_('searchtools.sort', 'JSTATUS', 'a.state', $listDirn, $listOrder); ?>
 					</th>
 						
-					<th class='left'>
-						<?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_ITEMS_NAME', 'a.name', $listDirn, $listOrder); ?>
-					</th>
-					<th class='left'>
-						<?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_ITEMS_SKU', 'a.sku', $listDirn, $listOrder); ?>
-					</th>
-					<th class='left'>
-						<?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_ITEMS_STOCK', 'a.stock', $listDirn, $listOrder); ?>
-					</th>
+						<th class='left'>
+							<?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_DISCOUNTS_NAME', 'a.name', $listDirn, $listOrder); ?>
+						</th>
 						
 					<th scope="col" class="w-3 d-none d-lg-table-cell" >
 
@@ -137,26 +131,20 @@ if (!empty($saveOrder))
 
 							
 							<td class="text-center">
-								<?php echo HTMLHelper::_('jgrid.published', $item->state, $i, 'items.', $canChange, 'cb'); ?>
+								<?php echo HTMLHelper::_('jgrid.published', $item->state, $i, 'discounts.', $canChange, 'cb'); ?>
 							</td>
 							
 							<td>
 								<?php if (isset($item->checked_out) && $item->checked_out && ($canEdit || $canChange)) : ?>
-									<?php echo HTMLHelper::_('jgrid.checkedout', $i, $item->uEditor, $item->checked_out_time, 'items.', $canCheckin); ?>
+									<?php echo HTMLHelper::_('jgrid.checkedout', $i, $item->uEditor, $item->checked_out_time, 'discounts.', $canCheckin); ?>
 								<?php endif; ?>
 								<?php if ($canEdit) : ?>
-									<a href="<?php echo Route::_('index.php?option=com_alfa&task=item.edit&id='.(int) $item->id); ?>">
+									<a href="<?php echo Route::_('index.php?option=com_alfa&task=discount.edit&id='.(int) $item->id); ?>">
 									<?php echo $this->escape($item->name); ?>
 									</a>
 								<?php else : ?>
 												<?php echo $this->escape($item->name); ?>
 								<?php endif; ?>
-							</td>
-							<td>
-								<?php echo $item->sku; ?>
-							</td>
-							<td>
-								<?php echo $item->stock; ?>
 							</td>
 							
 							<td class="d-none d-lg-table-cell">
@@ -169,19 +157,6 @@ if (!empty($saveOrder))
 					<?php endforeach; ?>
 					</tbody>
 				</table>
-
-
-				<?php // Load the batch processing form. ?>
-                <?php
-                // if (
-                //     $user->authorise('core.create', 'com_content')
-                //     && $user->authorise('core.edit', 'com_content')
-                //     && $user->authorise('core.edit.state', 'com_content')
-                // ) : 
-                ?>
-                    <template id="joomla-dialog-batch"><?php echo $this->loadTemplate('batch_body'); ?></template>
-                <?php // endif; ?>
-
 
 				<input type="hidden" name="task" value=""/>
 				<input type="hidden" name="boxchecked" value="0"/>
