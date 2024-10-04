@@ -192,7 +192,7 @@ class ItemModel extends BaseItemModel
                 $db->quoteName('#__alfa_items_categories', 'ic'),
                 $db->quoteName('c.id') . ' = ' . $db->quoteName('ic.category_id'),
             )
-            ->where($db->quoteName('ic.product_id') . ' = ' . $db->quote($pk));
+            ->where($db->quoteName('ic.item_id') . ' = ' . $db->quote($pk));
 
         $db->setQuery($query);
 
@@ -216,7 +216,7 @@ class ItemModel extends BaseItemModel
                 $db->quoteName('#__alfa_items_manufacturers', 'im'),
                 $db->quoteName('m.id') . ' = ' . $db->quoteName('im.manufacturer_id'),
             )
-            ->where($db->quoteName('im.product_id') . ' = ' . $db->quote($pk));
+            ->where($db->quoteName('im.item_id') . ' = ' . $db->quote($pk));
 
         $db->setQuery($query);
 

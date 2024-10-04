@@ -60,7 +60,7 @@ class PriceCalculator
         $query = $this->db->getQuery(true)
             ->select('*')
             ->from($this->db->quoteName('#__alfa_items_prices'))
-            ->where('product_id = ' . $this->db->quote($this->productId))
+            ->where('item_id = ' . $this->db->quote($this->productId))
             ->where('state = 1');  // Only active prices
 
         $this->db->setQuery($query);
@@ -81,35 +81,18 @@ class PriceCalculator
         $priceWithTax = $price;
         
         // Apply discounts
-        // $price = $this->applyDiscount($price,99);
 
-        // Calculate the total tax applicable
-        
-        // calculate the tax independt and the add it
-        // $tax = $this->calculateTax($price,24);
-        // $priceWithTax = $price + $tax;
+        $productDiscounts = $this->findDiscounts();
 
         // apply the tax
-        $currentProductTaxes = $this->findTaxes();
-        $priceWithTax = $this->applyTax($price, $currentProductTaxes);
-
-        // Apply tax to the discounted price
-        // $priceWithTax = $price + $tax; //if we want to have function to get only the tax and add it to the price
-
-        // foreach ($this->prices as $priceRule) {
-        // $price = $this->applyModifyFunction($price, $priceRule);
-        // 
-        //     if ($this->matchesRule($priceRule)) {
-        //     }
-        // }
-
-        
+        $productTaxes = $this->findTaxes();
+        $priceWithTax = $this->applyPercentages($price, $productTaxes);
 
         return [
             'base_price' => $basePrice,
-            'discounted_price' => $price,
+            'price' => $price,
             'price_with_tax' => $priceWithTax,
-            'taxes' => $currentProductTaxes,
+            'taxes' => $productTaxes,
         ];
     }
 
@@ -179,20 +162,101 @@ class PriceCalculator
         return true;
     }
 
-    // Apply a discount based on user group
-    protected function applyDiscount($price, $discountRate)
-    {
-        if ($discountRate > 0) {
-            return $price - ($price * ($discountRate / 100));
-        }
-        return $price;
-    }
 
-    // Calculate tax based on the price
-    protected function calculateTax($price, $taxRate)
+    // TODO: Add places check except from categories only when functionallity is added to alfa commerce simfwna me th topothesia tou xrhsth pou exei dhlwsei
+    // Find tax for the current product
+    // TODO: FOR ALL CATEGORIES ALSO IF NOTHING IS SELECTED
+    protected function findDiscounts()
     {
-        return $price * ($taxRate / 100);
-        // return $price + ($price * $taxRate);
+        $db = $this->db;
+        $productId = $this->productId;
+        //Briskoume se poies kathgories anhkei to proion apo to product id kai ton pinaka #_alfa_items_categories
+
+        $query = $db->getQuery(true);
+        $query
+            ->select('dc.discount_id')
+            ->from('#__alfa_discounts_categories AS dc')
+            ->join('LEFT', '#__alfa_items_categories AS ic ON dc.category_id = ic.category_id OR dc.category_id = 0')
+            ->where('ic.item_id = ' . $db->quote($productId));
+        
+        $db->setQuery($query);
+
+        $discountIdsCategories= $db->loadColumn();
+
+
+//        echo 'DISCOUNT IDS FROM CATEGORIES OF PRODUCT<pre>';
+//        print_r($discountIdsCategories);
+//        echo '</pre>';
+
+        //Briskoume se poious kataskeuastes anhkei to proion apo to product id kai ton pinaka #_alfa_items_manufacturers
+
+        $query= $db->getQuery(true);
+        $query
+            ->select('dm.discount_id')
+            ->from('#__alfa_discounts_manufacturers AS dm')
+            ->join('LEFT', '#__alfa_items_manufacturers AS im ON dm.manufacturer_id = im.manufacturer_id OR dm.manufacturer_id = 0')
+            ->where('im.item_id = ' . $db->quote($productId));
+        $db->setQuery($query);
+
+        $discountIdsManufacturers= $db->loadColumn();
+//        echo 'DISCOUNT IDS FROM MANUFACTURERS OF PRODUCT<pre>';
+//        print_r($discountIdsManufacturers);
+//        echo '</pre>';
+
+
+// categoriesIdDiscount 1 ,2 ,3
+// manufacturersIdDiscount 2,3
+// idsToGet = 2,3
+
+        //kratame mono ta koina
+         $idsToGet=array_intersect($discountIdsManufacturers, $discountIdsCategories);
+//        echo'<pre>';
+//        print_r($idsToGet);
+//        echo '</pre>';
+
+
+// erwthma sth vash ta idsToGet na pareis ta values
+        // whereIn
+
+        // try {
+        
+        $query = $db->getQuery(true);
+        $query
+            ->select('value,behavior,is_amount')
+            ->from('#__alfa_discounts')
+            ->whereIn('id', $idsToGet);
+
+        $db->setQuery($query);
+        $discounts = $db->loadObjectList();
+
+        // } catch
+        // (\Exception $e) {
+        //     echo $e->getCode() . ' ' . $e->getMessage();
+        // }
+
+        $discounts_array = [0];//define the first discount by default to 0 so the for loop work fine if the first rule has behavior one after another
+
+        foreach($discounts as $da){
+            if(empty($da->value)){continue;}
+
+            // $discountObject = new \stdClass();
+            // $discountObject->value = 0;
+            // $discountObject->behavior = 0;
+            // $discountObject->is_amount = 0;
+
+            if($da->behavior=='0'){//only this tax
+                $discounts_array[0] = $da->value;
+                break;
+            }else if($da->behavior=='1'){//combined   10%,2%    $calculated_tax_value = 12%
+                $discounts_array[0] += $da->value;
+            }else if($da->behavior=='2'){//one after another 10%,2%    $calculated_tax_value = price*10% + price*2%
+                $discounts_array[] = $da->value;
+            }
+        }
+
+
+        return $discount_array;
+
     }
 
 
@@ -200,15 +264,16 @@ class PriceCalculator
     // Find tax for the current product
     protected function findTaxes()
     {
-        $db = Factory::getDbo();
+        $db = $this->db;
         $productId = $this->productId;
         //Briskoume se poies kathgories anhkei to proion apo to product id kai ton pinaka #_alfa_items_categories
 
+/*
         $query = $db->getQuery(true);
         $query
             ->select('category_id')
             ->from('#__alfa_items_categories')
-            ->where('product_id = ' . $db->quote($productId));
+            ->where('item_id = ' . $db->quote($productId));
         $db->setQuery($query);
 
         $categoriesArray = $db->loadColumn();
@@ -234,6 +299,19 @@ class PriceCalculator
             ->where('state = 1')
             ->whereIn('id' , $taxesArray);
         $db->setQuery($query);
+*/
+
+        $query = $db->getQuery(true);
+        $query
+            ->select('t.id, t.value, t.behavior')
+            ->from('#__alfa_taxes AS t')
+            ->join('INNER', '#__alfa_tax_rules AS tr ON t.id = tr.tax_id')
+            ->join('LEFT', '#__alfa_items_categories AS ic ON tr.category_id = ic.category_id')
+            ->where('ic.item_id = ' . $db->quote($productId) . ' OR tr.category_id = 0')
+            ->where('t.state = 1');
+
+        $db->setQuery($query);
+
 
         $taxes = $db->loadObjectList();
         $tax_value_array = [0];//define the first tax by default to 0 so the for loop work fine if the first rule has behavior one after another
@@ -251,26 +329,17 @@ class PriceCalculator
             }
         }
 
+//        echo'<pre>';
+//        print_r($tax_value_array);
+//        echo '</pre>';
+//        exit;
+
         // tax_value_array have on first position all combined or only this tax value and on next places the one after another values
         return $tax_value_array;
     }
 
 
-    // Apply tax to the price
-    protected function applyTax($price, $taxRates)
-    {
-        if(empty($taxRates) || !is_array($taxRates)){ return $price; }
 
-        $price_calculated = $price;
-       
-        // tax_value_array have on first position all combined or only this tax value and on next places the one after another values
-        foreach($taxRates as $taxRate){
-            $price_calculated += $this->getPercentage($price_calculated,$taxRate);    
-        }
-        
-        return $price_calculated;
-        // return $price + ($price * $taxRate);
-    }
 
     // Apply the modify function (e.g., add or subtract a percentage or amount)
     protected function applyModifyFunction($price, $priceRule)
@@ -292,6 +361,58 @@ class PriceCalculator
                 break;
         }
         return $price;
+    }
+
+    // Apply tax to the price
+    protected function applyPercentages($price, $percentagesData)
+    {
+        if(empty($percentagesData) || !is_array($percentagesData)){ return $price; }
+
+        $price_calculated = $price;
+       
+        // tax_value_array have on first position all combined or only this tax value and on next places the one after another values
+        foreach($percentagesData as $percentage){
+            $price_calculated += $this->getPercentage($price_calculated,$percentage);    
+        }
+        
+        return $price_calculated;
+        // return $price + ($price * $taxRate);
+    }
+
+    protected function applyDiscounts(){
+
+        $db = $this->db;
+        $productId = $this->productId;
+
+
+
+//        $query = $db->getQuery(true);
+//        $query
+//            ->select('value')
+//            ->from('#__alfa_discounts')
+//            ->where('id = ' . $db->quote($id));
+//
+//        $db->setQuery($query);
+//        $val = $db->loadColumn();
+
+        $query = $db->getQuery(true);
+        $query
+            ->select('modify_type')
+            ->from('#__alfa_discounts')
+            ->where('id = ' . $db->quote($productId));
+
+
+
+        $db->setQuery($query);
+        $type = $db->loadColumn();
+
+        echo'<pre>';
+        print_r($productId);
+        echo '</pre>';
+        exit;
+
+
+
     }
 
     protected function getPercentage($value,$percent){

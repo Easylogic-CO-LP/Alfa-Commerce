@@ -183,6 +183,8 @@ class TaxModel extends AdminModel
             $currentId = intval($this->getState($this->getName().'.id'));//get the id from setted joomla state
         }
 
+        print_r($data['tax_rules']);
+        exit;
       	$this->setTaxRules($currentId,$data['tax_rules']);
 
         return true;
@@ -219,7 +221,7 @@ class TaxModel extends AdminModel
 
         $db = $this->getDatabase();
 
-         //Get all existing tax IDs for the product
+        //Get all existing tax IDs for the product
         $query = $db->getQuery(true);
         $query->select('id')
             ->from('#__alfa_tax_rules')
@@ -227,7 +229,7 @@ class TaxModel extends AdminModel
         $db->setQuery($query);
         $existingTaxIds = $db->loadColumn();  // Array of existing tax IDs
 
-        //  //Extract incoming IDs from the $taxes array
+        //Extract incoming IDs from the $taxes array
         $incomingIds = array();
         foreach ($taxes as $tax) {
             if (isset($tax['id']) && intval($tax['id']) > 0) {//not those except new with id 0

@@ -86,17 +86,6 @@
         />
 
 
-     <!-- <field 
-          name="categories" type="sql"
-          input_type="list"
-          required="true"
-          multiple="true"
-          label="Categories"
-          description=""
-          layout="joomla.form.field.list-fancy-select"
-          query="SELECT `id`, `name` AS val FROM `#__alfa_categories`" key_field="id" value_field="val" 
-        /> -->
-
     <field
       name="manufacturers" type="sql"
       input_type="list"
