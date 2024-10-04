@@ -100,50 +100,6 @@ class CategoryModel extends AdminModel
 
 
     /**
-     * Method to save the form data.
-     *
-     * @param array $data The form data.
-     *
-     * @return  boolean  True on success, False on error.
-     *
-     * @since   1.6
-     */
-    public function save($data)
-    {
-        if (parent::save($data)) {
-            $app = Factory::getApplication();
-
-            $currentId = 0;
-            if ($data['id'] > 0) { //not a new
-                $currentId = intval($data['id']);
-            } else { // is new
-                $currentId = intval($this->getState($this->getName() . '.id')); //get the id from setted joomla state
-            }
-
-            $data['alias'] = $data['alias'] ?: $data['name'];
-
-            if ($app->get('unicodeslugs') == 1) {
-                $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
-
-            } else {
-                if ($app->get('unicodeslugs') == 1) {
-                    $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
-                } else {
-                    $data['alias'] = OutputFilter::stringURLSafe($data['alias']);
-                }
-            }
-
-            AlfaHelper::setAllowedUsers($currentId, $data['allowedUsers'], '#__alfa_categories_users', 'category_id');
-            AlfaHelper::setAllowedUserGroups($currentId, $data['allowedUserGroups'], '#__alfa_categories_usergroups', 'category_id');
-
-            return true;
-        }
-        return false;
-    }
-
-
-
-    /**
      * Method to get the data that should be injected in the form.
      *
      * @return  mixed  The data for the form.
@@ -184,10 +140,9 @@ class CategoryModel extends AdminModel
                 $item->params = json_encode($item->params);
             }
 
-            // $item->allowedUsers = [900,899];
             // Do any procesing on fields here if needed
-            $item->allowedUsers = AlfaHelper::getAllowedUsers($item->id, '#__alfa_categories_users', 'category_id');
-            $item->allowedUserGroups = AlfaHelper::getAllowedUserGroups($item->id, '#__alfa_categories_usergroups', 'category_id');
+            $item->allowedUsers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_categories_users', 'category_id','user_id');
+            $item->allowedUserGroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_categories_usergroups', 'category_id','usergroup_id');
         }
 
         return $item;
@@ -195,77 +150,43 @@ class CategoryModel extends AdminModel
     }
 
     /**
-     * Method to duplicate an Category
+     * Method to save the form data.
      *
-     * @param array  &$pks An array of primary key IDs.
+     * @param array $data The form data.
      *
-     * @return  boolean  True if successful.
+     * @return  boolean  True on success, False on error.
      *
-     * @throws  Exception
+     * @since   1.6
      */
-    public function duplicate(&$pks)
+    public function save($data)
     {
+
         $app = Factory::getApplication();
-        $user = $app->getIdentity();
-        $dispatcher = $this->getDispatcher();
+        
+        $data['alias'] = $data['alias'] ?: $data['name'];
 
-        // Access checks.
-        if (!$user->authorise('core.create', 'com_alfa')) {
-            throw new \Exception(Text::_('JERROR_CORE_CREATE_NOT_PERMITTED'));
+        if ($app->get('unicodeslugs') == 1){
+            $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
+        } else {
+            $data['alias'] = OutputFilter::stringURLSafe($data['alias']);
         }
 
-        $context = $this->option . '.' . $this->name;
+        if (!parent::save($data))return false;
 
-        // Include the plugins for the save events.
-        PluginHelper::importPlugin($this->events_map['save']);
-
-        $table = $this->getTable();
-
-        foreach ($pks as $pk) {
-
-            if ($table->load($pk, true)) {
-                // Reset the id to create a new record.
-                $table->id = 0;
-
-                if (!$table->check()) {
-                    throw new \Exception($table->getError());
-                }
-
-
-                // Trigger the before save event.
-                $beforeSaveEvent = new Model\BeforeSaveEvent($this->event_before_save, [
-                    'context' => $context,
-                    'subject' => $table,
-                    'isNew' => true,
-                    'data' => $table,
-                ]);
-
-                // Trigger the before save event.
-                $result = $dispatcher->dispatch($this->event_before_save, $beforeSaveEvent)->getArgument('result', []);
-
-
-                if (in_array(false, $result, true) || !$table->store()) {
-                    throw new \Exception($table->getError());
-                }
-
-                // Trigger the after save event.
-                $dispatcher->dispatch($this->event_after_save, new Model\AfterSaveEvent($this->event_after_save, [
-                    'context' => $context,
-                    'subject' => $table,
-                    'isNew' => true,
-                    'data' => $table,
-                ]));
-            } else {
-                throw new \Exception($table->getError());
-            }
-
+        $currentId = 0;
+        if($data['id']>0){ //not a new
+            $currentId = intval($data['id']);
+        }else{ // is new
+            $currentId = intval($this->getState($this->getName().'.id'));//get the id from setted joomla state
         }
 
-        // Clean cache
-        $this->cleanCache();
+        AlfaHelper::setAssocsToDb($currentId, $data['allowedUsers'], '#__alfa_categories_users', 'category_id','user_id');
+        AlfaHelper::setAssocsToDb($currentId, $data['allowedUserGroups'], '#__alfa_categories_usergroups', 'category_id','usergroup_id');
 
         return true;
+
     }
+
 
     /**
      * Prepare and sanitise the table prior to saving.
@@ -278,17 +199,6 @@ class CategoryModel extends AdminModel
      */
     protected function prepareTable($table)
     {
-//      if (empty($table->id))
-//      {
-//          // Set ordering to the last item if not set
-//          if (@$table->ordering === '')
-//          {
-//              $db = $this->getDbo();
-//              $db->setQuery('SELECT MAX(ordering) FROM #__alfa_categories');
-//              $max             = $db->loadResult();
-//              $table->ordering = $max + 1;
-//          }
-//      }
 
         $table->modified = Factory::getDate()->toSql();
 

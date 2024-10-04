@@ -74,6 +74,8 @@
             <menu link="option=com_alfa&amp;view=payments" view="payments" alt="Alfa/Payments">COM_ALFA_TITLE_PAYMENTS</menu>
 
 		<menu link="option=com_alfa&amp;view=taxes" view="taxes" alt="Alfa/Taxes">COM_ALFA_TITLE_TAXES</menu>
+
+        <menu link="option=com_alfa&amp;view=discounts" view="discounts" alt="Alfa/Discounts">COM_ALFA_TITLE_DISCOUNTS</menu>
          
 		<menu link="option=com_alfa&amp;view=places" view="places" alt="Alfa/Places">COM_ALFA_TITLE_PLACES</menu>
 
@@ -113,7 +115,6 @@
 		<plugin group="webservices" plugin="alfa"/>
     </plugins>
     <modules>
-        <module module="mod_alfa" />
 		<module module="mod_alfa_search" />
 	</modules>
 

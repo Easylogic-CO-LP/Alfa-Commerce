@@ -75,6 +75,20 @@ PRIMARY KEY (`id`)
 ,KEY `idx_modified_by` (`modified_by`)
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `#__alfa_items_manufacturers` (
+`item_id` INT(11) NOT NULL,
+`manufacturer_id` INT(11) NOT NULL,
+KEY `idx_item_id` (`item_id`),
+KEY `idx_manufacturer_id` (`manufacturer_id`)
+) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `#__alfa_items_categories` (
+`item_id` INT(11) NOT NULL,
+`category_id` INT(11) NOT NULL,
+KEY `idx_item_id` (`item_id`),
+KEY `idx_category_id` (`category_id`)
+) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `#__alfa_items_users` (
     `item_id` INT(11) NOT NULL,
     `user_id` INT(11) NOT NULL,
@@ -94,7 +108,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_prices` (
     `modify_function` ENUM('add', 'remove') NULL DEFAULT 'add',  -- Add or remove value
     `modify_type` ENUM('amount', 'percentage') NULL DEFAULT 'amount', -- Type of modification
 
-    `product_id` INT(11) UNSIGNED NOT NULL,
+    `item_id` INT(11) UNSIGNED NOT NULL,
     `currency_id` INT(11) UNSIGNED NULL DEFAULT NULL,
     `usergroup_id` INT(11) UNSIGNED NULL DEFAULT NULL,
     `user_id` INT(11) UNSIGNED NULL DEFAULT NULL,
@@ -155,20 +169,54 @@ CREATE TABLE IF NOT EXISTS `#__alfa_tax_rules` (
     KEY `idx_category_id` (`category_id`)
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `#__alfa_items_manufacturers` (
-`product_id` INT(11)  NULL  DEFAULT 0,
-`manufacturer_id` INT(11)  NULL  DEFAULT 0,
-KEY `idx_product_id` (`product_id`),
-KEY `idx_manufacturer_id` (`manufacturer_id`)
+CREATE TABLE IF NOT EXISTS `#__alfa_discounts` (
+    `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+    `name` varchar(400) NOT NULL,
+    `desc` text DEFAULT NULL,
+    `value` int(11) NOT NULL,
+    `is_amount` tinyint(1) DEFAULT 0 COMMENT '0 is percentage, 1 is amount',
+    `behavior` tinyint(1) NOT NULL COMMENT '0 only this tax, 1 combine , 2 one after another',
+    `state` tinyint(1) DEFAULT 1,
+    `publish_up` datetime DEFAULT NULL,
+    `publish_down` datetime DEFAULT NULL,
+    `checked_out` int(11) UNSIGNED DEFAULT NULL,
+    `checked_out_time` datetime DEFAULT NULL,
+    `created_by` int(11) DEFAULT 0,
+    `modified` datetime NOT NULL,
+    `modified_by` int(11) DEFAULT 0,
+    `ordering` int(11) DEFAULT 0,
+    PRIMARY KEY (`id`),
+    KEY `idx_state` (`state`),
+    KEY `idx_checked_out` (`checked_out`),
+    KEY `idx_created_by` (`created_by`),
+    KEY `idx_modified_by` (`modified_by`)
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `#__alfa_items_categories` (
-`product_id` INT(11)  NULL  DEFAULT 0,
-`category_id` INT(11)  NULL  DEFAULT 0,
-KEY `idx_product_id` (`product_id`),
-KEY `idx_category_id` (`category_id`)
+CREATE TABLE IF NOT EXISTS `#__alfa_discounts_categories` (
+  `discount_id` int(11) NOT NULL,
+  `category_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `#__alfa_discounts_manufacturers` (
+  `discount_id` int(11) NOT NULL,
+  `manufacturer_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
+
+
+CREATE TABLE IF NOT EXISTS `#__alfa_discounts_places` (
+  `discount_id` int(11) NOT NULL,
+  `place_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `#__discounts_usergroups` (
+  `discount_id` int(11) NOT NULL,
+  `usergroup_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `#__discounts_users` (
+  `discount_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `#__alfa_users` (
 `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,

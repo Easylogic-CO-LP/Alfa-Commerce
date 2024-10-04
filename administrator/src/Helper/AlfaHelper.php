@@ -71,29 +71,6 @@ class AlfaHelper
     }
 
 
-//  public static function flatten_nested_items($items,$childrenField = 'children') {
-//      $flatArray = [];
-//
-//      foreach ($items as $item) {
-//          // Clone the item to avoid modifying the original structure
-//          $flattenedItem = clone $item;
-//
-//          // Remove the children property
-//          unset($flattenedItem->{$childrenField});
-//
-//          // Add the item without children to the flat array
-//          $flatArray[] = $flattenedItem;
-//
-//          // If the item has children, recursively flatten them
-//          if (isset($item->{$childrenField}) && is_array($item->{$childrenField})) {
-//              $flatArray = array_merge($flatArray, self::flatten_nested_items($item->{$childrenField}));
-//          }
-//      }
-//
-//      return $flatArray;
-//  }
-
-
     public static function flatten_nested_items($items, $pathField = 'name', $pathSeparator = '/', $childrenField = 'children', $parentPath = '')
     {
         $flatArray = [];
@@ -153,8 +130,9 @@ class AlfaHelper
         return $hierarchyData;
     }
 
+
     /**
-     * Saves the allowed user groups to the database. Reusable for all forms that have allowed user groups as a field.
+     * Saves the assocs data to to the database.
      *
      * @param $fieldId integer id of the field
      * @param $userGroupArray
@@ -162,10 +140,10 @@ class AlfaHelper
      * @param $field
      * @return void
      */
-    public static function setAllowedUserGroups($fieldId, $userGroupArray, $table, $field)
+    public static function setAssocsToDb($mainFieldId, $data, $table, $mainField, $dataField,$assignZeroIdIfDataEmpty = false)
     {
 
-        if (intval($fieldId) <= 0 || empty($table) || empty($field)) {
+        if (intval($mainFieldId) <= 0 || empty($table) || empty($mainFieldId) || empty($dataField)) {
             return false;
         }
         
@@ -173,92 +151,34 @@ class AlfaHelper
         $db = Factory::getContainer()->get('DatabaseDriver');
         // save users per category on categories_users
         $query = $db->getQuery(true);
-        $query->delete($db->quoteName($table))->where($db->quoteName($field) . ' = ' . $fieldId);
+        $query->delete($db->quoteName($table))->where($db->quoteName($mainField) . ' = ' . $mainFieldId);
         $db->setQuery($query);
         $db->execute();
-    
-        foreach ($userGroupArray as $allowedUserGroup) {
+        
+        if(empty($data) && $assignZeroIdIfDataEmpty){$data[0]=0;}
+
+        foreach ($data as $curr) {
             $query = $db->getQuery(true);
             $query->insert($db->quoteName($table))
-                ->set($db->quoteName($field) . ' = ' . $fieldId)
-                ->set('usergroup_id = ' . intval($allowedUserGroup));
+                ->set($db->quoteName($mainField) . ' = ' . $mainFieldId)
+                ->set($db->quoteName($dataField) .' = ' . intval($curr));
             $db->setQuery($query);
             $db->execute();
         }
     }
     
     /**
-     * Retrieves all the allowed user groups from the database. Reusable for all forms that have allowed user groups as a field.
+     * Retrieves all the assocs data from the database. Reusable for all forms that have allowed user groups as a field.
      *
      * @param $fieldId
      * @param $table
      * @param $field
      * @return mixed
      */
-    public static function getAllowedUserGroups($fieldId, $table, $field)
+    public static function getAssocsFromDb($mainFieldId, $table, $mainField,$dataField)
     {
 
-        if (intval($fieldId) <= 0 || empty($table) || empty($field)) {
-            return [];
-        }
-
-
-        // load selected categories for item
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $query = $db->getQuery(true);
-        $query
-            ->select('usergroup_id')
-            ->from($db->quoteName($table))
-            ->where($db->quoteName($field) . ' = ' . intval($fieldId));
-
-        $db->setQuery($query);
-
-        return $db->loadColumn();
-    }
-
-    /**
-     * Saves the allowed users to the database. Reusable for all forms that have allowed users as a field.
-     *
-     * @param $fieldId
-     * @param $usersArray
-     * @param $table
-     * @param $field
-     * @return void
-     */
-    public static function setAllowedUsers($fieldId, $usersArray, $table, $field)
-    {
-        if (intval($fieldId) <= 0 || empty($table) || empty($field)) {
-            return false;
-        }
-
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        // save users per category on categories_users
-        $query = $db->getQuery(true);
-        $query->delete($db->quoteName($table))->where($db->quoteName($field) . ' = ' . $fieldId);
-        $db->setQuery($query);
-        $db->execute();
-
-        foreach ($usersArray as $allowedUser) {
-            $query = $db->getQuery(true);
-            $query->insert($db->quoteName($table))
-                ->set($db->quoteName($field) . ' = ' . $fieldId)
-                ->set('user_id' . ' = ' . intval($allowedUser));
-            $db->setQuery($query);
-            $db->execute();
-        }
-    }
-
-    /**
-     * Retrieves all the allowed users from the database. Reusable for all forms that have allowed users as a field.
-     *
-     * @param $fieldId
-     * @param $table
-     * @param $field
-     * @return mixed
-     */
-    public static function getAllowedUsers($fieldId, $table, $field)
-    {
-        if (intval($fieldId) <= 0 || empty($table) || empty($field)) {
+        if (intval($mainFieldId) <= 0 || empty($table) || empty($mainField) || empty($dataField)) {
             return [];
         }
 
@@ -266,17 +186,14 @@ class AlfaHelper
         $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true);
         $query
-            ->select('user_id')
+            ->select($db->quoteName($dataField))
             ->from($db->quoteName($table))
-            ->where($db->quoteName($field) . ' = ' . intval($fieldId));
+            ->where($db->quoteName($mainField) . ' = ' . intval($mainFieldId));
 
         $db->setQuery($query);
-        $result = $db->loadColumn();
 
         return $db->loadColumn();
     }
-
-
     /* public static function iterateNestedArray($tree, $callback, $fullPath = false, $parentNames = '')
        {
            foreach ($tree as $node) {

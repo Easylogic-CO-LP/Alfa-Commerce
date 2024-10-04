@@ -146,9 +146,9 @@ class ItemsModel extends ListModel
 
 
         // Join the `#__items_categories` table to get category IDs.
-        $query->join('LEFT', '#__alfa_items_categories AS cat ON a.id = cat.product_id');
-        $query->join('LEFT', '#__alfa_items_manufacturers AS man ON a.id = man.product_id');
-        $query->join('LEFT', '#__alfa_items_prices AS pr ON a.id = pr.product_id');
+        $query->join('LEFT', '#__alfa_items_categories AS cat ON a.id = cat.item_id');
+        $query->join('LEFT', '#__alfa_items_manufacturers AS man ON a.id = man.item_id');
+        $query->join('LEFT', '#__alfa_items_prices AS pr ON a.id = pr.item_id');
 
         $query->where('a.state = 1');
 
