@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_prices` (
     KEY `idx_state` (`state`),
     KEY `idx_created_by` (`created_by`),
     KEY `idx_modified_by` (`modified_by`),
-    KEY `idx_product_id` (`product_id`),
+    KEY `idx_item_id` (`item_id`),
     KEY `idx_currency_id` (`currency_id`),
     KEY `idx_usergroup_id` (`usergroup_id`),
     KEY `idx_user_id` (`user_id`),
