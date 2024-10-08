@@ -55,6 +55,9 @@ class AlfaSearchHelper
         $app = Factory::getApplication();
 
         $input = $app->input;
+        $lang  = $app->getLanguage();
+        $lang->load('mod_alfa_search');
+        
 //         $limit        = $input->getInt('limit', 6);
         // $limitstart   = $input->getInt('limitstart', 0);
         $keyword = $input->getString('query', '');
