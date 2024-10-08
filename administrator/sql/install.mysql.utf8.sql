@@ -1,3 +1,26 @@
+CREATE TABLE IF NOT EXISTS `#__alfa_cart` (
+`id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+`id_shop_group` int(11) NOT NULL,
+`id_carrier` int(11) NOT NULL,
+`delivery_option` VARCHAR(255) NOT NULL,
+`id_lang` int(11) NOT NULL,
+`id_address_delivery` int(11) NOT NULL,
+`id_address_invoice` int(11) NOT NULL,
+`id_currency` int(11) NOT NULL,
+`id_customer` int(11) NOT NULL,
+`date_add` datetime NOT NULL,
+`date_upd` datetime NOT NULL,
+`recognize_key` int(11) NOT NULL
+PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `#__alfa_cart_items` (
+  `id_cart` int(11) NOT NULL,
+  `id_item` int(11) NOT NULL,
+  `quantity` int(11) NOT NULL,
+  `date_add` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `#__alfa_manufacturers` (
 `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
 `name` VARCHAR(255)  NOT NULL ,
