@@ -85,13 +85,13 @@ class ItemController extends BaseController
 
         $productColumns = array(
             $db->quoteName('id_cart') . ' = ' . $db->quote($cartId),
-            $db->quoteName('id_product') . ' = ' . $db->quote($productId),
+            $db->quoteName('id_item') . ' = ' . $db->quote($productId),
             $db->quoteName('quantity') . ' = ' . $db->quote($quantity),
             $db->quoteName('date_add') . ' = ' . $db->quote(Factory::getDate()->toSql()),
         );
 
         $query = $db->getQuery(true);
-        $query->insert('#__alfa_cart_product')
+        $query->insert('#__alfa_cart_items')
             ->set($productColumns);
         $db->setQuery($query);
         $db->execute();
@@ -109,7 +109,7 @@ class ItemController extends BaseController
         $data = [];
 
         $cookieName = 'recognize_key';
-        $cookieValue = rand();
+        $cookieValue = rand();//TODO: something more specific to the user computer to be surely unique
         $rkCookie = $this->app->input->cookie->get($cookieName, '');
 
         if ($rkCookie == '') {
