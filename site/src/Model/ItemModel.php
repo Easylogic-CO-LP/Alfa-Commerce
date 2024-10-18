@@ -20,6 +20,7 @@ use \Joomla\CMS\Helper\TagsHelper;
 use \Joomla\CMS\Object\CMSObject;
 use \Joomla\CMS\User\UserFactoryInterface;
 use \Alfa\Component\Alfa\Site\Helper\AlfaHelper;
+use \Alfa\Component\Alfa\Site\Helper\PriceCalculator;
 use \Joomla\Database\ParameterType;
 
 /**
@@ -103,6 +104,7 @@ class ItemModel extends BaseItemModel
                         'item.select',
                         [
                             // from items
+                            $db->quoteName('a.id'),
                             $db->quoteName('a.name'),
                             $db->quoteName('a.short_desc'),
                             $db->quoteName('a.full_desc'),
@@ -142,8 +144,21 @@ class ItemModel extends BaseItemModel
                     $data->manufacturers[$manufacturer['id']] = $manufacturer['name'];
                 }
 
-                // TODO: getItemPrices()
-                // $prices = $this->getItemPrices($pk);
+                
+                // Calculate the dynamic price
+                $quantity = 1; // You can pass a different quantity based on user input
+                $userGroupId=0;
+                $currencyId=0;
+                $priceCalculator = new PriceCalculator($pk, $quantity, $userGroupId, $currencyId);
+                $data->price = $priceCalculator->calculatePrice();
+
+                // $data->prices = $this->getPrices($pk);
+
+                // $data->prices = [];
+                // foreach ($prices as $price) {
+                //     $data->prices[$price['id']] = $price['value'];
+                // }
+
                 $this->_item[$pk] = $data;
 
             } catch (\Exception $e) {
@@ -176,7 +191,7 @@ class ItemModel extends BaseItemModel
                 $db->quoteName('#__alfa_items_categories', 'ic'),
                 $db->quoteName('c.id') . ' = ' . $db->quoteName('ic.category_id'),
             )
-            ->where($db->quoteName('ic.product_id') . ' = ' . $db->quote($pk));
+            ->where($db->quoteName('ic.item_id') . ' = ' . $db->quote($pk));
 
         $db->setQuery($query);
 
@@ -200,17 +215,37 @@ class ItemModel extends BaseItemModel
                 $db->quoteName('#__alfa_items_manufacturers', 'im'),
                 $db->quoteName('m.id') . ' = ' . $db->quoteName('im.manufacturer_id'),
             )
-            ->where($db->quoteName('im.product_id') . ' = ' . $db->quote($pk));
+            ->where($db->quoteName('im.item_id') . ' = ' . $db->quote($pk));
 
         $db->setQuery($query);
 
         return $db->loadAssocList();
     }
 
-    public function getItemPrices($pk)
-    {
+    // id is the product_id
+    // public function getPrices($id){
+    //     $id = intval($id);
+    //     if($id <= 0) {
+    //         return [];
+    //     }
 
-    }
+    //     // Get the database object
+    //     $db = $this->getDatabase();
+
+    //     // Build the query to select all relevant fields
+    //     $query = $db->getQuery(true);
+    //     $query
+    //         ->select('*')
+    //         ->from('#__alfa_items_prices')
+    //         ->where('product_id = ' . $db->quote($id));
+
+    //     // Execute the query
+    //     $db->setQuery($query);
+
+    //     // Return the result as an associative array
+    //     return $db->loadAssocList('id');
+    // }
+
 
     /**
      * Get an instance of Table class

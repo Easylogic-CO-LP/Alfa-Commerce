@@ -34,9 +34,13 @@ $canDelete = $user->authorise('core.delete', 'com_alfa');
 
 // Import CSS
 $wa = $this->document->getWebAssetManager();
-$wa->useStyle('com_alfa.list');
-
+$wa->useStyle('com_alfa.list')
+    ->useStyle('com_alfa.item')
+    ->useScript('com_alfa.item.recalculate')
+    ->useScript('com_alfa.item.addtocart');
 ?>  
+
+    <?php echo $this->loadTemplate('categories'); ?>
 
     <form action="<?php echo htmlspecialchars(Uri::getInstance()->toString()); ?>" method="post" name="adminForm" id="adminForm">
       <?php if (!empty($this->filterForm)) { echo LayoutHelper::render('joomla.searchtools.default', array('view' => $this)); } ?>
@@ -50,22 +54,28 @@ $wa->useStyle('com_alfa.list');
 
 
     <section>
-        <div class="list-container products-list">
+        <div class="list-container items-list">
             <?php foreach ($this->items as $item) : ?>
 
                 <?php //echo '<pre>'; print_r($item); echo '</pre>';?>
 
-                <article class="list-item product-item">
+                <article class="list-item item-item" data-item-id="<?php echo $item->id;?>">
                     <div>
                         <a href="<?php echo Route::_('index.php?option=com_alfa&view=item&id=' . (int)$item->id); ?>">
                             <img src="https://americanathleticshoe.com/cdn/shop/t/23/assets/placeholder_600x.png?v=113555733946226816651665571258">
                         </a>
                         </a>
                     </div>
-                    <div class="product-title">
+                    <div class="item-title">
                         <a href="<?php echo Route::_('index.php?option=com_alfa&view=item&id=' . (int)$item->id); ?>">
                             <?php echo $this->escape($item->name); ?></a>
                     </div>
+                    <div class="item-price" >
+                        <?php echo LayoutHelper::render('price',$item->price); //passed data as $displayData in layout ?>
+                    </div>
+                    
+                    <?php echo LayoutHelper::render('addtocart'); ?>
+
                 </article>
             <?php endforeach; ?>
         </div>

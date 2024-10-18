@@ -57,8 +57,9 @@ if (!empty($saveOrder))
 						<th class="w-1 text-center">
 							<input type="checkbox" autocomplete="off" class="form-check-input" name="checkall-toggle" value=""
 								   title="<?php echo Text::_('JGLOBAL_CHECK_ALL'); ?>" onclick="Joomla.checkAll(this)"/>
+
 						</th>
-						
+
 					<?php if (isset($this->items[0]->ordering)): ?>
 					<th scope="col" class="w-1 text-center d-none d-md-table-cell">
 
@@ -67,16 +68,29 @@ if (!empty($saveOrder))
 					</th>
 					<?php endif; ?>
 
-						
-					<th  scope="col" class="w-1 text-center">
-						<?php echo HTMLHelper::_('searchtools.sort', 'JSTATUS', 'a.state', $listDirn, $listOrder); ?>
-					</th>
-						
-						
-					<th scope="col" class="w-3 d-none d-lg-table-cell" >
 
-						<?php echo HTMLHelper::_('searchtools.sort',  'JGRID_HEADING_ID', 'a.id', $listDirn, $listOrder); ?>					</th>
-					</tr>
+                        <th scope="col" class="w-3 d-none d-lg-table-cell text-center">
+                            <?php echo HTMLHelper::_('searchtools.sort', 'JGRID_HEADING_ID', 'a.id', $listDirn, $listOrder); ?>
+                        </th>
+                        <th scope="col" class="w-3 d-none d-lg-table-cell text-center">
+                            <?php echo HTMLHelper::_('searchtools.sort', 'Customer', 'user_name', $listDirn, $listOrder); ?>
+                        </th>
+                        <th scope="col" class="w-3 d-none d-lg-table-cell text-center">
+                            <?php echo HTMLHelper::_('searchtools.sort', 'Original Price', 'a.original_price', $listDirn, $listOrder); ?>
+                        </th>
+                        <th scope="col" class="w-3 d-none d-lg-table-cell text-center">
+                            <?php echo HTMLHelper::_('searchtools.sort', 'Shipping Tracking Number', 'a.shipping_tracking_number', $listDirn, $listOrder); ?>
+                        </th>
+
+                        <th scope="col" class="w-3 d-none d-lg-table-cell text-center">
+                            <?php echo HTMLHelper::_('searchtools.sort', 'Date', 'a.created', $listDirn, $listOrder); ?>
+                        </th>
+
+                        <th scope="col" class="w-3 d-none d-lg-table-cell text-center">
+                            <?php echo HTMLHelper::_('searchtools.sort', 'Items', 'item_name', $listDirn, $listOrder); ?>
+                        </th>
+
+                    </tr>
 					</thead>
 					<tfoot>
 					<tr>
@@ -97,7 +111,7 @@ if (!empty($saveOrder))
 							<td class="text-center">
 								<?php echo HTMLHelper::_('grid.id', $i, $item->id); ?>
 							</td>
-							
+
 							<?php if (isset($this->items[0]->ordering)) : ?>
 
 							<td class="text-center d-none d-md-table-cell">
@@ -126,16 +140,35 @@ if (!empty($saveOrder))
 							</td>
 							<?php endif; ?>
 
-							
-							<td class="text-center">
-								<?php echo HTMLHelper::_('jgrid.published', $item->state, $i, 'orders.', $canChange, 'cb'); ?>
+							<td class="d-none d-lg-table-cell text-center">
+								<?php if ($canEdit) : ?>
+									<a href="<?php echo Route::_('index.php?option=com_alfa&task=order.edit&id='.(int) $item->id); ?>">
+									<?php echo $this->escape($item->id); ?>
+									</a>
+								<?php else : ?>
+									<?php echo $this->escape($item->id); ?>
+								<?php endif; ?>
 							</td>
-							
-							
-							<td class="d-none d-lg-table-cell">
-							<?php echo $item->id; ?>
 
-							</td>
+                            <td class="d-none d-lg-table-cell text-center">
+                                <?php echo $item->user_name; ?>
+                            </td>
+
+                            <td class="d-none d-lg-table-cell text-center">
+                                <?php echo $item->original_price; ?>
+                            </td>
+
+                            <td class="d-none d-lg-table-cell text-center">
+                                <?php echo $item->shipping_tracking_number; ?>
+                            </td>
+
+                            <td class="d-none d-lg-table-cell text-center">
+                                <?php echo $item->created; ?>
+                            </td>
+
+                            <td class="d-none d-lg-table-cell text-center">
+                                <?php echo $item->item_name; ?>
+                            </td>
 
 
 						</tr>

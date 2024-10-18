@@ -1,14 +1,15 @@
-alfa-commerce (Pre-alpha Version)
+# alfa-commerce (Pre-alpha Version)
 
 🚀 About alfa-commerce
 
-Welcome to alfa-commerce, the smartest, fastest, and easiest eCommerce solution for Joomla developed by Easylogic. This project is currently in its Pre-alpha phase, with rapid developments underway to provide an optimized eCommerce experience.
+Welcome to alfa-commerce, the smartest, fastest, and easiest eCommerce solution for Joomla developed by Easylogic.
+This project is currently in its Pre-alpha phase, with rapid developments underway to provide an optimized eCommerce experience.
 
 While we are still in the pre-alpha phase, the foundation is being actively built and tested.
 
 🛠️ Installation (Pre-alpha Testing)
 
-    Go to developer branch
+    Go to main branch
     Download the whole zip
     Install it in joomla.
 
@@ -19,12 +20,13 @@ Contributions are what make the open-source community such an amazing place to l
 To contribute:
 
     Fork the repository.
-    Create a branch for your feature or bugfix (git checkout -b feature-branch).
+    Create a branch derived from developer branch for your feature or bugfix.
     Commit your changes (git commit -m 'Add some feature').
     Push to the branch (git push origin feature-branch).
     Open a Pull Request.
+    
+    or you can be a part of our team by getting in touch with us.
 
-or you can be a part of our team by getting in touch with us.
 
 Developer Contact
 

@@ -69,7 +69,7 @@ class ItemModel extends AdminModel
 	    }
 
         foreach ($pks as $id) {
-        	AlfaHelper::setAllowedUsers($id, $value, '#__alfa_items_users', 'item_id');
+        	AlfaHelper::setAllowedUsers($id, $value, '#__alfa_items_users', 'item_id','user_id');
         }
 
 		$app->enqueueMessage('Users setted successfully', 'info');
@@ -87,7 +87,7 @@ class ItemModel extends AdminModel
 	    }
 
         foreach ($pks as $id) {
-        	AlfaHelper::setAllowedUserGroups($id, $value, '#__alfa_items_usergroups', 'item_id');
+        	AlfaHelper::setAllowedUserGroups($id, $value, '#__alfa_items_usergroups', 'item_id','usergroup_id');
         }
 
 		$app->enqueueMessage('Usergroup setted successfully', 'info');
@@ -105,9 +105,7 @@ class ItemModel extends AdminModel
 	    }
 
         foreach ($pks as $id) {
-        
-        	$this->setManufacturers($id,$value);
-
+        	AlfaHelper::setAssocsToDb($id, $value, '#__alfa_items_manufacturers', 'item_id','manufacturer_id');
         }
 
 		$app->enqueueMessage('Manufacturers setted successfully', 'info');
@@ -125,7 +123,7 @@ class ItemModel extends AdminModel
 	    }
 
         foreach ($pks as $id) {
-          $this->setCategories($id,$value);
+			AlfaHelper::setAssocsToDb($id, $value, '#__alfa_items_categories', 'item_id','category_id');
         }
 
 		$app->enqueueMessage('Categories setted successfully', 'info');
@@ -214,6 +212,7 @@ class ItemModel extends AdminModel
 	 *
 	 * @since   1.0.1
 	 */
+  
 	public function getItem($pk = null)
 	{
 		
@@ -224,17 +223,20 @@ class ItemModel extends AdminModel
 					$item->params = json_encode($item->params);
 				}
 
-				$item->categories = $this->getCategories($item->id);
-				$item->manufacturers = $this->getManufacturers($item->id);
 				$item->prices = $this->getPrices($item->id);
-	            $item->allowedUsers = AlfaHelper::getAllowedUsers($item->id, '#__alfa_items_users', 'item_id');
-            	$item->allowedUserGroups = AlfaHelper::getAllowedUserGroups($item->id, '#__alfa_items_usergroups', 'item_id');
+
+            	$item->categories = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_categories', 'item_id','category_id');
+				$item->manufacturers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_manufacturers', 'item_id','manufacturer_id');
+
+	            $item->allowedUsers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_users', 'item_id','user_id');
+            	$item->allowedUserGroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_usergroups', 'item_id','usergroup_id');
+
 
 			}
 
 			return $item;
 		
-	}
+  }
 
 
 	/**
@@ -279,48 +281,16 @@ class ItemModel extends AdminModel
 		}
 
 
-		$this->setCategories($currentId,$data['categories']);
-        $this->setManufacturers($currentId,$data['manufacturers']);
         $this->setPrices($currentId,$data['prices']);
-		AlfaHelper::setAllowedUsers($data['id'], $data['allowedUsers'], '#__alfa_items_users', 'item_id');
-		AlfaHelper::setAllowedUserGroups($data['id'], $data['allowedUserGroups'], '#__alfa_items_usergroups', 'item_id');
+
+		AlfaHelper::setAssocsToDb($data['id'], $data['categories'], '#__alfa_items_categories', 'item_id','category_id');
+		AlfaHelper::setAssocsToDb($data['id'], $data['manufacturers'], '#__alfa_items_manufacturers', 'item_id','manufacturer_id');
+
+		AlfaHelper::setAssocsToDb($data['id'], $data['allowedUsers'], '#__alfa_items_users', 'item_id','user_id');
+		AlfaHelper::setAssocsToDb($data['id'], $data['allowedUserGroups'], '#__alfa_items_usergroups','item_id', 'usergroup_id');
 
 		return true;
 		// return parent::save($data);
-	}
-
-
-	public function getManufacturers($id){
-    	$id = intval($id);
-    	if($id<=0){return [];}
-		
-		$db = Factory::getDbo();
-		$query = $db->getQuery(true);
-        $query
-            ->select('c.manufacturer_id')
-            ->from('#__alfa_items_manufacturers as c')
-            ->where('c.product_id= '. ($id));
-
-        $db->setQuery($query);
-        return $db->loadColumn();
-	}
-
-
-	public function getCategories($id){
-		$id = intval($id);
-    	if($id<=0){return [];}
-
-    	// Factory::getContainer()->get('DatabaseDriver');
-		$db = $this->getDatabase();
-
-		$query = $db->getQuery(true);
-        $query
-            ->select('c.category_id')
-            ->from('#__alfa_items_categories as c')
-            ->where('c.product_id = '. ($id));
-
-        $db->setQuery($query);
-        return $db->loadColumn();
 	}
 
 
@@ -338,7 +308,7 @@ class ItemModel extends AdminModel
 	    $query
 	        ->select('*')
 	        ->from('#__alfa_items_prices')
-	        ->where('product_id = ' . $db->quote($id));
+	        ->where('item_id = ' . $db->quote($id));
 
 	    // Execute the query
 	    $db->setQuery($query);
@@ -360,7 +330,7 @@ class ItemModel extends AdminModel
 	    $query = $db->getQuery(true);
 	    $query->select('id')
 	          ->from('#__alfa_items_prices')
-	          ->where('product_id = ' . intval($productId));
+	          ->where('item_id = ' . intval($productId));
 	    $db->setQuery($query);
 	    $existingPriceIds = $db->loadColumn();  // Array of existing price IDs
 
@@ -378,7 +348,7 @@ class ItemModel extends AdminModel
 	    //  Delete records that are no longer present in incoming prices array
 	    if (!empty($idsToDelete)) {
 	        $query = $db->getQuery(true);
-	        $query->delete('#__alfa_items_prices')->whereIn('id ', $idsToDelete);
+	        $query->delete('#__alfa_items_prices')->whereIn('id', $idsToDelete);
 	        $db->setQuery($query);
 	        $db->execute();
 	    }
@@ -387,7 +357,7 @@ class ItemModel extends AdminModel
 
 	    	$priceObject = new \stdClass();
 	        $priceObject->id        = isset($price['id']) ? intval($price['id']) : 0;
-	        $priceObject->product_id = $productId;
+	        $priceObject->item_id = $productId;
 	        $priceObject->value     = isset($price['value']) ? floatval($price['value']) : 0.0;
 	        $priceObject->country_id    = isset($price['country_id']) ? intval($price['country_id']) : 0;
 	        $priceObject->usergroup_id  = isset($price['usergroup_id']) ? intval($price['usergroup_id']) : 0;
@@ -398,8 +368,8 @@ class ItemModel extends AdminModel
 	        $priceObject->modify_type = isset($price['modify_type']) ? $price['modify_type'] : NULL;
 	        $priceObject->publish_up  = !empty($price['publish_up']) ? Factory::getDate($price['publish_up'])->toSql() : NULL;
 	        $priceObject->publish_down    = !empty($price['publish_down']) ? Factory::getDate($price['publish_down'])->toSql() : NULL;
-	        $priceObject->quantity_start = isset($price['quantity_start']) ? intval($price['quantity_start']) : NULL;
-	        $priceObject->quantity_end = isset($price['quantity_end']) ? intval($price['quantity_end']) : NULL;
+	        $priceObject->quantity_start = !empty($price['quantity_start']) ? intval($price['quantity_start']) : NULL;
+	        $priceObject->quantity_end = !empty($price['quantity_end']) ? intval($price['quantity_end']) : NULL;
 
 	        $query = $db->getQuery(true);
 
@@ -416,152 +386,21 @@ class ItemModel extends AdminModel
 
 	}
 
-	public function setManufacturers($id, $manufacturers){
-		    if (!is_array($manufacturers)) {
-
-		        return false;
-		    }
-
-
-			$db = Factory::getDbo();
-
-			$query = $db->getQuery(true);
-			$query->delete('#__alfa_items_manufacturers')->where('product_id = '. $id);
-			$db->setQuery($query);
-			$db->execute();
-
-
-			foreach ($manufacturers as $manufacturerId) {
-                
-                if($manufacturerId=='')continue;
-
-                $query = $db->getQuery(true);
-                $query->insert('#__alfa_items_manufacturers')
-                        ->set(array(
-                                    ('product_id = '. $id),
-                                    ('manufacturer_id = '. intval($manufacturerId))
-                ));
-                $db->setQuery($query);
-                $db->execute();
-            }
-
-	}
-
-	public function setCategories($id, $categories){
-		    if (!is_array($categories)) {
-		        return false;
-		    }
-
-
-			$db = Factory::getDbo();
-        	 // save item categories to items_categories table
-			$query = $db->getQuery(true);
-			$query->delete('#__alfa_items_categories')->where('product_id = '. $id);
-			$db->setQuery($query);
-			$db->execute();
-
-			foreach ($categories as $categoryId) {
-                if($categoryId=='')continue;
-
-                $query = $db->getQuery(true);
-                $query->insert('#__alfa_items_categories')
-                        ->set(array(
-                                    ('product_id = '. $id),
-                                    ('category_id = '. intval($categoryId))
-                ));
-                $db->setQuery($query);
-                $db->execute();
-            }
-
-
-	}
-
 
 	/**
-	 * Method to duplicate an Item From List
+	 * Prepare and sanitise the table prior to saving.
 	 *
-	 * @param   array  &$pks  An array of primary key IDs.
+	 * @param   Table  $table  Table Object
 	 *
-	 * @return  boolean  True if successful.
+	 * @return  void
 	 *
-	 * @throws  Exception
+	 * @since   1.0.1
 	 */
-	// public function duplicate(&$pks)
-	// {
-	// 	$app = Factory::getApplication();
-	// 	$user = $app->getIdentity();
-    //     $dispatcher = $this->getDispatcher();
-
-	// 	// Access checks.
-	// 	if (!$user->authorise('core.create', 'com_alfa'))
-	// 	{
-	// 		throw new \Exception(Text::_('JERROR_CORE_CREATE_NOT_PERMITTED'));
-	// 	}
-
-	// 	$context    = $this->option . '.' . $this->name;
-
-	// 	// Include the plugins for the save events.
-	// 	PluginHelper::importPlugin($this->events_map['save']);
-
-	// 	$table = $this->getTable();
-
-	// 	foreach ($pks as $pk)
-	// 	{
-			
-	// 			if ($table->load($pk, true))
-	// 			{
-	// 				// Reset the id to create a new record.
-	// 				$table->id = 0;
-
-	// 				if (!$table->check())
-	// 				{
-	// 					throw new \Exception($table->getError());
-	// 				}
-					
-
-	// 				// Trigger the before save event.
-	// 				$beforeSaveEvent = new Model\BeforeSaveEvent($this->event_before_save, [
-	// 					'context' => $context,
-	// 					'subject' => $table,
-	// 					'isNew'   => true,
-	// 					'data'    => $table,
-	// 				]);
-					
-	// 					// Trigger the before save event.
-	// 					$result = $dispatcher->dispatch($this->event_before_save, $beforeSaveEvent)->getArgument('result', []);
-					
-					
-	// 				if (in_array(false, $result, true) || !$table->store())
-	// 				{
-	// 					throw new \Exception($table->getError());
-	// 				}
-
-	// 				// Trigger the after save event.
-	// 				$dispatcher->dispatch($this->event_after_save, new Model\AfterSaveEvent($this->event_after_save, [
-	// 					'context' => $context,
-	// 					'subject' => $table,
-	// 					'isNew'   => true,
-	// 					'data'    => $table,
-	// 				]));				
-	// 			}
-	// 			else
-	// 			{
-	// 				throw new \Exception($table->getError());
-	// 			}
-			
-	// 	}
-
-	// 	// Clean cache
-	// 	$this->cleanCache();
-
-	// 	return true;
-	// }
-
-
     protected function prepareTable($table)
     {
 
     	$table->modified = Factory::getDate()->toSql();
+    	$table->modified_by = $this->getCurrentUser()->id;
 
         if (empty($table->publish_up)) {
             $table->publish_up = null;
@@ -573,36 +412,6 @@ class ItemModel extends AdminModel
 
         return parent::prepareTable($table);
         
-        // $date = Factory::getDate()->toSql();
-
-        // $table->name = htmlspecialchars_decode($table->name, ENT_QUOTES);
-
-        // $table->generateAlias();
-
-        // if (empty($table->id)) {
-        //     // Set the values
-        //     $table->created = $date;
-
-        //     // Set ordering to the last item if not set
-        //     if (empty($table->ordering)) {
-        //         $db    = $this->getDatabase();
-        //         $query = $db->getQuery(true)
-        //             ->select('MAX(ordering)')
-        //             ->from($db->quoteName('#__alfa_items'));
-        //         $db->setQuery($query);
-        //         $max = $db->loadResult();
-
-        //         $table->ordering = $max + 1;
-        //     }
-        // } 
-        // else {
-        //     // Set the values
-        //     $table->modified    = $date;
-        //     $table->modified_by = $this->getCurrentUser()->id;
-        // }
-
-        // Increment the content version number.
-        // $table->version++;
     }
 
 

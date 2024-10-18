@@ -38,6 +38,7 @@
     <files folder="site">
         <folder>src</folder>
         <folder>forms</folder>
+	<folder>layouts</folder>
         <folder>tmpl</folder>
     </files>
     <media destination="com_alfa" folder="media">
@@ -72,7 +73,11 @@
 
             <menu link="option=com_alfa&amp;view=payments" view="payments" alt="Alfa/Payments">COM_ALFA_TITLE_PAYMENTS</menu>
 
-            <menu link="option=com_alfa&amp;view=places" view="places" alt="Alfa/Places">COM_ALFA_TITLE_PLACES</menu>
+		<menu link="option=com_alfa&amp;view=taxes" view="taxes" alt="Alfa/Taxes">COM_ALFA_TITLE_TAXES</menu>
+
+        <menu link="option=com_alfa&amp;view=discounts" view="discounts" alt="Alfa/Discounts">COM_ALFA_TITLE_DISCOUNTS</menu>
+         
+		<menu link="option=com_alfa&amp;view=places" view="places" alt="Alfa/Places">COM_ALFA_TITLE_PLACES</menu>
 
 			<menu link="option=com_alfa&amp;view=currencies" view="currencies" alt="Alfa/Currencies">COM_ALFA_TITLE_CURRENCIES</menu>
 
@@ -110,7 +115,6 @@
 		<plugin group="webservices" plugin="alfa"/>
     </plugins>
     <modules>
-        <module module="mod_alfa" />
 		<module module="mod_alfa_search" />
 	</modules>
 

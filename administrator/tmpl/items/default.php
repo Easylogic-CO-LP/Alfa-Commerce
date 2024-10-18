@@ -72,15 +72,15 @@ if (!empty($saveOrder))
 						<?php echo HTMLHelper::_('searchtools.sort', 'JSTATUS', 'a.state', $listDirn, $listOrder); ?>
 					</th>
 						
-						<th class='left'>
-							<?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_ITEMS_NAME', 'a.name', $listDirn, $listOrder); ?>
-						</th>
-						<th class='left'>
-							<?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_ITEMS_SKU', 'a.sku', $listDirn, $listOrder); ?>
-						</th>
-						<th class='left'>
-							<?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_ITEMS_STOCK', 'a.stock', $listDirn, $listOrder); ?>
-						</th>
+					<th class='left'>
+						<?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_ITEMS_NAME', 'a.name', $listDirn, $listOrder); ?>
+					</th>
+					<th class='left'>
+						<?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_ITEMS_SKU', 'a.sku', $listDirn, $listOrder); ?>
+					</th>
+					<th class='left'>
+						<?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_ITEMS_STOCK', 'a.stock', $listDirn, $listOrder); ?>
+					</th>
 						
 					<th scope="col" class="w-3 d-none d-lg-table-cell" >
 
@@ -149,7 +149,7 @@ if (!empty($saveOrder))
 									<?php echo $this->escape($item->name); ?>
 									</a>
 								<?php else : ?>
-												<?php echo $this->escape($item->name); ?>
+									<?php echo $this->escape($item->name); ?>
 								<?php endif; ?>
 							</td>
 							<td>
