@@ -149,7 +149,7 @@ if (!empty($saveOrder))
 									<?php echo $this->escape($item->name); ?>
 									</a>
 								<?php else : ?>
-												<?php echo $this->escape($item->name); ?>
+									<?php echo $this->escape($item->name); ?>
 								<?php endif; ?>
 							</td>
 							<td>

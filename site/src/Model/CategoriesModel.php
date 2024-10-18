@@ -140,24 +140,12 @@ class CategoriesModel extends ListModel
 
 			$query->from('`#__alfa_categories` AS a');
 			
-		// Join over the users for the checked out user.
-		$query->select('uc.name AS uEditor');
-		$query->join('LEFT', '#__users AS uc ON uc.id=a.checked_out');
+	        $category_filter = $this->getState('filter.parent_id');
+	        if (!empty($category_filter)) {
+	            $query->where('a.parent_id = ' . $category_filter[0]);
+	        }
 
-		// Join over the created by field 'created_by'
-		$query->join('LEFT', '#__users AS created_by ON created_by.id = a.created_by');
-
-		// Join over the created by field 'modified_by'
-		$query->join('LEFT', '#__users AS modified_by ON modified_by.id = a.modified_by');
-			
-		if (!Factory::getApplication()->getIdentity()->authorise('core.edit', 'com_alfa'))
-		{
 			$query->where('a.state = 1');
-		}
-		else
-		{
-			$query->where('(a.state IN (0, 1))');
-		}
 
 			// Filter by search in title
 			$search = $this->getState('filter.search');
@@ -174,8 +162,6 @@ class CategoriesModel extends ListModel
 					$query->where('( a.name LIKE ' . $search . ' )');
 				}
 			}
-			
-
 			
 			
 			// Add the list ordering clause.

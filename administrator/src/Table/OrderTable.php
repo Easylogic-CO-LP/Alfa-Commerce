@@ -106,11 +106,11 @@ class OrderTable extends Table implements VersionableTableInterface, TaggableTab
 			$array['modified_by'] = Factory::getUser()->id;
 		}
 
-		if($array['total'] === '')
-		{
-			$array['total'] = NULL;
-			$this->total = NULL;
-		}
+		// if($array['total'] === '')
+		// {
+		// 	$array['total'] = NULL;
+		// 	$this->total = NULL;
+		// }
 
 		if (isset($array['params']) && is_array($array['params']))
 		{

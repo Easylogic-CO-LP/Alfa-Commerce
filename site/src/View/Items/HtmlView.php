@@ -25,6 +25,8 @@ class HtmlView extends BaseHtmlView
 {
 	protected $items;
 
+	protected $categories;
+
 	protected $pagination;
 
 	protected $state;
@@ -50,6 +52,32 @@ class HtmlView extends BaseHtmlView
 		$this->params = $app->getParams('com_alfa');
 		$this->filterForm = $this->get('FilterForm');
 		$this->activeFilters = $this->get('ActiveFilters');
+
+		
+
+		$db = Factory::getDbo();
+
+
+		if(empty($this->category_filter)){
+			$this->category_filter = 0;
+		}
+
+		$db = Factory::getDbo();
+
+		// SET CATEGORIES LOGIC
+		$category_filter = $this->state->get('filter.category_id');
+		if(empty($category_filter)){
+			$category_filter = 0;
+		}
+
+		$component = $app->bootComponent('com_alfa');
+        $mvcFactory = $component->getMVCFactory();
+        $categoriesModel = $mvcFactory->createModel('Categories', 'Site', ['ignore_request' => true]);
+    	$categoriesModel->getState('list.ordering');//we should use get before set the list state fields
+        $categoriesModel->setState('filter.parent_id', $category_filter);
+    	$this->categories = $categoriesModel->getItems();
+
+		// END OF SET CATEGORIES LOGIC
 
 		// Check for errors.
 		if (count($errors = $this->get('Errors')))

@@ -21,34 +21,38 @@ use Joomla\CMS\Layout\LayoutHelper;
 
 // Import CSS
 $wa = $this->document->getWebAssetManager();
-$wa->useStyle('com_alfa.product');
-$wa->useScript('com_alfa.product')
-    ->useScript('com_alfa.product.recalculate')
-    ->useScript('com_alfa.product.addtocart');
+$wa->useStyle('com_alfa.item');
+$wa->useScript('com_alfa.item')
+    ->useScript('com_alfa.item.recalculate')
+    ->useScript('com_alfa.item.addtocart');
 
 ?>
 
 <section>
-    <div class="product-container row">
+    <div class="item-container row" data-item-id="<?php echo $this->item->id;?>">
         <div class="col-md-6">
-            <section class="product-images-wrapper">
+            <section class="item-images-wrapper">
                 <?php echo $this->loadTemplate('images'); ?>
             </section>
         </div>
         <div class="col-md-6">
-            <section class="product-info-section">
+            <section class="item-info-section">
                 <h1>
                     <?php echo $this->item->name; ?>
                 </h1>
                 <?php if (!empty($this->item->short_desc)): ?>
-                    <div class="product-info">
+                    <div class="item-info">
                         <?php echo nl2br($this->item->short_desc); ?>
                     </div>
                 <?php endif; ?>
+
+                <div class="item-price" >
+                     <?php echo LayoutHelper::render('price',$this->item->price); //passed data as $displayData in layout ?>
+                </div>
                 
                 <?php echo LayoutHelper::render('addtocart'); ?>
 
-                <div class="product-desc-details">
+                <div class="item-desc-details">
                     <ul class="tab">
                         <li>
                             <button class="tablinks active"
@@ -68,17 +72,13 @@ $wa->useScript('com_alfa.product')
                     <div id="details" class="tabcontent">
                         <h2><?php echo Text::_('COM_ALFA_TITLE_CATEGORIES'); ?></h2>
                         <?php foreach ($this->item->categories as $id => $name) : ?>
-                            <a href="<?php echo Route::_('index.php?option=com_alfa&view=category&id=' . (int)$id); ?>"><?php echo $name . '<br>'; ?></a>
+                            <a href="<?php echo Route::_('index.php?option=com_alfa&view=items&filter[category_id]=' . (int)$id); ?>"><?php echo $name; ?></a>
                         <?php endforeach; ?>
                         <h2><?php echo Text::_('COM_ALFA_TITLE_MANUFACTURERS'); ?></h2>
                         <?php foreach ($this->item->manufacturers as $id => $name) : ?>
-                            <a href="<?php echo Route::_('index.php?option=com_alfa&view=manufacturer&id=' . (int)$id); ?>"><?php echo $name . '<br>'; ?></a>
+                            <a href="<?php echo Route::_('index.php?option=com_alfa&view=manufacturer&id=' . (int)$id); ?>"><?php echo $name; ?></a>
                         <?php endforeach; ?>
                     </div>
-                </div>
-
-                <div class="product-price" >
-                     <?php echo LayoutHelper::render('price',$this->item->price); //passed data as $displayData in layout ?>
                 </div>
 
                 <?php //echo 'Price: <pre>';print_r($this->item->price); echo '</pre>'; ?>
@@ -87,5 +87,3 @@ $wa->useScript('com_alfa.product')
         </div>
     </div>
 </section>
-
-<input type="hidden" name="product_id" value="<?php echo $this->item->id;?>">

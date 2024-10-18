@@ -37,31 +37,23 @@ HTMLHelper::_('bootstrap.tooltip');
                 <?php echo $this->form->renderField('value'); ?>
                 <?php echo $this->form->renderField('behavior'); ?>
                 <?php echo $this->form->renderField('desc'); ?>
+                <?php echo $this->form->renderField('categories'); ?>
+                <?php echo $this->form->renderField('manufacturers'); ?>
+                <?php echo $this->form->renderField('places'); ?>
+                <?php echo $this->form->renderField('usergroups'); ?>
+                <?php echo $this->form->renderField('users'); ?> 
+            </fieldset>
+        </div>
+        <div class="col-lg-3">
+            <fieldset class="adminform">
                 <?php echo $this->form->renderField('checked_out'); ?>
                 <?php echo $this->form->renderField('checked_out_time'); ?>
                 <?php echo $this->form->renderField('created_by'); ?>
                 <?php echo $this->form->renderField('modified'); ?>
                 <?php echo $this->form->renderField('modified_by'); ?>
                 <?php echo $this->form->renderField('ordering'); ?>
-            </fieldset>
-        </div>
-        <div class="col-lg-3">
-            <fieldset class="adminform">
                 <?php echo $this->form->renderField('state'); ?>
                 <?php echo $this->form->renderField('id'); ?>
-            </fieldset>
-        </div>
-    </div>
-    <?php echo HTMLHelper::_('uitab.endTab'); ?>
-
-    <?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'taxesRules', Text::_('COM_ALFA_TAB_TAX_RULES')); ?>
-    <div class="row">
-        <div class="col-12">
-            <fieldset id="fieldset-taxdata" class="options-form">
-                <legend><?php echo Text::_('COM_ALFA_FORM_FIELDSET_TAX_RULES'); ?></legend>
-
-                <?php echo $this->form->getInput('tax_rules'); ?>
-
             </fieldset>
         </div>
     </div>
