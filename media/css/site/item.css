@@ -6,9 +6,53 @@
  * @author      Agamemnon Fakas <info@easylogic.gr>
  */
 
-.product-info-section h1 {
-    font-size: 1.3rem;
+/* PRODUCT AMOUNT */
+
+.add-to-cart-wrapper {
+    display: flex;
+    gap: 8px;
 }
+
+.item-quantity-controls-wrapper {
+    display: flex;
+    margin: 4px 0;
+}
+
+.item-quantity {
+    width: 50px;
+    text-align: center;
+    border: 1px solid lightgray;
+    /* Hides the default spinner buttons in the input */
+    appearance: textfield;
+}
+
+.item-quantity::-webkit-outer-spin-button,
+.item-quantity::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.item-quantity-controls{
+    border: none;
+    width: 30px;
+    font-size: 1.5rem;
+    color: black;    
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ADD TO CART BUTTON */
+
+.add-to-cart-btn {
+    border: none;
+    padding: 10px;
+    background-color: #333;
+    color: white;
+}
+
+/* TODO: CHECK THE NAMES AND CSS REMOVE ANY BOOTSTRAP */
 
 /* PRODUCT IMAGES SECTION */
 
@@ -24,98 +68,15 @@
     border: 2px solid blue;
 }
 
-.thumbnail-images .product-image{
+.thumbnail-images .item-image{
     width: 100px;
     height: auto;
 }
-/* PRODUCT AMOUNT */
 
-.add-to-cart-container {
-    display: flex;
-    gap: 8px;
-}
-
-.custom-number-container {
-    display: flex;
-    align-items: center;
-    width: fit-content;
-    margin: 4px 0;
-}
-
-.custom-number-input {
-    width: 50px !important;
-    height: 100%;
-    text-align: center;
-    font-size: 1.5rem;
-    border: 1px solid lightgray;
-    border-radius: 5px;
-    padding: 5px;
-    margin: 0 1px;
-    /* Hides the default spinner buttons in the input */
-    -moz-appearance: textfield;
-}
-
-.custom-number-input::-webkit-outer-spin-button,
-.custom-number-input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-.custom-decrement, .custom-increment {
-    width: 30px;
-    height: 100%;
-    font-size: 1.5rem;
-    border: none;
-    color: black;
-    border-radius: 5px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* .custom-decrement:hover, .custom-increment:hover {
-    background-color: lightblue;
-} */
-
-/* .custom-decrement:active, .custom-increment:active {
-    background-color: blue;
-} */
-
-/* ADD TO CART BUTTON */
-
-.add-to-cart-btn {
-    border: none;
-    height: 100%;
-    width: fit-content;
-    padding: 10px 20px;
-    border-radius: 5px;
-    background-color: blue;
-    color: white;
-}
-
-/* WISHLIST BUTTON */
-
-.wishlist-btn {
-    border: none;
-    border-radius: 50%;
-    padding: 10px;
-    margin: 5px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: white;
-    box-shadow: 4px -2px 10px 4px rgba(0, 0, 0, 0.1);
-}
-
-.wishlist-btn svg {
-    width: 24px;
-    height: 24px;
-}
 
 /* TAB STYLING */
 
-.product-desc-details {
+.item-desc-details {
     padding: 20px 30px;
     border: 1px solid lightgray;
 }

@@ -1,0 +1,14 @@
+.prices-subform .subform-repeatable-group{
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.prices-subform .control-group{
+    display: flex;
+    flex-direction: column;
+}
+
+.prices-subform .control-label{
+    padding: 0;
+    margin: 0 5px;
+}
