@@ -70,6 +70,10 @@ class Router extends RouterView
         $ccItem = new RouterViewConfiguration('item');
         $ccItem->setKey('id')->setParent($items);
         $this->registerView($ccItem);
+
+        $cart = new RouterViewConfiguration('cart');
+        $this->registerView($cart);
+
         $empties = new RouterViewConfiguration('empties');
         $this->registerView($empties);
 

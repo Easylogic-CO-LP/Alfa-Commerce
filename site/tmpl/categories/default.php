@@ -57,12 +57,6 @@ $wa->useStyle('com_alfa.list');
 						<?php echo HTMLHelper::_('grid.sort', 'JPUBLISHED', 'a.state', $listDirn, $listOrder); ?>
 					</th>
 
-						<?php if ($canEdit || $canDelete): ?>
-					<th class="center">
-						<?php echo Text::_('COM_ALFA_CATEGORIES_ACTIONS'); ?>
-					</th>
-					<?php endif; ?>
-
 			</tr>
 			</thead>
 			<tfoot>
@@ -96,10 +90,6 @@ $wa->useStyle('com_alfa.list');
 						<?php endif; ?>
 						</a>
 					</td>
-					<?php if ($canEdit || $canDelete): ?>
-						<td class="center">
-						</td>
-					<?php endif; ?>
 
 				</tr>
 			<?php endforeach; ?>
@@ -119,20 +109,3 @@ $wa->useStyle('com_alfa.list');
 	<input type="hidden" name="filter_order_Dir" value=""/>
 	<?php echo HTMLHelper::_('form.token'); ?>
 </form>
-
-<?php
-	if($canDelete) {
-		$wa->addInlineScript("
-			jQuery(document).ready(function () {
-				jQuery('.delete-button').click(deleteItem);
-			});
-
-			function deleteItem() {
-
-				if (!confirm(\"" . Text::_('COM_ALFA_DELETE_MESSAGE') . "\")) {
-					return false;
-				}
-			}
-		", [], [], ["jquery"]);
-	}
-?>

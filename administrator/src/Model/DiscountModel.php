@@ -178,12 +178,12 @@ class DiscountModel extends AdminModel
 		}
 
 		$assignZeroIdIfDataEmpty = true;
-		AlfaHelper::setAssocsToDb($data['id'], $data['categories'], '#__alfa_discounts_categories', 'discount_id','category_id',$assignZeroIdIfDataEmpty);
-		AlfaHelper::setAssocsToDb($data['id'], $data['manufacturers'], '#__alfa_discounts_manufacturers', 'discount_id','manufacturer_id',$assignZeroIdIfDataEmpty);
-		AlfaHelper::setAssocsToDb($data['id'], $data['places'], '#__alfa_discounts_places', 'discount_id','place_id',$assignZeroIdIfDataEmpty);
+		AlfaHelper::setAssocsToDb($data['id'], $data['categories'], '#__alfa_discount_categories', 'discount_id','category_id',$assignZeroIdIfDataEmpty);
+		AlfaHelper::setAssocsToDb($data['id'], $data['manufacturers'], '#__alfa_discount_manufacturers', 'discount_id','manufacturer_id',$assignZeroIdIfDataEmpty);
+		AlfaHelper::setAssocsToDb($data['id'], $data['places'], '#__alfa_discount_places', 'discount_id','place_id',$assignZeroIdIfDataEmpty);
 
-		AlfaHelper::setAssocsToDb($data['id'], $data['users'], '#__alfa_discounts_users', 'discount_id','user_id',$assignZeroIdIfDataEmpty);
-		AlfaHelper::setAssocsToDb($data['id'], $data['usergroups'], '#__alfa_discounts_usergroups','discount_id', 'usergroup_id',$assignZeroIdIfDataEmpty);
+		AlfaHelper::setAssocsToDb($data['id'], $data['users'], '#__alfa_discount_users', 'discount_id','user_id',$assignZeroIdIfDataEmpty);
+		AlfaHelper::setAssocsToDb($data['id'], $data['usergroups'], '#__alfa_discount_usergroups','discount_id', 'usergroup_id',$assignZeroIdIfDataEmpty);
 
 		return true;
 		// return parent::save($data);

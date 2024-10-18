@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<metadata>
+    <layout title="COM_ALFA_TITLE_CART_VIEW_CART" option="View">
+        <message>
+                        <![CDATA[COM_ALFA_TITLE_ITEM_VIEW_CART_DESC]]>
+        </message>
+    </layout>
+</metadata> 
