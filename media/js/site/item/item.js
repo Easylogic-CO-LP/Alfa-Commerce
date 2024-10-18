@@ -1,34 +1,34 @@
 // Glightbox
 document.addEventListener('DOMContentLoaded', function (event) {
-    productMediasIntoSlider();
-    productMediasGallery();
+    itemMediasIntoSlider();
+    itemMediasGallery();
 });
 
-function productMediasGallery(){
-    // product gallery support
-    var galleryFlag = document.querySelector(".product-images-wrapper .main-images .product-image");
+function itemMediasGallery(){
+    // item gallery support
+    var galleryFlag = document.querySelector(".item-images-wrapper .main-images .item-image");
     if(galleryFlag!==null){
         GLightbox({
-            selector: '.product-images-wrapper .main-images .product-image',
+            selector: '.item-images-wrapper .main-images .item-image',
             zoomable: true, // Enable zoom functionality
         });
     }
-    //end of product gallery support
+    //end of item gallery support
 }
 
 // Keen-slider
 
-function productMediasIntoSlider(){
+function itemMediasIntoSlider(){
     //if we have additional images we need to slide them else we don't need to carousel our images
     $thumbnailImages = document.querySelector(".thumbnail-images");
     if($thumbnailImages==null)return;
 
-    $mainImages = document.querySelector('.product-images-wrapper .main-images');
+    $mainImages = document.querySelector('.item-images-wrapper .main-images');
     $mainImages.classList.add("keen-slider");
     // // var slider = new KeenSlider($mediaCarousel);
     var slider = new KeenSlider($mainImages, {
             loop: false,
-            selector: '.product-image'
+            selector: '.item-image'
         },
         [navigation]
     )
@@ -36,7 +36,7 @@ function productMediasIntoSlider(){
     $thumbnailImages.classList.add("keen-slider");
     // perViewThumbs=20;
     var thumbnails = new KeenSlider( $thumbnailImages,{
-            selector: '.product-image',
+            selector: '.item-image',
             initial: 0,
             breakpoints: {
                 "(min-width: 560px)": {

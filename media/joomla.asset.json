@@ -7,45 +7,79 @@
     {
       "name": "com_alfa.admin",
       "type": "style",
-      "uri": "com_alfa/admin.css"
+      "uri": "com_alfa/admin/admin.css"
     },
     {
         "name": "com_alfa.list",
         "type": "style",
-        "uri": "com_alfa/list.css"
+        "uri": "com_alfa/site/list.css"
     },
     {
-      "name": "com_alfa.product",
+      "name": "com_alfa.item",
       "type": "style",
-      "uri": "com_alfa/product.css"
+      "uri": "com_alfa/site/item.css"
+    },
+    {
+      "name": "com_alfa.cart",
+      "type": "style",
+      "uri": "com_alfa/site/cart.css"
     },
     {
       "name": "com_alfa.manufacturer",
       "type": "style",
-      "uri": "com_alfa/manufacturer.css"
+      "uri": "com_alfa/site/manufacturer.css"
+    },
+    {
+      "name": "com_alfa.general",
+      "type": "style",
+      "uri": "com_alfa/site/general.css"
     },
     {
       "name": "com_alfa.glightbox",
       "type": "style",
-      "uri": "com_alfa/glightbox.min.css"
+      "uri": "com_alfa/libraries/glightbox.min.css"
     },
     {
       "name": "com_alfa.keen-slider",
       "type": "style",
-      "uri": "com_alfa/keen-slider.min.css"
+      "uri": "com_alfa/libraries/keen-slider.min.css"
     },
     {
       "name": "com_alfa.admin",
       "type": "script",
-      "uri": "com_alfa/admin.js",
+      "uri": "com_alfa/admin/admin.js",
       "attributes": {
         "defer": true
       }
     },
     {
-      "name": "com_alfa.product",
+      "name": "com_alfa.item",
       "type": "script",
-      "uri": "com_alfa/product.js",
+      "uri": "com_alfa/site/item/item.js",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_alfa.item.addtocart",
+      "type": "script",
+      "uri": "com_alfa/site/cart/addtocart.js",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_alfa.item.recalculate",
+      "type": "script",
+      "uri": "com_alfa/site/item/recalculate.js",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_alfa.cart",
+      "type": "script",
+      "uri": "com_alfa/site/cart/cart.js",
       "attributes": {
         "defer": true
       }
@@ -53,7 +87,7 @@
     {
       "name": "com_alfa.glightbox",
       "type": "script",
-      "uri": "com_alfa/glightbox.min.js",
+      "uri": "com_alfa/libraries/glightbox.min.js",
       "attributes": {
         "defer": true
       }
@@ -61,7 +95,7 @@
     {
       "name": "com_alfa.keen-slider",
       "type": "script",
-      "uri": "com_alfa/keen-slider.min.js",
+      "uri": "com_alfa/libraries/keen-slider.min.js",
       "attributes": {
         "defer": true
       }

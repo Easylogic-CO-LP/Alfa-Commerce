@@ -1,0 +1,54 @@
+
+.cart-item-quantity-wrapper {
+    display: flex;
+    margin: 4px 0;
+}
+
+.cart-item-quantity {
+    width: 50px;
+    text-align: center;
+    border: 1px solid lightgray;
+    /* Hides the default spinner buttons in the input */
+    appearance: textfield;
+}
+
+.cart-item-quantity::-webkit-outer-spin-button,
+.cart-item-quantity::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.cart-item-quantity-controls{
+    border: none;
+    width: 30px;
+    font-size: 1.5rem;
+    color: black;    
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cart-item-remove{
+    background: none;       /* Remove background */
+    border: none;           /* Remove border */
+    padding: 0;             /* Remove padding */
+    margin: 0;              /* Remove margin */
+    font: inherit;          /* Inherit font properties from parent */
+    color: inherit;         /* Inherit text color */
+    cursor: pointer;        /* Ensure the cursor is still a pointer on hover */
+    outline: none;          /* Remove focus outline */
+}
+
+.cart-item-remove:focus {
+    outline: none;          /* Remove focus outline when the button is focused */
+}
+
+
+
+.cart-item-col-quantity{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap:8px;
+}
