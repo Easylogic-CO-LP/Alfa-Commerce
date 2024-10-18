@@ -5,7 +5,18 @@
                label="COM_USERS_FILTER_SEARCH_DESC"
                class="js-stools-search-string" />
 
-
+            <field
+                name="category_id" type="sql"
+                input_type="list"
+                required="false"
+                multiple="false"
+                default=""
+                label="COM_ALFA_FORM_LBL_CATEGORIES"
+                description="COM_ALFA_FORM_DESC_CATEGORIES"
+                query="SELECT `id`, `name` AS val FROM `#__alfa_categories`" key_field="id" value_field="val"
+                header="All categories"
+                onchange="this.form.submit();"
+            /> 
 
     </fields>
     <fields name="list">

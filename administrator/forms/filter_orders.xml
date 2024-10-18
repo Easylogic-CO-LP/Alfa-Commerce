@@ -28,7 +28,16 @@
                default="a.id DESC"
         >
             <option value="">JGLOBAL_SORT_BY</option>
-            <option value="a.id ASC">COM_ALFA_ID_ASC</option><option value="a.id DESC">COM_ALFA_ID_DESC</option><option value="a.state ASC">COM_ALFA_STATE_ASC</option><option value="a.state DESC">COM_ALFA_STATE_DESC</option><option value="a.ordering ASC">COM_ALFA_ORDERING_ASC</option><option value="a.ordering DESC">COM_ALFA_ORDERING_DESC</option>
+            <option value="a.id ASC">COM_ALFA_ID_ASC</option>
+            <option value="a.id DESC">COM_ALFA_ID_DESC</option>
+            <option value="user_name ASC">COM_ALFA_USER_NAME_ASC</option>
+            <option value="user_name DESC">COM_ALFA_USER_NAME_DESC</option>
+            <option value="a.original_price ASC">COM_ALFA_ORIGINAL_PRICE_ASC</option>
+            <option value="a.original_price DESC">COM_ALFA_ORIGINAL_PRICE_DESC</option>
+            <option value="a.shipping_tracking_number ASC">COM_ALFA_TRACKING_NUMBER_ASC</option>
+            <option value="a.shipping_tracking_number DESC">COM_ALFA_TRACKING_NUMBER_DESC</option>
+            <option value="a.created ASC">COM_ALFA_CREATED_ASC</option>
+            <option value="a.created DESC">COM_ALFA_CREATED_DESC</option>
 
         </field>
 

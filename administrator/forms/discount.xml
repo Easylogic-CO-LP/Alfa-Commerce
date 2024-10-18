@@ -80,7 +80,7 @@
         required="false"
         multiple="true"
         default="0"
-        label="COM_ALFA_FORM_TAXRULES_PLACE_LBL"
+        label="COM_ALFA_FORM_CATEGORY_PLACE_LBL"
         layout="joomla.form.field.list-fancy-select"
         query="SELECT `id`, `name` AS val FROM `#__alfa_places`" key_field="id" value_field="val"
         header="COM_ALFA_FORM_PLACE_ALL"

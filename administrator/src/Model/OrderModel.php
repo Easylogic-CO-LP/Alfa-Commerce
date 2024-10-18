@@ -142,18 +142,32 @@ class OrderModel extends AdminModel
 	public function getItem($pk = null)
 	{
 		
-			if ($item = parent::getItem($pk))
-			{
-				if (isset($item->params))
-				{
-					$item->params = json_encode($item->params);
-				}
-				
-				// Do any procesing on fields here if needed
-			}
+			if ($item = parent::getItem($pk)) {
+                if (isset($item->params)) {
+                    $item->params = json_encode($item->params);
+                }
 
-			return $item;
-		
+                // Do any procesing on fields here if needed
+
+                $db = $this->getDbo();
+                $query = $db->getQuery(true);
+
+                $query->select(
+                    $this->getState(
+                        'list.select', 'DISTINCT a.*'
+                    )
+                );
+                $query->from('`#__alfa_orders` AS a');
+
+                $query->select('a.id AS order_id, oui.name, oui.email, oui.shipping_address, oui.city, oui.state, oui.zip_code');
+                $query->join('LEFT', '#__alfa_order_user_info AS oui ON oui.id_order= a.id');
+
+                $query->select('a.id AS order_id, a.created, a.total_price, oi.id_item, oi.name AS item_name, oi.price, oi.quantity');
+                $query->from('#__alfa_orders AS a');
+                $query->join('LEFT', '#__alfa_order_items AS oi ON oi.id_order = a.id');
+
+                return $item;
+            }
 	}
 
 	/**

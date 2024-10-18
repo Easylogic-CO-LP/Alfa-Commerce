@@ -114,48 +114,56 @@
               type="hidden"
       />
 
+      <field name="categories" type="categories" showPath="true" multiple="true" default="0" layout="joomla.form.field.list-fancy-select" label="Categories" description="" header="COM_ALFA_FORM_CATEGORY_ALL"/>
+
       <field
-              name="tax_rules"
-              type="subform"
-              label="COM_ALFA_FORM_FIELDSET_TAX_RULES"
-              description="COM_ALFA_FORM_FIELDSET_TAX_DESC"
-              multiple="true"
-              min='1'
-      >
-         <form>
-              
-             <field
-                     name="place_id"
-                     type="sql"
-                     required="false"
-                     multiple="false"
-                     default="0"
-                     label="COM_ALFA_FORM_TAXRULES_PLACE_LBL"
-                     layout="joomla.form.field.list-fancy-select"
-                     query="SELECT `id`, `name` AS val FROM `#__alfa_places`" key_field="id" value_field="val"
-                     header="COM_ALFA_FORM_PLACE_ALL"
-             />
+          name="manufacturers" type="sql"
+          input_type="list"
+          required="false"
+          multiple="true"
+          default="0"
+          label="COM_ALFA_FORM_LBL_MANUFACTURERS"
+          description="COM_ALFA_FORM_DESC_MANUFACTURERS"
+          layout="joomla.form.field.list-fancy-select"
+          query="SELECT `id`, `name` AS val FROM `#__alfa_manufacturers`" key_field="id" value_field="val"
+          header="All manufacturers"
+      /> 
 
-             <field
-                     name="category_id"
-                     type="categories"
-                     showPath="true"
-                     multiple="false"
-                     layout="joomla.form.field.list-fancy-select"
-                     label="COM_ALFA_FORM_TAXRULES_CATEGORY_LBL"
-                     description="description"
-                     header="COM_ALFA_FORM_CATEGORY_ALL"/>
+      <field
+          name="places"
+          type="sql"
+          required="false"
+          multiple="true"
+          default="0"
+          label="COM_ALFA_FORM_TAX_PLACE_LBL"
+          layout="joomla.form.field.list-fancy-select"
+          query="SELECT `id`, `name` AS val FROM `#__alfa_places`" key_field="id" value_field="val"
+          header="COM_ALFA_FORM_PLACE_ALL"
+      />
 
-             <field
-                     name="id"
-                     type="text"
-                     readonly="true"
-                     class="readonly"
-                     default="0"
-                     description="JGLOBAL_FIELD_ID_DESC"
-             />
+      <field
+            name="usergroups"
+            type="UserGroupList"
+            label="COM_ALFA_FORM_TAX_ALLOWEDUSERGROUPS_LBL"
+            description="COM_ALFA_FORM_TAX_ALLOWEDUSERGROUPS_DESC"
+            layout="joomla.form.field.list-fancy-select"
+            multiple="true"
+            checksuperusergroup="1"
+            default="8"
+            header="All User Groups"
+      />
 
-         </form>
-      </field>
+      <field 
+          name="users" type="sql"
+          input_type="list"
+          required="false"
+          multiple="true"
+          label="COM_ALFA_FORM_TAX_ALLOWEDUSERS_LBL"
+          description="COM_ALFA_FORM_TAX_ALLOWEDUSERS_DESC"
+          layout="joomla.form.field.list-fancy-select"
+          query="SELECT `id`, `name` FROM `#__users`" key_field="id" value_field="name"
+      />
+
+      
   </fieldset>
 </form>

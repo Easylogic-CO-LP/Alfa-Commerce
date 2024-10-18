@@ -147,6 +147,5 @@ class HtmlView extends BaseHtmlView
         if(!in_array($breadcrumbTitle, $pathway->getPathwayNames())) {
             $pathway->addItem($breadcrumbTitle);
         }
-
     }
 }

@@ -21,6 +21,7 @@ use \Joomla\Database\ParameterType;
 use \Joomla\Utilities\ArrayHelper;
 use \Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use \Alfa\Component\Alfa\Site\Helper\ProductHelper;
+use \Alfa\Component\Alfa\Site\Helper\PriceCalculator;
 
 /**
  * Methods supporting a list of Alfa records.
@@ -173,6 +174,18 @@ class ItemsModel extends ListModel
             }
         }
 
+        $category_filter = $this->getState('filter.category_id');
+        // TODO: gia na mas deixnei ta proionta kathgoriwn kai upokathgoriwn tha prepei na einai sto category_filter to array olwn autwn
+        if (!empty($category_filter)) {
+            if (is_array($category_filter)) {
+                // If category_filter is an array, join it as a comma-separated list for the query
+                $query->where('cat.category_id IN (' . implode(',', $category_filter) . ')');
+            } else {
+                // If category_filter is a single value
+                $query->where('cat.category_id = ' . (int) $category_filter);
+            }
+        }
+
 
         // Add the list ordering clause.
         $orderCol = $this->state->get('list.ordering', 'a.id');
@@ -213,8 +226,15 @@ class ItemsModel extends ListModel
 
         // $pricesMapping = $this->getRecordsByIds($allPriceIds, '#__alfa_items_prices', ['value']);
 
+        $quantity = 1;
+        $userGroupId = 1;
+        $currencyId = 1;
+
         // Assign mapped names to items
         foreach ($items as $item) {
+            $priceCalculator = new PriceCalculator($item->id, $quantity, $userGroupId, $currencyId);
+            $item->price = $priceCalculator->calculatePrice();
+
             $item->categories = $this->mapIdsToNames($item->category_ids, $categoriesMapping);
             $item->manufacturers = $this->mapIdsToNames($item->manufacturer_ids, $manufacturersMapping);
             

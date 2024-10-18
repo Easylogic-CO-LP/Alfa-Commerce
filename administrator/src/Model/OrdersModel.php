@@ -41,13 +41,11 @@ class OrdersModel extends ListModel
 		{
 			$config['filter_fields'] = array(
 				'id', 'a.id',
-				'state', 'a.state',
-				'ordering', 'a.ordering',
-				'created_by', 'a.created_by',
-				'modified_by', 'a.modified_by',
-				'currency', 'a.currency',
-				'payment', 'a.payment',
-				'total', 'a.total',
+				'a.original_price',
+				'a.shipping_tracking_number',
+				'a.created',
+				'user_name',
+                'item_name'
 			);
 		}
 
@@ -111,7 +109,7 @@ class OrdersModel extends ListModel
 	{
 		// Compile the store id.
 		$id .= ':' . $this->getState('filter.search');
-		$id .= ':' . $this->getState('filter.state');
+		// $id .= ':' . $this->getState('filter.state');
 
 		
 		return parent::getStoreId($id);
@@ -148,21 +146,28 @@ class OrdersModel extends ListModel
 		$query->join('LEFT', '#__users AS `created_by` ON `created_by`.id = a.`created_by`');
 
 		// Join over the user field 'modified_by'
-		$query->select('`modified_by`.name AS `modified_by`');
+		$query->select('`modified_by` AS `modified_by`');
 		$query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
-		
 
-		// Filter by published state
-		$published = $this->getState('filter.state');
+		 $query->select('oui.name AS user_name');
+         $query->join('LEFT', '#__alfa_order_user_info AS oui ON oui.id_order= a.id');
 
-		if (is_numeric($published))
-		{
-			$query->where('a.state = ' . (int) $published);
-		}
-		elseif (empty($published))
-		{
-			$query->where('(a.state IN (0, 1))');
-		}
+         $query->select('oi.name AS item_name');
+         $query->join('LEFT', '#__alfa_order_items AS oi ON oi.id = a.id');
+
+
+
+        // Filter by published state
+		// $published = $this->getState('filter.state');
+
+		// if (is_numeric($published))
+		// {
+		// 	$query->where('a.state = ' . (int) $published);
+		// }
+		// elseif (empty($published))
+		// {
+		// 	$query->where('(a.state IN (0, 1))');
+		// }
 
 		// Filter by search in title
 		$search = $this->getState('filter.search');

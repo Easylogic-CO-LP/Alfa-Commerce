@@ -82,7 +82,7 @@ class PriceCalculator
         
         // Apply discounts
 
-        $productDiscounts = $this->findDiscounts();
+        // $productDiscounts = $this->findDiscounts();
 
         // apply the tax
         $productTaxes = $this->findTaxes();
@@ -168,20 +168,21 @@ class PriceCalculator
     // TODO: FOR ALL CATEGORIES ALSO IF NOTHING IS SELECTED
     protected function findDiscounts()
     {
-        $db = $this->db;
-        $productId = $this->productId;
-        //Briskoume se poies kathgories anhkei to proion apo to product id kai ton pinaka #_alfa_items_categories
+        return [];
+        // $db = $this->db;
+        // $productId = $this->productId;
+        // //Briskoume se poies kathgories anhkei to proion apo to product id kai ton pinaka #_alfa_items_categories
 
-        $query = $db->getQuery(true);
-        $query
-            ->select('dc.discount_id')
-            ->from('#__alfa_discounts_categories AS dc')
-            ->join('LEFT', '#__alfa_items_categories AS ic ON dc.category_id = ic.category_id OR dc.category_id = 0')
-            ->where('ic.item_id = ' . $db->quote($productId));
+        // $query = $db->getQuery(true);
+        // $query
+        //     ->select('dc.discount_id')
+        //     ->from('#__alfa_discounts_categories AS dc')
+        //     ->join('LEFT', '#__alfa_items_categories AS ic ON dc.category_id = ic.category_id OR dc.category_id = 0')
+        //     ->where('ic.item_id = ' . $db->quote($productId));
         
-        $db->setQuery($query);
+        // $db->setQuery($query);
 
-        $discountIdsCategories= $db->loadColumn();
+        // $discountIdsCategories= $db->loadColumn();
 
 
 //        echo 'DISCOUNT IDS FROM CATEGORIES OF PRODUCT<pre>';
@@ -190,15 +191,15 @@ class PriceCalculator
 
         //Briskoume se poious kataskeuastes anhkei to proion apo to product id kai ton pinaka #_alfa_items_manufacturers
 
-        $query= $db->getQuery(true);
-        $query
-            ->select('dm.discount_id')
-            ->from('#__alfa_discounts_manufacturers AS dm')
-            ->join('LEFT', '#__alfa_items_manufacturers AS im ON dm.manufacturer_id = im.manufacturer_id OR dm.manufacturer_id = 0')
-            ->where('im.item_id = ' . $db->quote($productId));
-        $db->setQuery($query);
+        // $query= $db->getQuery(true);
+        // $query
+        //     ->select('dm.discount_id')
+        //     ->from('#__alfa_discounts_manufacturers AS dm')
+        //     ->join('LEFT', '#__alfa_items_manufacturers AS im ON dm.manufacturer_id = im.manufacturer_id OR dm.manufacturer_id = 0')
+        //     ->where('im.item_id = ' . $db->quote($productId));
+        // $db->setQuery($query);
 
-        $discountIdsManufacturers= $db->loadColumn();
+        // $discountIdsManufacturers= $db->loadColumn();
 //        echo 'DISCOUNT IDS FROM MANUFACTURERS OF PRODUCT<pre>';
 //        print_r($discountIdsManufacturers);
 //        echo '</pre>';
@@ -209,7 +210,7 @@ class PriceCalculator
 // idsToGet = 2,3
 
         //kratame mono ta koina
-         $idsToGet=array_intersect($discountIdsManufacturers, $discountIdsCategories);
+         // $idsToGet=array_intersect($discountIdsManufacturers, $discountIdsCategories);
 //        echo'<pre>';
 //        print_r($idsToGet);
 //        echo '</pre>';
@@ -220,39 +221,39 @@ class PriceCalculator
 
         // try {
         
-        $query = $db->getQuery(true);
-        $query
-            ->select('value,behavior,is_amount')
-            ->from('#__alfa_discounts')
-            ->whereIn('id', $idsToGet);
+        // $query = $db->getQuery(true);
+        // $query
+        //     ->select('value,behavior,is_amount')
+        //     ->from('#__alfa_discounts')
+        //     ->whereIn('id', $idsToGet);
 
-        $db->setQuery($query);
-        $discounts = $db->loadObjectList();
+        // $db->setQuery($query);
+        // $discounts = $db->loadObjectList();
 
         // } catch
         // (\Exception $e) {
         //     echo $e->getCode() . ' ' . $e->getMessage();
         // }
 
-        $discounts_array = [0];//define the first discount by default to 0 so the for loop work fine if the first rule has behavior one after another
+        // $discounts_array = [0];//define the first discount by default to 0 so the for loop work fine if the first rule has behavior one after another
 
-        foreach($discounts as $da){
-            if(empty($da->value)){continue;}
+        // foreach($discounts as $da){
+        //     if(empty($da->value)){continue;}
 
-            // $discountObject = new \stdClass();
-            // $discountObject->value = 0;
-            // $discountObject->behavior = 0;
-            // $discountObject->is_amount = 0;
+        //     // $discountObject = new \stdClass();
+        //     // $discountObject->value = 0;
+        //     // $discountObject->behavior = 0;
+        //     // $discountObject->is_amount = 0;
 
-            if($da->behavior=='0'){//only this tax
-                $discounts_array[0] = $da->value;
-                break;
-            }else if($da->behavior=='1'){//combined   10%,2%    $calculated_tax_value = 12%
-                $discounts_array[0] += $da->value;
-            }else if($da->behavior=='2'){//one after another 10%,2%    $calculated_tax_value = price*10% + price*2%
-                $discounts_array[] = $da->value;
-            }
-        }
+        //     if($da->behavior=='0'){//only this tax
+        //         $discounts_array[0] = $da->value;
+        //         break;
+        //     }else if($da->behavior=='1'){//combined   10%,2%    $calculated_tax_value = 12%
+        //         $discounts_array[0] += $da->value;
+        //     }else if($da->behavior=='2'){//one after another 10%,2%    $calculated_tax_value = price*10% + price*2%
+        //         $discounts_array[] = $da->value;
+        //     }
+        // }
 
 
         return $discount_array;
@@ -264,56 +265,41 @@ class PriceCalculator
     // Find tax for the current product
     protected function findTaxes()
     {
+        
+        
         $db = $this->db;
         $productId = $this->productId;
-        //Briskoume se poies kathgories anhkei to proion apo to product id kai ton pinaka #_alfa_items_categories
-
-/*
-        $query = $db->getQuery(true);
-        $query
-            ->select('category_id')
-            ->from('#__alfa_items_categories')
-            ->where('item_id = ' . $db->quote($productId));
-        $db->setQuery($query);
-
-        $categoriesArray = $db->loadColumn();
-        $categoriesArray[] = 0; //0 means for All categories so the product cannot exist in this so to get the taxRules for all categories by adding 0
-
-        //pernoume th plhroforia apo ton #__tax_rules simfwna me to category pou brisketai to proion
-        $query = $db->getQuery(true);
-        $query
-            ->select('tax_id')
-            ->from('#__alfa_tax_rules')
-            ->whereIn('category_id', $categoriesArray)
-            ->group('tax_id');
-        $db->setQuery($query);
-
-        $taxesArray = $db->loadColumn();
-       
-
-        //epistrefoume to value apo ton #__taxes opou to id einai to tax_id pou brikame apo ton tax_rules
-        $query = $db->getQuery(true);
-        $query
-            ->select('id,value,behavior')
-            ->from('#__alfa_taxes')
-            ->where('state = 1')
-            ->whereIn('id' , $taxesArray);
-        $db->setQuery($query);
-*/
 
         $query = $db->getQuery(true);
+
         $query
             ->select('t.id, t.value, t.behavior')
             ->from('#__alfa_taxes AS t')
-            ->join('INNER', '#__alfa_tax_rules AS tr ON t.id = tr.tax_id')
-            ->join('LEFT', '#__alfa_items_categories AS ic ON tr.category_id = ic.category_id')
-            ->where('ic.item_id = ' . $db->quote($productId) . ' OR tr.category_id = 0')
+            
+            // Join tax tables
+            ->join('LEFT', '#__alfa_tax_categories AS tc ON tc.tax_id = t.id')
+            ->join('LEFT', '#__alfa_tax_manufacturers AS tm ON tm.tax_id = t.id')
+            ->join('LEFT', '#__alfa_tax_usergroups AS tu ON tu.tax_id = t.id')
+            ->join('LEFT', '#__alfa_tax_users AS tg ON tg.tax_id = t.id')
+            
+            // Join item tables to match categories, manufacturers, places, etc. based on item_id
+            ->join('LEFT', '#__alfa_items_categories AS ic ON ic.category_id = tc.category_id')
+            ->join('LEFT', '#__alfa_items_manufacturers AS im ON im.manufacturer_id = tm.manufacturer_id')
+            ->join('LEFT', '#__alfa_items_usergroups AS iug ON iug.usergroup_id = tu.usergroup_id')
+            ->join('LEFT', '#__alfa_items_users AS iu ON iu.user_id = tg.user_id')
+
+            // Apply conditions to check if the item matches the category, manufacturer, place, or usergroup
+            ->where('(ic.item_id = ' . $db->quote($productId) . ' OR tc.category_id = 0)')
+            ->where('(im.item_id = ' . $db->quote($productId) . ' OR tm.manufacturer_id = 0)')
+            ->where('(iug.item_id = ' . $db->quote($productId) . ' OR tu.usergroup_id = 0)')
+            ->where('(iu.item_id = ' . $db->quote($productId) . ' OR tg.user_id = 0)')
+
+            // Only active taxes
             ->where('t.state = 1');
 
         $db->setQuery($query);
-
-
         $taxes = $db->loadObjectList();
+
         $tax_value_array = [0];//define the first tax by default to 0 so the for loop work fine if the first rule has behavior one after another
 
         foreach($taxes as $tax){
@@ -381,8 +367,8 @@ class PriceCalculator
 
     protected function applyDiscounts(){
 
-        $db = $this->db;
-        $productId = $this->productId;
+        // $db = $this->db;
+        // $productId = $this->productId;
 
 
 
@@ -395,21 +381,21 @@ class PriceCalculator
 //        $db->setQuery($query);
 //        $val = $db->loadColumn();
 
-        $query = $db->getQuery(true);
-        $query
-            ->select('modify_type')
-            ->from('#__alfa_discounts')
-            ->where('id = ' . $db->quote($productId));
+        // $query = $db->getQuery(true);
+        // $query
+        //     ->select('modify_type')
+        //     ->from('#__alfa_discounts')
+        //     ->where('id = ' . $db->quote($productId));
 
 
 
-        $db->setQuery($query);
-        $type = $db->loadColumn();
+        // $db->setQuery($query);
+        // $type = $db->loadColumn();
 
-        echo'<pre>';
-        print_r($productId);
-        echo '</pre>';
-        exit;
+        // echo'<pre>';
+        // print_r($productId);
+        // echo '</pre>';
+        // exit;
 
 
 

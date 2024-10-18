@@ -20,7 +20,6 @@ use \Joomla\CMS\Helper\TagsHelper;
 use \Joomla\CMS\Object\CMSObject;
 use \Joomla\CMS\User\UserFactoryInterface;
 use \Alfa\Component\Alfa\Site\Helper\AlfaHelper;
-use \Alfa\Component\Alfa\Site\Helper\ProductHelper;
 use \Alfa\Component\Alfa\Site\Helper\PriceCalculator;
 use \Joomla\Database\ParameterType;
 

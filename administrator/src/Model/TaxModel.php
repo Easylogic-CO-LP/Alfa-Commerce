@@ -19,6 +19,7 @@ use \Joomla\CMS\MVC\Model\AdminModel;
 use \Joomla\CMS\Helper\TagsHelper;
 use \Joomla\CMS\Filter\OutputFilter;
 use \Joomla\CMS\Event\Model;
+use \Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 
 /**
  * Tax model.
@@ -143,7 +144,14 @@ class TaxModel extends AdminModel
 			if ($item = parent::getItem($pk))
 			{
 				
-                $item->tax_rules = $this->getTaxRules($item->id);//id για το getTaxRules
+				$item->categories = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_tax_categories', 'tax_id','category_id');
+				$item->manufacturers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_tax_manufacturers', 'tax_id','manufacturer_id');
+				$item->places = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_tax_places', 'tax_id','place_id');
+
+	            $item->users = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_tax_users', 'tax_id','user_id');
+            	$item->usergroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_tax_usergroups', 'tax_id','usergroup_id');
+
+                // $item->tax_rules = $this->getTaxRules($item->id);//id για το getTaxRules
 			
 			}
 
@@ -183,93 +191,101 @@ class TaxModel extends AdminModel
             $currentId = intval($this->getState($this->getName().'.id'));//get the id from setted joomla state
         }
 
-        print_r($data['tax_rules']);
-        exit;
-      	$this->setTaxRules($currentId,$data['tax_rules']);
+        $assignZeroIdIfDataEmpty = true;
+		AlfaHelper::setAssocsToDb($data['id'], $data['categories'], '#__alfa_tax_categories', 'tax_id','category_id',$assignZeroIdIfDataEmpty);
+		AlfaHelper::setAssocsToDb($data['id'], $data['manufacturers'], '#__alfa_tax_manufacturers', 'tax_id','manufacturer_id',$assignZeroIdIfDataEmpty);
+		AlfaHelper::setAssocsToDb($data['id'], $data['places'], '#__alfa_tax_places', 'tax_id','place_id',$assignZeroIdIfDataEmpty);
+
+		AlfaHelper::setAssocsToDb($data['id'], $data['users'], '#__alfa_tax_users', 'tax_id','user_id',$assignZeroIdIfDataEmpty);
+		AlfaHelper::setAssocsToDb($data['id'], $data['usergroups'], '#__alfa_tax_usergroups','tax_id', 'usergroup_id',$assignZeroIdIfDataEmpty);
+
+        // print_r($data['tax_rules']);
+        // exit;
+      	// $this->setTaxRules($currentId,$data['tax_rules']);
 
         return true;
     }
 
-    public function getTaxRules($tax_id){
-        $tax_id = intval($tax_id);
-        if($tax_id <= 0) {
-            return [];
-        }
+    // public function getTaxRules($tax_id){
+    //     $tax_id = intval($tax_id);
+    //     if($tax_id <= 0) {
+    //         return [];
+    //     }
 
-         //Get the database object
-        $db = $this->getDatabase();
+    //      //Get the database object
+    //     $db = $this->getDatabase();
 
-        // Build the query to select all relevant fields
-        $query = $db->getQuery(true);
-        $query
-            ->select('*')
-            ->from('#__alfa_tax_rules')
-            ->where('tax_id = ' . $db->quote($tax_id));
+    //     // Build the query to select all relevant fields
+    //     $query = $db->getQuery(true);
+    //     $query
+    //         ->select('*')
+    //         ->from('#__alfa_tax_rules')
+    //         ->where('tax_id = ' . $db->quote($tax_id));
 
-        // Execute the query
-        $db->setQuery($query);
+    //     // Execute the query
+    //     $db->setQuery($query);
 
-        // Return the result as an associative array
-        return $db->loadAssocList();
-    }
+    //     // Return the result as an associative array
+    //     return $db->loadAssocList();
+    // }
 
-    public function setTaxRules($tax_id, $taxes){
+    // public function setTaxRules($tax_id, $taxes){
 
-        if (!is_array($taxes) || $tax_id<=0) {
-            return false;
-        }
+    //     if (!is_array($taxes) || $tax_id<=0) {
+    //         return false;
+    //     }
 
-        $db = $this->getDatabase();
+    //     $db = $this->getDatabase();
 
-        //Get all existing tax IDs for the product
-        $query = $db->getQuery(true);
-        $query->select('id')
-            ->from('#__alfa_tax_rules')
-            ->where('tax_id = ' . intval($tax_id));
-        $db->setQuery($query);
-        $existingTaxIds = $db->loadColumn();  // Array of existing tax IDs
+    //     //Get all existing tax IDs for the product
+    //     $query = $db->getQuery(true);
+    //     $query->select('id')
+    //         ->from('#__alfa_tax_rules')
+    //         ->where('tax_id = ' . intval($tax_id));
+    //     $db->setQuery($query);
+    //     $existingTaxIds = $db->loadColumn();  // Array of existing tax IDs
 
-        //Extract incoming IDs from the $taxes array
-        $incomingIds = array();
-        foreach ($taxes as $tax) {
-            if (isset($tax['id']) && intval($tax['id']) > 0) {//not those except new with id 0
-                $incomingIds[] = intval($tax['id']);
-            }
-        }
+    //     //Extract incoming IDs from the $taxes array
+    //     $incomingIds = array();
+    //     foreach ($taxes as $tax) {
+    //         if (isset($tax['id']) && intval($tax['id']) > 0) {//not those except new with id 0
+    //             $incomingIds[] = intval($tax['id']);
+    //         }
+    //     }
 
-        //  //Find differences
-        $idsToDelete = array_diff($existingTaxIds, $incomingIds);
+    //     //  //Find differences
+    //     $idsToDelete = array_diff($existingTaxIds, $incomingIds);
 
-        //  Delete records that are no longer present in incoming taxes array
-        if (!empty($idsToDelete)) {
-            $query = $db->getQuery(true);
-            $query->delete('#__alfa_tax_rules')->whereIn('id', $idsToDelete);
-            $db->setQuery($query);
-            $db->execute();
-        }
+    //     //  Delete records that are no longer present in incoming taxes array
+    //     if (!empty($idsToDelete)) {
+    //         $query = $db->getQuery(true);
+    //         $query->delete('#__alfa_tax_rules')->whereIn('id', $idsToDelete);
+    //         $db->setQuery($query);
+    //         $db->execute();
+    //     }
 
-       foreach ($taxes as $tax) {
+    //    foreach ($taxes as $tax) {
 
-           $taxObject = new \stdClass();
-           $taxObject->id = isset($tax['id']) ? intval($tax['id']) : 0;
-           $taxObject->tax_id = $tax_id;
-           $taxObject->place_id     = isset($tax['place_id']) ? intval($tax['place_id']) : 0;
-           $taxObject->category_id   = isset($tax['category_id']) ? intval($tax['category_id']) : 0;
+    //        $taxObject = new \stdClass();
+    //        $taxObject->id = isset($tax['id']) ? intval($tax['id']) : 0;
+    //        $taxObject->tax_id = $tax_id;
+    //        $taxObject->place_id     = isset($tax['place_id']) ? intval($tax['place_id']) : 0;
+    //        $taxObject->category_id   = isset($tax['category_id']) ? intval($tax['category_id']) : 0;
 
-            $query = $db->getQuery(true);
+    //         $query = $db->getQuery(true);
 
-            if ($taxObject->id > 0 && in_array($taxObject->id, $existingTaxIds)) {
-                $updateNulls = true;
-                $db->updateObject('#__alfa_tax_rules', $taxObject, 'id', $updateNulls);
-            }else{
-                $db->insertObject('#__alfa_tax_rules', $taxObject);
-            }
+    //         if ($taxObject->id > 0 && in_array($taxObject->id, $existingTaxIds)) {
+    //             $updateNulls = true;
+    //             $db->updateObject('#__alfa_tax_rules', $taxObject, 'id', $updateNulls);
+    //         }else{
+    //             $db->insertObject('#__alfa_tax_rules', $taxObject);
+    //         }
 
-        }
+    //     }
 
-        return true;
+    //     return true;
 
-    }
+    // }
 
 
     // TODO: ON DELETE TO DELETE ALSO THE TAX_RULES ASSOCIATED WITH OR DO IT WITH REFERENCE TABLE #__tax id AUTOMATICALLY IN SQL
