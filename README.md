@@ -5,7 +5,7 @@
 Welcome to alfa-commerce, the smartest, fastest, and easiest eCommerce solution for Joomla developed by Easylogic.
 This project is currently in its Pre-alpha phase, with rapid developments underway to provide an optimized eCommerce experience.
 
-While we are still in the pre-alpha phase, the foundation is being actively built and tested.
+While we are still in the pre-alpha phase, the core is being actively built and tested.
 
 🛠️ Installation (Pre-alpha Testing)
 
