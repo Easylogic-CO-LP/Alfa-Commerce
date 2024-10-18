@@ -77,7 +77,9 @@ class CartController extends BaseController
 
         $quantity = $input->getInt('quantity', 1);
         $itemId = $input->getInt('item_id', 0);
-
+        $currencyId=0;
+        $userGroupId=0;
+        
         $calculator = new PriceCalculator($itemId, $quantity, $userGroupId, $currencyId);
 
         // Calculate price
