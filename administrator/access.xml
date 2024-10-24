@@ -9,5 +9,4 @@
 		<action name="core.edit.state" title="JACTION_EDITSTATE" description="JACTION_EDITSTATE" />
 		<action name="core.edit.own" title="JACTION_EDITOWN" description="JACTION_EDITOWN" />
 	</section>
-    
 </access>

@@ -149,16 +149,17 @@ class OrdersModel extends ListModel
 		$query->select('`modified_by` AS `modified_by`');
 		$query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
 
-		 $query->select('oui.name AS user_name');
-         $query->join('LEFT', '#__alfa_order_user_info AS oui ON oui.id_order= a.id');
+		$query->select('oui.name AS user_name');
+		$query->join('LEFT', '#__alfa_order_user_info AS oui ON oui.id_order= a.id');
 
-         $query->select('oi.name AS item_name');
-         $query->join('LEFT', '#__alfa_order_items AS oi ON oi.id = a.id');
+		// $query->select('oi.name AS item_name');
+		// $query->join('LEFT', '#__alfa_order_items AS oi ON oi.id = a.id');
 
+        $orderStatusFilter = $this->getState('filter.order_status');
 
-
-        // Filter by published state
-		// $published = $this->getState('filter.state');
+        if(!empty($orderStatusFilter)){
+        	$query->where('a.id_order_status = ' . (int) $orderStatusFilter);
+        }
 
 		// if (is_numeric($published))
 		// {
@@ -184,7 +185,6 @@ class OrdersModel extends ListModel
 				
 			}
 		}
-		
 		// Add the list ordering clause.
 		$orderCol  = $this->state->get('list.ordering', "a.id");
 		$orderDirn = $this->state->get('list.direction', "ASC");
@@ -193,7 +193,6 @@ class OrdersModel extends ListModel
 		{
 			$query->order($db->escape($orderCol . ' ' . $orderDirn));
 		}
-
 		return $query;
 	}
 
@@ -205,7 +204,6 @@ class OrdersModel extends ListModel
 	public function getItems()
 	{
 		$items = parent::getItems();
-		
 
 		return $items;
 	}

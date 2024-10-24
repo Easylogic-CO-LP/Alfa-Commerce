@@ -1,3 +1,5 @@
+/* item prices subform */
+
 .prices-subform .subform-repeatable-group{
     display: flex;
     flex-wrap: wrap;
@@ -9,6 +11,22 @@
 }
 
 .prices-subform .control-label{
+    padding: 0;
+    margin: 0 5px;
+}
+
+/* order items subform */
+.order-items-subform .subform-repeatable-group{
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.order-items-subform .control-group{
+    display: flex;
+    flex-direction: column;
+}
+
+.order-items-subform .control-label{
     padding: 0;
     margin: 0 5px;
 }

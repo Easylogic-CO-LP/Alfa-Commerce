@@ -10,9 +10,9 @@
     <version>1.0.2</version>
     <description>The smartest,fastest and easiest ecommerce solution for companies developed with love by Easylogic.</description>
     <namespace path="src">Alfa\Component\Alfa</namespace>
-    
+
     <scriptfile>script.php</scriptfile>
-    
+
     <install> <!-- Runs on install -->
         <sql>
             <file driver="mysql" charset="utf8">sql/install.mysql.utf8.sql</file>
@@ -52,12 +52,14 @@
     <administration>
         <menu>COM_ALFA</menu>
         <submenu>
-            
+
             <menu link="option=com_alfa&amp;view=categories" view="categories" alt="Alfa/Categories">COM_ALFA_TITLE_CATEGORIES</menu>
 
             <menu link="option=com_alfa&amp;view=items" view="items" alt="Alfa/Items">COM_ALFA_TITLE_ITEMS</menu>
 
             <menu link="option=com_alfa&amp;view=orders" view="orders" alt="Alfa/Orders">COM_ALFA_TITLE_ORDERS</menu>
+
+            <menu link="option=com_alfa&amp;view=orderstatuses" view="orderstatuses" alt="Alfa/Orderstatuses">COM_ALFA_TITLE_ORDER_STATUSES</menu>
 
             <menu link="option=com_alfa&amp;view=coupons" view="coupons" alt="Alfa/Coupons">COM_ALFA_TITLE_COUPONS</menu>
 
@@ -68,16 +70,16 @@
             <menu link="option=com_alfa&amp;view=customs" view="customs" alt="Alfa/Customs">COM_ALFA_TITLE_CUSTOMS</menu>
 
 			<menu link="option=com_alfa&amp;view=manufacturers" view="manufacturers" alt="Alfa/Manufacturers">COM_ALFA_TITLE_MANUFACTURERS</menu>
-			
+
 			<menu link="option=com_alfa&amp;view=shipments" view="shipments" alt="Alfa/Shipments">COM_ALFA_TITLE_SHIPMENTS</menu>
 
             <menu link="option=com_alfa&amp;view=payments" view="payments" alt="Alfa/Payments">COM_ALFA_TITLE_PAYMENTS</menu>
 
-		<menu link="option=com_alfa&amp;view=taxes" view="taxes" alt="Alfa/Taxes">COM_ALFA_TITLE_TAXES</menu>
+		    <menu link="option=com_alfa&amp;view=taxes" view="taxes" alt="Alfa/Taxes">COM_ALFA_TITLE_TAXES</menu>
 
-        <menu link="option=com_alfa&amp;view=discounts" view="discounts" alt="Alfa/Discounts">COM_ALFA_TITLE_DISCOUNTS</menu>
-         
-		<menu link="option=com_alfa&amp;view=places" view="places" alt="Alfa/Places">COM_ALFA_TITLE_PLACES</menu>
+            <menu link="option=com_alfa&amp;view=discounts" view="discounts" alt="Alfa/Discounts">COM_ALFA_TITLE_DISCOUNTS</menu>
+
+		    <menu link="option=com_alfa&amp;view=places" view="places" alt="Alfa/Places">COM_ALFA_TITLE_PLACES</menu>
 
 			<menu link="option=com_alfa&amp;view=currencies" view="currencies" alt="Alfa/Currencies">COM_ALFA_TITLE_CURRENCIES</menu>
 
@@ -96,7 +98,7 @@
             <folder>sql</folder>
         </files>
         <languages folder="administrator/languages">
-            
+
 			<language tag="en-GB">en-GB/com_alfa.ini</language>
 			<language tag="en-GB">en-GB/com_alfa.sys.ini</language>
         </languages>

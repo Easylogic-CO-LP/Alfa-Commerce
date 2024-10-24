@@ -26,7 +26,7 @@ class HtmlView extends BaseHtmlView
 {
 	protected $state;
 
-	protected $item;
+	protected $order;
 
 	protected $form;
 
@@ -42,7 +42,7 @@ class HtmlView extends BaseHtmlView
 	public function display($tpl = null)
 	{
 		$this->state = $this->get('State');
-		$this->item  = $this->get('Item');
+		$this->order  = $this->get('Item');
 		$this->form  = $this->get('Form');
 
 		// Check for errors.
@@ -67,11 +67,11 @@ class HtmlView extends BaseHtmlView
 		Factory::getApplication()->input->set('hidemainmenu', true);
 
 		$user  = Factory::getApplication()->getIdentity();
-		$isNew = ($this->item->id == 0);
+		$isNew = ($this->order->id == 0);
 
-		if (isset($this->item->checked_out))
+		if (isset($this->order->checked_out))
 		{
-			$checkedOut = !($this->item->checked_out == 0 || $this->item->checked_out == $user->get('id'));
+			$checkedOut = !($this->order->checked_out == 0 || $this->order->checked_out == $user->get('id'));
 		}
 		else
 		{
@@ -102,7 +102,7 @@ class HtmlView extends BaseHtmlView
 
 		
 
-		if (empty($this->item->id))
+		if (empty($this->order->id))
 		{
 			ToolbarHelper::cancel('order.cancel', 'JTOOLBAR_CANCEL');
 		}
