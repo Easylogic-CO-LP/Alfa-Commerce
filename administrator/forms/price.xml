@@ -1,163 +1,163 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <form>
-    <field 
-      hiddenLabel="true"
-      parentclass="price-field col-12 mb-0"
-      name="value" 
-      type="number"
-      required="false"
-      label="COM_ALFA_FORM_PRICE"
-      description="COM_ALFA_FORM_FIELDSET_PRICE_DESC"
+    <field
+            hiddenLabel="true"
+            parentclass="price-field col-12 mb-0"
+            name="value"
+            type="number"
+            required="false"
+            label="COM_ALFA_FORM_PRICE"
+            description="COM_ALFA_FORM_FIELDSET_PRICE_DESC"
     />
 
     <field
-      parentclass="price-currency-value col-lg-3 pe-3 mb-0"
-      name="currency_id" 
-      type="sql"
-      input_type="list"
-      required="false"
-      multiple="false"
-      label="COM_ALFA_FORM_CURRENCIES"
-      description="COM_ALFA_FORM_CURRENCIES_DESC"
-      layout="joomla.form.field.list-fancy-select"
-      query="SELECT `id`, `name` AS val FROM `#__alfa_currencies`" key_field="id" value_field="val"
-      header="All currencies"
+            parentclass="price-currency-value col-lg-3 pe-3 mb-0"
+            name="currency_id"
+            type="sql"
+            input_type="list"
+            required="false"
+            multiple="false"
+            label="COM_ALFA_FORM_CURRENCIES"
+            description="COM_ALFA_FORM_CURRENCIES_DESC"
+            layout="joomla.form.field.list-fancy-select"
+            query="SELECT `id`, `name` AS val FROM `#__alfa_currencies`" key_field="id" value_field="val"
+            header="All currencies"
     />
-        
-      <field
-        parentclass="price-country-field col-lg-3 pe-3 mb-0"
-        name="country_id" type="sql"
-        input_type="list"
-        required="false"
-        multiple="false"
-        label="COM_ALFA_FORM_COUNTRIES"
-        description="COM_ALFA_FORM_COUNTRIES_DESC"
-        layout="joomla.form.field.list-fancy-select"
-        query="SELECT `id`, `name` AS val FROM `#__alfa_places`" key_field="id" value_field="val"
-        header="All countries"
-      />
 
-        <field
-          parentclass="price-usergroup-field col-lg-3 pe-3 mb-0"
-          name="usergroup_id"
-          type="UserGroupList"
-          label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_LBL"
-          description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_DESC"
-          layout="joomla.form.field.list-fancy-select"
-          multiple="false"
-          checksuperusergroup="1"
-          default="8"
-          header="All User Groups"
-        />
+    <field
+            parentclass="price-country-field col-lg-3 pe-3 mb-0"
+            name="country_id" type="sql"
+            input_type="list"
+            required="false"
+            multiple="false"
+            label="COM_ALFA_FORM_COUNTRIES"
+            description="COM_ALFA_FORM_COUNTRIES_DESC"
+            layout="joomla.form.field.list-fancy-select"
+            query="SELECT `id`, `name` AS val FROM `#__alfa_places`" key_field="id" value_field="val"
+            header="All countries"
+    />
 
-        <field 
-          parentclass="price-user-field col-lg-3 mb-0"
-          name="user_id" 
-          type="sql"
-          input_type="list"
-          required="false"
-          multiple="false"
-          label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERS_LBL"
-          description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERS_DESC"
-          layout="joomla.form.field.list-fancy-select"
-          query="SELECT `id`, `name` FROM `#__users`" key_field="id" value_field="name"
-          header="All users"
-        />
-     
+    <field
+            parentclass="price-usergroup-field col-lg-3 pe-3 mb-0"
+            name="usergroup_id"
+            type="UserGroupList"
+            label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_LBL"
+            description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_DESC"
+            layout="joomla.form.field.list-fancy-select"
+            multiple="false"
+            checksuperusergroup="1"
+            default="8"
+            header="All User Groups"
+    />
 
-      <field 
-        parentclass="price-quantity-start-field col-6 pe-3 mb-0"
-        name="quantity_start" 
-        type="number"
-        label="COM_ALFA_FORM_LBL_QUANTITY_START"
-        required="false"
-        description="COM_ALFA_FORM_LBL_QUANTITY_START_DESC"
-      />
+    <field
+            parentclass="price-user-field col-lg-3 mb-0"
+            name="user_id"
+            type="sql"
+            input_type="list"
+            required="false"
+            multiple="false"
+            label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERS_LBL"
+            description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERS_DESC"
+            layout="joomla.form.field.list-fancy-select"
+            query="SELECT `id`, `name` FROM `#__users`" key_field="id" value_field="name"
+            header="All users"
+    />
 
-      <field 
-        parentclass="price-quantity-end-field col-6 mb-0"
-        name="quantity_end" 
-        type="number"  
-        label="COM_ALFA_FORM_LBL_QUANTITY_END"
-        required="false"
-        description="COM_ALFA_FORM_LBL_QUANTITY_END_DESC"
-      />
-        
-      <field 
-        parentclass="price-publish-up-field col-6 pe-3 mb-0"
-        name="publish_up" 
-        type="calendar" 
-        showtime="true" 
-        format="%Y-%m-%d %H:%M" 
-        filter="USER_UTC"
-        label="COM_ALFA_FORM_CATEGORY_LBL_PUBLISH_UP" 
-        description="COM_ALFA_CATEGORY_PUBLISH_UP_DESC"
-      />
 
-      <field 
-        parentclass="price-publish-down-field col-6 mb-0"
-        name="publish_down" 
-        type="calendar" 
-        showtime="true" 
-        format="%Y-%m-%d %H:%M" 
-        filter="USER_UTC"
-        label="COM_ALFA_FORM_CATEGORY_LBL_PUBLISH_DOWN" 
-        description="COM_ALFA_CATEGORY_PUBLISH_DOWN_DESC"
-      />
-    
-    <field 
-        parentclass="price-modify-field col-lg-4 pe-3 mb-0"
-        class="btn-group"
-        name="modify"
-        type="radio"
-        label="COM_ALFA_FORM_LBL_MODIFY"
-        default="1"
-        >
+    <field
+            parentclass="price-quantity-start-field col-6 pe-3 mb-0"
+            name="quantity_start"
+            type="number"
+            label="COM_ALFA_FORM_LBL_QUANTITY_START"
+            required="false"
+            description="COM_ALFA_FORM_LBL_QUANTITY_START_DESC"
+    />
+
+    <field
+            parentclass="price-quantity-end-field col-6 mb-0"
+            name="quantity_end"
+            type="number"
+            label="COM_ALFA_FORM_LBL_QUANTITY_END"
+            required="false"
+            description="COM_ALFA_FORM_LBL_QUANTITY_END_DESC"
+    />
+
+    <field
+            parentclass="price-publish-up-field col-6 pe-3 mb-0"
+            name="publish_up"
+            type="calendar"
+            showtime="true"
+            format="%Y-%m-%d %H:%M"
+            filter="USER_UTC"
+            label="COM_ALFA_FORM_CATEGORY_LBL_PUBLISH_UP"
+            description="COM_ALFA_CATEGORY_PUBLISH_UP_DESC"
+    />
+
+    <field
+            parentclass="price-publish-down-field col-6 mb-0"
+            name="publish_down"
+            type="calendar"
+            showtime="true"
+            format="%Y-%m-%d %H:%M"
+            filter="USER_UTC"
+            label="COM_ALFA_FORM_CATEGORY_LBL_PUBLISH_DOWN"
+            description="COM_ALFA_CATEGORY_PUBLISH_DOWN_DESC"
+    />
+
+    <field
+            parentclass="price-modify-field col-lg-4 pe-3 mb-0"
+            class="btn-group"
+            name="modify"
+            type="radio"
+            label="COM_ALFA_FORM_LBL_MODIFY"
+            default="1"
+    >
         <option value="0">JNO</option>
         <option value="1">JYES</option>
     </field>
 
-      <field 
-        parentclass="price-modify-function-field col-lg-4 pe-3 mb-0"
-        class="btn-group"
-        name="modify_function" 
-        type="radio"
-        label="COM_ALFA_FORM_LBL_MODIFY_FUNCTION">
+    <field
+            parentclass="price-modify-function-field col-lg-4 pe-3 mb-0"
+            class="btn-group"
+            name="modify_function"
+            type="radio"
+            label="COM_ALFA_FORM_LBL_MODIFY_FUNCTION">
         <option value="add">Add</option>
         <option value="remove">Remove</option>
-      </field>
+    </field>
 
-      <field 
-        parentclass="price-modify-type-field col-lg-4 mb-0"
-        class="btn-group"
-        name="modify_type" 
-        type="radio"
-        label="COM_ALFA_FORM_LBL_MODIFY_TYPE">
+    <field
+            parentclass="price-modify-type-field col-lg-4 mb-0"
+            class="btn-group"
+            name="modify_type"
+            type="radio"
+            label="COM_ALFA_FORM_LBL_MODIFY_TYPE">
         <option value="amount">Amount</option>
         <option value="percentage">Percentage</option>
-      </field>
+    </field>
 
-    <field 
-        parentclass="price-status-field col-12 mb-0"
-        class="btn-group"
-        name="price_status"
-        type="radio"
-        label="COM_ALFA_FORM_LBL_STATUS"
-        default="1"
-         >
+    <field
+            parentclass="price-status-field col-12 mb-0"
+            class="btn-group"
+            name="price_status"
+            type="radio"
+            label="COM_ALFA_FORM_LBL_STATUS"
+            default="1"
+    >
         <option value="0">JNO</option>
         <option value="1">JYES</option>
     </field>
 
     <field
-      parentclass="price-id-field col-12 mb-0 mt-3"
-      hiddenLabel="true"
-      name="id" 
-      type="text" 
-      readonly="true" 
-      class="readonly" 
-      default="0" 
-      description="JGLOBAL_FIELD_ID_DESC"
+            parentclass="price-id-field col-12 mb-0 mt-3"
+            hiddenLabel="true"
+            name="id"
+            type="text"
+            readonly="true"
+            class="readonly"
+            default="0"
+            description="JGLOBAL_FIELD_ID_DESC"
     />
 
 </form>

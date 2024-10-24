@@ -11,7 +11,6 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use \Joomla\CMS\Table\Table;
 use \Joomla\CMS\Factory;
 use \Joomla\CMS\Language\Text;
@@ -20,6 +19,7 @@ use \Joomla\CMS\MVC\Model\AdminModel;
 use \Joomla\CMS\Helper\TagsHelper;
 use \Joomla\CMS\Filter\OutputFilter;
 use \Joomla\CMS\Event\Model;
+use \Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 
 /**
  * Place model.
@@ -123,8 +123,8 @@ class PlaceModel extends AdminModel
 
         if (!parent::save($data)){return false;}
 
-        AlfaHelper::setAllowedUsers($currentId, $data['allowedUsers'], '#__alfa_places_users', 'place_id');
-        AlfaHelper::setAllowedUserGroups($currentId, $data['allowedUserGroups'], '#__alfa_places_usergroups', 'place_id');
+        AlfaHelper::getAssocsFromDb($currentId, $data['allowedUsers'], '#__alfa_places_users', 'place_id','user_id');
+        AlfaHelper::getAssocsFromDb($currentId, $data['allowedUserGroups'], '#__alfa_places_usergroups', 'place_id','usergroup_id');
 
         return true;
 
@@ -176,8 +176,8 @@ class PlaceModel extends AdminModel
 					$item->params = json_encode($item->params);
 				}
                 // Do any procesing on fields here if needed
-                $item->allowedUsers = AlfaHelper::getAllowedUsers($item->id, '#__alfa_places_users', 'place_id');
-                $item->allowedUserGroups = AlfaHelper::getAllowedUserGroups($item->id, '#__alfa_places_usergroups', 'place_id');
+                $item->allowedUsers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_places_users', 'place_id','user_id');
+                $item->allowedUserGroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_places_usergroups', 'place_id','usergroup_id');
 			}
 
 			return $item;

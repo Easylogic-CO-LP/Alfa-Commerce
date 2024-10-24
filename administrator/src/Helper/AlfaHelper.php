@@ -140,33 +140,35 @@ class AlfaHelper
      * @param $field
      * @return void
      */
-    public static function setAssocsToDb($mainFieldId, $data, $table, $mainField, $dataField,$assignZeroIdIfDataEmpty = false)
+    public static function setAssocsToDb($mainFieldId, $data, $table, $mainField, $dataField, $assignZeroIdIfDataEmpty = false)
     {
 
         if (intval($mainFieldId) <= 0 || empty($table) || empty($mainFieldId) || empty($dataField)) {
             return false;
         }
-        
-    
+
+
         $db = Factory::getContainer()->get('DatabaseDriver');
         // save users per category on categories_users
         $query = $db->getQuery(true);
         $query->delete($db->quoteName($table))->where($db->quoteName($mainField) . ' = ' . $mainFieldId);
         $db->setQuery($query);
         $db->execute();
-        
-        if(empty($data) && $assignZeroIdIfDataEmpty){$data[0]=0;}
+
+        if (empty($data) && $assignZeroIdIfDataEmpty) {
+            $data[0] = 0;
+        }
 
         foreach ($data as $curr) {
             $query = $db->getQuery(true);
             $query->insert($db->quoteName($table))
                 ->set($db->quoteName($mainField) . ' = ' . $mainFieldId)
-                ->set($db->quoteName($dataField) .' = ' . intval($curr));
+                ->set($db->quoteName($dataField) . ' = ' . intval($curr));
             $db->setQuery($query);
             $db->execute();
         }
     }
-    
+
     /**
      * Retrieves all the assocs data from the database. Reusable for all forms that have allowed user groups as a field.
      *
@@ -175,7 +177,7 @@ class AlfaHelper
      * @param $field
      * @return mixed
      */
-    public static function getAssocsFromDb($mainFieldId, $table, $mainField,$dataField)
+    public static function getAssocsFromDb($mainFieldId, $table, $mainField, $dataField)
     {
 
         if (intval($mainFieldId) <= 0 || empty($table) || empty($mainField) || empty($dataField)) {
@@ -194,6 +196,26 @@ class AlfaHelper
 
         return $db->loadColumn();
     }
+
+    public function getOrderStatuses()
+    {
+        $db = Factory::getDbo();
+        $query = $db->getQuery(true);
+
+        $query->select('*')
+            ->from($db->quoteName('#__alfa_orders_statuses'));
+
+        $db->setQuery($query);
+        $row = $db->loadObjectList('id');
+
+        return $row;
+    }
+
+
+
+
+
+    //    FUNCTION TO BE DELETED
     /* public static function iterateNestedArray($tree, $callback, $fullPath = false, $parentNames = '')
        {
            foreach ($tree as $node) {

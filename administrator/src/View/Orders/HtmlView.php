@@ -11,14 +11,16 @@ namespace Alfa\Component\Alfa\Administrator\View\Orders;
 // No direct access
 defined('_JEXEC') or die;
 
-use \Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
-use \Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
-use \Joomla\CMS\Toolbar\Toolbar;
-use \Joomla\CMS\Toolbar\ToolbarHelper;
-use \Joomla\CMS\Language\Text;
-use \Joomla\Component\Content\Administrator\Extension\ContentComponent;
-use \Joomla\CMS\Form\Form;
-use \Joomla\CMS\HTML\Helpers\Sidebar;
+use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Joomla\CMS\Toolbar\Toolbar;
+use Joomla\CMS\Toolbar\ToolbarHelper;
+use Joomla\CMS\Language\Text;
+use Joomla\Component\Content\Administrator\Extension\ContentComponent;
+use Joomla\CMS\Form\Form;
+use Joomla\CMS\HTML\Helpers\Sidebar;
+use Alfa\Component\Alfa\Administrator\Helper;
+
 /**
  * View class for a list of Orders.
  *
@@ -54,6 +56,8 @@ class HtmlView extends BaseHtmlView
 		{
 			throw new \Exception(implode("\n", $errors));
 		}
+
+        $this->orderStatuses = (new AlfaHelper)->getOrderStatuses();
 
 		$this->addToolbar();
 
@@ -155,29 +159,5 @@ class HtmlView extends BaseHtmlView
 		Sidebar::setAction('index.php?option=com_alfa&view=orders');
 	}
 	
-	/**
-	 * Method to order fields 
-	 *
-	 * @return void 
-	 */
-	protected function getSortFields()
-	{
-		return array(
-			'a.`id`' => Text::_('JGRID_HEADING_ID'),
-			'a.`state`' => Text::_('JSTATUS'),
-			'a.`ordering`' => Text::_('JGRID_HEADING_ORDERING'),
-		);
-	}
 
-	/**
-	 * Check if state is set
-	 *
-	 * @param   mixed  $state  State
-	 *
-	 * @return bool
-	 */
-	public function getState($state)
-	{
-		return isset($this->state->{$state}) ? $this->state->{$state} : false;
-	}
 }

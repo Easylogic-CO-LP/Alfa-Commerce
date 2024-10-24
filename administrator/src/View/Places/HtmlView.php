@@ -181,6 +181,6 @@ class HtmlView extends BaseHtmlView
 	 */
 	public function getState($state)
 	{
-		return isset($this->state->{$state}) ? $this->state->{$state} : false;
+		return $this->state->{$state} ?? false;
 	}
 }
