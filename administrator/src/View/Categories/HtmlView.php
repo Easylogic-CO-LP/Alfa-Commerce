@@ -123,11 +123,11 @@ class HtmlView extends BaseHtmlView
                     ->listCheck(true);
             }
 
-            $childBar->standardButton('duplicate')
-                ->text('JTOOLBAR_DUPLICATE')
-                ->icon('fas fa-copy')
-                ->task('categories.duplicate')
-                ->listCheck(true);
+            // $childBar->standardButton('duplicate')
+            //     ->text('JTOOLBAR_DUPLICATE')
+            //     ->icon('fas fa-copy')
+            //     ->task('categories.duplicate')
+            //     ->listCheck(true);
 
             if (isset($this->items[0]->checked_out)) {
                 $childBar->checkin('categories.checkin')->listCheck(true);

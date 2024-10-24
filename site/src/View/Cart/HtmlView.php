@@ -46,7 +46,7 @@ class HtmlView extends BaseHtmlView
     {
         $app  = Factory::getApplication();
         $user = $app->getIdentity();
-        $input = $this->app->input;
+        $input = $app->input;
 
         $this->state  = $this->get('State');
         $this->cart   = $this->get('Item');

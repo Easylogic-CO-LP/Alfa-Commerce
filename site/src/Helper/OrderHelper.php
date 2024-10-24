@@ -134,7 +134,7 @@ class OrderHelper
             $item_object->id_item = $item->id;
             $item_object->id_order = $orderId;
             $item_object->name = $item->name;
-            $item_object->price = $item->price['base_price'];
+            $item_object->total = $item->price['base_price'];
             $item_object->quantity = $item->quantity;
 
             try {

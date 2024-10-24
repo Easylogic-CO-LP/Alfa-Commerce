@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+
+    <field
+            hiddenLabel="true"
+            parentclass="id-item-field col-lg-1"
+            name="id_item" type="sql"
+            input_type="list"
+            required="true"
+            multiple="false"
+            label="Name"
+            description=""
+            layout="joomla.form.field.list-fancy-select"
+            query="SELECT `id`, `name` AS val FROM `#__alfa_items`" key_field="id" value_field="val"
+    />
+
+    <field
+            hiddenLabel="true"
+            parentclass="quantity-field col-lg-1"
+            name="quantity"
+            type="number"
+            min='1'
+            readonly="false"
+            required="true"
+            label="COM_ALFA_FORM_ORDER_ITEM_QUANTITY"
+            description="COM_ALFA_FORM_ORDER_ITEM_QUANTITY_DESC"
+    />
+
+    <field
+            hiddenLabel="true"
+            parentclass="price-field col-lg-1"
+            name="price"
+            type="number"
+            step="0.01"
+            required="false"
+            readonly="true"
+            label="COM_ALFA_FORM_ORDER_ITEM_PRICE"
+            description="COM_ALFA_FORM_ORDER_ITEM_PRICE_DESC"
+    />
+
+    <field
+            hiddenLabel="true"
+            parentclass="total-field col-lg-1"
+            name="total"
+            step="0.01"
+            type="number"
+            readonly="true"
+            required="false"
+            label="COM_ALFA_FORM_ORDER_ITEM_TOTAL"
+            description="COM_ALFA_FORM_ORDER_ITEM_TOTAL_DESC"
+    />
+
+    <field
+            hiddenLabel="true"
+            parentclass="col-lg-1"
+            class="btn-group"
+            name="price_calculate_type"
+            type="checkbox"
+            required="false"
+            label="Recalculate"
+            description="Recalculate based on current price"
+            default="0"
+    />
+
+
+    <field
+            parentclass="id-field hidden"
+            name="id"
+            type="hidden"
+            required="false"
+            readonly="true"
+            label="JGLOBAL_FIELD_ID_DESC"
+    />
+
+    <field
+            parentclass="item-name-field"
+            name="name"
+            type="hidden"
+            required="false"
+            readonly="true"
+            label="Item name"
+    />
+
+</form>

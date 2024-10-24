@@ -87,8 +87,12 @@ if (!empty($saveOrder))
                         </th>
 
                         <th scope="col" class="w-3 d-none d-lg-table-cell text-center">
-                            <?php echo HTMLHelper::_('searchtools.sort', 'Items', 'item_name', $listDirn, $listOrder); ?>
+                            <?php echo HTMLHelper::_('searchtools.sort', 'Order Status', 'a.name', $listDirn, $listOrder); ?>
                         </th>
+
+<!--                        <th scope="col" class="w-3 d-none d-lg-table-cell text-center">-->
+<!--                            --><?php //echo HTMLHelper::_('searchtools.sort', 'Order Status', 'a.name', $listDirn, $listOrder); ?>
+<!--                        </th>-->
 
                     </tr>
 					</thead>
@@ -150,28 +154,35 @@ if (!empty($saveOrder))
 								<?php endif; ?>
 							</td>
 
-                            <td class="d-none d-lg-table-cell text-center">
+                            <td class="text-center">
                                 <?php echo $item->user_name; ?>
                             </td>
 
-                            <td class="d-none d-lg-table-cell text-center">
+                            <td class="text-center">
                                 <?php echo $item->original_price; ?>
                             </td>
 
-                            <td class="d-none d-lg-table-cell text-center">
+                            <td class="text-center">
                                 <?php echo $item->shipping_tracking_number; ?>
                             </td>
 
-                            <td class="d-none d-lg-table-cell text-center">
+                            <td class="text-center">
                                 <?php echo $item->created; ?>
                             </td>
 
-                            <td class="d-none d-lg-table-cell text-center">
-                                <?php echo $item->item_name; ?>
+                            <td class="text-center">
+                                <a style="color: <?php echo $this->orderStatuses[$item->id_order_status]->color; ?>;
+                                          background-color: <?php echo $this->orderStatuses[$item->id_order_status]->bg_color; ?>;
+                                          border-radius: 5px;
+                                          text-decoration:none;
+                                          padding: 5px 10px ;
+                                                "><?php echo $this->orderStatuses[$item->id_order_status]->name; ?></a>
                             </td>
 
 
-						</tr>
+
+
+                        </tr>
 					<?php endforeach; ?>
 					</tbody>
 				</table>

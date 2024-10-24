@@ -10,19 +10,19 @@
     <field name="ordering"/>
     <field name="checked_out" type="hidden" filter="unset"/>
     <field name="checked_out_time" type="hidden" filter="unset"/>
-    <field name="name" size="400" filter="safehtml" type="text" required="true" translateLabel="true" label="COM_ALFA_FORM_LBL_ITEM_NAME" description="COM_ALFA_FORM_DESC_ITEM_NAME" hint="COM_ALFA_FORM_LBL_ITEM_NAME"/>
+    <field name="name" size="400" filter="safehtml" type="text" required="true" translateLabel="true" label="COM_ALFA_FORM_LBL_ITEM_NAME" description="COM_ALFA_FORM_DESC_ITEM_NAME" />
     <field name="id" type="text" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
-    <field name="short_desc" cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText" type="editor" label="COM_ALFA_FORM_LBL_ITEM_SHORT_DESC" description="COM_ALFA_FORM_DESC_ITEM_SHORT_DESC" hint="COM_ALFA_FORM_LBL_ITEM_SHORT_DESC"/>
-    <field name="full_desc" cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText" type="editor" label="COM_ALFA_FORM_LBL_ITEM_FULL_DESC" description="COM_ALFA_FORM_DESC_ITEM_FULL_DESC" hint="COM_ALFA_FORM_LBL_ITEM_FULL_DESC"/>
-    <field name="sku" size="255" filter="safehtml" type="text" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_ITEM_SKU" description="COM_ALFA_FORM_DESC_ITEM_SKU" hint="COM_ALFA_FORM_LBL_ITEM_SKU"/>
-    <field name="gtin" size="255" filter="safehtml" type="text" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_ITEM_GTIN" description="COM_ALFA_FORM_DESC_ITEM_GTIN" hint="COM_ALFA_FORM_LBL_ITEM_GTIN"/>
-    <field name="mpn" size="255" filter="safehtml" type="text" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_ITEM_MPN" description="COM_ALFA_FORM_DESC_ITEM_MPN" hint="COM_ALFA_FORM_LBL_ITEM_MPN"/>
-    <field name="stock" type="number" step="0.01" default="0" label="COM_ALFA_FORM_LBL_ITEM_STOCK" description="COM_ALFA_FORM_DESC_ITEM_STOCK" hint="COM_ALFA_FORM_LBL_ITEM_STOCK"/>
-    <field name="stock_action" label="COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION" description="COM_ALFA_FORM_DESC_ITEM_STOCK_ACTION" hint="COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION"/>
-    <field name="manage_stock" default="2" label="COM_ALFA_FORM_LBL_ITEM_MANAGE_STOCK" description="COM_ALFA_FORM_DESC_ITEM_MANAGE_STOCK" hint="COM_ALFA_FORM_LBL_ITEM_MANAGE_STOCK"/>
-    <field name="alias" type="text" class="inputbox" generator="name" label="JFIELD_ALIAS_LABEL" description="COM_ALFA_FORM_DESC_ITEM_ALIAS" hint="COM_ALFA_FORM_LBL_ITEM_ALIAS"/>
-    <field name="meta_title" maxlength="255" filter="safehtml" type="text" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_ITEM_META_TITLE" description="COM_ALFA_FORM_DESC_ITEM_META_TITLE" hint="COM_ALFA_FORM_LBL_ITEM_META_TITLE"/>
-    <field name="meta_desc" cols="30" rows="3" filter="safehtml" type="textarea" label="JFIELD_META_DESCRIPTION_LABEL" description="COM_ALFA_FORM_DESC_ITEM_META_DESC" hint="COM_ALFA_FORM_LBL_ITEM_META_DESC"/>
+    <field name="short_desc" cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText" type="editor" label="COM_ALFA_FORM_LBL_ITEM_SHORT_DESC" description="COM_ALFA_FORM_DESC_ITEM_SHORT_DESC" />
+    <field name="full_desc" cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText" type="editor" label="COM_ALFA_FORM_LBL_ITEM_FULL_DESC" description="COM_ALFA_FORM_DESC_ITEM_FULL_DESC" />
+    <field name="sku" size="255" filter="safehtml" type="text" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_ITEM_SKU" description="COM_ALFA_FORM_DESC_ITEM_SKU" />
+    <field name="gtin" size="255" filter="safehtml" type="text" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_ITEM_GTIN" description="COM_ALFA_FORM_DESC_ITEM_GTIN" />
+    <field name="mpn" size="255" filter="safehtml" type="text" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_ITEM_MPN" description="COM_ALFA_FORM_DESC_ITEM_MPN" />
+    <field name="stock" type="number" step="0.01" default="0" label="COM_ALFA_FORM_LBL_ITEM_STOCK" description="COM_ALFA_FORM_DESC_ITEM_STOCK" />
+    <field name="stock_action" label="COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION" description="COM_ALFA_FORM_DESC_ITEM_STOCK_ACTION" />
+    <field name="manage_stock" default="2" label="COM_ALFA_FORM_LBL_ITEM_MANAGE_STOCK" description="COM_ALFA_FORM_DESC_ITEM_MANAGE_STOCK" />
+    <field name="alias" type="text" class="inputbox" generator="name" label="JFIELD_ALIAS_LABEL" description="COM_ALFA_FORM_DESC_ITEM_ALIAS" />
+    <field name="meta_title" maxlength="255" filter="safehtml" type="text" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_ITEM_META_TITLE" description="COM_ALFA_FORM_DESC_ITEM_META_TITLE" />
+    <field name="meta_desc" cols="30" rows="3" filter="safehtml" type="textarea" label="JFIELD_META_DESCRIPTION_LABEL" description="COM_ALFA_FORM_DESC_ITEM_META_DESC" />
     <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL" description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>
 
     <field name="categories" type="categories" showPath="true" multiple="true" layout="joomla.form.field.list-fancy-select" label="Categories" description="perigrafi">

@@ -170,32 +170,4 @@ class HtmlView extends BaseHtmlView
 		Sidebar::setAction('index.php?option=com_alfa&view=items');
 	}
 	
-	/**
-	 * Method to order fields 
-	 *
-	 * @return void 
-	 */
-	protected function getSortFields()
-	{
-		return array(
-			'a.`state`' => Text::_('JSTATUS'),
-			'a.`ordering`' => Text::_('JGRID_HEADING_ORDERING'),
-			'a.`name`' => Text::_('COM_ALFA_ITEMS_NAME'),
-			'a.`id`' => Text::_('JGRID_HEADING_ID'),
-			'a.`sku`' => Text::_('COM_ALFA_ITEMS_SKU'),
-			'a.`stock`' => Text::_('COM_ALFA_ITEMS_STOCK'),
-		);
-	}
-
-	/**
-	 * Check if state is set
-	 *
-	 * @param   mixed  $state  State
-	 *
-	 * @return bool
-	 */
-	public function getState($state)
-	{
-		return isset($this->state->{$state}) ? $this->state->{$state} : false;
-	}
 }
