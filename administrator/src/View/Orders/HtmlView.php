@@ -11,7 +11,6 @@ namespace Alfa\Component\Alfa\Administrator\View\Orders;
 // No direct access
 defined('_JEXEC') or die;
 
-use Exception;
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Joomla\CMS\Toolbar\Toolbar;
@@ -55,7 +54,7 @@ class HtmlView extends BaseHtmlView
 		// Check for errors.
 		if (count($errors = $this->get('Errors')))
 		{
-			throw new Exception(implode("\n", $errors));
+			throw new \Exception(implode("\n", $errors));
 		}
 
         $this->orderStatuses = (new AlfaHelper)->getOrderStatuses();
