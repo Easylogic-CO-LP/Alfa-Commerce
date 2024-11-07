@@ -117,6 +117,7 @@ document.addEventListener("DOMContentLoaded", () => {
             .then(data => {
                 // hide loading
                 // Assuming `data` contains the search results
+                console.log(data);
                 displayResults(data);
                 searchPopup.classList.add("active");
 
@@ -142,8 +143,8 @@ document.addEventListener("DOMContentLoaded", () => {
         searchPopup.innerHTML = '';
         let dataRaw = data.data.suggestions;
         if (dataRaw) {
-            dataRaw.forEach(item => {
-                searchPopup.innerHTML += item;
+            dataRaw.forEach(htmlData => {
+                searchPopup.innerHTML += htmlData;
             });
         }
     }

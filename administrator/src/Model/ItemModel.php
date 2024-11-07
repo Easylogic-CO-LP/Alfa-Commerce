@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Joomla\CMS\Language\Multilanguage;
 use \Joomla\CMS\Table\Table;
 use \Joomla\CMS\Factory;
 use \Joomla\CMS\Language\Text;
@@ -20,6 +21,7 @@ use \Joomla\CMS\MVC\Model\AdminModel;
 use \Joomla\CMS\Helper\TagsHelper;
 use \Joomla\CMS\Filter\OutputFilter;
 use \Joomla\CMS\Event\Model;
+use Joomla\CMS\Language\LanguageHelper;
 
 /**
  * Item model.
@@ -252,7 +254,11 @@ class ItemModel extends AdminModel
 	{
 
 		$app = Factory::getApplication();
-		
+		$db = $this->getDatabase();
+
+//		$data['alias']='the alias';
+//		$data['name']='the name';
+
 		$data['alias'] = $data['alias'] ?: $data['name'];
 
 		if ($app->get('unicodeslugs') == 1){
@@ -280,6 +286,12 @@ class ItemModel extends AdminModel
 			$currentId = intval($this->getState($this->getName().'.id'));//get the id from setted joomla state
 		}
 
+		// TODO: Also change the values of items on every other table like the name in #__alfa_order_items etc.
+//		$languages = LanguageHelper::getLanguages('lang_code'); // Get all installed languages
+
+//		$multilangFields = ['title','alias'];
+
+//		$this->saveMultilingualData($currentId, $data);
 
         $this->setPrices($currentId,$data['prices']);
 
@@ -293,6 +305,49 @@ class ItemModel extends AdminModel
 		// return parent::save($data);
 	}
 
+	protected function saveMultilingualData($currentId,$data)
+	{
+
+		// Get the database connection
+		$db = $this->getDatabase();
+		$languages = LanguageHelper::getLanguages('lang_code');
+		$multilang = count($languages) > 1 && Multilanguage::isEnabled();
+//print_r($data);
+//exit;
+		foreach ($languages as $langCode => $language) {
+			// Convert language code from 'el-GR' to 'el_gr'
+			$formattedLangCode = str_replace('-', '_', strtolower($langCode));
+			$tableName = '#__alfa_items_' . $formattedLangCode;
+
+			// Check if the table exists
+			$query = $db->getQuery(true);
+			$query->select('COUNT(*)')
+				->from('information_schema.tables')
+				->where('table_schema = ' . $db->quote($db->getName()) . ' AND table_name = ' . $db->quote($db->getPrefix() . 'alfa_items_' . $formattedLangCode));
+
+			$db->setQuery($query);
+			$tableExists = (bool) $db->loadResult();
+
+			// If the table does not exist, create it
+			if (!$tableExists) {
+				$createQuery = "CREATE TABLE " . $tableName . " (
+                `item_id` INT(11) NOT NULL,
+                `name` VARCHAR(255) NOT NULL,
+                `description` TEXT NOT NULL,
+                PRIMARY KEY (`item_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+
+				$db->setQuery($createQuery);
+				$db->execute();
+			}
+
+			// REPLACE equals INSERT OR UPDATE
+			$query="REPLACE INTO ". $tableName ." (`item_id`, `name` , `description`) VALUES (". $db->q($currentId)." , ". $db->q($data['name_'.$formattedLangCode]) ." , ". $db->q($data['description_'.$formattedLangCode]) .")";
+			$db->setQuery($query);
+			$db->execute();
+		}
+
+	}
 
 	public function getPrices($id){
 	    $id = intval($id);
