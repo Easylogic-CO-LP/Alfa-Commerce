@@ -124,8 +124,8 @@ class CouponModel extends AdminModel
                 $currentId = intval($this->getState($this->getName() . '.id')); //get the id from setted joomla state
             }
 
-            AlfaHelper::setAllowedUsers($currentId, $data['allowedUsers'], '#__alfa_coupons_users', 'coupon_id');
-            AlfaHelper::setAllowedUserGroups($currentId, $data['allowedUserGroups'], '#__alfa_coupons_usergroups', 'coupon_id');
+            AlfaHelper::setAssocsToDb($currentId, $data['allowedUsers'], '#__alfa_coupons_users', 'coupon_id','user_id');
+			AlfaHelper::setAssocsToDb($currentId, $data['allowedUserGroups'], '#__alfa_coupons_usergroups','coupon_id', 'usergroup_id');
 
             return true;
         }
@@ -239,9 +239,9 @@ class CouponModel extends AdminModel
 					$item->params = json_encode($item->params);
 				}
 				
-				// Do any procesing on fields here if needed
-                $item->allowedUsers = AlfaHelper::getAllowedUsers($item->id, '#__alfa_coupons_users', 'coupon_id');
-                $item->allowedUserGroups = AlfaHelper::getAllowedUserGroups($item->id, '#__alfa_coupons_usergroups', 'coupon_id');
+                $item->allowedUsers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_coupons_users', 'coupon_id','user_id');
+            	$item->allowedUserGroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_coupons_usergroups', 'coupon_id','usergroup_id');
+
 			}
 
 			return $item;

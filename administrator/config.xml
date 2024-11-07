@@ -1,13 +1,82 @@
 <?xml version="1.0" encoding="utf-8"?>
 <config>
     <fieldset label="COM_ALFA" name="alfa">
-        <field name="test" filter="safehtml" type="text" label="COM_ALFA_FORM_LBL_TEST" description="COM_ALFA_FORM_DESC_TEST" hint="COM_ALFA_FORM_LBL_TEST"/>
+
+       <field name="stock_action" type="list"
+            default="2"
+            label="COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION"
+            description="COM_ALFA_FORM_DESC_ITEM_STOCK_ACTION"
+            required="true" 
+            multiple="false">
+                <option value="1">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_NO_ACTION</option>
+                <option value="2">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_SHOW_OUT_OF_STOCK</option>
+                <option value="3">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_HIDE_OUT_OF_STOCK</option>
+        </field>
+
+        <field name="manage_stock" type="radio"
+               default="1"
+               label="COM_ALFA_FORM_LBL_ITEM_MANAGE_STOCK"
+               description="COM_ALFA_FORM_DESC_ITEM_MANAGE_STOCK"
+               required="true"
+               class="btn-group"
+               multiple="false">
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
 
     </fieldset>
 
-    <fieldset name="permissions" description="JCONFIG_PERMISSIONS_DESC" label="JCONFIG_PERMISSIONS_LABEL">
-        <field name="rules" type="rules" component="com_alfa" class="inputbox" filter="rules" validate="rules" label="JCONFIG_PERMISSIONS_LABEL" section="component" />
-	</fieldset>
+    <fieldset name="price_formatter" label="Price Settings">
+            <!-- Currency Symbol Field -->
+            <field
+                name="currencySymbol"
+                type="text"
+                label="Currency Symbol"
+                description="Enter the currency symbol, e.g., $, €, ¥."
+                default="€"
+            />
+
+            <!-- Decimal Separator Field -->
+            <field
+                name="decimalSeparator"
+                type="text"
+                label="Decimal Separator"
+                description="Specify the character for the decimal separator, e.g., . or ,."
+                default=","
+                size="1"
+            />
+
+            <!-- Thousand Separator Field -->
+            <field
+                name="thousandSeparator"
+                type="text"
+                label="Thousand Separator"
+                description="Specify the character for the thousand separator, e.g., , or ."
+                default="."
+                size="1"
+            />
+
+            <!-- Decimal Places Field -->
+            <field
+                name="decimalPlaces"
+                type="number"
+                label="Decimal Places"
+                description="Enter the number of decimal places to display, e.g., 2."
+                default="2"
+                min="0"
+                max="10"
+            />
+
+            <!-- Format Pattern Field -->
+            <field
+                name="formatPattern"
+                type="text"
+                label="Format Pattern"
+                description="Specify the format pattern using {symbol} and {number}, e.g., {symbol}{number} or {number} {symbol}."
+                default="{number} {symbol}"
+            />
+        </fieldset>
+
 
     <fieldset name="component">
         <field
@@ -39,6 +108,23 @@
           <option value="1">JYES</option>
         </field>
     </fieldset>
+
+    <fieldset
+        name="permissions"
+        label="JCONFIG_PERMISSIONS_LABEL"
+        description="JCONFIG_PERMISSIONS_DESC"
+        >
+        <field
+            name="rules"
+            type="rules"
+            label="JCONFIG_PERMISSIONS_LABEL"
+            validate="rules"
+            filter="rules"
+            component="com_alfa"
+            section="component"
+        />
+    </fieldset>
+
 </config>
 <!--
 ########################################################################################
