@@ -197,7 +197,7 @@ class AlfaHelper
         return $db->loadColumn();
     }
 
-    public function getOrderStatuses()
+    public static function getOrderStatuses()
     {
         $db = Factory::getDbo();
         $query = $db->getQuery(true);
@@ -206,9 +206,7 @@ class AlfaHelper
             ->from($db->quoteName('#__alfa_orders_statuses'));
 
         $db->setQuery($query);
-        $row = $db->loadObjectList('id');
-
-        return $row;
+        return $db->loadObjectList('id');
     }
 
 
@@ -286,5 +284,4 @@ class AlfaHelper
 
         return $result;
     }
-
 }

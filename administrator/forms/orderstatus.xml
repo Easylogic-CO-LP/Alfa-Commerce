@@ -19,13 +19,6 @@
                 format="rgba"
                 label="JGLOBAL_FIELD_BACKGROUND_COLOR_LABEL" />
 
-        <field name="name_email" type="email"
-                 label="JGLOBAL_NAME_EMAIL_LABEL"
-                 required="true"
-                 size="30"
-                 class="inputbox"
-                 validate="email" />
-
         <field name="stock_action" default="0" type="radio" label="Stock Action" description="" class="btn-group">
             <option value="0">Keep in stock</option>
             <option value="1">Remove from stock</option>

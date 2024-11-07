@@ -20,6 +20,8 @@ use \Joomla\CMS\Helper\TagsHelper;
 use \Joomla\CMS\Filter\OutputFilter;
 use \Joomla\CMS\Event\Model;
 use \Alfa\Component\Alfa\Site\Helper\PriceCalculator;
+use \Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use \Joomla\CMS\Component\ComponentHelper;
 
 /**
  * Order model.
@@ -49,9 +51,8 @@ class OrderModel extends AdminModel
      */
     protected $item = null;
 
-
     /**
-     * Returns a reference to the a Table object, always creating it.
+     * Returns a reference to the Table object, always creating it.
      *
      * @param string $type The table type to instantiate
      * @param string $prefix A prefix for the table class name. Optional.
@@ -72,7 +73,7 @@ class OrderModel extends AdminModel
      * @param array $data An optional array of data for the form to interogate.
      * @param boolean $loadData True if the form is to load its own data (default case), false if not.
      *
-     * @return  \JForm|boolean  A \JForm object on success, false on failure
+     * @return  JForm|boolean  A \JForm object on success, false on failure
      *
      * @since   1.0.1
      */
@@ -291,6 +292,7 @@ class OrderModel extends AdminModel
 
             return $order;
         }
+
         return null;
     }
 
@@ -304,27 +306,67 @@ class OrderModel extends AdminModel
      *
      * @since   1.6
      */
+    protected $orderStatuses = [];
+    protected $keepInStock = false;
+
     public function save($data)
     {
         $app = Factory::getApplication();
 
-        if (!parent::save($data)) return false;
+        // Load order statuses to check stock action
+        $this->orderStatuses = AlfaHelper::getOrderStatuses();
 
-        $orderId = 0;
-        if ($data['id'] > 0) { //not a new
-            $orderId = intval($data['id']);
-        } else { // is new
-            $orderId = intval($this->getState($this->getName() . '.id'));//get the id from setted joomla state
+        $newOderStatus = $data['id_order_status'];
+        if ($this->orderStatuses[$newOderStatus]->stock_action == 0) {
+            $this->keepInStock = true;
         }
 
+        // Create a table object to manage order data
+        $table = $this->getTable();
 
-        $this->setItems($orderId, $data['items']);
+        // Load existing data to revert if needed
+        $previousData = [];
+        if (isset($data['id']) && $data['id'] > 0) {
+            $table->load(['id' => intval($data['id'])]);
+            $previousData = $table->getProperties();
+        }
+
+       
+        if (!parent::save($data)) return false;
+
+        $orderId = $data['id'] > 0 ? intval($data['id']) : intval($this->getState($this->getName() . '.id'));
+
+        
+        // Attempt to set items associated with the order
+        if (!$this->setItems($orderId, $data)) {
+            // Revert the data to the previous state
+            if (!empty($previousData)) {
+                $table->bind($previousData);
+                if (!$table->store()) {
+                    // Set error if reverting fails
+                    $app->enqueueMessage('Failed to revert the order back to previous data.', 'error');
+                }else{
+                    $app->enqueueMessage('The order has been reverted to its previous state. You may review the changes, make further edits and save again.', 'warning');
+                }
+            }
+
+            return false;
+        }
+
 
         return true;
     }
 
-    public function setItems($orderId, $items)
+
+
+    public function setItems($orderId, $data)
     {
+        $app = Factory::getApplication();
+
+        $component_params = ComponentHelper::getParams('com_alfa');
+        $manageStock = $component_params->get('manage_stock', 1);
+
+        $items = $data['items'];
 
         if (!is_array($items) || $orderId <= 0) {
             return false;
@@ -334,69 +376,150 @@ class OrderModel extends AdminModel
 
 
         $query = $db->getQuery(true);
-        $query->select('id')
+        $query->select('*')
             ->from('#__alfa_order_items')
             ->where('id_order = ' . intval($orderId));
         $db->setQuery($query);
-        $existingItemIds = $db->loadColumn();  // Array of existing item IDs
+        $prevOrderTableItemsData = $db->loadAssocList('id');  // Array of existing items
+        
+        // Extract the 'id' values from $allOrderTableItemsData for comparison
+        $prevOrderItemOrderIds = array_column($prevOrderTableItemsData, 'id');//the unique representation id of each item inside order_items table
+        // Extract the 'id_item' values from $prevOrderTableItemsData for comparison
+        $prevOrderItemIds = array_column($prevOrderTableItemsData, 'id_item');//the unique representation item_id of each item inside items table
 
-        $incomingIds = array();
+        $currOrderItemIds = array();
         foreach ($items as $item) {
             if (isset($item['id']) && intval($item['id']) > 0) {
-                $incomingIds[] = intval($item['id']);
+                $currOrderItemIds[] = intval($item['id_item']);
             }
         }
 
-        $idsToDelete = array_diff($existingItemIds, $incomingIds);
+        // Get intersecting IDs (items present in both previous and current lists)
+        $allOrderItemIds = $prevOrderItemIds + $currOrderItemIds;// or with array_unique(array_merge($prevOrderItemIds, $currOrderItemIds));
+
+        $query = $db->getQuery(true);
+        $query->select('*')
+            ->from('#__alfa_items')
+            ->whereIn('id', $allOrderItemIds);
+        $db->setQuery($query);
+        $allItemsTableData = $db->loadObjectList('id');  // Array of existing items
+
+
+        $itemOrderObjectsTable = [];
+        $itemObjectsTable = [];
+
+        foreach ($items as $item) {
+            $itemOrderObject = new \stdClass();
+            $itemOrderObject->id = isset($item['id']) ? intval($item['id']) : 0;
+            $itemOrderObject->id_order = $orderId;
+            $itemOrderObject->id_item = isset($item['id_item']) ? intval($item['id_item']) : 0;
+            $itemOrderObject->quantity = isset($item['quantity']) ? floatval($item['quantity']) : 1;
+            $itemOrderObject->price = isset($item['price']) ? floatval($item['price']) : 0;
+            $itemOrderObject->id_shipmentmethod = isset($item['id_shipmentmethod']) ? intval($item['id_shipmentmethod']) : 0;
+            $itemOrderObject->quantity_removed = isset($prevOrderTableItemsData[$itemOrderObject->id])? $prevOrderTableItemsData[$itemOrderObject->id]['quantity_removed']: 0;
+
+            $currentItemManageStock = $allItemsTableData[$itemOrderObject->id_item]->manage_stock == 2 ? $manageStock : $allItemsTableData[$itemOrderObject->id_item]->manage_stock;
+
+            $price_calculate_type = isset($item['price_calculate_type']) ? true : false;
+
+            // SET THE PRICE OF THE ITEM
+            if ($price_calculate_type || $itemOrderObject->id <= 0) {
+                $userGroupId = $currencyId = 1;
+                $itemPriceCalculator = new PriceCalculator($itemOrderObject->id_item, $itemOrderObject->quantity, $userGroupId, $currencyId);
+                $itemPrice = $itemPriceCalculator->calculatePrice();
+                $itemOrderObject->total = $itemPrice['base_price'];
+            } else {
+                $itemOrderObject->total = $itemOrderObject->quantity * floatval($item['price']);
+            }
+
+            // SET THE QUANTITY
+            if (isset($allItemsTableData[$itemOrderObject->id_item])) {//means item exists in items table database
+                $itemObject = new \stdClass();
+                $itemObject->id = $itemOrderObject->id_item;
+                $itemObject->stock = $allItemsTableData[$itemOrderObject->id_item]->stock;
+
+                if ($currentItemManageStock) {
+
+                    if ($this->keepInStock ) {
+
+                        $itemObject->stock += $itemOrderObject->quantity_removed;
+                        $itemOrderObject->quantity_removed = 0;   
+
+                    } else {
+
+                        $stockDifferenceFromPrevious = ($itemOrderObject->quantity - $itemOrderObject->quantity_removed);
+
+
+                        if ( $itemObject->stock < $stockDifferenceFromPrevious) {
+                            $app->enqueueMessage('Order Items didnt change because.' . $allItemsTableData[$itemOrderObject->id_item]->name . ' quantity is greater than the available stock to be removed.Please fix the quantity of the item first', 'warning');
+                            // revert the order status id to the previous
+                            return false;//prevent any changes in items table and items order table
+                        }
+                        
+                        if($stockDifferenceFromPrevious !== 0){
+                            $itemObject->stock -= $stockDifferenceFromPrevious;
+                            $itemOrderObject->quantity_removed = $itemOrderObject->quantity;
+                        }
+
+                    }
+
+                }
+
+                $itemObjectsTable[] = $itemObject;//to do all the queries later
+
+            }
+
+            // Add item order object to array for batch update or insert after loop
+            $itemOrderObjectsTable[] = $itemOrderObject;
+
+        }
+
+        // HANDLE ALL DATABASE UPDATES IF NO ERROR OCCURED
+        // Delete the removed items
+        $idsToDelete = array_diff($prevOrderItemIds, $currOrderItemIds);
 
         if (!empty($idsToDelete)) {
             $query = $db->getQuery(true);
             $query->delete('#__alfa_order_items')->whereIn('id', $idsToDelete);
             $db->setQuery($query);
             $db->execute();
+
+            // also restock them
+            foreach ($idsToDelete as $idToDelete) {
+
+                $itemToRestock = $prevOrderTableItemsData[$idToDelete];
+                $itemOrderId = intval($itemToRestock['id']);
+                $itemId = intval($itemToRestock['id_item']);
+                $quantity_removed = floatval($itemToRestock['quantity_removed']);
+
+                if (isset($prevOrderTableItemsData[$itemOrderId]) && isset($allItemsTableData[$itemId]) && $quantity_removed > 0) {
+                    $query = $db->getQuery(true)
+                        ->update('#__alfa_items')
+                        ->set('stock = stock + ' . $quantity_removed)
+                        ->where('id = ' . $itemId);
+                    $db->setQuery($query);
+                    $db->execute();
+                }
+
+            }
+
         }
 
+        // Update items table
+        foreach ($itemObjectsTable as $itemObject) {
+            $db->updateObject('#__alfa_items', $itemObject, 'id', true);
+        }
 
-        foreach ($items as $item) {
-            $itemObject = new \stdClass();
-            $itemObject->id = isset($item['id']) ? intval($item['id']) : 0;
-            $itemObject->id_order = $orderId;
-            $itemObject->id_item = isset($item['id_item']) ? intval($item['id_item']) : 0;
-            $itemObject->quantity = isset($item['quantity']) ? floatval($item['quantity']) : 1;
-            $itemObject->price = isset($item['price']) ? floatval($item['price']) : 0;
-
-            $price_calculate_type = isset($item['price_calculate_type']) ? true : false;
-
-            $userGroupId = 1;
-            $currencyId = 1;
-
-            // set the name of the item
-            if (!($item_table = $this->getTable('Item'))) continue;
-
-            $item_table->load($itemObject->id_item);
-            $itemObject->name = $item_table->name;
-
-            $query = $db->getQuery(true);
-
-            if ($itemObject->id_item <= 0) continue;
-
-            // set the price of the item
-            if ($price_calculate_type || $itemObject->id <= 0) {
-                $itemPriceCalculator = new PriceCalculator($itemObject->id_item, $itemObject->quantity, $userGroupId, $currencyId);
-                $itemPrice = $itemPriceCalculator->calculatePrice();
-                $itemObject->total = $itemPrice['base_price'];
+        // Update or insert order items table
+        foreach ($itemOrderObjectsTable as $itemOrderObject) {
+            if ($itemOrderObject->id > 0 && in_array($itemOrderObject->id, $prevOrderItemOrderIds)) {
+                $db->updateObject('#__alfa_order_items', $itemOrderObject, 'id', true);
             } else {
-                $itemObject->total = $itemObject->quantity * floatval($item['price']);
+                $db->insertObject('#__alfa_order_items', $itemOrderObject);
             }
-
-            if ($itemObject->id > 0 && in_array($itemObject->id, $existingItemIds)) {
-                $db->updateObject('#__alfa_order_items', $itemObject, 'id', true);
-            } else {
-                $db->insertObject('#__alfa_order_items', $itemObject);
-            }
-
         }
 
         return true;
     }
+
 }

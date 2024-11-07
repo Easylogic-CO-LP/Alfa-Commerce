@@ -147,10 +147,10 @@ class AlfaSearchHelper
         $data = array(
             'query' => $keyword,
             'suggestions' => $results,
-            'limitstart' => $limitstart,
-            'limit' => $limit,
-            'count' => $count,
-            'end' => $end
+            // 'limitstart' => $limitstart,
+            // 'limit' => $limit,
+            // 'count' => $count,
+            // 'end' => $end
         );
 
 
