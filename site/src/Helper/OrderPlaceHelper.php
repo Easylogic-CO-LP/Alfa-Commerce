@@ -9,7 +9,7 @@ use Joomla\CMS\Table\Table;
 use Alfa\Component\Alfa\Site\Helper\CartHelper;
 use \Joomla\Utilities\IpHelper;
 
-class OrderHelper
+class OrderPlaceHelper
 {
     protected $db;
     protected $app;
@@ -133,9 +133,11 @@ class OrderHelper
             $item_object = new \stdClass();
             $item_object->id_item = $item->id;
             $item_object->id_order = $orderId;
+            $item_object->id_shipmentmethod = 0;
             $item_object->name = $item->name;
             $item_object->total = $item->price['base_price'];
             $item_object->quantity = $item->quantity;
+            $item_object->quantity_removed = 0;
 
             try {
                 $db->insertObject($this->order_items_table, $item_object, 'id');
