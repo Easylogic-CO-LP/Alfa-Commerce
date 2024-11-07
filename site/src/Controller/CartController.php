@@ -28,7 +28,7 @@ use \Joomla\CMS\Layout\FileLayout;
 // use \Alfa\Component\Alfa\Site\Helper\ItemHelper;
 use \Alfa\Component\Alfa\Site\Helper\PriceCalculator;
 use \Alfa\Component\Alfa\Site\Helper\CartHelper;
-use \Alfa\Component\Alfa\Site\Helper\OrderHelper;
+use \Alfa\Component\Alfa\Site\Helper\OrderPlaceHelper;
 
 
 /**
@@ -200,7 +200,7 @@ class CartController extends BaseController
 
         // $userId = $this->app->getIdentity()->id;
 
-        $order = new OrderHelper();
+        $order = new OrderPlaceHelper();
 
         $errorOccured = !$order->placeOrder();
 
