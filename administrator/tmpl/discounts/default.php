@@ -189,7 +189,7 @@ if (!empty($saveOrder))
                             </td>
 
                             <td>
-                                <?php echo $item->apply_before_tax ? "No" : "Yes";?>
+                                <?php echo $item->apply_before_tax ? "Yes" : "No";?>
                             </td>
 
                             <td>
