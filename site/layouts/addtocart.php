@@ -13,9 +13,9 @@
         <input class="item-quantity" type="number" name="quantity" min="1" value="1">
         <button class="item-quantity-controls increment" data-action="increment">+</button>
     </div>
-    
+
     <button class="add-to-cart-btn" data-action="add-to-cart">
         Add to Cart
     </button>
-    
+
 </div>

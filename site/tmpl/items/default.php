@@ -54,7 +54,7 @@ $wa->useStyle('com_alfa.list')
 
 
     <section>
-        <div class="list-container items-list">
+        <div class="list-container items-list" data-action="cart-item-added">
             <?php foreach ($this->items as $item) : ?>
 
                 <?php //echo '<pre>'; print_r($item); echo '</pre>';?>
@@ -63,7 +63,6 @@ $wa->useStyle('com_alfa.list')
                     <div>
                         <a href="<?php echo Route::_('index.php?option=com_alfa&view=item&id=' . (int)$item->id); ?>">
                             <img src="https://americanathleticshoe.com/cdn/shop/t/23/assets/placeholder_600x.png?v=113555733946226816651665571258">
-                        </a>
                         </a>
                     </div>
                     <div class="item-title">
