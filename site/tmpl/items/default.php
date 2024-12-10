@@ -57,13 +57,10 @@ $wa->useStyle('com_alfa.list')
         <div class="list-container items-list">
             <?php foreach ($this->items as $item) : ?>
 
-                <?php //echo '<pre>'; print_r($item); echo '</pre>';?>
-
                 <article class="list-item item-item" data-item-id="<?php echo $item->id;?>">
                     <div>
                         <a href="<?php echo Route::_('index.php?option=com_alfa&view=item&id=' . (int)$item->id); ?>">
                             <img src="https://americanathleticshoe.com/cdn/shop/t/23/assets/placeholder_600x.png?v=113555733946226816651665571258">
-                        </a>
                         </a>
                     </div>
                     <div class="item-title">
