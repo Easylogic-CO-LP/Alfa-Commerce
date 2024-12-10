@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension type="module" client="site" method="upgrade">
+    <name>MOD_ALFA_CART_NAME</name>
+    <author>Dimitris Papanotas</author>
+    <creationDate>2024-11-7</creationDate>
+    <copyright>(C) 2024 Open Source Matters, Inc.</copyright>
+    <license>GNU General Public License version 2 or later; see LICENSE.txt</license>
+    <authorEmail>dimitris.papanotas@gmail.com</authorEmail>
+    <version>1.0.0</version>
+    <description>MOD_ALFA_CART_DESC</description>
+    <namespace path="src">Alfa\Module\AlfaCart</namespace>
+    <files>
+        <folder module="mod_alfa_cart">services</folder>
+        <folder>src</folder>
+        <folder>tmpl</folder>
+    </files>
+    <media destination="mod_alfa_cart" folder="media">
+        <filename>joomla.asset.json</filename>
+        <folder>js</folder>
+        <folder>css</folder>
+    </media>
+    <languages folder="language">
+        <language tag="en-GB">en-GB/mod_alfa_cart.ini</language>
+        <language tag="en-GB">en-GB/mod_alfa_cart.sys.ini</language>
+        <language tag="el-GR">el-GR/mod_alfa_cart.ini</language>
+        <language tag="el-GR">el-GR/mod_alfa_cart.sys.ini</language>
+    </languages>
+
+
+    <config>
+        <fields name="params">
+            <fieldset name="basic">
+
+                 <field name="animation" type="radio" class="btn-group" default="zoomIn"
+                       label="MOD_ALFA_CART_OPEN_ANIMATION"
+                       description="MOD_ALFA_CART_OPEN_ANIMATION_DESC">
+                    <option value="zoomIn">Zoom In</option>
+                    <option value="fromTop">From Top</option>
+                    <option value="fromLeft">From Left</option>
+                    <option value="fromRight">From Right</option>
+                </field>
+
+                <field
+                        type="spacer"
+                        label="MOD_ALFA_CART_IMAGE_SPACER"
+                />
+
+                <field name="imageType" type="radio" class="btn-group" default="3"
+                       label="MOD_ALFA_CART_IMAGE_TYPE_LBL"
+                       description="MOD_ALFA_CART_IMAGE_TYPE_DESC">
+                    <option value="0">Image</option>
+                    <option value="1">Inline SVG</option>
+                    <option value="3">Default</option>
+                </field>
+
+                <field
+                        name="imageFile"
+                        type="media"
+                        label="MOD_ALFA_CART_IMAGE_FILE_LBL"
+                        description="MOD_ALFA_CART_IMAGE_FILE_DESC"
+                        default=""
+                        required="false"
+                        showon="imageType:0"
+                />
+
+                <field
+                        name="imageInline"
+                        type="textarea"
+                        label="MOD_ALFA_CART_IMAGE_INLINE_LBL"
+                        description="MOD_ALFA_CART_IMAGE_INLINE_DESC"
+                        filter="raw"
+                        showon="imageType:1"
+                        rows="5"
+                        cols="30"
+                />
+
+                <field name="togglerCounterValue" type="radio" class="btn-group" default="0"
+                       label="MOD_ALFA_CART_TOGGLER_VALUE_LBL"
+                       description="MOD_ALFA_CART_TOGGLER_VALUE_DESC">
+                    <option value="0">Total Quantity</option>
+                    <option value="1">Total Items</option>
+                </field>
+
+                <field name="togglerCounterColor"
+                       type="color"
+                       default="#FF0000"
+                       format="rgba"
+                       label="MOD_ALFA_CART_TOGGLER_BACKGROUND_COLOR_LBL"
+                       description="MOD_ALFA_CART_TOGGLER_BACKGROUND_COLOR_DESC"
+                />
+            </fieldset>
+        </fields>
+    </config>
+
+</extension>

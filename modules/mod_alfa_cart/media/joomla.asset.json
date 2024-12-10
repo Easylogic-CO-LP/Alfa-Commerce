@@ -1,0 +1,23 @@
+{
+  "$schema": "https://developer.joomla.org/schemas/json-schema/web_assets.json",
+  "name": "mod_alfa_cart",
+  "version": "1.0.0",
+  "description": "Joomla Module for Alfa Commerce cart utility.",
+  "license": "GPL-2.0-or-later",
+  "assets": [
+    {
+      "name": "mod_alfa_cart.cart",
+      "type": "script",
+      "uri": "mod_alfa_cart/cart.js",
+      "attributes": {
+        "type": "module"
+      },
+      "version": "1.0.0"
+    },
+    {
+      "name": "mod_alfa_cart.cart",
+      "type": "style",
+      "uri": "mod_alfa_cart/cart.css"
+    }
+  ]
+}

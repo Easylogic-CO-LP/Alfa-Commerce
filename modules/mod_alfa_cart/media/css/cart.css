@@ -1,0 +1,327 @@
+.mod-alfa-cart-no-scroll{
+    height: 100%;
+    overflow: hidden;
+}
+
+/* header */
+.mod-alfa-cart .cart-header{
+    padding: 30px 15px;
+    background-color:#f6f6f6;
+    border-bottom: 1px solid rgba(0,0,0,.12);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+
+.mod-alfa-cart .close-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #333;
+    cursor: pointer;
+}
+
+/* body */
+.mod-alfa-cart .cart-body{
+    height:100%;
+    overflow-y: auto;
+}
+
+.mod-alfa-cart .cart-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.mod-alfa-cart .cart-quantity {
+    font-weight: bold;
+    display: block;
+}
+
+.mod-alfa-cart .cart-item-outer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #eaeaea;
+}
+
+.mod-alfa-cart .cart-item-name {
+    font-size: 14px;
+    flex-grow: 1;
+    color: #333;
+}
+
+.mod-alfa-cart .cart-item-remove {
+    background: none;
+    border: none;
+    padding: 5px;
+    cursor: pointer;
+    color: #ff6b6b;
+    transition: color 0.3s ease;
+}
+
+.mod-alfa-cart .cart-item-remove svg {
+    width: 16px;
+    height: 16px;
+}
+
+.mod-alfa-cart .cart-item-remove:hover {
+    color: #e60000;
+}
+
+.mod-alfa-cart .cart-list > li:last-child {
+    border-bottom: unset;
+}
+
+/* Quantity Controls*/
+.mod-alfa-cart .item-quantity-controls-wrapper {
+    display: flex;
+    margin: 4px 0;
+}
+
+.mod-alfa-cart .item-quantity {
+    width: 50px;
+    text-align: center;
+    border: 1px solid lightgray;
+    /* Hides the default spinner buttons in the input */
+    appearance: textfield;
+}
+
+.mod-alfa-cart .item-quantity-controls{
+    border: none;
+    width: 30px;
+    font-size: 1.5rem;
+    color: black;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Complete Order Button */
+.mod-alfa-cart .alfa-cart-empty {
+    justify-content: center;
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+/* footer */
+.mod-alfa-cart .cart-footer{
+    box-shadow: 0 -5px 10px #00000029;
+    padding: 30px 40px;
+    background-color:#f6f6f6;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* toggler */
+.mod-alfa-cart .cart-toggler{
+    position:relative;
+}
+
+.mod-alfa-cart .cart-toggler::after {
+  background-color: var(--mod-alfa-cart-counter-color, #FF0000);
+  font-size: .75rem;
+  width: 18px;
+  line-height: 18px;
+  text-align: center;
+  color: #fff;
+  z-index: 2;
+  border-radius: 50%;
+  position: absolute;
+  right: -4px;
+  top: -3px;
+  content: attr(data-counter);
+  position: absolute;
+}
+
+/* main wrapper */
+.mod-alfa-cart .mod-alfa-cart-data {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    pointer-events: none;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 60000;
+}
+
+.mod-alfa-cart .cart--visible {
+    pointer-events: auto;
+    overflow: auto;
+}
+
+/* main wrapper inner */
+.mod-alfa-cart .mod-alfa-cart-data-inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    pointer-events: none;
+    background: #f1f1f1;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    max-width: 800px;
+    z-index: 60001;
+    background-color: #ffffff;
+    border: 1px solid #dadce0;
+}
+
+
+/* OVERLAY*/
+/* we use after so the animation we apply will not affect the inner items */
+.mod-alfa-cart .mod-alfa-cart-data:after {
+    content: '';
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.4);
+    opacity: 0;
+    will-change: opacity;
+    pointer-events: none;
+    transition: opacity 0.3s cubic-bezier(0,0,0.3,1);
+}
+
+.mod-alfa-cart .cart--visible.mod-alfa-cart-data:after {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* CLOSE BUTTON*/
+.mod-alfa-cart .close-btn {
+    border: 1px solid #f1f1f1;
+    width: 30px;
+    height: 30px;
+    font-size: 20px;
+    cursor: pointer;
+    background: white;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1/1;
+}
+
+.mod-alfa-cart .close-btn:hover {
+    background-color: #f1f1f1;
+}
+
+
+/* CART OPEN ANIMATIONS */
+
+/* ΖΟΟΜ ΙΝ */
+.zoomIn.mod-alfa-cart .mod-alfa-cart-data-inner {
+    max-height: 600px;
+    border-radius: 4px;
+    transform: scale(0.5);
+    opacity: 0;
+    will-change: transform;
+}
+.zoomIn.mod-alfa-cart .cart--animatable .mod-alfa-cart-data-inner {
+    transition: transform 130ms ease-in, opacity 130ms ease-in;
+}
+
+.zoomIn.mod-alfa-cart .cart--visible.cart--animatable .mod-alfa-cart-data-inner {
+    transition: all 330ms ease-out;
+}
+
+.zoomIn.mod-alfa-cart .cart--visible .mod-alfa-cart-data-inner {
+    opacity: 1;
+}
+.zoomIn.mod-alfa-cart .cart--visible .mod-alfa-cart-data-inner {
+    pointer-events: auto;
+    transform: none;
+}
+
+/* FROM TOP */
+.fromTop.mod-alfa-cart .mod-alfa-cart-data-inner {
+    max-height: 600px;
+    border-radius: 4px;
+    transform: translateY(-150%);
+    opacity: 0;
+    will-change: transform;
+}
+.fromTop.mod-alfa-cart .cart--animatable .mod-alfa-cart-data-inner {
+    transition: transform 130ms ease-in,opacity 130ms ease-in;
+}
+.fromTop.mod-alfa-cart .cart--visible.cart--animatable .mod-alfa-cart-data-inner {
+    transition: all 330ms ease-out;
+}
+.fromTop.mod-alfa-cart .cart--visible .mod-alfa-cart-data-inner {
+    opacity: 1;
+}
+
+.fromTop.mod-alfa-cart .cart--visible .mod-alfa-cart-data-inner {
+    pointer-events: auto;
+    transform: none;
+}
+
+/* FROM LEFT */
+.fromLeft.mod-alfa-cart .mod-alfa-cart-data-inner {
+    border-radius: 0 4px 4px 0;
+    transform: translateX(-150%);
+    will-change: transform;
+}
+.fromLeft.mod-alfa-cart .mod-alfa-cart-data-inner{
+    max-height: 100%;
+}
+.fromLeft.mod-alfa-cart .mod-alfa-cart-data{
+    justify-content: flex-start;
+}
+.fromLeft.mod-alfa-cart .cart--animatable .mod-alfa-cart-data-inner {
+    transition: transform 130ms ease-in;
+}
+.fromLeft.mod-alfa-cart .cart--visible.cart--animatable .mod-alfa-cart-data-inner {
+    transition: all 330ms ease-out;
+}
+.fromLeft.mod-alfa-cart .cart--visible .mod-alfa-cart-data-inner {
+    pointer-events: auto;
+    transform: none;
+}
+
+/* FROM RIGHT */
+.fromRight.mod-alfa-cart .mod-alfa-cart-data-inner {
+    border-radius: 4px 0 0 4px;
+    transform: translateX(150%);
+    will-change: transform;
+}
+
+.fromRight.mod-alfa-cart .mod-alfa-cart-data-inner{
+    max-height: 100%;
+}
+.fromRight.mod-alfa-cart .mod-alfa-cart-data{
+    justify-content: flex-end;
+}
+
+.fromRight.mod-alfa-cart .cart--animatable .mod-alfa-cart-data-inner {
+    transition: transform 130ms ease-in;
+}
+.fromRight.mod-alfa-cart .cart--visible.cart--animatable .mod-alfa-cart-data-inner {
+    transition: all 330ms ease-out;
+}
+.fromRight.mod-alfa-cart .cart--visible .mod-alfa-cart-data-inner {
+    pointer-events: auto;
+    transform: none;
+}
+.fromRight.mod-alfa-cart .close-btn {
+    order:-1;
+}
+
+.fromRight .cart-header{
+    justify-content: flex-start;
+}

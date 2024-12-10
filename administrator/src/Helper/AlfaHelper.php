@@ -107,6 +107,10 @@ class AlfaHelper
     public static function addHierarchyData($items, $pathField = 'name', $pathSeparator = '/', $parentPath = '', $parentId = 0, $depth = 0)
     {
         $hierarchyData = array();
+
+        if(!is_array($items) && !is_object($items)) {
+            return [];
+        }
         foreach ($items as $item) {
             if ($item->parent_id == $parentId) {
                 $item->depth = $depth; // Assign the current depth level
