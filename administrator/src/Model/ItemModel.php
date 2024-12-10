@@ -286,6 +286,22 @@ class ItemModel extends AdminModel
 			$currentId = intval($this->getState($this->getName().'.id'));//get the id from setted joomla state
 		}
 
+		// AUTO SET DEFAULT CATEGORY ID AND CATEGORIES ARRAY
+		// Check if $categoryIdDefault is set, if not set it to the first category
+		$categoryIdDefault = $data['id_category_default'];
+		$categories = $data['categories']??[];
+
+		if (!isset($categoryIdDefault) && !empty($categories)) {
+		    $categoryIdDefault = $categories[0]; // assuming categories are indexed as an array
+		}
+
+		// Check if $defaultCategoryId exists in $data['categories'], if not, add it
+		if (!in_array($categoryIdDefault, $categories)) {
+		    $data['categories'][] = $categoryIdDefault;
+		}
+		// END OF AUTO SET DEFAULT CATEGORY ID AND CATEGORIES ARRAY
+
+
 		// TODO: Also change the values of items on every other table like the name in #__alfa_order_items etc.
 //		$languages = LanguageHelper::getLanguages('lang_code'); // Get all installed languages
 
@@ -295,11 +311,11 @@ class ItemModel extends AdminModel
 
         $this->setPrices($currentId,$data['prices']);
 
-		AlfaHelper::setAssocsToDb($data['id'], $data['categories'], '#__alfa_items_categories', 'item_id','category_id');
-		AlfaHelper::setAssocsToDb($data['id'], $data['manufacturers'], '#__alfa_items_manufacturers', 'item_id','manufacturer_id');
+		AlfaHelper::setAssocsToDb($currentId, $data['categories'], '#__alfa_items_categories', 'item_id','category_id');
+		AlfaHelper::setAssocsToDb($currentId, $data['manufacturers'], '#__alfa_items_manufacturers', 'item_id','manufacturer_id');
 
-		AlfaHelper::setAssocsToDb($data['id'], $data['allowedUsers'], '#__alfa_items_users', 'item_id','user_id');
-		AlfaHelper::setAssocsToDb($data['id'], $data['allowedUserGroups'], '#__alfa_items_usergroups','item_id', 'usergroup_id');
+		AlfaHelper::setAssocsToDb($currentId, $data['allowedUsers'], '#__alfa_items_users', 'item_id','user_id');
+		AlfaHelper::setAssocsToDb($currentId, $data['allowedUserGroups'], '#__alfa_items_usergroups','item_id', 'usergroup_id');
 
 		return true;
 		// return parent::save($data);

@@ -159,13 +159,15 @@ class AlfaHelper
             $data[0] = 0;
         }
 
-        foreach ($data as $curr) {
-            $query = $db->getQuery(true);
-            $query->insert($db->quoteName($table))
-                ->set($db->quoteName($mainField) . ' = ' . $mainFieldId)
-                ->set($db->quoteName($dataField) . ' = ' . intval($curr));
-            $db->setQuery($query);
-            $db->execute();
+        if(is_array($data)){
+            foreach ($data as $curr) {
+                $query = $db->getQuery(true);
+                $query->insert($db->quoteName($table))
+                    ->set($db->quoteName($mainField) . ' = ' . $mainFieldId)
+                    ->set($db->quoteName($dataField) . ' = ' . intval($curr));
+                $db->setQuery($query);
+                $db->execute();
+            }
         }
     }
 

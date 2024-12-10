@@ -120,10 +120,10 @@ class HtmlView extends BaseHtmlView
 				->task('discounts.duplicate')
 				->listCheck(true);
 
-			if (isset($this->items[0]->checked_out))
-			{
+			// if (isset($this->items[0]->checked_out)) //at list one not the first
+			// {
 				$childBar->checkin('discounts.checkin')->listCheck(true);
-			}
+			// }
 
 			if (isset($this->items[0]->state))
 			{

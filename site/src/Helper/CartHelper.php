@@ -300,7 +300,7 @@ class CartHelper
         // $cartItems = $this->getCartItems();
 
         foreach ($this->cart->items as $item) {
-            $total += $item->price['price_with_tax'];
+            $total += $item->price['final_price'];  
         }
 
         return $total;
