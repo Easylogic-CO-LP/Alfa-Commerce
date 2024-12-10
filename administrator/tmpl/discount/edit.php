@@ -34,9 +34,16 @@ HTMLHelper::_('bootstrap.tooltip');
         <div class="col-lg-9">
             <fieldset class="adminform">
                 <?php echo $this->form->renderField('name'); ?>
+                
+                <?php echo $this->form->renderField('operation'); ?>
                 <?php echo $this->form->renderField('value'); ?>
-                <?php echo $this->form->renderField('behavior'); ?>
                 <?php echo $this->form->renderField('is_amount'); ?>
+
+                <?php echo $this->form->renderField('apply_before_tax'); ?>
+                <?php echo $this->form->renderField('behavior'); ?>
+
+                <?php echo $this->form->renderField('show_tag'); ?>
+
                 <?php echo $this->form->renderField('publish_up'); ?>
                 <?php echo $this->form->renderField('publish_down'); ?>
                 <?php echo $this->form->renderField('categories'); ?>

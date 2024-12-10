@@ -15,6 +15,7 @@ $this->cart = !empty($displayData) ? $displayData : $this->cart;
                 <th>Name</th>
                 <th>Quantity</th>
                 <th>Price</th>
+                <th>Discount</th>
                 <th>Tax</th>
                 <th>Total</th>
             </tr>
@@ -40,15 +41,16 @@ $this->cart = !empty($displayData) ? $displayData : $this->cart;
                         </button>
 
                     </td>
-                    <td data-label="Price" class="cart-item-col-price cart-item-col"><?php echo $item->price['price'];?></td>
+                    <td data-label="Price" class="cart-item-col-price cart-item-col"><?php echo $item->price['base_price'];?></td>
+                    <td data-label="Discount" class="cart-item-col-price cart-item-col"><?php echo $item->price['discounts_totals']['percent'];?></td>
                     <td data-label="Tax" class="cart-item-col-tax cart-item-col">
                         <?php 
-                            foreach ($item->price['taxes'] as $item_tax) { 
+                            foreach ($item->price['taxes'] as $item_tax) {
                                 echo $item_tax;
                             }
                         ?>        
                     </td>
-                    <td data-label="Total" class="cart-item-col-total"><?php echo $item->price['price_with_tax'];?></td>
+                    <td data-label="Total" class="cart-item-col-total"><?php echo $item->price['final_price'];?></td>
                 </tr>
             <?php } ?>
         </tbody>
@@ -56,6 +58,7 @@ $this->cart = !empty($displayData) ? $displayData : $this->cart;
         <tfoot>
             <tr>
                 <td colspan="3"><button data-action="cart-clear">Clear Cart</button></td>
+                <td colspan="1"></td>
                 <td><strong>Total:</strong></td>
                 <td><?php echo $this->cart->getTotal(); ?></td>
             </tr>

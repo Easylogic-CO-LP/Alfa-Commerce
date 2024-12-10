@@ -152,6 +152,162 @@
                 maxlength="255"
         />
 
+
+        <fieldset name="prices" label="Price Settings">
+
+
+            <fieldset name="base_price" label="Base price settings" class="d-flex">
+                <field
+                        name="base_price_show"
+                        type="radio"
+                        default="-1"
+                        label="Base price"
+                        class="btn-group"
+                >
+                    <option value="-1">General</option>
+                    <option value="0">JHIDE</option>
+                    <option value="1">JSHOW</option>
+                </field>
+                <field
+                        name="base_price_show_label"
+                        type="radio"
+                        default="-1"
+                        label="Base price label"
+                        class="btn-group"
+                >
+                    <option value="-1">General</option>
+                    <option value="0">JHIDE</option>
+                    <option value="1">JSHOW</option>
+                </field>
+            </fieldset>
+
+            <fieldset name="base_price_with_discounts" label="Base price with discounts settings" class="d-flex">
+                <field
+                        name="base_price_with_discounts_show"
+                        type="radio"
+                        default="-1"
+                        label="Base price with discounts"
+                        class="btn-group"
+                >
+                    <option value="-1">General</option>
+                    <option value="0">JHIDE</option>
+                    <option value="1">JSHOW</option>
+                </field>
+                <field
+                        name="base_price_with_discounts_show_label"
+                        type="radio"
+                        default="-1"
+                        label="Base price with discounts label"
+                        class="btn-group"
+                >
+                    <option value="-1">General</option>
+                    <option value="0">JHIDE</option>
+                    <option value="1">JSHOW</option>
+                </field>
+            </fieldset>
+
+            <fieldset name="tax_amount" label="Tax amount settings" class="d-flex">
+                <field
+                        name="tax_amount_show"
+                        type="radio"
+                        default="-1"
+                        label="Tax amount"
+                        class="btn-group"
+                >
+                    <option value="-1">General</option>
+                    <option value="0">JHIDE</option>
+                    <option value="1">JSHOW</option>
+                </field>
+                <field
+                        name="tax_amount_show_label"
+                        type="radio"
+                        default="-1"
+                        label="Tax amount label"
+                        class="btn-group"
+                >
+                    <option value="-1">General</option>
+                    <option value="0">JHIDE</option>
+                    <option value="1">JSHOW</option>
+                </field>
+            </fieldset>
+
+            <fieldset name="base_price_with_tax" label="Base price with tax settings" class="d-flex">
+                <field
+                        name="base_price_with_tax_show"
+                        type="radio"
+                        default="-1"
+                        label="Base price with tax show"
+                        class="btn-group"
+                >
+                    <option value="-1">General</option>
+                    <option value="0">JHIDE</option>
+                    <option value="1">JSHOW</option>
+                </field>
+                <field
+                        name="base_price_with_tax_show_label"
+                        type="radio"
+                        default="-1"
+                        label="Base price with tax show label"
+                        class="btn-group"
+                >
+                    <option value="-1">General</option>
+                    <option value="0">JHIDE</option>
+                    <option value="1">JSHOW</option>
+                </field>
+            </fieldset>
+
+            <fieldset name="discount_amount" label="Discount amount settings" class="d-flex">
+                <field
+                        name="discount_amount_show"
+                        type="radio"
+                        default="-1"
+                        label="Discount amount show"
+                        class="btn-group"
+                >
+                    <option value="-1">General</option>
+                    <option value="0">JHIDE</option>
+                    <option value="1">JSHOW</option>
+                </field>
+                <field
+                        name="discount_amount_show_label"
+                        type="radio"
+                        default="-1"
+                        label="Discount amount show label"
+                        class="btn-group"
+                >
+                    <option value="-1">General</option>
+                    <option value="0">JHIDE</option>
+                    <option value="1">JSHOW</option>
+                </field>
+            </fieldset>
+
+            <fieldset name="final_price" label="Final price settings" class="d-flex">
+                <field
+                        name="final_price_show"
+                        type="radio"
+                        default="-1"
+                        label="Final price show"
+                        class="btn-group"
+                >
+                    <option value="-1">General</option>
+                    <option value="0">JHIDE</option>
+                    <option value="1">JSHOW</option>
+                </field>
+                <field
+                        name="final_price_show_label"
+                        type="radio"
+                        default="-1"
+                        label="Final price show label"
+                        class="btn-group"
+                >
+                    <option value="-1">General</option>
+                    <option value="0">JHIDE</option>
+                    <option value="1">JSHOW</option>
+                </field>
+            </fieldset>
+
+        </fieldset>
+
     </fieldset>
 
 </form>

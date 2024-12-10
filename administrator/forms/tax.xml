@@ -164,6 +164,25 @@
           query="SELECT `id`, `name` FROM `#__users`" key_field="id" value_field="name"
       />
 
+      <field
+              name="publish_up"
+              type="calendar"
+              showtime="true"
+              format="%Y-%m-%d %H:%M"
+              filter="USER_UTC"
+              label="Ημέρα εκκίνησης"
+              description=""
+      />
+
+      <field
+              name="publish_down"
+              type="calendar"
+              showtime="true"
+              format="%Y-%m-%d %H:%M"
+              filter="USER_UTC"
+              label="Ημέρα λήξης"
+              description=""
+      />
       
   </fieldset>
 </form>

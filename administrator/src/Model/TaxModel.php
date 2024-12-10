@@ -192,12 +192,12 @@ class TaxModel extends AdminModel
         }
 
         $assignZeroIdIfDataEmpty = true;
-		AlfaHelper::setAssocsToDb($data['id'], $data['categories'], '#__alfa_tax_categories', 'tax_id','category_id',$assignZeroIdIfDataEmpty);
-		AlfaHelper::setAssocsToDb($data['id'], $data['manufacturers'], '#__alfa_tax_manufacturers', 'tax_id','manufacturer_id',$assignZeroIdIfDataEmpty);
-		AlfaHelper::setAssocsToDb($data['id'], $data['places'], '#__alfa_tax_places', 'tax_id','place_id',$assignZeroIdIfDataEmpty);
+		AlfaHelper::setAssocsToDb($currentId, $data['categories'], '#__alfa_tax_categories', 'tax_id','category_id',$assignZeroIdIfDataEmpty);
+		AlfaHelper::setAssocsToDb($currentId, $data['manufacturers'], '#__alfa_tax_manufacturers', 'tax_id','manufacturer_id',$assignZeroIdIfDataEmpty);
+		AlfaHelper::setAssocsToDb($currentId, $data['places'], '#__alfa_tax_places', 'tax_id','place_id',$assignZeroIdIfDataEmpty);
 
-		AlfaHelper::setAssocsToDb($data['id'], $data['users'], '#__alfa_tax_users', 'tax_id','user_id',$assignZeroIdIfDataEmpty);
-		AlfaHelper::setAssocsToDb($data['id'], $data['usergroups'], '#__alfa_tax_usergroups','tax_id', 'usergroup_id',$assignZeroIdIfDataEmpty);
+		AlfaHelper::setAssocsToDb($currentId, $data['users'], '#__alfa_tax_users', 'tax_id','user_id',$assignZeroIdIfDataEmpty);
+		AlfaHelper::setAssocsToDb($currentId, $data['usergroups'], '#__alfa_tax_usergroups','tax_id', 'usergroup_id',$assignZeroIdIfDataEmpty);
 
         // print_r($data['tax_rules']);
         // exit;

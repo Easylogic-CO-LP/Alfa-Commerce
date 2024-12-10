@@ -41,7 +41,9 @@ HTMLHelper::_('bootstrap.tooltip');
                 <?php echo $this->form->renderField('manufacturers'); ?>
                 <?php echo $this->form->renderField('places'); ?>
                 <?php echo $this->form->renderField('usergroups'); ?>
-                <?php echo $this->form->renderField('users'); ?> 
+                <?php echo $this->form->renderField('users'); ?>
+                <?php echo $this->form->renderField('publish_up'); ?>
+                <?php echo $this->form->renderField('publish_down'); ?>
             </fieldset>
         </div>
         <div class="col-lg-3">

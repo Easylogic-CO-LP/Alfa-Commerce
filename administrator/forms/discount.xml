@@ -38,21 +38,58 @@
     <field
         name="behavior"
         type="radio"
-        label="Behavior"
+        label="COM_ALFA_FORM_LBL_DISCOUNT_BEHAVIOR"
         class="btn-group"
         default="0"
         validate="options"
     >
-      <option value="0">Only this tax</option>
+      <option value="0">Only this discount</option>
       <option value="1">Combined</option>
       <option value="2">One after another</option>
+    </field>
+
+    <field
+            name="apply_before_tax"
+            type="radio"
+            label="COM_ALFA_FORM_LBL_DISCOUNT_APPLY_BEFORE_TAX"
+            class="btn-group"
+            default="1"
+            valildate="options"
+    >
+      <option value="1">Before Tax</option>
+      <option value="0">After Tax</option>
+    </field>
+
+    <field
+            name="operation"
+            type="radio"
+            label="COM_ALFA_FORM_LBL_DISCOUNT_OPERATION"
+            class="btn-group"
+            default="0"
+            valildate="options"
+    >
+      <option value="0">-</option>
+      <option value="1">+</option>
+    </field>
+
+    <!--For notes/details && yes/no-->
+    <field
+            name="show_tag"
+            type="radio"
+            label="COM_ALFA_FORM_LBL_DISCOUNT_SHOW_TAG"
+            class="btn-group"
+            default="0"
+            valildate="options"
+    >
+      <option value="0">No</option>
+      <option value="1">Yes</option>
     </field>
 
     <field
         class="btn-group"
         name="is_amount"
         type="radio"
-        label="Discount Type"
+        label="COM_ALFA_FORM_LBL_DISCOUNT_IS_AMOUNT"
         default="0"
     >
             <option value="1">Amount</option>
@@ -115,7 +152,7 @@
         showtime="true"
         format="%Y-%m-%d %H:%M"
         filter="USER_UTC"
-        label="Ημέρα εκκίνησης"
+        label="COM_ALFA_FORM_LBL_DISCOUNT_START_DATE"
         description=""
     />
 
@@ -125,7 +162,7 @@
             showtime="true"
             format="%Y-%m-%d %H:%M"
             filter="USER_UTC"
-            label="Ημέρα λήξης"
+            label="COM_ALFA_FORM_LBL_DISCOUNT_END_DATE"
             description=""
     />
 

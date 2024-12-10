@@ -50,6 +50,10 @@
     <field name="meta_desc" cols="30" rows="3" filter="safehtml" type="textarea" label="JFIELD_META_DESCRIPTION_LABEL" description="COM_ALFA_FORM_DESC_ITEM_META_DESC" />
     <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL" description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>
 
+    <field name="id_category_default" type="categories" required="true" showPath="true" multiple="false" layout="joomla.form.field.list-fancy-select" label="Default Category" description="">
+      <option value="0">COM_ALFA_FROM_CATEGORY_NO_OPTION</option>
+    </field>
+
     <field name="categories" type="categories" showPath="true" multiple="true" layout="joomla.form.field.list-fancy-select" label="Categories" description="">
       <option value="0">COM_ALFA_FROM_CATEGORY_NO_OPTION</option>
     </field>

@@ -41,8 +41,8 @@ $input = Factory::getApplication()->getInput();
     </div>
 
 
-    <?php echo HTMLHelper::_('uitab.startTabSet', 'myTab', array('active' => 'category')); ?>
-    <?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'category', Text::_('COM_ALFA_TAB_CATEGORY', true)); ?>
+    <?php echo HTMLHelper::_('uitab.startTabSet', 'myTab', ['active' => 'general', 'recall' => true, 'breakpoint' => 768]); ?>
+    <?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'general', Text::_('COM_ALFA_TAB_CATEGORY', true)); ?>
     <div class="row">
         <div class="col-lg-9">
             <div>
@@ -72,17 +72,11 @@ $input = Factory::getApplication()->getInput();
                 <legend><?php echo Text::_('JGLOBAL_FIELDSET_PUBLISHING'); ?></legend>
                 <div>
                     <?php echo $this->form->renderField('publish_up'); ?>
-
                     <?php echo $this->form->renderField('publish_down'); ?>
-
                     <?php echo $this->form->renderField('allowedUsers'); ?>
-
                     <?php echo $this->form->renderField('allowedUserGroups'); ?>
-
                     <?php echo $this->form->renderField('created_by'); ?>
-
                     <?php echo $this->form->renderField('modified_by'); ?>
-
                     <?php echo $this->form->renderField('id'); ?>
 
 
@@ -99,6 +93,21 @@ $input = Factory::getApplication()->getInput();
             </fieldset>
         </div>
     </div>
+    <?php echo HTMLHelper::_('uitab.endTab'); ?>
+
+    <?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'Prices', Text::_('COM_ALFA_FIELDSET_PRICES')); ?>
+        <?php echo $this->form->renderField('base_price_show');?>
+        <?php echo $this->form->renderField('base_price_show_label');?>
+        <?php echo $this->form->renderField('base_price_with_discounts_show');?>
+        <?php echo $this->form->renderField('base_price_with_discounts_show_label');?>
+        <?php echo $this->form->renderField('tax_amount_show');?>
+        <?php echo $this->form->renderField('tax_amount_show_label');?>
+        <?php echo $this->form->renderField('base_price_with_tax_show');?>
+        <?php echo $this->form->renderField('base_price_with_tax_show_label');?>
+        <?php echo $this->form->renderField('discount_amount_show');?>
+        <?php echo $this->form->renderField('discount_amount_show_label');?>
+        <?php echo $this->form->renderField('final_price_show');?>
+        <?php echo $this->form->renderField('final_price_show_label');?>
     <?php echo HTMLHelper::_('uitab.endTab'); ?>
 
 

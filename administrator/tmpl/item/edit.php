@@ -58,6 +58,8 @@ $input = Factory::getApplication()->getInput();
 		</div>
 		 <div class="col-lg-3">
             <?php echo $this->form->renderField('categories'); ?>
+            <?php echo $this->form->renderField('id_category_default'); ?>
+            
             <?php echo $this->form->renderField('manufacturers'); ?>
             <?php echo $this->form->renderField('state'); ?>
             <?php if ($this->state->params->get('save_history', 1)) : ?>

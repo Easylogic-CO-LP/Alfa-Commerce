@@ -144,6 +144,22 @@ class CategoryModel extends AdminModel
             $item->allowedUsers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_categories_users', 'category_id','user_id');
             $item->allowedUserGroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_categories_usergroups', 'category_id','usergroup_id');
         }
+        
+        if(!empty($item->prices)) {
+            $item->prices = json_decode($item->prices);
+            $item->base_price_show = $item->prices->base_price_show;
+            $item->base_price_show_label = $item->prices->base_price_show_label;
+            $item->base_price_with_discounts_show = $item->prices->base_price_with_discounts_show;
+            $item->base_price_with_discounts_show_label = $item->prices->base_price_with_discounts_show_label;
+            $item->tax_amount_show = $item->prices->tax_amount_show;
+            $item->tax_amount_show_label = $item->prices->tax_amount_show_label;
+            $item->base_price_with_tax_show = $item->prices->base_price_with_tax_show;
+            $item->base_price_with_tax_show_label = $item->prices->base_price_with_tax_show_label;
+            $item->discount_amount_show = $item->prices->discount_amount_show;
+            $item->discount_amount_show_label = $item->prices->discount_amount_show_label;
+            $item->final_price_show = $item->prices->final_price_show;
+            $item->final_price_show_label = $item->prices->final_price_show_label;
+        }
 
         return $item;
 
@@ -170,6 +186,24 @@ class CategoryModel extends AdminModel
         } else {
             $data['alias'] = OutputFilter::stringURLSafe($data['alias']);
         }
+
+        $prices = [
+                'base_price_show' => $data['base_price_show'],
+                'base_price_show_label' => $data['base_price_show_label'],
+                'base_price_with_discounts_show' => $data['base_price_with_discounts_show'],
+                'base_price_with_discounts_show_label' => $data['base_price_with_discounts_show_label'],
+                'tax_amount_show' => $data['tax_amount_show'],
+                'tax_amount_show_label' => $data['tax_amount_show_label'],
+                'base_price_with_tax_show' => $data['base_price_with_tax_show'],
+                'base_price_with_tax_show_label' => $data['base_price_with_tax_show_label'],
+                'discount_amount_show' => $data['discount_amount_show'],
+                'discount_amount_show_label' => $data['discount_amount_show_label'],
+                'final_price_show' => $data['final_price_show'],
+                'final_price_show_label' => $data['final_price_show_label']
+        ];
+
+        $data['prices'] = json_encode($prices);
+
 
         if (!parent::save($data))return false;
 

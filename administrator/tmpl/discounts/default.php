@@ -67,6 +67,8 @@ if (!empty($saveOrder))
 					</th>
 					<?php endif; ?>
 
+
+
 						
 					<th  scope="col" class="w-1 text-center">
 						<?php echo HTMLHelper::_('searchtools.sort', 'JSTATUS', 'a.state', $listDirn, $listOrder); ?>
@@ -75,6 +77,26 @@ if (!empty($saveOrder))
 						<th class='left'>
 							<?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_DISCOUNTS_NAME', 'a.name', $listDirn, $listOrder); ?>
 						</th>
+
+                        <th scope="col" class="left">
+                            <?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_DISCOUNTS_TYPE', 'a.is_amount', $listDirn, $listOrder); ?>
+                        </th>
+
+                        <th scope="col" class="left">
+                            <?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_DISCOUNTS_BEHAVIOR', 'a.behavior', $listDirn, $listOrder); ?>
+                        </th>
+
+                        <th scope="col" class="left">
+                            <?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_DISCOUNTS_VALUE', 'a.value', $listDirn, $listOrder); ?>
+                        </th>
+
+                        <th scope="col" class="left">
+                            <?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_DISCOUNTS_APPLY_BEFORE_TAX', 'a.apply_before_tax', $listDirn, $listOrder); ?>
+                        </th>
+
+                        <th scope="col" class="left">
+                            <?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_DISCOUNTS_SHOW_TAG', 'a.show_tag', $listDirn, $listOrder); ?>
+                        </th>
 						
 					<th scope="col" class="w-3 d-none d-lg-table-cell" >
 
@@ -104,6 +126,7 @@ if (!empty($saveOrder))
 							<?php if (isset($this->items[0]->ordering)) : ?>
 
 							<td class="text-center d-none d-md-table-cell">
+
 
 							<?php
 
@@ -146,12 +169,36 @@ if (!empty($saveOrder))
 												<?php echo $this->escape($item->name); ?>
 								<?php endif; ?>
 							</td>
+
+                            <td>
+                                <?php echo $item->is_amount ? "Amount" : "Percentage";?>
+                            </td>
+
+                            <td>
+                                <?php if($item->behavior == 0)
+                                        echo "Only this tax";
+                                    else if($item->behavior == 1)
+                                        echo "Combined";
+                                    else
+                                        echo "One after another";
+                                ?>
+                            </td>
+
+                            <td>
+                                <?php echo $item->value;?>
+                            </td>
+
+                            <td>
+                                <?php echo $item->apply_before_tax ? "Yes" : "No";?>
+                            </td>
+
+                            <td>
+                                <?php echo $item->show_tag ? "Yes" : "No";?>
+                            </td>
 							
 							<td class="d-none d-lg-table-cell">
-							<?php echo $item->id; ?>
-
+							    <?php echo $item->id; ?>
 							</td>
-
 
 						</tr>
 					<?php endforeach; ?>
