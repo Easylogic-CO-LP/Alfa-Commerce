@@ -123,8 +123,8 @@ class PlaceModel extends AdminModel
 
         if (!parent::save($data)){return false;}
 
-        AlfaHelper::getAssocsFromDb($currentId, $data['allowedUsers'], '#__alfa_places_users', 'place_id','user_id');
-        AlfaHelper::getAssocsFromDb($currentId, $data['allowedUserGroups'], '#__alfa_places_usergroups', 'place_id','usergroup_id');
+        // AlfaHelper::getAssocsFromDb($currentId, $data['allowedUsers'], '#__alfa_places_users', 'place_id','user_id');
+        // AlfaHelper::getAssocsFromDb($currentId, $data['allowedUserGroups'], '#__alfa_places_usergroups', 'place_id','usergroup_id');
 
         return true;
 
@@ -176,8 +176,8 @@ class PlaceModel extends AdminModel
 					$item->params = json_encode($item->params);
 				}
                 // Do any procesing on fields here if needed
-                $item->allowedUsers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_places_users', 'place_id','user_id');
-                $item->allowedUserGroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_places_usergroups', 'place_id','usergroup_id');
+                // $item->allowedUsers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_places_users', 'place_id','user_id');
+                // $item->allowedUserGroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_places_usergroups', 'place_id','usergroup_id');
 			}
 
 			return $item;

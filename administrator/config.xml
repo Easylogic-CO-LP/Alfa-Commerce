@@ -26,56 +26,178 @@
 
     </fieldset>
 
-    <fieldset name="price_formatter" label="Price Settings">
-            <!-- Currency Symbol Field -->
-            <field
-                name="currencySymbol"
-                type="text"
-                label="Currency Symbol"
-                description="Enter the currency symbol, e.g., $, €, ¥."
-                default="€"
-            />
+    <fieldset name="prices" label="Price Settings">
 
-            <!-- Decimal Separator Field -->
-            <field
-                name="decimalSeparator"
-                type="text"
-                label="Decimal Separator"
-                description="Specify the character for the decimal separator, e.g., . or ,."
-                default=","
-                size="1"
-            />
 
-            <!-- Thousand Separator Field -->
+        <fieldset name="base_price" label="Base price settings" class="d-flex">
             <field
-                name="thousandSeparator"
-                type="text"
-                label="Thousand Separator"
-                description="Specify the character for the thousand separator, e.g., , or ."
-                default="."
-                size="1"
-            />
-
-            <!-- Decimal Places Field -->
+                name="base_price_show"
+                type="radio"
+                default="1"
+                label="Base price"
+                description=""
+                layout="joomla.form.field.radio.switcher"
+                parentClass="col-md-6"
+                >
+                <option value="0">JHIDE</option>
+                <option value="1">JSHOW</option>
+            </field>
             <field
-                name="decimalPlaces"
-                type="number"
-                label="Decimal Places"
-                description="Enter the number of decimal places to display, e.g., 2."
-                default="2"
-                min="0"
-                max="10"
-            />
-
-            <!-- Format Pattern Field -->
-            <field
-                name="formatPattern"
-                type="text"
-                label="Format Pattern"
-                description="Specify the format pattern using {symbol} and {number}, e.g., {symbol}{number} or {number} {symbol}."
-                default="{number} {symbol}"
-            />
+                name="base_price_show_label"
+                type="radio"
+                default="1"
+                label="Base price label"
+                description=""
+                layout="joomla.form.field.radio.switcher"
+                parentClass="col-md-6"
+                showon="base_price_show:1"
+                >
+                <option value="0">JHIDE</option>
+                <option value="1">JSHOW</option>
+            </field>
         </fieldset>
+
+        <fieldset name="base_price_with_discounts" label="Base price with discounts settings" class="d-flex">
+            <field
+                    name="base_price_with_discounts_show"
+                    type="radio"
+                    default="1"
+                    label="Base price with discounts"
+                    description=""
+                    layout="joomla.form.field.radio.switcher"
+                    parentClass="col-md-6"
+            >
+                <option value="0">JHIDE</option>
+                <option value="1">JSHOW</option>
+            </field>
+            <field
+                    name="base_price_with_discounts_show_label"
+                    type="radio"
+                    default="1"
+                    label="Base price with discounts label"
+                    description=""
+                    layout="joomla.form.field.radio.switcher"
+                    parentClass="col-md-6"
+                    showon="base_price_with_discounts_show:1"
+            >
+                <option value="0">JHIDE</option>
+                <option value="1">JSHOW</option>
+            </field>
+        </fieldset>
+
+        <fieldset name="tax_amount" label="Tax amount settings" class="d-flex">
+            <field
+                    name="tax_amount_show"
+                    type="radio"
+                    default="1"
+                    label="Tax amount"
+                    description=""
+                    layout="joomla.form.field.radio.switcher"
+                    parentClass="col-md-6"
+            >
+                <option value="0">JHIDE</option>
+                <option value="1">JSHOW</option>
+            </field>
+            <field
+                    name="tax_amount_show_label"
+                    type="radio"
+                    default="1"
+                    label="Tax amount label"
+                    description=""
+                    layout="joomla.form.field.radio.switcher"
+                    parentClass="col-md-6"
+                    showon="tax_amount_show:1"
+            >
+                <option value="0">JHIDE</option>
+                <option value="1">JSHOW</option>
+            </field>
+        </fieldset>
+
+        <fieldset name="base_price_with_tax" label="Base price with tax settings" class="d-flex">
+            <field
+                    name="base_price_with_tax_show"
+                    type="radio"
+                    default="1"
+                    label="Base price with tax show"
+                    description=""
+                    layout="joomla.form.field.radio.switcher"
+                    parentClass="col-md-6"
+            >
+                <option value="0">JHIDE</option>
+                <option value="1">JSHOW</option>
+            </field>
+            <field
+                    name="base_price_with_tax_show_label"
+                    type="radio"
+                    default="1"
+                    label="Base price with tax show label"
+                    description=""
+                    layout="joomla.form.field.radio.switcher"
+                    parentClass="col-md-6"
+                    showon="base_price_with_tax_show:1"
+            >
+                <option value="0">JHIDE</option>
+                <option value="1">JSHOW</option>
+            </field>
+        </fieldset>
+
+        <fieldset name="discount_amount" label="Discount amount settings" class="d-flex">
+            <field
+                    name="discount_amount_show"
+                    type="radio"
+                    default="1"
+                    label="Discount amount show"
+                    description=""
+                    layout="joomla.form.field.radio.switcher"
+                    parentClass="col-md-6"
+            >
+                <option value="0">JHIDE</option>
+                <option value="1">JSHOW</option>
+            </field>
+            <field
+                    name="discount_amount_show_label"
+                    type="radio"
+                    default="1"
+                    label="Discount amount show label"
+                    description=""
+                    layout="joomla.form.field.radio.switcher"
+                    parentClass="col-md-6"
+                    showon="discount_amount_show:1"
+            >
+                <option value="0">JHIDE</option>
+                <option value="1">JSHOW</option>
+            </field>
+        </fieldset>
+
+        <fieldset name="final_price" label="Final price settings" class="d-flex">
+            <field
+                    name="final_price_show"
+                    type="radio"
+                    default="1"
+                    label="Final price show"
+                    description=""
+                    layout="joomla.form.field.radio.switcher"
+                    parentClass="col-md-6"
+            >
+                <option value="0">JHIDE</option>
+                <option value="1">JSHOW</option>
+            </field>
+            <field
+                    name="final_price_show_label"
+                    type="radio"
+                    default="1"
+                    label="Final price show label"
+                    description=""
+                    layout="joomla.form.field.radio.switcher"
+                    parentClass="col-md-6"
+                    showon="final_price_show:1"
+            >
+                <option value="0">JHIDE</option>
+                <option value="1">JSHOW</option>
+            </field>
+        </fieldset>
+
+    </fieldset>
 
 
     <fieldset name="component">

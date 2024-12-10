@@ -179,7 +179,7 @@ class ItemsModel extends ListModel
         if (!empty($category_filter)) {
             if (is_array($category_filter)) {
                 // If category_filter is an array, join it as a comma-separated list for the query
-                $query->where('cat.category_id IN (' . implode(',', $category_filter) . ')');
+                $query->whereIn('cat.category_id', $category_filter);
             } else {
                 // If category_filter is a single value
                 $query->where('cat.category_id = ' . (int) $category_filter);
