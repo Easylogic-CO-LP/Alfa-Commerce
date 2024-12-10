@@ -54,10 +54,8 @@ $wa->useStyle('com_alfa.list')
 
 
     <section>
-        <div class="list-container items-list" data-action="cart-item-added">
+        <div class="list-container items-list">
             <?php foreach ($this->items as $item) : ?>
-
-                <?php //echo '<pre>'; print_r($item); echo '</pre>';?>
 
                 <article class="list-item item-item" data-item-id="<?php echo $item->id;?>">
                     <div>
