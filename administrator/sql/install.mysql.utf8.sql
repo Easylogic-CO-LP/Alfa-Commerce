@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_cart` (
   `date_upd` datetime NOT NULL,
   `recognize_key` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -54,13 +54,14 @@ CREATE TABLE IF NOT EXISTS `#__alfa_categories` (
   `modified` datetime NOT NULL,
   `modified_by` int(11) DEFAULT 0,
   `ordering` int(11) DEFAULT 0,
+  `prices` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`prices`)),
   PRIMARY KEY (`id`),
   KEY `idx_parent_id` (`parent_id`),
   KEY `idx_checked_out` (`checked_out`),
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`),
   KEY `idx_state` (`state`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -171,7 +172,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_currencies` (
   KEY `currency_name` (`name`),
   KEY `published` (`state`),
   KEY `currency_numeric_code` (`number`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Used to store currencies';
+) ENGINE=InnoDB AUTO_INCREMENT=202 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Used to store currencies';
 
 --
 -- Dumping data for table `#__alfa_currencies`
@@ -179,9 +180,9 @@ CREATE TABLE IF NOT EXISTS `#__alfa_currencies` (
 
 INSERT INTO `#__alfa_currencies` (`id`, `name`, `code`, `number`, `symbol`, `currency_decimal_place`, `currency_decimal_symbol`, `currency_thousands`, `currency_positive_style`, `currency_negative_style`, `ordering`, `state`, `created_by`, `modified_by`, `checked_out_time`, `checked_out`) VALUES
 (2, 'United Arab Emirates dirham', 'AED', 784, 'د.إ', '2', ',', '', '{number} {symbol}', '{sign}{number} {symbol}', 0, 1, 0, 0, '2024-10-29 12:59:14', 110),
-(4, 'Albanian lek', 'ALL', 8, 'Lek', '2', ',', '', '{number} {symbol}', '{sign}{number} {symbol}', 0, 1, 0, 0, NULL, 0),
-(5, 'Netherlands Antillean gulden', 'ANG', 532, 'ƒ', '2', ',', '', '{number} {symbol}', '{sign}{number} {symbol}', 0, 1, 0, 0, NULL, 0),
-(7, 'Argentine peso', 'ARS', 32, '$', '2', ',', '', '{number} {symbol}', '{sign}{number} {symbol}', 0, 1, 0, 0, NULL, 0),
+(4, 'Albanian lek', 'ALL', 8, 'Lek', '2', ',', '', '{number} {symbol}', '{sign}{number} {symbol}', 0, 1, 0, 0, '2024-11-29 12:41:43', 923),
+(5, 'Netherlands Antillean gulden', 'ANG', 532, 'ƒ', '2', ',', '', '{number} {symbol}', '{sign}{number} {symbol}', 0, 1, 0, 0, '2024-12-02 13:17:25', 923),
+(7, 'Argentine peso', 'ARS', 32, '$', '2', ',', '', '{number} {symbol}', '{sign}{number} {symbol}', 0, 1, 0, 0, '2024-12-04 13:48:22', 923),
 (9, 'Australian dollar', 'AUD', 36, '$', '2', '.', '', '{symbol} {number}', '{sign}{symbol} {number}', 0, 1, 0, 0, NULL, 0),
 (10, 'Aruban florin', 'AWG', 533, 'ƒ', '2', ',', '', '{number} {symbol}', '{sign}{number} {symbol}', 0, 1, 0, 0, NULL, 0),
 (11, 'Barbadian dollar', 'BBD', 52, '$', '2', ',', '', '{number} {symbol}', '{sign}{number} {symbol}', 0, 1, 0, 0, NULL, 0),
@@ -391,12 +392,15 @@ CREATE TABLE IF NOT EXISTS `#__alfa_discounts` (
   `modified` datetime NOT NULL,
   `modified_by` int(11) DEFAULT 0,
   `ordering` int(11) DEFAULT 0,
+  `apply_before_tax` tinyint(4) NOT NULL COMMENT '0 => discount applied before tax,\r\n1 => discount applied after tax',
+  `operation` tinyint(1) NOT NULL COMMENT '0 => substract ( - ), \r\n1 => add ( + )',
+  `show_tag` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_state` (`state`),
   KEY `idx_checked_out` (`checked_out`),
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -461,6 +465,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_discount_users` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_items` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `id_category_default` int(11) NOT NULL,
   `name` varchar(255) NOT NULL,
   `short_desc` text DEFAULT NULL,
   `full_desc` text DEFAULT NULL,
@@ -487,7 +492,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items` (
   KEY `idx_checked_out` (`checked_out`),
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -524,9 +529,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_manufacturers` (
 CREATE TABLE IF NOT EXISTS `#__alfa_items_prices` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `value` double DEFAULT 0,
-  `modify` tinyint(1) NOT NULL DEFAULT 0,
-  `modify_function` enum('add','remove') DEFAULT 'add',
-  `modify_type` enum('amount','percentage') DEFAULT 'amount',
+  `ovewrited_value` double DEFAULT NULL,
   `item_id` int(11) UNSIGNED NOT NULL,
   `currency_id` int(11) UNSIGNED DEFAULT NULL,
   `usergroup_id` int(11) UNSIGNED DEFAULT NULL,
@@ -551,7 +554,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_prices` (
   KEY `idx_usergroup_id` (`usergroup_id`),
   KEY `idx_user_id` (`user_id`),
   KEY `idx_country_id` (`country_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -603,7 +606,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_manufacturers` (
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`),
   KEY `idx_state` (`state`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -645,7 +648,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
   KEY `checked_out` (`checked_out`),
   KEY `modified_by` (`modified_by`),
   KEY `created_by` (`created_by`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -689,7 +692,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_items` (
   KEY `id_item` (`id_item`),
   KEY `id_order` (`id_order`),
   KEY `id_shipmentmethod` (`id_shipmentmethod`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -707,7 +710,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_user_info` (
   `state` varchar(255) NOT NULL,
   `zip_code` varchar(255) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -756,18 +759,18 @@ CREATE TABLE IF NOT EXISTS `#__alfa_places` (
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`),
   KEY `idx_state` (`state`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=249 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `#__alfa_places`
 --
 
 INSERT INTO `#__alfa_places` (`id`, `name`, `code2`, `code3`, `number`, `parent_id`, `state`, `ordering`, `checked_out`, `checked_out_time`, `created_by`, `modified_by`) VALUES
-(1, 'Afghanistan', 'AF', 'AFG', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(2, 'Albania', 'AL', 'ALB', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(1, 'Afghanistan', 'AF', 'AFG', 0, 0, 0, 0, 923, '2024-12-04 09:19:46', 42, 0),
+(2, 'Albania', 'AL', 'ALB', 0, 0, 0, 0, NULL, NULL, 42, 0),
 (3, 'Algeria', 'DZ', 'DZA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
 (4, 'American Samoa', 'AS', 'ASM', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(5, 'Andorra', 'AD', 'AND', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(5, 'Andorra', 'AD', 'AND', 0, 0, 0, 0, NULL, NULL, 42, 0),
 (6, 'Angola', 'AO', 'AGO', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
 (7, 'Anguilla', 'AI', 'AIA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
 (8, 'Antarctica', 'AQ', 'ATA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
@@ -1022,16 +1025,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_settings` (
   `checked_out_time` datetime DEFAULT NULL,
   `created_by` int(11) DEFAULT 0,
   `modified_by` int(11) DEFAULT 0,
-  `currency` int(10) NOT NULL DEFAULT 0,
-  `currency_display` varchar(255) DEFAULT '00_Symb',
-  `terms_accept` varchar(255) DEFAULT '1',
-  `allow_guests` varchar(255) DEFAULT '1',
-  `manage_stock` tinyint(1) DEFAULT 0,
-  `stock_action` tinyint(1) DEFAULT 0,
   PRIMARY KEY (`id`),
-  KEY `idx_currency` (`currency`),
-  KEY `idx_manage_stock` (`manage_stock`),
-  KEY `idx_stock_action` (`stock_action`),
   KEY `idx_checked_out` (`checked_out`),
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`)
@@ -1078,12 +1072,14 @@ CREATE TABLE IF NOT EXISTS `#__alfa_taxes` (
   `modified` datetime NOT NULL,
   `modified_by` int(11) DEFAULT 0,
   `ordering` int(11) DEFAULT 0,
+  `publish_up` datetime DEFAULT NULL,
+  `publish_down` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_state` (`state`),
   KEY `idx_checked_out` (`checked_out`),
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -1184,3 +1180,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_users` (
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
