@@ -48,9 +48,6 @@ class CartHelper
     }
 
     protected function getCart(){
-        if ($this->user->id <= 0 && $this->recognizeKey == '' && $this->cartId <= 0) {
-            return (object) ['items' => []]; //Return an empty object so the items will be initialized
-        }
 
         try {
             $db = $this->db;
@@ -73,13 +70,13 @@ class CartHelper
 
             if($cart_data){
                 $this->cartId = $cart_data->id;
-            }else{
+            }else{ //if nothing returned put id as 0 and create an empty object
                 $this->cartId = 0;
+                $cart_data = new \stdClass();
             }
 
-//            if($this->cartId>0) {
-                $cart_data->items = $this->getCartItems();
-//            }
+            $cart_data->items = $this->getCartItems();
+
         } catch (\Exception $e) {
             // if ($e->getCode() == 404) {
                 // Need to go through the error handler to allow Redirect to work.
