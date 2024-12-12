@@ -19,6 +19,7 @@ use \Joomla\CMS\MVC\Model\AdminModel;
 use \Joomla\CMS\Helper\TagsHelper;
 use \Joomla\CMS\Filter\OutputFilter;
 use \Joomla\CMS\Event\Model;
+use \Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 
 /**
  * Currency model.
@@ -41,6 +42,8 @@ class CurrencyModel extends AdminModel
 	 */
 	public $typeAlias = 'com_alfa.currency';
 
+	protected $formName = 'currency';
+
 	/**
 	 * @var    null  Item data
 	 *
@@ -48,24 +51,6 @@ class CurrencyModel extends AdminModel
 	 */
 	protected $item = null;
 
-	
-	
-
-	/**
-	 * Returns a reference to the a Table object, always creating it.
-	 *
-	 * @param   string  $type    The table type to instantiate
-	 * @param   string  $prefix  A prefix for the table class name. Optional.
-	 * @param   array   $config  Configuration array for model. Optional.
-	 *
-	 * @return  Table    A database object
-	 *
-	 * @since   1.0.1
-	 */
-	public function getTable($type = 'Currency', $prefix = 'Administrator', $config = array())
-	{
-		return parent::getTable($type, $prefix, $config);
-	}
 
 	/**
 	 * Method to get the record form.
@@ -79,30 +64,22 @@ class CurrencyModel extends AdminModel
 	 */
 	public function getForm($data = array(), $loadData = true)
 	{
-		// Initialise variables.
-		$app = Factory::getApplication();
-
 		// Get the form.
 		$form = $this->loadForm(
-								'com_alfa.currency', 
-								'currency',
-								array(
-									'control' => 'jform',
-									'load_data' => $loadData 
-								)
-							);
+			'com_alfa.' . $this->formName,
+			$this->formName,
+			array(
+				'control' => 'jform',
+				'load_data' => $loadData
+			)
+		);
 
-		
-
-		if (empty($form))
-		{
+		if (empty($form)){
 			return false;
 		}
 
 		return $form;
 	}
-
-	
 
 	/**
 	 * Method to get the data that should be injected in the form.
@@ -124,7 +101,7 @@ class CurrencyModel extends AdminModel
 			}
 
 			$data = $this->item;
-			
+
 		}
 
 		return $data;
@@ -141,100 +118,68 @@ class CurrencyModel extends AdminModel
 	 */
 	public function getItem($pk = null)
 	{
-		
-			if ($item = parent::getItem($pk))
+
+		if ($item = parent::getItem($pk))
+		{
+			if (isset($item->params))
 			{
-				if (isset($item->params))
-				{
-					$item->params = json_encode($item->params);
-				}
-				
-				// Do any procesing on fields here if needed
+				$item->params = json_encode($item->params);
 			}
 
-			return $item;
-		
+		}
+
+		return $item;
+
 	}
+
 
 	/**
-	 * Method to duplicate an Currency
+	 * Method to save the form data.
 	 *
-	 * @param   array  &$pks  An array of primary key IDs.
+	 * @param   array  $data  The form data.
 	 *
-	 * @return  boolean  True if successful.
+	 * @return  boolean  True on success, False on error.
 	 *
-	 * @throws  Exception
+	 * @since   1.6
 	 */
-	public function duplicate(&$pks)
+	public function save($data)
 	{
+
 		$app = Factory::getApplication();
-		$user = $app->getIdentity();
-        $dispatcher = $this->getDispatcher();
+		$db = $this->getDatabase();
 
-		// Access checks.
-		if (!$user->authorise('core.create', 'com_alfa'))
-		{
-			throw new \Exception(Text::_('JERROR_CORE_CREATE_NOT_PERMITTED'));
+//		$data['alias']='the alias';
+//		$data['name']='the name';
+
+		$data['alias'] = $data['alias'] ?: $data['name'];
+
+		if ($app->get('unicodeslugs') == 1){
+			$data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
+		} else {
+			$data['alias'] = OutputFilter::stringURLSafe($data['alias']);
 		}
 
-		$context    = $this->option . '.' . $this->name;
 
-		// Include the plugins for the save events.
-		PluginHelper::importPlugin($this->events_map['save']);
 
-		$table = $this->getTable();
+        if(!str_contains($data['format_pattern'], '{number}')) {
+            $app->enqueueMessage('Format pattern is required to contain \'{number}\'.', 'error');
+            return false;
+        }
 
-		foreach ($pks as $pk)
-		{
-			
-				if ($table->load($pk, true))
-				{
-					// Reset the id to create a new record.
-					$table->id = 0;
 
-					if (!$table->check())
-					{
-						throw new \Exception($table->getError());
-					}
-					
+		if (!parent::save($data))return false;
 
-					// Trigger the before save event.
-					$beforeSaveEvent = new Model\BeforeSaveEvent($this->event_before_save, [
-						'context' => $context,
-						'subject' => $table,
-						'isNew'   => true,
-						'data'    => $table,
-					]);
-					
-						// Trigger the before save event.
-						$result = $dispatcher->dispatch($this->event_before_save, $beforeSaveEvent)->getArgument('result', []);
-					
-					
-					if (in_array(false, $result, true) || !$table->store())
-					{
-						throw new \Exception($table->getError());
-					}
-
-					// Trigger the after save event.
-					$dispatcher->dispatch($this->event_after_save, new Model\AfterSaveEvent($this->event_after_save, [
-						'context' => $context,
-						'subject' => $table,
-						'isNew'   => true,
-						'data'    => $table,
-					]));				
-				}
-				else
-				{
-					throw new \Exception($table->getError());
-				}
-			
+		$currentId = 0;
+		if($data['id']>0){ //not a new
+			$currentId = intval($data['id']);
+		}else{ // is new
+			$currentId = intval($this->getState($this->getName().'.id'));//get the id from setted joomla state
 		}
-
-		// Clean cache
-		$this->cleanCache();
 
 		return true;
+
 	}
+
 
 	/**
 	 * Prepare and sanitise the table prior to saving.
@@ -247,18 +192,18 @@ class CurrencyModel extends AdminModel
 	 */
 	protected function prepareTable($table)
 	{
-		jimport('joomla.filter.output');
+		$user = $this->getCurrentUser();
 
-		if (empty($table->id))
+		if ($table->id == 0 && empty($table->created_by))
 		{
-			// Set ordering to the last item if not set
-			if (@$table->ordering === '')
-			{
-				$db = $this->getDbo();
-				$db->setQuery('SELECT MAX(ordering) FROM #__alfa_currencies');
-				$max             = $db->loadResult();
-				$table->ordering = $max + 1;
-			}
+			$table->created_by = $user->id;
 		}
+
+		$table->modified = Factory::getDate()->toSql();
+		$table->modified_by = $user->id;
+
+		return parent::prepareTable($table);
+
 	}
+
 }

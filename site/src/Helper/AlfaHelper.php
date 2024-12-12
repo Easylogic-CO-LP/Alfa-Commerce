@@ -25,6 +25,97 @@ use \Joomla\Database\DatabaseDriver;
 class AlfaHelper
 {
 
+    /*
+     * Inputs: the price value, and the format settings.
+     * If there are no format settings provided, we look for cached settings.
+     *      If there are also no cached settings, we then make a DB query.
+     *      We cache the query settings.
+     * Format the $value.
+     * Returns: the formatted $value.
+     */
+    public static function formattedPrice($value, $decimal_place=null, $decimal_symbol=null, $thousand_separator=null, $pattern = null){
+
+        $symbol = '';
+        //If settings have not been given, 
+        if($decimal_place == null || $decimal_symbol == null || $thousand_separator == null || $pattern == null || !strpos($pattern, "{number}")) {
+
+            //We check for cached settings.
+            $cache = Factory::getCache('com_alfa','');
+            $cache->setCaching(true);
+            $cacheKey = "general_currency_settings";
+            $generalCurrencySettings = $cache->get($cacheKey);
+
+            //Applying the cached settings if they exist.
+            if(!empty($generalCurrencySettings)) {
+                $symbol = $generalCurrencySettings->symbol;
+                $decimal_place = $generalCurrencySettings->decimal_place;
+                $decimal_symbol = $generalCurrencySettings->decimal_symbol;
+                $thousand_separator = $generalCurrencySettings->thousand_separator;
+                $pattern = $generalCurrencySettings->format_pattern;
+            }//If there are no cached settings, we make a DB query.
+            else {
+                $settings = self::getGeneralSettings();
+                $defaultCurrID = $settings->get('default_currency');
+
+                $db = Factory::getContainer()->get('DatabaseDriver');
+                $query = $db->getQuery(true);
+                $query->
+                select("symbol, decimal_place, decimal_symbol, thousand_separator, format_pattern")->
+                from('#__alfa_currencies')->
+                where('id=' . $defaultCurrID);
+                $db->setQuery($query);
+
+                $DBSettings = $db->loadObject();
+
+                //We cache the settings retrieved by the DB query.
+                $cache->store($DBSettings, $cacheKey);
+
+                //We apply the DB settings.
+                $symbol = $DBSettings->symbol;
+                $decimal_place = $DBSettings->decimal_place;
+                $decimal_symbol = $DBSettings->decimal_symbol;
+                $thousand_separator = $DBSettings->thousand_separator;
+                $pattern = $DBSettings->format_pattern;
+            }
+        }
+
+        //Finally, we apply all the settings to our value and return it.
+        $value = number_format((float)$value, $decimal_place, $decimal_symbol, $thousand_separator);
+        $value = str_replace("{number}", $value, $pattern);
+        $value = str_replace("{symbol}", $symbol, $value);
+
+        return $value;
+
+    }
+
+    /**
+     * Inputs: void (nothing).
+     * Sends a DB query to get the general currency settings.
+     * Returns: general currency settings or null if they are not found.
+     */
+//    public static function getGeneralCurrencySettings(){
+//        $settings = self::getGeneralSettings();
+//        $defaultCurrID = $settings->get('default_currency');
+//
+//        $db = Factory::getContainer()->get('DatabaseDriver');
+//        $query = $db->getQuery(true);
+//
+//        $query->
+//            select("symbol, decimal_place, decimal_symbol, thousand_separator, format_pattern")->
+//            from('#__alfa_currencies')->
+//            where('id=' . $defaultCurrID);
+//        $db->setQuery($query);
+//
+//        return $db->loadObject() ?: null;
+//    }
+
+
+
+    //SELECT p.symbol, p.currency_decimal_place, p.currency_decimal_symbol, p.currency_decimal_separator, p.currency_thousand_separator
+    //FROM ms0bn_alfa_items_prices as it
+    //JOIN ms0bn_alfa_currencies as p ON it.currency_id=p.id
+    //WHERE it.id = x;
+
 
     public static function getGeneralSettings(){
 
@@ -68,23 +159,23 @@ class AlfaHelper
 
         // empty object with general settings in case no category found
         $generalPriceSettings = [
-            'base_price_show' => $generalSettings->get('base_price_show'),
-            'base_price_show_label' => $generalSettings->get('base_price_show_label'),
+            'base_price_show' => $generalSettings->get('base_price_show',1),
+            'base_price_show_label' => $generalSettings->get('base_price_show_label',1),
 
-            'base_price_with_discounts_show' => $generalSettings->get('base_price_with_discounts_show') ,
-            'base_price_with_discounts_show_label' => $generalSettings->get('base_price_with_discounts_show_label'),
+            'base_price_with_discounts_show' => $generalSettings->get('base_price_with_discounts_show',1) ,
+            'base_price_with_discounts_show_label' => $generalSettings->get('base_price_with_discounts_show_label',1),
 
-            'tax_amount_show' => $generalSettings->get('tax_amount_show'),
-            'tax_amount_show_label' => $generalSettings->get('tax_amount_show_label'),
+            'tax_amount_show' => $generalSettings->get('tax_amount_show',1),
+            'tax_amount_show_label' => $generalSettings->get('tax_amount_show_label',1),
 
-            'base_price_with_tax_show' => $generalSettings->get('base_price_with_tax_show'),
-            'base_price_with_tax_show_label' => $generalSettings->get('base_price_with_discounts_show_label'),
+            'base_price_with_tax_show' => $generalSettings->get('base_price_with_tax_show',1),
+            'base_price_with_tax_show_label' => $generalSettings->get('base_price_with_discounts_show_label',1),
 
-            'discount_amount_show' => $generalSettings->get('discount_amount_show'),
-            'discount_amount_show_label' => $generalSettings->get('discount_amount_show_label'),
+            'discount_amount_show' => $generalSettings->get('discount_amount_show',1),
+            'discount_amount_show_label' => $generalSettings->get('discount_amount_show_label',1),
 
-            'final_price_show' => $generalSettings->get('final_price_show'),
-            'final_price_show_label' => $generalSettings->get('final_price_show_label'),
+            'final_price_show' => $generalSettings->get('final_price_show',1),
+            'final_price_show_label' => $generalSettings->get('final_price_show_label',1),
         ];
 
         // Creating an object based on general settings

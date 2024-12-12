@@ -38,6 +38,8 @@ use \Alfa\Component\Alfa\Site\Helper\OrderPlaceHelper;
  */
 class CartController extends BaseController
 {
+
+
     /**
      * Method to display a view.
      *
@@ -85,13 +87,7 @@ class CartController extends BaseController
 
         $priceLayout = LayoutHelper::render('price', $price);
 
-        $response_data = 
-            [
-                'tmpl' => $priceLayout,
-                'data' => $price
-            ];
-
-        $response = new JsonResponse($response_data, 'Prices return successfully', $errorOccured);
+        $response = new JsonResponse($priceLayout, 'Prices return successfully', $errorOccured);
 
         echo $response;
         $this->app->close();
@@ -100,6 +96,7 @@ class CartController extends BaseController
 
     public function addToCart()
     {
+        $errorOccured = false;
 
         $input = $this->app->input;
 
@@ -107,21 +104,15 @@ class CartController extends BaseController
         $itemId = $input->getInt('item_id', 0);
         $userId = Factory::getApplication()->getIdentity()->id;
         $response_data = [];
-        $errorOccured = true;
 
         $cart = new CartHelper();
 
-        //response if false is error occured or an object if all done without an error
-        $response = $cart->addToCart($itemId, $quantity);       
-
-        if(!empty($response)){
-            $response_data['item'] = $response;
-            $response_data['total_price'] = $cart->getTotal();
-            $response_data['total_items'] = $cart->getTotalItems();
-            $response_data['total_quantity'] = $cart->getTotalQuantity();
-            $errorOccured = false;
-        }
- 
+        // try{
+        $errorOccured = !$cart->addToCart($itemId, $quantity);
+        // } catch (Exception $e) {
+        //     $this->app->enqueueMessage($e->getMessage(),'error');
+        //     $errorOccured = true;
+        // }
 
         $response = new JsonResponse($response_data, $errorOccured ? 'Item failed to be added' : 'Item added successfully', $errorOccured);
 
@@ -169,6 +160,8 @@ class CartController extends BaseController
         $itemId = $input->getInt('id_item', 0);
         $quantity = $input->getInt('quantity', 1);
         $userId = Factory::getApplication()->getIdentity()->id;
+
+        $response_data = [];
 
         $cart = new CartHelper();
         
