@@ -1,4 +1,3 @@
--- --------------------------------------------------------
 
 --
 -- Table structure for table `#__alfa_cart`
@@ -217,7 +216,7 @@ INSERT INTO `#__alfa_currencies` (`id`, `name`, `code`, `number`, `symbol`, `dec
 (42, 'Algerian dinar', 'DZD', 12, 'د.ج', '2', ',', '', '', '{number}{symbol}', '', '{number} {symbol}', '{sign}{number} {symbol}', 0, 1, 0, 0, NULL, 0),
 (44, 'Egyptian pound', 'EGP', 818, '£', '2', ',', '', '', '{number}{symbol}', '', '{number} {symbol}', '{sign}{number} {symbol}', 0, 1, 0, 0, NULL, 0),
 (46, 'Ethiopian birr', 'ETB', 230, 'ETB', '2', ',', '', '', '{number}{symbol}', '', '{number} {symbol}', '{sign}{number} {symbol}', 0, 1, 0, 0, NULL, 0),
-(47, 'Euro', 'EUR', 978, '€', '2', ',', '', '.', '{number}{symbol}', '', '{number} {symbol}', '{sign}{number} {symbol}', 0, 1, 0, 922, NULL, NULL),
+(47, 'Euro', 'EUR', 978, '€', '3', 'qwe', '', 'adsa', '{number}9{symbol}', '', '{number} {symbol}', '{sign}{number} {symbol}', 0, 1, 0, 922, NULL, NULL),
 (49, 'Fijian dollar', 'FJD', 242, '$', '2', ',', '', '', '{number}{symbol}', '', '{number} {symbol}', '{sign}{number} {symbol}', 0, 1, 0, 0, NULL, 0),
 (50, 'Falkland pound', 'FKP', 238, '£', '2', ',', '', '', '{number}{symbol}', '', '{number} {symbol}', '{sign}{number} {symbol}', 0, 1, 0, 0, NULL, 0),
 (52, 'British pound', 'GBP', 826, '£', '2', ',', '', '', '{number}{symbol}', ',', '{symbol}{number}', '{symbol}{sign}{number}', 0, 1, 0, 0, NULL, 0),
@@ -664,7 +663,6 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
 CREATE TABLE IF NOT EXISTS `#__alfa_orders_statuses` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
-  `name_email` varchar(255) NOT NULL,
   `color` varchar(255) NOT NULL,
   `bg_color` varchar(255) NOT NULL,
   `stock_action` tinyint(1) DEFAULT NULL,
@@ -676,7 +674,17 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders_statuses` (
   `modified_by` int(11) DEFAULT 0,
   `ordering` int(11) DEFAULT 0,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `#__alfa_orders_statuses`
+--
+
+INSERT INTO `#__alfa_orders_statuses` (`id`, `name`, `color`, `bg_color`, `stock_action`, `state`, `checked_out`, `checked_out_time`, `created_by`, `modified`, `modified_by`, `ordering`) VALUES
+(1, 'Επιβεβαιωμένη', 'rgba(255, 255, 255, 1)', 'rgba(14, 158, 11, 1)', 1, 1, NULL, NULL, 0, '2024-10-22 13:26:04', 110, 1),
+(2, 'Απεστάλη', '#eeeeee', 'rgba(25, 129, 255, 1)', 1, 1, NULL, NULL, 0, '2024-11-01 07:51:40', 109, 3),
+(3, 'Ακυρωμένη', 'rgba(255, 255, 255, 1)', 'rgba(255, 0, 0, 1)', 0, 1, NULL, NULL, 0, '2024-10-29 12:20:11', 109, 2),
+(4, 'Ολοκληρώθηκε', 'rgba(0, 0, 0, 1)', 'rgba(214, 214, 214, 1)', 1, 1, NULL, NULL, 0, '2024-11-01 07:51:45', 109, 0);
 
 -- --------------------------------------------------------
 
@@ -764,7 +772,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_places` (
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`),
   KEY `idx_state` (`state`)
-) ENGINE=InnoDB AUTO_INCREMENT=249 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=250 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `#__alfa_places`
@@ -1016,7 +1024,8 @@ INSERT INTO `#__alfa_places` (`id`, `name`, `code2`, `code3`, `number`, `parent_
 (245, 'Serbia', 'RS', 'SRB', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
 (246, 'Sint Maarten (French Antilles)', 'MF', 'MAF', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
 (247, 'Sint Maarten (Netherlands Antilles)', 'SX', 'SXM', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(248, 'Palestinian Territory, occupied', 'PS', 'PSE', 0, 0, 0, 0, NULL, NULL, 42, 0);
+(248, 'Palestinian Territory, occupied', 'PS', 'PSE', 0, 0, 0, 0, NULL, NULL, 42, 0),
+(249, 'Larisa', 'ZZ', 'LAR', 121, 0, 0, 1, NULL, NULL, 923, 923);
 
 -- --------------------------------------------------------
 
@@ -1186,3 +1195,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_users` (
   KEY `idx_modified_by` (`modified_by`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
