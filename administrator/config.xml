@@ -28,7 +28,6 @@
 
     <fieldset name="prices" label="Price Settings">
 
-
         <fieldset name="base_price" label="Base price settings" class="d-flex">
             <field
                 name="base_price_show"
@@ -199,7 +198,15 @@
 
     </fieldset>
 
-
+    <fieldset name="currencies" label="Currency Settings">
+        <field
+            name="default_currency"
+            type="sql"
+            label="Default Currency"
+            query="SELECT id, name FROM #__alfa_currencies ORDER BY name ASC" key_field="id" value_field="name"
+        />
+    </fieldset>
+    
     <fieldset name="component">
         <field
             name="save_history"
