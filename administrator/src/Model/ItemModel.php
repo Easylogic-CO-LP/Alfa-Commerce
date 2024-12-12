@@ -302,13 +302,6 @@ class ItemModel extends AdminModel
 		// END OF AUTO SET DEFAULT CATEGORY ID AND CATEGORIES ARRAY
 
 
-		// TODO: Also change the values of items on every other table like the name in #__alfa_order_items etc.
-//		$languages = LanguageHelper::getLanguages('lang_code'); // Get all installed languages
-
-//		$multilangFields = ['title','alias'];
-
-//		$this->saveMultilingualData($currentId, $data);
-
         $this->setPrices($currentId,$data['prices']);
 
 		AlfaHelper::setAssocsToDb($currentId, $data['categories'], '#__alfa_items_categories', 'item_id','category_id');
@@ -319,50 +312,6 @@ class ItemModel extends AdminModel
 
 		return true;
 		// return parent::save($data);
-	}
-
-	protected function saveMultilingualData($currentId,$data)
-	{
-
-		// Get the database connection
-		$db = $this->getDatabase();
-		$languages = LanguageHelper::getLanguages('lang_code');
-		$multilang = count($languages) > 1 && Multilanguage::isEnabled();
-//print_r($data);
-//exit;
-		foreach ($languages as $langCode => $language) {
-			// Convert language code from 'el-GR' to 'el_gr'
-			$formattedLangCode = str_replace('-', '_', strtolower($langCode));
-			$tableName = '#__alfa_items_' . $formattedLangCode;
-
-			// Check if the table exists
-			$query = $db->getQuery(true);
-			$query->select('COUNT(*)')
-				->from('information_schema.tables')
-				->where('table_schema = ' . $db->quote($db->getName()) . ' AND table_name = ' . $db->quote($db->getPrefix() . 'alfa_items_' . $formattedLangCode));
-
-			$db->setQuery($query);
-			$tableExists = (bool) $db->loadResult();
-
-			// If the table does not exist, create it
-			if (!$tableExists) {
-				$createQuery = "CREATE TABLE " . $tableName . " (
-                `item_id` INT(11) NOT NULL,
-                `name` VARCHAR(255) NOT NULL,
-                `description` TEXT NOT NULL,
-                PRIMARY KEY (`item_id`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
-
-				$db->setQuery($createQuery);
-				$db->execute();
-			}
-
-			// REPLACE equals INSERT OR UPDATE
-			$query="REPLACE INTO ". $tableName ." (`item_id`, `name` , `description`) VALUES (". $db->q($currentId)." , ". $db->q($data['name_'.$formattedLangCode]) ." , ". $db->q($data['description_'.$formattedLangCode]) .")";
-			$db->setQuery($query);
-			$db->execute();
-		}
-
 	}
 
 	public function getPrices($id){
@@ -469,9 +418,15 @@ class ItemModel extends AdminModel
 	 */
     protected function prepareTable($table)
     {
+		$user = $this->getCurrentUser();
+
+	    if ($table->id == 0 && empty($table->created_by))
+	    {
+		    $table->created_by = $user->id;
+	    }
 
     	$table->modified = Factory::getDate()->toSql();
-    	$table->modified_by = $this->getCurrentUser()->id;
+    	$table->modified_by = $user->id;
 
         if (empty($table->publish_up)) {
             $table->publish_up = null;
@@ -480,6 +435,11 @@ class ItemModel extends AdminModel
         if (empty($table->publish_down)) {
             $table->publish_down = null;
         }
+
+	    if($table->stock === '')
+		{
+			$table->stock = NULL;
+		}
 
         return parent::prepareTable($table);
         

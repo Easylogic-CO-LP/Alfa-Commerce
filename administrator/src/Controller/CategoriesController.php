@@ -28,6 +28,23 @@ use Joomla\Utilities\ArrayHelper;
 class CategoriesController extends AdminController
 {
 	/**
+	 * Proxy for getModel.
+	 *
+	 * @param   string  $name    Optional. Model name
+	 * @param   string  $prefix  Optional. Class prefix
+	 * @param   array   $config  Optional. Configuration array for model
+	 *
+	 * @return  object	The Model
+	 *
+	 * @since   1.0.1
+	 */
+	public function getModel($name = 'Category', $prefix = 'Administrator', $config = array())
+	{
+		return parent::getModel($name, $prefix, array('ignore_request' => true));
+	}
+
+
+	/**
 	 * Method to clone existing Categories
 	 *
 	 * @return  void
@@ -62,55 +79,4 @@ class CategoriesController extends AdminController
 	// 	$this->setRedirect('index.php?option=com_alfa&view=categories');
 	// }
 
-	/**
-	 * Proxy for getModel.
-	 *
-	 * @param   string  $name    Optional. Model name
-	 * @param   string  $prefix  Optional. Class prefix
-	 * @param   array   $config  Optional. Configuration array for model
-	 *
-	 * @return  object	The Model
-	 *
-	 * @since   1.0.1
-	 */
-	public function getModel($name = 'Category', $prefix = 'Administrator', $config = array())
-	{
-		return parent::getModel($name, $prefix, array('ignore_request' => true));
-	}
-
-	
-
-	/**
-	 * Method to save the submitted ordering values for records via AJAX.
-	 *
-	 * @return  void
-	 *
-	 * @since   1.0.1
-	 *
-	 * @throws  Exception
-	 */
-	public function saveOrderAjax()
-	{
-		// Get the input
-		$pks   = $this->input->post->get('cid', array(), 'array');
-		$order = $this->input->post->get('order', array(), 'array');
-
-		// Sanitize the input
-		ArrayHelper::toInteger($pks);
-		ArrayHelper::toInteger($order);
-
-		// Get the model
-		$model = $this->getModel();
-
-		// Save the ordering
-		$return = $model->saveorder($pks, $order);
-
-		if ($return)
-		{
-			echo "1";
-		}
-
-		// Close the application
-		Factory::getApplication()->close();
-	}
 }

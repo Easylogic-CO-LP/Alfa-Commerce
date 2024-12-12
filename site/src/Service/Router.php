@@ -84,6 +84,10 @@ class Router extends RouterView
         $this->attachRule(new NomenuRules($this));
     }
 
+    public function parse(&$segments){
+        exit;
+    }
+
 
     /**
      * Method to get the segment(s) for an item
