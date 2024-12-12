@@ -40,8 +40,9 @@ $input = Factory::getApplication()->getInput();
         </div>
     </div>
 
-    <?php echo HTMLHelper::_('uitab.startTabSet', 'myTab', array('active' => 'country')); ?>
-	<?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'country', Text::_('COM_ALFA_TAB_COUNTRY', true)); ?>
+    <?php echo HTMLHelper::_('uitab.startTabSet', 'myTab', ['active' => 'general', 'recall' => true, 'breakpoint' => 768]); ?>
+
+	<?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'general', Text::_('COM_ALFA_TAB_COUNTRY', true)); ?>
 	<div class="row">
 		<div class="col-lg-9">
             <div>

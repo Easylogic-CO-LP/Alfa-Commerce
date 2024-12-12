@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 use \Joomla\CMS\Factory;
 use \Joomla\Database\DatabaseDriver;
 use \Joomla\CMS\MVC\Model\BaseDatabaseModel;
+use Joomla\CMS\Component\ComponentHelper;
 
 class PriceCalculator
 {
@@ -22,6 +23,8 @@ class PriceCalculator
     protected $userGroupId;
     protected $currencyId;
     protected $prices;
+    protected $app;
+    protected $settings;
     // protected $taxes;
     // protected $discounts;
     protected $db;
@@ -34,6 +37,9 @@ class PriceCalculator
         $this->userGroupId = $userGroupId;
         $this->currencyId = $currencyId;
         $this->db = Factory::getContainer()->get('DatabaseDriver');
+        $this->app = Factory::getApplication();
+        $this->settings = ComponentHelper::getParams('com_alfa');
+
 
         // Create a cache object
         $this->cache = Factory::getCache('com_alfa',''); // 'com_alfa' is the cache group,
@@ -84,6 +90,17 @@ class PriceCalculator
     // Calculate the correct price based on quantity, user group, etc.
     public function calculatePrice()
     {
+        $basePriceShow = $this->settings->get('base_price_show','1');
+
+        // if($basePriceShow=='1'){
+        //     echo 'show prices';
+        // }else{
+        //     echo 'oopps';
+        // }
+        // exit;
+
+        $showTax = true;
+
         $basePrice = $this->quantity * $this->getBasePrice();
         $price = $basePrice;
         $priceWithTax = $price;
@@ -96,8 +113,9 @@ class PriceCalculator
         $basePriceWithDiscount = $this->applyDiscounts($basePrice,$productDiscounts->beforeTax);
         $finalPrice = $this->applyDiscounts($finalPrice,$productDiscounts->beforeTax);
 
+
         // Apply the taxes
-        $basePriceWithTax = $this->applyPercentages($basePrice, $productTaxes);
+        $basePriceWithTax = $this->applyPercentages($basePriceWithDiscount, $productTaxes);
         $finalPrice = $this->applyPercentages($finalPrice, $productTaxes);
         $priceWithDiscAndTax = $basePriceWithDiscount;
         foreach($productTaxes as $tax)
@@ -106,13 +124,31 @@ class PriceCalculator
         // Apply discounts after tax
         $finalPrice = $this->applyDiscounts($finalPrice,$productDiscounts->afterTax);
 
-        // xwris round alla to kovoume sta duo dekadika psifia
-        // echo '-'.round(((( floatval($product->prices['basePriceWithTax']) - floatval($product->prices['finalPrice']) ) * 100 ) / floatval($product->prices['basePriceWithTax']) )).'%';
+        // if tax is not shown the final price will be the basePriceWith the discount
+        // if(!$showTax){
+        //     $finalPrice = $basePriceWithDiscount;
+        // }
+        
+        $discountBasePriceToCalculateFrom = $discountFinalPriceToCalculateFrom  =0;
+        if(!empty($productDiscounts->beforeTax)){
+            $discountBasePriceToCalculateFrom = $basePrice;
+            $discountFinalPriceToCalculateFrom = $basePriceWithDiscount;
+        }
 
+        if(!empty($productDiscounts->afterTax)){
+            $discountBasePriceToCalculateFrom = $basePriceWithTax;
+            $discountFinalPriceToCalculateFrom = $finalPrice;
+        }
 
+        
         //Setting reduced amount and reduced percentage.
-        $reducedDiscountAmount = $basePrice - $finalPrice;
-        $reducedDiscountPercentage = 100 - (100 * $finalPrice / $basePrice);
+        //amount
+        $reducedDiscountAmount = $discountBasePriceToCalculateFrom - $discountFinalPriceToCalculateFrom;
+        //percentage
+        $reducedDiscountPercentage = 0;
+        if($discountBasePriceToCalculateFrom>0){
+            $reducedDiscountPercentage = 100 - (100 * $discountFinalPriceToCalculateFrom / $discountBasePriceToCalculateFrom);
+        }
 
         //Validating.
         if($reducedDiscountPercentage < 0)
@@ -151,10 +187,9 @@ class PriceCalculator
             'base_price_with_discount' => $basePriceWithDiscount, //only discounts applied
             'base_price_with_tax' => $basePriceWithTax,// only taxes applied
             'final_price' => $finalPrice, // with discounts and tax applied
+
             'discounts_totals'=> $total_discounts,
             'tax_totals' => $total_taxes,
-            'price' => $finalPrice,
-
             'taxes' => $productTaxes, //24%
             'discounts' => $productDiscounts, //20%
         ];
@@ -480,11 +515,11 @@ class DiscountValue {
         $this->operation = $operation;
     }
 
-    public function addValue($value, $isAmount, $operation, $name) {
+    public function addValue($value,$isAmount, $operation, $name) {
 
         $value = abs($value);// an einai -24 to kanw 24
         $this->value = abs($this->value);
-        $this->isAmount = $isAmount;
+
         $this->combinedValues[] = new DiscountValue($value, $isAmount, $operation, $name);
 
         // if($this->operation != $operation){

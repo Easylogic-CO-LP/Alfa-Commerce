@@ -114,16 +114,16 @@ class HtmlView extends BaseHtmlView
 				->listCheck(true);
 			}
 
-			$childBar->standardButton('duplicate')
-				->text('JTOOLBAR_DUPLICATE')
-				->icon('fas fa-copy')
-				->task('currencies.duplicate')
-				->listCheck(true);
+//			$childBar->standardButton('duplicate')
+//				->text('JTOOLBAR_DUPLICATE')
+//				->icon('fas fa-copy')
+//				->task('currencies.duplicate')
+//				->listCheck(true);
 
-			if (isset($this->items[0]->checked_out))
-			{
+//			if (isset($this->items[0]->checked_out))
+//			{
 				$childBar->checkin('currencies.checkin')->listCheck(true);
-			}
+//			}
 
 			if (isset($this->items[0]->state))
 			{
@@ -154,32 +154,5 @@ class HtmlView extends BaseHtmlView
 		// Set sidebar action
 		Sidebar::setAction('index.php?option=com_alfa&view=currencies');
 	}
-	
-	/**
-	 * Method to order fields 
-	 *
-	 * @return void 
-	 */
-	protected function getSortFields()
-	{
-		return array(
-			'a.`id`' => Text::_('JGRID_HEADING_ID'),
-			'a.`state`' => Text::_('JSTATUS'),
-			'a.`ordering`' => Text::_('JGRID_HEADING_ORDERING'),
-			'a.`code`' => Text::_('COM_ALFA_CURRENCIES_CODE'),
-			'a.`name`' => Text::_('COM_ALFA_CURRENCIES_NAME'),
-		);
-	}
 
-	/**
-	 * Check if state is set
-	 *
-	 * @param   mixed  $state  State
-	 *
-	 * @return bool
-	 */
-	public function getState($state)
-	{
-		return isset($this->state->{$state}) ? $this->state->{$state} : false;
-	}
 }

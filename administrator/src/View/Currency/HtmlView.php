@@ -71,7 +71,7 @@ class HtmlView extends BaseHtmlView
 
 		if (isset($this->item->checked_out))
 		{
-			$checkedOut = !($this->item->checked_out == 0 || $this->item->checked_out == $user->get('id'));
+			$checkedOut = !($this->item->checked_out == 0 || $this->item->checked_out == $user->id);
 		}
 		else
 		{

@@ -181,7 +181,7 @@ class TaxModel extends AdminModel
         } else {
             $data['alias'] = OutputFilter::stringURLSafe($data['alias']);
         }
-
+        
         if (!parent::save($data))return false;
 
         $currentId = 0;

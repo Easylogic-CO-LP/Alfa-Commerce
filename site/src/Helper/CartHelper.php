@@ -12,7 +12,7 @@ class CartHelper
     protected $app;
     protected $db;
     protected $user;
-    protected $cartId; // access with getCartId() function
+    protected $cartId; // access with getCartId() function 
     protected $recognizeKey; // access with getRecognizeKey() function
     protected $cart; // access with getData() function
 
@@ -48,7 +48,10 @@ class CartHelper
     }
 
     protected function getCart(){
-
+        if ($this->user->id <= 0 && $this->recognizeKey == '' && $this->cartId <= 0) {
+            return false;
+        }
+        
         try {
             $db = $this->db;
             $query = $db->getQuery(true);
@@ -69,14 +72,14 @@ class CartHelper
             $cart_data = $db->loadObject();
 
             if($cart_data){
-                $this->cartId = $cart_data->id;
-            }else{ //if nothing returned put id as 0 and create an empty object
+                $this->cartId = $cart_data->id;    
+            }else{
                 $this->cartId = 0;
-                $cart_data = new \stdClass();
             }
 
-            $cart_data->items = $this->getCartItems();
-
+            if($this->cartId>0) {
+                $cart_data->items = $this->getCartItems();
+            }
         } catch (\Exception $e) {
             // if ($e->getCode() == 404) {
                 // Need to go through the error handler to allow Redirect to work.
@@ -107,7 +110,7 @@ class CartHelper
                 ->where($db->quoteName('ci.id_cart') . ' = ' . $db->quote($this->cartId));
 
         $db->setQuery($query);
-
+        
         $cart_items = $db->loadObjectList();
 
         if(!empty($cart_items)) {
@@ -139,7 +142,7 @@ class CartHelper
 
         $rkCookie = $this->app->input->cookie->get($cookieName, '');
         // if ($rkCookie == '') {
-        // }
+        // }        
 
         return $rkCookie;
     }
@@ -167,7 +170,7 @@ class CartHelper
                 'httponly' => $httponly,
                 'samesite' => $samesite
             ]);
-
+        
         $this->recognizeKey = $cookieValue;
     }
 
@@ -207,23 +210,17 @@ class CartHelper
                 return false;
             }
 
-
+            
         }
 
 
         $itemExists = null;
-
-		if(isset($this->cart->items))
-		{
-			foreach ($this->cart->items as $item)
-			{
-				if ($item->id == $itemId)
-				{
-					$itemExists = $item;
-					break;  // Exit the loop once the item is found
-				}
-			}
-		}
+        foreach($this->cart->items as $item){
+            if($item->id == $itemId){
+                $itemExists = $item;
+                break;  // Exit the loop once the item is found
+            }
+        }
 
 
         $itemObject = new \stdClass();
@@ -255,10 +252,7 @@ class CartHelper
             return false;
         }
 
-        // Refresh the cart items after updating the database
-        $this->cart->items = $this->getCartItems();
-
-        return $itemObject;
+        return true;
 
     }
 
@@ -305,41 +299,11 @@ class CartHelper
         $total = 0;
         // $cartItems = $this->getCartItems();
 
-        if(isset($this->cart->items))
-        {
-            foreach ($this->cart->items as $item) {
-                $total += $item->price['price_with_tax'];
-            }
+        foreach ($this->cart->items as $item) {
+            $total += $item->price['final_price'];  
         }
 
         return $total;
-    }
-
-    // Check if the cart is empty
-    public function getTotalItems()
-    {
-        $totalItems = 0;
-
-        if(isset($this->cart->items)){
-            $totalItems = count($this->cart->items);
-        }
-
-        return $totalItems;
-    }
-
-    // Get total price of the cart
-    public function getTotalQuantity()
-    {
-        $quantity = 0;
-        // $cartItems = $this->getCartItems();
-
-        if(isset($this->cart->items)){
-            foreach ($this->cart->items as $item) {
-                $quantity += $item->quantity;
-            }
-        }
-
-        return $quantity;
     }
 
     // Check if the cart is empty
@@ -352,6 +316,7 @@ class CartHelper
     public function removeItem($itemId){
         return $this->updateQuantity(0,$itemId);
     }
+
 
     public function updateQuantity($quantity,$itemId) {
 
@@ -380,7 +345,7 @@ class CartHelper
 
         // Conditions for which records should be updated.
         $conditions = array(
-            $db->quoteName('id_item') . ' = ' . intval($itemId),
+            $db->quoteName('id_item') . ' = ' . intval($itemId), 
             $db->quoteName('id_cart') . ' = ' . intval($this->cartId)
         );
 
@@ -390,7 +355,7 @@ class CartHelper
         }else{
             $query->delete($db->quoteName($this->cart_items_table))->where($conditions);
         }
-
+        
 
         try {
             $db->setQuery($query);
