@@ -5,7 +5,6 @@ namespace Alfa\Module\AlfaCart\Site\Helper;
 use Alfa\Component\Alfa\Site\Helper\CartHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Layout\FileLayout;
-use Joomla\Language\Language;
 use Joomla\Registry\Registry;
 use Joomla\CMS\Helper\ModuleHelper;
 use Joomla\CMS\Response\JsonResponse;
