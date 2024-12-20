@@ -16,6 +16,7 @@ While we are still in the pre-alpha phase, the core is being actively built and 
 🌐 API Integration with Postman
 
 The Alfa-Commerce API empowers developers to seamlessly integrate eCommerce functionalities into third-party applications. Use the button below to explore the API directly in Postman:
+
 [<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://null.postman.co/collection/40562641-db6c701d-6cee-4955-96b3-d357447b9bfe?source=rip_markdown)
 
 🤝 Contributing
