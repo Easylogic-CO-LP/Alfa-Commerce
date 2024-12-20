@@ -11,7 +11,7 @@ use Joomla\CMS\Response\JsonResponse;
 
 defined('_JEXEC') or die;
 $lang = Factory::getApplication()->getLanguage();
-$lang->load('mod_alfa_cart', JPATH_SITE);
+$lang->load('mod_alfa_cart');
 
 class AlfaCartHelper
 {
