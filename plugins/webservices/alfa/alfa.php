@@ -35,5 +35,8 @@ class PlgWebservicesAlfa extends CMSPlugin
 		$router->createCRUDRoutes('v1/alfa/places', 'places', ['component' => 'com_alfa']);
 		$router->createCRUDRoutes('v1/alfa/settings', 'settings', ['component' => 'com_alfa']);
 		$router->createCRUDRoutes('v1/alfa/orders', 'orders', ['component' => 'com_alfa']);
+        $router->createCRUDRoutes('v1/alfa/orderstatuses', 'orderstatuses', ['component' => 'com_alfa']);
+        $router->createCRUDRoutes('v1/alfa/taxes', 'taxes', ['component' => 'com_alfa']);
+        $router->createCRUDRoutes('v1/alfa/discounts', 'discounts', ['component' => 'com_alfa']);
 	}
 }
