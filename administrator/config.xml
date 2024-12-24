@@ -2,27 +2,37 @@
 <config>
     <fieldset label="COM_ALFA" name="alfa">
 
-       <field name="stock_action" type="list"
-            default="2"
-            label="COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION"
-            description="COM_ALFA_FORM_DESC_ITEM_STOCK_ACTION"
-            required="true" 
-            multiple="false">
-                <option value="1">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_NO_ACTION</option>
-                <option value="2">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_SHOW_OUT_OF_STOCK</option>
-                <option value="3">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_HIDE_OUT_OF_STOCK</option>
+
+        <field name="stock_action" type="list"
+               label="COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION"
+               description="COM_ALFA_FORM_DESC_ITEM_STOCK_ACTION"
+               multiple="false"
+               default="0">
+            <option value="0">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_NO_ACTION</option>
+            <option value="1">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_NOTIFY</option>
+            <option value="2">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_HIDE_OUT_OF_STOCK</option>
         </field>
 
-        <field name="manage_stock" type="radio"
-               default="1"
-               label="COM_ALFA_FORM_LBL_ITEM_MANAGE_STOCK"
-               description="COM_ALFA_FORM_DESC_ITEM_MANAGE_STOCK"
-               required="true"
-               class="btn-group"
-               multiple="false">
-            <option value="0">JNO</option>
-            <option value="1">JYES</option>
-        </field>
+        <field
+            name="stock_low"
+            type="number"
+            label="COM_ALFA_FORM_LBL_ITEM_LOW_STOCK_VALUE"
+            description="COM_ALFA_FORM_DESC_ITEM_LOW_STOCK_VALUE"
+            min="1"
+          />
+
+        <field name="stock_low_message"
+               label="COM_ALFA_FORM_LBL_ITEM_LOW_STOCK_MESSAGE"
+               description="COM_ALFA_FORM_DESC_ITEM_LOW_STOCK_MESSAGE"
+               type="editor"
+               showon="stock_low!:"
+        />
+
+        <field name="stock_zero_message"
+               label="COM_ALFA_FORM_LBL_ITEM_STOCK_AVAILABILITY"
+               description="COM_ALFA_FORM_DESC_ITEM_STOCK_AVAILABILITY"
+               type="editor"
+        />
 
     </fieldset>
 

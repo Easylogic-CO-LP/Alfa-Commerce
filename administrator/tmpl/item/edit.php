@@ -50,7 +50,13 @@ $input = Factory::getApplication()->getInput();
 				<?php echo $this->form->renderField('gtin'); ?>
 				<?php echo $this->form->renderField('mpn'); ?>
 				<?php echo $this->form->renderField('stock'); ?>
-				<?php echo $this->form->renderField('stock_action'); ?>
+                <?php echo $this->form->renderField('quantity_min'); ?>
+                <?php echo $this->form->renderField('quantity_max'); ?>
+                <?php echo $this->form->renderField('quantity_step'); ?>
+                <?php echo $this->form->renderField('stock_action'); ?>
+                <?php echo $this->form->renderField('stock_low'); ?>
+                <?php echo $this->form->renderField('stock_low_message'); ?>
+                <?php echo $this->form->renderField('stock_zero_message'); ?>
 				<?php echo $this->form->renderField('manage_stock'); ?>
 				<?php echo $this->form->renderField('short_desc'); ?>
 				<?php echo $this->form->renderField('full_desc'); ?>
@@ -111,14 +117,11 @@ $input = Factory::getApplication()->getInput();
             </fieldset>
         </div>
 	</div>
-	 <?php echo HTMLHelper::_('uitab.endTab'); ?>
+    <?php echo HTMLHelper::_('uitab.endTab'); ?>
+	
+	<?php echo HTMLHelper::_('uitab.endTabSet'); ?>
 
-
-    <?php echo HTMLHelper::_('uitab.endTabSet'); ?>
-
-    <input type="hidden" name="task" value="">
-    <input type="hidden" name="return" value="<?php echo $input->getBase64('return'); ?>">
-
-    <?php echo HTMLHelper::_('form.token'); ?>
+	<input type="hidden" name="task" value=""/>
+	<?php echo HTMLHelper::_('form.token'); ?>
 
 </form>

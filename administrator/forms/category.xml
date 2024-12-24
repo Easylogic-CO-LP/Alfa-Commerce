@@ -164,7 +164,7 @@
                         label="Base price"
                         class="btn-group"
                 >
-                    <option value="-1">General</option>
+                    <option value="-1">JGLOBAL_USE_GLOBAL</option>
                     <option value="0">JHIDE</option>
                     <option value="1">JSHOW</option>
                 </field>
@@ -174,8 +174,9 @@
                         default="-1"
                         label="Base price label"
                         class="btn-group"
+                        showon="base_price_show!:0"
                 >
-                    <option value="-1">General</option>
+                    <option value="-1">JGLOBAL_USE_GLOBAL</option>
                     <option value="0">JHIDE</option>
                     <option value="1">JSHOW</option>
                 </field>
@@ -189,7 +190,7 @@
                         label="Base price with discounts"
                         class="btn-group"
                 >
-                    <option value="-1">General</option>
+                    <option value="-1">JGLOBAL_USE_GLOBAL</option>
                     <option value="0">JHIDE</option>
                     <option value="1">JSHOW</option>
                 </field>
@@ -199,8 +200,9 @@
                         default="-1"
                         label="Base price with discounts label"
                         class="btn-group"
+                        showon="base_price_with_discounts_show!:0"
                 >
-                    <option value="-1">General</option>
+                    <option value="-1">JGLOBAL_USE_GLOBAL</option>
                     <option value="0">JHIDE</option>
                     <option value="1">JSHOW</option>
                 </field>
@@ -214,18 +216,20 @@
                         label="Tax amount"
                         class="btn-group"
                 >
-                    <option value="-1">General</option>
+                    <option value="-1">JGLOBAL_USE_GLOBAL</option>
                     <option value="0">JHIDE</option>
                     <option value="1">JSHOW</option>
                 </field>
+                
                 <field
                         name="tax_amount_show_label"
                         type="radio"
                         default="-1"
                         label="Tax amount label"
                         class="btn-group"
+                        showon="tax_amount_show!:0"
                 >
-                    <option value="-1">General</option>
+                    <option value="-1">JGLOBAL_USE_GLOBAL</option>
                     <option value="0">JHIDE</option>
                     <option value="1">JSHOW</option>
                 </field>
@@ -239,7 +243,7 @@
                         label="Base price with tax show"
                         class="btn-group"
                 >
-                    <option value="-1">General</option>
+                    <option value="-1">JGLOBAL_USE_GLOBAL</option>
                     <option value="0">JHIDE</option>
                     <option value="1">JSHOW</option>
                 </field>
@@ -249,8 +253,9 @@
                         default="-1"
                         label="Base price with tax show label"
                         class="btn-group"
+                        showon="base_price_with_tax_show!:0"
                 >
-                    <option value="-1">General</option>
+                    <option value="-1">JGLOBAL_USE_GLOBAL</option>
                     <option value="0">JHIDE</option>
                     <option value="1">JSHOW</option>
                 </field>
@@ -264,7 +269,7 @@
                         label="Discount amount show"
                         class="btn-group"
                 >
-                    <option value="-1">General</option>
+                    <option value="-1">JGLOBAL_USE_GLOBAL</option>
                     <option value="0">JHIDE</option>
                     <option value="1">JSHOW</option>
                 </field>
@@ -274,8 +279,9 @@
                         default="-1"
                         label="Discount amount show label"
                         class="btn-group"
+                        showon="discount_amount_show!:0"
                 >
-                    <option value="-1">General</option>
+                    <option value="-1">JGLOBAL_USE_GLOBAL</option>
                     <option value="0">JHIDE</option>
                     <option value="1">JSHOW</option>
                 </field>
@@ -289,7 +295,7 @@
                         label="Final price show"
                         class="btn-group"
                 >
-                    <option value="-1">General</option>
+                    <option value="-1">JGLOBAL_USE_GLOBAL</option>
                     <option value="0">JHIDE</option>
                     <option value="1">JSHOW</option>
                 </field>
@@ -299,8 +305,9 @@
                         default="-1"
                         label="Final price show label"
                         class="btn-group"
+                        showon="final_price_show!:0"
                 >
-                    <option value="-1">General</option>
+                    <option value="-1">JGLOBAL_USE_GLOBAL</option>
                     <option value="0">JHIDE</option>
                     <option value="1">JSHOW</option>
                 </field>

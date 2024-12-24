@@ -301,14 +301,13 @@ class ItemModel extends AdminModel
 		}
 		// END OF AUTO SET DEFAULT CATEGORY ID AND CATEGORIES ARRAY
 
-
         $this->setPrices($currentId,$data['prices']);
 
-		AlfaHelper::setAssocsToDb($currentId, $data['categories'], '#__alfa_items_categories', 'item_id','category_id');
-		AlfaHelper::setAssocsToDb($currentId, $data['manufacturers'], '#__alfa_items_manufacturers', 'item_id','manufacturer_id');
+		AlfaHelper::setAssocsToDb($currentId, $data['categories']??[], '#__alfa_items_categories', 'item_id','category_id');
+		AlfaHelper::setAssocsToDb($currentId, $data['manufacturers']??[], '#__alfa_items_manufacturers', 'item_id','manufacturer_id');
 
-		AlfaHelper::setAssocsToDb($currentId, $data['allowedUsers'], '#__alfa_items_users', 'item_id','user_id');
-		AlfaHelper::setAssocsToDb($currentId, $data['allowedUserGroups'], '#__alfa_items_usergroups','item_id', 'usergroup_id');
+		AlfaHelper::setAssocsToDb($currentId, $data['allowedUsers']??[], '#__alfa_items_users', 'item_id','user_id');
+		AlfaHelper::setAssocsToDb($currentId, $data['allowedUserGroups']??[], '#__alfa_items_usergroups','item_id', 'usergroup_id');
 
 		return true;
 		// return parent::save($data);
@@ -420,6 +419,27 @@ class ItemModel extends AdminModel
     {
 		$user = $this->getCurrentUser();
 
+		if(empty($table->stock) || $table->stock <= 0)
+		{
+			$table->stock = null;
+		}
+
+		if(empty($table->quantity_min) || $table->quantity_min <= 0){
+			$table->quantity_min=1;
+		}
+
+		if(empty($table->quantity_step) || $table->quantity_step <= 0) {
+			$table->quantity_step=1;
+		}
+
+		if(empty($table->quantity_max) || $table->quantity_max <= 0){
+			$table->quantity_max=null;
+		}
+
+        if(empty($table->stock_low) || $table->stock_low <= 0){
+            $table->stock_low = null;
+        }
+
 	    if ($table->id == 0 && empty($table->created_by))
 	    {
 		    $table->created_by = $user->id;
@@ -435,11 +455,6 @@ class ItemModel extends AdminModel
         if (empty($table->publish_down)) {
             $table->publish_down = null;
         }
-
-	    if($table->stock === '')
-		{
-			$table->stock = NULL;
-		}
 
         return parent::prepareTable($table);
         

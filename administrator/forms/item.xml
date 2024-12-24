@@ -22,18 +22,68 @@
     <field name="gtin" size="255" filter="safehtml" type="text" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_ITEM_GTIN" description="COM_ALFA_FORM_DESC_ITEM_GTIN" />
     <field name="mpn" size="255" filter="safehtml" type="text" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_ITEM_MPN" description="COM_ALFA_FORM_DESC_ITEM_MPN" />
 
-    <field name="stock" type="number" step="0.01" default="0" label="COM_ALFA_FORM_LBL_ITEM_STOCK" description="COM_ALFA_FORM_DESC_ITEM_STOCK" />
+    <field name="stock" type="number" label="COM_ALFA_FORM_LBL_ITEM_STOCK" description="COM_ALFA_FORM_DESC_ITEM_STOCK" />
     
     <field name="stock_action" type="list"
           label="COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION"
           description="COM_ALFA_FORM_DESC_ITEM_STOCK_ACTION" 
           multiple="false"
           default="0">
-               <option value="0">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_CONFIGURATION</option>
-               <option value="1">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_NO_ACTION</option>
-               <option value="2">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_SHOW_OUT_OF_STOCK</option>
-               <option value="3">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_HIDE_OUT_OF_STOCK</option>
-     </field>
+              <option value="-1">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_CONFIGURATION</option>
+              <option value="0">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_NO_ACTION</option>
+              <option value="1">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_NOTIFY</option>
+              <option value="2">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_HIDE_OUT_OF_STOCK</option>
+    </field>
+
+    <field
+        name="stock_low"
+        type="number"
+        label="COM_ALFA_FORM_LBL_ITEM_LOW_STOCK_VALUE"
+        description="COM_ALFA_FORM_DESC_ITEM_LOW_STOCK_VALUE"
+      />
+
+    <field name="stock_low_message"
+           label="COM_ALFA_FORM_LBL_ITEM_LOW_STOCK_MESSAGE"
+           description="COM_ALFA_FORM_DESC_ITEM_LOW_STOCK_MESSAGE"
+           type="editor"
+           showon="stock_low!:"
+    />
+
+    <field name="stock_zero_message"
+           label="COM_ALFA_FORM_LBL_ITEM_ZERO_STOCK_MESSAGE"
+           description="COM_ALFA_FORM_DESC_ITEM_ZERO_STOCK_MESSAGE"
+           type="editor"
+    />
+
+    <field
+        name="quantity_min"
+        type="number"
+        label="COM_ALFA_FORM_LBL_ITEM_QUANTITY_MIN"
+        description="COM_ALFA_FORM_DESC_ITEM_QUANTITY_MIN"
+        default="1"
+        min="1"
+      />
+
+    <field
+        name="quantity_max"
+        type="number"
+        label="COM_ALFA_FORM_LBL_ITEM_QUANTITY_MAX"
+        description="COM_ALFA_FORM_DESC_ITEM_QUANTITY_MAX"
+        min="1"
+    />
+
+    <field
+        name="quantity_step"
+        type="number"
+        label="COM_ALFA_FORM_LBL_ITEM_QUANTITY_STEP"
+        description="COM_ALFA_FORM_DESC_ITEM_QUANTITY_STEP"
+        min="1"
+        default="1"
+    />
+
+
+
+
 
      <field name="manage_stock" type="list"
      label="COM_ALFA_FORM_LBL_ITEM_MANAGE_STOCK"
@@ -51,11 +101,9 @@
     <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL" description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>
 
     <field name="id_category_default" type="categories" required="true" showPath="true" multiple="false" layout="joomla.form.field.list-fancy-select" label="Default Category" description="">
-      <option value="0">COM_ALFA_FROM_CATEGORY_NO_OPTION</option>
     </field>
 
     <field name="categories" type="categories" showPath="true" multiple="true" layout="joomla.form.field.list-fancy-select" label="Categories" description="">
-      <option value="0">COM_ALFA_FROM_CATEGORY_NO_OPTION</option>
     </field>
 
     <field name="publish_up" type="calendar" showtime="true" format="%Y-%m-%d %H:%M" filter="USER_UTC"

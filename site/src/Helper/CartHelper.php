@@ -110,7 +110,7 @@ class CartHelper
                 ->where($db->quoteName('ci.id_cart') . ' = ' . $db->quote($this->cartId));
 
         $db->setQuery($query);
-        
+
         $cart_items = $db->loadObjectList();
 
         if(!empty($cart_items)) {
@@ -174,7 +174,36 @@ class CartHelper
         $this->recognizeKey = $cookieValue;
     }
 
+    protected function createCart(): bool{
+
+        $cartObject = new \stdClass();
+        $cartObject->id_shop_group = 1;
+        $cartObject->id_carrier = 1;
+        $cartObject->delivery_option = 'walking';
+        $cartObject->id_lang = 1;
+        $cartObject->id_address_delivery = 1;
+        $cartObject->id_address_invoice = 1;
+        $cartObject->id_currency = 1;
+        $cartObject->id_customer = $this->user->id;
+        $cartObject->date_add = Factory::getDate()->toSql();
+        $cartObject->date_upd = Factory::getDate()->toSql();
+        $cartObject->recognize_key = $this->recognizeKey;
+
+        try {
+            $db = $this->db;
+            $db->insertObject($this->cart_table, $cartObject , 'id');
+            $this->cartId = $db->insertid();//or $cartObject->id cause insert updates this value
+        } catch (\Exception $e) {
+            $this->app->enqueueMessage($e->getMessage());
+            return false;
+        }
+
+        return true;
+
+    }
+
     // Add item or update quantity in cart
+    // TODO: make it one with update quantity function
     public function addToCart($itemId,$quantity)
     {
 
@@ -182,37 +211,33 @@ class CartHelper
             $this->createRecognizeKey();
         }
 
+        $settings = AlfaHelper::getGeneralSettings();
+
         $db = $this->db;
 
-        // try {
+        //Retrieving item data
+        $query = $db->getQuery(true);
+        $query->select("*")
+            ->from("#__alfa_items")
+            ->where($db->qn('id') . " = " . $db->q($itemId));
+        $db->setQuery($query);
+        
+        $item = $db->loadObject();
+        
+        $item->stock_action = ($item->stock_action == -1) ? $settings->get("stock_action") : $item->stock_action;
+        $checkStock = ($item->stock_action == 0 || $item->stock_action == 1);
+
+        //In case we need to check for stock availability, we check if stock is set and above 0.
+        if( $checkStock && (empty($item->stock) || $item->stock <= 0)){              
+            $this->app->enqueueMessage('Product is out of stock','error');
+            return false;
+        }
 
         // CREATE CART IF DOESNT EXIST
         if ($this->cartId <= 0) {
-
-            $cartObject = new \stdClass();
-            $cartObject->id_shop_group = 1;
-            $cartObject->id_carrier = 1;
-            $cartObject->delivery_option = 'walking';
-            $cartObject->id_lang = 1;
-            $cartObject->id_address_delivery = 1;
-            $cartObject->id_address_invoice = 1;
-            $cartObject->id_currency = 1;
-            $cartObject->id_customer = $this->user->id;
-            $cartObject->date_add = Factory::getDate()->toSql();
-            $cartObject->date_upd = Factory::getDate()->toSql();
-            $cartObject->recognize_key = $this->recognizeKey;
-
-            try {
-                $db->insertObject($this->cart_table, $cartObject , 'id');
-                $this->cartId = $db->insertid();//or $cartObject->id cause insert updates this value
-            } catch (\Exception $e) {
-                $this->app->enqueueMessage($e->getMessage());
+            if(!$this->createCart())
                 return false;
-            }
-
-            
         }
-
 
         $itemExists = null;
         foreach($this->cart->items as $item){
@@ -222,13 +247,30 @@ class CartHelper
             }
         }
 
-
         $itemObject = new \stdClass();
         $itemObject->id_cart     = $this->cartId;
         $itemObject->id_item     = $itemId;
         $itemObject->quantity    = $quantity + ( $itemExists ? $itemExists->quantity : 0 );
         $itemObject->date_add    = Factory::getDate()->toSql();
 
+        if ($itemObject->quantity % $item->quantity_step != 0) { // Not divisible by step
+            $itemObject->quantity = floor($itemObject->quantity / $item->quantity_step) * $item->quantity_step; // Find the closest lower value divisible by quantity_step
+        }
+
+        // Ensure it respects the quantity_min
+        if ($itemObject->quantity < $item->quantity_min) {
+            $itemObject->quantity = $item->quantity_min;
+        }
+
+        // Ensure it respects the quantity_max
+        if ($itemObject->quantity > $item->quantity_max) {
+            $itemObject->quantity = $item->quantity_max;
+        }
+
+        // Ensure the quantity does not exceed stock even after adjustments
+        if ($checkStock && $itemObject->quantity > $item->stock) {
+            $itemObject->quantity = $item->stock;
+        }
 
         try{
             if($itemExists){
@@ -332,9 +374,50 @@ class CartHelper
 
         if($quantity < 0 ) { $quantity = 0; }
 
-        // $cartItems= $this->getCartItems(); // list is always updated so we dont need this for now
+        $settings = AlfaHelper::getGeneralSettings();
 
         $db = $this->db;
+
+        //Retrieving item data
+        $query = $db->getQuery(true);
+        $query->select("*")
+            ->from("#__alfa_items")
+            ->where($db->qn('id') . " = " . $db->q($itemId));
+        $db->setQuery($query);
+        
+        $item = $db->loadObject();
+        
+        $item->stock_action = ($item->stock_action == -1) ? $settings->get("stock_action") : $item->stock_action;
+        $checkStock = ($item->stock_action == 0 || $item->stock_action == 1);
+
+        // TODO:
+        //In case we need to check for stock availability, we check if stock is set and above 0.
+         if( $checkStock && (empty($item->stock) || $item->stock <= 0)){
+             $this->app->enqueueMessage('Product is out of stock','error');
+             return false;
+         }
+
+        if ($quantity % $item->quantity_step != 0) { // Not divisible by step
+            $quantity = floor($quantity / $item->quantity_step) * $item->quantity_step; // Find the closest lower value divisible by quantity_step
+        }
+
+        // Ensure it respects the quantity_min
+        if ($quantity < $item->quantity_min) {
+            $quantity = $item->quantity_min;
+        }
+
+        // Ensure it respects the quantity_max
+        if ($quantity > $item->quantity_max) {
+            $quantity = $item->quantity_max;
+        }
+
+        // Ensure the quantity does not exceed stock even after adjustments
+        if ($checkStock && $quantity > $item->stock) {
+            $quantity = $item->stock;
+        }
+
+
+
 
         $query = $db->getQuery(true);
 

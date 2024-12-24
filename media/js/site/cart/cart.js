@@ -2,7 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Attach event listeners to the cart container
     const cartContainer = document.querySelector('[data-cart-outer]');
 
-    var quantityUpdateController = new AbortController();
+    let quantityUpdateController = new AbortController();
 
     // Clear cart button listener
     cartContainer.addEventListener('click', (event) => {
@@ -21,30 +21,40 @@ document.addEventListener("DOMContentLoaded", () => {
         if (event.target.matches('[data-action="cart-item-decrement"], [data-action="cart-item-decrement"] *')) {
             let cartItem = event.target.closest('[data-item-id]');
             let inputField = cartItem.querySelector('[data-action="cart-item-quantity"]');
-            let quantity = parseInt(inputField.value);
+            let quantity = parseFloat(inputField.value);
+            let quantityMin = parseFloat(inputField.min);
+            let quantityStep = parseFloat(inputField.dataset.step);
 
-            if (quantity > 1) {
-                inputField.value = quantity - 1;
+            quantity -= quantityStep;
 
-                // Create and dispatch a change event
-                let changeEvent = new Event('change', { bubbles: true });
-                inputField.dispatchEvent(changeEvent); // Dispatch the change event
-            }
+            inputField.value = (quantity <= quantityMin ) ? quantityMin : quantity;
+
+            changeQuantity();
+            // Create and dispatch a change event
+            // let changeEvent = new Event('change', { bubbles: true });
+            // inputField.dispatchEvent(changeEvent); // Dispatch the change event
+
         }
 
         // Increment item quantity
         if (event.target.matches('[data-action="cart-item-increment"], [data-action="cart-item-increment"] *')) {
             let cartItem = event.target.closest('[data-item-id]');
             let inputField = cartItem.querySelector('[data-action="cart-item-quantity"]');
-            let quantity = parseInt(inputField.value);
+            let quantity = parseFloat(inputField.value);
+            let quantityMax = inputField.max && !isNaN(inputField.max) ? parseFloat(inputField.max) : null;
+            let quantityStep = parseFloat(inputField.dataset.step);
 
-            inputField.value = quantity + 1;
+            quantity += quantityStep;
+
+            inputField.value = (quantity >= quantityMax && quantityMax != null) ? quantityMax : quantity;
+
+            changeQuantity();
+            // await changeQuantity(itemId, 0);
 
             // Create and dispatch a change event
-            let changeEvent = new Event('change', { bubbles: true });
-            inputField.dispatchEvent(changeEvent); // Dispatch the change event
+            // let changeEvent = new Event('change', {bubbles: true});
+            // inputField.dispatchEvent(changeEvent); // Dispatch the change event
         }
-
 
     });
 
@@ -54,6 +64,29 @@ document.addEventListener("DOMContentLoaded", () => {
         
         // Quantity update listener
         if (event.target.matches('[data-action="cart-item-quantity"]')) {
+            let cartItem = event.target.closest('[data-item-id]');
+            let inputField = cartItem.querySelector('[data-action="cart-item-quantity"]');
+            let quantity = parseFloat(inputField.value);
+            let quantityMin = parseFloat(inputField.min);
+            let quantityMax = inputField.max && !isNaN(inputField.max) ? parseFloat(inputField.max) : null;
+            let quantityStep = parseFloat(inputField.dataset.step);
+
+            // If input number is not divisible by step, adjust it
+            if (quantity % quantityStep !== 0) {
+                quantity = Math.ceil(quantity / quantityStep) * quantityStep;
+            }
+
+            // Ensure value doesn't go below the minimum
+            if (quantity < quantityMin) {
+                quantity = quantityMin;
+            }
+            // Ensure value doesn't go over the maximum
+            else if (quantityMax !== null && quantity > quantityMax) {
+                quantity = quantityMax;
+            }
+
+            inputField.value = quantity; // Update the input with the adjusted value
+
             event.preventDefault();
             changeQuantity();
         }
@@ -87,7 +120,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     const cartOuter = document.querySelector('#cart-outer');
                     cartOuter.innerHTML = responseData.data;
                 }else{
-                    alert(responseData.message);
+                    console.error(responseData.message);
                 }
 
             }
@@ -174,10 +207,10 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
+        // console.log(itemId);
         const params = new URLSearchParams();
         params.append("id_item", itemId);
         params.append('quantity', quantity);
-
 
         const url = '/index.php?option=com_alfa&task=cart.updateQuantity&format=json';
 
@@ -202,7 +235,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 // let total = parseFloat(responseData.data.total);
                 if(!responseData.success) {
-                    throw new Error('Operation was not successful'); // Custom error message
+                    throw new Error('Operation was not successful : '+responseData.message); // Custom error message
                 }
 
                 if(responseData.data.isEmpty){

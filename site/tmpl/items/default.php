@@ -17,23 +17,23 @@ use \Joomla\CMS\Language\Text;
 use \Joomla\CMS\Layout\LayoutHelper;
 use \Joomla\CMS\Session\Session;
 use \Joomla\CMS\User\UserFactoryInterface;
+use \Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 
 HTMLHelper::_('bootstrap.tooltip');
 HTMLHelper::_('behavior.multiselect');
 HTMLHelper::_('formbehavior.chosen', 'select');
 
-$user = Factory::getApplication()->getIdentity();
+$app = Factory::getApplication();
+$user = $app->getIdentity();
 $userId = $user->get('id');
 $listOrder = $this->state->get('list.ordering');
 $listDirn = $this->state->get('list.direction');
-$canCreate = $user->authorise('core.create', 'com_alfa') && file_exists(JPATH_COMPONENT . DIRECTORY_SEPARATOR . 'forms' . DIRECTORY_SEPARATOR . 'itemform.xml');
-$canEdit = $user->authorise('core.edit', 'com_alfa') && file_exists(JPATH_COMPONENT . DIRECTORY_SEPARATOR . 'forms' . DIRECTORY_SEPARATOR . 'itemform.xml');
-$canCheckin = $user->authorise('core.manage', 'com_alfa');
-$canChange = $user->authorise('core.edit.state', 'com_alfa');
-$canDelete = $user->authorise('core.delete', 'com_alfa');
 
 // Import CSS
 $wa = $this->document->getWebAssetManager();
+
+$categorySettings = AlfaHelper::getCategorySettings();
+
 $wa->useStyle('com_alfa.list')
     ->useStyle('com_alfa.item')
     ->useScript('com_alfa.item.recalculate')
@@ -52,31 +52,39 @@ $wa->useStyle('com_alfa.list')
       <?php echo HTMLHelper::_('form.token'); ?>
     </form>
 
-
     <section>
         <div class="list-container items-list">
             <?php foreach ($this->items as $item) : ?>
 
-                <?php //echo '<pre>'; print_r($item); echo '</pre>';?>
+                <?php
+                    $showItem = true;
+                    if($item->stock_action == 1 && $item->stock <= 0)
+                        $showItem = false;
+                    if($showItem):  //SHOWING BASIC ITEM.
+                ?>
 
-                <article class="list-item item-item" data-item-id="<?php echo $item->id;?>">
-                    <div>
-                        <a href="<?php echo Route::_('index.php?option=com_alfa&view=item&id=' . (int)$item->id); ?>">
-                            <img src="https://americanathleticshoe.com/cdn/shop/t/23/assets/placeholder_600x.png?v=113555733946226816651665571258">
-                        </a>
-                        </a>
-                    </div>
-                    <div class="item-title">
-                        <a href="<?php echo Route::_('index.php?option=com_alfa&view=item&id=' . (int)$item->id); ?>">
-                            <?php echo $this->escape($item->name); ?></a>
-                    </div>
-                    <div class="item-price" >
-                        <?php echo LayoutHelper::render('price',$item->price); //passed data as $displayData in layout ?>
-                    </div>
-                    
-                    <?php echo LayoutHelper::render('addtocart'); ?>
+                    <article class="list-item item-item" data-item-id="<?php echo $item->id;?>">
+                        <div>
+                            <a href="<?php echo Route::_('index.php?option=com_alfa&view=item&id=' . (int)$item->id); ?>">
+                                <img src="https://americanathleticshoe.com/cdn/shop/t/23/assets/placeholder_600x.png?v=113555733946226816651665571258">
+                            </a>
+                            </a>
+                        </div>
+                        <div class="item-title">
+                            <a href="<?php echo Route::_('index.php?option=com_alfa&view=item&id=' . (int)$item->id); ?>">
+                                <?php echo $this->escape($item->name); ?></a>
+                        </div>
 
-                </article>
+                            <!-- <div class="item-price" > -->
+                                <?php echo LayoutHelper::render('price', ['item'=>$item, 'settings'=>$categorySettings] ); //passed data as $displayData in layout ?>
+                            <!-- </div> -->
+
+                            <?php echo LayoutHelper::render('stock_info', ['item'=>$item,'quantity'=>$item->quantity_min]); ?>
+                            
+                            <?php echo LayoutHelper::render('add_to_cart', $item); ?>
+
+                    </article>
+                <?php endif;?>
             <?php endforeach; ?>
         </div>
     </section>
