@@ -205,7 +205,6 @@
                 <option value="1">JSHOW</option>
             </field>
         </fieldset>
-
     </fieldset>
 
     <fieldset name="currencies" label="Currency Settings">
@@ -213,7 +212,9 @@
             name="default_currency"
             type="sql"
             label="Default Currency"
-            query="SELECT id, name FROM #__alfa_currencies ORDER BY name ASC" key_field="id" value_field="name"
+            query="SELECT id, name FROM #__alfa_currencies ORDER BY name ASC" 
+            default="978"
+            key_field="id" value_field="name"
         />
     </fieldset>
     

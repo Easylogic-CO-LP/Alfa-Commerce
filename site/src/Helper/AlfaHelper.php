@@ -55,15 +55,21 @@ class AlfaHelper
             }//If there are no cached settings, we make a DB query.
             else {
                 $settings = self::getGeneralSettings();
-                $defaultCurrID = $settings->get('default_currency');
+                $defaultCurrID = $settings->get('default_currency', '978'); //Euro
 
-                $db = Factory::getContainer()->get('DatabaseDriver');
-                $query = $db->getQuery(true);
-                $query->
-                select("symbol, decimal_place, decimal_symbol, thousand_separator, format_pattern")->
-                from('#__alfa_currencies')->
-                where('id=' . $defaultCurrID);
-                $db->setQuery($query);
+                try{
+                    $db = Factory::getContainer()->get('DatabaseDriver');
+                    $query = $db->getQuery(true);
+                    $query->
+                    select("symbol, decimal_place, decimal_symbol, thousand_separator, format_pattern")->
+                    from('#__alfa_currencies')->
+                    where('id=' . $defaultCurrID);
+                    $db->setQuery($query);
+                }
+                catch (\Exception $e) {
+                    Factory::getApplication()->enqueueMessage($e->getMessage());
+                    return false;
+                }
 
                 $DBSettings = $db->loadObject();
 
