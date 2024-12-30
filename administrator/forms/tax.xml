@@ -70,18 +70,6 @@
       </field>
 
       <field
-              name="checked_out"
-              type="hidden"
-              filter="unset"
-      />
-
-      <field
-              name="checked_out_time"
-              type="hidden"
-              filter="unset"
-      />
-
-      <field
               name="created_by"
               type="user"
               label="JGLOBAL_FIELD_CREATED_BY_LABEL"
@@ -109,10 +97,9 @@
               validate="UserId"
       />
 
-      <field
-              name="ordering"
-              type="hidden"
-      />
+      <field name="ordering"/>
+      <field name="checked_out" type="hidden" filter="unset"/>
+      <field name="checked_out_time" type="hidden" filter="unset"/>
 
       <field name="categories" type="categories" showPath="true" multiple="true" default="0" layout="joomla.form.field.list-fancy-select" label="Categories" description="" header="COM_ALFA_FORM_CATEGORY_ALL"/>
 
@@ -170,8 +157,7 @@
               showtime="true"
               format="%Y-%m-%d %H:%M"
               filter="USER_UTC"
-              label="Ημέρα εκκίνησης"
-              description=""
+              label="COM_ALFA_FORM_CATEGORY_LBL_PUBLISH_UP"
       />
 
       <field
@@ -180,8 +166,7 @@
               showtime="true"
               format="%Y-%m-%d %H:%M"
               filter="USER_UTC"
-              label="Ημέρα λήξης"
-              description=""
+              label="COM_ALFA_FORM_CATEGORY_LBL_PUBLISH_DOWN"
       />
       
   </fieldset>

@@ -69,7 +69,7 @@ class CategoriesField extends ListField
         // echo '<pre>';
         // print_r($categories);
         // echo '</pre>';
-        // TODO: FIX can select on the same level sometimes
+        // TODO: FIX can select on the same level sometimes when the category is on the start on in the end
 
         foreach ($categories as $category) {
             $disableCurrent = false;//by default disable the current category will be false

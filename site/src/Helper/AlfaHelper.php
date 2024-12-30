@@ -55,15 +55,21 @@ class AlfaHelper
             }//If there are no cached settings, we make a DB query.
             else {
                 $settings = self::getGeneralSettings();
-                $defaultCurrID = $settings->get('default_currency');
+                $defaultCurrID = $settings->get('default_currency', '978'); //Euro
 
-                $db = Factory::getContainer()->get('DatabaseDriver');
-                $query = $db->getQuery(true);
-                $query->
-                select("symbol, decimal_place, decimal_symbol, thousand_separator, format_pattern")->
-                from('#__alfa_currencies')->
-                where('id=' . $defaultCurrID);
-                $db->setQuery($query);
+                try{
+                    $db = Factory::getContainer()->get('DatabaseDriver');
+                    $query = $db->getQuery(true);
+                    $query->
+                    select("symbol, decimal_place, decimal_symbol, thousand_separator, format_pattern")->
+                    from('#__alfa_currencies')->
+                    where('id=' . $defaultCurrID);
+                    $db->setQuery($query);
+                }
+                catch (\Exception $e) {
+                    Factory::getApplication()->enqueueMessage($e->getMessage());
+                    return false;
+                }
 
                 $DBSettings = $db->loadObject();
 
@@ -136,19 +142,25 @@ class AlfaHelper
     }
 
     /*
-     * Inputs: $categoryID -> the id of the category whose settings we want.
+     * Inputs: $categoryId -> the id of the category whose settings we want.
      * Finds the price display settings related to the id via a DB query.
      * Returns: An array with these settings.
      */
-    public static function getCategorySettings($categoryID = 0){
+    public static function getCategorySettings($categoryId = 0){
 
-        $categoryID = intval($categoryID);
+        $categoryId = intval($categoryId);
+
+        if($categoryId<=0){
+            $app = Factory::getApplication();
+            $filters = $app->input->get('filter', []);
+            $categoryId = $filters['category_id'] ?? 0;
+        }
 
         // TODO: check to make our own cache that always run to avoid duplicates
         $cache = Factory::getCache('com_alfa','');
-        $cache->setCaching(true); // Force caching for this instance
+        // $cache->setCaching(true); // Force caching for this instance
         
-        $cacheKey = "category_settings_" . $categoryID;
+        $cacheKey = "category_settings_" . $categoryId;
         $categorySettings = $cache->get($cacheKey);
 
         if(!empty($categorySettings)){
@@ -180,10 +192,10 @@ class AlfaHelper
 
         // Creating an object based on general settings
         $categoryObject = new \stdClass();
-        $categoryObject->id = 0;
+        $categoryObject->id = $categoryId;
         $categoryObject->prices = $generalPriceSettings;
 
-        if($categoryID <= 0){
+        if($categoryId <= 0){
             return $categoryObject;
         }
 
@@ -194,7 +206,7 @@ class AlfaHelper
         $query
             ->select('*')
             ->from($db->qn('#__alfa_categories'))
-            ->where($db->qn('id').' = ' . $db->q($categoryID));
+            ->where($db->qn('id').' = ' . $db->q($categoryId));
         
         $db->setQuery($query);
 

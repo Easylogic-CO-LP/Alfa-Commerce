@@ -18,14 +18,17 @@ use \Joomla\CMS\Language\Text;
 use \Joomla\CMS\Session\Session;
 use Joomla\Utilities\ArrayHelper;
 use Joomla\CMS\Layout\LayoutHelper;
+use \Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 
 // Import CSS
 $wa = $this->document->getWebAssetManager();
+
+$categorySettings = AlfaHelper::getCategorySettings();
+
 $wa->useStyle('com_alfa.item');
 $wa->useScript('com_alfa.item')
     ->useScript('com_alfa.item.recalculate')
     ->useScript('com_alfa.item.addtocart');
-
 ?>
 
 <section>
@@ -42,16 +45,16 @@ $wa->useScript('com_alfa.item')
                 </h1>
                 <?php if (!empty($this->item->short_desc)): ?>
                     <div class="item-info">
-                        <?php echo nl2br($this->item->short_desc); ?>
+                        <?php echo $this->item->short_desc; ?>
                     </div>
                 <?php endif; ?>
 
-                <div class="item-price" >
-                     <?php echo LayoutHelper::render('price',$this->item->price); //passed data as $displayData in layout ?>
-                </div>
-                
-                <?php echo LayoutHelper::render('addtocart'); ?>
+                <?php echo LayoutHelper::render('price', ['item'=>$this->item, 'settings'=>$categorySettings] ); //passed data as $displayData in layout ?>
 
+                <?php echo LayoutHelper::render('stock_info', ['item'=>$this->item,'quantity'=>$this->item->quantity_min]); ?>
+
+                <?php echo LayoutHelper::render('add_to_cart', $this->item); ?>
+                    
                 <div class="item-desc-details">
                     <ul class="tab">
                         <li>

@@ -230,15 +230,35 @@ class ItemsModel extends ListModel
         $userGroupId = 1;
         $currencyId = 1;
 
+        $settings = AlfaHelper::getGeneralSettings();
+
         // Assign mapped names to items
         foreach ($items as $item) {
+            // calculate price
             $priceCalculator = new PriceCalculator($item->id, $quantity, $userGroupId, $currencyId);
             $item->price = $priceCalculator->calculatePrice();
 
+            // convert category ids to category names
             $item->categories = $this->mapIdsToNames($item->category_ids, $categoriesMapping);
+
+            // convert manufacturer ids to category names
             $item->manufacturers = $this->mapIdsToNames($item->manufacturer_ids, $manufacturersMapping);
+
+            //Setting correct stock action settings in case they are to be retrieved from general settings (global configuration).
+            if($item->stock_action == -1) {
+                $item->stock_action = $settings->get("stock_action");
+                $item->stock_low_message = $settings->get("stock_low_message");
+                $item->stock_zero_message = $settings->get("stock_zero_message");
+            }
+
+            if(empty($item->stock_low_message))
+                $item->stock_low_message = $settings->get("stock_low_message");
+
+            if(empty($item->stock_zero_message))
+                $item->stock_zero_message = $settings->get("stock_zero_message");
             
         }
+
 
         return $items;
     }
