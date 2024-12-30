@@ -214,8 +214,8 @@ class CategoryModel extends AdminModel
             $currentId = intval($this->getState($this->getName().'.id'));//get the id from setted joomla state
         }
 
-        AlfaHelper::setAssocsToDb($currentId, $data['allowedUsers'], '#__alfa_categories_users', 'category_id','user_id');
-        AlfaHelper::setAssocsToDb($currentId, $data['allowedUserGroups'], '#__alfa_categories_usergroups', 'category_id','usergroup_id');
+        AlfaHelper::setAssocsToDb($currentId, $data['allowedUsers']??[], '#__alfa_categories_users', 'category_id','user_id');
+        AlfaHelper::setAssocsToDb($currentId, $data['allowedUserGroups']??[], '#__alfa_categories_usergroups', 'category_id','usergroup_id');
 
         return true;
 
@@ -244,7 +244,7 @@ class CategoryModel extends AdminModel
             $table->publish_down = null;
         }
 
-        $table->version++;
+        // $table->version++;
 
         return parent::prepareTable($table);
     }

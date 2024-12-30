@@ -25,7 +25,7 @@ use \Joomla\CMS\Response\JsonResponse;
 use \Joomla\CMS\Layout\LayoutHelper;
 use \Joomla\CMS\Layout\FileLayout;
 
-// use \Alfa\Component\Alfa\Site\Helper\ItemHelper;
+use \Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use \Alfa\Component\Alfa\Site\Helper\PriceCalculator;
 use \Alfa\Component\Alfa\Site\Helper\CartHelper;
 use \Alfa\Component\Alfa\Site\Helper\OrderPlaceHelper;
@@ -80,14 +80,41 @@ class CartController extends BaseController
         $userGroupId = 1;
         $currencyId = 1;
 
-        $calculator = new PriceCalculator($itemId, $quantity, $userGroupId, $currencyId);
 
+        // TODO: somewhow cache the item here or inside the model but the quantity changes so we should take this in count
+        // get all the item data
+        $model = $this->getModel('Item');
+        
+        // Set state in the model
+        $model->setState('quantity', $quantity);
+        $item = $model->getItem($itemId);
+
+        $categorySettings = AlfaHelper::getCategorySettings();
         // Calculate price
-        $price = $calculator->calculatePrice();
+        // $calculator = new PriceCalculator($itemId, $quantity, $userGroupId, $currencyId);
+        // $price = $calculator->calculatePrice();
 
-        $priceLayout = LayoutHelper::render('price', $price);
+        $priceLayout = LayoutHelper::render('price', 
+                                                    [
+                                                        'item'=>$item,
+                                                        'settings'=>$categorySettings,
+                                                    ]
+                                                );
 
-        $response = new JsonResponse($priceLayout, 'Prices return successfully', $errorOccured);
+
+        $stockAvailabilityLayout = LayoutHelper::render('stock_info', 
+                                                            [
+                                                                'item'=>$item,
+                                                                'quantity'=>$quantity,
+                                                            ]
+                                                        );
+
+        $responseData = [
+                            'price_layout'=>$priceLayout,
+                            'stock_info_layout'=>$stockAvailabilityLayout,
+                        ];
+
+        $response = new JsonResponse($responseData, 'Recalculate runned successfully', $errorOccured);
 
         echo $response;
         $this->app->close();
@@ -102,6 +129,7 @@ class CartController extends BaseController
 
         $quantity = $input->getInt('quantity', 1);
         $itemId = $input->getInt('item_id', 0);
+
         $userId = Factory::getApplication()->getIdentity()->id;
         $response_data = [];
 

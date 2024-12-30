@@ -94,7 +94,6 @@ class ItemModel extends BaseItemModel
             $this->_item = [];
         }
 
-
         if (!isset($this->_item[$pk])) {
             try {
                 $db = $this->getDatabase();
@@ -104,19 +103,7 @@ class ItemModel extends BaseItemModel
                         'item.select',
                         [
                             // from items
-                            $db->quoteName('a.id'),
-                            $db->quoteName('a.name'),
-                            $db->quoteName('a.short_desc'),
-                            $db->quoteName('a.full_desc'),
-                            $db->quoteName('a.sku'),
-                            $db->quoteName('a.gtin'),
-                            $db->quoteName('a.mpn'),
-                            $db->quoteName('a.stock'),
-                            $db->quoteName('a.stock_action'),
-                            $db->quoteName('a.manage_stock'),
-                            $db->quoteName('a.alias'),
-                            $db->quoteName('a.meta_title'),
-                            $db->quoteName('a.meta_desc'),
+                            'a.*',
                         ]
                     )
                 )
@@ -131,6 +118,21 @@ class ItemModel extends BaseItemModel
                 $db->setQuery($query);
                 $data = $db->loadObject();
 
+
+                //Setting correct stock action settings in case they are to be retrieved from general settings (global configuration).
+                $settings = AlfaHelper::getGeneralSettings();
+                if($data->stock_action == -1) {
+                    $data->stock_action = $settings->get("stock_action");
+                    $data->stock_low_message = $settings->get("stock_low_message");
+                    $data->stock_zero_message = $settings->get("stock_zero_message");
+                }
+
+                if(empty($data->stock_low_message))
+                    $data->stock_low_message = $settings->get("stock_low_message");
+
+                if(empty($data->stock_zero_message))
+                    $data->stock_zero_message = $settings->get("stock_zero_message");
+
                 $categories = $this->getItemCategories($pk);
 
                 $data->categories = [];
@@ -140,13 +142,14 @@ class ItemModel extends BaseItemModel
 
                 $manufacturers = $this->getItemManufacturers($pk);
 
+                $data->manufacturers = [];
                 foreach ($manufacturers as $manufacturer) {
                     $data->manufacturers[$manufacturer['id']] = $manufacturer['name'];
                 }
-
                 
                 // Calculate the dynamic price
-                $quantity = 1; // You can pass a different quantity based on user input
+                $quantity = (int)$this->getState('quantity', 1); // Default to 1 if not set
+                // $quantity = 1; // You can pass a different quantity based on user input
                 $userGroupId=0;
                 $currencyId=0;
                 $priceCalculator = new PriceCalculator($pk, $quantity, $userGroupId, $currencyId);

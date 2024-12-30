@@ -54,7 +54,6 @@ async function addToCart() {
     }
 }
 
-
 document.addEventListener("DOMContentLoaded", () => {
     const addToCartBtns = document.querySelectorAll('[data-action="add-to-cart"]');
 

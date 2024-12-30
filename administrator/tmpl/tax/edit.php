@@ -19,7 +19,9 @@ use \Joomla\CMS\Language\Text;
 $wa = $this->document->getWebAssetManager();
 $wa->useScript('keepalive')
 	->useScript('form.validate');
-HTMLHelper::_('bootstrap.tooltip');
+
+$input = Factory::getApplication()->getInput();
+
 ?>
 
 <form
