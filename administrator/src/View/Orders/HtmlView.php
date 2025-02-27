@@ -57,7 +57,7 @@ class HtmlView extends BaseHtmlView
 			throw new \Exception(implode("\n", $errors));
 		}
 
-        $this->orderStatuses = (new AlfaHelper)->getOrderStatuses();
+        $this->orderStatuses = AlfaHelper::getOrderStatuses();
 
 		$this->addToolbar();
 
@@ -88,6 +88,7 @@ class HtmlView extends BaseHtmlView
 		{
 			if ($canDo->get('core.create'))
 			{
+				// TODO: be  able to create a new order
 				$toolbar->addNew('order.add');
 			}
 		}
@@ -103,52 +104,54 @@ class HtmlView extends BaseHtmlView
 
 			$childBar = $dropdown->getChildToolbar();
 
-			if (isset($this->items[0]->state))
-			{
+			// if (isset($this->items[0]->state))
+			// {
 				$childBar->publish('orders.publish')->listCheck(true);
 				$childBar->unpublish('orders.unpublish')->listCheck(true);
 				$childBar->archive('orders.archive')->listCheck(true);
-			}
-			elseif (isset($this->items[0]))
+				$childBar->trash('orders.trash')->listCheck(true);
+			// }
+
+			if (isset($this->items[0]) && $this->items[0]->state == '-2')
 			{
 				// If this component does not use state then show a direct delete button as we can not trash
 				$toolbar->delete('orders.delete')
-				->text('JTOOLBAR_EMPTY_TRASH')
-				->message('JGLOBAL_CONFIRM_DELETE')
-				->listCheck(true);
+					->text('JTOOLBAR_EMPTY_TRASH')
+					->message('JGLOBAL_CONFIRM_DELETE')
+					->listCheck(true);
 			}
 
-			$childBar->standardButton('duplicate')
-				->text('JTOOLBAR_DUPLICATE')
-				->icon('fas fa-copy')
-				->task('orders.duplicate')
-				->listCheck(true);
+			// $childBar->standardButton('duplicate')
+			// 	->text('JTOOLBAR_DUPLICATE')
+			// 	->icon('fas fa-copy')
+			// 	->task('orders.duplicate')
+			// 	->listCheck(true);
 
 			if (isset($this->items[0]->checked_out))
 			{
 				$childBar->checkin('orders.checkin')->listCheck(true);
 			}
 
-			if (isset($this->items[0]->state))
-			{
-				$childBar->trash('orders.trash')->listCheck(true);
-			}
+			// if (isset($this->items[0]->state))
+			// {
+			// 	$childBar->trash('orders.trash')->listCheck(true);
+			// }
 		}
 
 		
 
 		// Show trash and delete for components that uses the state field
-		if (isset($this->items[0]->state))
-		{
+		// if (isset($this->items[0]->state))
+		// {
 
-			if ($this->state->get('filter.state') == ContentComponent::CONDITION_TRASHED && $canDo->get('core.delete'))
-			{
-				$toolbar->delete('orders.delete')
-					->text('JTOOLBAR_EMPTY_TRASH')
-					->message('JGLOBAL_CONFIRM_DELETE')
-					->listCheck(true);
-			}
-		}
+		// 	if ($this->state->get('filter.state') == ContentComponent::CONDITION_TRASHED && $canDo->get('core.delete'))
+		// 	{
+				// $toolbar->delete('orders.delete')
+				// 	->text('JTOOLBAR_EMPTY_TRASH')
+				// 	->message('JGLOBAL_CONFIRM_DELETE')
+				// 	->listCheck(true);
+			// }
+		// }
 
 		if ($canDo->get('core.admin'))
 		{

@@ -18,6 +18,7 @@ use \Joomla\CMS\Language\Multilanguage;
 use \Joomla\CMS\Language\Text;
 use \Joomla\CMS\MVC\Controller\BaseController;
 use \Joomla\CMS\Router\Route;
+use Joomla\CMS\Session\Session;
 use \Joomla\CMS\Uri\Uri;
 use \Joomla\CMS\User\UserFactoryInterface;
 use \Joomla\Utilities\ArrayHelper;
@@ -151,14 +152,14 @@ class CartController extends BaseController
 
     public function clearCart()
     {
-         $errorOccured = false;
+        $errorOccured = false;
 
-         $input = $this->app->input;
+        $input = $this->app->input;
 
-         $quantity = $input->getInt('quantity', 1);
-         $itemId = $input->getInt('item_id', 0);
-         $userId = Factory::getApplication()->getIdentity()->id;
-         $response_data = [];
+        $quantity = $input->getInt('quantity', 1);
+        $itemId = $input->getInt('item_id', 0);
+        $userId = Factory::getApplication()->getIdentity()->id;
+        $response_data = [];
 
         $cart = new CartHelper();
         $clearOnlyItems = true;
@@ -193,7 +194,7 @@ class CartController extends BaseController
 
         $cart = new CartHelper();
         
-        $errorOccured = !$cart->updateQuantity($quantity,$itemId);
+        $errorOccured = !$cart->addToCart($itemId,$quantity);
 
         $result = '';
 
@@ -206,7 +207,6 @@ class CartController extends BaseController
             $layout = new FileLayout('default_cart_items', JPATH_ROOT . '/components/com_alfa/tmpl/cart');
             $result = $layout->render($cart);//shown in layout as $displayData
         }
-
 
         $response_data = array(
             'tmpl' => $result,
@@ -222,9 +222,19 @@ class CartController extends BaseController
 
     public function placeOrder() {
 
+		$this->checkToken();
+
+		$session = $this->app->getSession();
+
+//        $valid = Session::checkToken('post'); // or check like this if form token is valid
+//
+//	    if(!$valid){
+//
+//	    }
+
         $errorOccured = false;
 
-        // $input = $this->app->input;
+         $input = $this->app->input;
 
         // $userId = $this->app->getIdentity()->id;
 
@@ -234,9 +244,19 @@ class CartController extends BaseController
 
         // Get the view and layout
         // $view = $this->getView('cart', 'html');
+        
+//		$orderId = $order->getOrderId();
+        $orderId = $order->getOrder()->id;
+
+		$this->app->setUserState('com_alfa.order_id', $orderId);
+		//	    $session->set('order_id', $order->getOrderId());
+
+//        $orderId = "&order_id=" . $order->getOrderID();
+
+//        exit;
 
         if(!$errorOccured){
-            $this->setRedirect(Route::_('index.php?option=com_alfa&view=cart&layout=default_order_completed'));
+            $this->setRedirect(Route::_('index.php?option=com_alfa&view=cart&layout=default_order_process'));
             // $this->app->redirect(Route::_('index.php?option=com_alfa&view=cart&layout=default_order_completed'));
         }else{
             $this->setRedirect(Route::_('index.php?option=com_alfa&view=cart'));
@@ -246,4 +266,7 @@ class CartController extends BaseController
 
         return true;
     }
+
+
+
 }

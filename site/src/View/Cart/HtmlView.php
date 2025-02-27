@@ -12,9 +12,13 @@ namespace Alfa\Component\Alfa\Site\View\Cart;
 // No direct access
 defined('_JEXEC') or die;
 
-use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
+use \Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 use \Joomla\CMS\Factory;
 use \Joomla\CMS\Language\Text;
+use \Alfa\Component\Alfa\Site\Helper\OrderHelper;
+use \Joomla\CMS\Plugin\PluginHelper;
+use \Joomla\CMS\Router\Route;
+use \Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 
 /**
  * View class for a list of Alfa.
@@ -29,10 +33,16 @@ class HtmlView extends BaseHtmlView
 
     protected $items;
 
+	protected $app;
+
+    protected $payment_methods;
+
     protected $form;
 
     protected $params;
 
+    protected $event;
+    
     /**
      * Display the view
      *
@@ -44,7 +54,7 @@ class HtmlView extends BaseHtmlView
      */
     public function display($tpl = null)
     {
-        $app  = Factory::getApplication();
+        $this->app  = $app = Factory::getApplication();
         $user = $app->getIdentity();
         $input = $app->input;
 
@@ -59,13 +69,90 @@ class HtmlView extends BaseHtmlView
             throw new \Exception(implode("\n", $errors));
         }
 
-        // print_r($this->_layout);
-        // exit;
         if ((!$this->cart->getData() || !is_array($this->cart->getData()->items) || !count($this->cart->getData()->items)) 
             && $this->_layout=='default') {
             $this->_layout = 'default_cart_empty';
-            // $tpl = 'clear_cart';
         }
+
+        if($this->_layout == 'default') {
+
+            // load each payment method onCartView event
+            $onCartViewPaymentEventName = 'onCartView';
+            foreach ($this->cart->getPaymentMethods() as &$payment_method) {
+                $payment_method->event = new \stdClass();
+                $payment_method->event->{$onCartViewPaymentEventName} = ($app->bootPlugin($payment_method->type, "alfa-payments")->{$onCartViewPaymentEventName}($this->cart));
+            }
+            
+        }
+
+
+        if( $this->_layout == 'default_order_process' ||
+            $this->_layout == 'default_order_completed'){
+            $orderId = $app->getUserState('com_alfa.order_id');
+
+            if ($orderId == null) {
+                $app->enqueueMessage('Order ID is not set.', 'error');
+                $app->redirect(Route::_('/index.php'));//redirect to home page
+            }
+
+            $ordersModel = Factory::getApplication()->bootComponent('com_alfa')
+                ->getMVCFactory()->createModel('Order', 'Administrator', ['ignore_request' => true]);
+
+            
+            $orderData = $ordersModel->getItem($orderId);
+
+            if($orderData == null){
+                $app->enqueueMessage('Order with this order id:'.$orderId.' not found.', 'error');
+                $app->redirect(Route::_('/index.php'));//redirect to home pagee
+            }
+
+
+            if($this->_layout == 'default_order_process'){
+            
+                $onProcessPaymentEventName = 'onOrderProcessView';
+
+                //METHOD 1 : OF CALLING A PLUGIN
+    //            PluginHelper::importPlugin('alfa-payments', $orderData->payment->type);
+    //            $dispatcher = $app->getDispatcher();
+    //
+    //            $event = \Joomla\CMS\Event\AbstractEvent::create(
+    //                $onProcessPaymentEventName,
+    //                [
+    //                    'subject'=>(object)['event'=>$onProcessPaymentEventName],
+    //                    $orderData,
+    //                ]
+    //            );
+    //
+    //            $eventResult = $dispatcher->dispatch($onProcessPaymentEventName, $event);
+    //            $this->event->{$onProcessPaymentEventName} = $eventResult['result'][0];
+
+                //METHOD 2 : OF CALLING A PLUGIN
+
+                $onProcessPaymentEventResult = $app->bootPlugin($orderData->payment->type, "alfa-payments")->{$onProcessPaymentEventName}($orderData);
+
+                $this->event = new \stdClass();
+                $this->event->{$onProcessPaymentEventName} = $onProcessPaymentEventResult;
+
+                // Empty string returned, redirecting to default_order_completed.
+                if(empty($onProcessPaymentEventResult)){
+
+                    $this->_layout = 'default_order_completed';
+                }
+                
+            }
+
+
+            if($this->_layout == 'default_order_completed'){
+                $onCompleteOrderEventName = 'onOrderCompleteView';
+                $onCompleteOrderEventResult = $app->bootPlugin($orderData->payment->type, "alfa-payments")->{$onCompleteOrderEventName}($orderData);
+
+                $this->event = new \stdClass();
+                $this->event->{$onCompleteOrderEventName} = $onCompleteOrderEventResult;
+            }
+
+
+        }
+        
 
         $this->_prepareDocument();
 
@@ -143,4 +230,5 @@ class HtmlView extends BaseHtmlView
         //     $pathway->addItem($breadcrumbTitle);
         // }
     }
+
 }

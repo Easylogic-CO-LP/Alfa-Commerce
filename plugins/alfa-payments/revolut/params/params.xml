@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+	<fields name="paymentsparams">
+		<fieldset name="paymentsparams">
+
+			<field name="revolut_secret_key" type="text"
+				   label="PLG_DPPAYMENT_REVOLUT_REVOLUTPAYMENT_SECRET_KEY"
+				   description="PLG_DPPAYMENT_REVOLUT_REVOLUTPAYMENT_SECRET_KEY_DESC"
+				   default=""
+				   required="true"
+				   mysql_type="varchar(255)">
+			</field>
+
+	       <field name="revolut_sandbox_mode" type="radio"
+	            layout="joomla.form.field.radio.switcher"
+	            label="PLG_DPPAYMENT_REVOLUT_REVOLUTPAYMENT_SANDBOX_MODE"
+	            description="PLG_DPPAYMENT_REVOLUT_REVOLUTPAYMENT_SANDBOX_MODE_DESC"
+	            default="0"
+	            required="false"
+	            mysql_type="varchar(255)">
+	               <option value="0">JNO</option>
+	               <option value="1">JYES</option>
+	        </field>
+		</fieldset>
+	</fields>
+</form>

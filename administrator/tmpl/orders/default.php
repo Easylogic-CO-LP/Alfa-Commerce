@@ -25,7 +25,8 @@ HTMLHelper::_('behavior.multiselect');
 // Import CSS
 $wa =  $this->document->getWebAssetManager();
 $wa->useStyle('com_alfa.admin')
-    ->useScript('com_alfa.admin');
+    ->useScript('com_alfa.admin')
+    ->useScript('table.columns');
 
 $user      = Factory::getApplication()->getIdentity();
 $userId    = $user->get('id');
@@ -57,17 +58,7 @@ if (!empty($saveOrder))
 						<th class="w-1 text-center">
 							<input type="checkbox" autocomplete="off" class="form-check-input" name="checkall-toggle" value=""
 								   title="<?php echo Text::_('JGLOBAL_CHECK_ALL'); ?>" onclick="Joomla.checkAll(this)"/>
-
 						</th>
-
-					<?php if (isset($this->items[0]->ordering)): ?>
-					<th scope="col" class="w-1 text-center d-none d-md-table-cell">
-
-					<?php echo HTMLHelper::_('searchtools.sort', '', 'a.ordering', $listDirn, $listOrder, null, 'asc', 'JGRID_HEADING_ORDERING', 'icon-menu-2'); ?>
-
-					</th>
-					<?php endif; ?>
-
 
                         <th scope="col" class="w-3 d-none d-lg-table-cell text-center">
                             <?php echo HTMLHelper::_('searchtools.sort', 'JGRID_HEADING_ID', 'a.id', $listDirn, $listOrder); ?>
@@ -87,12 +78,12 @@ if (!empty($saveOrder))
                         </th>
 
                         <th scope="col" class="w-3 d-none d-lg-table-cell text-center">
-                            <?php echo HTMLHelper::_('searchtools.sort', 'Order Status', 'a.name', $listDirn, $listOrder); ?>
+                            <?php echo HTMLHelper::_('searchtools.sort', 'Payment', 'payment_method_name', $listDirn, $listOrder); ?>
                         </th>
 
-<!--                        <th scope="col" class="w-3 d-none d-lg-table-cell text-center">-->
-<!--                            --><?php //echo HTMLHelper::_('searchtools.sort', 'Order Status', 'a.name', $listDirn, $listOrder); ?>
-<!--                        </th>-->
+                        <th scope="col" class="w-3 d-none d-lg-table-cell text-center">
+                            <?php echo HTMLHelper::_('searchtools.sort', 'Order Status', 'a.id_order_status', $listDirn, $listOrder); ?>
+                        </th>
 
                     </tr>
 					</thead>
@@ -116,35 +107,11 @@ if (!empty($saveOrder))
 								<?php echo HTMLHelper::_('grid.id', $i, $item->id); ?>
 							</td>
 
-							<?php if (isset($this->items[0]->ordering)) : ?>
-
-							<td class="text-center d-none d-md-table-cell">
-
-							<?php
-
-							$iconClass = '';
-
-							if (!$canChange)
-
-							{
-								$iconClass = ' inactive';
-
-							}
-							elseif (!$saveOrder)
-
-							{
-								$iconClass = ' inactive" title="' . Text::_('JORDERINGDISABLED');
-
-							}							?>							<span class="sortable-handler<?php echo $iconClass ?>">
-							<span class="icon-ellipsis-v" aria-hidden="true"></span>
-							</span>
-							<?php if ($canChange && $saveOrder) : ?>
-							<input type="text" name="order[]" size="5" value="<?php echo $item->ordering; ?>" class="width-20 text-area-order hidden">
-								<?php endif; ?>
-							</td>
-							<?php endif; ?>
-
 							<td class="d-none d-lg-table-cell text-center">
+								<?php if (isset($item->checked_out) && $item->checked_out && ($canEdit || $canChange)) : ?>
+									<?php echo HTMLHelper::_('jgrid.checkedout', $i, $item->editor, $item->checked_out_time, 'orders.', $canCheckin); ?>
+								<?php endif; ?>
+
 								<?php if ($canEdit) : ?>
 									<a href="<?php echo Route::_('index.php?option=com_alfa&task=order.edit&id='.(int) $item->id); ?>">
 									<?php echo $this->escape($item->id); ?>
@@ -167,7 +134,16 @@ if (!empty($saveOrder))
                             </td>
 
                             <td class="text-center">
-                                <?php echo $item->created; ?>
+                            	<?php echo HtmlHelper::_('date', $item->created, Text::_('DATE_FORMAT_LC6')); ?>
+                            </td>
+
+                            <td class="text-center text-nowrap">
+                                <a style="color: <?php echo $item->payment_method_color; ?>;
+                                          background-color: <?php echo $item->payment_method_bg_color; ?>;
+                                          border-radius: 5px;
+                                          text-decoration:none;
+                                          padding: 5px 10px ;
+                                                "><?php echo $item->payment_method_name; ?></a>
                             </td>
 
                             <td class="text-center">

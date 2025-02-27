@@ -25,6 +25,10 @@ $cart = !empty($displayData) ? $displayData : $this->cart;
                 // $itemsTotal = 0;
                 foreach ($cart->getData()->items as $index=>$item) {
                     // $itemsTotal += $item->price['price_with_tax'];
+
+//                    echo "<pre>";
+//                    print_r()
+//                    echo "</pre>";
             ?>
                 <tr class="cart-item-outer" data-item-id='<?php echo $item->id;?>'>
                     <td data-label="Name" class="cart-item-col-name cart-item-col"><?php echo $item->name;?></td>

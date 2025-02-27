@@ -1,17 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <form>
 
-    <field
+<!--     <field
             hiddenLabel="true"
             parentclass="id-item-field col-lg-1"
-            name="id_item" type="sql"
+            name="id_item"
+            type="sql"
             input_type="list"
             required="true"
             multiple="false"
             label="Name"
             description=""
             layout="joomla.form.field.list-fancy-select"
-            query="SELECT `id`, `name` AS val FROM `#__alfa_items`" key_field="id" value_field="val"
+            query="SELECT id, name FROM #__alfa_items" key_field="id" value_field="name"
+    /> -->
+
+        <field
+            hiddenLabel="true"
+            parentclass="id-item-field col-lg-1"
+            name="id_item"
+            type="ListWithFallback"
+            input_type="list"
+            required="true"
+            readonly="false"
+            multiple="false"
+            label="Name"
+            description=""
+            layout="joomla.form.field.list-fancy-select"
+            table="#__alfa_items"
+            id_field="id"
+            name_field="name"
+            order_field="name"
+            fallback_table="#__alfa_order_items"
+            fallback_id_field="id_item"
+            fallback_name_field="name"
     />
 
     <field

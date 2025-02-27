@@ -43,7 +43,7 @@ class OrderstatusesModel extends ListModel
                 'name', 'a.name',
                 'color', 'a.color',
                 'bg_color', 'a.bg_color',
-                'stock_action', 'a.stock_action',
+                'stock_operation', 'a.stock_operation',
                 'state', 'a.state',
                 'ordering', 'a.ordering',
             );
@@ -194,13 +194,13 @@ class OrderstatusesModel extends ListModel
     {
         $items = parent::getItems();
 
-        foreach ($items as $item) {
-            if ($item->stock_action == 0) {
-                $item->stock = 'Keep in stock';
-            } else {
-                $item->stock = 'Remove from stock';
-            }
-        }
+        // foreach ($items as $item) {
+        //     if ($item->stock_action == 0) {
+        //         $item->stock = 'Keep in stock';
+        //     } else {
+        //         $item->stock = 'Remove from stock';
+        //     }
+        // }
         return $items;
     }
 }

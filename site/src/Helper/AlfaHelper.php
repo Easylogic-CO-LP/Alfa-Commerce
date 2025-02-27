@@ -8,14 +8,11 @@
  */
 
 namespace Alfa\Component\Alfa\Site\Helper;
-use Joomla\CMS\Component\ComponentHelper;
 
+use Joomla\CMS\Component\ComponentHelper;
+use \Joomla\CMS\Factory;
 
 defined('_JEXEC') or die;
-
-use \Joomla\CMS\Factory;
-use \Joomla\CMS\MVC\Model\BaseDatabaseModel;
-use \Joomla\Database\DatabaseDriver;
 
 /**
  * Class AlfaFrontendHelper
@@ -24,104 +21,6 @@ use \Joomla\Database\DatabaseDriver;
  */
 class AlfaHelper
 {
-
-    /*
-     * Inputs: the price value, and the format settings.
-     * If there are no format settings provided, we look for cached settings.
-     *      If there are also no cached settings, we then make a DB query.
-     *      We cache the query settings.
-     * Format the $value.
-     * Returns: the formatted $value.
-     */
-    public static function formattedPrice($value, $decimal_place=null, $decimal_symbol=null, $thousand_separator=null, $pattern = null){
-
-        $symbol = '';
-        //If settings have not been given, 
-        if($decimal_place == null || $decimal_symbol == null || $thousand_separator == null || $pattern == null || !strpos($pattern, "{number}")) {
-
-            //We check for cached settings.
-            $cache = Factory::getCache('com_alfa','');
-            $cache->setCaching(true);
-            $cacheKey = "general_currency_settings";
-            $generalCurrencySettings = $cache->get($cacheKey);
-
-            //Applying the cached settings if they exist.
-            if(!empty($generalCurrencySettings)) {
-                $symbol = $generalCurrencySettings->symbol;
-                $decimal_place = $generalCurrencySettings->decimal_place;
-                $decimal_symbol = $generalCurrencySettings->decimal_symbol;
-                $thousand_separator = $generalCurrencySettings->thousand_separator;
-                $pattern = $generalCurrencySettings->format_pattern;
-            }//If there are no cached settings, we make a DB query.
-            else {
-                $settings = self::getGeneralSettings();
-                $defaultCurrID = $settings->get('default_currency', '978'); //Euro
-
-                try{
-                    $db = Factory::getContainer()->get('DatabaseDriver');
-                    $query = $db->getQuery(true);
-                    $query->
-                    select("symbol, decimal_place, decimal_symbol, thousand_separator, format_pattern")->
-                    from('#__alfa_currencies')->
-                    where('id=' . $defaultCurrID);
-                    $db->setQuery($query);
-                }
-                catch (\Exception $e) {
-                    Factory::getApplication()->enqueueMessage($e->getMessage());
-                    return false;
-                }
-
-                $DBSettings = $db->loadObject();
-
-                //We cache the settings retrieved by the DB query.
-                $cache->store($DBSettings, $cacheKey);
-
-                //We apply the DB settings.
-                $symbol = $DBSettings->symbol;
-                $decimal_place = $DBSettings->decimal_place;
-                $decimal_symbol = $DBSettings->decimal_symbol;
-                $thousand_separator = $DBSettings->thousand_separator;
-                $pattern = $DBSettings->format_pattern;
-            }
-        }
-
-        //Finally, we apply all the settings to our value and return it.
-        $value = number_format((float)$value, $decimal_place, $decimal_symbol, $thousand_separator);
-        $value = str_replace("{number}", $value, $pattern);
-        $value = str_replace("{symbol}", $symbol, $value);
-
-        return $value;
-
-    }
-
-    /**
-     * Inputs: void (nothing).
-     * Sends a DB query to get the general currency settings.
-     * Returns: general currency settings or null if they are not found.
-     */
-//    public static function getGeneralCurrencySettings(){
-//        $settings = self::getGeneralSettings();
-//        $defaultCurrID = $settings->get('default_currency');
-//
-//        $db = Factory::getContainer()->get('DatabaseDriver');
-//        $query = $db->getQuery(true);
-//
-//        $query->
-//            select("symbol, decimal_place, decimal_symbol, thousand_separator, format_pattern")->
-//            from('#__alfa_currencies')->
-//            where('id=' . $defaultCurrID);
-//        $db->setQuery($query);
-//
-//        return $db->loadObject() ?: null;
-//    }
-
-
-
-    //SELECT p.symbol, p.currency_decimal_place, p.currency_decimal_symbol, p.currency_decimal_separator, p.currency_thousand_separator
-    //FROM ms0bn_alfa_items_prices as it
-    //JOIN ms0bn_alfa_currencies as p ON it.currency_id=p.id
-    //WHERE it.id = x;
-
 
     public static function getGeneralSettings(){
 
@@ -271,6 +170,112 @@ class AlfaHelper
         
     }
 
+    /**
+     *  Filters out elements that are not common in all given arrays.
+     *  @param $arrays array of arrays
+     *  @return array containing elements common in all given arrays.
+     */
+    // public static function getCommonElements($arrays){
 
-	
+    //     // We only keep the elements common among all arrays.
+    //     $commonElements = $arrays[0];
+    //     foreach($arrays as $array){
+    //         if(empty($commonElements))
+    //             break;
+
+    //         foreach($commonElements as $i => $element){
+    //             if(!in_array($element, $array))
+    //                 unset($commonElements[$i]);
+    //         }
+    //     }
+
+    //     return $commonElements;
+
+    // }
+
+    /**
+     *  Filters out the payment methods that are not common in all items.
+     *
+     *  @param $items array of item objects. Each item has data about its categories/manufacturers etc.
+     *  @return array the common payment methods.
+     */
+    static function getFilteredMethods($categories,$manufacturers,$usergroups,$userId){
+
+//        echo "<pre>";
+//        print_r($manufacturers);
+//        echo "</pre>";
+//        exit;
+
+        $categories[] = 0; //to support all categories for payment method
+        $manufacturers[] = 0; //to support all manufacturers for payment method
+        $usergroups[] = 0; //to support all usergroups for payment method
+        // $users[] = 0; //to support all users for payment method
+
+        // GET ALL PAYMENT METHODS
+        $db = Factory::getContainer()->get("DatabaseDriver");
+        $query = $db->getQuery(true);
+
+        $query
+            ->select('m.*')  // Select all payment method fields
+            ->select('GROUP_CONCAT(DISTINCT mc.category_id) AS categories')  // Get all unique categories for the payment
+            ->select('GROUP_CONCAT(DISTINCT mm.manufacturer_id) AS manufacturers')  // Get all unique manufacturers for the payment
+            ->select('GROUP_CONCAT(DISTINCT mu.user_id) AS users')  // Get all unique manufacturers for the payment
+            ->select('GROUP_CONCAT(DISTINCT mug.usergroup_id) AS groups')  // Get all unique manufacturers for the payment
+            ->from('#__alfa_payments AS m')  // Main table
+
+            // Join related tables
+            ->join('LEFT', '#__alfa_payment_categories AS mc ON mc.payment_id = m.id')
+            ->join('LEFT', '#__alfa_payment_manufacturers AS mm ON mm.payment_id = m.id')
+            ->join('LEFT', '#__alfa_payment_users AS mu ON mu.payment_id = m.id')
+            ->join('LEFT', '#__alfa_payment_usergroups AS mug ON mug.payment_id = m.id')
+
+            // Group by payment method ID to combine categories and manufacturers
+            ->group('m.id');
+
+        $db->setQuery($query);
+        $paymentMethods = $db->loadObjectList('id');
+
+        // FILTER PAYMENT METHODS
+        // Compare ids given with payment ids.
+        foreach ($paymentMethods as $index => $method) {
+            $isValid = true;
+
+            $methodCategories = explode(",", $method->categories);
+            $methodManufacturers = explode(",", $method->manufacturers);
+            $methodUsers = explode(",", $method->users);
+            $methodUsersgroups = explode(",", $method->groups);
+
+            //if payment method don't have common categories with those given turn is valid to false to unset it
+            if (empty(array_intersect($categories, $methodCategories))) {
+                $isValid = false;
+            }
+
+            //if payment method dont have common manufacturers with those given turn is valid to false to unset it
+            if (empty(array_intersect($manufacturers, $methodManufacturers))) {
+                $isValid = false;
+            }
+
+            //if payment method dont have common manufacturers with those given turn is valid to false to unset it
+            if (empty(array_intersect($usergroups, $methodUsersgroups))) {
+                $isValid = false;
+            }
+
+            // check if 0 is setted on method to allow all users or at list the user is inside the users array of the method
+            if (!in_array(0, $methodUsers) && !in_array($userId, $methodUsers)) {
+                $isValid = false;
+            }
+
+            if (!$isValid){
+                unset($paymentMethods[$index]);
+            }
+
+        }
+
+
+        return $paymentMethods;
+	    
+
+    }
+
+
 }

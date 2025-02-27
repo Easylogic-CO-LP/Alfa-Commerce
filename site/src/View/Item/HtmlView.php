@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Site\View\Item;
 defined('_JEXEC') or die;
 
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
+use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use \Joomla\CMS\Factory;
 use \Joomla\CMS\Language\Text;
 
@@ -31,6 +32,8 @@ class HtmlView extends BaseHtmlView
 
 	protected $params;
 
+    protected $payment_methods;
+
 	/**
 	 * Display the view
 	 *
@@ -42,6 +45,7 @@ class HtmlView extends BaseHtmlView
 	 */
 	public function display($tpl = null)
 	{
+
 		$app  = Factory::getApplication();
 		$user = $app->getIdentity();
 
@@ -59,9 +63,7 @@ class HtmlView extends BaseHtmlView
 		{
 			throw new \Exception(implode("\n", $errors));
 		}
-
-		
-
+        
 		if ($this->_layout == 'edit')
 		{
 			$authorised = $user->authorise('core.create', 'com_alfa');
@@ -71,6 +73,21 @@ class HtmlView extends BaseHtmlView
 				throw new \Exception(Text::_('JERROR_ALERTNOAUTHOR'));
 			}
 		}
+
+        /*
+         *  Setting up alfa-payments onProductView event call to be used on tmpl.
+         */
+        $onProductViewPaymentEventName = "onProductView";
+        
+        foreach($this->item->payment_methods as &$payment_method) {
+            $payment_method->events = new \stdClass();
+            $payment_method->events->{$onProductViewPaymentEventName} = $app->bootPlugin($payment_method->type, "alfa-payments")->{$onProductViewPaymentEventName}($this->item, $payment_method);
+            
+            if(!$payment_method->show_on_product){
+                unset($this->item->payment_methods[$payment_method->id]);
+            }
+        }
+
 
 		$this->_prepareDocument();
 
@@ -148,4 +165,6 @@ class HtmlView extends BaseHtmlView
             $pathway->addItem($breadcrumbTitle);
         }
     }
+
+
 }

@@ -23,6 +23,8 @@ use \Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use \Alfa\Component\Alfa\Site\Helper\ProductHelper;
 use \Alfa\Component\Alfa\Site\Helper\PriceCalculator;
 
+use \Joomla\CMS\Component\ComponentHelper;
+
 /**
  * Methods supporting a list of Alfa records.
  *
@@ -130,7 +132,7 @@ class ItemsModel extends ListModel
     protected function getListQuery()
     {
         // Create a new query object.
-        $db = $this->getDbo();
+        $db = $this->getDatabase();
         $query = $db->getQuery(true);
 
         // Select the required fields from the table.
@@ -138,8 +140,8 @@ class ItemsModel extends ListModel
             $this->getState('list.select',
                 'DISTINCT a.*,
 								GROUP_CONCAT(cat.category_id ORDER BY cat.category_id ASC) AS category_ids,
-								GROUP_CONCAT(man.manufacturer_id ORDER BY man.manufacturer_id ASC) AS manufacturer_ids,
-                                GROUP_CONCAT(pr.id ORDER BY pr.id ASC) AS price_ids'
+								GROUP_CONCAT(man.manufacturer_id ORDER BY man.manufacturer_id ASC) AS manufacturer_ids'
+                                // 'GROUP_CONCAT(pr.id ORDER BY pr.id ASC) AS price_ids'
             )
         );
 
@@ -152,6 +154,7 @@ class ItemsModel extends ListModel
         $query->join('LEFT', '#__alfa_items_prices AS pr ON a.id = pr.item_id');
 
         $query->where('a.state = 1');
+        $query->where('NOT (a.stock_action = 2 AND a.stock > 0)');//TODO: check if its -1 and general settings have the same stock action
 
         // if (!Factory::getApplication()->getIdentity()->authorise('core.edit', 'com_alfa'))
         // {
@@ -187,6 +190,15 @@ class ItemsModel extends ListModel
         }
 
 
+        // $items_filter = $this->getState('filter.items');
+        // if (!empty($items_filter)) {
+        //     if (is_array($items_filter)) {
+        //         // If category_filter is an array, join it as a comma-separated list for the query
+        //         $query->whereIn('a.id', $items_filter);
+        //     }
+        // }
+
+
         // Add the list ordering clause.
         $orderCol = $this->state->get('list.ordering', 'a.id');
         $orderDirn = $this->state->get('list.direction', 'DESC');
@@ -210,6 +222,9 @@ class ItemsModel extends ListModel
 
    public function getItems(){
 
+        $app = Factory::getApplication();
+        $user = $app->getIdentity();
+
         $items = parent::getItems();
 
         $allCategoryIds = $allManufacturerIds = $allPriceIds = [];
@@ -226,16 +241,14 @@ class ItemsModel extends ListModel
 
         // $pricesMapping = $this->getRecordsByIds($allPriceIds, '#__alfa_items_prices', ['value']);
 
-        $quantity = 1;
-        $userGroupId = 1;
-        $currencyId = 1;
-
-        $settings = AlfaHelper::getGeneralSettings();
+        // $settings = AlfaHelper::getGeneralSettings();
+        $settings = ComponentHelper::getParams('com_alfa');
+        $defaultCurrID = $settings->get('default_currency', '978'); //Euro
 
         // Assign mapped names to items
         foreach ($items as $item) {
             // calculate price
-            $priceCalculator = new PriceCalculator($item->id, $quantity, $userGroupId, $currencyId);
+            $priceCalculator = new PriceCalculator($item->id, $item->quantity_min, $user->groups, $defaultCurrID);
             $item->price = $priceCalculator->calculatePrice();
 
             // convert category ids to category names
@@ -344,26 +357,26 @@ class ItemsModel extends ListModel
      *
      * @return void
      */
-    protected function loadFormData()
-    {
-        $app = Factory::getApplication();
-        $filters = $app->getUserState($this->context . '.filter', array());
-        $error_dateformat = false;
+    // protected function loadFormData()
+    // {
+    //     $app = Factory::getApplication();
+    //     $filters = $app->getUserState($this->context . '.filter', array());
+    //     $error_dateformat = false;
 
-        foreach ($filters as $key => $value) {
-            if (strpos($key, '_dateformat') && !empty($value) && $this->isValidDate($value) == null) {
-                $filters[$key] = '';
-                $error_dateformat = true;
-            }
-        }
+    //     foreach ($filters as $key => $value) {
+    //         if (strpos($key, '_dateformat') && !empty($value) && $this->isValidDate($value) == null) {
+    //             $filters[$key] = '';
+    //             $error_dateformat = true;
+    //         }
+    //     }
 
-        if ($error_dateformat) {
-            $app->enqueueMessage(Text::_("COM_ALFA_SEARCH_FILTER_DATE_FORMAT"), "warning");
-            $app->setUserState($this->context . '.filter', $filters);
-        }
+    //     if ($error_dateformat) {
+    //         $app->enqueueMessage(Text::_("COM_ALFA_SEARCH_FILTER_DATE_FORMAT"), "warning");
+    //         $app->setUserState($this->context . '.filter', $filters);
+    //     }
 
-        return parent::loadFormData();
-    }
+    //     return parent::loadFormData();
+    // }
 
     /**
      * Checks if a given date is valid and in a specified format (YYYY-MM-DD)
@@ -372,9 +385,9 @@ class ItemsModel extends ListModel
      *
      * @return bool
      */
-    private function isValidDate($date)
-    {
-        $date = str_replace('/', '-', $date);
-        return (date_create($date)) ? Factory::getDate($date)->format("Y-m-d") : null;
-    }
+    // private function isValidDate($date)
+    // {
+    //     $date = str_replace('/', '-', $date);
+    //     return (date_create($date)) ? Factory::getDate($date)->format("Y-m-d") : null;
+    // }
 }
