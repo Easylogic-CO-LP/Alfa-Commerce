@@ -13,7 +13,6 @@
 	<description>PLG_ALFA_PAYMENTS_STANDARD_XML_DESCRIPTION</description>
 	<namespace path="src">Joomla\Plugin\AlfaPayments\Standard</namespace>
 	<files>
-		<folder>params</folder>
 		<folder plugin="standard">services</folder>
 		<folder>src</folder>
 		<folder>tmpl</folder>

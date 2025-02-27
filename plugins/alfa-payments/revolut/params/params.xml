@@ -7,7 +7,7 @@
 				   label="PLG_DPPAYMENT_REVOLUT_REVOLUTPAYMENT_SECRET_KEY"
 				   description="PLG_DPPAYMENT_REVOLUT_REVOLUTPAYMENT_SECRET_KEY_DESC"
 				   default=""
-				   required="true"
+				   required="false"
 				   mysql_type="varchar(255)">
 			</field>
 

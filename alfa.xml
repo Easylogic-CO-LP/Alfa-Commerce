@@ -110,9 +110,15 @@
     </config> -->
     <plugins>
 		<plugin group="webservices" plugin="alfa"/>
+
+        <plugin group="alfa-payments" plugin="standard"/>
+        <plugin group="alfa-payments" plugin="revolut"/>
+        <plugin group="alfa-payments" plugin="viva"/>
+        
     </plugins>
 
     <modules>
+        <module module="mod_alfa_cart" />
 		<module module="mod_alfa_search" />
 	</modules>
 

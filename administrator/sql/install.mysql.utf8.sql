@@ -64,10 +64,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_action_log_config` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_cart`
+-- Table structure for table `#__alfa_cart`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_cart` (
+CREATE TABLE IF NOT EXISTS `#__alfa_cart` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `id_shop_group` int(11) NOT NULL,
   `id_carrier` int(11) NOT NULL,
@@ -86,10 +86,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_cart` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_cart_items`
+-- Table structure for table `#__alfa_cart_items`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_cart_items` (
+CREATE TABLE IF NOT EXISTS `#__alfa_cart_items` (
   `id_cart` int(11) NOT NULL,
   `id_item` int(11) NOT NULL,
   `quantity` float NOT NULL,
@@ -99,10 +99,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_cart_items` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_categories`
+-- Table structure for table `#__alfa_categories`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_categories` (
+CREATE TABLE IF NOT EXISTS `#__alfa_categories` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `parent_id` int(11) DEFAULT 0,
   `name` varchar(400) NOT NULL,
@@ -131,10 +131,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_categories` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_categories_usergroups`
+-- Table structure for table `#__alfa_categories_usergroups`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_categories_usergroups` (
+CREATE TABLE IF NOT EXISTS `#__alfa_categories_usergroups` (
   `category_id` int(11) NOT NULL,
   `usergroup_id` int(11) NOT NULL,
   KEY `category_id` (`category_id`,`usergroup_id`)
@@ -143,10 +143,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_categories_usergroups` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_categories_users`
+-- Table structure for table `#__alfa_categories_users`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_categories_users` (
+CREATE TABLE IF NOT EXISTS `#__alfa_categories_users` (
   `category_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   KEY `category_id` (`category_id`,`user_id`)
@@ -155,10 +155,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_categories_users` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_coupons`
+-- Table structure for table `#__alfa_coupons`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_coupons` (
+CREATE TABLE IF NOT EXISTS `#__alfa_coupons` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `state` tinyint(1) DEFAULT 1,
   `ordering` int(11) DEFAULT 0,
@@ -187,10 +187,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_coupons` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_coupons_usergroups`
+-- Table structure for table `#__alfa_coupons_usergroups`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_coupons_usergroups` (
+CREATE TABLE IF NOT EXISTS `#__alfa_coupons_usergroups` (
   `coupon_id` int(11) NOT NULL,
   `usergroup_id` int(11) NOT NULL,
   KEY `coupon_id` (`coupon_id`,`usergroup_id`)
@@ -199,10 +199,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_coupons_usergroups` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_coupons_users`
+-- Table structure for table `#__alfa_coupons_users`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_coupons_users` (
+CREATE TABLE IF NOT EXISTS `#__alfa_coupons_users` (
   `coupon_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   KEY `coupon_id` (`coupon_id`,`user_id`)
@@ -211,10 +211,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_coupons_users` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_currencies`
+-- Table structure for table `#__alfa_currencies`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_currencies` (
+CREATE TABLE IF NOT EXISTS `#__alfa_currencies` (
   `id` int(1) UNSIGNED NOT NULL AUTO_INCREMENT,
   `name` varchar(64) DEFAULT NULL,
   `code` char(3) DEFAULT NULL,
@@ -243,10 +243,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_currencies` (
 ) ENGINE=InnoDB AUTO_INCREMENT=202 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Used to store currencies';
 
 --
--- Dumping data for table `#__alfa_alfa_currencies`
+-- Dumping data for table `#__alfa_currencies`
 --
 
-INSERT INTO `#__alfa_alfa_currencies` (`id`, `name`, `code`, `number`, `symbol`, `decimal_place`, `decimal_symbol`, `decimal_separator`, `thousand_separator`, `format_pattern`, `currency_thousands`, `currency_positive_style`, `currency_negative_style`, `ordering`, `state`, `created_by`, `modified_by`, `checked_out_time`, `checked_out`) VALUES
+INSERT INTO `#__alfa_currencies` (`id`, `name`, `code`, `number`, `symbol`, `decimal_place`, `decimal_symbol`, `decimal_separator`, `thousand_separator`, `format_pattern`, `currency_thousands`, `currency_positive_style`, `currency_negative_style`, `ordering`, `state`, `created_by`, `modified_by`, `checked_out_time`, `checked_out`) VALUES
 (2, 'United Arab Emirates dirham', 'AED', 784, 'د.إ', '4', 'bfa', 'a', 'a', '{number}{symbol}', '', '{number} {symbol}', '{sign}{number} {symbol}', 0, 1, 0, 922, NULL, NULL),
 (4, 'Albanian lek', 'ALL', 8, 'Lek', '2', ',', '', '', '{number}{symbol}', '', '{number} {symbol}', '{sign}{number} {symbol}', 0, 1, 0, 0, NULL, NULL),
 (5, 'Netherlands Antillean gulden', 'ANG', 532, 'ƒ', '2', ',', '', '', '{number}{symbol}', '', '{number} {symbol}', '{sign}{number} {symbol}', 0, 1, 0, 0, NULL, NULL),
@@ -414,10 +414,10 @@ INSERT INTO `#__alfa_alfa_currencies` (`id`, `name`, `code`, `number`, `symbol`,
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_customs`
+-- Table structure for table `#__alfa_customs`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_customs` (
+CREATE TABLE IF NOT EXISTS `#__alfa_customs` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `state` tinyint(1) DEFAULT 1,
   `ordering` int(11) DEFAULT 0,
@@ -441,10 +441,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_customs` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_discounts`
+-- Table structure for table `#__alfa_discounts`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_discounts` (
+CREATE TABLE IF NOT EXISTS `#__alfa_discounts` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `name` varchar(400) NOT NULL,
   `desc` text DEFAULT NULL,
@@ -473,10 +473,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_discounts` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_discount_categories`
+-- Table structure for table `#__alfa_discount_categories`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_discount_categories` (
+CREATE TABLE IF NOT EXISTS `#__alfa_discount_categories` (
   `discount_id` int(11) NOT NULL,
   `category_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -484,10 +484,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_discount_categories` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_discount_manufacturers`
+-- Table structure for table `#__alfa_discount_manufacturers`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_discount_manufacturers` (
+CREATE TABLE IF NOT EXISTS `#__alfa_discount_manufacturers` (
   `discount_id` int(11) NOT NULL,
   `manufacturer_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -495,10 +495,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_discount_manufacturers` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_discount_places`
+-- Table structure for table `#__alfa_discount_places`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_discount_places` (
+CREATE TABLE IF NOT EXISTS `#__alfa_discount_places` (
   `discount_id` int(11) NOT NULL,
   `place_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -506,10 +506,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_discount_places` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_discount_usergroups`
+-- Table structure for table `#__alfa_discount_usergroups`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_discount_usergroups` (
+CREATE TABLE IF NOT EXISTS `#__alfa_discount_usergroups` (
   `discount_id` int(11) NOT NULL,
   `usergroup_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -517,10 +517,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_discount_usergroups` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_discount_users`
+-- Table structure for table `#__alfa_discount_users`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_discount_users` (
+CREATE TABLE IF NOT EXISTS `#__alfa_discount_users` (
   `discount_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -528,10 +528,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_discount_users` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_items`
+-- Table structure for table `#__alfa_items`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_items` (
+CREATE TABLE IF NOT EXISTS `#__alfa_items` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `id_category_default` int(11) NOT NULL,
   `name` varchar(255) NOT NULL,
@@ -571,10 +571,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_items` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_items_categories`
+-- Table structure for table `#__alfa_items_categories`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_items_categories` (
+CREATE TABLE IF NOT EXISTS `#__alfa_items_categories` (
   `item_id` int(11) NOT NULL,
   `category_id` int(11) NOT NULL,
   KEY `idx_item_id` (`item_id`),
@@ -584,10 +584,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_items_categories` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_items_manufacturers`
+-- Table structure for table `#__alfa_items_manufacturers`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_items_manufacturers` (
+CREATE TABLE IF NOT EXISTS `#__alfa_items_manufacturers` (
   `item_id` int(11) NOT NULL,
   `manufacturer_id` int(11) NOT NULL,
   KEY `idx_item_id` (`item_id`),
@@ -597,10 +597,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_items_manufacturers` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_items_prices`
+-- Table structure for table `#__alfa_items_prices`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_items_prices` (
+CREATE TABLE IF NOT EXISTS `#__alfa_items_prices` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `value` double DEFAULT 0,
   `ovewrited_value` double DEFAULT NULL,
@@ -633,10 +633,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_items_prices` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_items_usergroups`
+-- Table structure for table `#__alfa_items_usergroups`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_items_usergroups` (
+CREATE TABLE IF NOT EXISTS `#__alfa_items_usergroups` (
   `item_id` int(11) NOT NULL,
   `usergroup_id` int(11) NOT NULL,
   KEY `item_id` (`item_id`,`usergroup_id`)
@@ -645,10 +645,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_items_usergroups` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_items_users`
+-- Table structure for table `#__alfa_items_users`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_items_users` (
+CREATE TABLE IF NOT EXISTS `#__alfa_items_users` (
   `item_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   KEY `item_id` (`item_id`,`user_id`)
@@ -657,10 +657,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_items_users` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_manufacturers`
+-- Table structure for table `#__alfa_manufacturers`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_manufacturers` (
+CREATE TABLE IF NOT EXISTS `#__alfa_manufacturers` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `alias` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_bin DEFAULT NULL,
@@ -685,10 +685,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_manufacturers` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_orders`
+-- Table structure for table `#__alfa_orders`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_orders` (
+CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `id_user_group` int(11) DEFAULT NULL,
   `id_user` int(11) DEFAULT NULL,
@@ -728,10 +728,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_orders` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_orders_statuses`
+-- Table structure for table `#__alfa_orders_statuses`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_orders_statuses` (
+CREATE TABLE IF NOT EXISTS `#__alfa_orders_statuses` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `color` varchar(50) NOT NULL,
@@ -748,10 +748,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_orders_statuses` (
 ) ENGINE=MyISAM AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `#__alfa_alfa_orders_statuses`
+-- Dumping data for table `#__alfa_orders_statuses`
 --
 
-INSERT INTO `#__alfa_alfa_orders_statuses` (`id`, `name`, `color`, `bg_color`, `stock_operation`, `state`, `checked_out`, `checked_out_time`, `created_by`, `modified`, `modified_by`, `ordering`) VALUES
+INSERT INTO `#__alfa_orders_statuses` (`id`, `name`, `color`, `bg_color`, `stock_operation`, `state`, `checked_out`, `checked_out_time`, `created_by`, `modified`, `modified_by`, `ordering`) VALUES
 (1, 'Επιβεβαιωμένη', 'rgba(255, 255, 255, 1)', 'rgba(14, 158, 11, 1)', 0, 1, NULL, NULL, 0, '2025-02-26 12:12:35', 923, 1),
 (2, 'Απεστάλη', '#eeeeee', 'rgba(25, 129, 255, 1)', 0, 1, NULL, NULL, 0, '2025-02-26 12:12:33', 923, 2),
 (3, 'Ακυρωμένη', 'rgba(255, 255, 255, 1)', 'rgba(255, 0, 0, 1)', 1, 1, NULL, NULL, 0, '2025-02-26 12:12:42', 923, 4),
@@ -760,10 +760,10 @@ INSERT INTO `#__alfa_alfa_orders_statuses` (`id`, `name`, `color`, `bg_color`, `
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_order_items`
+-- Table structure for table `#__alfa_order_items`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_order_items` (
+CREATE TABLE IF NOT EXISTS `#__alfa_order_items` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `id_order` int(11) NOT NULL,
   `id_item` int(11) NOT NULL,
@@ -780,10 +780,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_order_items` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_order_payments`
+-- Table structure for table `#__alfa_order_payments`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_order_payments` (
+CREATE TABLE IF NOT EXISTS `#__alfa_order_payments` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `id_order` varchar(9) DEFAULT NULL,
   `id_currency` int(10) UNSIGNED NOT NULL,
@@ -799,10 +799,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_order_payments` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_order_user_info`
+-- Table structure for table `#__alfa_order_user_info`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_order_user_info` (
+CREATE TABLE IF NOT EXISTS `#__alfa_order_user_info` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `id_order` int(11) NOT NULL,
   `name` varchar(255) NOT NULL,
@@ -817,10 +817,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_order_user_info` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_payments`
+-- Table structure for table `#__alfa_payments`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_payments` (
+CREATE TABLE IF NOT EXISTS `#__alfa_payments` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `type` text NOT NULL DEFAULT 'standard',
   `color` varchar(50) NOT NULL,
@@ -845,10 +845,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_payments` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_payments_revolut_logs`
+-- Table structure for table `#__alfa_payments_revolut_logs`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_payments_revolut_logs` (
+CREATE TABLE IF NOT EXISTS `#__alfa_payments_revolut_logs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `order_id` int(11) DEFAULT NULL,
   `status` char(3) DEFAULT NULL,
@@ -867,10 +867,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_payments_revolut_logs` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_payments_viva_logs`
+-- Table structure for table `#__alfa_payments_viva_logs`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_payments_viva_logs` (
+CREATE TABLE IF NOT EXISTS `#__alfa_payments_viva_logs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `order_id` int(11) DEFAULT NULL,
   `status` char(3) DEFAULT NULL,
@@ -892,10 +892,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_payments_viva_logs` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_payment_categories`
+-- Table structure for table `#__alfa_payment_categories`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_payment_categories` (
+CREATE TABLE IF NOT EXISTS `#__alfa_payment_categories` (
   `payment_id` int(11) NOT NULL,
   `category_id` int(11) NOT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -903,10 +903,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_payment_categories` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_payment_manufacturers`
+-- Table structure for table `#__alfa_payment_manufacturers`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_payment_manufacturers` (
+CREATE TABLE IF NOT EXISTS `#__alfa_payment_manufacturers` (
   `payment_id` int(11) NOT NULL,
   `manufacturer_id` int(11) NOT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -914,10 +914,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_payment_manufacturers` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_payment_places`
+-- Table structure for table `#__alfa_payment_places`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_payment_places` (
+CREATE TABLE IF NOT EXISTS `#__alfa_payment_places` (
   `payment_id` int(11) NOT NULL,
   `place_id` int(11) NOT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -925,10 +925,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_payment_places` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_payment_usergroups`
+-- Table structure for table `#__alfa_payment_usergroups`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_payment_usergroups` (
+CREATE TABLE IF NOT EXISTS `#__alfa_payment_usergroups` (
   `payment_id` int(11) NOT NULL,
   `usergroup_id` int(11) NOT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -936,10 +936,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_payment_usergroups` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_payment_users`
+-- Table structure for table `#__alfa_payment_users`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_payment_users` (
+CREATE TABLE IF NOT EXISTS `#__alfa_payment_users` (
   `payment_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -947,10 +947,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_payment_users` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_places`
+-- Table structure for table `#__alfa_places`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_places` (
+CREATE TABLE IF NOT EXISTS `#__alfa_places` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `code2` varchar(2) NOT NULL,
@@ -972,10 +972,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_places` (
 ) ENGINE=InnoDB AUTO_INCREMENT=250 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Dumping data for table `#__alfa_alfa_places`
+-- Dumping data for table `#__alfa_places`
 --
 
-INSERT INTO `#__alfa_alfa_places` (`id`, `name`, `code2`, `code3`, `number`, `parent_id`, `state`, `ordering`, `checked_out`, `checked_out_time`, `created_by`, `modified_by`) VALUES
+INSERT INTO `#__alfa_places` (`id`, `name`, `code2`, `code3`, `number`, `parent_id`, `state`, `ordering`, `checked_out`, `checked_out_time`, `created_by`, `modified_by`) VALUES
 (1, 'Afghanistan', 'AF', 'AFG', 0, 0, 0, 0, NULL, NULL, 42, 0),
 (2, 'Albania', 'AL', 'ALB', 0, 0, 0, 0, NULL, NULL, 42, 0),
 (3, 'Algeria', 'DZ', 'DZA', 0, 0, 0, 0, NULL, NULL, 42, 0),
@@ -1227,10 +1227,10 @@ INSERT INTO `#__alfa_alfa_places` (`id`, `name`, `code2`, `code3`, `number`, `pa
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_settings`
+-- Table structure for table `#__alfa_settings`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_settings` (
+CREATE TABLE IF NOT EXISTS `#__alfa_settings` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `checked_out` int(11) UNSIGNED DEFAULT NULL,
   `checked_out_time` datetime DEFAULT NULL,
@@ -1245,10 +1245,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_settings` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_shipments`
+-- Table structure for table `#__alfa_shipments`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_shipments` (
+CREATE TABLE IF NOT EXISTS `#__alfa_shipments` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `ordering` int(11) DEFAULT 0,
   `checked_out` int(11) UNSIGNED DEFAULT NULL,
@@ -1267,10 +1267,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_shipments` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_taxes`
+-- Table structure for table `#__alfa_taxes`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_taxes` (
+CREATE TABLE IF NOT EXISTS `#__alfa_taxes` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `name` varchar(400) NOT NULL,
   `desc` text DEFAULT NULL,
@@ -1295,10 +1295,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_taxes` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_tax_categories`
+-- Table structure for table `#__alfa_tax_categories`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_tax_categories` (
+CREATE TABLE IF NOT EXISTS `#__alfa_tax_categories` (
   `tax_id` int(11) NOT NULL,
   `category_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -1306,10 +1306,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_tax_categories` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_tax_manufacturers`
+-- Table structure for table `#__alfa_tax_manufacturers`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_tax_manufacturers` (
+CREATE TABLE IF NOT EXISTS `#__alfa_tax_manufacturers` (
   `tax_id` int(11) NOT NULL,
   `manufacturer_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -1317,10 +1317,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_tax_manufacturers` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_tax_places`
+-- Table structure for table `#__alfa_tax_places`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_tax_places` (
+CREATE TABLE IF NOT EXISTS `#__alfa_tax_places` (
   `tax_id` int(11) NOT NULL,
   `place_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -1328,10 +1328,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_tax_places` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_tax_usergroups`
+-- Table structure for table `#__alfa_tax_usergroups`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_tax_usergroups` (
+CREATE TABLE IF NOT EXISTS `#__alfa_tax_usergroups` (
   `tax_id` int(11) NOT NULL,
   `usergroup_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -1339,10 +1339,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_tax_usergroups` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_tax_users`
+-- Table structure for table `#__alfa_tax_users`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_tax_users` (
+CREATE TABLE IF NOT EXISTS `#__alfa_tax_users` (
   `tax_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -1350,10 +1350,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_tax_users` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_usergroups`
+-- Table structure for table `#__alfa_usergroups`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_usergroups` (
+CREATE TABLE IF NOT EXISTS `#__alfa_usergroups` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `state` tinyint(1) DEFAULT 1,
   `ordering` int(11) DEFAULT 0,
@@ -1374,10 +1374,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_usergroups` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_alfa_users`
+-- Table structure for table `#__alfa_users`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_alfa_users` (
+CREATE TABLE IF NOT EXISTS `#__alfa_users` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `state` tinyint(1) DEFAULT 1,
   `ordering` int(11) DEFAULT 0,
@@ -1393,6 +1393,3 @@ CREATE TABLE IF NOT EXISTS `#__alfa_alfa_users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 COMMIT;
 
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
