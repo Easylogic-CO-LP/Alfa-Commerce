@@ -11,6 +11,8 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Joomla\CMS\Language\Multilanguage;
 use \Joomla\CMS\Table\Table;
 use \Joomla\CMS\Factory;
 use \Joomla\CMS\Language\Text;
@@ -19,6 +21,7 @@ use \Joomla\CMS\MVC\Model\AdminModel;
 use \Joomla\CMS\Helper\TagsHelper;
 use \Joomla\CMS\Filter\OutputFilter;
 use \Joomla\CMS\Event\Model;
+use Joomla\CMS\Language\LanguageHelper;
 
 /**
  * Payment model.
@@ -27,82 +30,82 @@ use \Joomla\CMS\Event\Model;
  */
 class PaymentModel extends AdminModel
 {
-	/**
-	 * @var    string  The prefix to use with controller messages.
-	 *
-	 * @since  1.0.1
-	 */
-	protected $text_prefix = 'COM_ALFA';
 
 	/**
 	 * @var    string  Alias to manage history control
 	 *
-	 * @since  1.0.1
 	 */
 	public $typeAlias = 'com_alfa.payment';
 
-	/**
-	 * @var    null  Item data
-	 *
-	 * @since  1.0.1
-	 */
-	protected $item = null;
-
-	
-	
-
-	/**
-	 * Returns a reference to the a Table object, always creating it.
-	 *
-	 * @param   string  $type    The table type to instantiate
-	 * @param   string  $prefix  A prefix for the table class name. Optional.
-	 * @param   array   $config  Configuration array for model. Optional.
-	 *
-	 * @return  Table    A database object
-	 *
-	 * @since   1.0.1
-	 */
-	public function getTable($type = 'Payment', $prefix = 'Administrator', $config = array())
-	{
-		return parent::getTable($type, $prefix, $config);
-	}
+    	protected $formName = 'payment';
 
 	/**
 	 * Method to get the record form.
 	 *
-	 * @param   array    $data      An optional array of data for the form to interogate.
-	 * @param   boolean  $loadData  True if the form is to load its own data (default case), false if not.
-	 *
-	 * @return  \JForm|boolean  A \JForm object on success, false on failure
-	 *
-	 * @since   1.0.1
+	 * @param   array    $data      Data for the form.
+     * @param   boolean  $loadData  True if the form is to load its own data (default case), false if not.
+     *
+     * @return  Form|boolean  A Form object on success, false on failure
+     *
+     * @since   1.6
 	 */
+
+
+	protected $payment = null;
+
 	public function getForm($data = array(), $loadData = true)
 	{
+
 		// Initialise variables.
 		$app = Factory::getApplication();
+		// Form::addFieldPath(JPATH_ADMINISTRATOR . '/components/com_users/models/fields');
 
 		// Get the form.
 		$form = $this->loadForm(
-								'com_alfa.payment', 
-								'payment',
-								array(
-									'control' => 'jform',
-									'load_data' => $loadData 
-								)
-							);
+					'com_alfa.' . $this->formName, 
+					$this->formName,
+					array(
+						'control' => 'jform',
+						'load_data' => $loadData 
+					)
+				);
 
-		
 
-		if (empty($form))
-		{
+		// Get ID of the article from input
+		$idFromInput = $app->getInput()->getInt('id', 0);
+
+		// On edit order, we get ID of order from order.id state, but on save, we use data from input
+        	$id = (int)$this->getState($this->formName.'.id', $idFromInput);
+
+		if (empty($form)){
 			return false;
 		}
 
+		// Load the 'alfa-payments' plugin params inside the form base on the type.
+		//  TODO: PUT IN HELPER
+		$pluginGroup = 'alfa-payments';
+
+		$pluginName = $data['type'] ?? $form->getValue('type'); //$data when we save but when we open the form we get it from getValue
+		
+		$paramsFile = JPATH_ROOT . '/plugins/'.$pluginGroup.'/'.$pluginName.'/params/params.xml';
+
+		$app->getLanguage()->load('plg_'.$pluginGroup.'_'.$pluginName);
+	    	
+        if (file_exists($paramsFile)) {
+            // Load the XML file into the form.
+            $form->loadFile($paramsFile, false);
+        }
+
+        //set the plugin data
+        $data = $this->getItem();
+        $payment_params = $data->params;
+
+        foreach($payment_params as $index=>$payment_param){
+            $form->setValue($index,'paymentsparams',$payment_param);
+        }
+
 		return $form;
 	}
-
-	
 
 	/**
 	 * Method to get the data that should be injected in the form.
@@ -113,8 +116,10 @@ class PaymentModel extends AdminModel
 	 */
 	protected function loadFormData()
 	{
+
+        //        exit;
 		// Check the session for previously entered form data.
-		$data = Factory::getApplication()->getUserState('com_alfa.edit.payment.data', array());
+		$data = Factory::getApplication()->getUserState('com_alfa.edit.item.data', array());
 
 		if (empty($data))
 		{
@@ -124,11 +129,17 @@ class PaymentModel extends AdminModel
 			}
 
 			$data = $this->item;
-			
+            $data->paymentsparams = $data->params;
+//            echo "<pre>";
+//            print_r($data->paymentsparams);
+//            echo "</pre>";
+//            exit;
+
 		}
 
 		return $data;
 	}
+
 
 	/**
 	 * Method to get a single record.
@@ -139,102 +150,100 @@ class PaymentModel extends AdminModel
 	 *
 	 * @since   1.0.1
 	 */
+  
 	public function getItem($pk = null)
 	{
+//        exit;
 		
-			if ($item = parent::getItem($pk))
+		if ($item = parent::getItem($pk))
+		{
+			if (isset($item->params))
 			{
-				if (isset($item->params))
-				{
-					$item->params = json_encode($item->params);
-				}
-				
-				// Do any procesing on fields here if needed
-			}
+//                exit;
+				//$payment_params = json_decode($item->params);
+//                print_r($item);
+//                exit;
+//                $item->paymentsparams['test'] = 2;
+//                print_r($item->test);
 
-			return $item;
+//                $item->paymentsparams = $item->params;
+              //  exit;
+			}
+            $item->categories = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_categories', 'payment_id','category_id');
+            $item->manufacturers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_manufacturers', 'payment_id','manufacturer_id');
+            $item->places = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_places', 'payment_id','place_id');
+
+            $item->users = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_users', 'payment_id','user_id');
+            $item->usergroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_usergroups', 'payment_id','usergroup_id');
+
+		}
+
+		return $item;
 		
-	}
+  	}
+
 
 	/**
-	 * Method to duplicate an Payment
-	 *
-	 * @param   array  &$pks  An array of primary key IDs.
-	 *
-	 * @return  boolean  True if successful.
-	 *
-	 * @throws  Exception
-	 */
-	public function duplicate(&$pks)
+	* Method to save the form data.
+	*
+	* @param   array  $data  The form data.
+	*
+	* @return  boolean  True on success, False on error.
+	*
+	* @since   1.6
+	*/
+	public function save($data)
 	{
+//        exit;
 		$app = Factory::getApplication();
-		$user = $app->getIdentity();
-        $dispatcher = $this->getDispatcher();
+		$db = $this->getDatabase();
 
-		// Access checks.
-		if (!$user->authorise('core.create', 'com_alfa'))
-		{
-			throw new \Exception(Text::_('JERROR_CORE_CREATE_NOT_PERMITTED'));
+		$input = $app->getInput();
+//exit;
+
+		// print_r($input->get('jform', [], 'array'));
+		// exit;
+		// $data['alias'] = $data['alias'] ?: $data['name'];
+
+		// if ($app->get('unicodeslugs') == 1){
+		// 	$data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
+		// } else {
+		// 	$data['alias'] = OutputFilter::stringURLSafe($data['alias']);
+		// }
+
+//		print_r($data['paymentsparams']);
+//		exit;
+
+		$data['params'] = json_encode($data['paymentsparams']);
+
+        // echo "<pre>";
+        // print_r($data['params']);
+        // echo "</pre>";
+        // exit;
+
+
+		if (!parent::save($data))return false;
+
+		$currentId = 0;
+		if($data['id']>0){ //not a new
+			$currentId = intval($data['id']);
+		}else{ // is new
+			$currentId = intval($this->getState($this->getName().'.id'));//get the id from setted joomla state
 		}
 
-		$context    = $this->option . '.' . $this->name;
+	        //Category/manufacturer etc associations
+	        $assignZeroIdIfDataEmpty = true;
+	        AlfaHelper::setAssocsToDb($currentId, $data['categories'], '#__alfa_payment_categories', 'payment_id','category_id',$assignZeroIdIfDataEmpty);
+	        AlfaHelper::setAssocsToDb($currentId, $data['manufacturers'], '#__alfa_payment_manufacturers', 'payment_id','manufacturer_id',$assignZeroIdIfDataEmpty);
+	        AlfaHelper::setAssocsToDb($currentId, $data['places'], '#__alfa_payment_places', 'payment_id','place_id',$assignZeroIdIfDataEmpty);
 
-		// Include the plugins for the save events.
-		PluginHelper::importPlugin($this->events_map['save']);
+	        AlfaHelper::setAssocsToDb($currentId, $data['users'], '#__alfa_payment_users', 'payment_id','user_id',$assignZeroIdIfDataEmpty);
+	        AlfaHelper::setAssocsToDb($currentId, $data['usergroups'], '#__alfa_payment_usergroups','payment_id', 'usergroup_id',$assignZeroIdIfDataEmpty);
 
-		$table = $this->getTable();
-
-		foreach ($pks as $pk)
-		{
-			
-				if ($table->load($pk, true))
-				{
-					// Reset the id to create a new record.
-					$table->id = 0;
-
-					if (!$table->check())
-					{
-						throw new \Exception($table->getError());
-					}
-					
-
-					// Trigger the before save event.
-					$beforeSaveEvent = new Model\BeforeSaveEvent($this->event_before_save, [
-						'context' => $context,
-						'subject' => $table,
-						'isNew'   => true,
-						'data'    => $table,
-					]);
-					
-						// Trigger the before save event.
-						$result = $dispatcher->dispatch($this->event_before_save, $beforeSaveEvent)->getArgument('result', []);
-					
-					
-					if (in_array(false, $result, true) || !$table->store())
-					{
-						throw new \Exception($table->getError());
-					}
-
-					// Trigger the after save event.
-					$dispatcher->dispatch($this->event_after_save, new Model\AfterSaveEvent($this->event_after_save, [
-						'context' => $context,
-						'subject' => $table,
-						'isNew'   => true,
-						'data'    => $table,
-					]));				
-				}
-				else
-				{
-					throw new \Exception($table->getError());
-				}
-			
-		}
-
-		// Clean cache
-		$this->cleanCache();
-
-		return true;
+	        return true;
+		// return parent::save($data);
 	}
+
 
 	/**
 	 * Prepare and sanitise the table prior to saving.
@@ -245,20 +254,21 @@ class PaymentModel extends AdminModel
 	 *
 	 * @since   1.0.1
 	 */
-	protected function prepareTable($table)
-	{
-		jimport('joomla.filter.output');
+    protected function prepareTable($table)
+    {
+	$user = $this->getCurrentUser();
 
-		if (empty($table->id))
-		{
-			// Set ordering to the last item if not set
-			if (@$table->ordering === '')
-			{
-				$db = $this->getDbo();
-				$db->setQuery('SELECT MAX(ordering) FROM #__alfa_payments');
-				$max             = $db->loadResult();
-				$table->ordering = $max + 1;
-			}
-		}
+	if ($table->id == 0 && empty($table->created_by))
+	{
+	    $table->created_by = $user->id;
 	}
+
+    	$table->modified = Factory::getDate()->toSql();
+    	$table->modified_by = $user->id;
+
+        return parent::prepareTable($table);
+        
+    }
+
+
 }

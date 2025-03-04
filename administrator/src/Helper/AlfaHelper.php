@@ -201,7 +201,7 @@ class AlfaHelper
 
     public static function getOrderStatuses()
     {
-        $db = Factory::getDbo();
+        $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true);
 
         $query->select('*')

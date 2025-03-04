@@ -82,14 +82,11 @@
     />
 
 
-
-
-
-     <field name="manage_stock" type="list"
-     label="COM_ALFA_FORM_LBL_ITEM_MANAGE_STOCK"
-     description="COM_ALFA_FORM_DESC_ITEM_MANAGE_STOCK" 
-     default="2">
-        <option value="2">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_STATUSES_CONFIGURATION</option>
+     <field name="manage_stock" type="radio"
+        class="btn-group"
+         label="COM_ALFA_FORM_LBL_ITEM_MANAGE_STOCK"
+         description="COM_ALFA_FORM_DESC_ITEM_MANAGE_STOCK" 
+         default="1">
         <option value="0">JNO</option>
         <option value="1">JYES</option>
      </field>

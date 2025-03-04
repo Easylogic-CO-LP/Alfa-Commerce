@@ -25,7 +25,8 @@ HTMLHelper::_('behavior.multiselect');
 // Import CSS
 $wa =  $this->document->getWebAssetManager();
 $wa->useStyle('com_alfa.admin')
-    ->useScript('com_alfa.admin');
+    ->useScript('com_alfa.admin')
+    ->useScript('table.columns');
 
 $user      = Factory::getApplication()->getIdentity();
 $userId    = $user->get('id');
@@ -41,6 +42,11 @@ if (!empty($saveOrder))
 	HTMLHelper::_('draggablelist.draggable');
 }
 
+
+//echo "<pre>";
+//print_r($this->items);
+//echo "</pre>";
+
 ?>
 
 <form action="<?php echo Route::_('index.php?option=com_alfa&view=payments'); ?>" method="post"
@@ -49,6 +55,13 @@ if (!empty($saveOrder))
 		<div class="col-md-12">
 			<div id="j-main-container" class="j-main-container">
 			<?php echo LayoutHelper::render('joomla.searchtools.default', array('view' => $this)); ?>
+
+<!--                --><?php //echo "<pre>";
+//                print_r($this->items);
+//                echo "</pre>";
+//
+//
+//                ?>
 
 				<div class="clearfix"></div>
 				<table class="table table-striped" id="paymentList">
@@ -59,27 +72,50 @@ if (!empty($saveOrder))
 								   title="<?php echo Text::_('JGLOBAL_CHECK_ALL'); ?>" onclick="Joomla.checkAll(this)"/>
 						</th>
 						
-					<?php if (isset($this->items[0]->ordering)): ?>
-					<th scope="col" class="w-1 text-center d-none d-md-table-cell">
+                        <?php if (isset($this->items[0]->ordering)): ?>
+                        <th scope="col" class="w-1 text-center d-none d-md-table-cell">
+                            <?php echo HTMLHelper::_('searchtools.sort', '', 'a.ordering', $listDirn, $listOrder, null, 'asc', 'JGRID_HEADING_ORDERING', 'icon-menu-2'); ?>
+                        </th>
+                        <?php endif; ?>
 
-					<?php echo HTMLHelper::_('searchtools.sort', '', 'a.ordering', $listDirn, $listOrder, null, 'asc', 'JGRID_HEADING_ORDERING', 'icon-menu-2'); ?>
 
-					</th>
-					<?php endif; ?>
+                        <th  scope="col" class="w-1 text-center">
+                            <?php echo HTMLHelper::_('searchtools.sort', 'JSTATUS', 'a.state', $listDirn, $listOrder); ?>
+                        </th>
 
-						
-					<th  scope="col" class="w-1 text-center">
-						<?php echo HTMLHelper::_('searchtools.sort', 'JSTATUS', 'a.state', $listDirn, $listOrder); ?>
-					</th>
-						
+
 						<th class='left'>
 							<?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_PAYMENTS_NAME', 'a.name', $listDirn, $listOrder); ?>
 						</th>
-						
-					<th scope="col" class="w-3 d-none d-lg-table-cell" >
+
+                        <th class='left'>
+                            <?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_PAYMENTS_TYPE', 'a.type', $listDirn, $listOrder); ?>
+                        </th>
+
+                        <th class='left'>
+                            <?php echo Text::_('COM_ALFA_PAYMENTS_CATEGORIES'); ?>
+                        </th>
+
+                        <th class='left'>
+                            <?php echo Text::_('COM_ALFA_PAYMENTS_MANUFACTURERS'); ?>
+                        </th>
+
+                        <th class='left'>
+                            <?php echo Text::_('COM_ALFA_PAYMENTS_USERGROUPS'); ?>
+                        </th>
+
+                        <th class='left'>
+                            <?php echo Text::_('COM_ALFA_PAYMENTS_PLACES'); ?>
+                        </th>
+
+                        <th class='left'>
+                            <?php echo Text::_('COM_ALFA_PAYMENTS_USERS'); ?>
+                        </th>
+
+					    <th scope="col" class="w-3 d-none d-lg-table-cell" >
 
 						<?php echo HTMLHelper::_('searchtools.sort',  'JGRID_HEADING_ID', 'a.id', $listDirn, $listOrder); ?>					</th>
-					</tr>
+					    </tr>
 					</thead>
 					<tfoot>
 					<tr>
@@ -146,6 +182,40 @@ if (!empty($saveOrder))
 												<?php echo $this->escape($item->name); ?>
 								<?php endif; ?>
 							</td>
+
+                            <td>
+                                <?php echo $item->type;?>
+                            </td>
+
+                            <td>
+                                <?php
+                                    echo $item->category_names;
+                                ?>
+                            </td>
+
+                            <td>
+                                <?php
+                                    echo $item->manufacturer_names;
+                                ?>
+                            </td>
+
+                            <td>
+                                <?php
+                                    echo $item->user_names;
+                                ?>
+                            </td>
+
+                            <td>
+                                <?php
+                                    echo $item->place_names;
+                                ?>
+                            </td>
+
+                            <td>
+                                <?php
+                                    echo $item->user_names;
+                                ?>
+                            </td>
 							
 							<td class="d-none d-lg-table-cell">
 							<?php echo $item->id; ?>

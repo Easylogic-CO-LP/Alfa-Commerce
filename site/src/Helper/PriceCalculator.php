@@ -14,7 +14,8 @@ defined('_JEXEC') or die;
 use \Joomla\CMS\Factory;
 use \Joomla\Database\DatabaseDriver;
 use \Joomla\CMS\MVC\Model\BaseDatabaseModel;
-use Joomla\CMS\Component\ComponentHelper;
+use \Joomla\CMS\Component\ComponentHelper;
+use \Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 
 class PriceCalculator
 {
@@ -48,7 +49,14 @@ class PriceCalculator
     }
 
     // Load all prices from the database
-    protected function loadPrices()
+
+	/**
+	 *
+	 * @return mixed
+	 *
+	 * @since version
+	 */
+	protected function loadPrices()
     {
         // Define cache key
         $cacheKey = 'product_prices_' . $this->productId;
@@ -259,46 +267,51 @@ class PriceCalculator
         $db = $this->db;
         $productId = $this->productId;
 
-        $query = $db->getQuery(true);
 
-        $query
-            ->select('DISTINCT d.id, d.name, d.value, d.is_amount, d.behavior, d.operation , d.apply_before_tax')
-            ->from('#__alfa_discounts AS d')
+//        $discounts = AlfaHelper::getFilteredMethods($this->productId,'discount');
+
+        // METHOD 1
+         $query = $db->getQuery(true);
+
+         $query
+             ->select('DISTINCT d.id, d.name, d.value, d.is_amount, d.behavior, d.operation , d.apply_before_tax')
+             ->from('#__alfa_discounts AS d')
             
-            // Join discount tables
-            ->join('LEFT', '#__alfa_discount_categories AS dc ON dc.discount_id = d.id')
-            ->join('LEFT', '#__alfa_discount_manufacturers AS dm ON dm.discount_id = d.id')
-            ->join('LEFT', '#__alfa_discount_usergroups AS du ON du.discount_id = d.id')
-            ->join('LEFT', '#__alfa_discount_users AS dg ON dg.discount_id = d.id')
+             // Join discount tables
+             ->join('LEFT', '#__alfa_discount_categories AS dc ON dc.discount_id = d.id')
+             ->join('LEFT', '#__alfa_discount_manufacturers AS dm ON dm.discount_id = d.id')
+             ->join('LEFT', '#__alfa_discount_usergroups AS du ON du.discount_id = d.id')
+             ->join('LEFT', '#__alfa_discount_users AS dg ON dg.discount_id = d.id')
             
-            // Join item tables to match categories, manufacturers, places, etc. based on item_id
-            ->join('LEFT', '#__alfa_items_categories AS ic ON ic.category_id = dc.category_id')
-            ->join('LEFT', '#__alfa_items_manufacturers AS im ON im.manufacturer_id = dm.manufacturer_id')
-            ->join('LEFT', '#__alfa_items_usergroups AS iug ON iug.usergroup_id = du.usergroup_id')
-            ->join('LEFT', '#__alfa_items_users AS iu ON iu.user_id = dg.user_id')
+             // Join item tables to match categories, manufacturers, places, etc. based on item_id
+             ->join('LEFT', '#__alfa_items_categories AS ic ON ic.category_id = dc.category_id')
+             ->join('LEFT', '#__alfa_items_manufacturers AS im ON im.manufacturer_id = dm.manufacturer_id')
+             ->join('LEFT', '#__alfa_items_usergroups AS iug ON iug.usergroup_id = du.usergroup_id')
+             ->join('LEFT', '#__alfa_items_users AS iu ON iu.user_id = dg.user_id')
 
-            // Apply conditions to check if the item matches the category, manufacturer, place, or usergroup
-            ->where('(ic.item_id = ' . $db->quote($productId) . ' OR dc.category_id = 0)')
-            ->where('(im.item_id = ' . $db->quote($productId) . ' OR dm.manufacturer_id = 0)')
-            ->where('(iug.item_id = ' . $db->quote($productId) . ' OR du.usergroup_id = 0)')
-            ->where('(iu.item_id = ' . $db->quote($productId) . ' OR dg.user_id = 0)')
-            ->where(// Check if the coupon start date is valid or not set
-                'IFNULL(NOW() >= ' . $db->quoteName('d.publish_up') .
-                ' OR ' . $db->quoteName('d.publish_up') . ' = "0000-00-00 00:00:00", 1) = 1 ' .
-                //
-                ' AND ' .
-                // Check if the coupon has not expired
-                'IFNULL(' . $db->quoteName('d.publish_down') . ' != "0000-00-00 00:00:00" ' .
-                'AND NOW() > ' . $db->quoteName('d.publish_down') . ', 0) = 0' )
+             // Apply conditions to check if the item matches the category, manufacturer, place, or usergroup
+             ->where('(ic.item_id = ' . $db->quote($productId) . ' OR dc.category_id = 0)')
+             ->where('(im.item_id = ' . $db->quote($productId) . ' OR dm.manufacturer_id = 0)')
+             ->where('(iug.item_id = ' . $db->quote($productId) . ' OR du.usergroup_id = 0)')
+             ->where('(iu.item_id = ' . $db->quote($productId) . ' OR dg.user_id = 0)')
+             ->where(// Check if the coupon start date is valid or not set
+                 'IFNULL(NOW() >= ' . $db->quoteName('d.publish_up') .
+                 ' OR ' . $db->quoteName('d.publish_up') . ' = "0000-00-00 00:00:00", 1) = 1 ' .
+                 //
+                 ' AND ' .
+                 // Check if the coupon has not expired
+                 'IFNULL(' . $db->quoteName('d.publish_down') . ' != "0000-00-00 00:00:00" ' .
+                 'AND NOW() > ' . $db->quoteName('d.publish_down') . ', 0) = 0' )
 
-            // Only active discounts
-            ->where('d.state = 1')
-            ->order('d.ordering ASC');
+             // Only active discounts
+             ->where('d.state = 1')
+             ->order('d.ordering ASC');
 
 
-        $db->setQuery($query);
-        $discounts = $db->loadObjectList();
+         $db->setQuery($query);
+         $discounts = $db->loadObjectList();
 
+        // METHOD 2
         // If the above query slows down the system and use a lot of sources we can do the each join as sepearte query and
         // handle them accordingly
         // $subQcat =

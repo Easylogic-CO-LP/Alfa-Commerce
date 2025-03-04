@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+	<fields name="paymentsparams">
+		<fieldset name="paymentsparams">
+			<field name="vivapayment_business" type="text"
+				default=""
+	            label="PLG_DPPAYMENT_VIVA_VIVAPAYMENT_BUSINESS"
+	            description="PLG_DPPAYMENT_VIVA_VIVAPAYMENT_BUSINESS_DESC" 
+	            filter="raw"
+	            required="false"
+	            mysql_type="varchar(255)" />
+
+	        <field name="vivapayment_apikey" type="text"
+	            label="PLG_DPPAYMENT_VIVA_VIVAPAYMENT_APIKEY"
+	            description="PLG_DPPAYMENT_VIVA_VIVAPAYMENT_APIKEY_DESC" 
+	            default=""
+	            filter="raw"
+	            required="false"
+	            mysql_type="varchar(255)" />
+
+	        <field name="vivapayment_sourcecode" type="text"  
+	            label="PLG_DPPAYMENT_VIVA_VIVAPAYMENT_SOURCECODE"
+	            description="PLG_DPPAYMENT_VIVA_VIVAPAYMENT_SOURCECODE_DESC" 
+	            default=""
+	            filter="raw"
+	            required="false"
+	            mysql_type="varchar(255)" />
+
+	       <field name="vivapayment_sandbox_mode" type="radio"
+	            layout="joomla.form.field.radio.switcher"
+	            label="PLG_DPPAYMENT_VIVA_VIVAPAYMENT_SANDBOX_MODE"
+	            description="PLG_DPPAYMENT_VIVA_VIVAPAYMENT_SANDBOX_MODE_DESC" 
+	            default="0"
+	            required="false"
+	            mysql_type="varchar(255)">
+	               <option value="0">JNO</option>
+	               <option value="1">JYES</option>
+	        </field>
+		</fieldset>
+	</fields>
+</form>
