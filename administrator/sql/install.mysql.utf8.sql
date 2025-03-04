@@ -1,65 +1,25 @@
+-- phpMyAdmin SQL Dump
+-- version 5.2.1
+-- https://www.phpmyadmin.net/
 --
--- Table structure for table `#__alfa_action_logs`
---
+-- Host: localhost:3306
+-- Generation Time: Mar 04, 2025 at 10:58 AM
+-- Server version: 10.6.15-MariaDB
+-- PHP Version: 8.1.31
 
-CREATE TABLE IF NOT EXISTS `#__alfa_action_logs` (
-  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `message_language_key` varchar(255) NOT NULL DEFAULT '',
-  `message` text NOT NULL,
-  `log_date` datetime NOT NULL,
-  `extension` varchar(50) NOT NULL DEFAULT '',
-  `user_id` int(11) NOT NULL DEFAULT 0,
-  `item_id` int(11) NOT NULL DEFAULT 0,
-  `ip_address` varchar(40) NOT NULL DEFAULT '0.0.0.0',
-  PRIMARY KEY (`id`),
-  KEY `idx_user_id` (`user_id`),
-  KEY `idx_user_id_logdate` (`user_id`,`log_date`),
-  KEY `idx_user_id_extension` (`user_id`,`extension`),
-  KEY `idx_extension_item_id` (`extension`,`item_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2366 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
 
--- --------------------------------------------------------
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
 
 --
--- Table structure for table `#__alfa_action_logs_extensions`
+-- Database: `el2demosites_alfadb`
 --
-
-CREATE TABLE IF NOT EXISTS `#__alfa_action_logs_extensions` (
-  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `extension` varchar(255) NOT NULL DEFAULT '',
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `#__alfa_action_logs_users`
---
-
-CREATE TABLE IF NOT EXISTS `#__alfa_action_logs_users` (
-  `user_id` int(10) UNSIGNED NOT NULL,
-  `notify` tinyint(3) UNSIGNED NOT NULL,
-  `extensions` text NOT NULL,
-  PRIMARY KEY (`user_id`),
-  KEY `idx_notify` (`notify`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `#__alfa_action_log_config`
---
-
-CREATE TABLE IF NOT EXISTS `#__alfa_action_log_config` (
-  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `type_title` varchar(255) NOT NULL DEFAULT '',
-  `type_alias` varchar(255) NOT NULL DEFAULT '',
-  `id_holder` varchar(255) DEFAULT NULL,
-  `title_holder` varchar(255) DEFAULT NULL,
-  `table_name` varchar(255) DEFAULT NULL,
-  `text_prefix` varchar(255) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -81,7 +41,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_cart` (
   `date_upd` datetime NOT NULL,
   `recognize_key` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=83 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -126,7 +86,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_categories` (
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`),
   KEY `idx_state` (`state`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -240,7 +200,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_currencies` (
   KEY `currency_name` (`name`),
   KEY `published` (`state`),
   KEY `currency_numeric_code` (`number`)
-) ENGINE=InnoDB AUTO_INCREMENT=202 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Used to store currencies';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Used to store currencies';
 
 --
 -- Dumping data for table `#__alfa_currencies`
@@ -468,7 +428,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_discounts` (
   KEY `idx_checked_out` (`checked_out`),
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -566,7 +526,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items` (
   KEY `idx_checked_out` (`checked_out`),
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -628,7 +588,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_prices` (
   KEY `idx_usergroup_id` (`usergroup_id`),
   KEY `idx_user_id` (`user_id`),
   KEY `idx_country_id` (`country_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -680,7 +640,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_manufacturers` (
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`),
   KEY `idx_state` (`state`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -723,7 +683,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
   KEY `checked_out` (`checked_out`),
   KEY `modified_by` (`modified_by`),
   KEY `created_by` (`created_by`)
-) ENGINE=InnoDB AUTO_INCREMENT=179 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -745,7 +705,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders_statuses` (
   `modified_by` int(11) DEFAULT 0,
   `ordering` int(11) DEFAULT 0,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `#__alfa_orders_statuses`
@@ -775,7 +735,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_items` (
   KEY `id_item` (`id_item`),
   KEY `id_order` (`id_order`),
   KEY `id_shipmentmethod` (`id_shipmentmethod`)
-) ENGINE=InnoDB AUTO_INCREMENT=214 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -794,7 +754,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_payments` (
   `date_add` datetime NOT NULL,
   `id_user` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=100 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -812,7 +772,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_user_info` (
   `state` varchar(255) NOT NULL,
   `zip_code` varchar(255) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=189 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -840,54 +800,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_payments` (
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`),
   KEY `idx_state` (`state`)
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `#__alfa_payments_revolut_logs`
---
-
-CREATE TABLE IF NOT EXISTS `#__alfa_payments_revolut_logs` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `order_id` int(11) DEFAULT NULL,
-  `status` char(3) DEFAULT NULL,
-  `transaction_id` varchar(255) DEFAULT NULL,
-  `order_total` decimal(15,5) NOT NULL DEFAULT 0.00000,
-  `currency` char(3) DEFAULT NULL,
-  `error_code` varchar(255) DEFAULT NULL,
-  `error_text` varchar(255) DEFAULT NULL,
-  `installments` varchar(5) DEFAULT NULL,
-  `checkout_url` varchar(512) DEFAULT NULL,
-  `created_on` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
-  `created_by` int(11) NOT NULL DEFAULT 0,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `#__alfa_payments_viva_logs`
---
-
-CREATE TABLE IF NOT EXISTS `#__alfa_payments_viva_logs` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `order_id` int(11) DEFAULT NULL,
-  `status` char(3) DEFAULT NULL,
-  `order_code` varchar(255) DEFAULT NULL,
-  `transaction_id` varchar(255) DEFAULT NULL,
-  `order_total` decimal(15,5) NOT NULL DEFAULT 0.00000,
-  `currency` char(3) DEFAULT NULL,
-  `custom` varchar(255) DEFAULT NULL,
-  `error_code` varchar(255) DEFAULT NULL,
-  `error_text` varchar(255) DEFAULT NULL,
-  `ref` varchar(255) DEFAULT NULL,
-  `installments` varchar(5) DEFAULT NULL,
-  `response_raw` varchar(512) DEFAULT NULL,
-  `created_on` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
-  `created_by` int(11) NOT NULL DEFAULT 0,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -969,7 +882,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_places` (
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`),
   KEY `idx_state` (`state`)
-) ENGINE=InnoDB AUTO_INCREMENT=250 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `#__alfa_places`
@@ -1227,24 +1140,6 @@ INSERT INTO `#__alfa_places` (`id`, `name`, `code2`, `code3`, `number`, `parent_
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_settings`
---
-
-CREATE TABLE IF NOT EXISTS `#__alfa_settings` (
-  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `checked_out` int(11) UNSIGNED DEFAULT NULL,
-  `checked_out_time` datetime DEFAULT NULL,
-  `created_by` int(11) DEFAULT 0,
-  `modified_by` int(11) DEFAULT 0,
-  PRIMARY KEY (`id`),
-  KEY `idx_checked_out` (`checked_out`),
-  KEY `idx_created_by` (`created_by`),
-  KEY `idx_modified_by` (`modified_by`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `#__alfa_shipments`
 --
 
@@ -1290,7 +1185,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_taxes` (
   KEY `idx_checked_out` (`checked_out`),
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -1393,3 +1288,6 @@ CREATE TABLE IF NOT EXISTS `#__alfa_users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 COMMIT;
 
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
