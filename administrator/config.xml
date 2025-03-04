@@ -212,9 +212,9 @@
         <field
             name="default_currency"
             type="sql"
-            default="47"
+            default="978"
             label="Default Currency"
-            query="SELECT id, name FROM #__alfa_currencies ORDER BY name ASC" key_field="id" value_field="name"
+            query="SELECT id, number FROM #__alfa_currencies ORDER BY name ASC" key_field="id" value_field="number"
         />
     </fieldset>
     

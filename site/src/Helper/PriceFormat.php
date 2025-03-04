@@ -52,6 +52,7 @@ class PriceFormat
                 $pattern = $generalCurrencySettings->format_pattern;
             }//If there are no cached settings, we make a DB query.
             else {
+
                 // $settings = self::getGeneralSettings();
                 $settings = ComponentHelper::getParams('com_alfa');
 
@@ -63,7 +64,7 @@ class PriceFormat
                     $query->
                     select("symbol, decimal_place, decimal_symbol, thousand_separator, format_pattern")->
                     from('#__alfa_currencies')->
-                    where('id=' . $defaultCurrID);
+                    where($db->quoteName('number') . '=' . (int) $defaultCurrID);
                     $db->setQuery($query);
                 }
                 catch (\Exception $e) {

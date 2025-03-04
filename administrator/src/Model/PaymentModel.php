@@ -89,58 +89,20 @@ class PaymentModel extends AdminModel
 		
 		$paramsFile = JPATH_ROOT . '/plugins/'.$pluginGroup.'/'.$pluginName.'/params/params.xml';
 
-	//        echo $pluginGroup;
-	//        exit;
+		$app->getLanguage()->load('plg_'.$pluginGroup.'_'.$pluginName);
 	    	
-	        if (file_exists($paramsFile)) {
-	            // Load the XML file into the form.
-	            $form->loadFile($paramsFile, false);
+        if (file_exists($paramsFile)) {
+            // Load the XML file into the form.
+            $form->loadFile($paramsFile, false);
+        }
 
-	        }
+        //set the plugin data
+        $data = $this->getItem();
+        $payment_params = $data->params;
 
-	//        echo "<pre>";
-	//                foreach ($form->getFieldsets() as $fieldset) {
-	//            echo $form->renderFieldset($fieldset->name);
-	//        }
-	//        echo "</pre>";
-	//                exit;
-
-	        //set the plugin data
-
-	        $data = $this->getItem();
-	        $payment_params = $data->params;
-
-	//        echo "<pre>";
-	//        print_r($data);
-	//        echo "</pre>";
-	//        exit;
-
-
-	        foreach($payment_params as $index=>$payment_param){
-	            $form->setValue($index,'paymentsparams',$payment_param);
-	        }
-
-
-
-	        // Modify the form based on access controls.
-	        // if (!$this->canEditState((object) $data)) {
-	        //     // Disable fields for display.
-	        //     $form->setFieldAttribute('featured', 'disabled', 'true');
-	        //     $form->setFieldAttribute('ordering', 'disabled', 'true');
-	        //     $form->setFieldAttribute('published', 'disabled', 'true');
-
-	        //     // Disable fields while saving.
-	        //     // The controller has already verified this is a record you can edit.
-	        //     $form->setFieldAttribute('featured', 'filter', 'unset');
-	        //     $form->setFieldAttribute('ordering', 'filter', 'unset');
-	        //     $form->setFieldAttribute('published', 'filter', 'unset');
-	        // }
-
-	        // // Don't allow to change the created_by user if not allowed to access com_users.
-	        // if (!$this->getCurrentUser()->authorise('core.manage', 'com_users')) {
-	        //     $form->setFieldAttribute('created_by', 'filter', 'unset');
-	        // }
-
+        foreach($payment_params as $index=>$payment_param){
+            $form->setValue($index,'paymentsparams',$payment_param);
+        }
 
 		return $form;
 	}
