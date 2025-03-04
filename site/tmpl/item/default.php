@@ -46,12 +46,28 @@ $wa->useScript('com_alfa.item')
                 <?php if (!empty($this->item->short_desc)): ?>
                     <div class="item-info">
                         <?php echo $this->item->short_desc; ?>
+
                     </div>
                 <?php endif; ?>
 
                 <?php echo LayoutHelper::render('price', ['item'=>$this->item, 'settings'=>$categorySettings] ); //passed data as $displayData in layout ?>
 
                 <?php echo LayoutHelper::render('stock_info', ['item'=>$this->item,'quantity'=>$this->item->quantity_min]); ?>
+
+
+                <div class="item-payment-methods">
+                    Payment Methods :
+                    
+                    <?php
+                    if(!empty($this->item->payment_methods)){
+                        foreach($this->item->payment_methods as $payment_method): ?>
+                            <div class="item-payment-method">
+                                <?php echo $payment_method->events->onProductView; ?>
+                            </div>
+                        <?php endforeach;?>
+                    <?php } ?>
+                    
+                </div>
 
                 <?php echo LayoutHelper::render('add_to_cart', $this->item); ?>
                     
@@ -67,7 +83,6 @@ $wa->useScript('com_alfa.item')
                         </li>
                     </ul>
 
-                    
 
                     <div id="description" class="tabcontent">
                         <?php echo nl2br($this->item->full_desc); ?>

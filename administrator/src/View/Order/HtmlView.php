@@ -41,18 +41,33 @@ class HtmlView extends BaseHtmlView
 	 */
 	public function display($tpl = null)
 	{
+
+//        exit;
 		$this->state = $this->get('State');
 		$this->order  = $this->get('Item');
 		$this->form  = $this->get('Form');
+
+
 
 		// Check for errors.
 		if (count($errors = $this->get('Errors')))
 		{
 			throw new \Exception(implode("\n", $errors));
 		}
-				$this->addToolbar();
-		
+
+
+        // alfa-payments onAdminOrderView event call. (Used for adding things to the back-end order view)
+
+        $paymentOnAdminOrderViewEventName = "onAdminOrderView";
+		$paymentOnAdminOrderViewCustomEventName = "paymentOnAdminOrderView";//to be used in frontend
+        $paymentType = $this->order->payment->type;
+		$paymentOnAdminOrderViewEventResult = Factory::getApplication()->bootPlugin($paymentType, "alfa-payments")->{$paymentOnAdminOrderViewEventName}($this->order);
+        $this->{$paymentOnAdminOrderViewCustomEventName} = $paymentOnAdminOrderViewEventResult;
+
+        $this->addToolbar();
+        
 		parent::display($tpl);
+
 	}
 
 	/**
@@ -64,6 +79,8 @@ class HtmlView extends BaseHtmlView
 	 */
 	protected function addToolbar()
 	{
+
+//        exit;
 		Factory::getApplication()->input->set('hidemainmenu', true);
 
 		$user  = Factory::getApplication()->getIdentity();
@@ -89,16 +106,18 @@ class HtmlView extends BaseHtmlView
 			ToolbarHelper::save('order.save', 'JTOOLBAR_SAVE');
 		}
 
-		if (!$checkedOut && ($canDo->get('core.create')))
-		{
-			ToolbarHelper::custom('order.save2new', 'save-new.png', 'save-new_f2.png', 'JTOOLBAR_SAVE_AND_NEW', false);
-		}
+
+        //Save as new
+//		if (!$checkedOut && ($canDo->get('core.create')))
+//		{
+//			ToolbarHelper::custom('order.save2new', 'save-new.png', 'save-new_f2.png', 'JTOOLBAR_SAVE_AND_NEW', false);
+//		}
 
 		// If an existing item, can save to a copy.
-		if (!$isNew && $canDo->get('core.create'))
-		{
-			ToolbarHelper::custom('order.save2copy', 'save-copy.png', 'save-copy_f2.png', 'JTOOLBAR_SAVE_AS_COPY', false);
-		}
+//		if (!$isNew && $canDo->get('core.create'))
+//		{
+//			ToolbarHelper::custom('order.save2copy', 'save-copy.png', 'save-copy_f2.png', 'JTOOLBAR_SAVE_AS_COPY', false);
+//		}
 
 		
 
@@ -111,4 +130,9 @@ class HtmlView extends BaseHtmlView
 			ToolbarHelper::cancel('order.cancel', 'JTOOLBAR_CLOSE');
 		}
 	}
+
+
+
+
 }
+

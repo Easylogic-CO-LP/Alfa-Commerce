@@ -25,7 +25,8 @@ HTMLHelper::_('behavior.multiselect');
 // Import CSS
 $wa =  $this->document->getWebAssetManager();
 $wa->useStyle('com_alfa.admin')
-    ->useScript('com_alfa.admin');
+    ->useScript('com_alfa.admin')
+    ->useScript('table.columns');
 
 $user      = Factory::getApplication()->getIdentity();
 $userId    = $user->get('id');
@@ -75,7 +76,7 @@ if (!empty($saveOrder))
                     </th>
 
                     <th scope="col">
-                        <?php echo HTMLHelper::_('searchtools.sort','Stock Action','a.stock_action', $listDirn, $listOrder); ?>
+                        <?php echo HTMLHelper::_('searchtools.sort','Operation','a.stock_operation', $listDirn, $listOrder); ?>
                     </th>
 
                     <th scope="col" class="w-3 d-none d-lg-table-cell" >
@@ -159,7 +160,7 @@ if (!empty($saveOrder))
                         </td>
 
                         <td>
-                            <?php echo $item->stock; ?>
+                            <?php echo $item->stock_operation?'Keep in stock':'Remove from stock'; ?>
                         </td>
 
                         <td class="d-none d-lg-table-cell text-center">

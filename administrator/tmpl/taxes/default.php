@@ -25,7 +25,8 @@ HTMLHelper::_('behavior.multiselect');
 // Import CSS
 $wa =  $this->document->getWebAssetManager();
 $wa->useStyle('com_alfa.admin')
-    ->useScript('com_alfa.admin');
+    ->useScript('com_alfa.admin')
+    ->useScript('table.columns');
 
 $user      = Factory::getApplication()->getIdentity();
 $userId    = $user->get('id');
@@ -41,39 +42,6 @@ if (!empty($saveOrder))
     HTMLHelper::_('draggablelist.draggable');
 }
 
-//Statement for categories/manufacturers etc.
-$db = Factory::getContainer()->get('DatabaseDriver');
-$query = $db->getQuery(true);
-
-// Select the columns
-$query->select([
-    $db->quoteName('d.id', 'did'),
-    $db->quoteName('c.name', 'catn'),
-    $db->quoteName('m.name', 'mann'),
-    $db->quoteName('p.name', 'pln'),
-    $db->quoteName('ug.name', 'ugn'),
-    $db->quoteName('u.id', 'uid')
-]);
-
-// From clause
-$query->from($db->quoteName('#__alfa_taxes', 'd'));
-
-// Joins
-$query->leftJoin($db->quoteName('#__alfa_tax_categories', 'dc') . ' ON ' . $db->quoteName('d.id') . ' = ' . $db->quoteName('dc.tax_id'));
-$query->leftJoin($db->quoteName('#__alfa_tax_manufacturers', 'dm') . ' ON ' . $db->quoteName('d.id') . ' = ' . $db->quoteName('dm.tax_id'));
-$query->leftJoin($db->quoteName('#__alfa_tax_places', 'dp') . ' ON ' . $db->quoteName('d.id') . ' = ' . $db->quoteName('dp.tax_id'));
-$query->leftJoin($db->quoteName('#__alfa_tax_usergroups', 'dug') . ' ON ' . $db->quoteName('d.id') . ' = ' . $db->quoteName('dug.tax_id'));
-$query->leftJoin($db->quoteName('#__alfa_tax_users', 'du') . ' ON ' . $db->quoteName('d.id') . ' = ' . $db->quoteName('du.tax_id'));
-
-$query->leftJoin($db->quoteName('#__alfa_categories', 'c') . ' ON ' . $db->quoteName('c.id') . ' = ' . $db->quoteName('dc.category_id'));
-$query->leftJoin($db->quoteName('#__alfa_manufacturers', 'm') . ' ON ' . $db->quoteName('m.id') . ' = ' . $db->quoteName('dm.manufacturer_id'));
-$query->leftJoin($db->quoteName('#__alfa_places', 'p') . ' ON ' . $db->quoteName('p.id') . ' = ' . $db->quoteName('dp.place_id'));
-$query->leftJoin($db->quoteName('#__alfa_usergroups', 'ug') . ' ON ' . $db->quoteName('ug.id') . ' = ' . $db->quoteName('dug.usergroup_id'));
-$query->leftJoin($db->quoteName('#__alfa_users', 'u') . ' ON ' . $db->quoteName('u.id') . ' = ' . $db->quoteName('du.user_id'));
-
-// Set the query and execute
-$db->setQuery($query);
-$results = $db->loadObjectList();
 
 ?>
 
@@ -107,6 +75,7 @@ $results = $db->loadObjectList();
                         </th>
 
                         <th class='left'>
+
                             <?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_TAX_NAME', 'a.name', $listDirn, $listOrder); ?>
                         </th>
 
@@ -119,23 +88,23 @@ $results = $db->loadObjectList();
                         </th>
 
                         <th scope="col" class="left">
-                            <?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_TAXES_CATEGORIES', '', $listDirn, $listOrder); ?>
+                            <?php echo Text::_('COM_ALFA_TAXES_CATEGORIES'); ?>
                         </th>
 
                         <th scope="col" class="left">
-                            <?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_TAXES_MANUFACTURERS', '', $listDirn, $listOrder); ?>
+                            <?php echo Text::_('COM_ALFA_TAXES_CATEGORIES'); ?>
                         </th>
 
                         <th scope="col" class="left">
-                            <?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_TAXES_PLACES', '', $listDirn, $listOrder); ?>
+                            <?php echo Text::_('COM_ALFA_TAXES_PLACES'); ?>
                         </th>
 
                         <th scope="col" class="left">
-                            <?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_TAXES_USERGROUPS', '', $listDirn, $listOrder); ?>
+                            <?php echo Text::_('COM_ALFA_TAXES_USERGROUPS'); ?>
                         </th>
 
                         <th scope="col" class="left">
-                            <?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_TAXES_USERS', '', $listDirn, $listOrder); ?>
+                            <?php echo Text::_('COM_ALFA_TAXES_USERS'); ?>
                         </th>
 
                         <th scope="col" class="w-3 d-none d-lg-table-cell" >
@@ -225,68 +194,33 @@ $results = $db->loadObjectList();
 
                             <td>
                                 <?php
-                                $outputString = "";
-                                foreach($results as $j => &$result){
-                                    if($result->did == $item->id && $result->catn != null){
-                                        $outputString .= $result->catn . ', ';
-                                        //Unsetting array element.
-                                        unset($results[$j]);
-                                    }
-                                }
-                                echo rtrim($outputString, ', ');
+                                    echo $item->category_names;
 
                                 ?>
                             </td>
 
                             <td>
                                 <?php
-                                $outputString = "";
-                                foreach ($results as $j => &$result) {
-                                    if ($result->did == $item->id && $result->mann != null) {
-                                        $outputString .= $result->mann . ', ';
-                                        unset($results[$j]);
-                                    }
-                                }
-                                echo rtrim($outputString, ', ');
+                                    echo $item->manufacturer_names;
                                 ?>
                             </td>
 
                             <td>
                                 <?php
-                                $outputString = "";
-                                foreach ($results as $j => &$result) {
-                                    if ($result->did == $item->id && $result->pln != null) {
-                                        $outputString .= $result->pln . ', ';
-                                        unset($results[$j]);
-                                    }
-                                }
-                                echo rtrim($outputString, ', ');
+                                    echo $item->place_names;
+
                                 ?>
                             </td>
 
                             <td>
                                 <?php
-                                $outputString = "";
-                                foreach ($results as $j => &$result) {
-                                    if ($result->did == $item->id && $result->ugn != null) {
-                                        $outputString .= $result->ugn . ', ';
-                                        unset($results[$j]);
-                                    }
-                                }
-                                echo rtrim($outputString, ', ');
+                                    echo $item->usergroup_names;
                                 ?>
                             </td>
 
                             <td>
                                 <?php
-                                $outputString = "";
-                                foreach ($results as $j => &$result) {
-                                    if ($result->did == $item->id && $result->uid != null) {
-                                        $outputString .= $result->mann . ', ';
-                                        unset($results[$j]);
-                                    }
-                                }
-                                echo rtrim($outputString, ', ');
+                                    echo $item->user_names;
                                 ?>
                             </td>
 

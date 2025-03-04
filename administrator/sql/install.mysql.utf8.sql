@@ -1,4 +1,10 @@
 --
+-- Database: `el2demosites_alfadb`
+--
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `#__alfa_cart`
 --
 
@@ -16,7 +22,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_cart` (
   `date_upd` datetime NOT NULL,
   `recognize_key` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -61,7 +67,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_categories` (
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`),
   KEY `idx_state` (`state`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -175,7 +181,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_currencies` (
   KEY `currency_name` (`name`),
   KEY `published` (`state`),
   KEY `currency_numeric_code` (`number`)
-) ENGINE=InnoDB AUTO_INCREMENT=202 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Used to store currencies';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Used to store currencies';
 
 --
 -- Dumping data for table `#__alfa_currencies`
@@ -403,7 +409,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_discounts` (
   KEY `idx_checked_out` (`checked_out`),
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -483,7 +489,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items` (
   `stock_low` float UNSIGNED DEFAULT NULL,
   `stock_low_message` varchar(300) NOT NULL,
   `stock_zero_message` varchar(300) NOT NULL,
-  `manage_stock` tinyint(1) DEFAULT 2,
+  `manage_stock` tinyint(1) DEFAULT 1,
   `alias` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_bin DEFAULT NULL,
   `meta_title` varchar(255) DEFAULT '',
   `meta_desc` text DEFAULT NULL,
@@ -501,7 +507,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items` (
   KEY `idx_checked_out` (`checked_out`),
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -563,7 +569,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_prices` (
   KEY `idx_usergroup_id` (`usergroup_id`),
   KEY `idx_user_id` (`user_id`),
   KEY `idx_country_id` (`country_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -615,7 +621,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_manufacturers` (
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`),
   KEY `idx_state` (`state`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -648,6 +654,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
   `customer_note` text DEFAULT NULL,
   `note` text DEFAULT NULL,
   `checked_out` int(11) DEFAULT NULL,
+  `state` tinyint(1) DEFAULT 1 COMMENT 'To manage trashed orders e.g. before delete',
   `checked_out_time` datetime DEFAULT NULL,
   `modified` datetime DEFAULT NULL,
   `modified_by` int(11) DEFAULT NULL,
@@ -657,7 +664,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
   KEY `checked_out` (`checked_out`),
   KEY `modified_by` (`modified_by`),
   KEY `created_by` (`created_by`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -668,9 +675,9 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
 CREATE TABLE IF NOT EXISTS `#__alfa_orders_statuses` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
-  `color` varchar(255) NOT NULL,
-  `bg_color` varchar(255) NOT NULL,
-  `stock_action` tinyint(1) DEFAULT NULL,
+  `color` varchar(50) NOT NULL,
+  `bg_color` varchar(50) NOT NULL,
+  `stock_operation` tinyint(1) DEFAULT 1 COMMENT '0 removes from stock,\r\n1 keep in stock',
   `state` tinyint(1) DEFAULT 1,
   `checked_out` int(11) UNSIGNED DEFAULT NULL,
   `checked_out_time` datetime DEFAULT NULL,
@@ -679,17 +686,17 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders_statuses` (
   `modified_by` int(11) DEFAULT 0,
   `ordering` int(11) DEFAULT 0,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `#__alfa_orders_statuses`
 --
 
-INSERT INTO `#__alfa_orders_statuses` (`id`, `name`, `color`, `bg_color`, `stock_action`, `state`, `checked_out`, `checked_out_time`, `created_by`, `modified`, `modified_by`, `ordering`) VALUES
-(1, 'Επιβεβαιωμένη', 'rgba(255, 255, 255, 1)', 'rgba(14, 158, 11, 1)', 1, 1, NULL, NULL, 0, '2024-10-22 13:26:04', 110, 1),
-(2, 'Απεστάλη', '#eeeeee', 'rgba(25, 129, 255, 1)', 1, 1, NULL, NULL, 0, '2024-11-01 07:51:40', 109, 3),
-(3, 'Ακυρωμένη', 'rgba(255, 255, 255, 1)', 'rgba(255, 0, 0, 1)', 0, 1, NULL, NULL, 0, '2024-10-29 12:20:11', 109, 2),
-(4, 'Ολοκληρώθηκε', 'rgba(0, 0, 0, 1)', 'rgba(214, 214, 214, 1)', 1, 1, NULL, NULL, 0, '2024-11-01 07:51:45', 109, 0);
+INSERT INTO `#__alfa_orders_statuses` (`id`, `name`, `color`, `bg_color`, `stock_operation`, `state`, `checked_out`, `checked_out_time`, `created_by`, `modified`, `modified_by`, `ordering`) VALUES
+(1, 'Επιβεβαιωμένη', 'rgba(255, 255, 255, 1)', 'rgba(14, 158, 11, 1)', 0, 1, NULL, NULL, 0, '2025-02-26 12:12:35', 923, 1),
+(2, 'Απεστάλη', '#eeeeee', 'rgba(25, 129, 255, 1)', 0, 1, NULL, NULL, 0, '2025-02-26 12:12:33', 923, 2),
+(3, 'Ακυρωμένη', 'rgba(255, 255, 255, 1)', 'rgba(255, 0, 0, 1)', 1, 1, NULL, NULL, 0, '2025-02-26 12:12:42', 923, 4),
+(4, 'Ολοκληρώθηκε', 'rgba(0, 0, 0, 1)', 'rgba(214, 214, 214, 1)', 0, 1, NULL, NULL, 0, '2025-02-26 12:12:37', 923, 3);
 
 -- --------------------------------------------------------
 
@@ -705,12 +712,30 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_items` (
   `name` varchar(255) NOT NULL,
   `total` float NOT NULL,
   `quantity` float NOT NULL,
-  `quantity_removed` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `id_item` (`id_item`),
   KEY `id_order` (`id_order`),
   KEY `id_shipmentmethod` (`id_shipmentmethod`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `#__alfa_order_payments`
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_order_payments` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_order` varchar(9) DEFAULT NULL,
+  `id_currency` int(10) UNSIGNED NOT NULL,
+  `amount` decimal(20,6) NOT NULL,
+  `id_payment_method` varchar(255) NOT NULL,
+  `conversion_rate` decimal(13,6) DEFAULT 1.000000,
+  `transaction_id` varchar(254) DEFAULT NULL,
+  `date_add` datetime NOT NULL,
+  `id_user` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -728,7 +753,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_user_info` (
   `state` varchar(255) NOT NULL,
   `zip_code` varchar(255) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -738,6 +763,12 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_user_info` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_payments` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `type` text NOT NULL DEFAULT 'standard',
+  `color` varchar(50) NOT NULL,
+  `bg_color` varchar(50) NOT NULL,
+  `params` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '{}',
+  `show_on_product` tinyint(4) NOT NULL,
+  `description` text NOT NULL,
   `ordering` int(11) DEFAULT 0,
   `checked_out` int(11) UNSIGNED DEFAULT NULL,
   `checked_out_time` datetime DEFAULT NULL,
@@ -751,6 +782,61 @@ CREATE TABLE IF NOT EXISTS `#__alfa_payments` (
   KEY `idx_modified_by` (`modified_by`),
   KEY `idx_state` (`state`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `#__alfa_payment_categories`
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_payment_categories` (
+  `payment_id` int(11) NOT NULL,
+  `category_id` int(11) NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `#__alfa_payment_manufacturers`
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_payment_manufacturers` (
+  `payment_id` int(11) NOT NULL,
+  `manufacturer_id` int(11) NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `#__alfa_payment_places`
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_payment_places` (
+  `payment_id` int(11) NOT NULL,
+  `place_id` int(11) NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `#__alfa_payment_usergroups`
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_payment_usergroups` (
+  `payment_id` int(11) NOT NULL,
+  `usergroup_id` int(11) NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `#__alfa_payment_users`
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_payment_users` (
+  `payment_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -777,7 +863,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_places` (
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`),
   KEY `idx_state` (`state`)
-) ENGINE=InnoDB AUTO_INCREMENT=250 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `#__alfa_places`
@@ -866,7 +952,7 @@ INSERT INTO `#__alfa_places` (`id`, `name`, `code2`, `code3`, `number`, `parent_
 (81, 'Germany', 'DE', 'DEU', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
 (82, 'Ghana', 'GH', 'GHA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
 (83, 'Gibraltar', 'GI', 'GIB', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(84, 'Greece', 'GR', 'GRC', 0, 0, 1, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(84, 'Greece', 'GR', 'GRC', 0, 0, 1, 0, NULL, NULL, 42, 0),
 (85, 'Greenland', 'GL', 'GRL', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
 (86, 'Grenada', 'GD', 'GRD', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
 (87, 'Guadeloupe', 'GP', 'GLP', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
@@ -1028,27 +1114,9 @@ INSERT INTO `#__alfa_places` (`id`, `name`, `code2`, `code3`, `number`, `parent_
 (244, 'Canary Islands', 'XC', 'XCA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
 (245, 'Serbia', 'RS', 'SRB', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
 (246, 'Sint Maarten (French Antilles)', 'MF', 'MAF', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(247, 'Sint Maarten (Netherlands Antilles)', 'SX', 'SXM', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(248, 'Palestinian Territory, occupied', 'PS', 'PSE', 0, 0, 0, 0, NULL, NULL, 42, 0),
-(249, 'Larisa', 'ZZ', 'LAR', 121, 0, 0, 1, NULL, NULL, 923, 923);
-
--- --------------------------------------------------------
-
---
--- Table structure for table `#__alfa_settings`
---
-
-CREATE TABLE IF NOT EXISTS `#__alfa_settings` (
-  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `checked_out` int(11) UNSIGNED DEFAULT NULL,
-  `checked_out_time` datetime DEFAULT NULL,
-  `created_by` int(11) DEFAULT 0,
-  `modified_by` int(11) DEFAULT 0,
-  PRIMARY KEY (`id`),
-  KEY `idx_checked_out` (`checked_out`),
-  KEY `idx_created_by` (`created_by`),
-  KEY `idx_modified_by` (`modified_by`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+(247, 'Sint Maarten (Netherlands Antilles)', 'SX', 'SXM', 0, 0, 0, 0, NULL, NULL, 42, 923),
+(248, 'Palestinian Territory, occupied', 'PS', 'PSE', 0, 0, 0, 0, NULL, NULL, 42, 923),
+(249, 'Larisa', 'ZZ', 'LAR', 121, 84, 1, 1, NULL, NULL, 923, 923);
 
 -- --------------------------------------------------------
 
@@ -1098,7 +1166,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_taxes` (
   KEY `idx_checked_out` (`checked_out`),
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -1199,4 +1267,3 @@ CREATE TABLE IF NOT EXISTS `#__alfa_users` (
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-COMMIT;

@@ -130,7 +130,7 @@ class PlacesModel extends ListModel
 	protected function getListQuery()
 	{
 		// Create a new query object.
-		$db    = $this->getDbo();
+		$db    = $this->getDatabase();
 		$query = $db->getQuery(true);
 
 		// Select the required fields from the table.
@@ -169,6 +169,7 @@ class PlacesModel extends ListModel
 		// Filter by search in title
 		$search = $this->getState('filter.search');
 
+        // TODO: where doesnt find subplaces on search
 		if (!empty($search))
 		{
 			if (stripos($search, 'id:') === 0)

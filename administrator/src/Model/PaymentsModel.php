@@ -45,6 +45,7 @@ class PaymentsModel extends ListModel
 				'created_by', 'a.created_by',
 				'modified_by', 'a.modified_by',
 				'name', 'a.name',
+                'category_names', 
 				'state', 'a.state',
 			);
 		}
@@ -126,7 +127,7 @@ class PaymentsModel extends ListModel
 	protected function getListQuery()
 	{
 		// Create a new query object.
-		$db    = $this->getDbo();
+		$db    = $this->getDatabase();
 		$query = $db->getQuery(true);
 
 		// Select the required fields from the table.
@@ -148,6 +149,49 @@ class PaymentsModel extends ListModel
 		// Join over the user field 'modified_by'
 		$query->select('`modified_by`.name AS `modified_by`');
 		$query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
+
+
+        // Join over category IDs and names.
+        $query->select("GROUP_CONCAT(DISTINCT pcat.category_id SEPARATOR ',') AS payment_category_IDs")
+              ->join("LEFT", "#__alfa_payment_categories as pcat ON a.id = pcat.payment_id");
+
+        $query->select("GROUP_CONCAT(DISTINCT cat.name SEPARATOR ', ') AS category_names")
+              ->join("LEFT", "#__alfa_categories as cat ON pcat.category_id = cat.id");
+
+
+        // Join over manufacturer IDs and names.
+        $query->select("GROUP_CONCAT(DISTINCT pman.manufacturer_id SEPARATOR ',') AS payment_manufacturer_IDs")
+            ->join("LEFT", "#__alfa_payment_manufacturers as pman ON a.id = pman.payment_id");
+
+        $query->select("GROUP_CONCAT(DISTINCT man.name SEPARATOR ', ') AS manufacturer_names")
+            ->join("LEFT", "#__alfa_manufacturers as man ON pman.manufacturer_id = man.id");
+
+
+        // Join over users IDs and names.
+        $query->select("GROUP_CONCAT(DISTINCT pu.user_id SEPARATOR ',') AS payment_user_IDs")
+            ->join("LEFT", "#__alfa_payment_users as pu ON a.id = pu.payment_id");
+
+        $query->select("GROUP_CONCAT(DISTINCT u.name SEPARATOR ', ') AS user_names")
+            ->join("LEFT", "#__users as u ON pu.user_id = u.id");
+
+
+        // Join over places IDs and names.
+        $query->select("GROUP_CONCAT(DISTINCT ppl.place_id SEPARATOR ',') AS payment_place_IDs")
+            ->join("LEFT", "#__alfa_payment_places as ppl ON a.id = ppl.payment_id");
+
+        $query->select("GROUP_CONCAT(DISTINCT pl.name SEPARATOR ', ') AS place_names")
+            ->join("LEFT", "#__alfa_places as pl ON ppl.place_id = pl.id");
+
+
+        // Join over usergroups IDs and names.
+        $query->select("GROUP_CONCAT(DISTINCT pug.usergroup_id SEPARATOR ',') AS payment_usergroup_IDs")
+            ->join("LEFT", "#__alfa_payment_usergroups as pug ON a.id = pug.payment_id");
+
+        $query->select("GROUP_CONCAT(DISTINCT ug.name SEPARATOR ', ') AS usergroup_names")
+            ->join("LEFT", "#__alfa_usergroups as ug ON pug.usergroup_id = ug.id");
+
+        // Grouping by item id.
+        $query->group("a.id");
 		
 
 		// Filter by published state

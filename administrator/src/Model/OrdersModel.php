@@ -74,7 +74,7 @@ class OrdersModel extends ListModel
 	protected function populateState($ordering = null, $direction = null)
 	{
 		// List state information.
-		parent::populateState("a.id", "ASC");
+		parent::populateState("a.id", "DESC");
 
 		$context = $this->getUserStateFromRequest($this->context.'.filter.search', 'filter_search');
 		$this->setState('filter.search', $context);
@@ -110,8 +110,7 @@ class OrdersModel extends ListModel
 		// Compile the store id.
 		$id .= ':' . $this->getState('filter.search');
 		// $id .= ':' . $this->getState('filter.state');
-
-		
+        
 		return parent::getStoreId($id);
 		
 	}
@@ -125,35 +124,38 @@ class OrdersModel extends ListModel
 	 */
 	protected function getListQuery()
 	{
-		// Create a new query object.
-		$db    = $this->getDbo();
+		$db    = $this->getDatabase();
 		$query = $db->getQuery(true);
 
 		// Select the required fields from the table.
-		$query->select(
-			$this->getState(
+        $query->select(
+            $this->getState(
 				'list.select', 'DISTINCT a.*'
 			)
-		);
+        )
+            ->select(
+                [
+                    $db->quoteName('uc.name', 'editor'),
+                    $db->quoteName('oui.name', 'user_name'),
+                    $db->quoteName('pm.name', 'payment_method_name'),
+                    $db->quoteName('pm.color', 'payment_method_color'),
+                    $db->quoteName('pm.bg_color', 'payment_method_bg_color'),
+                ]
+            );
+
+        // JOINS
+
 		$query->from('`#__alfa_orders` AS a');
 		
-		// Join over the users for the checked out user
-		$query->select("uc.name AS uEditor");
-		$query->join("LEFT", "#__users AS uc ON uc.id=a.checked_out");
 
-		// Join over the user field 'created_by'
-		$query->select('`created_by`.name AS `created_by`');
-		$query->join('LEFT', '#__users AS `created_by` ON `created_by`.id = a.`created_by`');
+		$query->join('LEFT', $db->quoteName('#__users', 'uc'), $db->quoteName('uc.id') . ' = ' . $db->quoteName('a.checked_out'));
 
-		// Join over the user field 'modified_by'
-		$query->select('`modified_by` AS `modified_by`');
-		$query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
-
-		$query->select('oui.name AS user_name');
 		$query->join('LEFT', '#__alfa_order_user_info AS oui ON oui.id_order= a.id');
 
-		// $query->select('oi.name AS item_name');
-		// $query->join('LEFT', '#__alfa_order_items AS oi ON oi.id = a.id');
+		$query->join('LEFT', '#__alfa_payments AS pm ON pm.id = a.id_paymentmethod');
+
+
+		// FILTERING
 
         $orderStatusFilter = $this->getState('filter.order_status');
 
@@ -161,10 +163,14 @@ class OrdersModel extends ListModel
         	$query->where('a.id_order_status = ' . (int) $orderStatusFilter);
         }
 
-		// if (is_numeric($published))
-		// {
-		// 	$query->where('a.state = ' . (int) $published);
-		// }
+
+        $show_trashed = $this->getState('filter.show_trashed');
+
+
+		if (is_numeric($show_trashed) && $show_trashed == 1)
+		{
+			$query->where('a.state = -2');
+		}
 		// elseif (empty($published))
 		// {
 		// 	$query->where('(a.state IN (0, 1))');
@@ -207,4 +213,6 @@ class OrdersModel extends ListModel
 
 		return $items;
 	}
+    
+
 }

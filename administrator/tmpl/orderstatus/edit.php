@@ -45,7 +45,7 @@ $input = Factory::getApplication()->getInput();
 				
 				<?php echo $this->form->renderField('color'); ?>
 				<?php echo $this->form->renderField('bg_color'); ?>
-				<?php echo $this->form->renderField('stock_action'); ?>
+				<?php echo $this->form->renderField('stock_operation'); ?>
 
                 <?php echo $this->form->renderField('name_email'); ?>
 

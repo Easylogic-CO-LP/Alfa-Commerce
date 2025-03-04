@@ -27,7 +27,8 @@ use Joomla\CMS\Session\Session;
 // Import CSS
 $wa =  $this->document->getWebAssetManager();
 $wa->useStyle('com_alfa.admin')
-    ->useScript('com_alfa.admin');
+    ->useScript('com_alfa.admin')
+    ->useScript('table.columns');
 
 $user      = Factory::getApplication()->getIdentity();
 $userId    = $user->get('id');

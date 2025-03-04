@@ -18,6 +18,18 @@
           onchange="this.form.submit();"
         />
 
+        <field
+          name="show_trashed" type="list"
+          required="true"
+          multiple="false"
+          label="COM_ALFA_FORM_LBL_SHOW_TRASHED"
+          layout="joomla.form.field.list-fancy-select"
+          onchange="this.form.submit();"
+          header="- Show trashed -"
+        >
+            <option value="1">JYES</option>
+        </field>
+
     </fields>
 
     <fields name="list">

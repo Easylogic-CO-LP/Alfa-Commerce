@@ -1,7 +1,7 @@
 <?php
 
 use \Joomla\CMS\Language\Text;
-use \Alfa\Component\Alfa\Site\Helper\AlfaHelper;
+use \Alfa\Component\Alfa\Site\Helper\PriceFormat;
 
 
 $item = $displayData['item'];
@@ -25,7 +25,7 @@ $price = $item->price;
             <?php endif; ?>
             
             <span>
-                <?php echo AlfaHelper::formattedPrice($price['base_price']); ?>
+                <?php echo PriceFormat::format($price['base_price']); ?>
             </span>
         </p>
     <?php endif;?>
@@ -36,7 +36,7 @@ $price = $item->price;
                 <strong><?php echo Text::_('COM_ALFA_BASE_PRICE_WITH_DISCOUNTS'); ?>:</strong>
             <?php endif; ?>
             <span>
-                <?php echo AlfaHelper::formattedPrice($price['base_price_with_discount']); ?>
+                <?php echo PriceFormat::format($price['base_price_with_discount']); ?>
             </span>
         </p>
     <?php endif; ?>
@@ -47,7 +47,7 @@ $price = $item->price;
                 <strong><?php echo Text::_('COM_ALFA_TAX_AMOUNT'); ?>:</strong>
             <?php endif; ?>
             <span>
-                <?php echo AlfaHelper::formattedPrice($price['tax_totals']['amount']); ?>
+                <?php echo PriceFormat::format($price['tax_totals']['amount']); ?>
             </span>
         </p>
     <?php endif; ?>
@@ -58,7 +58,7 @@ $price = $item->price;
                 <strong><?php echo Text::_('COM_ALFA_BASE_PRICE_WITH_TAX'); ?>:</strong>
             <?php endif; ?>
             <span>
-                <?php echo AlfaHelper::formattedPrice($price['base_price_with_tax']); ?>
+                <?php echo PriceFormat::format($price['base_price_with_tax']); ?>
             </span>
         </p>
     <?php endif; ?>
@@ -69,7 +69,7 @@ $price = $item->price;
                 <strong><?php echo Text::_('COM_ALFA_DISCOUNT_AMOUNT'); ?>:</strong>
             <?php endif; ?>
             <span>
-                <?php echo AlfaHelper::formattedPrice($price['discounts_totals']['amount']); ?>
+                <?php echo PriceFormat::format($price['discounts_totals']['amount']); ?>
             </span>
         </p>
     <?php endif; ?>
@@ -80,7 +80,7 @@ $price = $item->price;
                 <strong><?php echo Text::_('COM_ALFA_FINAL_PRICE'); ?>:</strong>
             <?php endif; ?>
             <span>
-                <?php echo AlfaHelper::formattedPrice($price['final_price']); ?>
+                <?php echo PriceFormat::format($price['final_price']); ?>
             </span>
         </p>
     <?php endif; ?>

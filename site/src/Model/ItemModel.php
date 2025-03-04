@@ -30,7 +30,12 @@ use \Joomla\Database\ParameterType;
  */
 class ItemModel extends BaseItemModel
 {
-    public $_item;
+	/**
+	 * Model context string.
+	 *
+	 * @var        string
+	 */
+	protected $_context = 'com_alfa.item';
 
     /**
      * Method to auto-populate the model state.
@@ -73,6 +78,7 @@ class ItemModel extends BaseItemModel
         }
 
         $this->setState('params', $params);
+
     }
 
     /**
@@ -87,6 +93,8 @@ class ItemModel extends BaseItemModel
     public function getItem($pk = null)
     {
         $user = $this->getCurrentUser();
+//      $user->id
+//		$user->groups erxetai ws array [1,2,3]
 
         $pk = (int)($pk ?: $this->getState('item.id'));
 
@@ -146,7 +154,7 @@ class ItemModel extends BaseItemModel
                 foreach ($manufacturers as $manufacturer) {
                     $data->manufacturers[$manufacturer['id']] = $manufacturer['name'];
                 }
-                
+
                 // Calculate the dynamic price
                 $quantity = (int)$this->getState('quantity', 1); // Default to 1 if not set
                 // $quantity = 1; // You can pass a different quantity based on user input
@@ -164,6 +172,10 @@ class ItemModel extends BaseItemModel
 
                 $this->_item[$pk] = $data;
 
+                $categoryIDs = empty($data->categories) ? [] : array_keys($data->categories);
+                $manufacturerIDs = empty($data->manufacturers) ? [] : array_keys($data->manufacturers);
+                $this->_item[$pk]->payment_methods = AlfaHelper::getFilteredMethods($categoryIDs,$manufacturerIDs,$user->groups,$user->id);
+
             } catch (\Exception $e) {
                 if ($e->getCode() == 404) {
                     // Need to go through the error handler to allow Redirect to work.
@@ -174,6 +186,12 @@ class ItemModel extends BaseItemModel
                 $this->_item[$pk] = false;
             }
         }
+//            echo "<pre>";
+//            print_r($this->_item[$pk]->id);
+//            echo "</pre>";
+//            exit;
+
+
 
         return $this->_item[$pk];
     }
@@ -225,44 +243,6 @@ class ItemModel extends BaseItemModel
         return $db->loadAssocList();
     }
 
-    // id is the product_id
-    // public function getPrices($id){
-    //     $id = intval($id);
-    //     if($id <= 0) {
-    //         return [];
-    //     }
-
-    //     // Get the database object
-    //     $db = $this->getDatabase();
-
-    //     // Build the query to select all relevant fields
-    //     $query = $db->getQuery(true);
-    //     $query
-    //         ->select('*')
-    //         ->from('#__alfa_items_prices')
-    //         ->where('product_id = ' . $db->quote($id));
-
-    //     // Execute the query
-    //     $db->setQuery($query);
-
-    //     // Return the result as an associative array
-    //     return $db->loadAssocList('id');
-    // }
-
-
-    /**
-     * Get an instance of Table class
-     *
-     * @param string $type Name of the Table class to get an instance of.
-     * @param string $prefix Prefix for the table class name. Optional.
-     * @param array $config Array of configuration values for the Table object. Optional.
-     *
-     * @return  Table|bool Table if success, false on failure.
-     */
-    public function getTable($type = 'Item', $prefix = 'Administrator', $config = array())
-    {
-        return parent::getTable($type, $prefix, $config);
-    }
 
     /**
      * Get the id of an item by alias
@@ -292,105 +272,6 @@ class ItemModel extends BaseItemModel
         }
 
         return $result;
-
-    }
-
-    /**
-     * Method to check in an item.
-     *
-     * @param integer $id The id of the row to check out.
-     *
-     * @return  boolean True on success, false on failure.
-     *
-     * @since   1.0.1
-     */
-    public function checkin($id = null)
-    {
-        // Get the id.
-        $id = (!empty($id)) ? $id : (int)$this->getState('item.id');
-
-        if ($id) {
-            // Initialise the table
-            $table = $this->getTable();
-
-            // Attempt to check the row in.
-            if (method_exists($table, 'checkin')) {
-                if (!$table->checkin($id)) {
-                    return false;
-                }
-            }
-        }
-
-        return true;
-
-    }
-
-    /**
-     * Method to check out an item for editing.
-     *
-     * @param integer $id The id of the row to check out.
-     *
-     * @return  boolean True on success, false on failure.
-     *
-     * @since   1.0.1
-     */
-    public function checkout($id = null)
-    {
-        // Get the user id.
-        $id = (!empty($id)) ? $id : (int)$this->getState('item.id');
-
-
-        if ($id) {
-            // Initialise the table
-            $table = $this->getTable();
-
-            // Get the current user object.
-            $user = Factory::getApplication()->getIdentity();
-
-            // Attempt to check the row out.
-            if (method_exists($table, 'checkout')) {
-                if (!$table->checkout($user->get('id'), $id)) {
-                    return false;
-                }
-            }
-        }
-
-        return true;
-
-    }
-
-    /**
-     * Publish the element
-     *
-     * @param int $id Item id
-     * @param int $state Publish state
-     *
-     * @return  boolean
-     */
-    public function publish($id, $state)
-    {
-        $table = $this->getTable();
-
-        $table->load($id);
-        $table->state = $state;
-
-        return $table->store();
-
-    }
-
-    /**
-     * Method to delete an item
-     *
-     * @param int $id Element id
-     *
-     * @return  bool
-     */
-    public function delete($id)
-    {
-        $table = $this->getTable();
-
-
-        return $table->delete($id);
 
     }
 

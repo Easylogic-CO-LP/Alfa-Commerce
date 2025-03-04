@@ -143,10 +143,54 @@ class TaxesModel extends ListModel
 		// Join over the user field 'modified_by'
 		$query->select('`modified_by`.name AS `modified_by`');
 		$query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
-		
+
+
+        // Join over category IDs and names.
+        $query->select("GROUP_CONCAT(DISTINCT tcat.category_id SEPARATOR ',') AS tax_category_IDs")
+            ->join("LEFT", "#__alfa_tax_categories as tcat ON a.id = tcat.tax_id");
+
+        $query->select("GROUP_CONCAT(DISTINCT cat.name SEPARATOR ', ') AS category_names")
+            ->join("LEFT", "#__alfa_categories as cat ON tcat.category_id = cat.id");
+
+
+        // Join over manufacturer IDs and names.
+        $query->select("GROUP_CONCAT(DISTINCT tman.manufacturer_id SEPARATOR ',') AS tax_manufacturer_IDs")
+            ->join("LEFT", "#__alfa_tax_manufacturers as tman ON a.id = tman.tax_id");
+
+        $query->select("GROUP_CONCAT(DISTINCT man.name SEPARATOR ', ') AS manufacturer_names")
+            ->join("LEFT", "#__alfa_manufacturers as man ON tman.manufacturer_id = man.id");
+
+
+        // Join over users IDs and names.
+        $query->select("GROUP_CONCAT(DISTINCT tu.user_id SEPARATOR ',') AS tax_user_IDs")
+            ->join("LEFT", "#__alfa_tax_users as tu ON a.id = tu.tax_id");
+
+        $query->select("GROUP_CONCAT(DISTINCT u.name SEPARATOR ', ') AS user_names")
+            ->join("LEFT", "#__users as u ON tu.user_id = u.id");
+
+        // Join over places IDs and names.
+        $query->select("GROUP_CONCAT(DISTINCT tpl.place_id SEPARATOR ',') AS tax_place_IDs")
+            ->join("LEFT", "#__alfa_tax_places as tpl ON a.id = tpl.tax_id");
+
+        $query->select("GROUP_CONCAT(DISTINCT pl.name SEPARATOR ', ') AS place_names")
+            ->join("LEFT", "#__alfa_places as pl ON tpl.place_id = pl.id");
+
+
+
+        // Join over usergroups IDs and names.
+        $query->select("GROUP_CONCAT(DISTINCT tug.usergroup_id SEPARATOR ',') AS tax_usergroup_IDs")
+            ->join("LEFT", "#__alfa_tax_usergroups as tug ON a.id = tug.tax_id");
+
+        $query->select("GROUP_CONCAT(DISTINCT ug.name SEPARATOR ', ') AS usergroup_names")
+            ->join("LEFT", "#__alfa_usergroups as ug ON tug.usergroup_id = ug.id");
+
+
+        // Grouping by item id.
+        $query->group("a.id");
 
 		// Filter by published state
 		$published = $this->getState('filter.state');
+
 
 		if (is_numeric($published))
 		{

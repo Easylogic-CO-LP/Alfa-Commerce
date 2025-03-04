@@ -53,6 +53,17 @@
       }
     },
     {
+      "name": "com_alfa.admin-field-typehaschanged",
+      "type": "script",
+      "uri": "com_alfa/admin/admin-field-typehaschanged.js",
+      "dependencies": [
+        "core"
+      ],
+      "attributes": {
+        "type": "module"
+      }
+    },
+    {
       "name": "com_alfa.item",
       "type": "script",
       "uri": "com_alfa/site/item/item.js",

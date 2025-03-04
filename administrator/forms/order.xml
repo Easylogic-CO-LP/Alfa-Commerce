@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
-    <fieldset>
+    <fieldset name="user_details">
+        <field name="user_email" label="Email" type="text" readonly="true" class="readonly" default=""/>
+        <field name="user_name" label="Name" type="text" readonly="true" class="readonly" default=""/>
+        <field name="id_user_group" type="hidden" default="1"/>
+    </fieldset>
+
+    <fieldset name="order_details">
         <field name="id" type="text" readonly="true" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
 
         <field
@@ -15,41 +21,62 @@
         />
 
         <field name="original_price" label="Original Price" type="number" readonly="true" class="readonly" default=""/>
-        <field name="user_email" label="Email" type="text" readonly="true" class="readonly" default=""/>
-        <field name="user_name" label="Name" type="text" readonly="true" class="readonly" default=""/>
-        <field name="shipping_address" label="Shipping Address" type="text" readonly="true" class="readonly"
-               default=""/>
-        <field name="item_name" label="Item Name" type="text" readonly="true" class="readonly" default="0"/>
 
-        <field name="id_user_group" type="hidden" default="1"/>
-        <field name="checked_out" type="hidden" filter="unset"/>
-        <field name="checked_out_time" type="hidden" filter="unset"/>
 
+        <field name="currency" filter="safehtml" type="text" readonly="true" label="COM_ALFA_FORM_LBL_ORDER_CURRENCY"
+               description="COM_ALFA_FORM_DESC_ORDER_CURRENCY" hint="COM_ALFA_FORM_LBL_ORDER_CURRENCY"/>
+
+        <field name="total" type="number" step="0.01" label="COM_ALFA_FORM_LBL_ORDER_TOTAL"
+               description="COM_ALFA_FORM_DESC_ORDER_TOTAL" hint="COM_ALFA_FORM_LBL_ORDER_TOTAL"/>
+
+        <field name="price" filter="safehtml" type="space" readonly="true" label="COM_ALFA_FORM_LBL_ORDER_PRICE"
+               hint=""/>
 
         <field
                 name="created"
                 type="calendar"
                 label="COM_ALFA_FORM_ORDER_CREATED"
+                class="form-control"
                 translateformat="true"
                 showtime="true"
+                readonly="true"
                 filter="user_utc"
         />
 
-        <field name="created_by" type="createdby" default="0" label="JGLOBAL_FIELD_CREATED_BY_LABEL"
-               description="JGLOBAL_FIELD_CREATED_BY_DESC" hidden="true" hint="COM_ALFA_FORM_LBL_ORDER_CREATED_BY"/>
-        <field name="modified_by" type="modifiedby" default="0" label="JGLOBAL_FIELD_MODIFIED_BY_LABEL"
-               description="JGLOBAL_FIELD_MODIFIED_BY_DESC" hidden="true" hint="COM_ALFA_FORM_LBL_ORDER_MODIFIED_BY"/>
-        <field name="currency" filter="safehtml" type="text" readonly="true" label="COM_ALFA_FORM_LBL_ORDER_CURRENCY"
-               description="COM_ALFA_FORM_DESC_ORDER_CURRENCY" hint="COM_ALFA_FORM_LBL_ORDER_CURRENCY"/>
-        <field name="payment" label="COM_ALFA_FORM_LBL_ORDER_PAYMENT" description="COM_ALFA_FORM_DESC_ORDER_PAYMENT"
-               hint="COM_ALFA_FORM_LBL_ORDER_PAYMENT"/>
-        <field name="total" type="number" step="0.01" label="COM_ALFA_FORM_LBL_ORDER_TOTAL"
-               description="COM_ALFA_FORM_DESC_ORDER_TOTAL" hint="COM_ALFA_FORM_LBL_ORDER_TOTAL"/>
-        <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL"
-               description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>
-        <field name="price" filter="safehtml" type="space" readonly="true" label="COM_ALFA_FORM_LBL_ORDER_PRICE"
-               hint=""/>
+        <field
+                name="created_by"
+                type="user"
+                label="JGLOBAL_FIELD_CREATED_BY_LABEL"
+                validate="UserId"
+        />
 
+        <field
+                name="modified_by"
+                type="user"
+                label="JGLOBAL_FIELD_MODIFIED_BY_LABEL"
+                class="readonly"
+                readonly="true"
+                filter="unset"
+                validate="UserId"
+        />
+
+        <field
+                name="modified"
+                type="calendar"
+                label="JGLOBAL_FIELD_MODIFIED_LABEL"
+                class="form-control"
+                translateformat="true"
+                showtime="true"
+                readonly="true"
+                filter="user_utc"
+        />
+
+        <field name="checked_out" type="hidden" filter="unset"/>
+        <field name="checked_out_time" type="hidden" filter="unset"/>
+
+    </fieldset>
+
+    <fieldset name="items">
         <field
                 name="items"
                 type="subform"
@@ -57,6 +84,39 @@
                 class=""
                 formsource="administrator/components/com_alfa/forms/order_items.xml"
                 label="COM_ALFA_FORM_ORDER_ITEMS"
+                description=""
+                multiple="true"
+                layout="joomla.form.field.subform.repeatable-table"
+        />
+    </fieldset>
+
+    <fieldset name="shipment">
+        <field
+                name="shipping_address"
+                label="Shipping Address"
+                type="text" readonly="true"
+                class="readonly"
+                default=""/>
+    </fieldset>
+
+    <fieldset name="payment">
+
+        <field name="id_paymentmethod" type="hidden"/>
+
+        <field
+                name="payment_name"
+                readonly="true"
+                label="COM_ALFA_FORM_LBL_ORDER_PAYMENT_METHOD"
+                description="COM_ALFA_FORM_DESC_ORDER_PAYMENT_METHOD"
+        />
+
+        <field
+                name="order_payments"
+                type="subform"
+                buttons="add,remove"
+                class=""
+                formsource="administrator/components/com_alfa/forms/order_payments.xml"
+                label="COM_ALFA_FORM_ORDER_PAYMENTS"
                 description=""
                 multiple="true"
                 layout="joomla.form.field.subform.repeatable-table"

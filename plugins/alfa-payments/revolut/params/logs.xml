@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+    <fields name="paymentslogs">
+        <fieldset name="paymentslogs">
+            <!--always created:   `id` int(11) AUTO_INCREMENT PRIMARY KEY NOT NULL-->
+            <!--			<field name="order_id" mysql_type="int(11)" default="NULL"/>-->
+            <!--			<field name="status" mysql_type="char(1)" default="NULL"/>-->
+
+            <field label="Transaction Test" name="transaction_id" mysql_type="varchar(255)" default="NULL"/>
+            <field label="Order total" name="order_total" mysql_type="decimal(15,5)" default="0.00000"/>
+            <field label="Currency" name="currency" mysql_type="char(3)" default="NULL"/>
+            <field label="Error code" name="error_code" mysql_type="varchar(255)" default="-"/>
+            <field label="Error text" name="error_text" mysql_type="varchar(255)" default="-"/>
+            <field label="Installments" name="installments" mysql_type="varchar(5)" default="NULL"/>
+            <field label="Checkout url" name="checkout_url" default="NULL" mysql_type="varchar(512)"/>
+            <field label="Created on" name="created_on" mysql_type="datetime" default="0000-00-00 00:00:00"/>
+            <field label="Created by" name="created_by"  mysql_type="int(11)" default="0"/>
+        </fieldset>
+    </fields>
+</form>

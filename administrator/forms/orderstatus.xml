@@ -10,18 +10,18 @@
                 type="color"
                 default="rgba(0, 0, 0, 1)"
                 format="rgba"
-                label="JGLOBAL_FIELD_COLOR_LABEL"/>
+                label="COM_ALFA_COLOR_LABEL"/>
 
         <field
                 name="bg_color"
                 type="color"
                 default="rgba(214, 214, 214, 1)"
                 format="rgba"
-                label="JGLOBAL_FIELD_BACKGROUND_COLOR_LABEL" />
+                label="COM_ALFA_BACKGROUND_COLOR_LABEL" />
 
-        <field name="stock_action" default="0" type="radio" label="Stock Action" description="" class="btn-group">
-            <option value="0">Keep in stock</option>
-            <option value="1">Remove from stock</option>
+        <field name="stock_operation" default="0" type="radio" label="Stock Operation" description="" class="btn-group">
+            <option value="0">Remove from stock</option>
+            <option value="1">Keep in stock</option>
         </field>
 
         <field name="state" default="1" type="list" label="JSTATUS" description="JFIELD_PUBLISHED_DESC" class="inputbox" size="1">

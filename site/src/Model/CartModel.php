@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Site\Model;
 defined('_JEXEC') or die;
 
 use \Joomla\CMS\Factory;
+use Joomla\CMS\Plugin\PluginHelper;
 use \Joomla\Utilities\ArrayHelper;
 use \Joomla\CMS\Language\Text;
 use \Joomla\CMS\Table\Table;
@@ -49,9 +50,10 @@ class CartModel extends ItemModel
 
         $cart = new CartHelper($pk);
 
+
         return $cart;
        
     }
 
-  
+
 }

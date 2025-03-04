@@ -57,10 +57,10 @@ $wa->useStyle('com_alfa.list')
             <?php foreach ($this->items as $item) : ?>
 
                 <?php
-                    $showItem = true;
-                    if($item->stock_action == 1 && $item->stock <= 0)
-                        $showItem = false;
-                    if($showItem):  //SHOWING BASIC ITEM.
+//                    $showItem = true;
+//                    if($item->stock_action == 2 && $item->stock <= 0)
+//                        $showItem = false;
+//                    if($showItem):  //SHOWING BASIC ITEM.
                 ?>
 
                     <article class="list-item item-item" data-item-id="<?php echo $item->id;?>">
@@ -84,7 +84,7 @@ $wa->useStyle('com_alfa.list')
                             <?php echo LayoutHelper::render('add_to_cart', $item); ?>
 
                     </article>
-                <?php endif;?>
+<!--                --><?php //endif;?>
             <?php endforeach; ?>
         </div>
     </section>

@@ -30,3 +30,45 @@
     padding: 0;
     margin: 0 5px;
 }
+
+
+/* #paymentModal .modal-dialog */
+/*  .com_alfa .modal-dialog {
+    max-width: 95vw !important;
+}*/
+/*.com_alfa .modal-dialog .modal-body > div.row {
+    margin-left:0;
+    margin-right:0;
+}*/
+.table-mobile-responsive tbody td{
+    white-space: nowrap;
+}
+@media screen and (max-width: 992px) {
+
+    .table-mobile-responsive thead {
+        display: none;
+    }
+
+    .table-mobile-responsive tr {
+        border-bottom: 3px solid #000;
+        display: block;
+    }
+
+    .table-mobile-responsive td {
+        border-bottom: 1px solid #ddd !important;
+        display: block;
+        font-size: .8em;
+        text-align: right;
+    }
+
+    .table-mobile-responsive td::before {
+        content: attr(data-th);
+        float: left;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+
+    .table-mobile-responsive td:last-child {
+        border-bottom: 0;
+    }
+}
