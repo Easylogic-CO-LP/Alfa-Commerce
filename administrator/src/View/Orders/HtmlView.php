@@ -51,11 +51,18 @@ class HtmlView extends BaseHtmlView
 		$this->filterForm = $this->get('FilterForm');
 		$this->activeFilters = $this->get('ActiveFilters');
 
+//        echo "<pre>";
+//        print_r($this->items);
+//        echo "</pre>";
+////
+//        echo "here";
+//        exit;
+
 		// Check for errors.
-		if (count($errors = $this->get('Errors')))
-		{
-			throw new \Exception(implode("\n", $errors));
-		}
+//		if (count($errors = $this->get('Errors')))
+//		{
+//			throw new \Exception(implode("\n", $errors));
+//		}
 
         $this->orderStatuses = AlfaHelper::getOrderStatuses();
 

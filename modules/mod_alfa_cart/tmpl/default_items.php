@@ -6,6 +6,7 @@ use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 use \Alfa\Component\Alfa\Site\Helper\CartHelper;
+use \Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 
 defined('_JEXEC') or die;
 
@@ -14,6 +15,26 @@ if (!isset($cart)) return;
 
 $data = $cart->getData();
 $items = $data->items ?? [];
+
+$priceShowSettings = AlfaHelper::getCategorySettings();
+
+// $priceShowSettings = new \stdClass();
+
+// $priceShowSettings->prices = [
+//             'base_price_show' => 1,
+//             'base_price_show_label' => 1,
+//             'base_price_with_discounts_show' => 1,
+//             'base_price_with_discounts_show_label' => 1,
+//             'tax_amount_show' => 1,
+//             'tax_amount_show_label' => 1,
+//             'base_price_with_tax_show' => 1,
+//             'base_price_with_tax_show_label' => 1,
+//             'discount_amount_show' => 1,
+//             'discount_amount_show_label' => 1,
+//             'final_price_show' => 1,
+//             'final_price_show_label' => 1,
+//         ];
+
 ?>
 
 <div class="mod-alfa-cart-data-inner" data-cart-items="<?php echo count($items); ?>">
@@ -29,7 +50,8 @@ $items = $data->items ?? [];
                         <span class="cart-item-name">
                             <?php echo htmlspecialchars($item->name); ?> -
                             <span class="cart-item-price">
-                                <?php echo number_format($item->price['price_with_tax'] , 2); ?>
+                                <?php echo LayoutHelper::render('price', ['item'=>$item, 'settings'=>$priceShowSettings] , JPATH_ROOT .'/components/com_alfa/layouts'); //passed data as $displayData in layout ?>
+                                <?php echo number_format($item->price['base_price_with_tax'] , 2); ?>
                             </span> x
                             <span class="cart-item-quantity"><?php echo (int)$item->quantity; ?></span>
                         </span>

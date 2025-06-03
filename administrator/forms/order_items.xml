@@ -33,7 +33,7 @@
             order_field="name"
             fallback_table="#__alfa_order_items"
             fallback_id_field="id_item"
-            fallback_name_field="name"
+            fallback_name_field="product_name"
     />
 
     <field

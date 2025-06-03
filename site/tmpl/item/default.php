@@ -10,6 +10,7 @@
 // No direct access
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Site\Helper\PluginLayoutHelper;
 use \Joomla\CMS\HTML\HTMLHelper;
 use \Joomla\CMS\Factory;
 use \Joomla\CMS\Uri\Uri;
@@ -27,50 +28,77 @@ $categorySettings = AlfaHelper::getCategorySettings();
 
 $wa->useStyle('com_alfa.item');
 $wa->useScript('com_alfa.item')
-    ->useScript('com_alfa.item.recalculate')
-    ->useScript('com_alfa.item.addtocart');
+	->useScript('com_alfa.item.recalculate')
+	->useScript('com_alfa.item.addtocart');
 ?>
 
 <section>
-    <div class="item-container row" data-item-id="<?php echo $this->item->id;?>">
+    <div class="item-container row" data-item-id="<?php echo $this->item->id; ?>">
         <div class="col-md-6">
             <section class="item-images-wrapper">
-                <?php echo $this->loadTemplate('images'); ?>
+				<?php echo $this->loadTemplate('images'); ?>
             </section>
         </div>
         <div class="col-md-6">
             <section class="item-info-section">
                 <h1>
-                    <?php echo $this->item->name; ?>
+					<?php echo $this->item->name; ?>
                 </h1>
-                <?php if (!empty($this->item->short_desc)): ?>
+				<?php if (!empty($this->item->short_desc)): ?>
                     <div class="item-info">
-                        <?php echo $this->item->short_desc; ?>
-
+						<?php echo $this->item->short_desc; ?>
                     </div>
-                <?php endif; ?>
+				<?php endif; ?>
 
-                <?php echo LayoutHelper::render('price', ['item'=>$this->item, 'settings'=>$categorySettings] ); //passed data as $displayData in layout ?>
+				<?php echo LayoutHelper::render('price', ['item' => $this->item, 'settings' => $categorySettings]); //passed data as $displayData in layout ?>
 
-                <?php echo LayoutHelper::render('stock_info', ['item'=>$this->item,'quantity'=>$this->item->quantity_min]); ?>
+				<?php echo LayoutHelper::render('stock_info', ['item' => $this->item, 'quantity' => $this->item->quantity_min]); ?>
 
 
                 <div class="item-payment-methods">
                     Payment Methods :
-                    
-                    <?php
-                    if(!empty($this->item->payment_methods)){
-                        foreach($this->item->payment_methods as $payment_method): ?>
+
+					<?php
+					if (!empty($this->item->payment_methods))
+					{
+						foreach ($this->item->payment_methods as $payment_method): ?>
                             <div class="item-payment-method">
-                                <?php echo $payment_method->events->onProductView; ?>
+								<?php
+                                    echo PluginLayoutHelper::pluginLayout(
+                                            $payment_method->events->onItemView->getLayoutPluginType(),
+                                            $payment_method->events->onItemView->getLayoutPluginName(),
+                                            $payment_method->events->onItemView->getLayout(),
+                                    )->render($payment_method->events->onItemView->getLayoutData());
+                                ?>
                             </div>
-                        <?php endforeach;?>
-                    <?php } ?>
-                    
+						<?php endforeach; ?>
+					<?php } ?>
+
                 </div>
 
-                <?php echo LayoutHelper::render('add_to_cart', $this->item); ?>
-                    
+                <div class="item-shipment-methods">
+                    Shipment Methods :
+
+					<?php
+					if (!empty($this->item->shipment_methods))
+					{
+						foreach ($this->item->shipment_methods as $shipment_method): ?>
+                            <div class="item-shipment-method">
+                                <?php
+                                echo PluginLayoutHelper::pluginLayout(
+                                    $shipment_method->events->onItemView->getLayoutPluginType(),
+                                    $shipment_method->events->onItemView->getLayoutPluginName(),
+                                    $shipment_method->events->onItemView->getLayout(),
+                                )->render($shipment_method->events->onItemView->getLayoutData());
+                                ?>
+                            </div>
+						<?php endforeach; ?>
+					<?php } ?>
+
+                </div>
+
+				<?php echo LayoutHelper::render('add_to_cart', $this->item); ?>
+
                 <div class="item-desc-details">
                     <ul class="tab">
                         <li>
@@ -85,22 +113,22 @@ $wa->useScript('com_alfa.item')
 
 
                     <div id="description" class="tabcontent">
-                        <?php echo nl2br($this->item->full_desc); ?>
+						<?php echo nl2br($this->item->full_desc); ?>
                     </div>
                     <div id="details" class="tabcontent">
                         <h2><?php echo Text::_('COM_ALFA_TITLE_CATEGORIES'); ?></h2>
-                        <?php foreach ($this->item->categories as $id => $name) : ?>
-                            <a href="<?php echo Route::_('index.php?option=com_alfa&view=items&filter[category_id]=' . (int)$id); ?>"><?php echo $name; ?></a>
-                        <?php endforeach; ?>
+						<?php foreach ($this->item->categories as $id => $name) : ?>
+                            <a href="<?php echo Route::_('index.php?option=com_alfa&view=items&filter[category_id]=' . (int) $id); ?>"><?php echo $name; ?></a>
+						<?php endforeach; ?>
                         <h2><?php echo Text::_('COM_ALFA_TITLE_MANUFACTURERS'); ?></h2>
-                        <?php foreach ($this->item->manufacturers as $id => $name) : ?>
-                            <a href="<?php echo Route::_('index.php?option=com_alfa&view=manufacturer&id=' . (int)$id); ?>"><?php echo $name; ?></a>
-                        <?php endforeach; ?>
+						<?php foreach ($this->item->manufacturers as $id => $name) : ?>
+                            <a href="<?php echo Route::_('index.php?option=com_alfa&view=manufacturer&id=' . (int) $id); ?>"><?php echo $name; ?></a>
+						<?php endforeach; ?>
                     </div>
                 </div>
 
-                <?php //echo 'Price: <pre>';print_r($this->item->price); echo '</pre>'; ?>
-                
+				<?php //echo 'Price: <pre>';print_r($this->item->price); echo '</pre>'; ?>
+
             </section>
         </div>
     </div>

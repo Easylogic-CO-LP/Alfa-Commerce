@@ -8,12 +8,9 @@
 
 namespace Joomla\Plugin\AlfaPayments\Viva\Extension;
 
-
-use Alfa\Component\Alfa\Administrator\Plugin\PaymentsPlugin;
-use Joomla\CMS\Component\ComponentHelper;
-use Joomla\CMS\Factory;
-use Joomla\CMS\Layout\FileLayout;
-use Joomla\CMS\Plugin\PluginHelper;
+use \Alfa\Component\Alfa\Administrator\Plugin\PaymentsPlugin;
+use \Joomla\CMS\Component\ComponentHelper;
+use \Joomla\CMS\Factory;
 use \Joomla\CMS\Uri\Uri;
 
 // phpcs:disable PSR1.Files.SideEffects
@@ -27,22 +24,20 @@ use \Joomla\CMS\Uri\Uri;
  */
 final class Viva extends PaymentsPlugin
 {
-
-    /*
-     *  Inputs: An alfa-commerce order object.
-     *          (#)
-     *  Returns: The html of a layout to be displayed as html.
-     */
-    public function onOrderProcessView($order) : string {
+    // TODO: Should all be turned to events as with the function onProductView
+    public function onOrderProcessView($event){
 
         $app = $this->getApplication();
-        $html = '';
 
-        $params = $order->payment->params;
+        $order = $event->getOrder();
+        $method = $event->getMethod();
 
-        //Viva does not accept decimal values. (We set amount = 1000 for 10 euros.)
+        $params = $order->selected_payment->params;
+
+        // Viva does not accept decimal values. (We set amount = 1000 for 10 euros.)
         $priceParams = $order->currency_data;
 
+        // TODO: We dont know the decimal place we should get it from the administration ??
         $priceAmount = $order->original_price * (10 ** $priceParams->decimal_place);
         $currencyCode = $priceParams->number;
 
@@ -55,11 +50,18 @@ final class Viva extends PaymentsPlugin
         if (empty(trim($params['vivapayment_business'])) || 
             empty(trim($params['vivapayment_apikey'])) || 
             empty(trim($params['vivapayment_sourcecode']))) {
-            
-            // $html = $params
-            $html .= '<button onclick="location.reload();">Retry paying</button>';
+
+            $layoutData = [
+                'method'    => $method,
+                'order'     => $order,
+            ];
+
+            $event->setLayout('default_payment_process');
+            $event->setLayoutData($layoutData);
+
             $app->enqueueMessage('Missing required Viva Payment settings. Please check your payment configuration or get in contact with the eshop administrator to report the problem.', 'error');
-            return $html;
+
+            return;
         }
 
         $scheme = "https://";
@@ -78,6 +80,7 @@ final class Viva extends PaymentsPlugin
             '&PaymentTimeOut=301' .
             '&disableCash=true';
 
+        // DEBUGGING.
 	    $development_mode = true;
         if($development_mode){
             $request = $scheme . $host_development . $create_order_path;
@@ -120,12 +123,20 @@ final class Viva extends PaymentsPlugin
         $ErrorText = $resultObj->ErrorText??'';
 
         if(!empty($ErrorCode)){ //Error handling.
+
+            $layoutData = [
+                'method'    => $method,
+                'order'     => $order,
+            ];
+
+            $event->setLayout('default_payment_process');
+            $event->setLayoutData($layoutData);
+
             $app->enqueueMessage($ErrorText, 'error');
-            return $html;
+            return;
         }
 
         $paymentUrl = $scheme . $host_development . $new_transaction_path . '?ref=' . $OrderCode;
-
 
         $logData = $this->createEmptyLog();
 
@@ -148,7 +159,6 @@ final class Viva extends PaymentsPlugin
 
 	    $this->insertLog($logData);
 
-
 		// $html = '';
 		// METHOD 1 ( by rendering form or custom html to the user)
 //	    $payment_form_data = [
@@ -165,17 +175,17 @@ final class Viva extends PaymentsPlugin
         // https://alfa.el2.demosites.gr/index.php?option=com_alfa&task=cart.paymentResponse&payment=completed
 
 		// METHOD 2 ( by instant redirecting the user )
-		$app->redirect($paymentUrl);
 
-        return $html;
+        $event->setRedirectUrl($paymentUrl);
 
     }
 
-    public function onPaymentResponse($order) {
-
+    public function onPaymentResponse($event) {
 
         $app = $this->getApplication();
         $input = $app->input;
+
+        $order = $event->getOrder();
 
         // &t=1b755fd5-8404-4ab5-9903-336e0591d17b&s=8227677046572600&lang=el-GR&eventId=0&eci=1
 
@@ -192,13 +202,13 @@ final class Viva extends PaymentsPlugin
 
         if( empty($transaction_id)  || 
             empty($order_code)      ||
-            ($paymentStatus!=='completed' && $paymentStatus!=='failed' )
+            ($paymentStatus !== 'completed' && $paymentStatus !== 'failed' )
         ){ 
             $app->enqueueMessage("Payment was unsuccessful. Missing response data.");
-            $app->redirect($redirectUrl);
+            $event->setRedirectUrl($redirectUrl);
+            return;
+//            $app->redirect($redirectUrl);
         }
-
-//        exit;
 
         $paymentDone = false;
 
@@ -206,7 +216,6 @@ final class Viva extends PaymentsPlugin
         // $this->onOrderProcessView($order);
 
         $orderStatus = 'F';
-        
 
         if($paymentStatus == 'completed'){
             $orderStatus = 'S';
@@ -217,6 +226,24 @@ final class Viva extends PaymentsPlugin
             $message = 'Order paid failed.';
             $paymentDone = false;
         }
+
+
+        // Insert payment data.
+        if($paymentStatus == 'completed'){
+            $orderPaymentData = self::createEmptyOrderPayment();
+            $orderPaymentData = [
+                'id_order' => $order->id,
+                'id_currency' => $order->id_currency,
+                'id_payment_method' => $order->id_payment_method,
+                'id_user' => $order->id_user,
+                'amount' => $order->payed_price,
+                'conversion_rate' => 1.00,
+                'transaction_id' => $transaction_id,
+                'date_add' => Factory::getDate()->format('Y-m-d H:i:s'),
+            ];
+            $id_order_payment = self::insertOrderPayment($orderPaymentData);
+        }
+        
 
         // METHOD 1: Use the previous log data 
         $logData = $this->loadLogData($order->id);
@@ -230,6 +257,7 @@ final class Viva extends PaymentsPlugin
 
 //        $logToInsert['id'] = null; //if its empty ( '' or 0 or null ) it will be inserted as a new row in logs
 //        $logToInsert['order_id'] = $order->id;
+        $logToInsert['id_order_payment'] = $id_order_payment ?? 0;
         $logToInsert['status'] = $orderStatus;
         $logToInsert['order_code'] = $order_code;
         $logToInsert['transaction_id'] = $transaction_id;
@@ -246,68 +274,73 @@ final class Viva extends PaymentsPlugin
 
         self::insertLog($logToInsert);
 
-
-        // Insert payment data.
-        if($paymentStatus == 'completed'){
-            $orderPaymentData = self::createEmptyOrderPayment();
-            $orderPaymentData = [
-                'id_order' => $order->id,
-                'id_currency' => $order->id_currency,
-                'id_payment_method' => $order->id_paymentmethod,
-                'id_user' => $order->id_user,
-                'amount' => $order->payed_price,
-                'conversion_rate' => 1.00,
-                'transaction_id' => $transaction_id,
-                'date_add' => Factory::getDate()->format('Y-m-d H:i:s'),
-            ];
-            self::insertOrderPayment($orderPaymentData);
-        }
-
-
         $app->setUserState('com_alfa.payment_done', $paymentDone);//set variable to handle it from the onOrderComplete which we redirect the user
         $app->enqueueMessage($message, $paymentDone?'info':'error');
-        $app->redirect($redirectUrl);//send user to complete order view
+        $event->setRedirectUrl($redirectUrl);   //send user to complete order view
+//        $app->redirect($redirectUrl);
 
     }
 
-	public function onOrderCompleteView($order) : string {
+    // After order has been completed.
+	public function onOrderCompleteView($event){
+        $order = $event->getOrder();
+        $method = $event->getMethod();
 
-        $app = $this->getApplication();
-        $html = '';
+        $layoutData = [
+            'method'    => $method,
+            'order'     => $order,
+        ];
 
-        $paymentStatus = $app->getUserState('com_alfa.payment_done', false); //handle the variable setted in the payment response
-
-        if($paymentStatus){
-            $html .= '<p>Η πληρωμή έγινε επιτυχώς</p>';
-        }else{
-            $html .= '<p>Η πληρωμή απέτυχε! Θέλετε να ξαναδοκιμάσετε;</p><br>';
-            $html .= '<a href="/index.php?option=com_alfa&view=cart&layout=default_order_process">Pay again</a>';
-        }
-
-
-        return $html;
-	}
-
-    public function onProductView($productData, $method){
-        $html =
-            "<div>
-                <h5>{$method->name}</h5>
-                <p>{$method->description}</p>
-            </div>
-            ";
-
-        return $html;
+        $event->setLayout('default_payment_success');
+        $event->setLayoutData($layoutData);
     }
 
-    public function onAdminOrderDelete($orderID){
+    // At default cart view.
+    public function onCartView($event) {
+
+        $cart = $event->getCart();
+        $method = $event->getMethod();
+
+        $layoutData = [
+            'method'    => $method,
+            'cart'      => $cart
+        ];
+
+        $event->setLayout('default_cart_view');
+        $event->setLayoutData($layoutData);
+
+    }
+
+    public function onItemView($event){
+        $item = $event->getItem();
+        $method = $event->getMethod();
+
+	    $layoutData = [
+		    'method' => $method,
+		    'item' => $item,
+	    ];
+
+//		we should create a layout file or run the standar layout file
+//	    $event->setLayoutPluginName('standard'); //auto setted to viva from html view
+//	    $event->setLayoutPluginType('alfa-payments'); //auto setted
+	    $event->setLayout('default_product_view');
+	    $event->setLayoutData($layoutData);
+
+//		$event->setRedirectUrl("https://www.google.com");
+//	    $event->setRedirectCode(301);
+
+    }
+
+    public function onAdminOrderDelete($event){
+        $orderID = $event->getOrder()->order_id;
         parent::deleteLogEntry($orderID);
-        return true;
+        $event->setCanDelete(true);
     }
 
-    public function onAdminOrderBeforeSave(&$order): bool {
-        $app = $this->getApplication();
-        $app->enqueueMessage("Could not save the order.");
-        return false;
+    // TODO: CHECK THIS ???
+    public function onAdminOrderBeforeSave($event){
+        $order = $event->getOrder();
+        $event->setCanSave(true);
     }
 
 

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+    <fields name="shipmentslogs">
+        <fieldset name="shipmentslogs">
+            <field name="locker_id" mysql_type="int(11)" default="0"/>
+            <field name="parcel_data" mysql_type="char(255)" default="0"/>
+            <field name="packages_row_data" mysql_type="JSON" default="{}"/>
+            <field name="shipment_total" mysql_type="decimal(15,5)" default="0.00000"/>
+            <!-- <field name="modified_on" mysql_type="datetime" default="NOW()"/> -->
+            <!-- <field name="parcel_id" mysql_type="tinyint(1)" default="1"/> -->
+            <!-- <field name="is_cancelled" mysql_type="tinyint(1)" default="1"/> -->
+            <field name="created_on" mysql_type="datetime" default="0000-00-00 00:00:00"/>
+            <field name="created_by"  mysql_type="int(11)" default="0"/>
+            <!-- <field name="request" mysql_type="char(512)" default=""/> -->
+            <!-- <field name="active" mysql_type="tinyint(1)" default="1"/> -->
+        </fieldset>
+    </fields>
+</form>

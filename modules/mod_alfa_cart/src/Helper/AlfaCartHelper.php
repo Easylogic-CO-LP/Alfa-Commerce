@@ -10,8 +10,6 @@ use Joomla\CMS\Helper\ModuleHelper;
 use Joomla\CMS\Response\JsonResponse;
 
 defined('_JEXEC') or die;
-$lang = Factory::getApplication()->getLanguage();
-$lang->load('mod_alfa_cart');
 
 class AlfaCartHelper
 {
@@ -27,6 +25,10 @@ class AlfaCartHelper
 
         $app = Factory::getApplication();
         $params = new Registry($module->params);
+
+        $lang = $app->getLanguage();
+        $lang->load('mod_alfa_cart');
+        $lang->load('com_alfa');
 
         $cart = new CartHelper();
 //        $isEmpty = $cart->isEmpty();
@@ -57,6 +59,11 @@ class AlfaCartHelper
         $input = $app->input;
 
         $params = new Registry($module->params);
+
+        $lang = $app->getLanguage();
+        $lang->load('mod_alfa_cart');
+        $lang->load('com_alfa');
+        
         $cartItems = [];
 
         $app->getSession()->set('application.queue', $app->getMessageQueue());
@@ -69,7 +76,7 @@ class AlfaCartHelper
 
         $cart = new CartHelper();
 
-        $errorOccured = !$cart->updateQuantity($quantity,$itemId);
+        $errorOccured = !$cart->addToCart($itemId,$quantity);
 
         $result = '';
 

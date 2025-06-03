@@ -11,6 +11,17 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use \Alfa\Component\Alfa\Administrator\Event\Shipments\AdminOrderPrepareFormEvent as ShipmentOrderPrepareFormEvent;
+use \Alfa\Component\Alfa\Administrator\Event\Shipments\AdminOrderBeforeSaveEvent as ShipmentBeforeSaveEvent;
+use \Alfa\Component\Alfa\Administrator\Event\Shipments\AdminOrderAfterSaveEvent as ShipmentAfterSaveEvent;
+use \Alfa\Component\Alfa\Administrator\Event\Shipments\AdminOrderDeleteEvent as ShipmentBeforeDeleteEvent;
+
+use \Alfa\Component\Alfa\Administrator\Event\Payments\AdminOrderPrepareFormEvent as PaymentOrderPrepareFormEvent;
+use \Alfa\Component\Alfa\Administrator\Event\Payments\AdminOrderBeforeSaveEvent as PaymentBeforeSaveEvent;
+use \Alfa\Component\Alfa\Administrator\Event\Payments\AdminOrderAfterSaveEvent as PaymentAfterSaveEvent;
+use \Alfa\Component\Alfa\Administrator\Event\Payments\AdminOrderDeleteEvent as PaymentBeforeDeleteEvent;
+
+use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use \Joomla\CMS\Table\Table;
 use \Joomla\CMS\Factory;
 use \Joomla\CMS\Language\Text;
@@ -25,6 +36,7 @@ use \Joomla\CMS\Form;
 use \Alfa\Component\Alfa\Site\Helper\PriceCalculator;
 use \Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use \Alfa\Component\Alfa\Administrator\Helper\OrderHelper;
+use Joomla\Plugin\System\Fields\Extension\Fields;
 
 
 /**
@@ -73,6 +85,153 @@ class OrderModel extends AdminModel
         return parent::getTable($type, $prefix, $config);
     }
 
+    public function getShipmentForm($data = array(), $loadData = true)
+    {
+
+        $form = $this->loadForm('com_alfa.order', 'order_shipments',
+            array(
+                'control' => 'jform',
+                'load_data' => $loadData
+            ));
+
+        if(empty($form)){
+            return false;
+        }
+
+		$app = Factory::getApplication();
+
+	    // Get ID of the article from input
+	    $idFromInput = $app->getInput()->getInt('id', 0);
+	    $orderIdFromInput = $app->getInput()->getInt('id_order', 0);
+
+	    // On edit order, we get ID of order from order.id state, but on save, we use data from input
+	    $id = (int)$this->getState( 'order_shipments.id', $idFromInput);
+	    $orderId = (int)$this->getState( 'order.id', $orderIdFromInput);
+
+	    $shipment = $this->getShipmentData($id);
+		$order = $this->getItem($orderId);//or from $shipment->id_order
+
+	    $onAdminOrderPrepareFormEventName = "onAdminOrderShipmentPrepareForm";
+
+	    $shipmentPrepareFormEvent = new ShipmentOrderPrepareFormEvent($onAdminOrderPrepareFormEventName, [
+		    "subject" => $form,
+		    "method" => $shipment,
+		    "data" => $order
+	    ]);
+
+	    if($id>0 && isset($shipment->params)){
+			$orderShipmentType = $shipment->params->type;
+			Factory::getApplication()->bootPlugin($orderShipmentType, "alfa-shipments")
+				->{$onAdminOrderPrepareFormEventName}($shipmentPrepareFormEvent);
+		}
+
+
+	    // Order and form should be editable by the events.
+//	    $this->item = $shipmentPrepareFormEvent->getData();
+//	    $form = $shipmentPrepareFormEvent->getForm();
+
+        return $form;
+    }
+
+    public function getShipmentData($pk = null)
+    {
+
+        if($pk == null){return null;}
+
+        $db = $this->getDatabase();
+
+        $query = $db->getQuery(true);
+
+        $query
+            ->select('a.*')
+            ->from($db->quoteName('#__alfa_order_shipments', 'a'))
+            ->where($db->quoteName('a.id') . ' = '. $db->quote($pk));
+
+        $db->setQuery($query);
+        $shipment = $db->loadObject();
+
+        $shipmentModel = Factory::getApplication()->bootComponent('com_alfa')
+                ->getMVCFactory()->createModel('Shipment', 'Administrator', ['ignore_request' => true]);
+        $shipment->params = $shipmentModel->getItem($shipment->id_shipment_method);
+
+        return $shipment;
+
+    }
+
+	public function getPaymentForm($data = array(), $loadData = true)
+	{
+
+		$form = $this->loadForm('com_alfa.order', 'order_payments',
+			array(
+				'control' => 'jform',
+				'load_data' => $loadData
+			));
+
+		if(empty($form)){
+			return false;
+		}
+
+		$app = Factory::getApplication();
+
+		// Get ID of the article from input
+		$idFromInput = $app->getInput()->getInt('id', 0);
+		$orderIdFromInput = $app->getInput()->getInt('id_order', 0);
+
+		// On edit order, we get ID of order from order.id state, but on save, we use data from input
+		$id = (int)$this->getState( 'order_payments.id', $idFromInput);
+		$orderId = (int)$this->getState( 'order.id', $orderIdFromInput);
+
+		$payment = $this->getPaymentData($id);
+		$order = $this->getItem($orderId);//or from $payment->id_order
+
+		$onAdminOrderPrepareFormEventName = "onAdminOrderPaymentPrepareForm";
+
+		$paymentPrepareFormEvent = new PaymentOrderPrepareFormEvent($onAdminOrderPrepareFormEventName, [
+			"subject" => $form,
+			"method" => $payment,
+			"data" => $order
+		]);
+
+		if($id>0 && isset($payment->params)){
+			$orderPaymentType = $payment->params->type;
+			Factory::getApplication()->bootPlugin($orderPaymentType, "alfa-payments")
+				->{$onAdminOrderPrepareFormEventName}($paymentPrepareFormEvent);
+		}
+
+
+		// Order and form should be editable by the events.
+//	    $this->item = $paymentPrepareFormEvent->getData();
+//	    $form = $paymentPrepareFormEvent->getForm();
+
+		return $form;
+	}
+
+	public function getPaymentData($pk = null)
+	{
+
+		if($pk == null){return null;}
+
+		$db = $this->getDatabase();
+
+		$query = $db->getQuery(true);
+
+		$query
+			->select('a.*')
+			->from($db->quoteName('#__alfa_order_payments', 'a'))
+			->where($db->quoteName('a.id') . ' = '. $db->quote($pk));
+
+		$db->setQuery($query);
+		$payment = $db->loadObject();
+
+		$paymentModel = Factory::getApplication()->bootComponent('com_alfa')
+			->getMVCFactory()->createModel('Payment', 'Administrator', ['ignore_request' => true]);
+		$payment->params = $paymentModel->getItem($payment->id_payment_method);
+
+		return $payment;
+
+	}
+
+
     /**
      * Method to get the record form.
      *
@@ -85,7 +244,7 @@ class OrderModel extends AdminModel
      */
     public function getForm($data = array(), $loadData = true)
     {
-//        exit;
+
         // Initialise variables.
         $app = Factory::getApplication();
 
@@ -122,257 +281,36 @@ class OrderModel extends AdminModel
             $form->setFieldAttribute('user_name', 'class', '');
         }
 
-        /*
-         *  alfa-payments onAdminOrderPrepareForm event call.
-         */
-
-        $onAdminOrderPrepareFormEventName = "onAdminOrderPrepareForm";
-
-        $orderPaymentType = self::getOrderPaymentData($this->item->id_paymentmethod)->type;
-        Factory::getApplication()->bootPlugin($orderPaymentType, "alfa-payments")->{$onAdminOrderPrepareFormEventName}($form, $this->item);
-
-
-        //TODO: payments subform field disable some fields if are previous
-        //TODO: add deleted products inside items subform field id_item sql/list field
-
-        // change data of subform field
-        // $decodedDateRanges = json_decode($data->date_ranges, true);
-        // $form->setValue('date_ranges', null, $decodedDateRanges);
-
-
-        // $orderPaymentsField = $form->getField('order_payments');
-        // // Loop through each form element in the subform
-        // foreach ($orderPaymentsField->getChildren() as $childField) {
-        //     // Set each child field to be disabled.
-        //     $childField->setAttribute('disabled', 'disabled');
-        // }
-
-        // print_r($form->getField('order_payments'));
-        // exit;
-        // $decodedPayments = json_decode($this->item->order_payments, true);
-
-        // print_r($this->item->order_payments);
-        // exit;
-
-        // subform.order_payments
-        // $paymentsSubform = &$form->getField('order_payments')->loadSubForm();
-
-
-        // $subForm->setFieldAttribute('order_payments0.payment_method', 'readonly', 'true');
-
-        // $fieldInfo = [];
-        //->getFieldset() returns all the fields
-
-        // foreach ($paymentsSubform->getFieldset() as $fieldName => &$field)
-        // {      
-
-        //     $paymentsSubform->setFieldAttribute($fieldName, 'disabled', 'true')
-
-        // }
-
-
-        // $form->setFieldAttribute('order_payments.order_payments0.amount','readonly', 'false');
-        // $form->setFieldAttribute('order_payments.order_payments0.payment_method','readonly', 'false');
-        // Get all fields in the subform and set them as disabled
-        // foreach ($paymentsSubform->getFieldset() as $fieldName => $field) {
-
-        //     print_r($fieldName);
-        //     echo '<br>';
-        //     // $paymentsSubform->setFieldAttribute($fieldName, 'disabled', 'true');
-        // }
-
-        // exit;
-        // foreach ($fieldInfo as $field  => $group) {
-        //     // Case using the advkontent users manager in admin
-        //     // if (\in_array($formName, ['com_advkontent.user', 'com_users.user', 'com_users.registration', 'com_users.profile'])) {
-        //     //     if ($this->params->get('uep_required_' . $field, 1) == 0) {
-        //             $uepSubform->removeField($field, $group);
-        //         // } elseif ($this->params->get('uep_required_' . $field, 0) == 1) {
-        //             // $uepSubform->setFieldAttribute($field, 'required', false, $group);
-        //         // } elseif ($this->params->get('uep_required_' . $field, 1) == 2) {
-        //         //     $uepSubform->setFieldAttribute($field, 'required', true, $group);
-        //         // }
-        //     }
-        // }
-
-// exit;
-        // $paymentsSubform = $form->getField('order_payments');
-
-        // $paymentsSubform->setFieldAttribute('order_payments0.payment_method','readonly',true);
-
-        //jform[order_payments][order_payments0][payment_method]
-
-
-        // print_r($form->loadSubFormData($subformField));
-
-        // $control  = 'subform.order_payments' . '[' . $subForm->fieldname . $i . ']';
-        // $itemForm = Form::getInstance($subForm->getName() . $i, $subForm->formsource, ['control' => $control]);
-
-        // $c = 1;
-
-        //  for ($i = 0; $i < $c; $i++) {
-
-        //      $control  = $subForm->getName() . '[' . $subForm->fieldname . $i . ']';
-        //      $itemForm = Form::getInstance($subForm->getName() . $i, $subForm->formsource, ['control' => $control]);
-
-        //          // Disable specific fields inside the subform
-        //      foreach ($itemForm->getFieldset() as $field) {
-        //          if (in_array($field->fieldname, ['amount', 'date_add'])) { // Replace with actual field names
-        //              $field->setAttribute('disabled', 'true');
-        //          }
-        //      }
-
-        //      // print_r($itemForm->getAttribute('name', 'disabled'))
-        //      // if (!empty($value[$i])) {
-        //      //     $itemForm->bind($value[$i]);
-        //      // }
-
-        //      // $forms[] = $itemForm;
-        //  }
-
-        // print_r($forms);
-        // print_r($subformField->getFieldAttribute('amount','value'));
-        // exit;
-
-        // Disable specific fields by iterating through the subform fields
-        // foreach ($subformField->getFields() as $field) {
-        //     if ($field->name == 'amount') {  // Replace with the field name you want to disable
-        //         $field->disabled = true; // Disable the field
-        //     }
-        // }
-
-
-        // $subformData = $form->loadSubFormData($subformField);
-
-        // print_r($subformData);
-        // exit;
-        // foreach ($subformField->getFieldsets() as $fieldset) {
-
-        //     $idItemField = $form->getField($fieldset->name . '.amount');
-
-        //     // echo 'hey';
-        //     print_r($idItemField);
-
-        // }
-        //  exit;
-       // $itemsField = $form->getField('items')->loadSubForm();
-
-        // TODO: load the deleted item value and name in the sql item_id subform field
-
-
-        // $dataItems = json_decode($data->date_ranges, true);
-        // $form->setValue('items', null, []);
-        // $form->getField('items')->loadSubForm()->getField('id_item')->addOption('foo', ['value' => 'bar']);
-
-// $subForm = $form->getField('items.id_item')->addOption('foo', ['value' => 'bar']);
-
-        // Load the subform
-// $subForm = $form->getField('items')->loadSubForm();
-
-// // Check if the subform is loaded correctly
-// if ($subForm) {
-//     // Access the field within the subform
-//     $field = $subForm->getField('id_item');
-
-//     // Add the option to the field
-//     $field->addOption('foo', ['value' => 'bar']);
-// } else {
-//     // Handle the case where the subform could not be loaded
-//     throw new \Exception('Subform could not be loaded.');
-// }
-
-
-       // Access the 'items' subform field
-        // $itemsField = $form->getField('items');
-
-        // if ($itemsField) {
-        //     // Load the subform associated with 'items'
-        //     $subForm = $itemsField->loadSubForm();
-
-        //     if ($subForm) {
-        //         // Access the 'id_item' field inside the subform
-        //         $idItemField = $subForm->getField('id_item');
-
-        //         $idItemField->getValue()
-        //         if ($idItemField) {
-        //             // Add a custom option to 'id_item'
-        //             $idItemField->addOption(Text::_('COM_ALFA_FORM_CUSTOM_ITEM'), ['value' => '-1']);
-        //         }
-        //     }
-        // }
-
-        // $field = $form->getField('id_item', 'items');
-        // if ($itemsField) {
-
-        //     $id_item = $itemsField->getField('id_item');
-
-        //     if($id_item){
-        //         // $options = $id_item->getOptions();
-
-        //         $customOptionQuery = "SELECT id, name FROM #__alfa_items WHERE id=0)";
-
-        //         $id_item->__set( 'query', $customOptionQuery);
-
-        //         // $options = $id_item->setOptions([]);
-        //     }
-
-        //     // print_r($id_item);
-        //     echo 'FIELD FOUND';
-        // }else{
-        //     echo 'FIELD NOT FOUND';
-        // }
-        // echo '<pre>';
-        // print_r($form->getValue('items'));
-        // echo '</pre>';
-
-        // $data['items'] = '{}';
-        // if (!empty($data->items) && is_array($data->items)) {
-
-        //     foreach ($data->items as &$item) {
-
-        //         // set the name of the item
-        //         if (!($item_table = $this->getTable('Item'))) continue;
-
-        //         if (!$item_table->load($item->id_item)) {
-
-        //         }
-
-        //     }
-        // }
-
-        // Assuming you have a method to fetch existing items from the database or other sources
-        // Here, you can add your custom items
-
-//	    $customItems = array(
-//	        (object) array('id_item' => 3, 'name' => 'Custom Item 1'),
-//	        (object) array('id_item' => 4, 'name' => 'Custom Item 2'),
-//	    );
-
-        // Get the subform field
-//        $subformField = $form->getField('items')->loadSubForm();
-//        foreach ($subformField->getFieldsets() as $fieldset) {
+        // Get user info form.
+//        $formFieldsModel = Factory::getApplication()->bootComponent('com_alfa')
+//            ->getMVCFactory()->createModel('Formfield', 'Administrator', ['ignore_request' => true]);
+
+//        echo "<pre>";
+//        $fields = FieldsHelper::getFields("com_alfa.order");
 //
-//            $idItemField = $form->getField($fieldset->name . '.id_item');
-//
-//            echo 'hey';
-//            print_r($idItemField);
-//            exit;
+//        echo "<pre>";
+//        print_r($fields);
+//        echo "</pre>";
+//        exit;
+
+//        foreach($formFieldForm->getFieldsets() as $fieldset){
+//            print_r($fieldset);
 //        }
-//        $subformField->
-//        print_r(var_dump($subformField->loadSubForm()));
+//        echo "</pre>";
 //        exit;
 
+        FieldsHelper::prepareForm('com_alfa.order', $form, $data);       // Comes in as "fields-0".
 
-//        print_r($field);
-//        exit;
-        // Add custom items to the $data->items array
-//	    foreach ($customItems as $customItem) {
-//	        $data->items[] = $customItem;
-//	    }
-        // print_r($this->form->getFieldAttribute('items'));
-        // exit;
+        // TODO: TO BE PUTTED MAYBE INSIDE PREPARE FORM AND PASS DATA VIA $data
+        foreach ($form->getFieldsets() as $fieldset) {
+            if (!str_starts_with($fieldset->name, 'fields-')) continue;
+                
+            foreach($form->getFieldset($fieldset->name) as $field){
+                $fieldName = str_replace(["jform[com_alfa][", "]"], "", $field->name);
+                $form->setValue($fieldName, 'com_alfa', $this->item->user_info->{$fieldName} ?? '');
+            }
+        }
 
-        // $this->loadFormData();
 
         return $form;
     }
@@ -387,7 +325,7 @@ class OrderModel extends AdminModel
      */
     protected function loadFormData()
     {
-//        exit;
+        
         // Check the session for previously entered form data.
         $data = Factory::getApplication()->getUserState('com_alfa.edit.order.data', array());
 
@@ -399,41 +337,6 @@ class OrderModel extends AdminModel
             $data = $this->item;
 
         }
-
-        // echo '<pre>';
-        // print_r($data);
-        // echo '</pre>';
-        // exit;
-
-        // print_r($data->items);
-        // exit;
-
-        // Check if items exist in the form data
-//	    if (!empty($data->items) && is_array($data->items))
-//	    {
-//
-//	        foreach ($data->items as &$item)
-//	        {
-//
-//            	// set the name of the item
-//		        if (! ($item_table = $this->getTable('Item')) ) continue;
-//
-//		        if( !$item_table->load($item->id_item)){
-////		        	 $item->id_item = 3;  // This works but only for the selected values from the db
-///
-//		        	// print_r($item->id_item);
-//		        	// exit;
-
-//        Want to do something like this - put the deleted record in the sql list to be visible
-//		        	// $item->id_item = array(
-//			        //     'value' => $item->id_item,
-//			        //     'text'  => 'deleted item name',
-//			        // );
-
-//		        }
-//
-//	        }
-//	    }
 
 
         return $data;
@@ -456,7 +359,10 @@ class OrderModel extends AdminModel
             $db = $this->getDatabase();
 
             // GET ORDER PAYMENTS
-            $order->order_payments = $this->getOrderPayments($order->id);
+//	        $order->payments = [];
+//	        $order->shipments = [];
+//            $order->order_payments = $this->getOrderPayments($order->id);
+//            $order->order_shipments = $this->getOrderShipments($order->id);
 
             // GET ORDER ITEMS
             $order->items = OrderHelper::getOrderItems($order->id);
@@ -465,29 +371,58 @@ class OrderModel extends AdminModel
                 $order_item->price = $order_item->total / $order_item->quantity;//calculate the price per unit
             }
 
+            // HERE: Associating order with user info via id_user_info_invoice/id_user_info_delivery.
+
             // GET USER DETAILS
             $query = $db->getQuery(true);
             $query->select('*');
-            $query->from('#__alfa_order_user_info');
-            $query->where('id_order = ' . $db->quote($order->id));
+            $query->from('#__alfa_user_info');
+            $query->where('id = ' . $db->quote($order->id_address_delivery));
             $db->setQuery($query);
             $user_info_result = $db->loadObject();
 
             if ($user_info_result) {
-                $order->user_email = $user_info_result->email;
-                $order->user_name = $user_info_result->name;
-                $order->shipping_address = $user_info_result->shipping_address;
+                $order->user_info = $user_info_result;
+//                $order->user_email = $user_info_result->email;
+//                $order->user_name = $user_info_result->name;
+//                $order->shipping_address = $user_info_result->shipping_address;
+//                $order->city = $user_info_result->city;
+//                $order->zip_code = $user_info_result->zip_code;
+//                $order->state_province = $user_info_result->state;
             }
 
-            // GET PAYMENT DATA
+            // Get all payment data
+	        $paymentMethods =  $this->getOrderPayments($order->id); // Gets an array of values
+
             $paymentModel = Factory::getApplication()->bootComponent('com_alfa')
                 ->getMVCFactory()->createModel('Payment', 'Administrator', ['ignore_request' => true]);
 
-            $order->payment = $paymentModel->getItem($order->id_paymentmethod);
 
-            // to be shown in the administration form
-            $order->payment_name = $order->payment->name;
-            $order->payment_type = $order->payment->type;
+	        $order->payments = [];
+			foreach ($paymentMethods as $paymentMethod) {
+				$payment = new \stdClass();
+				$payment = $paymentMethod;
+				$payment->params = $paymentModel->getItem($paymentMethod->id_payment_method);
+				$order->payments[] = $payment;
+			}
+
+            $order->selected_payment = $paymentModel->getItem($order->id_payment_method);
+
+            // Get all shipment data
+	        $shipmentMethods =  $this->getOrderShipments($order->id); // Gets an array of values
+
+	        $shipmentModel = Factory::getApplication()->bootComponent('com_alfa')
+                ->getMVCFactory()->createModel('Shipment', 'Administrator', ['ignore_request' => true]);
+
+	        foreach ($shipmentMethods as $shipmentMethod) {
+		        $shipment = new \stdClass();
+		        $shipment = $shipmentMethod;
+				$shipment->params = $shipmentModel->getItem($shipmentMethod->id_shipment_method);
+
+		        $order->shipments[] = $shipment;
+	        }
+
+            $order->selected_shipment = $shipmentModel->getItem($order->id_shipment_method);
 
             // GET CURRENCY DATA
             $query = $db->getQuery(true);
@@ -499,6 +434,7 @@ class OrderModel extends AdminModel
             $order->currency_data = $db->loadObject();
 
             $this->item = $order;
+
             return $order;
         }
 
@@ -517,15 +453,39 @@ class OrderModel extends AdminModel
 
     public function save($data)
     {
+
         $app = Factory::getApplication();
 
         // Setting up the alfa-payments event calls.
         // BEFORE SAVE.
         $onBeforeSaveEventName = "onAdminOrderBeforeSave";
-        $paymentType = $this->getOrderPaymentData($data['id_paymentmethod'])->type;
-        $canSave = $app->bootPlugin($paymentType, "alfa-payments")->{$onBeforeSaveEventName}($data);
 
-        if (!$canSave) {
+        $paymentType = $this->getOrderPaymentData($data['id_payment_method'])->type; // ???? Data missing on form submission.
+            // Probably changed things when we changed the way shipments and payments show.
+
+
+        // TODO: Needs work as $data is an array but event expects an object. We also need to pass $data
+        //       by reference.
+        $onPaymentBeforeSaveEvent = new PaymentBeforeSaveEvent($onBeforeSaveEventName, [
+            'subject' => json_decode(json_encode($data))
+        ]);
+
+        $app->bootPlugin($paymentType, "alfa-payments")->{$onBeforeSaveEventName}($onPaymentBeforeSaveEvent);
+        $paymentCanSave = $onPaymentBeforeSaveEvent->getCanSave();
+
+        if (!$paymentCanSave) {
+            return false;
+        }
+
+        // TODO: UPDATE FOR SHIPMENTS.
+        $onShipmentBeforeSaveEvent = new ShipmentBeforeSaveEvent($onBeforeSaveEventName, [
+            'subject' => json_decode(json_encode($data))
+        ]);
+        $shipmentType = $this->getOrderShipmentData($data['id_shipment_method'])->type;
+        $app->bootPlugin($shipmentType, "alfa-shipments")->{$onBeforeSaveEventName}($onShipmentBeforeSaveEvent);
+        $shipmentCanSave = $onShipmentBeforeSaveEvent->getCanSave();
+
+        if (!$shipmentCanSave) {
             return false;
         }
 
@@ -553,6 +513,7 @@ class OrderModel extends AdminModel
 //        echo "</pre>";
 //        exit;
 
+
         if (!parent::save($data)) return false;
 
         $orderId = $data['id'] > 0 ? intval($data['id']) : intval($this->getState($this->getName() . '.id'));
@@ -563,10 +524,25 @@ class OrderModel extends AdminModel
             return false;
         }
 
+        // Save order's items.
         if (!OrderHelper::setOrderItems($orderId, $data, $previousData)) {
             $app->enqueueMessage("Could not save order items.", "error");
             return false;
         }
+
+        // Attempt to set shipments associated with the order
+        if (!$this->setOrderShipments($orderId, $data['order_shipments'])) {
+            $app->enqueueMessage("Could not save order shipments.", "error");
+            return false;
+        }
+
+        // Attempt to save user info associated with the order.
+        if(!OrderHelper::saveUserInfo($data["id_address_delivery"], $data["com_alfa"])){
+            $app->enqueueMessage("Could not save user info.", "error");
+            return false;
+        }
+
+        
         // Attempt to set items associated with the order
         // if (!$this->setOrderItems($orderId, $data)) {
         //     // Revert the data to the previous state
@@ -585,10 +561,76 @@ class OrderModel extends AdminModel
 
         // AFTER SAVE.
         $onAfterSaveEventName = "onAdminOrderAfterSave";
-        $app->bootPlugin($paymentType, "alfa-payments")->{$onAfterSaveEventName}($data);
+        $onAfterSavePaymentEvent = new PaymentAfterSaveEvent($onAfterSaveEventName, [
+            'subject' => json_decode(json_encode($data))
+        ]);
+
+        $app->bootPlugin($paymentType, "alfa-payments")->{$onAfterSaveEventName}($onAfterSavePaymentEvent);
+
+
+        // Shipments after save.
+        $onAfterSaveShipmentEvent = new ShipmentAfterSaveEvent($onBeforeSaveEventName, [
+            'subject' => json_decode(json_encode($data))
+        ]);
+        $app->bootPlugin($shipmentType, "alfa-shipments")->{$onAfterSaveEventName}($onAfterSaveShipmentEvent);
+
 
         return true;
     }
+
+
+    public function setOrderShipments($orderID, $data){
+        $db = self::getDatabase();
+        $query = $db->getQuery(true);
+
+        // Insert or update for each object of $data.
+        foreach($data as $shipment) {
+            $shipment["id_order"] = $orderID;
+            $shipment = json_decode(json_encode($shipment));
+            
+            if (!empty($shipment->id)){
+                $db->updateObject('#__alfa_order_shipments', $shipment, 'id', true);
+            }
+            else{
+                $db->insertObject('#__alfa_order_shipments', $shipment);
+            }
+        }
+
+        return true;
+
+    }
+
+    // Get order shipments.
+    public function getOrderShipments($orderId)
+    {
+        // Get order items
+        $db = $this->getDatabase();
+        $query = $db->getQuery(true);
+
+        $query->select('*');
+        $query->from('#__alfa_order_shipments');
+        $query->where('id_order = ' . $db->quote($orderId));
+        $db->setQuery($query);
+        $items = $db->loadObjectList();//for the subform
+
+        return $items;
+
+        //$db = $this->getDatabase();
+        //
+        //        $query = $db->getQuery(true);
+        //
+        //        $query
+        //            ->select("*")
+        //            ->from("#__alfa_payments")
+        //            ->where("id=" . $paymentID);
+        //
+        //        $db->setQuery($query);
+        //
+        //        return $db->loadObject();
+
+    }
+
+
 
     // GET AND SET ORDER PAYMENTS
 
@@ -698,15 +740,38 @@ class OrderModel extends AdminModel
         $app = Factory::getApplication();
         $db = $this->getDatabase();
 
-        $onAdminOrderDeleteEventName = "onAdminOrderDelete";
-        $ordersPaymentType = self::getPaymentTypes($pks);
+        foreach($pks as $pk){
+            $orders[] = self::getItem($pk);
+        }
 
-        foreach ($ordersPaymentType as $i => $order) {
-            $deleteEntry = $app->bootPlugin($order->payment_type, "alfa-payments")->{$onAdminOrderDeleteEventName}($order->order_id);
-            if (!$deleteEntry)
+        $onAdminOrderDeleteEventName = "onAdminOrderDelete";
+        foreach($orders as $i => $order){
+            $paymentDeleteOrderDataEvent = new PaymentBeforeDeleteEvent($onAdminOrderDeleteEventName, [
+                "subject" => $order,
+                "method" => $order->payment
+            ]);
+
+            $app->bootPlugin($order->payment_type, "alfa-payments")
+                ->{$onAdminOrderDeleteEventName}($paymentDeleteOrderDataEvent);
+            $deleteEntry = $paymentDeleteOrderDataEvent->getCanDelete();
+
+            if($deleteEntry){
+                $shipmentDeleteOrderDataEvent = new ShipmentBeforeDeleteEvent($onAdminOrderDeleteEventName, [
+                    "subject" => $order,
+                    "method" => $order->shipment
+                ]);
+
+                $app->bootPlugin($order->shipment_type, "alfa-shipments")
+                    ->{$onAdminOrderDeleteEventName}($shipmentDeleteOrderDataEvent);
+                $deleteEntry = $shipmentDeleteOrderDataEvent->getCanDelete();
+            }
+
+            if(!$deleteEntry)
                 unset($pks[$i]);
 
         }
+
+        // TODO: delete shipment data also by booting the plugin
 
         if (empty($pks))
             return true;
@@ -715,18 +780,49 @@ class OrderModel extends AdminModel
         $query = $db->getQuery(true);
         $query
             ->delete($db->quoteName("#__alfa_order_items"))
-            ->whereIN("id_order", $pks);
+            ->whereIn("id_order", $pks);
         $db->setQuery($query);
         $db->execute();
 
+//        try {
+        // Deleting non-user user info.
+        $ids = implode(',', array_map([$db, 'quote'], $pks));
 
-        // Deleting order user info.
-        $query = $db->getQuery(true);
-        $query
-            ->delete($db->quoteName("#__alfa_order_user_info"))
-            ->whereIN("id_order", $pks);
+        $subQuery1 = 'SELECT ' . $db->qn('id_address_delivery') .
+            ' FROM ' . $db->qn('#__alfa_orders') .
+            ' WHERE ' . $db->qn('id') . ' IN (' . $ids . ')';
+
+        $subQuery2 = 'SELECT ' . $db->qn('id_address_invoice') .
+            ' FROM ' . $db->qn('#__alfa_orders') .
+            ' WHERE ' . $db->qn('id') . ' IN (' . $ids . ')';
+
+        $query = $db->getQuery(true)
+            ->delete($db->qn('#__alfa_user_info'))
+            ->where('(' . $db->qn('id') . ' IN (' . $subQuery1 . ') OR ' . $db->qn('id') . ' IN (' . $subQuery2 . '))')
+            ->where($db->qn('id_user') . ' = 0');
+
         $db->setQuery($query);
         $db->execute();
+
+//        }
+//        catch(\Exception $e){
+//            echo $e->getMessage();
+//            echo "<br>QUERY:" . $query;
+//        }
+
+        // Deleting user info of non-user entries.
+        // Get
+//        $query
+//            ->select("id_address_delivery, id_address_invoice")
+//            ->from("#__alfa_orders")
+//            ->whereIn("id", $pks);
+//
+//        $query = $db->getQuery(true);
+//        $query
+//            ->delete($db->quoteName("#__alfa_order_user_info"))
+//            ->whereIN("id_order", $pks);
+//        $db->setQuery($query);
+//        $db->execute();
 
 
         // Now check to see if this articles was featured if so delete it from the #__content_frontpage table
@@ -750,6 +846,23 @@ class OrderModel extends AdminModel
 
         $result = parent::delete($pks);
         return $result;
+    }
+
+    protected function getOrderShipmentData($shipmentID)
+    {
+        $db = $this->getDatabase();
+
+        $query = $db->getQuery(true);
+
+        $query
+            ->select("*")
+            ->from("#__alfa_shipments")
+            ->where("id=" . $shipmentID);
+
+        $db->setQuery($query);
+
+        return $db->loadObject();
+
     }
 
     protected function getOrderPaymentData($paymentID)
@@ -790,5 +903,25 @@ class OrderModel extends AdminModel
         return $result;
 
     }
+
+    protected function getShipmentTypes(&$pks){
+        $db = $this->getDatabase();
+
+        $query = $db->getQuery(true);
+
+        $query
+            ->select("o.id as order_id, s.type as shipment_type")
+            ->from($db->quoteName("#__alfa_orders", "o"))
+            ->leftJoin($db->qn("#__alfa_shipments", "s") . " ON " . $db->qn("o.id_shipmentmethod") . " = " . $db->qn("s.id"))
+            ->whereIn($db->qn("o.id"), $pks);
+
+        $db->setQuery($query);
+        $result = $db->loadObjectList();
+        return $result;
+
+    }
+
+
+
 
 }

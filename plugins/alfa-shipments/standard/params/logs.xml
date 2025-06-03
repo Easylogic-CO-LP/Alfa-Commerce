@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+    <fields name="shipmentslogs">
+        <fieldset name="shipmentslogs">
+            <field name="shipment_total" mysql_type="decimal(15,5)" default="0.00000"/>
+            <field name="currency" mysql_type="char(3)" default="NULL"/>
+            <field name="created_on" mysql_type="datetime" default="0000-00-00 00:00:00"/>
+            <field name="created_by"  mysql_type="int(11)" default="0"/>
+        </fieldset>
+    </fields>
+</form>

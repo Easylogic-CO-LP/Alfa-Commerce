@@ -1,3 +1,4 @@
+
 --
 -- Database: `el2demosites_alfadb`
 --
@@ -11,18 +12,18 @@
 CREATE TABLE IF NOT EXISTS `#__alfa_cart` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `id_shop_group` int(11) NOT NULL,
-  `id_carrier` int(11) NOT NULL,
-  `delivery_option` text NOT NULL,
+  `id_payment` int(11) DEFAULT NULL,
+  `id_shipment` int(11) DEFAULT NULL,
   `id_lang` int(11) NOT NULL,
-  `id_address_delivery` int(11) NOT NULL,
-  `id_address_invoice` int(11) NOT NULL,
+  `id_user_info_delivery` int(11) NOT NULL,
+  `id_user_info_invoice` int(11) NOT NULL,
   `id_currency` int(11) NOT NULL,
   `id_customer` int(11) NOT NULL,
-  `date_add` datetime NOT NULL,
-  `date_upd` datetime NOT NULL,
+  `added` datetime NOT NULL,
+  `updated` datetime NOT NULL,
   `recognize_key` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -34,7 +35,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_cart_items` (
   `id_cart` int(11) NOT NULL,
   `id_item` int(11) NOT NULL,
   `quantity` float NOT NULL,
-  `date_add` datetime NOT NULL DEFAULT current_timestamp()
+  `added` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -67,7 +68,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_categories` (
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`),
   KEY `idx_state` (`state`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -181,7 +182,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_currencies` (
   KEY `currency_name` (`name`),
   KEY `published` (`state`),
   KEY `currency_numeric_code` (`number`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Used to store currencies';
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Used to store currencies';
 
 --
 -- Dumping data for table `#__alfa_currencies`
@@ -409,7 +410,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_discounts` (
   KEY `idx_checked_out` (`checked_out`),
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -469,6 +470,55 @@ CREATE TABLE IF NOT EXISTS `#__alfa_discount_users` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `#__alfa_form_fields`
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_form_fields` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `type` text DEFAULT NULL,
+  `params` text DEFAULT NULL,
+  `name` text NOT NULL,
+  `field_name` text NOT NULL,
+  `field_label` text NOT NULL,
+  `field_description` text NOT NULL DEFAULT '',
+  `required` tinyint(1) DEFAULT 0,
+  `registration` tinyint(1) DEFAULT 0,
+  `billing` tinyint(1) DEFAULT 0,
+  `shipping` tinyint(1) DEFAULT 0,
+  `ordering` int(11) NOT NULL DEFAULT 0,
+  `created_by` int(11) NOT NULL,
+  `modified_by` int(11) DEFAULT NULL,
+  `checked_out` int(11) DEFAULT NULL,
+  `state` tinyint(4) DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `field_name` (`field_name`) USING HASH
+) ENGINE=MyISAM AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `#__alfa_form_fields_usergroups`
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_form_fields_usergroups` (
+  `field_id` int(11) NOT NULL,
+  `usergroup_id` int(11) NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `#__alfa_form_fields_users`
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_form_fields_users` (
+  `field_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `#__alfa_items`
 --
 
@@ -490,6 +540,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items` (
   `stock_low_message` varchar(300) NOT NULL,
   `stock_zero_message` varchar(300) NOT NULL,
   `manage_stock` tinyint(1) DEFAULT 1,
+  `width` decimal(20,6) NOT NULL DEFAULT 0.000000,
+  `height` decimal(20,6) NOT NULL DEFAULT 0.000000,
+  `depth` decimal(20,6) NOT NULL DEFAULT 0.000000,
+  `weight` decimal(20,6) NOT NULL DEFAULT 0.000000,
   `alias` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_bin DEFAULT NULL,
   `meta_title` varchar(255) DEFAULT '',
   `meta_desc` text DEFAULT NULL,
@@ -507,7 +561,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items` (
   KEY `idx_checked_out` (`checked_out`),
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -569,7 +623,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_prices` (
   KEY `idx_usergroup_id` (`usergroup_id`),
   KEY `idx_user_id` (`user_id`),
   KEY `idx_country_id` (`country_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -637,8 +691,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
   `id_currency` int(11) DEFAULT NULL,
   `id_address_delivery` int(11) DEFAULT NULL,
   `id_address_invoice` int(11) DEFAULT NULL,
-  `id_paymentmethod` int(11) DEFAULT NULL,
-  `id_shipmentmethod` int(11) DEFAULT NULL,
+  `id_payment_method` int(11) DEFAULT NULL,
+  `id_shipment_method` int(11) DEFAULT NULL,
   `id_order_status` int(11) DEFAULT NULL,
   `id_payment_currency` int(11) DEFAULT NULL,
   `id_language` int(11) DEFAULT NULL,
@@ -649,7 +703,6 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
   `payed_price` float DEFAULT NULL,
   `total_shipping` float DEFAULT NULL,
   `ip_address` varchar(255) DEFAULT NULL,
-  `shipping_tracking_number` varchar(255) DEFAULT NULL,
   `payment_status` varchar(255) DEFAULT NULL,
   `customer_note` text DEFAULT NULL,
   `note` text DEFAULT NULL,
@@ -664,7 +717,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
   KEY `checked_out` (`checked_out`),
   KEY `modified_by` (`modified_by`),
   KEY `created_by` (`created_by`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -686,7 +739,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders_statuses` (
   `modified_by` int(11) DEFAULT 0,
   `ordering` int(11) DEFAULT 0,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `#__alfa_orders_statuses`
@@ -709,14 +762,15 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_items` (
   `id_order` int(11) NOT NULL,
   `id_item` int(11) NOT NULL,
   `id_shipmentmethod` int(11) NOT NULL,
-  `name` varchar(255) NOT NULL,
+  `product_name` varchar(255) NOT NULL,
   `total` float NOT NULL,
   `quantity` float NOT NULL,
+  `added` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `id_item` (`id_item`),
   KEY `id_order` (`id_order`),
   KEY `id_shipmentmethod` (`id_shipmentmethod`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -732,28 +786,28 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_payments` (
   `id_payment_method` varchar(255) NOT NULL,
   `conversion_rate` decimal(13,6) DEFAULT 1.000000,
   `transaction_id` varchar(254) DEFAULT NULL,
-  `date_add` datetime NOT NULL,
+  `added` datetime NOT NULL,
   `id_user` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `#__alfa_order_user_info`
+-- Table structure for table `#__alfa_order_shipments`
 --
 
-CREATE TABLE IF NOT EXISTS `#__alfa_order_user_info` (
+CREATE TABLE IF NOT EXISTS `#__alfa_order_shipments` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `id_order` int(11) NOT NULL,
-  `name` varchar(255) NOT NULL,
-  `email` varchar(255) NOT NULL,
-  `shipping_address` varchar(255) NOT NULL,
-  `city` varchar(255) NOT NULL,
-  `state` varchar(255) NOT NULL,
-  `zip_code` varchar(255) NOT NULL,
+  `id_order` varchar(9) NOT NULL,
+  `id_currency` int(11) NOT NULL,
+  `amount` decimal(10,0) NOT NULL,
+  `id_shipment_method` varchar(255) NOT NULL,
+  `track_id` varchar(255) NOT NULL,
+  `added` datetime NOT NULL,
+  `id_user` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -781,7 +835,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_payments` (
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`),
   KEY `idx_state` (`state`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -847,9 +901,6 @@ CREATE TABLE IF NOT EXISTS `#__alfa_payment_users` (
 CREATE TABLE IF NOT EXISTS `#__alfa_places` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
-  `code2` varchar(2) NOT NULL,
-  `code3` varchar(3) NOT NULL,
-  `number` double NOT NULL DEFAULT 0,
   `parent_id` int(11) DEFAULT 0,
   `state` tinyint(1) NOT NULL DEFAULT 1,
   `ordering` int(11) DEFAULT 0,
@@ -863,260 +914,260 @@ CREATE TABLE IF NOT EXISTS `#__alfa_places` (
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`),
   KEY `idx_state` (`state`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `#__alfa_places`
 --
 
-INSERT INTO `#__alfa_places` (`id`, `name`, `code2`, `code3`, `number`, `parent_id`, `state`, `ordering`, `checked_out`, `checked_out_time`, `created_by`, `modified_by`) VALUES
-(1, 'Afghanistan', 'AF', 'AFG', 0, 0, 0, 0, NULL, NULL, 42, 0),
-(2, 'Albania', 'AL', 'ALB', 0, 0, 0, 0, NULL, NULL, 42, 0),
-(3, 'Algeria', 'DZ', 'DZA', 0, 0, 0, 0, NULL, NULL, 42, 0),
-(4, 'American Samoa', 'AS', 'ASM', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(5, 'Andorra', 'AD', 'AND', 0, 0, 0, 0, NULL, NULL, 42, 0),
-(6, 'Angola', 'AO', 'AGO', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(7, 'Anguilla', 'AI', 'AIA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(8, 'Antarctica', 'AQ', 'ATA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(9, 'Antigua and Barbuda', 'AG', 'ATG', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(10, 'Argentina', 'AR', 'ARG', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(11, 'Armenia', 'AM', 'ARM', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(12, 'Aruba', 'AW', 'ABW', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(13, 'Australia', 'AU', 'AUS', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(14, 'Austria', 'AT', 'AUT', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(15, 'Azerbaijan', 'AZ', 'AZE', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(16, 'Bahamas', 'BS', 'BHS', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(17, 'Bahrain', 'BH', 'BHR', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(18, 'Bangladesh', 'BD', 'BGD', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(19, 'Barbados', 'BB', 'BRB', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(20, 'Belarus', 'BY', 'BLR', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(21, 'Belgium', 'BE', 'BEL', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(22, 'Belize', 'BZ', 'BLZ', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(23, 'Benin', 'BJ', 'BEN', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(24, 'Bermuda', 'BM', 'BMU', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(25, 'Bhutan', 'BT', 'BTN', 64, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(26, 'Bolivia', 'BO', 'BOL', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(27, 'Bosnia and Herzegowina', 'BA', 'BIH', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(28, 'Botswana', 'BW', 'BWA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(29, 'Bouvet Island', 'BV', 'BVT', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(30, 'Brazil', 'BR', 'BRA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(31, 'British Indian Ocean Territory', 'IO', 'IOT', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(32, 'Brunei Darussalam', 'BN', 'BRN', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(33, 'Bulgaria', 'BG', 'BGR', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(34, 'Burkina Faso', 'BF', 'BFA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(35, 'Burundi', 'BI', 'BDI', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(36, 'Cambodia', 'KH', 'KHM', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(37, 'Cameroon', 'CM', 'CMR', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(38, 'Canada', 'CA', 'CAN', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(39, 'Cape Verde', 'CV', 'CPV', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(40, 'Cayman Islands', 'KY', 'CYM', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(41, 'Central African Republic', 'CF', 'CAF', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(42, 'Chad', 'TD', 'TCD', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(43, 'Chile', 'CL', 'CHL', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(44, 'China', 'CN', 'CHN', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(45, 'Christmas Island', 'CX', 'CXR', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(46, 'Cocos (Keeling) Islands', 'CC', 'CCK', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(47, 'Colombia', 'CO', 'COL', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(48, 'Comoros', 'KM', 'COM', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(49, 'Congo', 'CG', 'COG', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(50, 'Cook Islands', 'CK', 'COK', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(51, 'Costa Rica', 'CR', 'CRI', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(52, 'Cote D\'Ivoire', 'CI', 'CIV', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(53, 'Croatia', 'HR', 'HRV', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(54, 'Cuba', 'CU', 'CUB', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(55, 'Cyprus', 'CY', 'CYP', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(56, 'Czech Republic', 'CZ', 'CZE', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(57, 'Denmark', 'DK', 'DNK', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(58, 'Djibouti', 'DJ', 'DJI', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(59, 'Dominica', 'DM', 'DMA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(60, 'Dominican Republic', 'DO', 'DOM', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(61, 'East Timor', 'TP', 'TMP', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(62, 'Ecuador', 'EC', 'ECU', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(63, 'Egypt', 'EG', 'EGY', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(64, 'El Salvador', 'SV', 'SLV', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(65, 'Equatorial Guinea', 'GQ', 'GNQ', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(66, 'Eritrea', 'ER', 'ERI', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(67, 'Estonia', 'EE', 'EST', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(68, 'Ethiopia', 'ET', 'ETH', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(69, 'Falkland Islands (Malvinas)', 'FK', 'FLK', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(70, 'Faroe Islands', 'FO', 'FRO', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(71, 'Fiji', 'FJ', 'FJI', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(72, 'Finland', 'FI', 'FIN', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(73, 'France', 'FR', 'FRA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(75, 'French Guiana', 'GF', 'GUF', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(76, 'French Polynesia', 'PF', 'PYF', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(77, 'French Southern Territories', 'TF', 'ATF', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(78, 'Gabon', 'GA', 'GAB', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(79, 'Gambia', 'GM', 'GMB', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(80, 'Georgia', 'GE', 'GEO', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(81, 'Germany', 'DE', 'DEU', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(82, 'Ghana', 'GH', 'GHA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(83, 'Gibraltar', 'GI', 'GIB', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(84, 'Greece', 'GR', 'GRC', 0, 0, 1, 0, NULL, NULL, 42, 0),
-(85, 'Greenland', 'GL', 'GRL', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(86, 'Grenada', 'GD', 'GRD', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(87, 'Guadeloupe', 'GP', 'GLP', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(88, 'Guam', 'GU', 'GUM', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(89, 'Guatemala', 'GT', 'GTM', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(90, 'Guinea', 'GN', 'GIN', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(91, 'Guinea-bissau', 'GW', 'GNB', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(92, 'Guyana', 'GY', 'GUY', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(93, 'Haiti', 'HT', 'HTI', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(94, 'Heard and Mc Donald Islands', 'HM', 'HMD', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(95, 'Honduras', 'HN', 'HND', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(96, 'Hong Kong', 'HK', 'HKG', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(97, 'Hungary', 'HU', 'HUN', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(98, 'Iceland', 'IS', 'ISL', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(99, 'India', 'IN', 'IND', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(100, 'Indonesia', 'ID', 'IDN', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(101, 'Iran (Islamic Republic of)', 'IR', 'IRN', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(102, 'Iraq', 'IQ', 'IRQ', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(103, 'Ireland', 'IE', 'IRL', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(104, 'Israel', 'IL', 'ISR', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(105, 'Italy', 'IT', 'ITA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(106, 'Jamaica', 'JM', 'JAM', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(107, 'Japan', 'JP', 'JPN', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(108, 'Jordan', 'JO', 'JOR', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(109, 'Kazakhstan', 'KZ', 'KAZ', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(110, 'Kenya', 'KE', 'KEN', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(111, 'Kiribati', 'KI', 'KIR', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(112, 'Korea, Democratic People\'s Republic of', 'KP', 'PRK', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(113, 'Korea, Republic of', 'KR', 'KOR', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(114, 'Kuwait', 'KW', 'KWT', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(115, 'Kyrgyzstan', 'KG', 'KGZ', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(116, 'Lao People\'s Democratic Republic', 'LA', 'LAO', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(117, 'Latvia', 'LV', 'LVA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(118, 'Lebanon', 'LB', 'LBN', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(119, 'Lesotho', 'LS', 'LSO', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(120, 'Liberia', 'LR', 'LBR', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(121, 'Libya', 'LY', 'LBY', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(122, 'Liechtenstein', 'LI', 'LIE', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(123, 'Lithuania', 'LT', 'LTU', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(124, 'Luxembourg', 'LU', 'LUX', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(125, 'Macau', 'MO', 'MAC', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(126, 'Macedonia, The Former Yugoslav Republic of', 'MK', 'MKD', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(127, 'Madagascar', 'MG', 'MDG', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(128, 'Malawi', 'MW', 'MWI', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(129, 'Malaysia', 'MY', 'MYS', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(130, 'Maldives', 'MV', 'MDV', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(131, 'Mali', 'ML', 'MLI', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(132, 'Malta', 'MT', 'MLT', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(133, 'Marshall Islands', 'MH', 'MHL', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(134, 'Martinique', 'MQ', 'MTQ', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(135, 'Mauritania', 'MR', 'MRT', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(136, 'Mauritius', 'MU', 'MUS', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(137, 'Mayotte', 'YT', 'MYT', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(138, 'Mexico', 'MX', 'MEX', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(139, 'Micronesia, Federated States of', 'FM', 'FSM', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(140, 'Moldova, Republic of', 'MD', 'MDA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(141, 'Monaco', 'MC', 'MCO', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(142, 'Mongolia', 'MN', 'MNG', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(143, 'Montserrat', 'MS', 'MSR', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(144, 'Morocco', 'MA', 'MAR', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(145, 'Mozambique', 'MZ', 'MOZ', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(146, 'Myanmar', 'MM', 'MMR', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(147, 'Namibia', 'NA', 'NAM', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(148, 'Nauru', 'NR', 'NRU', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(149, 'Nepal', 'NP', 'NPL', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(150, 'Netherlands', 'NL', 'NLD', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(151, 'Netherlands Antilles', 'AN', 'ANT', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(152, 'New Caledonia', 'NC', 'NCL', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(153, 'New Zealand', 'NZ', 'NZL', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(154, 'Nicaragua', 'NI', 'NIC', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(155, 'Niger', 'NE', 'NER', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(156, 'Nigeria', 'NG', 'NGA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(157, 'Niue', 'NU', 'NIU', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(158, 'Norfolk Island', 'NF', 'NFK', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(159, 'Northern Mariana Islands', 'MP', 'MNP', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(160, 'Norway', 'NO', 'NOR', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(161, 'Oman', 'OM', 'OMN', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(162, 'Pakistan', 'PK', 'PAK', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(163, 'Palau', 'PW', 'PLW', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(164, 'Panama', 'PA', 'PAN', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(165, 'Papua New Guinea', 'PG', 'PNG', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(166, 'Paraguay', 'PY', 'PRY', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(167, 'Peru', 'PE', 'PER', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(168, 'Philippines', 'PH', 'PHL', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(169, 'Pitcairn', 'PN', 'PCN', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(170, 'Poland', 'PL', 'POL', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(171, 'Portugal', 'PT', 'PRT', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(172, 'Puerto Rico', 'PR', 'PRI', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(173, 'Qatar', 'QA', 'QAT', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(174, 'Reunion', 'RE', 'REU', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(175, 'Romania', 'RO', 'ROM', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(176, 'Russian Federation', 'RU', 'RUS', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(177, 'Rwanda', 'RW', 'RWA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(178, 'Saint Kitts and Nevis', 'KN', 'KNA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(179, 'Saint Lucia', 'LC', 'LCA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(180, 'Saint Vincent and the Grenadines', 'VC', 'VCT', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(181, 'Samoa', 'WS', 'WSM', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(182, 'San Marino', 'SM', 'SMR', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(183, 'Sao Tome and Principe', 'ST', 'STP', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(184, 'Saudi Arabia', 'SA', 'SAU', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(185, 'Senegal', 'SN', 'SEN', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(186, 'Seychelles', 'SC', 'SYC', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(187, 'Sierra Leone', 'SL', 'SLE', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(188, 'Singapore', 'SG', 'SGP', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(189, 'Slovakia', 'SK', 'SVK', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(190, 'Slovenia', 'SI', 'SVN', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(191, 'Solomon Islands', 'SB', 'SLB', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(192, 'Somalia', 'SO', 'SOM', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(193, 'South Africa', 'ZA', 'ZAF', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(194, 'South Georgia and the South Sandwich Islands', 'GS', 'SGS', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(195, 'Spain', 'ES', 'ESP', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(196, 'Sri Lanka', 'LK', 'LKA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(197, 'St. Helena', 'SH', 'SHN', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(198, 'St. Pierre and Miquelon', 'PM', 'SPM', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(199, 'Sudan', 'SD', 'SDN', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(200, 'Suriname', 'SR', 'SUR', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(201, 'Svalbard and Jan Mayen Islands', 'SJ', 'SJM', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(202, 'Swaziland', 'SZ', 'SWZ', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(203, 'Sweden', 'SE', 'SWE', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(204, 'Switzerland', 'CH', 'CHE', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(205, 'Syrian Arab Republic', 'SY', 'SYR', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(206, 'Taiwan', 'TW', 'TWN', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(207, 'Tajikistan', 'TJ', 'TJK', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(208, 'Tanzania, United Republic of', 'TZ', 'TZA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(209, 'Thailand', 'TH', 'THA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(210, 'Togo', 'TG', 'TGO', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(211, 'Tokelau', 'TK', 'TKL', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(212, 'Tonga', 'TO', 'TON', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(213, 'Trinidad and Tobago', 'TT', 'TTO', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(214, 'Tunisia', 'TN', 'TUN', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(215, 'Turkey', 'TR', 'TUR', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(216, 'Turkmenistan', 'TM', 'TKM', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(217, 'Turks and Caicos Islands', 'TC', 'TCA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(218, 'Tuvalu', 'TV', 'TUV', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(219, 'Uganda', 'UG', 'UGA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(220, 'Ukraine', 'UA', 'UKR', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(221, 'United Arab Emirates', 'AE', 'ARE', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(222, 'United Kingdom', 'GB', 'GBR', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(223, 'United States', 'US', 'USA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(224, 'United States Minor Outlying Islands', 'UM', 'UMI', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(225, 'Uruguay', 'UY', 'URY', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(226, 'Uzbekistan', 'UZ', 'UZB', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(227, 'Vanuatu', 'VU', 'VUT', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(228, 'Vatican City State (Holy See)', 'VA', 'VAT', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(229, 'Venezuela', 'VE', 'VEN', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(230, 'Viet Nam', 'VN', 'VNM', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(231, 'Virgin Islands (British)', 'VG', 'VGB', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(232, 'Virgin Islands (U.S.)', 'VI', 'VIR', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(233, 'Wallis and Futuna Islands', 'WF', 'WLF', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(234, 'Western Sahara', 'EH', 'ESH', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(235, 'Yemen', 'YE', 'YEM', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(237, 'The Democratic Republic of Congo', 'DC', 'DRC', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(238, 'Zambia', 'ZM', 'ZMB', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(239, 'Zimbabwe', 'ZW', 'ZWE', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(240, 'East Timor', 'XE', 'XET', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(241, 'Jersey', 'JE', 'JEY', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(242, 'St. Barthelemy', 'XB', 'XSB', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(243, 'St. Eustatius', 'XU', 'XSE', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(244, 'Canary Islands', 'XC', 'XCA', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(245, 'Serbia', 'RS', 'SRB', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(246, 'Sint Maarten (French Antilles)', 'MF', 'MAF', 0, 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
-(247, 'Sint Maarten (Netherlands Antilles)', 'SX', 'SXM', 0, 0, 0, 0, NULL, NULL, 42, 923),
-(248, 'Palestinian Territory, occupied', 'PS', 'PSE', 0, 0, 0, 0, NULL, NULL, 42, 923),
-(249, 'Larisa', 'ZZ', 'LAR', 121, 84, 1, 1, NULL, NULL, 923, 923);
+INSERT INTO `#__alfa_places` (`id`, `name`, `parent_id`, `state`, `ordering`, `checked_out`, `checked_out_time`, `created_by`, `modified_by`) VALUES
+(1, 'Afghanistan', 0, 0, 0, NULL, NULL, 42, 0),
+(2, 'Albania', 0, 0, 0, NULL, NULL, 42, 0),
+(3, 'Algeria', 0, 0, 0, NULL, NULL, 42, 0),
+(4, 'American Samoa', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(5, 'Andorra', 0, 0, 0, NULL, NULL, 42, 0),
+(6, 'Angola', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(7, 'Anguilla', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(8, 'Antarctica', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(9, 'Antigua and Barbuda', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(10, 'Argentina', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(11, 'Armenia', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(12, 'Aruba', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(13, 'Australia', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(14, 'Austria', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(15, 'Azerbaijan', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(16, 'Bahamas', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(17, 'Bahrain', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(18, 'Bangladesh', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(19, 'Barbados', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(20, 'Belarus', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(21, 'Belgium', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(22, 'Belize', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(23, 'Benin', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(24, 'Bermuda', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(25, 'Bhutan', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(26, 'Bolivia', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(27, 'Bosnia and Herzegowina', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(28, 'Botswana', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(29, 'Bouvet Island', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(30, 'Brazil', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(31, 'British Indian Ocean Territory', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(32, 'Brunei Darussalam', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(33, 'Bulgaria', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(34, 'Burkina Faso', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(35, 'Burundi', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(36, 'Cambodia', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(37, 'Cameroon', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(38, 'Canada', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(39, 'Cape Verde', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(40, 'Cayman Islands', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(41, 'Central African Republic', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(42, 'Chad', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(43, 'Chile', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(44, 'China', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(45, 'Christmas Island', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(46, 'Cocos (Keeling) Islands', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(47, 'Colombia', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(48, 'Comoros', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(49, 'Congo', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(50, 'Cook Islands', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(51, 'Costa Rica', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(52, 'Cote D\'Ivoire', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(53, 'Croatia', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(54, 'Cuba', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(55, 'Cyprus', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(56, 'Czech Republic', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(57, 'Denmark', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(58, 'Djibouti', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(59, 'Dominica', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(60, 'Dominican Republic', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(61, 'East Timor', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(62, 'Ecuador', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(63, 'Egypt', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(64, 'El Salvador', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(65, 'Equatorial Guinea', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(66, 'Eritrea', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(67, 'Estonia', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(68, 'Ethiopia', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(69, 'Falkland Islands (Malvinas)', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(70, 'Faroe Islands', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(71, 'Fiji', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(72, 'Finland', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(73, 'France', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(75, 'French Guiana', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(76, 'French Polynesia', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(77, 'French Southern Territories', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(78, 'Gabon', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(79, 'Gambia', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(80, 'Georgia', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(81, 'Germany', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(82, 'Ghana', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(83, 'Gibraltar', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(84, 'Greece', 0, 1, 0, NULL, NULL, 42, 0),
+(85, 'Greenland', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(86, 'Grenada', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(87, 'Guadeloupe', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(88, 'Guam', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(89, 'Guatemala', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(90, 'Guinea', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(91, 'Guinea-bissau', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(92, 'Guyana', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(93, 'Haiti', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(94, 'Heard and Mc Donald Islands', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(95, 'Honduras', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(96, 'Hong Kong', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(97, 'Hungary', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(98, 'Iceland', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(99, 'India', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(100, 'Indonesia', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(101, 'Iran (Islamic Republic of)', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(102, 'Iraq', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(103, 'Ireland', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(104, 'Israel', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(105, 'Italy', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(106, 'Jamaica', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(107, 'Japan', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(108, 'Jordan', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(109, 'Kazakhstan', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(110, 'Kenya', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(111, 'Kiribati', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(112, 'Korea, Democratic People\'s Republic of', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(113, 'Korea, Republic of', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(114, 'Kuwait', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(115, 'Kyrgyzstan', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(116, 'Lao People\'s Democratic Republic', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(117, 'Latvia', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(118, 'Lebanon', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(119, 'Lesotho', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(120, 'Liberia', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(121, 'Libya', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(122, 'Liechtenstein', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(123, 'Lithuania', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(124, 'Luxembourg', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(125, 'Macau', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(126, 'Macedonia, The Former Yugoslav Republic of', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(127, 'Madagascar', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(128, 'Malawi', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(129, 'Malaysia', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(130, 'Maldives', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(131, 'Mali', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(132, 'Malta', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(133, 'Marshall Islands', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(134, 'Martinique', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(135, 'Mauritania', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(136, 'Mauritius', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(137, 'Mayotte', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(138, 'Mexico', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(139, 'Micronesia, Federated States of', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(140, 'Moldova, Republic of', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(141, 'Monaco', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(142, 'Mongolia', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(143, 'Montserrat', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(144, 'Morocco', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(145, 'Mozambique', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(146, 'Myanmar', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(147, 'Namibia', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(148, 'Nauru', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(149, 'Nepal', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(150, 'Netherlands', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(151, 'Netherlands Antilles', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(152, 'New Caledonia', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(153, 'New Zealand', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(154, 'Nicaragua', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(155, 'Niger', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(156, 'Nigeria', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(157, 'Niue', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(158, 'Norfolk Island', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(159, 'Northern Mariana Islands', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(160, 'Norway', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(161, 'Oman', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(162, 'Pakistan', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(163, 'Palau', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(164, 'Panama', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(165, 'Papua New Guinea', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(166, 'Paraguay', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(167, 'Peru', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(168, 'Philippines', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(169, 'Pitcairn', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(170, 'Poland', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(171, 'Portugal', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(172, 'Puerto Rico', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(173, 'Qatar', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(174, 'Reunion', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(175, 'Romania', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(176, 'Russian Federation', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(177, 'Rwanda', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(178, 'Saint Kitts and Nevis', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(179, 'Saint Lucia', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(180, 'Saint Vincent and the Grenadines', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(181, 'Samoa', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(182, 'San Marino', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(183, 'Sao Tome and Principe', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(184, 'Saudi Arabia', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(185, 'Senegal', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(186, 'Seychelles', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(187, 'Sierra Leone', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(188, 'Singapore', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(189, 'Slovakia', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(190, 'Slovenia', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(191, 'Solomon Islands', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(192, 'Somalia', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(193, 'South Africa', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(194, 'South Georgia and the South Sandwich Islands', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(195, 'Spain', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(196, 'Sri Lanka', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(197, 'St. Helena', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(198, 'St. Pierre and Miquelon', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(199, 'Sudan', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(200, 'Suriname', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(201, 'Svalbard and Jan Mayen Islands', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(202, 'Swaziland', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(203, 'Sweden', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(204, 'Switzerland', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(205, 'Syrian Arab Republic', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(206, 'Taiwan', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(207, 'Tajikistan', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(208, 'Tanzania, United Republic of', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(209, 'Thailand', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(210, 'Togo', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(211, 'Tokelau', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(212, 'Tonga', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(213, 'Trinidad and Tobago', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(214, 'Tunisia', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(215, 'Turkey', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(216, 'Turkmenistan', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(217, 'Turks and Caicos Islands', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(218, 'Tuvalu', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(219, 'Uganda', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(220, 'Ukraine', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(221, 'United Arab Emirates', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(222, 'United Kingdom', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(223, 'United States', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(224, 'United States Minor Outlying Islands', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(225, 'Uruguay', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(226, 'Uzbekistan', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(227, 'Vanuatu', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(228, 'Vatican City State (Holy See)', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(229, 'Venezuela', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(230, 'Viet Nam', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(231, 'Virgin Islands (British)', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(232, 'Virgin Islands (U.S.)', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(233, 'Wallis and Futuna Islands', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(234, 'Western Sahara', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(235, 'Yemen', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(237, 'The Democratic Republic of Congo', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(238, 'Zambia', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(239, 'Zimbabwe', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(240, 'East Timor', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(241, 'Jersey', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(242, 'St. Barthelemy', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(243, 'St. Eustatius', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(244, 'Canary Islands', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(245, 'Serbia', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(246, 'Sint Maarten (French Antilles)', 0, 0, 0, NULL, '0000-00-00 00:00:00', 42, 0),
+(247, 'Sint Maarten (Netherlands Antilles)', 0, 0, 0, NULL, NULL, 42, 923),
+(248, 'Palestinian Territory, occupied', 0, 0, 0, NULL, NULL, 42, 923),
+(249, 'Larisa', 84, 1, 1, NULL, NULL, 923, 923);
 
 -- --------------------------------------------------------
 
@@ -1126,6 +1177,12 @@ INSERT INTO `#__alfa_places` (`id`, `name`, `code2`, `code3`, `number`, `parent_
 
 CREATE TABLE IF NOT EXISTS `#__alfa_shipments` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `type` text NOT NULL,
+  `color` varchar(50) NOT NULL,
+  `bg_color` varchar(50) NOT NULL,
+  `params` longtext NOT NULL,
+  `show_on_product` tinyint(4) NOT NULL,
+  `description` text NOT NULL,
   `ordering` int(11) DEFAULT 0,
   `checked_out` int(11) UNSIGNED DEFAULT NULL,
   `checked_out_time` datetime DEFAULT NULL,
@@ -1138,7 +1195,62 @@ CREATE TABLE IF NOT EXISTS `#__alfa_shipments` (
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`),
   KEY `idx_state` (`state`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `#__alfa_shipment_categories`
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_shipment_categories` (
+  `shipment_id` int(11) NOT NULL,
+  `category_id` int(11) NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `#__alfa_shipment_manufacturers`
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_shipment_manufacturers` (
+  `shipment_id` int(11) NOT NULL,
+  `manufacturer_id` int(11) NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `#__alfa_shipment_places`
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_shipment_places` (
+  `shipment_id` int(11) NOT NULL,
+  `place_id` int(11) NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `#__alfa_shipment_usergroups`
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_shipment_usergroups` (
+  `shipment_id` int(11) NOT NULL,
+  `usergroup_id` int(11) NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `#__alfa_shipment_users`
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_shipment_users` (
+  `shipment_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1166,7 +1278,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_taxes` (
   KEY `idx_checked_out` (`checked_out`),
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -1267,3 +1379,16 @@ CREATE TABLE IF NOT EXISTS `#__alfa_users` (
   KEY `idx_created_by` (`created_by`),
   KEY `idx_modified_by` (`modified_by`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `#__alfa_user_info`
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_user_info` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_user` int(11) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+COMMIT;

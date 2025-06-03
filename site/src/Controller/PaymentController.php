@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Site\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Event\Payments\PaymentResponseEvent;
 use Exception;
 use \Joomla\CMS\Application\SiteApplication;
 use \Joomla\CMS\Factory;
@@ -68,17 +69,21 @@ class PaymentController extends BaseController
 
             if($orderData == null){
                 $app->enqueueMessage('Order with this order id:'.$orderId.' not found.', 'error');
-                $app->redirect(Route::_('/index.php'));//redirect to home page
+                $app->redirect(Route::_('/index.php')); //redirect to home page
             }
             
             $onResponsePaymentEventName = 'onPaymentResponse';
+            $paymentEvent = new PaymentResponseEvent($onResponsePaymentEventName, [
+                'subject'   => $orderData,
+                'method'    => $orderData->selected_payment->type
+            ]);
 
-            $onResponsePaymentEventResult = $app->bootPlugin($orderData->payment->type, "alfa-payments")->{$onResponsePaymentEventName}($orderData);
-            
-//            $app->close();
-            // $this->event = new \stdClass();
-            // $this->event->{$onResponsePaymentEventName} = $onResponsePaymentEventResult;
+            $app->bootPlugin($orderData->selected_payment->type, "alfa-payments")->{$onResponsePaymentEventName}($paymentEvent);
+
+            if($paymentEvent->hasRedirect()){
+                $app->redirect($paymentEvent->getRedirectUrl());
+            }
+
     }
-
 
 }

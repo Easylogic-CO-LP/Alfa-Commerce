@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+	<fields name="paymentslogs">
+		<fieldset name="paymentslogs">
+			<!--	always created:   `id` int(11) AUTO_INCREMENT PRIMARY KEY NOT NULL-->
+			<!--			<field name="order_id" mysql_type="int(11)" default="NULL"/>-->
+			<!--			<field name="status" mysql_type="char(1)" default="NULL"/>-->
+
+			<field name="id_order_payment" mysql_type="int(11)" default="0"/>
+			<field name="order_total" mysql_type="decimal(15,5)" default="0.00000"/>
+			<field name="currency" mysql_type="char(3)" default="NULL"/>
+			<field name="created_on" mysql_type="datetime" default="0000-00-00 00:00:00"/>
+			<field name="created_by"  mysql_type="int(11)" default="0"/>
+		</fieldset>
+	</fields>
+</form>

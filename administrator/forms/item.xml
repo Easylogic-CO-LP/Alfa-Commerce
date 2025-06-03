@@ -1,5 +1,126 @@
 <?xml version="1.0" encoding="utf-8"?>
 <form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+
+    <fieldset name="general">
+        <field name="sku" size="255" filter="safehtml" type="text" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_ITEM_SKU" description="COM_ALFA_FORM_DESC_ITEM_SKU" />
+
+        <field name="gtin" size="255" filter="safehtml" type="text" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_ITEM_GTIN" description="COM_ALFA_FORM_DESC_ITEM_GTIN" />
+        
+        <field name="mpn" size="255" filter="safehtml" type="text" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_ITEM_MPN" description="COM_ALFA_FORM_DESC_ITEM_MPN" />
+
+        <field name="stock" type="number" label="COM_ALFA_FORM_LBL_ITEM_STOCK" description="COM_ALFA_FORM_DESC_ITEM_STOCK" />
+
+        <field
+                name="width"
+                type="number"
+                label="COM_ALFA_FORM_LBL_ITEM_WIDTH"
+                description="COM_ALFA_FORM_DESC_ITEM_WIDTH"
+                default="0"
+                min="0"
+        />
+
+        <field
+                name="height"
+                type="number"
+                label="COM_ALFA_FORM_LBL_ITEM_HEIGHT"
+                description="COM_ALFA_FORM_DESC_ITEM_HEIGHT"
+                default="0"
+                min="0"
+        />
+
+        <field
+                name="depth"
+                type="number"
+                label="COM_ALFA_FORM_LBL_ITEM_DEPTH"
+                description="COM_ALFA_FORM_DESC_ITEM_DEPTH"
+                default="0"
+                min="0"
+        />
+
+        <field
+                name="weight"
+                type="number"
+                label="COM_ALFA_FORM_LBL_ITEM_WEIGHT"
+                description="COM_ALFA_FORM_DESC_ITEM_WEIGHT"
+                default="0"
+                min="0"
+        />
+
+
+
+        <field
+            name="quantity_min"
+            type="number"
+            label="COM_ALFA_FORM_LBL_ITEM_QUANTITY_MIN"
+            description="COM_ALFA_FORM_DESC_ITEM_QUANTITY_MIN"
+            default="1"
+            min="1"
+          />
+
+        <field
+            name="quantity_max"
+            type="number"
+            label="COM_ALFA_FORM_LBL_ITEM_QUANTITY_MAX"
+            description="COM_ALFA_FORM_DESC_ITEM_QUANTITY_MAX"
+            min="1"
+        />
+
+        <field
+            name="quantity_step"
+            type="number"
+            label="COM_ALFA_FORM_LBL_ITEM_QUANTITY_STEP"
+            description="COM_ALFA_FORM_DESC_ITEM_QUANTITY_STEP"
+            min="1"
+            default="1"
+        />
+
+
+        <field name="stock_action" type="list"
+              label="COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION"
+              description="COM_ALFA_FORM_DESC_ITEM_STOCK_ACTION"
+              multiple="false"
+              default="0">
+                  <option value="-1">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_CONFIGURATION</option>
+                  <option value="0">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_NO_ACTION</option>
+                  <option value="1">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_NOTIFY</option>
+                  <option value="2">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_HIDE_OUT_OF_STOCK</option>
+        </field>
+
+        <field
+            name="stock_low"
+            type="number"
+            label="COM_ALFA_FORM_LBL_ITEM_LOW_STOCK_VALUE"
+            description="COM_ALFA_FORM_DESC_ITEM_LOW_STOCK_VALUE"
+          />
+
+        <field name="stock_low_message"
+               label="COM_ALFA_FORM_LBL_ITEM_LOW_STOCK_MESSAGE"
+               description="COM_ALFA_FORM_DESC_ITEM_LOW_STOCK_MESSAGE"
+               type="editor"
+               showon="stock_low!:"
+        />
+
+        <field name="stock_zero_message"
+               label="COM_ALFA_FORM_LBL_ITEM_ZERO_STOCK_MESSAGE"
+               description="COM_ALFA_FORM_DESC_ITEM_ZERO_STOCK_MESSAGE"
+               type="editor"
+        />
+
+        <field name="manage_stock" type="radio"
+            class="btn-group"
+             label="COM_ALFA_FORM_LBL_ITEM_MANAGE_STOCK"
+             description="COM_ALFA_FORM_DESC_ITEM_MANAGE_STOCK"
+             default="1">
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+         </field>
+
+        <field name="short_desc" cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText" type="editor" label="COM_ALFA_FORM_LBL_ITEM_SHORT_DESC" description="COM_ALFA_FORM_DESC_ITEM_SHORT_DESC" />
+
+        <field name="full_desc" cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText" type="editor" label="COM_ALFA_FORM_LBL_ITEM_FULL_DESC" description="COM_ALFA_FORM_DESC_ITEM_FULL_DESC" />
+
+    </fieldset>
+
   <fieldset>
     <field name="state" default="1" type="list" label="JSTATUS" description="JFIELD_PUBLISHED_DESC" class="inputbox" size="1">
       <option value="1">JPUBLISHED</option>
@@ -16,85 +137,15 @@
     <field name="name" size="400" filter="safehtml" type="text" required="true" translateLabel="true" label="COM_ALFA_FORM_LBL_ITEM_NAME" description="COM_ALFA_FORM_DESC_ITEM_NAME" />
 
     <field name="id" type="text" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
-    <field name="short_desc" cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText" type="editor" label="COM_ALFA_FORM_LBL_ITEM_SHORT_DESC" description="COM_ALFA_FORM_DESC_ITEM_SHORT_DESC" />
-    <field name="full_desc" cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText" type="editor" label="COM_ALFA_FORM_LBL_ITEM_FULL_DESC" description="COM_ALFA_FORM_DESC_ITEM_FULL_DESC" />
-    <field name="sku" size="255" filter="safehtml" type="text" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_ITEM_SKU" description="COM_ALFA_FORM_DESC_ITEM_SKU" />
-    <field name="gtin" size="255" filter="safehtml" type="text" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_ITEM_GTIN" description="COM_ALFA_FORM_DESC_ITEM_GTIN" />
-    <field name="mpn" size="255" filter="safehtml" type="text" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_ITEM_MPN" description="COM_ALFA_FORM_DESC_ITEM_MPN" />
-
-    <field name="stock" type="number" label="COM_ALFA_FORM_LBL_ITEM_STOCK" description="COM_ALFA_FORM_DESC_ITEM_STOCK" />
     
-    <field name="stock_action" type="list"
-          label="COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION"
-          description="COM_ALFA_FORM_DESC_ITEM_STOCK_ACTION" 
-          multiple="false"
-          default="0">
-              <option value="-1">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_CONFIGURATION</option>
-              <option value="0">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_NO_ACTION</option>
-              <option value="1">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_NOTIFY</option>
-              <option value="2">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_HIDE_OUT_OF_STOCK</option>
-    </field>
+    
 
-    <field
-        name="stock_low"
-        type="number"
-        label="COM_ALFA_FORM_LBL_ITEM_LOW_STOCK_VALUE"
-        description="COM_ALFA_FORM_DESC_ITEM_LOW_STOCK_VALUE"
-      />
+    
 
-    <field name="stock_low_message"
-           label="COM_ALFA_FORM_LBL_ITEM_LOW_STOCK_MESSAGE"
-           description="COM_ALFA_FORM_DESC_ITEM_LOW_STOCK_MESSAGE"
-           type="editor"
-           showon="stock_low!:"
-    />
-
-    <field name="stock_zero_message"
-           label="COM_ALFA_FORM_LBL_ITEM_ZERO_STOCK_MESSAGE"
-           description="COM_ALFA_FORM_DESC_ITEM_ZERO_STOCK_MESSAGE"
-           type="editor"
-    />
-
-    <field
-        name="quantity_min"
-        type="number"
-        label="COM_ALFA_FORM_LBL_ITEM_QUANTITY_MIN"
-        description="COM_ALFA_FORM_DESC_ITEM_QUANTITY_MIN"
-        default="1"
-        min="1"
-      />
-
-    <field
-        name="quantity_max"
-        type="number"
-        label="COM_ALFA_FORM_LBL_ITEM_QUANTITY_MAX"
-        description="COM_ALFA_FORM_DESC_ITEM_QUANTITY_MAX"
-        min="1"
-    />
-
-    <field
-        name="quantity_step"
-        type="number"
-        label="COM_ALFA_FORM_LBL_ITEM_QUANTITY_STEP"
-        description="COM_ALFA_FORM_DESC_ITEM_QUANTITY_STEP"
-        min="1"
-        default="1"
-    />
-
-
-     <field name="manage_stock" type="radio"
-        class="btn-group"
-         label="COM_ALFA_FORM_LBL_ITEM_MANAGE_STOCK"
-         description="COM_ALFA_FORM_DESC_ITEM_MANAGE_STOCK" 
-         default="1">
-        <option value="0">JNO</option>
-        <option value="1">JYES</option>
-     </field>
+   
 
     <field name="alias" type="text" label="JFIELD_ALIAS_LABEL" description="COM_ALFA_FORM_DESC_ITEM_ALIAS" />
 
-    <field name="meta_title" maxlength="255" filter="safehtml" type="text" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_ITEM_META_TITLE" description="COM_ALFA_FORM_DESC_ITEM_META_TITLE" />
-    <field name="meta_desc" cols="30" rows="3" filter="safehtml" type="textarea" label="JFIELD_META_DESCRIPTION_LABEL" description="COM_ALFA_FORM_DESC_ITEM_META_DESC" />
     <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL" description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>
 
     <field name="id_category_default" type="categories" required="true" showPath="true" multiple="false" layout="joomla.form.field.list-fancy-select" label="Default Category" description="">
@@ -103,6 +154,59 @@
     <field name="categories" type="categories" showPath="true" multiple="true" layout="joomla.form.field.list-fancy-select" label="Categories" description="">
     </field>
 
+      <field
+            name="allowedUsers" type="sql"
+            input_type="list"
+            required="false"
+            multiple="true"
+            label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERS_LBL"
+            description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERS_DESC"
+            layout="joomla.form.field.list-fancy-select"
+            query="SELECT `id`, `name` FROM `#__users`" key_field="id" value_field="name"
+        />
+
+      <field
+            name="allowedUserGroups"
+            type="UserGroupList"
+            label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_LBL"
+            description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_DESC"
+            layout="joomla.form.field.list-fancy-select"
+            multiple="true"
+            checksuperusergroup="1"
+            default="8"
+        />
+
+
+    <field
+      name="manufacturers" type="sql"
+      input_type="list"
+      required="false"
+      multiple="true"
+      label="COM_ALFA_FORM_LBL_MANUFACTURERS"
+      description="COM_ALFA_FORM_DESC_MANUFACTURERS"
+      layout="joomla.form.field.list-fancy-select"
+      query="SELECT `id`, `name` AS val FROM `#__alfa_manufacturers`" key_field="id" value_field="val"
+    />
+
+    <field
+          name="prices"
+          type="subform"
+          class="prices-subform"
+          formsource="administrator/components/com_alfa/forms/price.xml"
+          label="COM_ALFA_FORM_FIELDSET_PRICE"
+          description="COM_ALFA_FORM_FIELDSET_PRICE_DESC"
+          multiple="true"
+    />
+        
+  </fieldset>
+
+  <fieldset name="shipping">
+    
+
+  </fieldset>
+
+
+  <fieldset name="publish">
     <field name="publish_up" type="calendar" showtime="true" format="%Y-%m-%d %H:%M" filter="USER_UTC"
       label="COM_ALFA_FORM_CATEGORY_LBL_PUBLISH_UP" description="COM_ALFA_CATEGORY_PUBLISH_UP_DESC"/>
 
@@ -136,50 +240,11 @@
             filter="unset"
             validate="UserId"
         />
-
-      <field 
-            name="allowedUsers" type="sql"
-            input_type="list"
-            required="false"
-            multiple="true"
-            label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERS_LBL"
-            description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERS_DESC"
-            layout="joomla.form.field.list-fancy-select"
-            query="SELECT `id`, `name` FROM `#__users`" key_field="id" value_field="name"
-        />
-
-      <field
-            name="allowedUserGroups"
-            type="UserGroupList"
-            label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_LBL"
-            description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_DESC"
-            layout="joomla.form.field.list-fancy-select"
-            multiple="true"
-            checksuperusergroup="1"
-            default="8"
-        />
+  </fieldset>
 
 
-    <field
-      name="manufacturers" type="sql"
-      input_type="list"
-      required="false"
-      multiple="true"
-      label="COM_ALFA_FORM_LBL_MANUFACTURERS"
-      description="COM_ALFA_FORM_DESC_MANUFACTURERS"
-      layout="joomla.form.field.list-fancy-select"
-      query="SELECT `id`, `name` AS val FROM `#__alfa_manufacturers`" key_field="id" value_field="val"
-    /> 
-
-    <field
-          name="prices"
-          type="subform"
-          class="prices-subform"
-          formsource="administrator/components/com_alfa/forms/price.xml"
-          label="COM_ALFA_FORM_FIELDSET_PRICE"
-          description="COM_ALFA_FORM_FIELDSET_PRICE_DESC"
-          multiple="true"
-    />
-        
+  <fieldset name="meta">
+    <field name="meta_title" maxlength="255" filter="safehtml" type="text" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_ITEM_META_TITLE" description="COM_ALFA_FORM_DESC_ITEM_META_TITLE" />
+    <field name="meta_desc" cols="30" rows="3" filter="safehtml" type="textarea" label="JFIELD_META_DESCRIPTION_LABEL" description="COM_ALFA_FORM_DESC_ITEM_META_DESC" />
   </fieldset>
 </form>

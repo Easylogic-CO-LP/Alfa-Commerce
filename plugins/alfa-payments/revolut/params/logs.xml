@@ -6,6 +6,7 @@
             <!--			<field name="order_id" mysql_type="int(11)" default="NULL"/>-->
             <!--			<field name="status" mysql_type="char(1)" default="NULL"/>-->
 
+            <field name="id_order_payment" mysql_type="int(11)" default="0"/>
             <field label="Transaction Test" name="transaction_id" mysql_type="varchar(255)" default="NULL"/>
             <field label="Order total" name="order_total" mysql_type="decimal(15,5)" default="0.00000"/>
             <field label="Currency" name="currency" mysql_type="char(3)" default="NULL"/>

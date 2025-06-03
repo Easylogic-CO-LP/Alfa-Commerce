@@ -26,16 +26,18 @@ use \Joomla\CMS\Uri\Uri;
 final class Revolut extends PaymentsPlugin
 {
 
-    public function onOrderProcessView($order): string {
+    public function onOrderProcessView($event) {
 
         $app = self::getApplication();
+
+        $order = $event->getOrder();
 
         $sandboxUrl = 'https://sandbox-merchant.revolut.com/api/orders';
 //        $productionUrl = 'https://merchant.revolut.com/api/orders';
         $productionUrl = 'https://sandbox-merchant.revolut.com/api/orders';
 
         // Parameters set by administrator.
-        $params = $order->payment->params;
+        $params = $order->selected_payment->params;
         $sandboxMode = $params['revolut_sandbox_mode'];
 
         $paymentData = [];
@@ -45,18 +47,25 @@ final class Revolut extends PaymentsPlugin
 
         // Create a revolut order.
         $revolutCreateOrderResponse = self::createOrder($order, $paymentData);
+
+//        echo "RESPONSE: <br>";
+//        echo "<pre>";
+//        print_r($revolutCreateOrderResponse);
+//        echo "</pre>";
+
+
         $revolutCheckoutUrl = $revolutCreateOrderResponse['checkout_url'];
         $revolutOrderId     = $revolutCreateOrderResponse['id']?:'';
 
-        $revolutErrorCode = $revolutCreateOrderResponse['code'] ??'';
+        $revolutErrorCode = $revolutCreateOrderResponse['code'] ?? '';
         $revolutErrorMessage = $revolutCreateOrderResponse['message'] ?? '';
 
         // Saving the order's id and response url.
         $app->setUserState('com_alfa.revolut_order_id', $revolutOrderId);
         $app->setUserState('com_alfa.revolut_response_url', $revolutCheckoutUrl);
 
-        $orderStatus = empty($errorCode)?'P':'F';
-        
+        $orderStatus = empty($revolutErrorCode)?'P':'F';
+
         // Logging.
         $logData = $this->createEmptyLog();
         $logData["id"]              = null;
@@ -77,20 +86,27 @@ final class Revolut extends PaymentsPlugin
         if(!empty($errorCode)){
             // $app->enqueueMessage("Something went wrong while creating a Revolut order.");
 
+            $app->enqueueMessage('(Oops.. '.$revolutErrorCode.') '.$revolutErrorMessage);
+            return;
+
             //by returning a non-empty string it will show us the process layout. By reloading the page onOrderProcessView will be reloaded
-            return '(oopss..'.$revolutErrorCode.') '.$revolutErrorMessage;
-                   // '<br><button onclick="location.reload();" style="padding: 10px; background-color: red; color: white; border: none; cursor: pointer;">Reload Page</button>';
+//            return '(oopss..'.$revolutErrorCode.') '.$revolutErrorMessage;
+                // '<br><button onclick="location.reload();" style="padding: 10px; background-color: red; color: white; border: none; cursor: pointer;">Reload Page</button>';
         }
 
-        Factory::getApplication()->redirect($revolutCheckoutUrl);
+        $event->setRedirectUrl($revolutCheckoutUrl);
 
-        return "";
+//        $event->setRedirectUrl($revolutCheckoutUrl);
+//        Factory::getApplication()->redirect($revolutCheckoutUrl);
+
     }
 
-    public function onPaymentResponse($order){
-
+    public function onPaymentResponse($event){
 
         $app = self::getApplication();
+
+        $order = $event->getOrder();
+
         // $input = $app->input;
 
         // echo '<pre>';
@@ -113,11 +129,28 @@ final class Revolut extends PaymentsPlugin
         else
             $orderStatus = 'F';
 
+        // Insert payment data.
+        if($orderStatus == 'S'){
+            $orderPaymentData = self::createEmptyOrderPayment();
+            $orderPaymentData = [
+                'id_order' => $order->id,
+                'id_currency' => $order->id_currency,
+                'id_payment_method' => $order->id_payment_method,
+                'id_user' => $order->id_user,
+                'amount' => $order->payed_price,
+                'conversion_rate' => 1.00,
+                'transaction_id' => $response['id'] ?: '',
+                'added' => Factory::getDate()->format('Y-m-d H:i:s'),
+            ];
+            $id_order_payment = self::insertOrderPayment($orderPaymentData);
+        }
+
         // Logging.
         $logData = $this->createEmptyLog();
         $logData["id"]              = null;
         $logData["order_id"]        = $order->id;      //should always be passed
         $logData["status"]          = $orderStatus;    //should always be passed
+        $logData["id_order_payment"]= $id_order_payment ?? 0;
         $logData["order_code"]      = 0;
         $logData["transaction_id"]  = $response['id'] ?: '';
         $logData["order_total"]     = $order->original_price;  // Do we store cents?
@@ -141,47 +174,53 @@ final class Revolut extends PaymentsPlugin
         else
             $app->setUserState('com_alfa.payment_done', true);
 
-        // Insert payment data.
-        if($orderStatus == 'S'){
-            $orderPaymentData = self::createEmptyOrderPayment();
-            $orderPaymentData = [
-                'id_order' => $order->id,
-                'id_currency' => $order->id_currency,
-                'id_payment_method' => $order->id_paymentmethod,
-                'id_user' => $order->id_user,
-                'amount' => $order->payed_price,
-                'conversion_rate' => 1.00,
-                'transaction_id' => $response['id'] ?: '',
-                'date_add' => Factory::getDate()->format('Y-m-d H:i:s'),
-            ];
-            self::insertOrderPayment($orderPaymentData);
-        }
-
         $orderViewUrl = 'index.php?option=com_alfa&view=cart&layout=default_order_completed';
-        $app->redirect($orderViewUrl);  // Send user to complete order view
+        $event->setRedirectUrl($orderViewUrl);
 
-        return "";
+//        $app->redirect($orderViewUrl);  // Send user to complete order view
+
+        return ;
 
     }
 
-    public function onOrderCompleteView($order) : string {
+    public function onOrderCompleteView($event) {
 
         $app = $this->getApplication();
-        $html = '';
 
         $paymentStatus = $app->getUserState('com_alfa.payment_done', false); //handle the variable setted in the payment response
 
         if($paymentStatus){
-            $html .= '<p>Η πληρωμή έγινε επιτυχώς</p>';
+            $event->setLayout("default_payment_success");
+//            $html .= '<p>Η πληρωμή έγινε επιτυχώς</p>';
         }else{
-            $html .= '<p>Η πληρωμή απέτυχε! Θέλετε να ξαναδοκιμάσετε;</p><br>';
-            $html .= '<a href="/index.php?option=com_alfa&view=cart&layout=default_order_process">Pay again</a>';
+            $event->setLayout("default_payment_failed");
+//            $html .= '<p>Η πληρωμή απέτυχε! Θέλετε να ξαναδοκιμάσετε;</p><br>';
+//            $html .= '<a href="/index.php?option=com_alfa&view=cart&layout=default_order_process">Pay again</a>';
         }
 
-        return $html;
     }
 
-    
+    public function onOrderAfterPlace($event){
+        $order = $event->getOrder();
+        $emptyOrderPayment = self::createEmptyOrderPayment();
+
+    }
+
+    public function onItemView($event){
+        $item = $event->getItem();
+        $method = $event->getMethod();
+
+        $layoutData = [
+            'method' => $method,
+            'item' => $item
+        ];
+        
+        $event->setLayoutPluginName("standard");
+        $event->setLayout('default_product_view');
+        $event->setLayoutData($layoutData);
+
+    }
+
 
     /**
      *  Creates a new revolut order.
@@ -195,10 +234,20 @@ final class Revolut extends PaymentsPlugin
         $secretKey = $paymentData['secret_key'];
         $redirectUrl = $paymentData['redirect_url'];
 
+        echo "URL: {$url}";
+
         $priceAmount = $order->original_price * (10 ** $order->currency_data->decimal_place);
 
         $curl = curl_init();
         // https://alfa.el2.demosites.gr/index.php?option=com_alfa&task=cart.paymentResponse&payment=completed
+
+        $postFieldsJSON = [
+            "amount"    => $priceAmount,
+            "currency"  => "EUR",
+            "redirect_url"  => $redirectUrl
+        ];
+
+        $postFieldsJSON = json_encode($postFieldsJSON);
 
         curl_setopt_array($curl, array(
             CURLOPT_URL => $url,
@@ -209,11 +258,7 @@ final class Revolut extends PaymentsPlugin
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => '{
-              "amount": "' . $priceAmount. '",
-              "currency": "EUR",'
-            . '"redirect_url": "' . $redirectUrl . '"'
-            . '}',
+            CURLOPT_POSTFIELDS => $postFieldsJSON,
             CURLOPT_HTTPHEADER => array(
                 'Content-Type: application/json',
                 'Accept: application/json',
@@ -237,7 +282,7 @@ final class Revolut extends PaymentsPlugin
      */
     protected function retrieveOrderDetails($order){
 
-        $params = $order->payment->params;
+        $params = $order->selected_payment->params;
         $secret_key = $params['revolut_secret_key'];
 
         $curl = curl_init();
@@ -272,6 +317,12 @@ final class Revolut extends PaymentsPlugin
 
         return json_decode($response, true);
     }
+
+
+//    public function onAdminOrderViewLogs($event){
+//        $event->setLayoutType("derived");
+//        $event->setLayout("default_empty");
+//    }
 
 
     /**
@@ -321,16 +372,3 @@ final class Revolut extends PaymentsPlugin
 
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

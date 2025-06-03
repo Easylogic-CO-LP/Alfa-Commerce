@@ -8,6 +8,7 @@
 
     <fieldset name="order_details">
         <field name="id" type="text" readonly="true" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
+        <field name="id_address_delivery" type="hidden" default="1"/>
 
         <field
                 name="id_order_status" type="sql"
@@ -90,37 +91,81 @@
         />
     </fieldset>
 
-    <fieldset name="shipment">
-        <field
-                name="shipping_address"
-                label="Shipping Address"
-                type="text" readonly="true"
-                class="readonly"
-                default=""/>
-    </fieldset>
+    <fieldset name="shipment_details">
 
-    <fieldset name="payment">
+        <field name="id_shipment_method" type="hidden" default="0"/>
 
-        <field name="id_paymentmethod" type="hidden"/>
 
-        <field
-                name="payment_name"
-                readonly="true"
-                label="COM_ALFA_FORM_LBL_ORDER_PAYMENT_METHOD"
-                description="COM_ALFA_FORM_DESC_ORDER_PAYMENT_METHOD"
+        <field name="shipping_address"
+               label="COM_ALFA_FORM_LBL_SHIPPING_ADDRESS"
+               type="text"
+               readonly="true"
+               class="readonly"
+               default=""
         />
 
-        <field
-                name="order_payments"
-                type="subform"
-                buttons="add,remove"
-                class=""
-                formsource="administrator/components/com_alfa/forms/order_payments.xml"
-                label="COM_ALFA_FORM_ORDER_PAYMENTS"
-                description=""
-                multiple="true"
-                layout="joomla.form.field.subform.repeatable-table"
+        <field name="state"
+               label="COM_ALFA_FORM_LBL_STATE_PROVINCE"
+               type="text"
+               readonly="true"
+               class="readonly"
+               default=""
+        />
+
+        <field name="city"
+               label="COM_ALFA_FORM_LBL_CITY"
+               type="text"
+               readonly="true"
+               class="readonly"
+               default=""
+        />
+
+        <field name="zip_code"
+               label="COM_ALFA_FORM_LBL_ZIP_CODE"
+               type="text"
+               readonly="true"
+               class="readonly"
+               default=""
         />
 
     </fieldset>
+
+    <field
+            name="shipments"
+            type="subform"
+            buttons=""
+            class=""
+            formsource="administrator/components/com_alfa/forms/order_shipments.xml"
+            label="COM_ALFA_FORM_ORDER_SHIPMENTS"
+            hiddenLabel="true"
+            description=""
+            multiple="true"
+            layout="joomla.form.field.subform.repeatable-table"
+    />
+
+
+    <fieldset name="payment_details">
+        <field name="id_payment_method" type="hidden" default="0"/> <!-- TEMPORARY -->
+        <field name="total_payed"
+               label="Total payed ( TO BE DONE )"
+               type="text"
+               readonly="true"
+               class="readonly"
+               default=""
+        />
+    </fieldset>
+
+    <field
+            name="payments"
+            type="subform"
+            buttons=""
+            class=""
+            formsource="administrator/components/com_alfa/forms/order_payments.xml"
+            label="COM_ALFA_FORM_ORDER_PAYMENTS"
+            hiddenLabel="true"
+            description=""
+            multiple="true"
+            layout="joomla.form.field.subform.repeatable-table"
+    />
+
 </form>
