@@ -24,6 +24,14 @@ use Joomla\CMS\Language\Text;
 abstract class ShipmentsPlugin extends Plugin //implements SubscriberInterface
 {
 
+    // Used to uniquely identify a shipment log entry.
+    protected $logIdentifierField = "id_order_shipment";
+
+    protected $mustHaveColumns = [
+        ['name'=>'id_order','mysql_type' => 'int(11)', 'default' => 'NULL'],
+        ['name'=>'id_order_shipment','mysql_type' => 'int(11)', 'default' => 'NULL'],
+    ];
+
     protected function createEmptyOrderShipment(){
         $orderPaymentArray = [
             'id_order' => null,

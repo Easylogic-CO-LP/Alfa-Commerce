@@ -62,7 +62,7 @@ final class Standard extends PaymentsPlugin
 
         // Log order.
         $emptyLog = self::createEmptyLog();
-        $emptyLog['order_id'] = $order->id;
+        $emptyLog['id_order'] = $order->id;
         $emptyLog['id_order_payment'] = $id_order_payment;
         $emptyLog['status'] = 'P';
         $emptyLog['order_total'] = $order->original_price;

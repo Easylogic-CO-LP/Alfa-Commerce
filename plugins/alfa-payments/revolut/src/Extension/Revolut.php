@@ -69,8 +69,9 @@ final class Revolut extends PaymentsPlugin
         // Logging.
         $logData = $this->createEmptyLog();
         $logData["id"]              = null;
-        $logData["order_id"]        = $order->id;      //should always be passed
+        $logData["id_order"]        = $order->id;      //should always be passed
         $logData["status"]          = $orderStatus;    //should always be passed
+        $logData["id_order_payment"] = 0;
         $logData["transaction_id"]  = $revolutOrderId;
         $logData["order_total"]     = $order->original_price;  // Do we store cents?
         $logData["currency"]        = $order->id_payment_currency;
@@ -107,13 +108,6 @@ final class Revolut extends PaymentsPlugin
 
         $order = $event->getOrder();
 
-        // $input = $app->input;
-
-        // echo '<pre>';
-        // print_r($input);
-        // echo '</pre>';
-        // exit;
-
         $response = self::retrieveOrderDetails($order);
 
         $errorCode = $response['code'] ?? '';
@@ -148,7 +142,7 @@ final class Revolut extends PaymentsPlugin
         // Logging.
         $logData = $this->createEmptyLog();
         $logData["id"]              = null;
-        $logData["order_id"]        = $order->id;      //should always be passed
+        $logData["id_order"]        = $order->id;      //should always be passed
         $logData["status"]          = $orderStatus;    //should always be passed
         $logData["id_order_payment"]= $id_order_payment ?? 0;
         $logData["order_code"]      = 0;
@@ -165,7 +159,14 @@ final class Revolut extends PaymentsPlugin
         $logData["created_on"]      = Factory::getDate()->format('Y-m-d H:i:s');//stores in utc format always
         $logData["created_by"]      = $app->getIdentity()->id;
 
+
+//        echo "<pre>";
+//        print_r($logData);
+//        echo "</pre>";
+//        exit;
+
         $this->insertLog($logData);
+//        exit;
 
         if(!empty($errorCode)){
             $app->enqueueMessage("Something went wrong while retrieving data from a Revolut order.");
@@ -176,8 +177,6 @@ final class Revolut extends PaymentsPlugin
 
         $orderViewUrl = 'index.php?option=com_alfa&view=cart&layout=default_order_completed';
         $event->setRedirectUrl($orderViewUrl);
-
-//        $app->redirect($orderViewUrl);  // Send user to complete order view
 
         return ;
 

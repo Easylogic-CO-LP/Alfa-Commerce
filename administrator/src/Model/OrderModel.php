@@ -332,12 +332,11 @@ class OrderModel extends AdminModel
         if (empty($data)) {
             if ($this->item === null) {
                 $this->item = $this->getItem();
+                if(empty($this->item))
+                    $this->item = [];
             }
-
             $data = $this->item;
-
         }
-
 
         return $data;
     }
@@ -615,19 +614,6 @@ class OrderModel extends AdminModel
 
         return $items;
 
-        //$db = $this->getDatabase();
-        //
-        //        $query = $db->getQuery(true);
-        //
-        //        $query
-        //            ->select("*")
-        //            ->from("#__alfa_payments")
-        //            ->where("id=" . $paymentID);
-        //
-        //        $db->setQuery($query);
-        //
-        //        return $db->loadObject();
-
     }
 
 
@@ -636,6 +622,7 @@ class OrderModel extends AdminModel
 
     public function getOrderPayments($orderId)
     {
+
         // Get order items
         $db = $this->getDatabase();
         $query = $db->getQuery(true);
@@ -645,7 +632,6 @@ class OrderModel extends AdminModel
         $query->where('id_order = ' . $db->quote($orderId));
 
         $db->setQuery($query);
-
         $items = $db->loadObjectList();//for the subform
 
         return $items;

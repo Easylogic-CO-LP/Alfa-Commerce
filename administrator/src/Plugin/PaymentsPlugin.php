@@ -20,9 +20,13 @@ use Joomla\CMS\Language\Text;
  */
 abstract class PaymentsPlugin extends Plugin //implements SubscriberInterface
 {
+    
+    // Used to uniquely identify a payment log entry.
+    protected $logIdentifierField = "id_order_payment";
 
 	protected $mustHaveColumns = [
-        ['name'=>'order_id','mysql_type' => 'int(11)', 'default' => 'NULL'],
+        ['name'=>'id_order','mysql_type' => 'int(11)', 'default' => 'NULL'],
+        ['name'=>'id_order_payment','mysql_type' => 'int(11)', 'default' => 'NULL'],
         ['name'=>'status', 'mysql_type' => 'char(3)', 'default' => 'NULL'],//S ( success ) ,P ( pending ) , F ( failed ) ,R ( refunded )
     ];
 
@@ -180,9 +184,11 @@ abstract class PaymentsPlugin extends Plugin //implements SubscriberInterface
 //	    );
 	}
 
+    // ???
 	public function onAdminOrderPaymentViewLogs($event) {
 
-		$order = $event->getOrder();
+        $order = $event->getOrder();
+        $method = $event->getMethod();  // Represents the shipping order's shipment.
 
 		// load logs from xml
 		$formFile = JPATH_PLUGINS . '/' . $this->_type . '/' . $this->_name.'/params/logs.xml';
@@ -191,7 +197,7 @@ abstract class PaymentsPlugin extends Plugin //implements SubscriberInterface
 		$xml = simplexml_load_file($formFile);
 
 		// Get logs data from db
-		$logData = self::loadLogData($order->id,false);
+		$logData = self::loadLogData($order->id, $method->id);
 
 		$event->setLayoutPluginName($this->_name);
 		$event->setLayoutPluginType($this->_type);

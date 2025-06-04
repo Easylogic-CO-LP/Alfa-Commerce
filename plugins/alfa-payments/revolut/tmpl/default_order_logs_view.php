@@ -4,6 +4,16 @@ use Joomla\CMS\Language\Text;
 
 extract($displayData);
 
+// echo "<pre>";
+// print_r($displayData);
+// echo "</pre>";
+
+
+
+
+
+// exit;
+
 
 if(empty($logData) || empty($xml)) return;
 

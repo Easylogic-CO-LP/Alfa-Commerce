@@ -30,6 +30,12 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * @since  4.0.0
      */
     protected $app;
+    
+    // Inheriting classes must set this.
+    // Used to identify which field of plugin's log table is used to identify a log entry.
+    // (id_order_shipment or id_order_payment).
+    protected $logIdentifierField = "";    
+
 
     public static function getSubscribedEvents(): array
     {
@@ -42,7 +48,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
 
     protected $mustHaveColumns = [
         ['name'=>'id_order','mysql_type' => 'int(11)', 'default' => 'NULL'],
-        ['name'=>'id_order_shipment','mysql_type' => 'int(11)', 'default' => 'NULL'],
+//        ['name'=>'id_order_shipment','mysql_type' => 'int(11)', 'default' => 'NULL'],
     ];
 
     private $pluginPath;
@@ -69,55 +75,55 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
 
     }
 
-//    public function onAdminOrderPrepareForm($event)
-//    {
-//        $order = $event->getData();
-//        $form = $event->getForm();
-//
-//        $event->setData($order);
-//        $event->setForm($form);
-//    }
+    public function onAdminOrderPrepareForm($event)
+    {
+        $order = $event->getData();
+        $form = $event->getForm();
 
-//    public function onAdminOrderViewLogs($event) {
-//
-//        $order = $event->getOrder();
-//
-//        // load logs from xml
-//        $formFile = JPATH_PLUGINS . '/' . $this->_type . '/' . $this->_name.'/params/logs.xml';
-//        if (!file_exists($formFile)) return;
-//
-//        $xml = simplexml_load_file($formFile);
-//
-//        // Get logs data from db
-//        $logData = self::loadLogData($order->id,false);
-//
-//		$event->setLayoutPluginName($this->_name);
-//		$event->setLayoutPluginType($this->_type);
-//	    $event->setLayout('default_order_logs_view');
+        $event->setData($order);
+        $event->setForm($form);
+    }
+
+    public function onAdminOrderViewLogs($event) {
+
+        $order = $event->getOrder();
+
+        // load logs from xml
+        $formFile = JPATH_PLUGINS . '/' . $this->_type . '/' . $this->_name.'/params/logs.xml';
+        if (!file_exists($formFile)) return;
+
+        $xml = simplexml_load_file($formFile);
+
+        // Get logs data from db
+        $logData = self::loadLogData($order->id,false);
+
+		$event->setLayoutPluginName($this->_name);
+		$event->setLayoutPluginType($this->_type);
+	    $event->setLayout('default_order_logs_view');
+	    $event->setLayoutData(
+		    [
+                "logData" => $logData,
+                "xml" => $xml
+            ]
+	    );
+
+    }
+
+
+    public function onAdminOrderView($event) {
+        $order = $event->getOrder();
+        $event->setOrder($order);
+
+	    $event->setLayoutPluginName($this->_name);
+	    $event->setLayoutPluginType($this->_type);
+	    $event->setLayout('default_order_view');
 //	    $event->setLayoutData(
 //		    [
-//                "logData" => $logData,
-//                "xml" => $xml
-//            ]
+//			    "logData" => $logData,
+//			    "xml" => $xml
+//		    ]
 //	    );
-//
-//    }
-
-
-//    public function onAdminOrderView($event) {
-//        $order = $event->getOrder();
-//        $event->setOrder($order);
-//
-//	    $event->setLayoutPluginName($this->_name);
-//	    $event->setLayoutPluginType($this->_type);
-//	    $event->setLayout('default_order_view');
-////	    $event->setLayoutData(
-////		    [
-////			    "logData" => $logData,
-////			    "xml" => $xml
-////		    ]
-////	    );
-//    }
+    }
 
     public function onAdminOrderDelete($event){
         $event->setCanDelete(true);
@@ -271,6 +277,15 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      */
     protected function insertLog($data): bool{
 
+//        if(!isset($data["id_order_shipment"])) {
+//            echo "<pre>";
+//            print_r($data);
+//            echo "</pre>";
+//            exit;
+//        }
+
+
+
         // Function cannot handle objects.
         if(is_object($data))
             $data = (array)$data; //json_decode(json_encode($data), true); // for nested also
@@ -369,7 +384,6 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
                     $db->setQuery($insert_query);
                     $db->execute();
                 }catch(\Exception $e){
-
                     $app->enqueueMessage('('.$e->getCode().') ' . $e->getMessage() . '! Log data was not inserted!','error');
                     return false;
                 }
@@ -397,7 +411,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
     // raw filter - ['__raw' => 'DATE(created_at) = CURDATE()']
     
     // isOrderId = true means the orderCode is the id_order
-    public function loadLogData($orderId, $shipmentId = 0, $asArray=true , $filter = null) {
+    public function loadLogData($orderId, $identifierFieldID = 0, $asArray=true , $filter = null) {
 
         $order_result = null;
 
@@ -409,8 +423,8 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
 
         $query->where($db->quoteName('id_order') . ' = ' . $db->quote($orderId));
 
-		if(!empty($shipmentId)){
-			$query->where($db->quoteName('id_order_shipment') . ' = ' . $db->quote($shipmentId));
+		if(!empty($identifierFieldID)){
+			$query->where($db->quoteName($this->logIdentifierField) . ' = ' . $db->quote($identifierFieldID));
 		}
 
         // filtering logic
