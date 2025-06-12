@@ -5,28 +5,28 @@
 			<field
 				name="rows"
 				type="number"
-				label="PLG_FIELDS_TEXTAREA_PARAMS_ROWS_LABEL"
+				label="PLG_ALFA_FIELDS_TEXTAREA_PARAMS_ROWS_LABEL"
 				filter="integer"
 			/>
 
 			<field
 				name="cols"
 				type="number"
-				label="PLG_FIELDS_TEXTAREA_PARAMS_COLS_LABEL"
+				label="PLG_ALFA_FIELDS_TEXTAREA_PARAMS_COLS_LABEL"
 				filter="integer"
 			/>
 
 			<field
 				name="maxlength"
 				type="number"
-				label="PLG_FIELDS_TEXTAREA_PARAMS_MAXLENGTH_LABEL"
+				label="PLG_ALFA_FIELDS_TEXTAREA_PARAMS_MAXLENGTH_LABEL"
 				filter="integer"
 			/>
 
 			<field
 				name="filter"
 				type="list"
-				label="PLG_FIELDS_TEXTAREA_PARAMS_FILTER_LABEL"
+				label="PLG_ALFA_FIELDS_TEXTAREA_PARAMS_FILTER_LABEL"
 				class="list"
 				validate="options"
 				>

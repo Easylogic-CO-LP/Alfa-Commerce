@@ -93,6 +93,33 @@ if (!empty($payments)) : ?>
                 }
             }
         });
+
+        (Joomla => {
+            Joomla.refreshPage = form => {
+                const url = new URL(window.location.href);
+                const view = url.searchParams.get('view') || '';
+
+                if(view == '')
+                {
+                    console.error('View not found to call the controller reload');
+                    return;
+                }
+
+                // Show loading indicator
+                document.body.appendChild(document.createElement('joomla-core-loader'));
+
+                // Set the task dynamically
+                document.querySelector('input[name=task]').value = `${view}.reload`;
+
+                // Submit the form
+                form.submit();
+            };
+        })(Joomla);
+
+        // #paymentOrderViewModal-' + '<?php //echo $payment->id; ?>//'
+        $('[id*="paymentOrderViewModal-"]').on('hidden.bs.modal', function () {
+            Joomla.refreshPage(document.querySelector('form'));
+        });
     });
 
 </script>
@@ -105,13 +132,13 @@ function printPaymentModal($openButtonText,$modalTitle,$orderId,$paymentId=0){
 	$title = $modalTitle;
 
 	$footer_actions = [
-			'<button type="button" class="btn btn-primary" data-bs-dismiss="modal">Save</button>',
+//			'<button type="button" class="btn btn-primary" data-bs-dismiss="modal">Save</button>',
 	    	'<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>'
 	    ];
 
-	if($paymentId>0){
-		$footer_actions[].='<button type="button" class="btn btn btn-danger" data-bs-dismiss="modal">Remove</button>';
-	}
+//	if($paymentId>0){
+//		$footer_actions[].='<button type="button" class="btn btn btn-danger" data-bs-dismiss="modal">Remove</button>';
+//	}
 
     echo HTMLHelper::_('bootstrap.renderModal', 'paymentOrderViewModal-'.$paymentId, [
 	    'title' => $title,

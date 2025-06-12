@@ -21,22 +21,12 @@ use \Alfa\Component\Alfa\Administrator\Event\Payments\AdminOrderBeforeSaveEvent 
 use \Alfa\Component\Alfa\Administrator\Event\Payments\AdminOrderAfterSaveEvent as PaymentAfterSaveEvent;
 use \Alfa\Component\Alfa\Administrator\Event\Payments\AdminOrderDeleteEvent as PaymentBeforeDeleteEvent;
 
-use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
+use \Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use \Joomla\CMS\Table\Table;
 use \Joomla\CMS\Factory;
-use \Joomla\CMS\Language\Text;
-use \Joomla\CMS\Plugin\PluginHelper;
 use \Joomla\CMS\MVC\Model\AdminModel;
-use \Joomla\CMS\Helper\TagsHelper;
-use \Joomla\CMS\Filter\OutputFilter;
-use \Joomla\CMS\Event\Model;
 use \Joomla\CMS\Component\ComponentHelper;
-use \Joomla\CMS\Form;
-
-use \Alfa\Component\Alfa\Site\Helper\PriceCalculator;
-use \Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use \Alfa\Component\Alfa\Administrator\Helper\OrderHelper;
-use Joomla\Plugin\System\Fields\Extension\Fields;
 
 
 /**
@@ -91,12 +81,14 @@ class OrderModel extends AdminModel
         $form = $this->loadForm('com_alfa.order', 'order_shipments',
             array(
                 'control' => 'jform',
-                'load_data' => $loadData
+                'load_data' => false//$loadData custom bind of data
             ));
 
         if(empty($form)){
             return false;
         }
+
+//        $form->bind();
 
 		$app = Factory::getApplication();
 
@@ -108,18 +100,36 @@ class OrderModel extends AdminModel
 	    $id = (int)$this->getState( 'order_shipments.id', $idFromInput);
 	    $orderId = (int)$this->getState( 'order.id', $orderIdFromInput);
 
-	    $shipment = $this->getShipmentData($id);
-		$order = $this->getItem($orderId);//or from $shipment->id_order
+        if($id > 0)
+	        $shipment = $this->getShipmentData($id);
 
-	    $onAdminOrderPrepareFormEventName = "onAdminOrderShipmentPrepareForm";
+        // Set IDs if they're not present in $data.
+        if(is_array($data)) {
+            if (!isset($data["id"]))
+                $data["id"] = $id;
+            if (!isset($data["id_order"]))
+                $data["id_order"] = $orderId;
+        }
 
-	    $shipmentPrepareFormEvent = new ShipmentOrderPrepareFormEvent($onAdminOrderPrepareFormEventName, [
-		    "subject" => $form,
-		    "method" => $shipment,
-		    "data" => $order
-	    ]);
+        $form->bind($data);
+
+		$order = $this->getItem($orderId);  //or from $shipment->id_order
+
+//	    $shipmentPrepareFormEvent = new ShipmentOrderPrepareFormEvent($onAdminOrderPrepareFormEventName, [
+//		    "subject" => $form,
+//		    "method" => $shipment,
+//		    "data" => $order
+//	    ]);
 
 	    if($id>0 && isset($shipment->params)){
+
+            $onAdminOrderPrepareFormEventName = "onAdminOrderShipmentPrepareForm";
+            $shipmentPrepareFormEvent = new ShipmentOrderPrepareFormEvent($onAdminOrderPrepareFormEventName, [
+                "subject" => $form,
+                "method" => $shipment,
+                "data" => $order
+            ]);
+
 			$orderShipmentType = $shipment->params->type;
 			Factory::getApplication()->bootPlugin($orderShipmentType, "alfa-shipments")
 				->{$onAdminOrderPrepareFormEventName}($shipmentPrepareFormEvent);
@@ -181,18 +191,31 @@ class OrderModel extends AdminModel
 		$id = (int)$this->getState( 'order_payments.id', $idFromInput);
 		$orderId = (int)$this->getState( 'order.id', $orderIdFromInput);
 
-		$payment = $this->getPaymentData($id);
+        if($id > 0)
+		    $payment = $this->getPaymentData($id);
+
+        // Set IDs if they're not present in $data.
+        if(is_array($data)) {
+            if (!isset($data["id"]))
+                $data["id"] = $id;
+            if (!isset($data["id_order"]))
+                $data["id_order"] = $orderId;
+        }
+
+        $form->bind($data);
+
+        
 		$order = $this->getItem($orderId);//or from $payment->id_order
 
-		$onAdminOrderPrepareFormEventName = "onAdminOrderPaymentPrepareForm";
-
-		$paymentPrepareFormEvent = new PaymentOrderPrepareFormEvent($onAdminOrderPrepareFormEventName, [
-			"subject" => $form,
-			"method" => $payment,
-			"data" => $order
-		]);
-
 		if($id>0 && isset($payment->params)){
+
+            $onAdminOrderPrepareFormEventName = "onAdminOrderPaymentPrepareForm";
+            $paymentPrepareFormEvent = new PaymentOrderPrepareFormEvent($onAdminOrderPrepareFormEventName, [
+                "subject" => $form,
+                "method" => $payment,
+                "data" => $order
+            ]);
+
 			$orderPaymentType = $payment->params->type;
 			Factory::getApplication()->bootPlugin($orderPaymentType, "alfa-payments")
 				->{$onAdminOrderPrepareFormEventName}($paymentPrepareFormEvent);
@@ -233,12 +256,32 @@ class OrderModel extends AdminModel
 
 
     /**
+     * Stock method to auto-populate the model state.
+     *
+     * @return  void
+     *
+     * @since   1.6
+     */
+    protected function populateState()
+    {
+        parent::populateState();
+
+        $input = Factory::getApplication()->getInput();
+        $id_order = $input->get('id_order', null, 'STRING');
+
+        // if id_order exists means we opened order_payments or order_shipments
+        if($id_order !== null){
+            $this->setState($this->getName() . '.id', $id_order);
+        }
+    }
+
+    /**
      * Method to get the record form.
      *
      * @param array $data An optional array of data for the form to interrogate.
      * @param boolean $loadData True if the form is to load its own data (default case), false if not.
      *
-     * @return  JForm|boolean  A \JForm object on success, false on failure
+     * @return  \Joomla\CMS\Form\Form|boolean  A \JForm object on success, false on failure
      *
      * @since   1.0.1
      */
@@ -310,7 +353,6 @@ class OrderModel extends AdminModel
                 $form->setValue($fieldName, 'com_alfa', $this->item->user_info->{$fieldName} ?? '');
             }
         }
-
 
         return $form;
     }
@@ -506,37 +548,40 @@ class OrderModel extends AdminModel
             $previousData = $table->getProperties();
         }
 
-        // Get previous order data.
-//        echo "<pre>";
-//        print_r($previousData);
-//        echo "</pre>";
-//        exit;
-
-
         if (!parent::save($data)) return false;
 
         $orderId = $data['id'] > 0 ? intval($data['id']) : intval($this->getState($this->getName() . '.id'));
 
+
+//        echo "<pre>";
+//        print_r($data);
+//        echo "</pre>";
+//        exit;
+
         // Attempt to set payments associated with the order
-        if (!$this->setOrderPayments($orderId, $data['order_payments'])) {
-            $app->enqueueMessage("Could not save order payments.", "error");
-            return false;
-        }
+//        if (!$this->setOrderPayments($orderId, $data['order_payments']))
+//        {
+//            $app->enqueueMessage("Could not save order payments.", "error");
+//            return false;
+//        }
 
         // Save order's items.
-        if (!OrderHelper::setOrderItems($orderId, $data, $previousData)) {
+        if (!OrderHelper::setOrderItems($orderId, $data, $previousData))
+        {
             $app->enqueueMessage("Could not save order items.", "error");
             return false;
         }
 
         // Attempt to set shipments associated with the order
-        if (!$this->setOrderShipments($orderId, $data['order_shipments'])) {
-            $app->enqueueMessage("Could not save order shipments.", "error");
-            return false;
-        }
+//        if (!$this->setOrderShipments($orderId, $data['order_shipments']))
+//        {
+//            $app->enqueueMessage("Could not save order shipments.", "error");
+//            return false;
+//        }
 
         // Attempt to save user info associated with the order.
-        if(!OrderHelper::saveUserInfo($data["id_address_delivery"], $data["com_alfa"])){
+        if(!OrderHelper::saveUserInfo($data["id_address_delivery"], $data["com_alfa"]))
+        {
             $app->enqueueMessage("Could not save user info.", "error");
             return false;
         }
@@ -698,10 +743,6 @@ class OrderModel extends AdminModel
             $paymentObject->transaction_id = isset($payment['transaction_id']) ? $payment['transaction_id'] : '';
             $paymentObject->date_add = !empty($payment['date_add']) ? Factory::getDate($payment['date_add'])->toSql() : NULL;
             $paymentObject->id_user = isset($payment['id_user']) ? intval($payment['id_user']) : 0;
-            // echo '<pre>';
-            // print_r($paymentObject);
-            // echo '</pre><br/>';
-            // continue;
 
             if ($paymentObject->id > 0 && in_array($paymentObject->id, $prevOrderPaymentIDs)) {
                 $updateNulls = true;
@@ -908,6 +949,164 @@ class OrderModel extends AdminModel
     }
 
 
+    // TODO: we will need to save shipment's items, so a separation between saveOrderShipment and saveOrderPayment is necessary.
+    public function saveOrderShipment(&$data): bool
+    {
+        // TODO: Add alfa-shipments event call here.
+        $saveData = $data;
+        if(isset($saveData["shipment"]))
+            unset($saveData["shipment"]);
 
+        /* TODO: Should update order's total amount based on plugin's onCalculateShippingCost. */
+
+        $updateSuccessful = self::saveDataOnTable($saveData, "#__alfa_order_shipments");
+
+        // Using the newly-inserted ID as the shipment's id.
+        if($updateSuccessful)
+            $data["id"] = $saveData["id"];
+
+        return $updateSuccessful;
+    }
+
+    public function saveOrderPayment(&$data): bool
+    {
+        // TODO: Add an alfa-payments event call here.
+        $saveData = $data;
+        if(isset($saveData["payment"]))
+            unset($saveData["payment"]);
+
+        // Update order's paid amount.
+        $addAmount = 0;
+        if($data["id"] != 0)    // Existing order.
+        {
+            $oldPayment = self::getOrderPayment($data["id"]);
+            $addAmount = $data["amount"] - $oldPayment->amount;
+        }
+        else    // New order.
+            $addAmount = $data["amount"];
+
+        if($addAmount != 0)
+            self::updateOrderAmountPaid($data["id_order"], $addAmount);
+
+        $updateSuccessful = self::saveDataOnTable($saveData, "#__alfa_order_payments");
+
+        // Using the newly-inserted ID as the shipment's id.
+        if($updateSuccessful)
+            $data["id"] = $saveData["id"];
+
+        return $updateSuccessful;
+    }
+
+    public function deleteOrderShipment($id, $id_order){
+        $deletedCorrectly = self::deleteTableEntry("#__alfa_order_shipments", $id);
+        return $deletedCorrectly;
+    }
+
+    public function deleteOrderPayment($id, $id_order)
+    {
+        // Remove paid amount from order.
+        $oldPayment = self::getOrderPayment($id);
+        if($oldPayment->amount != 0)
+            self::updateOrderAmountPaid($id_order, ($oldPayment->amount * -1));
+
+        $deletedCorrectly = self::deleteTableEntry("#__alfa_order_payments", $id);
+        return $deletedCorrectly;
+    }
+
+
+
+    protected function deleteTableEntry($tableName, $id)
+    {
+        $db = self::getDatabase();
+        $query = $db->getQuery(true);
+
+        $query
+            ->delete($db->qn($tableName))
+            ->where($db->qn("id") . "=" .  $id);
+
+        try{
+            $db->setQuery($query);
+            $db->execute();
+        }
+        catch(\Exception $e){
+            Factory::getApplication()->enqueueMessage($e->getMessage(), "error");
+            return false;
+        }
+        return true;
+    }
+
+    protected function saveDataOnTable(&$data, $tableName): bool
+    {
+        $db = self::getDatabase();
+        $query = $db->getQuery(true);
+
+        // Quote columns/values.
+        $columns = array_map([$db, "qn"], array_keys($data));
+        $values = array_map([$db, "quote"], $data);
+
+        $query = "REPLACE INTO " . $db->qn($tableName)
+            . "(" . implode(",", $columns) . ")"
+            . " VALUES (" . implode(",", $values) . ")";
+
+        try
+        {
+            $db->setQuery($query);
+            $db->execute();
+
+            $data["id"] = $db->insertid(); // Set the row's PK in case a new row was inserted.
+        }
+        catch(\Exception $e)
+        {
+            echo "CAUGHT: " . $e->getMessage();
+            Factory::getApplication()->enqueueMessage($e->getMessage(), "error");
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     *  Updates the order's amount_paid value by adding the $amountAdded's value (can be a negative number).
+     *  @param $orderID int the order's ID.
+     *  @param $amountAdded int the amount to add (can be negative).
+     *  @return void
+     */
+    protected function updateOrderAmountPaid($orderID, $amountAdded): bool
+    {
+        $db = self::getDatabase();
+        $query = $db->getQuery(true);
+
+        $query
+            ->update($db->qn("#__alfa_orders"))
+            ->set($db->qn("payed_price") . "=" . $db->qn("payed_price") . "+" . $db->quote($amountAdded))
+            ->where($db->qn("id") . "=" . $db->quote($orderID));
+
+        try
+        {
+            $db->setQuery($query);
+            $db->execute();
+        }
+        catch(\Exception $e)
+        {
+            Factory::getApplication()->enqueueMessage($e->getMessage(), "error");
+            return false;
+        }
+        return true;
+    }
+
+    protected function getOrderPayment($id)
+    {
+        $db = self::getDatabase();
+        $query = $db->getQuery(true);
+
+        $query
+            ->select("*")
+            ->from($db->qn("#__alfa_order_payments"))
+            ->where($db->qn("id") . "=" . $id);
+
+        $db->setQuery($query);
+
+        return $db->loadObject();
+    }
 
 }

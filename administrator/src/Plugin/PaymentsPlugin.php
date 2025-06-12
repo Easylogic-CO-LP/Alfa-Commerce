@@ -27,7 +27,7 @@ abstract class PaymentsPlugin extends Plugin //implements SubscriberInterface
 	protected $mustHaveColumns = [
         ['name'=>'id_order','mysql_type' => 'int(11)', 'default' => 'NULL'],
         ['name'=>'id_order_payment','mysql_type' => 'int(11)', 'default' => 'NULL'],
-        ['name'=>'status', 'mysql_type' => 'char(3)', 'default' => 'NULL'],//S ( success ) ,P ( pending ) , F ( failed ) ,R ( refunded )
+//        ['name'=>'status', 'mysql_type' => 'char(3)', 'default' => 'NULL'],//S ( success ) ,P ( pending ) , F ( failed ) ,R ( refunded )
     ];
 
     // public function productView($event){

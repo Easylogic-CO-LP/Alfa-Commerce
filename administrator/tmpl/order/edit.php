@@ -24,19 +24,12 @@ $wa->useScript('keepalive')
 	->useStyle('com_alfa.admin');
 
 HTMLHelper::_('bootstrap.tooltip');
-//
-//echo "<pre>";
-//print_r($this->order);
-//echo "</pre>";
-//exit;
-
 
 ?>
 
 
 
 <form
-
         action="<?php echo Route::_('index.php?option=com_alfa&layout=edit&id=' . (int) $this->order->id); ?>"
         method="post" enctype="multipart/form-data" name="adminForm" id="order-form"
         class="form-validate form-horizontal">
@@ -71,7 +64,7 @@ HTMLHelper::_('bootstrap.tooltip');
     <!-- Shipment Details -->
 
 	<?php
-	echo $this->form->renderFieldset('shipment_details');
+	    echo $this->form->renderFieldset('shipment_details');
 	?>
 
     <div class="fw-bold mb-3">SHIPMENTS</div>

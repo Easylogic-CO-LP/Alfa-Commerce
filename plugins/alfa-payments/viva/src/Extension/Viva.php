@@ -143,7 +143,7 @@ final class Viva extends PaymentsPlugin
         // Log payment insert/update.
         $logData["id"]              = null;
         $logData["id_order"]        = $order->id;      //should always be passed
-        $logData["status"]          = "P";               //should always be passed
+//        $logData["status"]          = "P";               //should always be passed
         $logData["id_order_payment"] = 0;   // Can't have it yet. 
         $logData["order_code"]      = 0;
         $logData["transaction_id"]  = 1;

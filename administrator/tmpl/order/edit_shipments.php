@@ -80,7 +80,7 @@ if (!empty($shipments)) : ?>
     <p>No shipments available.</p>
 <?php endif; ?>
 
-<?php printShipmentModal('Add Shipment','Create Shipment',$this->order->id); ?>
+<?php printShipmentModal('Add Shipment','Create Shipment', $this->order->id); ?>
 
     <script>
 
@@ -98,6 +98,33 @@ if (!empty($shipments)) : ?>
                     }
                 }
             });
+
+            (Joomla => {
+                Joomla.refreshPage = form => {
+                    const url = new URL(window.location.href);
+                    const view = url.searchParams.get('view') || '';
+
+                    if(view == '')
+                    {
+                        console.error('View not found to call the controller reload');
+                        return;
+                    }
+
+                    // Show loading indicator
+                    document.body.appendChild(document.createElement('joomla-core-loader'));
+
+                    // Set the task dynamically
+                    document.querySelector('input[name=task]').value = `${view}.reload`;
+
+                    // Submit the form
+                    form.submit();
+                };
+            })(Joomla);
+
+            $('[id*="shipmentOrderViewModal-"]').on('hidden.bs.modal', function () {
+                Joomla.refreshPage(document.querySelector('form'));
+            });
+
         });
 
     </script>
@@ -110,13 +137,13 @@ function printShipmentModal($openButtonText,$modalTitle,$orderId,$shipmentId=0){
 	$title = $modalTitle;
 
 	$footer_actions = [
-		'<button type="button" class="btn btn-primary" data-bs-dismiss="modal">Save</button>',
+//		'<button type="button" class="btn btn-primary" data-bs-dismiss="modal">Save</button>',
 		'<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>'
 	];
 
-	if($shipmentId>0){
-		$footer_actions[].='<button type="button" class="btn btn btn-danger" data-bs-dismiss="modal">Remove</button>';
-	}
+//	if($shipmentId>0){
+//		$footer_actions[].='<button type="button" class="btn btn btn-danger" data-bs-dismiss="modal">Remove</button>';
+//	}
 
 	echo HTMLHelper::_('bootstrap.renderModal', 'shipmentOrderViewModal-'.$shipmentId, [
 		'title' => $title,

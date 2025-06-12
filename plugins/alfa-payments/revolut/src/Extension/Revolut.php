@@ -29,7 +29,6 @@ final class Revolut extends PaymentsPlugin
     public function onOrderProcessView($event) {
 
         $app = self::getApplication();
-
         $order = $event->getOrder();
 
         $sandboxUrl = 'https://sandbox-merchant.revolut.com/api/orders';
@@ -48,12 +47,6 @@ final class Revolut extends PaymentsPlugin
         // Create a revolut order.
         $revolutCreateOrderResponse = self::createOrder($order, $paymentData);
 
-//        echo "RESPONSE: <br>";
-//        echo "<pre>";
-//        print_r($revolutCreateOrderResponse);
-//        echo "</pre>";
-
-
         $revolutCheckoutUrl = $revolutCreateOrderResponse['checkout_url'];
         $revolutOrderId     = $revolutCreateOrderResponse['id']?:'';
 
@@ -64,7 +57,7 @@ final class Revolut extends PaymentsPlugin
         $app->setUserState('com_alfa.revolut_order_id', $revolutOrderId);
         $app->setUserState('com_alfa.revolut_response_url', $revolutCheckoutUrl);
 
-        $orderStatus = empty($revolutErrorCode)?'P':'F';
+        $orderStatus = empty($revolutErrorCode)?'pending':'failed';
 
         // Logging.
         $logData = $this->createEmptyLog();
@@ -79,33 +72,24 @@ final class Revolut extends PaymentsPlugin
         $logData["error_text"]      = $revolutErrorMessage ?: '-';
         $logData["installments"]    = 1;                        // Change with installments.
         $logData["checkout_url"]    = $revolutCheckoutUrl;
-        $logData["created_on"]      = Factory::getDate()->format('Y-m-d H:i:s');//stores in utc format always
+        $logData["created_on"]      = Factory::getDate()->format('Y-m-d H:i:s');    //stores in utc format always
         $logData["created_by"]      = $app->getIdentity()->id;
 
         $this->insertLog($logData);
 
-        if(!empty($errorCode)){
-            // $app->enqueueMessage("Something went wrong while creating a Revolut order.");
-
+        if(!empty($errorCode))
+        {
             $app->enqueueMessage('(Oops.. '.$revolutErrorCode.') '.$revolutErrorMessage);
             return;
-
-            //by returning a non-empty string it will show us the process layout. By reloading the page onOrderProcessView will be reloaded
-//            return '(oopss..'.$revolutErrorCode.') '.$revolutErrorMessage;
-                // '<br><button onclick="location.reload();" style="padding: 10px; background-color: red; color: white; border: none; cursor: pointer;">Reload Page</button>';
         }
 
         $event->setRedirectUrl($revolutCheckoutUrl);
-
-//        $event->setRedirectUrl($revolutCheckoutUrl);
-//        Factory::getApplication()->redirect($revolutCheckoutUrl);
 
     }
 
     public function onPaymentResponse($event){
 
         $app = self::getApplication();
-
         $order = $event->getOrder();
 
         $response = self::retrieveOrderDetails($order);
@@ -115,16 +99,11 @@ final class Revolut extends PaymentsPlugin
 
         $redirectUrl = $app->getUserState('com_alfa.revolut_response_url', null);
 
-        if(empty($errorCode)) { // No errors
-            if($response['state'] == 'pending')         $orderStatus = 'P';
-            else if($response['state'] == 'completed')  $orderStatus = 'S';
-            else if($response['state'] == 'failed')     $orderStatus = 'F';
-        }
-        else
-            $orderStatus = 'F';
+        //response status can be pending , completed, failed which we get from revolut response
+        $orderStatus = empty($errorCode) ? $response['state'] : "failed";
 
         // Insert payment data.
-        if($orderStatus == 'S'){
+        if($orderStatus == 'completed'){
             $orderPaymentData = self::createEmptyOrderPayment();
             $orderPaymentData = [
                 'id_order' => $order->id,
@@ -155,18 +134,11 @@ final class Revolut extends PaymentsPlugin
         $logData["error_text"]      = $errorMessage ?: '-';
         $logData["ref"]             = 1;
         $logData["installments"]    = 1;                        // Change with installments.
-        $logData["response_raw"]    = $redirectUrl;
+        $logData["checkout_url"]    = $redirectUrl;
         $logData["created_on"]      = Factory::getDate()->format('Y-m-d H:i:s');//stores in utc format always
         $logData["created_by"]      = $app->getIdentity()->id;
 
-
-//        echo "<pre>";
-//        print_r($logData);
-//        echo "</pre>";
-//        exit;
-
         $this->insertLog($logData);
-//        exit;
 
         if(!empty($errorCode)){
             $app->enqueueMessage("Something went wrong while retrieving data from a Revolut order.");
@@ -178,8 +150,6 @@ final class Revolut extends PaymentsPlugin
         $orderViewUrl = 'index.php?option=com_alfa&view=cart&layout=default_order_completed';
         $event->setRedirectUrl($orderViewUrl);
 
-        return ;
-
     }
 
     public function onOrderCompleteView($event) {
@@ -188,20 +158,10 @@ final class Revolut extends PaymentsPlugin
 
         $paymentStatus = $app->getUserState('com_alfa.payment_done', false); //handle the variable setted in the payment response
 
-        if($paymentStatus){
+        if($paymentStatus)
             $event->setLayout("default_payment_success");
-//            $html .= '<p>Η πληρωμή έγινε επιτυχώς</p>';
-        }else{
+        else
             $event->setLayout("default_payment_failed");
-//            $html .= '<p>Η πληρωμή απέτυχε! Θέλετε να ξαναδοκιμάσετε;</p><br>';
-//            $html .= '<a href="/index.php?option=com_alfa&view=cart&layout=default_order_process">Pay again</a>';
-        }
-
-    }
-
-    public function onOrderAfterPlace($event){
-        $order = $event->getOrder();
-        $emptyOrderPayment = self::createEmptyOrderPayment();
 
     }
 
@@ -214,7 +174,7 @@ final class Revolut extends PaymentsPlugin
             'item' => $item
         ];
         
-        $event->setLayoutPluginName("standard");
+        $event->setLayoutPluginName($this->_name);
         $event->setLayout('default_product_view');
         $event->setLayoutData($layoutData);
 
@@ -317,11 +277,6 @@ final class Revolut extends PaymentsPlugin
         return json_decode($response, true);
     }
 
-
-//    public function onAdminOrderViewLogs($event){
-//        $event->setLayoutType("derived");
-//        $event->setLayout("default_empty");
-//    }
 
 
     /**

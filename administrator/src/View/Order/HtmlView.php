@@ -65,42 +65,42 @@ class HtmlView extends BaseHtmlView
 			throw new \Exception(implode("\n", $errors));
 		}
 
-
 		if ($this->_layout == 'edit_shipment')
 		{
 			$this->shipment = null;
-			$this->form     = $model->getShipmentForm();
-
 			$shipment_id = $input->getInt('id', 0);
 
+            $shipmentData = [];
 			if ($shipment_id > 0)
 			{
 				$this->shipment = $model->getShipmentData($shipment_id);
 				$this->order    = $model->getItem($this->shipment->id_order);
-				$this->form->bind((array) $this->shipment);
+                $shipmentData = $this->shipment;
+				//$this->form->bind((array) $this->shipment);
 				self::addShipmentEvents($this->shipment);
-
-//                echo "<pre>";
-//                print_r($this->shipment);
-//                echo "</pre>";
-//                exit;
 			}
 
+            $this->form = $model->getShipmentForm($shipmentData);
+            self::addShipmentToolbar();
 
-		}else if ($this->_layout == 'edit_payment')
+		}
+        else if ($this->_layout == 'edit_payment')
 		{
 			$this->payment = null;
-			$this->form     = $model->getPaymentForm();
-
 			$payment_id = $input->getInt('id', 0);
 
+            $paymentData = [];
 			if ($payment_id > 0)
 			{
 				$this->payment = $model->getPaymentData($payment_id);
 				$this->order    = $model->getItem($this->payment->id_order);
-				$this->form->bind((array) $this->payment);
+
+                $paymentData = $this->payment;
 				self::addPaymentEvents($this->payment);
 			}
+
+            $this->form = $model->getPaymentForm($paymentData);
+            self::addPaymentToolbar();
 
 		}
 		else
@@ -258,6 +258,19 @@ class HtmlView extends BaseHtmlView
 		}
 	}
 
+    protected function addPaymentToolbar(){
+
+        ToolbarHelper::title(Text::_('COM_ALFA_TITLE_ORDERR'), "aaa");
+
+
+
+    }
+
+    protected function addShipmentToolbar(){
+//        ToolbarHelper::title(Text::_('COM_ALFA_TITLE_ORDER'), "generic");
+//        ToolbarHelper::apply('order.apply', 'JTOOLBAR_APPLY');
+        ToolbarHelper::save('order.savePayment', 'JTOOLBAR_SAVE');
+    }
 
 }
 
