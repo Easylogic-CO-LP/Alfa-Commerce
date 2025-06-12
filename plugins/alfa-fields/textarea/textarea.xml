@@ -17,8 +17,6 @@
 		<folder>tmpl</folder>
 	</files>
 	<languages>
-		<language tag="el-GR">language/el-GR/plg_alfa-fields_textarea.ini</language>
-		<language tag="el-GR">language/el-GR/plg_alfa-fields_textarea.sys.ini</language>
 		<language tag="en-GB">language/en-GB/plg_alfa-fields_textarea.ini</language>
 		<language tag="en-GB">language/en-GB/plg_alfa-fields_textarea.sys.ini</language>
 	</languages>

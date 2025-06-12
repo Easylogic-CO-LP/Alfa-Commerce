@@ -31,8 +31,6 @@
 
 
 	<languages folder="language">
-		<language tag="el-GR">el-GR/plg_alfa-shipments_boxnow.ini</language>
-		<language tag="el-GR">el-GR/plg_alfa-shipments_boxnow.sys.ini</language>
 		<language tag="en-GB">en-GB/plg_alfa-shipments_boxnow.ini</language>
 		<language tag="en-GB">en-GB/plg_alfa-shipments_boxnow.sys.ini</language>
 	</languages>
