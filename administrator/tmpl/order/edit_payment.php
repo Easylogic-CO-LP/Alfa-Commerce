@@ -18,7 +18,7 @@ HTMLHelper::_('bootstrap.tooltip');
 $input = Factory::getApplication()->input;
 
 $paymentID = $input->getInt("id");
-$orderID = $this->order->id;
+$orderID = $input->getInt("id_order", 0);
 
 ?>
 
