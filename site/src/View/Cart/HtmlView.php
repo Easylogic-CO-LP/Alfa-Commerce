@@ -19,6 +19,9 @@ use \Alfa\Component\Alfa\Site\Helper\OrderHelper;
 use \Joomla\CMS\Plugin\PluginHelper;
 use \Joomla\CMS\Router\Route;
 use \Alfa\Component\Alfa\Site\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Site\Model\CartModel;
+use \Alfa\Component\Alfa\Administrator\Event\Payments\OrderCompleteViewEvent as PaymentsOrderCompleteViewEvent;
+use \Alfa\Component\Alfa\Administrator\Event\Payments\OrderProcessViewEvent as PaymentsOrderProcessViewEvent;
 
 /**
  * View class for a list of Alfa.
@@ -62,6 +65,8 @@ class HtmlView extends BaseHtmlView
         $this->cart   = $this->get('Item');
         // $this->items   = $this->get('Items');
         $this->params = $app->getParams('com_alfa');
+//        $model = new CartModel();
+        $this->form = $this->getForm();
 
         // Check for errors.
         if (count($errors = $this->get('Errors')))
@@ -76,12 +81,11 @@ class HtmlView extends BaseHtmlView
 
         if($this->_layout == 'default') {
 
-            // load each payment method onCartView event
-            $onCartViewPaymentEventName = 'onCartView';
-            foreach ($this->cart->getPaymentMethods() as &$payment_method) {
-                $payment_method->event = new \stdClass();
-                $payment_method->event->{$onCartViewPaymentEventName} = ($app->bootPlugin($payment_method->type, "alfa-payments")->{$onCartViewPaymentEventName}($this->cart));
-            }
+            // Load selected payment method onCartView event.
+            $this->cart->addEventsToPayments();
+
+            // Load selected shipment method onCartView event.
+            $this->cart->addEventsToShipments();
             
         }
 
@@ -103,51 +107,66 @@ class HtmlView extends BaseHtmlView
 
             if($orderData == null){
                 $app->enqueueMessage('Order with this order id:'.$orderId.' not found.', 'error');
-                $app->redirect(Route::_('/index.php'));//redirect to home pagee
+                $app->redirect(Route::_('/index.php'));//redirect to home page
             }
 
 
             if($this->_layout == 'default_order_process'){
-            
+
                 $onProcessPaymentEventName = 'onOrderProcessView';
+                $selectedPayment = $orderData->selected_payment;
+                $paymentEvent = new PaymentsOrderProcessViewEvent($onProcessPaymentEventName, [
+                    'subject'   => $orderData,
+                    'method'    => $selectedPayment
+                ]);
 
-                //METHOD 1 : OF CALLING A PLUGIN
-    //            PluginHelper::importPlugin('alfa-payments', $orderData->payment->type);
-    //            $dispatcher = $app->getDispatcher();
-    //
-    //            $event = \Joomla\CMS\Event\AbstractEvent::create(
-    //                $onProcessPaymentEventName,
-    //                [
-    //                    'subject'=>(object)['event'=>$onProcessPaymentEventName],
-    //                    $orderData,
-    //                ]
-    //            );
-    //
-    //            $eventResult = $dispatcher->dispatch($onProcessPaymentEventName, $event);
-    //            $this->event->{$onProcessPaymentEventName} = $eventResult['result'][0];
 
-                //METHOD 2 : OF CALLING A PLUGIN
+                $this->app->bootPlugin($selectedPayment->type, "alfa-payments")->{$onProcessPaymentEventName}($paymentEvent);
 
-                $onProcessPaymentEventResult = $app->bootPlugin($orderData->payment->type, "alfa-payments")->{$onProcessPaymentEventName}($orderData);
-
-                $this->event = new \stdClass();
-                $this->event->{$onProcessPaymentEventName} = $onProcessPaymentEventResult;
-
-                // Empty string returned, redirecting to default_order_completed.
-                if(empty($onProcessPaymentEventResult)){
-
-                    $this->_layout = 'default_order_completed';
+                if($paymentEvent->hasRedirect()){
+                    $app->redirect($paymentEvent->getRedirectUrl());
                 }
-                
+
+                // TODO: Set a default layout in case none is returned.
+                if (empty($paymentEvent->getLayoutPluginName())) $paymentEvent->setLayoutPluginName($selectedPayment->type);
+                if (empty($paymentEvent->getLayoutPluginType())) $paymentEvent->setLayoutPluginType("alfa-payments");
+                if ($paymentEvent->hasRedirect()) {
+                    $this->app->redirect(
+                        $paymentEvent->getRedirectUrl(),
+                        $paymentEvent->getRedirectCode() ?? 303
+                    );
+                    return;
+                }
+
+                $this->event = new \stdClass;
+                $this->event->onOrderProcessView = $paymentEvent;
+
             }
 
 
             if($this->_layout == 'default_order_completed'){
-                $onCompleteOrderEventName = 'onOrderCompleteView';
-                $onCompleteOrderEventResult = $app->bootPlugin($orderData->payment->type, "alfa-payments")->{$onCompleteOrderEventName}($orderData);
+                $onOrderCompleteViewEventName = 'onOrderCompleteView';
+//                $paymentType = self::getPaymentType($orderData->id_payment_method);
+                $paymentEvent = new PaymentsOrderCompleteViewEvent($onOrderCompleteViewEventName, [
+                    'subject'   => $orderData,
+                    'method'    => $orderData->selected_payment->type
+                ]);
 
-                $this->event = new \stdClass();
-                $this->event->{$onCompleteOrderEventName} = $onCompleteOrderEventResult;
+                $this->app->bootPlugin($orderData->selected_payment->type, "alfa-payments")->{$onOrderCompleteViewEventName}($paymentEvent);
+
+                if (empty($paymentEvent->getLayoutPluginName())) $paymentEvent->setLayoutPluginName($orderData->selected_payment->type);
+                if (empty($paymentEvent->getLayoutPluginType())) $paymentEvent->setLayoutPluginType("alfa-payments");
+                if ($paymentEvent->hasRedirect()) {
+                    $this->app->redirect(
+                        $paymentEvent->getRedirectUrl(),
+                        $paymentEvent->getRedirectCode() ?? 303
+                    );
+                    return;
+                }
+
+                $this->event = new \stdClass;
+                $this->event->onOrderCompleteView = $paymentEvent;
+
             }
 
 

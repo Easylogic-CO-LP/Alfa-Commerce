@@ -69,7 +69,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.addEventListener("alfaProductAdded", async (event) => {
         const url = "/index.php?option=com_ajax&module=alfa_cart&method=reload&format=json";
-
+        
         fetch(url)
             .then((response) => {
                 if (!response.ok) {

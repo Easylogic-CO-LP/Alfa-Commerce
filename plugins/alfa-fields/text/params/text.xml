@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+	<fields name="fieldsparams">
+		<fieldset name="fieldparams" label="PLG_ALFA_FIELDS_PARAMS_TAB">
+			<field
+				name="filter"
+				type="list"
+				label="PLG_ALFA_FIELDS_TEXT_PARAMS_FILTER_LABEL"
+				class="list"
+				validate="options"
+				>
+				<option value="">COM_FIELDS_FIELD_USE_GLOBAL</option>
+				<option value="0">JNO</option>
+				<option value="raw">JLIB_FILTER_PARAMS_RAW</option>
+				<option value="safehtml">JLIB_FILTER_PARAMS_SAFEHTML</option>
+				<option value="\Joomla\CMS\Component\ComponentHelper::filterText">JLIB_FILTER_PARAMS_TEXT</option>
+				<option value="alnum">JLIB_FILTER_PARAMS_ALNUM</option>
+				<option value="integer">JLIB_FILTER_PARAMS_INTEGER</option>
+				<option value="float">JLIB_FILTER_PARAMS_FLOAT</option>
+				<option value="tel">JLIB_FILTER_PARAMS_TEL</option>
+			</field>
+
+			<field
+				name="maxlength"
+				type="number"
+				label="PLG_ALFA_FIELDS_TEXT_PARAMS_MAXLENGTH_LABEL"
+				filter="integer"
+			/>
+
+			<field
+					name="sql_type"
+					type="list"
+					label="PLG_ALFA_FIELDS_TEXT_PARAMS_SQL_TYPE_LABEL"
+					class="list"
+					validate="options"
+			>
+				<option value="int(11)">Integer</option>
+				<option value="bigint(20)">Big Integer</option>
+				<option value="decimal(15,5)">Decimal</option>
+				<option value="varchar(255)">Small Text</option>
+				<option value="text">Text</option>
+				<option value="longtext">Long Text</option>
+				<option value="datetime">Date Time</option>
+			</field>
+
+		</fieldset>
+	</fields>
+</form>

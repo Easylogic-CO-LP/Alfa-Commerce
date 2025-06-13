@@ -5,6 +5,7 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 use Alfa\Component\Alfa\Site\Helper\PriceCalculator;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
+use Joomla\Plugin\Captcha\n3tMultiCaptcha\Exception;
 
 class StockOperation
 {
@@ -43,9 +44,14 @@ class OrderHelper
         $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true);
 
-        $query->select('*');
-        $query->from('#__alfa_order_items');
-        $query->where($db->quoteName('id_order') . '=' . $db->quote($orderId));
+        $query->select([
+                'oi.*',
+                'i.name AS name'
+            ]);
+        // $query->from('#__alfa_order_items AS oi');
+        $query->from($db->quoteName('#__alfa_order_items', 'oi'));
+        $query->join('LEFT', $db->quoteName('#__alfa_items', 'i') . ' ON ' . $db->quoteName('oi.id_item') . ' = ' . $db->quoteName('i.id'));
+        $query->where($db->quoteName('oi.id_order') . '=' . $db->quote($orderId));
 
         $db->setQuery($query);
 
@@ -322,6 +328,44 @@ class OrderHelper
 
         return $currentStock - $quantityDifference;
     }
+
+    // Attempts to save order's user info.
+    static function saveUserInfo($userInfoID, $userInfo): bool{
+
+        if(!is_object($userInfo)){
+            $userInfo = json_decode(json_encode($userInfo));
+        }
+
+        $db = Factory::getContainer()->get("DatabaseDriver");
+
+        // echo "here";
+        // echo "<pre>";
+        // print_r($userInfo);
+        // echo "</pre>";
+//        exit;
+
+        $userInfo->id = $userInfoID;
+
+//        exit;
+
+        try {
+            $db->updateObject('#__alfa_user_info', $userInfo, 'id', true);
+        }
+        catch(Exception $e){
+            Factory::getApplication()->enqueueMessage($e->getMessage(), "error");
+            return false;
+        }
+
+//        echo "<pre>";
+//        print_r($userInfo);
+//        echo "</pre>";
+//exit;
+
+        return true;
+    }
+
+
+
 
 
 }

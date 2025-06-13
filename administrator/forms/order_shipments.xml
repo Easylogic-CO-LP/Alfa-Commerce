@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+    <fieldset name="shipment">
+        <field
+                name="items" type="orderItems"
+                input_id="id_order"
+                multiple="true"
+                label="Items"
+                description=""
+                layout="joomla.form.field.list-fancy-select"
+                required="false"
+
+        >
+        </field>
+
+        <field
+                name="amount"
+                type="number"
+                label="COM_ALFA_FORM_ORDER_AMOUNT"
+                description="COM_ALFA_FORM_ORDER_AMOUNT_DESC"
+                readonly="false"
+                required="true"
+        />
+
+        <field
+                name="id_shipment_method" type="sql"
+                input_type="list"
+                required="true"
+                multiple="false"
+                label="COM_ALFA_FORM_ORDER_SHIPMENT_METHOD"
+                description="COM_ALFA_FORM_ORDER_SHIPMENT_METHOD_DESC"
+                layout="joomla.form.field.list-fancy-select"
+                query="SELECT `id`, `name` AS `val` FROM `#__alfa_shipments`" key_field="id" value_field="val"
+        />
+
+        <field
+                name="track_id"
+                type="text"
+                default=""
+                label="COM_ALFA_FORM_ORDER_TRACK_ID"
+                description="COM_ALFA_FORM_ORDER_TRACK_ID_DESC"
+        />
+
+        <field
+                name="added"
+                type="calendar"
+                label="COM_ALFA_FORM_ORDER_ITEM_DATE"
+                description="COM_ALFA_FORM_ORDER_ITEM_DATE_DESC"
+                class="form-control"
+                translateformat="true"
+                showtime="true"
+                filter="user_utc"
+        />
+
+        <field
+                name="id_user"
+                type="user"
+                required="true"
+                label="COM_ALFA_FORM_ORDER_ID_USER"
+                description="COM_ALFA_FORM_ORDER_ID_USER_DESC"
+                validate="UserId"
+        />
+
+        <!-- id     id_order    id_currency     amount  payment_method  conversion_rate transaction_id  date_add    id_user      -->
+
+        <field name="id" type="hidden"/>
+        <field name="id_order" type="hidden"/>
+        <field name="id_currency" type="hidden" default="978"/>
+    </fieldset>
+
+</form>

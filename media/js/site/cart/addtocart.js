@@ -2,6 +2,7 @@ async function addToCart() {
 
     let item = event.target.closest('[data-item-id]');
 
+
     if(!item){
         console.error('div with attribute [data-item-id] not found to add to cart');
         return;
@@ -27,6 +28,7 @@ async function addToCart() {
     const options = {
         method: 'POST',
         headers: {
+            'X-CSRF-Token': Joomla.getOptions('csrf.token', ''),
             'Content-Type': 'application/x-www-form-urlencoded'
         },
         body: params
@@ -34,18 +36,32 @@ async function addToCart() {
 
     try {
         const response = await fetch(url, options);
-
+        
         if (!response.ok) {
             console.error('Error fetching data', response.statusText);
             throw new Error(response.statusText);
         } else {
-
             const responseData = await response.json();
             
             if(responseData.success){
-                console.log(responseData.message);
+                
+                // execute custom event alfaProductAdded
+                const event = new CustomEvent('alfaProductAdded', {
+                    detail: { data: responseData }
+                });
+                document.dispatchEvent(event);
+
             }else{
-                alert(responseData.message);
+
+                let warnings = '';
+                if (responseData.messages) {
+                    warnings = responseData.messages.warning.join('\n');
+                }
+
+                // Combine main message and warnings
+                const fullMessage = responseData.message + (warnings ? '\n\n' + warnings : '');
+
+                alert(fullMessage); // Display everything
             }
             
         }

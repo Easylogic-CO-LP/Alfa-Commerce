@@ -174,7 +174,9 @@ class ItemModel extends BaseItemModel
 
                 $categoryIDs = empty($data->categories) ? [] : array_keys($data->categories);
                 $manufacturerIDs = empty($data->manufacturers) ? [] : array_keys($data->manufacturers);
-                $this->_item[$pk]->payment_methods = AlfaHelper::getFilteredMethods($categoryIDs,$manufacturerIDs,$user->groups,$user->id);
+                $this->_item[$pk]->payment_methods = AlfaHelper::getFilteredMethods($categoryIDs,$manufacturerIDs,$user->groups,$user->id,'payment');
+                $this->_item[$pk]->shipment_methods = AlfaHelper::getFilteredMethods($categoryIDs,$manufacturerIDs,$user->groups,$user->id,'shipment');
+
 
             } catch (\Exception $e) {
                 if ($e->getCode() == 404) {

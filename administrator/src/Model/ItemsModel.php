@@ -209,8 +209,7 @@ class ItemsModel extends ListModel
 	public function getItems()
 	{
 		$items = parent::getItems();
-		
-
+        
 		return $items;
 	}
 }

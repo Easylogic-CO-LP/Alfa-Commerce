@@ -3,11 +3,19 @@
     Ευχαριστουμε για την αγορα σου<br>
 
     <?php
-//        echo $this->event;
-//        exit;
 
+    // TODO: Error handling for missing template.
+    use Alfa\Component\Alfa\Site\Helper\PluginLayoutHelper;
 
-        echo $this->event->onOrderCompleteView;
+    echo PluginLayoutHelper::pluginLayout(
+        $this->event->onOrderCompleteView->getLayoutPluginType(),
+        $this->event->onOrderCompleteView->getLayoutPluginName(),
+        $this->event->onOrderCompleteView->getLayout()
+    )->render($this->event->onOrderCompleteView->getLayoutData());
+
+//    echo "<pre>";
+//    print_r($this->event);
+//    echo "</pre>";
 
     ?>
 

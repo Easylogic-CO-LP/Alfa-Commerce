@@ -3,7 +3,7 @@
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  2024 Easylogic CO LP
+ * @copyright  2025 Easylogic CO LP
  * @license    GNU General Public License version 2 or later; see LICENSE.txt
  */
 
@@ -277,6 +277,12 @@ class ItemModel extends AdminModel
 		// }
 		// $origTable = clone $this->getTable();
 
+        // Checking valid height/width/depth/weight.
+        if($data["width"] < 0) $data["width"] = 0;
+        if($data["height"] < 0) $data["height"] = 0;
+        if($data["depth"] < 0) $data["depth"] = 0;
+        if($data["weight"] < 0) $data["weight"] = 0;
+
 		if (!parent::save($data))return false;
 
 		$currentId = 0;
@@ -456,7 +462,7 @@ class ItemModel extends AdminModel
             $table->publish_down = null;
         }
 
-        return parent::prepareTable($table);
+        parent::prepareTable($table);
         
     }
 

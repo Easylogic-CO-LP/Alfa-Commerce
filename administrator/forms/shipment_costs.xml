@@ -1,0 +1,127 @@
+<!--<?xml version="1.0" encoding="UTF-8"?>-->
+<!--<form>-->
+
+<!--<fieldset name="shipmentcosts">-->
+<!--    <field-->
+<!--            name="costs"-->
+<!--            type="subform"-->
+<!--            buttons="add,remove,move"-->
+<!--            hiddenLabel="true"-->
+<!--            label="All"-->
+<!--            description=""-->
+<!--            multiple="true"-->
+<!--    >-->
+
+
+<!--    <field-->
+<!--            name="zip-start"-->
+<!--            type="number"-->
+<!--            min='0.01'-->
+<!--            readonly="false"-->
+<!--            label="COM_ALFA_FORM_SHIPMENT_ZIP_START"-->
+<!--    />-->
+
+<!--    <field-->
+<!--            name="zip-end"-->
+<!--            type="number"-->
+<!--            min='0.01'-->
+<!--            readonly="false"-->
+<!--            label="COM_ALFA_FORM_SHIPMENT_ZIP_END"-->
+<!--    />-->
+
+<!--    <field-->
+<!--            name="weight-start"-->
+<!--            type="number"-->
+<!--            min='0.01'-->
+<!--            readonly="false"-->
+<!--            label="COM_ALFA_FORM_SHIPMENT_WEIGHT_START"-->
+<!--    />-->
+
+<!--    <field-->
+<!--            name="weight-end"-->
+<!--            type="number"-->
+<!--            min='0.01'-->
+<!--            readonly="false"-->
+<!--            label="COM_ALFA_FORM_SHIPMENT_WEIGHT_END"-->
+<!--    />-->
+
+<!--    <field-->
+<!--            name="width-start"-->
+<!--            class="w-1"-->
+<!--            parentClass="w-1"-->
+<!--            type="number"-->
+<!--            min='0.01'-->
+<!--            readonly="false"-->
+<!--            label="COM_ALFA_FORM_SHIPMENT_WIDTH_START"-->
+<!--    />-->
+
+<!--    <field-->
+<!--            name="width-end"-->
+<!--            type="number"-->
+<!--            min='0.01'-->
+<!--            readonly="false"-->
+<!--            label="COM_ALFA_FORM_SHIPMENT_WIDTH_END"-->
+<!--    />-->
+
+<!--    <field-->
+<!--        name="height-start"-->
+<!--        type="number"-->
+<!--        min='0.01'-->
+<!--        readonly="false"-->
+<!--        label="COM_ALFA_FORM_SHIPMENT_HEIGHT_START"-->
+<!--    />-->
+
+<!--    <field-->
+<!--            name="height-end"-->
+<!--            type="number"-->
+<!--            min='0.01'-->
+<!--            readonly="false"-->
+<!--            label="COM_ALFA_FORM_SHIPMENT_HEIGHT_END"-->
+<!--    />-->
+
+<!--            <field-->
+<!--            name="depth-start"-->
+<!--            type="number"-->
+<!--            min='0.01'-->
+<!--            readonly="false"-->
+<!--            label="COM_ALFA_FORM_SHIPMENT_DEPTH_START"-->
+<!--    />-->
+
+<!--    <field-->
+<!--            name="depth-end"-->
+<!--            type="number"-->
+<!--            min='0.01'-->
+<!--            readonly="false"-->
+<!--            label="COM_ALFA_FORM_SHIPMENT_DEPTH_END"-->
+<!--    />-->
+
+
+<!--    <field-->
+<!--            name="amount-start"-->
+<!--            type="number"-->
+<!--            min='0.01'-->
+<!--            readonly="false"-->
+<!--            label="COM_ALFA_FORM_SHIPMENT_AMOUNT_START"-->
+<!--    />-->
+
+<!--    <field-->
+<!--            name="amount-end"-->
+<!--            type="number"-->
+<!--            min='0.01'-->
+<!--            readonly="false"-->
+<!--            label="COM_ALFA_FORM_SHIPMENT_AMOUNT_END"-->
+<!--    />-->
+
+
+<!--    <field-->
+<!--            name="cost"-->
+<!--            type="number"-->
+<!--            min='0.01'-->
+<!--            readonly="false"-->
+<!--            label="COM_ALFA_FORM_SHIPMENT_COST"-->
+<!--    />-->
+
+<!--    </field>-->
+<!--</fieldset>-->
+
+<!--</form>-->

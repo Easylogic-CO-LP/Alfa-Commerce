@@ -1,13 +1,20 @@
-/**
- * @copyright  (C) 2019 Open Source Matters, Inc. <https://www.joomla.org>
- * @license    GNU General Public License version 2 or later; see LICENSE.txt
- */
 (Joomla => {
-
     Joomla.typeHasChanged = element => {
-        // Display the loading indication
+        const url = new URL(window.location.href);
+        const view = url.searchParams.get('view') || '';
+
+        if(view == ''){
+            console.error('View not found to call the controller reload');
+            return;
+        }
+
+        // Show loading indicator
         document.body.appendChild(document.createElement('joomla-core-loader'));
-        document.querySelector('input[name=task]').value = 'payment.reload';
+
+        // Set the task dynamically
+        document.querySelector('input[name=task]').value = `${view}.reload`;
+
+        // Submit the form
         element.form.submit();
     };
 })(Joomla);

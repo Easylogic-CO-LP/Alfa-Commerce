@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+    <fields name="shipment">
+        <fieldset name="shipment">
+
+            <field name="payment_mode" type="radio"
+                   layout="joomla.form.field.radio.switcher"
+                   label="PLG_ALFA_SHIPMENTS_BOXNOW_PAYMENT_MODE"
+                   description="PLG_ALFA_SHIPMENTS_BOXNOW_PAYMENT_MODE_DESC"
+                   default="prepaid"
+                   required="false">
+                <option value="prepaid">Prepaid</option>
+                <option value="cod">Cash On Delivery</option>
+            </field>
+
+            <field name="order_price" type="number"
+                   label="PLG_ALFA_SHIPMENTS_BOXNOW_ORDER_PRICE_VALUE"
+                   description="PLG_ALFA_SHIPMENTS_BOXNOW_ORDER_PRICE_VALUE_DESC"
+                   default="0.00"
+                   value="0.00"
+                   required="false"
+                   step="0.01"
+                   min="0.00"
+                   showon="payment_mode:cod"
+            />
+
+            <field name="amount_to_be_collected" type="number"
+                   label="PLG_ALFA_SHIPMENTS_BOXNOW_AMOUNT_TO_BE_COLLECTED"
+                   description="PLG_ALFA_SHIPMENTS_BOXNOW_AMOUNT_TO_BE_COLLECTED_DESC"
+                   default="0.00"
+                   required="false"
+                   step="0.01"
+                   min="0.00"
+                   showon="payment_mode:cod"
+            />
+
+            <field
+                    name="packages"
+                    type="subform"
+                    buttons="add,remove"
+                    class="packages-field"
+                    hiddenLabel="false"
+                    label="PLG_ALFA_SHIPMENTS_BOXNOW_PACKAGES"
+                    description="PLG_ALFA_SHIPMENTS_BOXNOW_PACKAGES_DESC"
+                    multiple="true"
+                    disabled="true"
+                    readonly="true"
+                    max="3"
+                    required="false"
+                    layout="joomla.form.field.subform.repeatable-table"
+                    addfieldprefix="Joomla\Plugin\AlfaShipments\Boxnow\Field"
+            >
+
+                <form>
+                    <field
+                            name="packages_value"
+                            type="number"
+                            min='0.00'
+                            step="0.01"
+                            default="0.00"
+                            readonly="false"
+                            required="false"
+                            label="PLG_ALFA_SHIPMENTS_BOXNOW_PACKAGES_VALUE"
+                            description="PLG_ALFA_SHIPMENTS_BOXNOW_PACKAGES_VALUE_DESC"
+                    />
+                    <field
+                            name="packages_weight"
+                            type="number"
+                            default="0"
+                            readonly="false"
+                            required="false"
+                            label="PLG_ALFA_SHIPMENTS_BOXNOW_PACKAGES_WEIGHT"
+                            description="PLG_ALFA_SHIPMENTS_BOXNOW_PACKAGES_WEIGHT_DESC"
+                    />
+
+                    <field
+                            name="compartment_size"
+                            class="btn-group"
+                            type="radio"
+                            default="1"
+                            required="false"
+                            label="PLG_ALFA_SHIPMENTS_BOXNOW_PACKAGES_COMPARTMENT_SIZE"
+                            description="PLG_ALFA_SHIPMENTS_BOXNOW_PACKAGES_COMPARTMENT_SIZE_DESC"
+                    >
+                        <option value="1">Small</option>
+                        <option value="2">Medium</option>
+                        <option value="3">Large</option>
+                    </field>
+
+                    <field
+                            name="boxnow_actions"
+                            type="actions"
+                            label="Actions"
+                            required="false"
+                            showPath="true"
+                    />
+
+                </form>
+            </field>
+
+        </fieldset>
+    </fields>
+</form>
+
+
+
+

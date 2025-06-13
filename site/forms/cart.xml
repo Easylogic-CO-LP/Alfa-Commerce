@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+	<fields>
+		<fieldset
+			name="cart"
+			addruleprefix="Joomla\Component\Contact\Site\Rule"
+			label="COM_CONTACT_CONTACT_DEFAULT_LABEL"
+			>
+
+<!--			<field-->
+<!--				name="email"-->
+<!--				type="email"-->
+<!--				label="COM_CONTACT_EMAIL_LABEL"-->
+<!--				id="contact-email"-->
+<!--				size="30"-->
+<!--				filter="string"-->
+<!--				validate="ContactEmail"-->
+<!--				autocomplete="email"-->
+<!--				required="true"-->
+<!--			/>-->
+
+		</fieldset>
+	</fields>
+
+	<fieldset name="captcha">
+		<field
+			name="captcha"
+			type="captcha"
+			label="COM_ALFA_CAPTCHA_LABEL"
+			validate="captcha"
+			namespace="contact"
+		/>
+	</fieldset>
+</form>

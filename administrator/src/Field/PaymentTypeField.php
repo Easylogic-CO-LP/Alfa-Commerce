@@ -10,6 +10,7 @@
 
 namespace Alfa\Component\Alfa\Administrator\Field;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Field\ListField;
 use Joomla\CMS\HTML\HTMLHelper;
@@ -68,7 +69,7 @@ class PaymentTypeField extends ListField
 
         $options = parent::getOptions();
 
-        $fieldTypes = PaymentsHelper::getFieldTypes();
+        $fieldTypes = AlfaHelper::getFieldTypes('payments');
 
         foreach ($fieldTypes as $fieldType) {
             $options[] = HTMLHelper::_('select.option', $fieldType[$list_value], $fieldType[$list_text]);

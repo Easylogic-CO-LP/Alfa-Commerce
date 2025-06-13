@@ -16,6 +16,7 @@
 		<folder plugin="standard">services</folder>
 		<folder>src</folder>
 		<folder>tmpl</folder>
+		<folder>params</folder>
 	</files>
 
 	<languages folder="language">
