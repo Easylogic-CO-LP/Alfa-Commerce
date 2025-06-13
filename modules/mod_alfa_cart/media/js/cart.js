@@ -132,7 +132,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-
+    // Update the quantity of a cart item via AJAX and refresh the cart UI
     async function changeQuantity(itemId = -1, quantity = -1) {
         if (itemId <= 0 || quantity < 0) {
             console.error('Invalid item ID or quantity');

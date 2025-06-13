@@ -261,7 +261,7 @@ class AlfaHelper
                 $isValid = false;
             }
 
-            // check if 0 is setted on method to allow all users or at list the user is inside the users array of the method
+            // check if 0 is set on method to allow all users or at least the user is inside the users array of the method
             if (!in_array(0, $methodUsers) && !in_array($userId, $methodUsers)) {
                 $isValid = false;
             }
