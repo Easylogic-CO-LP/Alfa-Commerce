@@ -24,6 +24,14 @@
         "friendsofphp/php-cs-fixer": "^3.0",
         "joomla/joomla-cms": "5.3.x-dev"
     },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/joomla/joomla-cms"
+        }
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable": true,
     "scripts": {
         "phpstan": "phpstan analyse --memory-limit=-1",
         "phpcsfixer": "php-cs-fixer fix --dry-run",
