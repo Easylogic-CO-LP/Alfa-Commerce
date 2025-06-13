@@ -322,8 +322,8 @@ final class Viva extends PaymentsPlugin
 	    ];
 
 //		we should create a layout file or run the standar layout file
-//	    $event->setLayoutPluginName('standard'); //auto setted to viva from html view
-//	    $event->setLayoutPluginType('alfa-payments'); //auto setted
+//	    $event->setLayoutPluginName('standard'); //automatically set to viva from html view
+//	    $event->setLayoutPluginType('alfa-payments'); //automatically set
 	    $event->setLayout('default_product_view');
 	    $event->setLayoutData($layoutData);
 

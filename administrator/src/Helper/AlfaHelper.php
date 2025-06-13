@@ -30,7 +30,7 @@ class AlfaHelper
      *
      * @param array $items E.g The list of categories.
      * @param int $parentId The parent ID to start building from. ( Begins with zero so we dont set it )
-     * @param int $depth The current depth level ( Auto setted while recursing )
+     * @param int $depth The current depth level ( automatically set while recursing )
      * @return array The nested array of items with depth level ( e.g the fixed categories with children and depth attached)
      */
     public static function buildNestedArray($items, $childrenField = 'children', $parentId = 0, $depth = 0)

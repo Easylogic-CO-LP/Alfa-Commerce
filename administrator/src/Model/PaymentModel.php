@@ -173,8 +173,8 @@ class PaymentModel extends AdminModel
 		$currentId = 0;
 		if($data['id']>0){ //not a new
 			$currentId = intval($data['id']);
-		}else{ // is new
-			$currentId = intval($this->getState($this->getName().'.id'));//get the id from setted joomla state
+                }else{ // is new
+                        $currentId = intval($this->getState($this->getName().'.id')); // get the id from the Joomla state
 		}
 
 	        //Category/manufacturer etc associations

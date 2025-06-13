@@ -156,7 +156,7 @@ final class Revolut extends PaymentsPlugin
 
         $app = $this->getApplication();
 
-        $paymentStatus = $app->getUserState('com_alfa.payment_done', false); //handle the variable setted in the payment response
+        $paymentStatus = $app->getUserState('com_alfa.payment_done', false); // handle the variable set in the payment response
 
         if($paymentStatus)
             $event->setLayout("default_payment_success");
