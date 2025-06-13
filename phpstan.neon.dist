@@ -1,5 +1,10 @@
+includes:
+    - vendor/joomla/joomla-cms/build/phpstan/phpstan.neon
+
 parameters:
     level: 5
+    bootstrapFiles:
+        - vendor/joomla/joomla-cms/includes/constants.php
     paths:
         - administrator/src
         - site/src
