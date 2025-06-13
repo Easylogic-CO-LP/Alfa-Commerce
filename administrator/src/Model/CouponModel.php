@@ -121,7 +121,7 @@ class CouponModel extends AdminModel
             if ($data['id'] > 0) { //not a new
                 $currentId = intval($data['id']);
             } else { // is new
-                $currentId = intval($this->getState($this->getName() . '.id')); //get the id from setted joomla state
+                $currentId = intval($this->getState($this->getName() . '.id')); // get the id from the Joomla state
             }
 
             AlfaHelper::setAssocsToDb($currentId, $data['allowedUsers'], '#__alfa_coupons_users', 'coupon_id','user_id');

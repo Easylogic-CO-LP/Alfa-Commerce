@@ -354,7 +354,7 @@ class PriceCalculator
             }
         }
 
-        // as we setted the first index 0 of the array if nothing exists in this
+        // As we set the first index 0 of the array if nothing exists in this
         // ( only sequential one after another exists )
         $discountValueArray->cleanEmptys();
 

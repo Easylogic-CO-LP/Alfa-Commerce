@@ -238,7 +238,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
                     $fieldName = strval($curr_field['name']);
 
                     if(strval($curr_field['type'])=='integer'){$fieldType='int(11)';}
-                    //if mysql_type is setted in dpconfig and in field as attribute mysql then listen to this
+                    // If mysql_type is set in dpconfig and in the field attribute, then listen to this
                     if(isset($curr_field['mysql_type'])){$fieldType=strval($curr_field['mysql_type']);}
                     // TODO CHECK IF ATTRIBUTE IS FINE STRUCTURED like mysql_type default etc
 
@@ -321,7 +321,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
                 $insertColumns = array();
                 $insertValues = array();
 
-                if(isset($data['id']) && !empty($data['id'])){// for replace into to update the values if id is setted
+                if(isset($data['id']) && !empty($data['id'])){ // for replace into to update the values if id is set
                     array_push($insertColumns,'id');
                     array_push($insertValues,$db->quote($data['id']));
                 }
@@ -345,7 +345,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
                     $fieldType = 'varchar(255)';
 
                     if(strval($curr_field['type'])=='integer'){$fieldType='int(11)';}
-                    //if mysql_type is setted in dpconfig and in field as attribute mysql then listen to this
+                    // If mysql_type is set in dpconfig and in the field attribute, then listen to this
                     if(isset($curr_field['mysql_type'])){$fieldType=strval($curr_field['mysql_type']);}
                     // TODO CHECK IF ATTRIBUTE IS FINE STRUCTURED like mysql_type default etc
 

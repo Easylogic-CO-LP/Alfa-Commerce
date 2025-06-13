@@ -21,4 +21,5 @@ defined('_JEXEC') or die;
 // }
 
 // echo htmlentities($value);
-echo 'test view frontend of standard shipment';
+// Default output for the Boxnow shipment plugin
+echo htmlspecialchars($value ?? '');

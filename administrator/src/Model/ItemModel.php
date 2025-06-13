@@ -74,7 +74,7 @@ class ItemModel extends AdminModel
         	AlfaHelper::setAllowedUsers($id, $value, '#__alfa_items_users', 'item_id','user_id');
         }
 
-		$app->enqueueMessage('Users setted successfully', 'info');
+                $app->enqueueMessage('Users set successfully', 'info');
 
         return true;
     }
@@ -92,7 +92,7 @@ class ItemModel extends AdminModel
         	AlfaHelper::setAllowedUserGroups($id, $value, '#__alfa_items_usergroups', 'item_id','usergroup_id');
         }
 
-		$app->enqueueMessage('Usergroup setted successfully', 'info');
+                $app->enqueueMessage('User group set successfully', 'info');
 
         return true;
     }
@@ -110,7 +110,7 @@ class ItemModel extends AdminModel
         	AlfaHelper::setAssocsToDb($id, $value, '#__alfa_items_manufacturers', 'item_id','manufacturer_id');
         }
 
-		$app->enqueueMessage('Manufacturers setted successfully', 'info');
+                $app->enqueueMessage('Manufacturers set successfully', 'info');
 
         return true;
     }
@@ -128,7 +128,7 @@ class ItemModel extends AdminModel
 			AlfaHelper::setAssocsToDb($id, $value, '#__alfa_items_categories', 'item_id','category_id');
         }
 
-		$app->enqueueMessage('Categories setted successfully', 'info');
+                $app->enqueueMessage('Categories set successfully', 'info');
    
         return true;
     }
@@ -289,7 +289,7 @@ class ItemModel extends AdminModel
 		if($data['id']>0){ //not a new
 			$currentId = intval($data['id']);
 		}else{ // is new
-			$currentId = intval($this->getState($this->getName().'.id'));//get the id from setted joomla state
+                $currentId = intval($this->getState($this->getName().'.id')); // get the id from the Joomla state
 		}
 
 		// AUTO SET DEFAULT CATEGORY ID AND CATEGORIES ARRAY
