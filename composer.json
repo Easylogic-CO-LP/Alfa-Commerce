@@ -22,7 +22,7 @@
     "require-dev": {
         "phpstan/phpstan": "^1.10",
         "friendsofphp/php-cs-fixer": "^3.0",
-        "joomla/joomla-cms": "5.3.x-dev"
+        "joomla/joomla-cms": "dev-5.3-dev"
     },
     "repositories": [
         {
