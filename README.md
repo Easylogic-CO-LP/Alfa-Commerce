@@ -39,10 +39,10 @@ Contributions are what make the open-source community such an amazing place to l
    composer install
    ```
 
-3. **Create** a feature branch based on the developer branch (`work`):
+3. **Create** a feature branch based on the developer branch (`developer`):
 
    ```bash
-   git checkout -b my-feature-branch origin/work
+   git checkout -b my-feature-branch origin/developer
    ```
 
 4. **Run** the static analysis and coding style checks:
