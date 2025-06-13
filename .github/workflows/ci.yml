@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+    branches: [main, work]
+  pull_request:
+    branches: [main, work]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up PHP with Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          tools: composer
+      - name: Install dependencies
+        run: composer install --no-progress
+      - name: Run PHPStan
+        run: composer phpstan
+      - name: Run PHP CS Fixer
+        run: composer phpcsfixer
