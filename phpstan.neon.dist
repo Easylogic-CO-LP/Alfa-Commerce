@@ -15,7 +15,7 @@ parameters:
         - plugins/alfa-shipments/standard/src
         - plugins/alfa-fields/text/src
         - plugins/alfa-fields/textarea/src
-    autoload_directories:
+    scanDirectories:
         - administrator/src
         - site/src
         - api/src
