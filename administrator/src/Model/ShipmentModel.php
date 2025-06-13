@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use \Joomla\CMS\Table\Table;
 use \Joomla\CMS\Factory;
 use \Joomla\CMS\Language\Text;
@@ -27,19 +28,14 @@ use \Joomla\CMS\Event\Model;
  */
 class ShipmentModel extends AdminModel
 {
-	/**
-	 * @var    string  The prefix to use with controller messages.
-	 *
-	 * @since  1.0.1
-	 */
-	protected $text_prefix = 'COM_ALFA';
 
 	/**
 	 * @var    string  Alias to manage history control
 	 *
-	 * @since  1.0.1
 	 */
 	public $typeAlias = 'com_alfa.shipment';
+
+	protected $formName = 'shipment';
 
 	/**
 	 * @var    null  Item data
@@ -48,8 +44,6 @@ class ShipmentModel extends AdminModel
 	 */
 	protected $item = null;
 
-	
-	
 
 	/**
 	 * Returns a reference to the a Table object, always creating it.
@@ -81,23 +75,31 @@ class ShipmentModel extends AdminModel
 	{
 		// Initialise variables.
 		$app = Factory::getApplication();
+		// Form::addFieldPath(JPATH_ADMINISTRATOR . '/cfomponents/com_users/models/fields');
 
 		// Get the form.
 		$form = $this->loadForm(
-								'com_alfa.shipment', 
-								'shipment',
-								array(
-									'control' => 'jform',
-									'load_data' => $loadData 
-								)
-							);
+					'com_alfa.' . $this->formName, 
+					$this->formName,
+					array(
+						'control' => 'jform',
+						'load_data' => $loadData 
+					)
+				);
+        
+		// Get ID of the article from input
+		$idFromInput = $app->getInput()->getInt('id', 0);
 
-		
+		// On edit order, we get ID of order from order.id state, but on save, we use data from input
+    	$id = (int)$this->getState($this->formName.'.id', $idFromInput);
 
-		if (empty($form))
-		{
+		if (empty($form)){
 			return false;
 		}
+
+		$item = ($this->item === null ? $this->getItem() : $this->item);
+		
+		AlfaHelper::addPluginForm($form, $data, $item ,'shipments');
 
 		return $form;
 	}
@@ -118,13 +120,10 @@ class ShipmentModel extends AdminModel
 
 		if (empty($data))
 		{
-			if ($this->item === null)
-			{
-				$this->item = $this->getItem();
-			}
+			$data = ($this->item === null ? $this->getItem() : $this->item);
 
-			$data = $this->item;
-			
+            $data->shipmentsparams = $data->params;
+
 		}
 
 		return $data;
@@ -144,97 +143,50 @@ class ShipmentModel extends AdminModel
 		
 			if ($item = parent::getItem($pk))
 			{
-				if (isset($item->params))
-				{
-					$item->params = json_encode($item->params);
-				}
-				
-				// Do any procesing on fields here if needed
+				// Do any processing on fields here if needed
+                $item->categories = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_shipment_categories', 'shipment_id','category_id');
+                $item->manufacturers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_shipment_manufacturers', 'shipment_id','manufacturer_id');
+                $item->places = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_shipment_places', 'shipment_id','place_id');
+
+                $item->users = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_shipment_users', 'shipment_id','user_id');
+                $item->usergroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_shipment_usergroups', 'shipment_id','usergroup_id');
 			}
 
 			return $item;
-		
 	}
 
-	/**
-	 * Method to duplicate an Shipment
-	 *
-	 * @param   array  &$pks  An array of primary key IDs.
-	 *
-	 * @return  boolean  True if successful.
-	 *
-	 * @throws  Exception
-	 */
-	public function duplicate(&$pks)
-	{
-		$app = Factory::getApplication();
-		$user = $app->getIdentity();
-        $dispatcher = $this->getDispatcher();
 
-		// Access checks.
-		if (!$user->authorise('core.create', 'com_alfa'))
-		{
-			throw new \Exception(Text::_('JERROR_CORE_CREATE_NOT_PERMITTED'));
-		}
+    public function save($data)
+    {
+        $app = Factory::getApplication();
+        $db = $this->getDatabase();
 
-		$context    = $this->option . '.' . $this->name;
+        $input = $app->getInput();
 
-		// Include the plugins for the save events.
-		PluginHelper::importPlugin($this->events_map['save']);
+        $data['params'] = json_encode($data['shipmentsparams']);
 
-		$table = $this->getTable();
+        if (!parent::save($data))return false;
 
-		foreach ($pks as $pk)
-		{
-			
-				if ($table->load($pk, true))
-				{
-					// Reset the id to create a new record.
-					$table->id = 0;
+        $currentId = 0;
+        if($data['id']>0){ //not a new
+            $currentId = intval($data['id']);
+        }else{ // is new
+            $currentId = intval($this->getState($this->getName().'.id'));//get the id from set joomla state.
+        }
 
-					if (!$table->check())
-					{
-						throw new \Exception($table->getError());
-					}
-					
+        //Category/manufacturer etc associations
+        $assignZeroIdIfDataEmpty = true;
+        AlfaHelper::setAssocsToDb($currentId, $data['categories'], '#__alfa_shipment_categories', 'shipment_id','category_id',$assignZeroIdIfDataEmpty);
+        AlfaHelper::setAssocsToDb($currentId, $data['manufacturers'], '#__alfa_shipment_manufacturers', 'shipment_id','manufacturer_id',$assignZeroIdIfDataEmpty);
+        AlfaHelper::setAssocsToDb($currentId, $data['places'], '#__alfa_shipment_places', 'shipment_id','place_id',$assignZeroIdIfDataEmpty);
+        AlfaHelper::setAssocsToDb($currentId, $data['users'], '#__alfa_shipment_users', 'shipment_id','user_id',$assignZeroIdIfDataEmpty);
+        AlfaHelper::setAssocsToDb($currentId, $data['usergroups'], '#__alfa_shipment_usergroups','shipment_id', 'usergroup_id',$assignZeroIdIfDataEmpty);
 
-					// Trigger the before save event.
-					$beforeSaveEvent = new Model\BeforeSaveEvent($this->event_before_save, [
-						'context' => $context,
-						'subject' => $table,
-						'isNew'   => true,
-						'data'    => $table,
-					]);
-					
-						// Trigger the before save event.
-						$result = $dispatcher->dispatch($this->event_before_save, $beforeSaveEvent)->getArgument('result', []);
-					
-					
-					if (in_array(false, $result, true) || !$table->store())
-					{
-						throw new \Exception($table->getError());
-					}
+        return true;
 
-					// Trigger the after save event.
-					$dispatcher->dispatch($this->event_after_save, new Model\AfterSaveEvent($this->event_after_save, [
-						'context' => $context,
-						'subject' => $table,
-						'isNew'   => true,
-						'data'    => $table,
-					]));				
-				}
-				else
-				{
-					throw new \Exception($table->getError());
-				}
-			
-		}
+    }
 
-		// Clean cache
-		$this->cleanCache();
 
-		return true;
-	}
 
 	/**
 	 * Prepare and sanitise the table prior to saving.
@@ -245,20 +197,22 @@ class ShipmentModel extends AdminModel
 	 *
 	 * @since   1.0.1
 	 */
-	protected function prepareTable($table)
-	{
-		jimport('joomla.filter.output');
+    protected function prepareTable($table)
+    {
+	$user = $this->getCurrentUser();
 
-		if (empty($table->id))
-		{
-			// Set ordering to the last item if not set
-			if (@$table->ordering === '')
-			{
-				$db = $this->getDbo();
-				$db->setQuery('SELECT MAX(ordering) FROM #__alfa_shipments');
-				$max             = $db->loadResult();
-				$table->ordering = $max + 1;
-			}
-		}
+	if ($table->id == 0 && empty($table->created_by))
+	{
+	    $table->created_by = $user->id;
 	}
+
+    	$table->modified = Factory::getDate()->toSql();
+    	$table->modified_by = $user->id;
+
+        return parent::prepareTable($table);
+        
+    }
+
+
+
 }

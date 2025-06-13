@@ -62,5 +62,6 @@ return new class implements ServiceProviderInterface
 				return $component;
 			}
 		);
+
 	}
 };

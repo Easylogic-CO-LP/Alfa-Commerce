@@ -1,18 +1,20 @@
 <div>
 
-    Επεξεργασία παραγγελίας...<br>
-
     <?php
 
-//        echo "<pre>";
-//        print_r($this->event);
-//        echo "</pre>";
-//        exit;
+    use Alfa\Component\Alfa\Site\Helper\PluginLayoutHelper;
 
-        echo $this->event->onOrderProcessView;
+    if (!empty($this->event->onOrderProcessView)):?>
+            <div class="item-shipment-method">
+                <?php
+                echo PluginLayoutHelper::pluginLayout(
+                    $this->event->onOrderProcessView->getLayoutPluginType(),
+                    $this->event->onOrderProcessView->getLayoutPluginName(),
+                    $this->event->onOrderProcessView->getLayout(),
+                )->render($this->event->onOrderProcessView->getLayoutData());
+                ?>
+            </div>
+    <?php endif ?>
 
-    ?>
-
-    <a href="<?php echo \Joomla\CMS\Uri\Uri::root(); ?>">Πίσω στην αρχική</a>
-
+    <button onclick="location.reload();">Retry paying</button>
 </div>

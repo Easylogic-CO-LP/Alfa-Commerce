@@ -53,11 +53,6 @@ class OrdersModel extends ListModel
 	}
 
 
-	
-
-	
-
-	
 
 	/**
 	 * Method to auto-populate the model state.
@@ -128,7 +123,8 @@ class OrdersModel extends ListModel
 		$query = $db->getQuery(true);
 
 		// Select the required fields from the table.
-        $query->select(
+        $query
+            ->select(
             $this->getState(
 				'list.select', 'DISTINCT a.*'
 			)
@@ -136,23 +132,29 @@ class OrdersModel extends ListModel
             ->select(
                 [
                     $db->quoteName('uc.name', 'editor'),
-                    $db->quoteName('oui.name', 'user_name'),
+//                    $db->quoteName('oui.name', 'user_name'),
                     $db->quoteName('pm.name', 'payment_method_name'),
                     $db->quoteName('pm.color', 'payment_method_color'),
                     $db->quoteName('pm.bg_color', 'payment_method_bg_color'),
+                    $db->quoteName('sm.name', 'shipment_method_name'),
+                    $db->quoteName('sm.color', 'shipment_method_color'),
+                    $db->quoteName('sm.bg_color', 'shipment_method_bg_color'),
                 ]
             );
 
         // JOINS
 
-		$query->from('`#__alfa_orders` AS a');
-		
+		$query->from($db->qn('#__alfa_orders') . ' AS a');
+
 
 		$query->join('LEFT', $db->quoteName('#__users', 'uc'), $db->quoteName('uc.id') . ' = ' . $db->quoteName('a.checked_out'));
 
-		$query->join('LEFT', '#__alfa_order_user_info AS oui ON oui.id_order= a.id');
+//        $query->join('LEFT', '#__alfa_order_user_info AS oui ON oui.id_order= a.id');
+		$query->join('LEFT', '#__alfa_user_info AS oui ON oui.id = a.id_address_delivery');
 
-		$query->join('LEFT', '#__alfa_payments AS pm ON pm.id = a.id_paymentmethod');
+		$query->join('LEFT', '#__alfa_payments AS pm ON pm.id = a.id_payment_method');
+
+        $query->join('LEFT','#__alfa_shipments AS sm ON sm.id = a.id_shipment_method');
 
 
 		// FILTERING
@@ -169,7 +171,7 @@ class OrdersModel extends ListModel
 
 		if (is_numeric($show_trashed) && $show_trashed == 1)
 		{
-			$query->where('a.state = -2');
+         	$query->where('a.state = -2');
 		}
 		// elseif (empty($published))
 		// {
@@ -188,7 +190,7 @@ class OrdersModel extends ListModel
 			else
 			{
 				$search = $db->Quote('%' . $db->escape($search, true) . '%');
-				
+
 			}
 		}
 		// Add the list ordering clause.
@@ -199,6 +201,7 @@ class OrdersModel extends ListModel
 		{
 			$query->order($db->escape($orderCol . ' ' . $orderDirn));
 		}
+
 		return $query;
 	}
 

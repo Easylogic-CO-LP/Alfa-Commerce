@@ -19,6 +19,9 @@ use Joomla\CMS\MVC\Controller\AdminController;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Utilities\ArrayHelper;
+use Alfa\Component\Alfa\Administrator\Model;
+
+
 
 /**
  * Discounts list controller class.
@@ -94,6 +97,7 @@ class DiscountsController extends AdminController
 		// Get the input
 		$pks   = $this->input->post->get('cid', array(), 'array');
 		$order = $this->input->post->get('order', array(), 'array');
+
 
 		// Sanitize the input
 		ArrayHelper::toInteger($pks);

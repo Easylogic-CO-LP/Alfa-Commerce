@@ -4,6 +4,12 @@ namespace Alfa\Component\Alfa\Site\Helper;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Event\FormFields\ValidateFieldEvent as FormFieldValidateEvent;
+
+use Alfa\Component\Alfa\Administrator\Event\Payments\OrderPlaceEvent as PaymentOrderPlaceEvent;
+use Alfa\Component\Alfa\Administrator\Event\Shipments\OrderPlaceEvent as ShipmentOrderPlaceEvent;
+use Alfa\Component\Alfa\Administrator\Event\Payments\OrderAfterPlaceEvent as PaymentOrderAfterPlaceEvent;
+use Alfa\Component\Alfa\Administrator\Event\Shipments\OrderAfterPlaceEvent as ShipmentOrderAfterPlaceEvent;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Table\Table;
@@ -18,10 +24,11 @@ class OrderPlaceHelper
 	protected $cart = null;
 	protected $order = null;
 	protected $payment_type = '';
+    protected $shipment_type = '';
 
 	protected $order_table = '#__alfa_orders';
 	protected $order_items_table = '#__alfa_order_items';
-	protected $order_user_info_table = '#__alfa_order_user_info';
+	protected $order_user_info_table = '#__alfa_user_info';
 
 	public function __construct()
 	{
@@ -42,17 +49,15 @@ class OrderPlaceHelper
 	}
 
 	// Place an order
-	public function placeOrder()
+	public function placeOrder($data)
 	{
 		// Retrieve cart items
 		$cartData  = $this->cart->getData();
 		$cartItems = $cartData->items;
 
-
 		if (empty($cartItems))
 		{
 			$this->app->enqueueMessage("Cart is empty, cannot place order!");
-
 			return false;
 		}
 
@@ -63,45 +68,98 @@ class OrderPlaceHelper
 			return false;
 		}
 
-		/*
-		 *  alfa-payments onOrderBeforeSave event calls.
-		 */
+        // Same for shipment method.
+        if (!self::checkShipmentMethod($this->app->input->getInt('shipment_method', null)))
+        {
+            $this->app->enqueueMessage("Invalid shipment method selected.");
+            return false;
+        }
 
-		// BEFORE SAVE.
+        $cartData->id_shipment = $this->app->input->getInt('shipment_method');
+
+        // alfa-plugins onOrderBeforePlace event calls.
+        $onOrderBeforePlaceEventName = "onOrderBeforePlace";
+
+
+        // TODO: get shipment method from the database ??
+        // TODO: return true false to be able to stop the proccess
+        // Payments.
 		self::getPaymentType($this->app->input->getInt('payment_method'));
+        $paymentOrderPlaceEvent = new PaymentOrderPlaceEvent($onOrderBeforePlaceEventName, [
+            "subject" => $this->cart
+        ]);
+		$this->app->bootPlugin($this->payment_type, "alfa-payments")->{$onOrderBeforePlaceEventName}($paymentOrderPlaceEvent);
+        $this->cart = $paymentOrderPlaceEvent->getCart();
 
-		$onOrderBeforeSaveEventName = "onOrderBeforeSave";
-		$this->app->bootPlugin($this->payment_type, "alfa-payments")->{$onOrderBeforeSaveEventName}($this->cart);
+        // Shipments.
+        self::getShipmentType($this->app->input->getInt('shipment_method'));
+        $shipmentOrderPlaceEvent = new ShipmentOrderPlaceEvent($onOrderBeforePlaceEventName, [
+            "subject" => $this->cart
+        ]);
+        $this->app->bootPlugin($this->shipment_type, "alfa-shipments")->{$onOrderBeforePlaceEventName}($shipmentOrderPlaceEvent);
+        $this->cart = $shipmentOrderPlaceEvent->getCart();
+
+
+        // SAVE ORDER USER INFO
+        $userInfoObject = $this->saveUserInfo($data);
+        if ($userInfoObject != NULL){
+            // Update cart with its user info.
+            $this->cart->getData()->id_user_info_delivery = $userInfoObject->id;
+        }
+        else
+        {
+            $this->app->enqueueMessage("User info not inserted!");
+            return false;
+        }
+
 
 		// SAVE ORDER MAIN INFO
-		if (!$this->saveOrder())
+		if (!($orderId = $this->saveOrder()))
 		{
 			$this->app->enqueueMessage("Order not inserted!");
-
 			return false;
 		}
+
+
+		// TODO: transaction start end commit and rollback
 
 		// SAVE ORDER ITEMS
 		if (!$this->saveOrderItems())
 		{
 			$this->app->enqueueMessage("Order items not inserted!");
-
 			return false;
 		}
 
-		// SAVE ORDER USER INFO
-		if (!$this->saveUserInfo())
+		
+		// fetch the order from the admin order model
+		$orderModel = $this->app->bootComponent('com_alfa')
+				->getMVCFactory()->createModel('Order', 'Administrator', ['ignore_request' => true]);
+
+		if (!$orderModel)
 		{
-			$this->app->enqueueMessage("User info not inserted!");
-
+			$this->app->enqueueMessage('Order Place Helper: Order Model not loaded successfully to get the order!', 'error');
 			return false;
 		}
 
-		// AFTER SAVE.
-		$onOrderAfterSaveEventName = "onOrderAfterSave";
-		$this->app->bootPlugin($this->payment_type, "alfa-payments");
+        $this->order = $orderModel->getItem($orderId);
 
-		// CLEAR CART NO ERROR OCCURED
+
+		// AFTER PLACE.
+		$onOrderAfterPlaceEventName = "onOrderAfterPlace";
+        $paymentOrderAfterPlaceEvent = new PaymentOrderAfterPlaceEvent($onOrderAfterPlaceEventName, [
+           "subject" => $this->order
+        ]);
+		$this->app->bootPlugin($this->payment_type, "alfa-payments")->{$onOrderAfterPlaceEventName}($paymentOrderAfterPlaceEvent);
+        $this->order = $paymentOrderAfterPlaceEvent->getOrder();
+
+        $shipmentOrderAfterPlaceEvent = new ShipmentOrderAfterPlaceEvent($onOrderAfterPlaceEventName, [
+            "subject" => $this->order
+        ]);
+        $this->app->bootPlugin($this->shipment_type, "alfa-shipments")->{$onOrderAfterPlaceEventName}($shipmentOrderAfterPlaceEvent);
+        $this->order = $shipmentOrderAfterPlaceEvent->getOrder();
+
+
+		// CLEAR CART NO ERROR OCCURRED
 		if (!$this->cart->clearCart())
 		{
 			$this->app->enqueueMessage("Cart not cleared!");
@@ -114,9 +172,12 @@ class OrderPlaceHelper
 	{
 		$db         = $this->db;
 		$cartHelper = $this->cart;
+        $cartData = $cartHelper->getData();
 
-		// //Payment method's id has been validated from placeOrder().
+
+		// Payment method's id has been validated from placeOrder().
 		$payment_method_id = $this->app->input->getInt('payment_method', '1');
+        $shipment_method_id = $this->app->input->getInt('shipment_method', '1');
 		// $query = $db->getQuery(true);
 		// $query->
 		//     select('name')->
@@ -127,18 +188,21 @@ class OrderPlaceHelper
 
 		// TODO: Get currency id some other way.
 		$config     = ComponentHelper::getParams('com_alfa');
-		$currencyID = $config->get("default_currency", 978);
+		$currencyNumber = $config->get("default_currency", 978);
+        $currencyID = self::getCurrencyID($currencyNumber);
+
+        $currentDate = Factory::getDate('now','UTC');
 
 		$order_object                      = new \stdClass();
 		$order_object->id_user_group       = 1;
 		$order_object->id_user             = $this->user->id;
 		$order_object->id_cart             = $cartHelper->getCartId();
 		$order_object->id_currency         = $currencyID;
-		$order_object->id_address_delivery = 1;
-		$order_object->id_address_invoice  = 1;
-		$order_object->id_paymentmethod    = $payment_method_id;   //ID of payment method.
-		// $order_object->payment_type = $payment_type;
-		$order_object->id_shipmentmethod        = 1;
+		$order_object->id_address_delivery = $cartData->id_user_info_delivery;
+		$order_object->id_address_invoice  = $cartData->id_user_info_invoice;
+		$order_object->id_payment_method    = $payment_method_id;   //ID of payment method.
+//		$order_object->payment_type = $payment_type;
+		$order_object->id_shipment_method        = $shipment_method_id;
 		$order_object->id_order_status          = 1;
 		$order_object->id_payment_currency      = 1;
 		$order_object->id_language              = 1;
@@ -147,23 +211,23 @@ class OrderPlaceHelper
 		$order_object->code_coupon              = '1';
 		$order_object->original_price           = $cartHelper->getTotal();
 		$order_object->payed_price              = $cartHelper->getTotal();
-		$order_object->total_shipping           = 0.00;
+		$order_object->total_shipping           = 0;//$cartData->shipment_costs_total ?: 0;
 		$order_object->ip_address               = IpHelper::getIp();
-		$order_object->shipping_tracking_number = '1';
+		// $order_object->shipping_tracking_number = '1';
 		$order_object->payment_status           = '1';
 		$order_object->customer_note            = '1';
 		$order_object->note                     = '';
 		$order_object->checked_out              = 0;
-		$order_object->checked_out_time         = Factory::getDate()->toSql();
-		$order_object->modified                 = Factory::getDate()->toSql();
+		$order_object->checked_out_time         = $currentDate->toSql(false);
+		$order_object->modified                 = $currentDate->toSql(false);
 		$order_object->modified_by              = 0;
-		$order_object->created                  = Factory::getDate()->toSql();
+		$order_object->created                  = $currentDate->toSql(false);
 		$order_object->created_by               = $this->user->id;
 
 		try
 		{
 			$db->insertObject($this->order_table, $order_object, 'id'); //the third 'id' value inserts in the order_object the auto increment inserted id
-			$orderId = $db->insertid();
+			// $orderId = $db->insertid();
 		}
 		catch (\Exception $e)
 		{
@@ -172,11 +236,16 @@ class OrderPlaceHelper
 			return false;
 		}
 
-		$this->order     = $order_object;
-		$this->order->id = $orderId;
+		 $this->order     = $order_object;
+		 $this->order->id = $order_object->id;
+
+//        echo "<pre>";
+//        print_r($this->order);
+//        echo "</pre>";
+//        exit;
 
 
-		return true;
+		return $this->order->id;
 	}
 
 	protected function saveOrderItems()
@@ -185,25 +254,13 @@ class OrderPlaceHelper
 		$cartHelper = $this->cart;
 		$cartItems  = $cartHelper->getData()->items;
 
-//        echo "<pre>";
-//        print_r($cartItems);
-//        echo "</pre>";
-//        exit;
-
-
 		foreach ($cartItems as $item)
-		{
-
-//            echo "<pre>";
-//            print_r($item);
-//            echo "</pre>";
-//            exit;
-
+        {
 			$item_object                    = new \stdClass();
 			$item_object->id_item           = $item->id_item;
 			$item_object->id_order          = $this->order->id;
 			$item_object->id_shipmentmethod = 0;
-			$item_object->name              = $item->name;
+            $item_object->product_name      = $item->name;  // Change here.
 			$item_object->total             = $item->price['base_price'];
 			$item_object->quantity          = $item->quantity;
 			$item_object->quantity_removed  = 0;
@@ -226,9 +283,7 @@ class OrderPlaceHelper
 
 	/**
 	 *  Checks if the payment id submitted by the user is valid.
-	 *
 	 * @param   int  $paymentID  The id of the submitted payment.
-	 *
 	 * @return bool True if the id is one of a valid payment method, false if not.
 	 */
 	protected function checkPaymentMethod($paymentID = null): bool
@@ -242,26 +297,30 @@ class OrderPlaceHelper
 
 	}
 
+    protected function checkShipmentMethod($shipmentID = null): bool
+    {
+
+        foreach($this->cart->getShipmentMethods() as $method)
+            if($method->id == $shipmentID)
+                return true;
+
+        return false;
+
+    }
+
+
 
 	/**
 	 *  Saves the user's info in the database.
 	 *
 	 * @return object with data submitted, or null.
 	 */
-	protected function saveUserInfo()
+	protected function saveUserInfo($data)
 	{
 		$db    = $this->db;
-		$input = $this->app->input;
-
-		$info_object                   = new \stdClass();
-		$info_object->id_order         = $this->order ? $this->order->id : 0;
-		$info_object->name             = $input->get('name') ?? '';
-		$info_object->email            = $input->get('email') ?? '';
-		$info_object->shipping_address = $input->get('shipping_address') ?? '';
-		$info_object->city             = $input->get('city') ?? '';
-		$info_object->state            = $input->get('state') ?? '';
-		$info_object->zip_code         = $input->get('zip_code') ?? '';
-
+	
+        $info_object = (object) $data;
+        $info_object->id_user = $this->user->id;
 
 		try
 		{
@@ -270,7 +329,6 @@ class OrderPlaceHelper
 		catch (\Exception $e)
 		{
 			$this->app->enqueueMessage($e->getMessage());
-
 			return null;
 		}
 
@@ -279,7 +337,6 @@ class OrderPlaceHelper
 
 	/**
 	 * @param $paymentID int The order's payment method id.
-	 *
 	 * @return void
 	 */
 	protected function getPaymentType($paymentID)
@@ -297,9 +354,36 @@ class OrderPlaceHelper
 
 	}
 
+
+    protected function getShipmentType($shipmentID)
+    {
+        $query = $this->db->getQuery(true);
+
+        $query
+            ->select("type")
+            ->from("#__alfa_shipments")
+            ->where("id=" . $shipmentID);
+
+        $this->db->setQuery($query);
+
+        $this->shipment_type = $this->db->loadResult();
+
+    }
+
+    protected function getCurrencyID($currencyNumber)
+    {
+        $db = Factory::getContainer()->get("DatabaseDriver");
+        $query = $db->getQuery(true);
+
+        $query
+            ->select('id')
+            ->from('#__alfa_currencies')
+            ->where('number=' . $currencyNumber);
+
+        $db->setQuery($query);
+        return $db->loadResult();
+    }
+
+
+
 }
-
-
-
-
-

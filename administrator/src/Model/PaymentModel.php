@@ -37,7 +37,14 @@ class PaymentModel extends AdminModel
 	 */
 	public $typeAlias = 'com_alfa.payment';
 
-    	protected $formName = 'payment';
+	protected $formName = 'payment';
+
+	/**
+	 * @var    null  Item data
+	 *
+	 * @since  1.0.0
+	 */
+	protected $item = null;
 
 	/**
 	 * Method to get the record form.
@@ -49,10 +56,6 @@ class PaymentModel extends AdminModel
      *
      * @since   1.6
 	 */
-
-
-	protected $payment = null;
-
 	public function getForm($data = array(), $loadData = true)
 	{
 
@@ -75,34 +78,15 @@ class PaymentModel extends AdminModel
 		$idFromInput = $app->getInput()->getInt('id', 0);
 
 		// On edit order, we get ID of order from order.id state, but on save, we use data from input
-        	$id = (int)$this->getState($this->formName.'.id', $idFromInput);
+    	$id = (int)$this->getState($this->formName.'.id', $idFromInput);
 
 		if (empty($form)){
 			return false;
 		}
 
-		// Load the 'alfa-payments' plugin params inside the form base on the type.
-		//  TODO: PUT IN HELPER
-		$pluginGroup = 'alfa-payments';
+		$item = ($this->item === null ? $this->getItem() : $this->item);
 
-		$pluginName = $data['type'] ?? $form->getValue('type'); //$data when we save but when we open the form we get it from getValue
-		
-		$paramsFile = JPATH_ROOT . '/plugins/'.$pluginGroup.'/'.$pluginName.'/params/params.xml';
-
-		$app->getLanguage()->load('plg_'.$pluginGroup.'_'.$pluginName);
-	    	
-        if (file_exists($paramsFile)) {
-            // Load the XML file into the form.
-            $form->loadFile($paramsFile, false);
-        }
-
-        //set the plugin data
-        $data = $this->getItem();
-        $payment_params = $data->params;
-
-        foreach($payment_params as $index=>$payment_param){
-            $form->setValue($index,'paymentsparams',$payment_param);
-        }
+        AlfaHelper::addPluginForm($form, $data, $item ,'payments');
 
 		return $form;
 	}
@@ -119,21 +103,13 @@ class PaymentModel extends AdminModel
 
         //        exit;
 		// Check the session for previously entered form data.
-		$data = Factory::getApplication()->getUserState('com_alfa.edit.item.data', array());
+		$data = Factory::getApplication()->getUserState('com_alfa.edit.payment.data', array());
 
 		if (empty($data))
 		{
-			if ($this->item === null)
-			{
-				$this->item = $this->getItem();
-			}
+			$data = ($this->item === null ? $this->getItem() : $this->item);
 
-			$data = $this->item;
             $data->paymentsparams = $data->params;
-//            echo "<pre>";
-//            print_r($data->paymentsparams);
-//            echo "</pre>";
-//            exit;
 
 		}
 
@@ -153,22 +129,12 @@ class PaymentModel extends AdminModel
   
 	public function getItem($pk = null)
 	{
-//        exit;
-		
-		if ($item = parent::getItem($pk))
-		{
-			if (isset($item->params))
-			{
-//                exit;
-				//$payment_params = json_decode($item->params);
-//                print_r($item);
-//                exit;
-//                $item->paymentsparams['test'] = 2;
-//                print_r($item->test);
 
-//                $item->paymentsparams = $item->params;
-              //  exit;
-			}
+		$item = $this->item ?? ($this->item = parent::getItem($pk));
+		
+		if ($item)
+		{
+
             $item->categories = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_categories', 'payment_id','category_id');
             $item->manufacturers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_manufacturers', 'payment_id','manufacturer_id');
             $item->places = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_places', 'payment_id','place_id');
@@ -194,35 +160,15 @@ class PaymentModel extends AdminModel
 	*/
 	public function save($data)
 	{
-//        exit;
 		$app = Factory::getApplication();
 		$db = $this->getDatabase();
 
 		$input = $app->getInput();
-//exit;
-
-		// print_r($input->get('jform', [], 'array'));
-		// exit;
-		// $data['alias'] = $data['alias'] ?: $data['name'];
-
-		// if ($app->get('unicodeslugs') == 1){
-		// 	$data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
-		// } else {
-		// 	$data['alias'] = OutputFilter::stringURLSafe($data['alias']);
-		// }
-
-//		print_r($data['paymentsparams']);
-//		exit;
 
 		$data['params'] = json_encode($data['paymentsparams']);
 
-        // echo "<pre>";
-        // print_r($data['params']);
-        // echo "</pre>";
-        // exit;
-
-
 		if (!parent::save($data))return false;
+
 
 		$currentId = 0;
 		if($data['id']>0){ //not a new
@@ -233,12 +179,12 @@ class PaymentModel extends AdminModel
 
 	        //Category/manufacturer etc associations
 	        $assignZeroIdIfDataEmpty = true;
-	        AlfaHelper::setAssocsToDb($currentId, $data['categories'], '#__alfa_payment_categories', 'payment_id','category_id',$assignZeroIdIfDataEmpty);
-	        AlfaHelper::setAssocsToDb($currentId, $data['manufacturers'], '#__alfa_payment_manufacturers', 'payment_id','manufacturer_id',$assignZeroIdIfDataEmpty);
-	        AlfaHelper::setAssocsToDb($currentId, $data['places'], '#__alfa_payment_places', 'payment_id','place_id',$assignZeroIdIfDataEmpty);
+	        AlfaHelper::setAssocsToDb($currentId, $data['categories']??[], '#__alfa_payment_categories', 'payment_id','category_id',$assignZeroIdIfDataEmpty);
+	        AlfaHelper::setAssocsToDb($currentId, $data['manufacturers']??[], '#__alfa_payment_manufacturers', 'payment_id','manufacturer_id',$assignZeroIdIfDataEmpty);
+	        AlfaHelper::setAssocsToDb($currentId, $data['places']??[], '#__alfa_payment_places', 'payment_id','place_id',$assignZeroIdIfDataEmpty);
 
-	        AlfaHelper::setAssocsToDb($currentId, $data['users'], '#__alfa_payment_users', 'payment_id','user_id',$assignZeroIdIfDataEmpty);
-	        AlfaHelper::setAssocsToDb($currentId, $data['usergroups'], '#__alfa_payment_usergroups','payment_id', 'usergroup_id',$assignZeroIdIfDataEmpty);
+	        AlfaHelper::setAssocsToDb($currentId, $data['users']??[], '#__alfa_payment_users', 'payment_id','user_id',$assignZeroIdIfDataEmpty);
+	        AlfaHelper::setAssocsToDb($currentId, $data['usergroups']??[], '#__alfa_payment_usergroups','payment_id', 'usergroup_id',$assignZeroIdIfDataEmpty);
 
 	        return true;
 		// return parent::save($data);

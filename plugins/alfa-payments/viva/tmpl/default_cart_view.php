@@ -1,7 +1,7 @@
 <?php
 
-//$displayData['data'];
+// extract($displayData);
 
 ?>
 
-<p><?php echo 'asdasdas';?></p>
+<p><?php echo 'Viva plugin cart layout';?></p>

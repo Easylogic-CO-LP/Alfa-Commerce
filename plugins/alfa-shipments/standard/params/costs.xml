@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+    <fieldset name="shipmentscosts">
+
+        <field
+                name="costs"
+                type="subform"
+                buttons="add,remove,move"
+                hiddenLabel="true"
+                label="All"
+                description=""
+                multiple="true"
+        >
+
+            <form>
+            <field
+                    name="zip-start"
+                    type="number"
+                    min='0.01'
+                    readonly="false"
+                    label="COM_ALFA_FORM_SHIPMENT_ZIP_START"
+            />
+
+            <field
+                    name="zip-end"
+                    type="number"
+                    min='0.01'
+                    readonly="false"
+                    label="COM_ALFA_FORM_SHIPMENT_ZIP_END"
+            />
+
+            <field
+                    name="weight-max"
+                    type="number"
+                    min='0.01'
+                    readonly="false"
+                    label="COM_ALFA_FORM_SHIPMENT_WEIGHT_MAX"
+            />
+
+            <field
+                    name="width-max"
+                    type="number"
+                    min='0.01'
+                    readonly="false"
+                    label="COM_ALFA_FORM_SHIPMENT_WIDTH_MAX"
+            />
+
+            <field
+                    name="height-max"
+                    type="number"
+                    min='0.01'
+                    readonly="false"
+                    label="COM_ALFA_FORM_SHIPMENT_HEIGHT_MAX"
+            />
+
+            <field
+                    name="depth-max"
+                    type="number"
+                    min='0.01'
+                    readonly="false"
+                    label="COM_ALFA_FORM_SHIPMENT_DEPTH_MAX"
+            />
+
+
+            <field
+                    name="amount-start"
+                    type="number"
+                    min='0.01'
+                    readonly="false"
+                    label="COM_ALFA_FORM_SHIPMENT_AMOUNT_START"
+            />
+
+            <field
+                    name="amount-end"
+                    type="number"
+                    min='0.01'
+                    readonly="false"
+                    label="COM_ALFA_FORM_SHIPMENT_AMOUNT_END"
+            />
+
+
+            <field
+                    name="cost"
+                    type="number"
+                    min='0.01'
+                    readonly="false"
+                    label="COM_ALFA_FORM_SHIPMENT_COST"
+            />
+
+            </form>
+
+        </field>
+    </fieldset>
+
+</form>

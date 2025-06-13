@@ -1,5 +1,9 @@
 <?php
 
+use Alfa\Component\Alfa\Site\Helper\PriceFormat;
+use Joomla\CMS\Factory;
+use Alfa\Component\Alfa\Site\Helper;
+
 $cart = !empty($displayData) ? $displayData : $this->cart;
 
 ?>
@@ -55,25 +59,38 @@ $cart = !empty($displayData) ? $displayData : $this->cart;
                         </button>
 
                     </td>
-                    <td data-label="Price" class="cart-item-col-price cart-item-col"><?php echo $item->price['base_price'];?></td>
-                    <td data-label="Discount" class="cart-item-col-price cart-item-col"><?php echo $item->price['discounts_totals']['percent'];?></td>
+                    <td data-label="Price" class="cart-item-col-price cart-item-col"><?php echo PriceFormat::format($item->price['base_price']);?></td>
+                    <td data-label="Discount" class="cart-item-col-price cart-item-col"><?php echo PriceFormat::format($item->price['discounts_totals']['percent']);?></td>
                     <td data-label="Tax" class="cart-item-col-tax cart-item-col">
                         <?php 
-                            echo $item->price['tax_totals']['amount'];
+                            echo PriceFormat::format($item->price['tax_totals']['amount']);
                         ?>        
                     </td>
-                    <td data-label="Total" class="cart-item-col-total"><?php echo $item->price['final_price'];?></td>
+                    <td data-label="Total" class="cart-item-col-total"><?php echo PriceFormat::format($item->price['final_price']);?></td>
                 </tr>
             <?php } ?>
         </tbody>
 
-
         <tfoot>
+             <tr>
+                <td colspan="4"></td>
+                <td><strong>Shipment costs:</strong></td>
+                <td>
+                    <?php 
+                        echo PriceFormat::format($cart->getShipmentTotal());
+                    ?>
+                </td>
+            </tr>
             <tr>
                 <td colspan="3"><button data-action="cart-clear">Clear Cart</button></td>
                 <td colspan="1"></td>
                 <td><strong>Total:</strong></td>
-                <td><?php echo $cart->getTotal(); ?></td>
+                <td>
+                    <?php
+                        $total = $cart->getTotal() + $cart->getShipmentTotal();
+                        echo PriceFormat::format($total);
+                    ?>
+                </td>
             </tr>
         </tfoot>
     </table>

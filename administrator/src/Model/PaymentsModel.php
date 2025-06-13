@@ -242,7 +242,6 @@ class PaymentsModel extends ListModel
 	public function getItems()
 	{
 		$items = parent::getItems();
-		
 
 		return $items;
 	}

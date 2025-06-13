@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension type="plugin" group="alfa-shipments" method="upgrade">
+	<name>PLG_ALFA_SHIPMENTS_STANDARD</name>
+	<copyright>2024 Easylogic CO LP</copyright>
+	<license>GNU General Public License version 2 or later; see LICENSE.txt</license>
+	<author>Agamemnon Fakas</author>
+	<contributor>Athanasios Marios Voukias</contributor>
+	<creationDate>2025-03</creationDate>
+	<copyright>(C) 2016 Open Source Matters, Inc.</copyright>
+	<license>GNU General Public License version 2 or later; see LICENSE.txt</license>
+	<authorEmail>info@easylogic.gr</authorEmail>
+	<authorUrl>http://easylogic.gr</authorUrl>
+	<version>1.0.2</version>
+	<description>PLG_ALFA_SHIPMENTS_STANDARD_XML_DESCRIPTION</description>
+	<namespace path="src">Joomla\Plugin\AlfaShipments\Standard</namespace>
+	<files>
+	    <folder>params</folder>
+		<folder plugin="standard">services</folder>
+		<folder>src</folder>
+		<folder>tmpl</folder>
+	</files>
+
+	<languages folder="language">
+		<language tag="en-GB">en-GB/plg_alfa-shipments_standard.ini</language>
+		<language tag="en-GB">en-GB/plg_alfa-shipments_standard.sys.ini</language>
+	</languages>
+	<config>
+		<fields name="params">
+			<fieldset name="basic">
+				<!-- <field
+					name="test"
+					type="list"
+					label="Test field"
+					>
+					<option value="0">JNO</option>
+					<option value="1">JYES</option>
+					<option value="2">TEST</option>
+				</field>
+
+				<field
+					name="maxlength"
+					type="number"
+					label="Test number field"
+					filter="integer"
+				/> -->
+			</fieldset>
+		</fields>
+	</config>
+</extension>

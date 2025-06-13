@@ -11,6 +11,8 @@ namespace Alfa\Component\Alfa\Site\Helper;
 
 use Joomla\CMS\Component\ComponentHelper;
 use \Joomla\CMS\Factory;
+use Joomla\CMS\Layout\FileLayout;
+use Joomla\CMS\Plugin\PluginHelper;
 
 defined('_JEXEC') or die;
 
@@ -195,16 +197,10 @@ class AlfaHelper
 
     /**
      *  Filters out the payment methods that are not common in all items.
-     *
      *  @param $items array of item objects. Each item has data about its categories/manufacturers etc.
      *  @return array the common payment methods.
      */
-    static function getFilteredMethods($categories,$manufacturers,$usergroups,$userId){
-
-//        echo "<pre>";
-//        print_r($manufacturers);
-//        echo "</pre>";
-//        exit;
+    static function getFilteredMethods($categories, $manufacturers, $usergroups, $userId, $baseTable = "payment"){
 
         $categories[] = 0; //to support all categories for payment method
         $manufacturers[] = 0; //to support all manufacturers for payment method
@@ -221,23 +217,28 @@ class AlfaHelper
             ->select('GROUP_CONCAT(DISTINCT mm.manufacturer_id) AS manufacturers')  // Get all unique manufacturers for the payment
             ->select('GROUP_CONCAT(DISTINCT mu.user_id) AS users')  // Get all unique manufacturers for the payment
             ->select('GROUP_CONCAT(DISTINCT mug.usergroup_id) AS groups')  // Get all unique manufacturers for the payment
-            ->from('#__alfa_payments AS m')  // Main table
+            ->from('#__alfa_' . $baseTable . 's AS m')  // Main table
 
             // Join related tables
-            ->join('LEFT', '#__alfa_payment_categories AS mc ON mc.payment_id = m.id')
-            ->join('LEFT', '#__alfa_payment_manufacturers AS mm ON mm.payment_id = m.id')
-            ->join('LEFT', '#__alfa_payment_users AS mu ON mu.payment_id = m.id')
-            ->join('LEFT', '#__alfa_payment_usergroups AS mug ON mug.payment_id = m.id')
+            ->join('LEFT', "#__alfa_". $baseTable . '_categories AS mc ON mc.' . $baseTable . '_id = m.id')
+            ->join('LEFT', "#__alfa_". $baseTable . '_manufacturers AS mm ON mm.' . $baseTable . '_id = m.id')
+            ->join('LEFT', "#__alfa_". $baseTable . '_users AS mu ON mu.' . $baseTable . '_id = m.id')
+            ->join('LEFT', "#__alfa_". $baseTable . '_usergroups AS mug ON mug.' . $baseTable . '_id = m.id')
+
+            ->where('m.state = 1')
 
             // Group by payment method ID to combine categories and manufacturers
             ->group('m.id');
 
+
+
+
         $db->setQuery($query);
-        $paymentMethods = $db->loadObjectList('id');
+        $filteredMethods = $db->loadObjectList('id');
 
         // FILTER PAYMENT METHODS
         // Compare ids given with payment ids.
-        foreach ($paymentMethods as $index => $method) {
+        foreach ($filteredMethods as $index => $method) {
             $isValid = true;
 
             $methodCategories = explode(",", $method->categories);
@@ -255,7 +256,7 @@ class AlfaHelper
                 $isValid = false;
             }
 
-            //if payment method dont have common manufacturers with those given turn is valid to false to unset it
+            //if payment method don't have common manufacturers with those given turn is valid to false to unset it
             if (empty(array_intersect($usergroups, $methodUsersgroups))) {
                 $isValid = false;
             }
@@ -266,16 +267,20 @@ class AlfaHelper
             }
 
             if (!$isValid){
-                unset($paymentMethods[$index]);
+                unset($filteredMethods[$index]);
             }
 
         }
 
 
-        return $paymentMethods;
-	    
+        return $filteredMethods;
 
     }
+
+//	public function pluginLayout($fileName){
+//		$path = dirname(PluginHelper::getLayoutPath($this->_type, $this->_name, $fileName));
+//		return new FileLayout($fileName,$path);
+//	}
 
 
 }

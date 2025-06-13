@@ -16,6 +16,8 @@ use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use \Joomla\CMS\Factory;
 use \Joomla\CMS\Language\Text;
+use \Alfa\Component\Alfa\Administrator\Event\Payments\ItemViewEvent as PaymentsItemViewEvent;
+use \Alfa\Component\Alfa\Administrator\Event\Shipments\ItemViewEvent as ShipmentsItemViewEvent;
 
 /**
  * View class for a list of Alfa.
@@ -55,7 +57,7 @@ class HtmlView extends BaseHtmlView
 
 		if (!empty($this->item))
 		{
-			
+
 		}
 
 		// Check for errors.
@@ -63,7 +65,7 @@ class HtmlView extends BaseHtmlView
 		{
 			throw new \Exception(implode("\n", $errors));
 		}
-        
+
 		if ($this->_layout == 'edit')
 		{
 			$authorised = $user->authorise('core.create', 'com_alfa');
@@ -77,15 +79,65 @@ class HtmlView extends BaseHtmlView
         /*
          *  Setting up alfa-payments onProductView event call to be used on tmpl.
          */
-        $onProductViewPaymentEventName = "onProductView";
-        
-        foreach($this->item->payment_methods as &$payment_method) {
-            $payment_method->events = new \stdClass();
-            $payment_method->events->{$onProductViewPaymentEventName} = $app->bootPlugin($payment_method->type, "alfa-payments")->{$onProductViewPaymentEventName}($this->item, $payment_method);
-            
+        $onProductViewEventName = "onItemView";
+
+        foreach($this->item->payment_methods as &$payment_method)
+        {
+
             if(!$payment_method->show_on_product){
                 unset($this->item->payment_methods[$payment_method->id]);
+                continue;
             }
+
+	        $paymentEvent = new PaymentsItemViewEvent($onProductViewEventName, [
+		        'subject' => $this->item,
+		        'method'  => $payment_method,
+	        ]);
+
+	        $app->bootPlugin($payment_method->type, "alfa-payments")->{$onProductViewEventName}($paymentEvent);
+
+	        if (empty($paymentEvent->getLayoutPluginName())) $paymentEvent->setLayoutPluginName($payment_method->type);
+	        if (empty($paymentEvent->getLayoutPluginType())) $paymentEvent->setLayoutPluginType("alfa-payments");
+	        if ($paymentEvent->hasRedirect()) {
+		        $app->redirect(
+					$paymentEvent->getRedirectUrl(),
+			        $paymentEvent->getRedirectCode() ?? 303
+		        );
+		        return;
+	        }
+
+            $payment_method->events = new \stdClass();
+            $payment_method->events->{$onProductViewEventName} = $paymentEvent;
+
+        }
+
+        foreach($this->item->shipment_methods as &$shipment_method) {
+
+            if(!$shipment_method->show_on_product){
+                unset($this->item->payment_methods[$shipment_method->id]);
+                continue;
+            }
+
+            $shipment_event = new ShipmentsItemViewEvent($onProductViewEventName, [
+                'subject' => $this->item,
+                'method'  => $shipment_method,
+            ]);
+
+            $app->bootPlugin($shipment_method->type, "alfa-shipments")->{$onProductViewEventName}($shipment_event);
+
+            if (empty($shipment_event->getLayoutPluginName())) $shipment_event->setLayoutPluginName($shipment_method->type);
+            if (empty($shipment_event->getLayoutPluginType())) $shipment_event->setLayoutPluginType("alfa-shipments");
+            if ($shipment_event->hasRedirect()) {
+                $app->redirect(
+                    $shipment_event->getRedirectUrl(),
+                    $shipment_event->getRedirectCode() ?? 303
+                );
+                return;
+            }
+
+            $shipment_method->events = new \stdClass();
+            $shipment_method->events->{$onProductViewEventName} = $shipment_event;
+
         }
 
 

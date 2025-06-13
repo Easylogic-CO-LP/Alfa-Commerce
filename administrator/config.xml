@@ -214,7 +214,7 @@
             type="sql"
             default="978"
             label="Default Currency"
-            query="SELECT id, number FROM #__alfa_currencies ORDER BY name ASC" key_field="id" value_field="number"
+            query="SELECT number, name FROM #__alfa_currencies ORDER BY name ASC" key_field="number" value_field="name"
         />
     </fieldset>
     

@@ -25,6 +25,8 @@ $wa->useStyle('com_alfa.general')
     ->useStyle('com_alfa.cart')
     ->useScript('com_alfa.cart');
 
+//echo $this->form;
+
 ?>
 
 <div id="cart-outer" data-cart-outer>

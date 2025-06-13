@@ -53,12 +53,6 @@ class ShipmentsModel extends ListModel
 	}
 
 
-	
-
-	
-
-	
-
 	/**
 	 * Method to auto-populate the model state.
 	 *
@@ -126,7 +120,7 @@ class ShipmentsModel extends ListModel
 	protected function getListQuery()
 	{
 		// Create a new query object.
-		$db    = $this->getDbo();
+		$db    = $this->getDatabase();
 		$query = $db->getQuery(true);
 
 		// Select the required fields from the table.
@@ -148,7 +142,39 @@ class ShipmentsModel extends ListModel
 		// Join over the user field 'modified_by'
 		$query->select('`modified_by`.name AS `modified_by`');
 		$query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
-		
+
+        // Join over category IDs and names.
+        $query->select("GROUP_CONCAT(DISTINCT scat.category_id SEPARATOR ',') AS shipment_category_IDs")
+            ->join("LEFT", "#__alfa_shipment_categories as scat ON a.id = scat.shipment_id");
+        $query->select("GROUP_CONCAT(DISTINCT cat.name SEPARATOR ', ') AS category_names")
+            ->join("LEFT", "#__alfa_categories as cat ON scat.category_id = cat.id");
+
+        // Join over manufacturer IDs and names.
+        $query->select("GROUP_CONCAT(DISTINCT sman.manufacturer_id SEPARATOR ',') AS shipment_manufacturer_IDs")
+            ->join("LEFT", "#__alfa_shipment_manufacturers AS sman ON a.id = sman.shipment_id");
+        $query->select("GROUP_CONCAT(DISTINCT man.name SEPARATOR ', ') AS manufacturer_names")
+            ->join("LEFT", "#__alfa_manufacturers AS man ON sman.manufacturer_id = man.id");
+
+        // Join over user IDs and names.
+        $query->select("GROUP_CONCAT(DISTINCT su.user_id SEPARATOR ',') AS shipment_user_IDs")
+            ->join("LEFT", "#__alfa_shipment_users AS su ON a.id = su.shipment_id");
+        $query->select("GROUP_CONCAT(DISTINCT u.name SEPARATOR ', ') AS user_names")
+            ->join("LEFT", "#__users AS u ON su.user_id = u.id");
+
+        // Join over place IDs and names.
+        $query->select("GROUP_CONCAT(DISTINCT spl.place_id SEPARATOR ',') AS shipment_place_IDs")
+            ->join("LEFT", "#__alfa_shipment_places AS spl ON a.id = spl.shipment_id");
+        $query->select("GROUP_CONCAT(DISTINCT pl.name SEPARATOR ', ') AS place_names")
+            ->join("LEFT", "#__alfa_places AS pl ON spl.place_id = pl.id");
+
+        // Join over usergroup IDs and names.
+        $query->select("GROUP_CONCAT(DISTINCT sug.usergroup_id SEPARATOR ',') AS shipment_usergroup_IDs")
+            ->join("LEFT", "#__alfa_shipment_usergroups AS sug ON a.id = sug.shipment_id");
+        $query->select("GROUP_CONCAT(DISTINCT ug.name SEPARATOR ', ') AS usergroup_names")
+            ->join("LEFT", "#__alfa_usergroups AS ug ON sug.usergroup_id = ug.id");
+
+        // Grouping by item id.
+        $query->group("a.id");
 
 		// Filter by published state
 		$published = $this->getState('filter.state');
@@ -198,8 +224,6 @@ class ShipmentsModel extends ListModel
 	public function getItems()
 	{
 		$items = parent::getItems();
-		
-
 		return $items;
 	}
 }

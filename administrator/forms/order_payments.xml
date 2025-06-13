@@ -1,59 +1,59 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<form>
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+    <fieldset name="payment">
+        <field
+                name="amount"
+                type="number"
+                label="COM_ALFA_FORM_ORDER_AMOUNT"
+                description="COM_ALFA_FORM_ORDER_AMOUNT_DESC"
+                readonly="false"
+                required="true"
+        />
 
-    <field
-        name="amount"
-        type="number"
-        label="COM_ALFA_FORM_ORDER_AMOUNT"
-        description="COM_ALFA_FORM_ORDER_AMOUNT_DESC"
-        readonly="false"
-        required="true"
-    />
+        <field
+                name="id_payment_method" type="sql"
+                input_type="list"
+                required="true"
+                multiple="false"
+                label="COM_ALFA_FORM_ORDER_PAYMENTMETHOD"
+                description="COM_ALFA_FORM_ORDER_PAYMENTMETHOD_DESC"
+                layout="joomla.form.field.list-fancy-select"
+                query="SELECT `id`, `name` AS val FROM `#__alfa_payments`" key_field="id" value_field="val"
+        />
 
-    <field
-            name="id_payment_method" type="sql"
-            input_type="list"
-            required="true"
-            multiple="false"
-            label="COM_ALFA_FORM_ORDER_PAYMENTMETHOD"
-            description="COM_ALFA_FORM_ORDER_PAYMENTMETHOD_DESC"
-            layout="joomla.form.field.list-fancy-select"
-            query="SELECT `id`, `name` AS val FROM `#__alfa_payments`" key_field="id" value_field="val"
-    />
+        <field name="conversion_rate" type="hidden" default="1.00"/>
 
-    <field name="conversion_rate" type="hidden" default="1.00"/>
+        <field
+                name="transaction_id"
+                type="text"
+                label="COM_ALFA_FORM_ORDER_TRANSACTION_ID"
+                description="COM_ALFA_FORM_ORDER_TRANSACTION_ID_DESC"
+        />
 
-    <field
-            name="transaction_id"
-            type="text"
-            label="COM_ALFA_FORM_ORDER_TRANSACTION_ID"
-            description="COM_ALFA_FORM_ORDER_TRANSACTION_ID_DESC"
-    />
+        <field
+                name="added"
+                type="calendar"
+                label="COM_ALFA_FORM_ORDER_ITEM_DATE"
+                description="COM_ALFA_FORM_ORDER_ITEM_DATE_DESC"
+                class="form-control"
+                translateformat="true"
+                showtime="true"
+                filter="user_utc"
+        />
 
-    <field
-        name="date_add"
-        type="calendar"
-        label="COM_ALFA_FORM_ORDER_ITEM_DATE"
-        description="COM_ALFA_FORM_ORDER_ITEM_DATE_DESC"
-        class="form-control"
-        translateformat="true"
-        showtime="true"
-        filter="user_utc"
-    />
+        <field
+                name="id_user"
+                type="user"
+                required="true"
+                label="COM_ALFA_FORM_ORDER_ID_USER"
+                description="COM_ALFA_FORM_ORDER_ID_USER_DESC"
+                validate="UserId"
+        />
 
-    <field
-        name="id_user"
-        type="user"
-        required="true"
-        label="COM_ALFA_FORM_ORDER_ID_USER"
-        description="COM_ALFA_FORM_ORDER_ID_USER_DESC"
-        validate="UserId"
-    />
+        <!-- id     id_order    id_currency     amount  payment_method  conversion_rate transaction_id  date_add    id_user      -->
 
-    <!-- id     id_order    id_currency     amount  payment_method  conversion_rate transaction_id  date_add    id_user      -->
-    
-    <field name="id" type="hidden"/>
-    <field name="id_order" type="hidden"/>
-    <field name="id_currency" type="hidden" default="978"/>
-
+        <field name="id" type="hidden"/>
+        <field name="id_order" type="hidden"/>
+        <field name="id_currency" type="hidden" default="978"/>
+    </fieldset>
 </form>

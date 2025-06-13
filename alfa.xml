@@ -57,6 +57,8 @@
 
             <menu link="option=com_alfa&amp;view=items" view="items" alt="Alfa/Items">COM_ALFA_TITLE_ITEMS</menu>
 
+            <menu link="option=com_alfa&amp;view=formfields" view="formfields" alt="Alfa/Formfields">COM_ALFA_TITLE_FORM_FIELDS</menu>
+
             <menu link="option=com_alfa&amp;view=orders" view="orders" alt="Alfa/Orders">COM_ALFA_TITLE_ORDERS</menu>
 
             <menu link="option=com_alfa&amp;view=orderstatuses" view="orderstatuses" alt="Alfa/Orderstatuses">COM_ALFA_TITLE_ORDER_STATUSES</menu>
@@ -114,6 +116,12 @@
         <plugin group="alfa-payments" plugin="standard"/>
         <plugin group="alfa-payments" plugin="revolut"/>
         <plugin group="alfa-payments" plugin="viva"/>
+
+        <plugin group="alfa-shipments" plugin="standard"/>
+        <plugin group="alfa-shipments" plugin="boxnow"/>
+
+        <plugin group="alfa-fields" plugin="text"/>
+        <plugin group="alfa-fields" plugin="textarea"/>     
         
     </plugins>
 

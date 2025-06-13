@@ -10,7 +10,6 @@
 namespace Alfa\Component\Alfa\Site\Helper;
 use Joomla\CMS\Component\ComponentHelper;
 
-
 defined('_JEXEC') or die;
 
 use \Joomla\CMS\Factory;

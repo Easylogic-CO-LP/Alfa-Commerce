@@ -34,14 +34,23 @@ class Dispatcher extends AbstractModuleDispatcher
     protected function getLayoutData()
     {
         $data = parent::getLayoutData();
+        $app   = $data['app'];
+        $input = $data['input'];
 
         $data['cart'] = new CartHelper();
+        $option = $input->getCmd('option'); // Get current component
+        
+        // Load language only if we're not in com_alfa
+        if ($option !== 'com_alfa') {
+            $app->getLanguage()->load('com_alfa');
+        }
 
         $wa = $this->app->getDocument()->getWebAssetManager();
         $wa->getRegistry()->addExtensionRegistryFile('com_alfa');
         $wa->getRegistry()->addExtensionRegistryFile('mod_alfa_cart');
         $wa->useStyle('mod_alfa_cart.cart')
            ->useScript('mod_alfa_cart.cart');
+
 
            // for quantity and recalculate css and js funcitonallity
            // $wa->useStyle('com_alfa.item')

@@ -11,6 +11,7 @@
 defined('_JEXEC') or die;
 
 
+use Alfa\Component\Alfa\Site\Helper\PriceFormat;
 use \Joomla\CMS\HTML\HTMLHelper;
 use \Joomla\CMS\Factory;
 use \Joomla\CMS\Uri\Uri;
@@ -18,6 +19,7 @@ use \Joomla\CMS\Router\Route;
 use \Joomla\CMS\Layout\LayoutHelper;
 use \Joomla\CMS\Language\Text;
 use Joomla\CMS\Session\Session;
+use Alfa\Component\Alfa\Site\Helper;
 
 HTMLHelper::_('bootstrap.tooltip');
 HTMLHelper::_('behavior.multiselect');
@@ -42,6 +44,7 @@ if (!empty($saveOrder))
 	HTMLHelper::_('draggablelist.draggable');
 }
 
+
 ?>
 
 <form action="<?php echo Route::_('index.php?option=com_alfa&view=orders'); ?>" method="post"
@@ -63,14 +66,11 @@ if (!empty($saveOrder))
                         <th scope="col" class="w-3 d-none d-lg-table-cell text-center">
                             <?php echo HTMLHelper::_('searchtools.sort', 'JGRID_HEADING_ID', 'a.id', $listDirn, $listOrder); ?>
                         </th>
+<!--                        <th scope="col" class="w-3 d-none d-lg-table-cell text-center">-->
+<!--                            --><?php //echo HTMLHelper::_('searchtools.sort', 'Customer', 'user_name', $listDirn, $listOrder); ?>
+<!--                        </th>-->
                         <th scope="col" class="w-3 d-none d-lg-table-cell text-center">
-                            <?php echo HTMLHelper::_('searchtools.sort', 'Customer', 'user_name', $listDirn, $listOrder); ?>
-                        </th>
-                        <th scope="col" class="w-3 d-none d-lg-table-cell text-center">
-                            <?php echo HTMLHelper::_('searchtools.sort', 'Original Price', 'a.original_price', $listDirn, $listOrder); ?>
-                        </th>
-                        <th scope="col" class="w-3 d-none d-lg-table-cell text-center">
-                            <?php echo HTMLHelper::_('searchtools.sort', 'Shipping Tracking Number', 'a.shipping_tracking_number', $listDirn, $listOrder); ?>
+                            <?php echo HTMLHelper::_('searchtools.sort', 'Paid amount', 'a.paid_amount', $listDirn, $listOrder); ?>
                         </th>
 
                         <th scope="col" class="w-3 d-none d-lg-table-cell text-center">
@@ -79,6 +79,10 @@ if (!empty($saveOrder))
 
                         <th scope="col" class="w-3 d-none d-lg-table-cell text-center">
                             <?php echo HTMLHelper::_('searchtools.sort', 'Payment', 'payment_method_name', $listDirn, $listOrder); ?>
+                        </th>
+
+                        <th scope="col" class="w-3 d-none d-lg-table-cell text-center">
+                            <?php echo HTMLHelper::_('searchtools.sort', 'Shipment', 'shipment_method_name', $listDirn, $listOrder); ?>
                         </th>
 
                         <th scope="col" class="w-3 d-none d-lg-table-cell text-center">
@@ -121,16 +125,12 @@ if (!empty($saveOrder))
 								<?php endif; ?>
 							</td>
 
-                            <td class="text-center">
-                                <?php echo $item->user_name; ?>
-                            </td>
+<!--                            <td class="text-center">-->
+<!--                                --><?php //echo $item->user_name; ?>
+<!--                            </td>-->
 
                             <td class="text-center">
-                                <?php echo $item->original_price; ?>
-                            </td>
-
-                            <td class="text-center">
-                                <?php echo $item->shipping_tracking_number; ?>
+                                <?php echo PriceFormat::format($item->payed_price) . ' / ' . PriceFormat::format($item->original_price); ?>
                             </td>
 
                             <td class="text-center">
@@ -144,6 +144,15 @@ if (!empty($saveOrder))
                                           text-decoration:none;
                                           padding: 5px 10px ;
                                                 "><?php echo $item->payment_method_name; ?></a>
+                            </td>
+
+                            <td class="text-center text-nowrap">
+                                <a style="color: <?php echo $item->shipment_method_color; ?>;
+                                        background-color: <?php echo $item->shipment_method_bg_color; ?>;
+                                        border-radius: 5px;
+                                        text-decoration:none;
+                                        padding: 5px 10px ;
+                                        "><?php echo $item->shipment_method_name; ?></a>
                             </td>
 
                             <td class="text-center">

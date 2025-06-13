@@ -1,0 +1,4 @@
+#boxNowButton a{
+	background-color: var(--box-now-btn-background-color);
+	color: var(--box-now-btn-color);
+}

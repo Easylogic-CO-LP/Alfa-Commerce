@@ -1,0 +1,22 @@
+.box-now-cannot-edit .group-add {
+    pointer-events: none;
+    opacity: 0.5; /* Optional: to give a visual cue that it's disabled */
+}
+
+.box-now-inactive {
+    pointer-events: none;
+    opacity: 0.5; 
+    color: inherit !important;
+}
+
+.box-now-links a{
+    text-decoration: none !important;
+    color: inherit !important;
+}
+
+.box-now-cannot-edit input, 
+.box-now-cannot-edit .btn-check {
+    pointer-events: none;
+    background-color: #f0f0f0; /* Optional: to make the input look disabled */
+    opacity: 0.5; /* Optional: to give a visual cue that it's disabled */
+}

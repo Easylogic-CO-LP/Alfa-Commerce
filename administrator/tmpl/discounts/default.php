@@ -35,7 +35,6 @@ $listDirn  = $this->state->get('list.direction');
 $canOrder  = $user->authorise('core.edit.state', 'com_alfa');
 
 $saveOrder = $listOrder == 'a.ordering';
-
 if (!empty($saveOrder))
 {
 	$saveOrderingUrl = 'index.php?option=com_alfa&task=discounts.saveOrderAjax&tmpl=component&' . Session::getFormToken() . '=1';

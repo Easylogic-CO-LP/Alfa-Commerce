@@ -44,6 +44,7 @@ if (!empty($saveOrder))
 
 ?>
 
+
 <form action="<?php echo Route::_('index.php?option=com_alfa&view=shipments'); ?>" method="post"
 	  name="adminForm" id="adminForm">
 	<div class="row">
@@ -76,6 +77,33 @@ if (!empty($saveOrder))
 						<th class='left'>
 							<?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_SHIPMENTS_NAME', 'a.name', $listDirn, $listOrder); ?>
 						</th>
+
+                        <th class='left'>
+                            <?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_PAYMENTS_TYPE', 'a.type', $listDirn, $listOrder); ?>
+                        </th>
+
+                        <th class='left'>
+                            <?php echo Text::_('COM_ALFA_PAYMENTS_CATEGORIES'); ?>
+                        </th>
+
+                        <th class='left'>
+                            <?php echo Text::_('COM_ALFA_PAYMENTS_MANUFACTURERS'); ?>
+                        </th>
+
+                        <th class='left'>
+                            <?php echo Text::_('COM_ALFA_PAYMENTS_USERGROUPS'); ?>
+                        </th>
+
+                        <th class='left'>
+                            <?php echo Text::_('COM_ALFA_PAYMENTS_PLACES'); ?>
+                        </th>
+
+                        <th class='left'>
+                            <?php echo Text::_('COM_ALFA_PAYMENTS_USERS'); ?>
+                        </th>
+
+
+
 						
 					<th scope="col" class="w-3 d-none d-lg-table-cell" >
 
@@ -147,6 +175,44 @@ if (!empty($saveOrder))
 												<?php echo $this->escape($item->name); ?>
 								<?php endif; ?>
 							</td>
+
+
+                            <td>
+                                <?php echo $item->type;?>
+                            </td>
+
+                            <td>
+                                <?php
+                                echo $item->category_names;
+                                ?>
+                            </td>
+
+                            <td>
+                                <?php
+                                echo $item->manufacturer_names;
+                                ?>
+                            </td>
+
+                            <td>
+                                <?php
+                                echo $item->user_names;
+                                ?>
+                            </td>
+
+                            <td>
+                                <?php
+                                echo $item->place_names;
+                                ?>
+                            </td>
+
+                            <td>
+                                <?php
+                                echo $item->user_names;
+                                ?>
+                            </td>
+
+
+
 							
 							<td class="d-none d-lg-table-cell">
 							<?php echo $item->id; ?>

@@ -18,44 +18,77 @@ use \Joomla\CMS\Language\Text;
 
 $wa = $this->document->getWebAssetManager();
 $wa->useScript('keepalive')
-	->useScript('form.validate');
+	->useScript('form.validate')
+    ->useStyle('com_alfa.admin');
 HTMLHelper::_('bootstrap.tooltip');
+
+$ignoreFieldsets = ['general', 'publish'];
+// 'shipmentsparams' and any other from any plugin that we want to load params.xml of shipment plugin should have <fields name="shipmentsparams"> to work
+
+$fieldsets = $this->form->getFieldsets();
+
 ?>
 
 <form
 	action="<?php echo Route::_('index.php?option=com_alfa&layout=edit&id=' . (int) $this->item->id); ?>"
 	method="post" enctype="multipart/form-data" name="adminForm" id="shipment-form" class="form-validate form-horizontal">
 
-	
-				<?php echo $this->form->renderField('name'); ?>
-	<?php echo HTMLHelper::_('uitab.startTabSet', 'myTab', array('active' => 'shipment')); ?>
-	<?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'shipment', Text::_('COM_ALFA_TAB_SHIPMENT', true)); ?>
-	<div class="row-fluid">
-		<div class="col-md-12 form-horizontal">
-			<fieldset class="adminform">
-				<legend><?php echo Text::_('COM_ALFA_FIELDSET_SHIPMENT'); ?></legend>
-				<?php echo $this->form->renderField('state'); ?>
-				<?php if ($this->state->params->get('save_history', 1)) : ?>
-					<div class="control-group">
-						<div class="control-label"><?php echo $this->form->getLabel('version_note'); ?></div>
-						<div class="controls"><?php echo $this->form->getInput('version_note'); ?></div>
-					</div>
-				<?php endif; ?>
-			</fieldset>
-		</div>
-	</div>
-	<?php echo HTMLHelper::_('uitab.endTab'); ?>
-	<input type="hidden" name="jform[id]" value="<?php echo $this->item->id; ?>" />
-	<input type="hidden" name="jform[ordering]" value="<?php echo $this->item->ordering; ?>" />
-	<input type="hidden" name="jform[checked_out]" value="<?php echo $this->item->checked_out; ?>" />
-	<input type="hidden" name="jform[checked_out_time]" value="<?php echo $this->item->checked_out_time; ?>" />
-	<?php echo $this->form->renderField('created_by'); ?>
-	<?php echo $this->form->renderField('modified_by'); ?>
 
-	
-	<?php echo HTMLHelper::_('uitab.endTabSet'); ?>
+    <div class="row title-alias form-vertical mb-3">
+        <div class="col-12">
+            <?php echo $this->form->renderField('name'); ?>
+        </div>
+        <!-- <div class="col-12 col-md-6"> -->
+        <?php //echo $this->form->renderField('alias'); ?>
+        <!-- </div> -->
+    </div>
 
-	<input type="hidden" name="task" value=""/>
-	<?php echo HTMLHelper::_('form.token'); ?>
+	<?php echo HTMLHelper::_('uitab.startTabSet', 'myTab', ['active' => 'general', 'recall' => true, 'breakpoint' => 768]); ?>
+	<?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'general', Text::_('COM_ALFA_TAB_SHIPMENT', true)); ?>
+    <div class="row">
+        <div class="col-lg-9">
+            <fieldset class="adminform">
+                <legend><?php echo Text::_('COM_ALFA_FIELDSET_PAYMENT'); ?></legend>
+                <?php echo $this->form->renderFieldset('general'); ?>
+            </fieldset>
+        </div>
+        <div class="col-lg-3">
+            <?php echo $this->form->renderFieldset('publish'); ?>
+        </div>
+    </div>
+
+    <?php echo HTMLHelper::_('uitab.endTab'); ?>
+
+    <?php
+        foreach ($fieldsets as $fieldsetName => $fieldset){
+            if (in_array($fieldsetName, $ignoreFieldsets)) {
+                continue;
+            }
+            // Fallback label if not defined
+            $fieldSetLabel = isset($fieldset->label) && !empty($fieldset->label)
+                ? Text::_($fieldset->label)
+                : ucwords(str_replace('_', ' ', $fieldsetName));
+
+            echo HTMLHelper::_('uitab.addTab', 'myTab', $fieldsetName, Text::_($fieldSetLabel) , true);
+            ?>
+            <div class="row">
+                <div class="col-lg-12">
+                    <fieldset class="adminform">
+                        <?php echo $this->form->renderFieldset($fieldsetName); ?>
+                    </fieldset>
+                </div>
+            </div>
+            <?php
+            echo HTMLHelper::_('uitab.endTab');
+        }
+    ?>
+    
+        
+    <?php echo HTMLHelper::_('uitab.endTabSet'); ?>
+
+
+
+    <input type="hidden" name="task" value=""/>
+    <?php echo HTMLHelper::_('form.token'); ?>
 
 </form>

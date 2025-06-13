@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+    <fields name="shipmentsparams">
+
+        <fieldset name="boxnow_settings" label="PLG_ALFA_SHIPMENTS_BOXNOW_SETTINGS">
+
+            <field name="warehouse_id" type="text"
+                   label="PLG_ALFA_SHIPMENTS_BOXNOW_WAREHOUSE_ID"
+                   description="PLG_ALFA_SHIPMENTS_BOXNOW_WAREHOUSE_ID_DESC"
+                   default=""
+                   required="false"
+            />
+
+            <field name="sandbox_mode" type="radio"
+                   layout="joomla.form.field.radio.switcher"
+                   label="PLG_ALFA_SHIPMENTS_BOXNOW_SANDBOX_MODE"
+                   description="PLG_ALFA_SHIPMENTS_BOXNOW_SANDBOX_MODE_DESC"
+                   default="1"
+                   required="false"
+                   mysql_type="varchar(255)">
+                <option value="0">JNO</option>
+                <option value="1">JYES</option>
+            </field>
+
+            <field name="contact_name" type="text"
+                   label="PLG_ALFA_SHIPMENTS_BOXNOW_CONTACT_NAME"
+                   description="PLG_ALFA_SHIPMENTS_BOXNOW_CONTACT_NAME_DESC"
+                   default=""
+                   required="false"
+            />
+
+            <field name="contact_email" type="text"
+                   label="PLG_ALFA_SHIPMENTS_BOXNOW_CONTACT_EMAIL"
+                   description="PLG_ALFA_SHIPMENTS_BOXNOW_CONTACT_EMAIL_DESC"
+                   default=""
+                   required="false"
+            />
+
+            <field name="phone_number" type="text"
+                   label="PLG_ALFA_SHIPMENTS_BOXNOW_PHONE_NUMBER"
+                   description="PLG_ALFA_SHIPMENTS_BOXNOW_PHONE_NUMBER_DESC"
+                   default=""
+                   required="false"
+           />
+
+
+            <field name="client_id" type="text"
+                   label="PLG_ALFA_SHIPMENTS_BOXNOW_CLIENT_ID"
+                   description="PLG_ALFA_SHIPMENTS_BOXNOW_CLIENT_ID_DESC"
+                   default=""
+                   required="false"
+            />
+
+            <field name="client_secret" type="text"
+                   label="PLG_ALFA_SHIPMENTS_BOXNOW_CLIENT_SECRET"
+                   description="PLG_ALFA_SHIPMENTS_BOXNOW_PHONE_CLIENT_SECRET_DESC"
+                   default=""
+                   required="false"
+            />
+
+            <!-- TODO: SELECT THE FIELD DYNAMICALLY FROM SQL -->
+              <field name="email_form_name" type="text"
+                   label="Email input name"
+                   description="The name of the input field"
+                   default="email"
+                   required="true"
+              />
+
+              <field name="telephone_form_name" type="text"
+                   label="Telephone input name"
+                   description="The name of the input field"
+                   default="telephone"
+                   required="true"
+              />
+
+              <field name="firstname_form_name" type="text"
+                   label="First name input name"
+                   description="The name of the input field"
+                   default="firstname"
+                   required="true"
+              />
+
+              <field name="lastname_form_name" type="text"
+                   label="Last name input name"
+                   description="The name of the input field"
+                   default="lastname"
+                   required="true"
+              />
+
+            <field name="backgroundcolor" type="color" default="#44d62c" format="rgba"
+                label="Button background color"
+                description="Open map background color" />
+
+            <field name="color" type="color" default="#ffffff" format="rgba"
+                label="Button text color"
+                description="Open map text color" />
+
+        </fieldset>
+
+
+        
+        <fieldset name="boxnow_costs" label="PLG_ALFA_SHIPMENTS_BOXNOW_COSTS">
+            <field
+                    name="cost-per-place"
+                    type="subform"
+                    buttons="add,remove,move"
+                    hiddenLabel="true"
+                    label="All"
+                    description=""
+                    multiple="true"
+            >
+
+                <form>
+
+                    <field name="places"
+                           type="categories"
+                           model="places"
+                           multiple="true"
+                           showPath="false"
+                           orderBy="id"
+                           orderDir="desc"
+                           disableDescendants="true"
+                           default="0"
+                           header="COM_ALFA_FORM_PLACE_ALL"
+                           layout="joomla.form.field.list-fancy-select"
+                           label="COM_ALFA_FORM_CATEGORY_PLACE_LBL">
+                        <!--      <option value="0">COM_ALFA_FROM_PLACE_NO_OPTION</option>-->
+                    </field>
+
+
+                    <field
+                            name="costs"
+                            type="subform"
+                            buttons="add,remove,move"
+                            class="shrinked-repeatable-table"
+                            hiddenLabel="true"
+                            label="All"
+                            description=""
+                            multiple="true"
+                            layout="joomla.form.field.subform.repeatable-table"
+                    >
+
+                        <form>
+                            <field
+                                    name="zip-start"
+                                    type="text"
+                                    default="0"
+                                    readonly="false"
+                                    label="COM_ALFA_FORM_SHIPMENT_ZIP_START"
+                            />
+
+                            <field
+                                    name="zip-end"
+                                    type="text"
+                                    default="0"
+                                    readonly="false"
+                                    label="COM_ALFA_FORM_SHIPMENT_ZIP_END"
+                            />
+
+                            <field
+                                    name="weight-max"
+                                    type="number"
+                                    min='0.01'
+                                    default="0"
+                                    readonly="false"
+                                    label="COM_ALFA_FORM_SHIPMENT_WEIGHT_MAX"
+                            />
+
+                            <field
+                                    name="width-max"
+                                    type="number"
+                                    min='0.01'
+                                    default="0"
+                                    readonly="false"
+                                    label="COM_ALFA_FORM_SHIPMENT_WIDTH_MAX"
+                            />
+
+                            <field
+                                    name="height-max"
+                                    type="number"
+                                    min='0.01'
+                                    default="0"
+                                    readonly="false"
+                                    label="COM_ALFA_FORM_SHIPMENT_HEIGHT_MAX"
+                            />
+
+                            <field
+                                    name="depth-max"
+                                    type="number"
+                                    min='0.01'
+                                    default="0"
+                                    readonly="false"
+                                    label="COM_ALFA_FORM_SHIPMENT_DEPTH_MAX"
+                            />
+
+
+                            <field
+                                    name="amount-start"
+                                    type="number"
+                                    min='0.01'
+                                    default="0"
+                                    readonly="false"
+                                    label="COM_ALFA_FORM_SHIPMENT_AMOUNT_START"
+                            />
+
+                            <field
+                                    name="amount-end"
+                                    type="number"
+                                    min='0.01'
+                                    default="0"
+                                    readonly="false"
+                                    label="COM_ALFA_FORM_SHIPMENT_AMOUNT_END"
+                            />
+
+
+                            <field
+                                    name="cost"
+                                    type="number"
+                                    min='0.01'
+                                    default="0"
+                                    readonly="false"
+                                    label="COM_ALFA_FORM_SHIPMENT_COST"
+                            />
+
+                        </form>
+
+                    </field>
+
+                </form>
+
+            </field>
+
+        </fieldset>
+
+    </fields>
+</form>

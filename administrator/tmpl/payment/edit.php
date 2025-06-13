@@ -22,12 +22,13 @@ $wa->useStyle('com_alfa.admin')
 	->useScript('form.validate');
 
 
-$input = Factory::getApplication()->getInput();
+// $input = Factory::getApplication()->getInput();
 
-// $fieldsets = $this->form->getFieldsets();
-// print_r($fieldsets);
+$ignoreFieldsets = ['general', 'publish'];
+// 'paymentparams' and any other from any plugin that we want to load params.xml of shipment plugin should have <fields name="paymentparams"> to work
 
-//exit;
+$fieldsets = $this->form->getFieldsets();
+
 ?>
 
 <form
@@ -43,44 +44,45 @@ $input = Factory::getApplication()->getInput();
         <!-- </div> -->
     </div>
 
-
 	<?php echo HTMLHelper::_('uitab.startTabSet', 'myTab', ['active' => 'general', 'recall' => true, 'breakpoint' => 768]); ?>
 	<?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'general', Text::_('COM_ALFA_TAB_PAYMENT', true)); ?>
 	<div class="row">
 		<div class="col-lg-9">
 			<fieldset class="adminform">
 				<legend><?php echo Text::_('COM_ALFA_FIELDSET_PAYMENT'); ?></legend>
-				<?php echo $this->form->renderField('type'); ?>
-				<?php echo $this->form->renderField('color'); ?>
-				<?php echo $this->form->renderField('bg_color'); ?>
-				<?php echo $this->form->renderFieldset('paymentsparams'); ?>
-                <?php echo $this->form->renderField('description'); ?>
-                <?php echo $this->form->renderField('show_on_product'); ?>
-                <?php echo $this->form->renderField('categories'); ?>
-                <?php echo $this->form->renderField('manufacturers'); ?>
-                <?php echo $this->form->renderField('places'); ?>
-                <?php echo $this->form->renderField('usergroups'); ?>
-                <?php echo $this->form->renderField('users'); ?>
+				<?php echo $this->form->renderFieldset('general'); ?>
 			</fieldset>
 		</div>
 		 <div class="col-lg-3">
-		 	<?php echo $this->form->renderField('state'); ?>
-
-		 	<?php echo $this->form->renderField('created_by'); ?>
-			<?php echo $this->form->renderField('modified_by'); ?>
-			<?php echo $this->form->renderField('modified'); ?>
-            <?php echo $this->form->renderField('id'); ?>
-        
-
-			<div class="control-group">
-				<div class="control-label"><?php echo $this->form->getLabel('version_note'); ?></div>
-				<div class="controls"><?php echo $this->form->getInput('version_note'); ?></div>
-			</div>
-
+		 	<?php echo $this->form->renderFieldset('publish'); ?>
         </div>
 	</div>
 	<?php echo HTMLHelper::_('uitab.endTab'); ?>
-	
+
+	    <?php
+        foreach ($fieldsets as $fieldsetName => $fieldset){
+            if (in_array($fieldsetName, $ignoreFieldsets)) {
+                continue;
+            }
+            // Fallback label if not defined
+            $fieldSetLabel = isset($fieldset->label) && !empty($fieldset->label)
+                ? Text::_($fieldset->label)
+                : ucwords(str_replace('_', ' ', $fieldsetName));
+
+            echo HTMLHelper::_('uitab.addTab', 'myTab', $fieldsetName, Text::_($fieldSetLabel) , true);
+            ?>
+            <div class="row">
+                <div class="col-lg-12">
+                    <fieldset class="adminform">
+                        <?php echo $this->form->renderFieldset($fieldsetName); ?>
+                    </fieldset>
+                </div>
+            </div>
+            <?php
+            echo HTMLHelper::_('uitab.endTab');
+        }
+    ?>
+		
 	<?php echo HTMLHelper::_('uitab.endTabSet'); ?>
 
 	<input type="hidden" name="task" value=""/>

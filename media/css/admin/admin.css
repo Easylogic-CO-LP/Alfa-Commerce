@@ -72,3 +72,9 @@
         border-bottom: 0;
     }
 }
+
+
+
+/* SHIPMENT COTS SUBFORM */
+.subform-repeatable.shrinked-repeatable-table thead th { width: 1% !important; }
+.subform-repeatable.shrinked-repeatable-table tbody td .controls { min-width:auto !important;max-width: 100px !important; }

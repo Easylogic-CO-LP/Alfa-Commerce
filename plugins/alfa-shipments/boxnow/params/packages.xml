@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+
+
+    <field
+            name="compartment_size"
+            type="number"
+            label="COM_ALFA_FORM_FIELDSET_PACKAGES_COMPARTMENT_SIZE"
+            description="COM_ALFA_FORM_FIELDSET_PACKAGES_PRICE_COMPARTMENT_SIZE"
+            default="0"
+            layout="joomla.form.field"
+    />
+
+    <field
+            name="amount"
+            type="number"
+            label="COM_ALFA_FORM_FIELDSET_PACKAGES_PRICE"
+            description="COM_ALFA_FORM_FIELDSET_PACKAGES_PRICE_DESC"
+            default="0"
+            layout="joomla.form.field"
+    />
+
+    <field
+            name="weight"
+            type="number"
+            label="COM_ALFA_FORM_FIELDSET_PACKAGES_WEIGHT"
+            description="COM_ALFA_FORM_FIELDSET_PACKAGES_PRICE_WEIGHT"
+            default="0"
+            layout="joomla.form.field"
+    />
+
+</form>
