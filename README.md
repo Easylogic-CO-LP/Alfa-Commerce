@@ -31,8 +31,32 @@ To contribute:
     Commit your changes (git commit -m 'Add some feature').
     Push to the branch (git push origin feature-branch).
     Open a Pull Request.
-    
+
     or you can be a part of our team by getting in touch with us.
+
+## Development Tools
+
+This project uses Composer to manage development utilities such as
+[PHPStan](https://phpstan.org/) and
+[PHP-CS-Fixer](https://github.com/PHP-CS-Fixer/PHP-CS-Fixer).
+
+1. Install the dependencies:
+
+   ```bash
+   composer install
+   ```
+
+2. Run a static analysis:
+
+   ```bash
+   composer phpstan
+   ```
+
+3. Check the coding style:
+
+   ```bash
+   composer phpcsfixer
+   ```
 
 
 Developer Contact

@@ -1,0 +1,30 @@
+{
+    "name": "easylogic/alfa-commerce",
+    "type": "project",
+    "description": "Pre-alpha eCommerce solution for Joomla",
+    "autoload": {
+        "psr-4": {
+            "Alfa\\Component\\Alfa\\Administrator\\": "administrator/src/",
+            "Alfa\\Component\\Alfa\\Site\\": "site/src/",
+            "Alfa\\Component\\Alfa\\Api\\": "api/src/",
+            "Alfa\\Module\\AlfaCart\\": "modules/mod_alfa_cart/src/",
+            "Alfa\\Module\\AlfaSearch\\": "modules/mod_alfa_search/src/",
+            "Joomla\\Plugin\\AlfaPayments\\Revolut\\": "plugins/alfa-payments/revolut/src/",
+            "Joomla\\Plugin\\AlfaPayments\\Standard\\": "plugins/alfa-payments/standard/src/",
+            "Joomla\\Plugin\\AlfaPayments\\Viva\\": "plugins/alfa-payments/viva/src/",
+            "Joomla\\Plugin\\AlfaShipments\\Boxnow\\": "plugins/alfa-shipments/boxnow/src/",
+            "Joomla\\Plugin\\AlfaShipments\\Standard\\": "plugins/alfa-shipments/standard/src/",
+            "Joomla\\Plugin\\AlfaFields\\Text\\": "plugins/alfa-fields/text/src/",
+            "Joomla\\Plugin\\AlfaFields\\Textarea\\": "plugins/alfa-fields/textarea/src/"
+        }
+    },
+    "require": {},
+    "require-dev": {
+        "phpstan/phpstan": "^1.10",
+        "friendsofphp/php-cs-fixer": "^3.0"
+    },
+    "scripts": {
+        "phpstan": "phpstan analyse",
+        "phpcsfixer": "php-cs-fixer fix --dry-run"
+    }
+}

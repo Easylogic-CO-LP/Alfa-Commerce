@@ -1,0 +1,28 @@
+parameters:
+    level: 5
+    paths:
+        - administrator/src
+        - site/src
+        - api/src
+        - modules/mod_alfa_cart/src
+        - modules/mod_alfa_search/src
+        - plugins/alfa-payments/revolut/src
+        - plugins/alfa-payments/viva/src
+        - plugins/alfa-payments/standard/src
+        - plugins/alfa-shipments/boxnow/src
+        - plugins/alfa-shipments/standard/src
+        - plugins/alfa-fields/text/src
+        - plugins/alfa-fields/textarea/src
+    autoload_directories:
+        - administrator/src
+        - site/src
+        - api/src
+        - modules/mod_alfa_cart/src
+        - modules/mod_alfa_search/src
+        - plugins/alfa-payments/revolut/src
+        - plugins/alfa-payments/viva/src
+        - plugins/alfa-payments/standard/src
+        - plugins/alfa-shipments/boxnow/src
+        - plugins/alfa-shipments/standard/src
+        - plugins/alfa-fields/text/src
+        - plugins/alfa-fields/textarea/src
