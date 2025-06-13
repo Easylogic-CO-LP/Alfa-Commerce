@@ -28,6 +28,10 @@
         {
             "type": "vcs",
             "url": "https://github.com/joomla/joomla-cms"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/joomla/json-api"
         }
     ],
     "minimum-stability": "dev",
