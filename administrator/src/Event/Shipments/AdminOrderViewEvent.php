@@ -30,8 +30,9 @@ class AdminOrderViewEvent extends ShipmentsLayoutEvent
         return $this->getSubject();
     }
 
-    public function setOrder($order){
-        $this->setArgument('subject',$order);
+    public function setOrder($order)
+    {
+        $this->setArgument('subject', $order);
     }
 
 }

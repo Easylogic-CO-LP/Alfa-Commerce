@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -8,19 +9,20 @@
  */
 
 namespace Alfa\Component\Alfa\Administrator\Model;
+
 // No direct access.
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Joomla\CMS\Language\Multilanguage;
-use \Joomla\CMS\Table\Table;
-use \Joomla\CMS\Factory;
-use \Joomla\CMS\Language\Text;
-use \Joomla\CMS\Plugin\PluginHelper;
-use \Joomla\CMS\MVC\Model\AdminModel;
-use \Joomla\CMS\Helper\TagsHelper;
-use \Joomla\CMS\Filter\OutputFilter;
-use \Joomla\CMS\Event\Model;
+use Joomla\CMS\Table\Table;
+use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
+use Joomla\CMS\Plugin\PluginHelper;
+use Joomla\CMS\MVC\Model\AdminModel;
+use Joomla\CMS\Helper\TagsHelper;
+use Joomla\CMS\Filter\OutputFilter;
+use Joomla\CMS\Event\Model;
 use Joomla\CMS\Language\LanguageHelper;
 
 /**
@@ -30,29 +32,28 @@ use Joomla\CMS\Language\LanguageHelper;
  */
 class ItemModel extends AdminModel
 {
-
-	/**
-	 * @var    string  Alias to manage history control
-	 *
-	 */
-	public $typeAlias = 'com_alfa.item';
+    /**
+     * @var    string  Alias to manage history control
+     *
+     */
+    public $typeAlias = 'com_alfa.item';
 
     protected $formName = 'item';
 
-	/**
-	 * Method to get the record form.
-	 *
-	 * @param   array    $data      Data for the form.
+    /**
+     * Method to get the record form.
+     *
+     * @param   array    $data      Data for the form.
      * @param   boolean  $loadData  True if the form is to load its own data (default case), false if not.
      *
      * @return  Form|boolean  A Form object on success, false on failure
      *
      * @since   1.6
-	 */
+     */
 
 
-	protected $item = null;
-	protected $batch_copymove = false;
+    protected $item = null;
+    protected $batch_copymove = false;
 
     protected $batch_commands = [
         'category_id' => 'batchCategory',
@@ -61,100 +62,100 @@ class ItemModel extends AdminModel
         'usergroup_id' => 'batchUserGroup',
     ];
 
-     protected function batchUser($value, $pks, $contexts)
+    protected function batchUser($value, $pks, $contexts)
     {
-	    $app = Factory::getApplication();
+        $app = Factory::getApplication();
 
-	    if(sizeof($value) == 1 && $value[0]==''){
-	    	$app->enqueueMessage('Users not changed', 'info');
-	    	return true;
-	    }
-
-        foreach ($pks as $id) {
-        	AlfaHelper::setAllowedUsers($id, $value, '#__alfa_items_users', 'item_id','user_id');
+        if (sizeof($value) == 1 && $value[0] == '') {
+            $app->enqueueMessage('Users not changed', 'info');
+            return true;
         }
 
-                $app->enqueueMessage('Users set successfully', 'info');
+        foreach ($pks as $id) {
+            AlfaHelper::setAllowedUsers($id, $value, '#__alfa_items_users', 'item_id', 'user_id');
+        }
+
+        $app->enqueueMessage('Users set successfully', 'info');
 
         return true;
     }
 
-     protected function batchUserGroup($value, $pks, $contexts)
+    protected function batchUserGroup($value, $pks, $contexts)
     {
-	    $app = Factory::getApplication();
+        $app = Factory::getApplication();
 
-	    if(sizeof($value) == 1 && $value[0]==''){
-	    	$app->enqueueMessage('Usergroup not changed', 'info');
-	    	return true;
-	    }
-
-        foreach ($pks as $id) {
-        	AlfaHelper::setAllowedUserGroups($id, $value, '#__alfa_items_usergroups', 'item_id','usergroup_id');
+        if (sizeof($value) == 1 && $value[0] == '') {
+            $app->enqueueMessage('Usergroup not changed', 'info');
+            return true;
         }
 
-                $app->enqueueMessage('User group set successfully', 'info');
+        foreach ($pks as $id) {
+            AlfaHelper::setAllowedUserGroups($id, $value, '#__alfa_items_usergroups', 'item_id', 'usergroup_id');
+        }
+
+        $app->enqueueMessage('User group set successfully', 'info');
 
         return true;
     }
 
     protected function batchManufacturer($value, $pks, $contexts)
     {
-	    $app = Factory::getApplication();
+        $app = Factory::getApplication();
 
-	    if(sizeof($value) == 1 && $value[0]==''){
-	    	$app->enqueueMessage('Manufacturers not changed', 'info');
-	    	return true;
-	    }
-
-        foreach ($pks as $id) {
-        	AlfaHelper::setAssocsToDb($id, $value, '#__alfa_items_manufacturers', 'item_id','manufacturer_id');
+        if (sizeof($value) == 1 && $value[0] == '') {
+            $app->enqueueMessage('Manufacturers not changed', 'info');
+            return true;
         }
 
-                $app->enqueueMessage('Manufacturers set successfully', 'info');
+        foreach ($pks as $id) {
+            AlfaHelper::setAssocsToDb($id, $value, '#__alfa_items_manufacturers', 'item_id', 'manufacturer_id');
+        }
+
+        $app->enqueueMessage('Manufacturers set successfully', 'info');
 
         return true;
     }
 
-	protected function batchCategory($value, $pks, $contexts)
+    protected function batchCategory($value, $pks, $contexts)
     {
-	    $app = Factory::getApplication();
-   		
-	    if(sizeof($value) == 1 && $value[0]==''){
-	    	$app->enqueueMessage('Categories not changed', 'info');
-	    	return true;
-	    }
+        $app = Factory::getApplication();
 
-        foreach ($pks as $id) {
-			AlfaHelper::setAssocsToDb($id, $value, '#__alfa_items_categories', 'item_id','category_id');
+        if (sizeof($value) == 1 && $value[0] == '') {
+            $app->enqueueMessage('Categories not changed', 'info');
+            return true;
         }
 
-                $app->enqueueMessage('Categories set successfully', 'info');
-   
+        foreach ($pks as $id) {
+            AlfaHelper::setAssocsToDb($id, $value, '#__alfa_items_categories', 'item_id', 'category_id');
+        }
+
+        $app->enqueueMessage('Categories set successfully', 'info');
+
         return true;
     }
 
 
-	public function getForm($data = array(), $loadData = true)
-	{
-		// Initialise variables.
-		// $app = Factory::getApplication();
-		// Form::addFieldPath(JPATH_ADMINISTRATOR . '/components/com_users/models/fields');
+    public function getForm($data = [], $loadData = true)
+    {
+        // Initialise variables.
+        // $app = Factory::getApplication();
+        // Form::addFieldPath(JPATH_ADMINISTRATOR . '/components/com_users/models/fields');
 
-		// $this->formName is item
-		// Get the form.
-		$form = $this->loadForm(
-					'com_alfa.' . $this->formName, 
-					$this->formName,
-					array(
-						'control' => 'jform',
-						'load_data' => $loadData 
-					)
-				);
-		
+        // $this->formName is item
+        // Get the form.
+        $form = $this->loadForm(
+            'com_alfa.' . $this->formName,
+            $this->formName,
+            [
+                        'control' => 'jform',
+                        'load_data' => $loadData
+                    ]
+        );
 
-		if (empty($form)){
-			return false;
-		}
+
+        if (empty($form)) {
+            return false;
+        }
 
         // Modify the form based on access controls.
         // if (!$this->canEditState((object) $data)) {
@@ -175,284 +176,290 @@ class ItemModel extends AdminModel
         //     $form->setFieldAttribute('created_by', 'filter', 'unset');
         // }
 
-		return $form;
-	}
+        return $form;
+    }
 
-	/**
-	 * Method to get the data that should be injected in the form.
-	 *
-	 * @return  mixed  The data for the form.
-	 *
-	 * @since   1.0.1
-	 */
-	protected function loadFormData()
-	{
-		// Check the session for previously entered form data.
-		$data = Factory::getApplication()->getUserState('com_alfa.edit.item.data', array());
+    /**
+     * Method to get the data that should be injected in the form.
+     *
+     * @return  mixed  The data for the form.
+     *
+     * @since   1.0.1
+     */
+    protected function loadFormData()
+    {
+        // Check the session for previously entered form data.
+        $data = Factory::getApplication()->getUserState('com_alfa.edit.item.data', []);
 
-		if (empty($data))
-		{
-			if ($this->item === null)
-			{
-				$this->item = $this->getItem();
-			}
+        if (empty($data)) {
+            if ($this->item === null) {
+                $this->item = $this->getItem();
+            }
 
-			$data = $this->item;
-			
-		}
+            $data = $this->item;
 
-		return $data;
-	}
+        }
+
+        return $data;
+    }
 
 
-	/**
-	 * Method to get a single record.
-	 *
-	 * @param   integer  $pk  The id of the primary key.
-	 *
-	 * @return  mixed    Object on success, false on failure.
-	 *
-	 * @since   1.0.1
-	 */
-  
-	public function getItem($pk = null)
-	{
-		
-			if ($item = parent::getItem($pk))
-			{
-				if (isset($item->params))
-				{
-					$item->params = json_encode($item->params);
-				}
+    /**
+     * Method to get a single record.
+     *
+     * @param   integer  $pk  The id of the primary key.
+     *
+     * @return  mixed    Object on success, false on failure.
+     *
+     * @since   1.0.1
+     */
 
-				$item->prices = $this->getPrices($item->id);
+    public function getItem($pk = null)
+    {
 
-            	$item->categories = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_categories', 'item_id','category_id');
-				$item->manufacturers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_manufacturers', 'item_id','manufacturer_id');
+        if ($item = parent::getItem($pk)) {
+            if (isset($item->params)) {
+                $item->params = json_encode($item->params);
+            }
 
-	            $item->allowedUsers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_users', 'item_id','user_id');
-            	$item->allowedUserGroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_usergroups', 'item_id','usergroup_id');
+            $item->prices = $this->getPrices($item->id);
+
+            $item->categories = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_categories', 'item_id', 'category_id');
+            $item->manufacturers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_manufacturers', 'item_id', 'manufacturer_id');
+
+            $item->allowedUsers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_users', 'item_id', 'user_id');
+            $item->allowedUserGroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_usergroups', 'item_id', 'usergroup_id');
 
 
-			}
+        }
 
-			return $item;
-		
-  }
+        return $item;
+
+    }
 
 
-	/**
-	* Method to save the form data.
-	*
-	* @param   array  $data  The form data.
-	*
-	* @return  boolean  True on success, False on error.
-	*
-	* @since   1.6
-	*/
-	public function save($data)
-	{
+    /**
+    * Method to save the form data.
+    *
+    * @param   array  $data  The form data.
+    *
+    * @return  boolean  True on success, False on error.
+    *
+    * @since   1.6
+    */
+    public function save($data)
+    {
 
-		$app = Factory::getApplication();
-		$db = $this->getDatabase();
+        $app = Factory::getApplication();
+        $db = $this->getDatabase();
 
-//		$data['alias']='the alias';
-//		$data['name']='the name';
+        //		$data['alias']='the alias';
+        //		$data['name']='the name';
 
-		$data['alias'] = $data['alias'] ?: $data['name'];
+        $data['alias'] = $data['alias'] ?: $data['name'];
 
-		if ($app->get('unicodeslugs') == 1){
-			$data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
-		} else {
-			$data['alias'] = OutputFilter::stringURLSafe($data['alias']);
-		}
+        if ($app->get('unicodeslugs') == 1) {
+            $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
+        } else {
+            $data['alias'] = OutputFilter::stringURLSafe($data['alias']);
+        }
 
-		// if ($table->load(['slug' => $data['slug']])) { //checks for duplicates
+        // if ($table->load(['slug' => $data['slug']])) { //checks for duplicates
         //     $data['slug'].= '-'.$pk;//if slug exists add the id after
         //     // = OutputFilter::stringURLSafe($data['name'].'-'.$pk);
         // }
-		// if ($input->get('task') == 'save2copy') {
-		// 	if ($table->load(['slug' => $data['slug']])) {
+        // if ($input->get('task') == 'save2copy') {
+        // 	if ($table->load(['slug' => $data['slug']])) {
 
-		// }
-		// $origTable = clone $this->getTable();
+        // }
+        // $origTable = clone $this->getTable();
 
         // Checking valid height/width/depth/weight.
-        if($data["width"] < 0) $data["width"] = 0;
-        if($data["height"] < 0) $data["height"] = 0;
-        if($data["depth"] < 0) $data["depth"] = 0;
-        if($data["weight"] < 0) $data["weight"] = 0;
+        if ($data["width"] < 0) {
+            $data["width"] = 0;
+        }
+        if ($data["height"] < 0) {
+            $data["height"] = 0;
+        }
+        if ($data["depth"] < 0) {
+            $data["depth"] = 0;
+        }
+        if ($data["weight"] < 0) {
+            $data["weight"] = 0;
+        }
 
-		if (!parent::save($data))return false;
+        if (!parent::save($data)) {
+            return false;
+        }
 
-		$currentId = 0;
-		if($data['id']>0){ //not a new
-			$currentId = intval($data['id']);
-		}else{ // is new
-                $currentId = intval($this->getState($this->getName().'.id')); // get the id from the Joomla state
-		}
+        $currentId = 0;
+        if ($data['id'] > 0) { //not a new
+            $currentId = intval($data['id']);
+        } else { // is new
+            $currentId = intval($this->getState($this->getName().'.id')); // get the id from the Joomla state
+        }
 
-		// AUTO SET DEFAULT CATEGORY ID AND CATEGORIES ARRAY
-		// Check if $categoryIdDefault is set, if not set it to the first category
-		$categoryIdDefault = $data['id_category_default'];
-		$categories = $data['categories']??[];
+        // AUTO SET DEFAULT CATEGORY ID AND CATEGORIES ARRAY
+        // Check if $categoryIdDefault is set, if not set it to the first category
+        $categoryIdDefault = $data['id_category_default'];
+        $categories = $data['categories'] ?? [];
 
-		if (!isset($categoryIdDefault) && !empty($categories)) {
-		    $categoryIdDefault = $categories[0]; // assuming categories are indexed as an array
-		}
+        if (!isset($categoryIdDefault) && !empty($categories)) {
+            $categoryIdDefault = $categories[0]; // assuming categories are indexed as an array
+        }
 
-		// Check if $defaultCategoryId exists in $data['categories'], if not, add it
-		if (!in_array($categoryIdDefault, $categories)) {
-		    $data['categories'][] = $categoryIdDefault;
-		}
-		// END OF AUTO SET DEFAULT CATEGORY ID AND CATEGORIES ARRAY
+        // Check if $defaultCategoryId exists in $data['categories'], if not, add it
+        if (!in_array($categoryIdDefault, $categories)) {
+            $data['categories'][] = $categoryIdDefault;
+        }
+        // END OF AUTO SET DEFAULT CATEGORY ID AND CATEGORIES ARRAY
 
-        $this->setPrices($currentId,$data['prices']);
+        $this->setPrices($currentId, $data['prices']);
 
-		AlfaHelper::setAssocsToDb($currentId, $data['categories']??[], '#__alfa_items_categories', 'item_id','category_id');
-		AlfaHelper::setAssocsToDb($currentId, $data['manufacturers']??[], '#__alfa_items_manufacturers', 'item_id','manufacturer_id');
+        AlfaHelper::setAssocsToDb($currentId, $data['categories'] ?? [], '#__alfa_items_categories', 'item_id', 'category_id');
+        AlfaHelper::setAssocsToDb($currentId, $data['manufacturers'] ?? [], '#__alfa_items_manufacturers', 'item_id', 'manufacturer_id');
 
-		AlfaHelper::setAssocsToDb($currentId, $data['allowedUsers']??[], '#__alfa_items_users', 'item_id','user_id');
-		AlfaHelper::setAssocsToDb($currentId, $data['allowedUserGroups']??[], '#__alfa_items_usergroups','item_id', 'usergroup_id');
+        AlfaHelper::setAssocsToDb($currentId, $data['allowedUsers'] ?? [], '#__alfa_items_users', 'item_id', 'user_id');
+        AlfaHelper::setAssocsToDb($currentId, $data['allowedUserGroups'] ?? [], '#__alfa_items_usergroups', 'item_id', 'usergroup_id');
 
-		return true;
-		// return parent::save($data);
-	}
+        return true;
+        // return parent::save($data);
+    }
 
-	public function getPrices($id){
-	    $id = intval($id);
-	    if($id <= 0) {
-	        return [];
-	    }
+    public function getPrices($id)
+    {
+        $id = intval($id);
+        if ($id <= 0) {
+            return [];
+        }
 
-	    // Get the database object
-	    $db = $this->getDatabase();
+        // Get the database object
+        $db = $this->getDatabase();
 
-	    // Build the query to select all relevant fields
-	    $query = $db->getQuery(true);
-	    $query
-	        ->select('*')
-	        ->from('#__alfa_items_prices')
-	        ->where('item_id = ' . $db->quote($id));
+        // Build the query to select all relevant fields
+        $query = $db->getQuery(true);
+        $query
+            ->select('*')
+            ->from('#__alfa_items_prices')
+            ->where('item_id = ' . $db->quote($id));
 
-	    // Execute the query
-	    $db->setQuery($query);
+        // Execute the query
+        $db->setQuery($query);
 
-	    // Return the result as an associative array
-	    return $db->loadAssocList();
-	}
-
-
-	public function setPrices($productId, $prices){
-	    if (!is_array($prices) || $productId<=0) {
-	        return false;
-	    }
-
-	    $db = $this->getDatabase();
-
-
-	    // Get all existing price IDs for the product
-	    $query = $db->getQuery(true);
-	    $query->select('id')
-	          ->from('#__alfa_items_prices')
-	          ->where('item_id = ' . intval($productId));
-	    $db->setQuery($query);
-	    $existingPriceIds = $db->loadColumn();  // Array of existing price IDs
-
-	    // Extract incoming IDs from the $prices array
-	    $incomingIds = array();
-	    foreach ($prices as $price) {
-	        if (isset($price['id']) && intval($price['id']) > 0) {//not those except new with id 0
-	            $incomingIds[] = intval($price['id']);
-	        }
-	    }
-
-	    // Find differences
-	    $idsToDelete = array_diff($existingPriceIds, $incomingIds);
-
-	    //  Delete records that are no longer present in incoming prices array
-	    if (!empty($idsToDelete)) {
-	        $query = $db->getQuery(true);
-	        $query->delete('#__alfa_items_prices')->whereIn('id', $idsToDelete);
-	        $db->setQuery($query);
-	        $db->execute();
-	    }
-
-	    foreach ($prices as $price) {
-
-	    	$priceObject = new \stdClass();
-	        $priceObject->id        = isset($price['id']) ? intval($price['id']) : 0;
-	        $priceObject->item_id = $productId;
-	        $priceObject->value     = isset($price['value']) ? floatval($price['value']) : 0.0;
-	        $priceObject->country_id    = isset($price['country_id']) ? intval($price['country_id']) : 0;
-	        $priceObject->usergroup_id  = isset($price['usergroup_id']) ? intval($price['usergroup_id']) : 0;
-	        $priceObject->user_id         = isset($price['user_id']) ? intval($price['user_id']) : 0;
-	        $priceObject->currency_id   = isset($price['currency_id']) ? intval($price['currency_id']) : 0;
-	        $priceObject->modify = isset($price['modify']) ? intval($price['modify']) : 0;
-	        $priceObject->modify_function = $price['modify_function'] ?? NULL;
-	        $priceObject->modify_type = $price['modify_type'] ?? NULL;
-	        $priceObject->publish_up  = !empty($price['publish_up']) ? Factory::getDate($price['publish_up'])->toSql() : NULL;
-	        $priceObject->publish_down    = !empty($price['publish_down']) ? Factory::getDate($price['publish_down'])->toSql() : NULL;
-	        $priceObject->quantity_start = !empty($price['quantity_start']) ? intval($price['quantity_start']) : NULL;
-	        $priceObject->quantity_end = !empty($price['quantity_end']) ? intval($price['quantity_end']) : NULL;
-
-	        $query = $db->getQuery(true);
-
-	        if ($priceObject->id > 0 && in_array($priceObject->id, $existingPriceIds)) {
-	        	$updateNulls = true;
-	        	$db->updateObject('#__alfa_items_prices', $priceObject, 'id', $updateNulls);
-	        }else{
-	        	$db->insertObject('#__alfa_items_prices', $priceObject);
-	        }
-
-	    }
-
-	    return true;
-
-	}
+        // Return the result as an associative array
+        return $db->loadAssocList();
+    }
 
 
-	/**
-	 * Prepare and sanitise the table prior to saving.
-	 *
-	 * @param   Table  $table  Table Object
-	 *
-	 * @return  void
-	 *
-	 * @since   1.0.1
-	 */
+    public function setPrices($productId, $prices)
+    {
+        if (!is_array($prices) || $productId <= 0) {
+            return false;
+        }
+
+        $db = $this->getDatabase();
+
+
+        // Get all existing price IDs for the product
+        $query = $db->getQuery(true);
+        $query->select('id')
+              ->from('#__alfa_items_prices')
+              ->where('item_id = ' . intval($productId));
+        $db->setQuery($query);
+        $existingPriceIds = $db->loadColumn();  // Array of existing price IDs
+
+        // Extract incoming IDs from the $prices array
+        $incomingIds = [];
+        foreach ($prices as $price) {
+            if (isset($price['id']) && intval($price['id']) > 0) {//not those except new with id 0
+                $incomingIds[] = intval($price['id']);
+            }
+        }
+
+        // Find differences
+        $idsToDelete = array_diff($existingPriceIds, $incomingIds);
+
+        //  Delete records that are no longer present in incoming prices array
+        if (!empty($idsToDelete)) {
+            $query = $db->getQuery(true);
+            $query->delete('#__alfa_items_prices')->whereIn('id', $idsToDelete);
+            $db->setQuery($query);
+            $db->execute();
+        }
+
+        foreach ($prices as $price) {
+
+            $priceObject = new \stdClass();
+            $priceObject->id        = isset($price['id']) ? intval($price['id']) : 0;
+            $priceObject->item_id = $productId;
+            $priceObject->value     = isset($price['value']) ? floatval($price['value']) : 0.0;
+            $priceObject->country_id    = isset($price['country_id']) ? intval($price['country_id']) : 0;
+            $priceObject->usergroup_id  = isset($price['usergroup_id']) ? intval($price['usergroup_id']) : 0;
+            $priceObject->user_id         = isset($price['user_id']) ? intval($price['user_id']) : 0;
+            $priceObject->currency_id   = isset($price['currency_id']) ? intval($price['currency_id']) : 0;
+            $priceObject->modify = isset($price['modify']) ? intval($price['modify']) : 0;
+            $priceObject->modify_function = $price['modify_function'] ?? null;
+            $priceObject->modify_type = $price['modify_type'] ?? null;
+            $priceObject->publish_up  = !empty($price['publish_up']) ? Factory::getDate($price['publish_up'])->toSql() : null;
+            $priceObject->publish_down    = !empty($price['publish_down']) ? Factory::getDate($price['publish_down'])->toSql() : null;
+            $priceObject->quantity_start = !empty($price['quantity_start']) ? intval($price['quantity_start']) : null;
+            $priceObject->quantity_end = !empty($price['quantity_end']) ? intval($price['quantity_end']) : null;
+
+            $query = $db->getQuery(true);
+
+            if ($priceObject->id > 0 && in_array($priceObject->id, $existingPriceIds)) {
+                $updateNulls = true;
+                $db->updateObject('#__alfa_items_prices', $priceObject, 'id', $updateNulls);
+            } else {
+                $db->insertObject('#__alfa_items_prices', $priceObject);
+            }
+
+        }
+
+        return true;
+
+    }
+
+
+    /**
+     * Prepare and sanitise the table prior to saving.
+     *
+     * @param   Table  $table  Table Object
+     *
+     * @return  void
+     *
+     * @since   1.0.1
+     */
     protected function prepareTable($table)
     {
-		$user = $this->getCurrentUser();
+        $user = $this->getCurrentUser();
 
-		if(empty($table->stock) || $table->stock <= 0)
-		{
-			$table->stock = null;
-		}
+        if (empty($table->stock) || $table->stock <= 0) {
+            $table->stock = null;
+        }
 
-		if(empty($table->quantity_min) || $table->quantity_min <= 0){
-			$table->quantity_min=1;
-		}
+        if (empty($table->quantity_min) || $table->quantity_min <= 0) {
+            $table->quantity_min = 1;
+        }
 
-		if(empty($table->quantity_step) || $table->quantity_step <= 0) {
-			$table->quantity_step=1;
-		}
+        if (empty($table->quantity_step) || $table->quantity_step <= 0) {
+            $table->quantity_step = 1;
+        }
 
-		if(empty($table->quantity_max) || $table->quantity_max <= 0){
-			$table->quantity_max=null;
-		}
+        if (empty($table->quantity_max) || $table->quantity_max <= 0) {
+            $table->quantity_max = null;
+        }
 
-        if(empty($table->stock_low) || $table->stock_low <= 0){
+        if (empty($table->stock_low) || $table->stock_low <= 0) {
             $table->stock_low = null;
         }
 
-	    if ($table->id == 0 && empty($table->created_by))
-	    {
-		    $table->created_by = $user->id;
-	    }
+        if ($table->id == 0 && empty($table->created_by)) {
+            $table->created_by = $user->id;
+        }
 
-    	$table->modified = Factory::getDate()->toSql();
-    	$table->modified_by = $user->id;
+        $table->modified = Factory::getDate()->toSql();
+        $table->modified_by = $user->id;
 
         if (empty($table->publish_up)) {
             $table->publish_up = null;
@@ -463,7 +470,7 @@ class ItemModel extends AdminModel
         }
 
         parent::prepareTable($table);
-        
+
     }
 
 

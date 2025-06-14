@@ -65,7 +65,8 @@ abstract class FieldsPlugin extends CMSPlugin
         ];
     }
 
-    public function onFormFieldValidate($event){
+    public function onFormFieldValidate($event)
+    {
         $field = $event->setValid(true);
     }
 
@@ -239,14 +240,14 @@ abstract class FieldsPlugin extends CMSPlugin
         $form   = $event->getForm();
 
         // Check if the field should be processed by us
-//        if (!$this->isTypeSupported($field->type)) {
-//            return null;
-//        }
-//
-//        // Detect if the field is configured to be displayed on the form
-//        if (!FieldsHelper::displayFieldOnForm($field)) {
-//            return null;
-//        }
+        //        if (!$this->isTypeSupported($field->type)) {
+        //            return null;
+        //        }
+        //
+        //        // Detect if the field is configured to be displayed on the form
+        //        if (!FieldsHelper::displayFieldOnForm($field)) {
+        //            return null;
+        //        }
 
 
 
@@ -257,52 +258,52 @@ abstract class FieldsPlugin extends CMSPlugin
         $node->setAttribute('name', $field->field_name);
         $node->setAttribute('type', $field->type);
         $node->setAttribute('label', $field->field_label);
-//        $node->setAttribute('labelclass', $field->params->get('label_class', ''));
+        //        $node->setAttribute('labelclass', $field->params->get('label_class', ''));
         $node->setAttribute('description', $field->field_description);
-//        $node->setAttribute('class', $field->params->get('class', ''));
-//        $node->setAttribute('hint', $field->params->get('hint', ''));
+        //        $node->setAttribute('class', $field->params->get('class', ''));
+        //        $node->setAttribute('hint', $field->params->get('hint', ''));
         $node->setAttribute('required', $field->required ? 'true' : 'false');
 
-//        $showon_attribute = $field->params->get('showon', '');
-//        if ($showon_attribute) {
-//            $node->setAttribute('showon', $showon_attribute);
-//        }
+        //        $showon_attribute = $field->params->get('showon', '');
+        //        if ($showon_attribute) {
+        //            $node->setAttribute('showon', $showon_attribute);
+        //        }
 
-//        if ($field->default_value !== '') {
-//            $defaultNode = $node->appendChild(new \DOMElement('default'));
-//            $defaultNode->appendChild(new \DOMCdataSection($field->default_value));
-//        }
+        //        if ($field->default_value !== '') {
+        //            $defaultNode = $node->appendChild(new \DOMElement('default'));
+        //            $defaultNode->appendChild(new \DOMCdataSection($field->default_value));
+        //        }
 
         // Combine the two params
-//        $params = clone $this->params;
-//        $params->merge($field->fieldparams);
+        //        $params = clone $this->params;
+        //        $params->merge($field->fieldparams);
 
-//        $layout = $field->params->get('form_layout', $this->params->get('form_layout', ''));
-//
-//        if ($layout) {
-//            $node->setAttribute('layout', $layout);
-//        }
+        //        $layout = $field->params->get('form_layout', $this->params->get('form_layout', ''));
+        //
+        //        if ($layout) {
+        //            $node->setAttribute('layout', $layout);
+        //        }
 
         // Set the specific field parameters
-//        foreach ($params->toArray() as $key => $param) {
-//            if (\is_array($param)) {
-//                // Multidimensional arrays (eg. list options) can't be transformed properly
-//                $param = \count($param) == \count($param, COUNT_RECURSIVE) ? implode(',', $param) : '';
-//            }
-//
-//            if ($param === '' || (!\is_string($param) && !is_numeric($param))) {
-//                continue;
-//            }
-//
-//            $node->setAttribute($key, $param);
-//        }
+        //        foreach ($params->toArray() as $key => $param) {
+        //            if (\is_array($param)) {
+        //                // Multidimensional arrays (eg. list options) can't be transformed properly
+        //                $param = \count($param) == \count($param, COUNT_RECURSIVE) ? implode(',', $param) : '';
+        //            }
+        //
+        //            if ($param === '' || (!\is_string($param) && !is_numeric($param))) {
+        //                continue;
+        //            }
+        //
+        //            $node->setAttribute($key, $param);
+        //        }
 
         // Check if it is allowed to edit the field
-//        if (!FieldsHelper::canEditFieldValue($field)) {
-//            $node->setAttribute('disabled', 'true');
-//        }
+        //        if (!FieldsHelper::canEditFieldValue($field)) {
+        //            $node->setAttribute('disabled', 'true');
+        //        }
 
-//        print_r($node);
+        //        print_r($node);
         // Return the node
         return $node;
     }

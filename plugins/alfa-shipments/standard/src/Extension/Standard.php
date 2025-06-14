@@ -28,38 +28,37 @@ use Joomla\CMS\Factory;
  */
 final class Standard extends ShipmentsPlugin
 {
-
     // public function onAfterRender()
     // {
 
-        // $app = self::getApplication();
+    // $app = self::getApplication();
 
-        // if($app->isClient('site')) exit ;
-        
-        // $buffer=$this->app->getBody();
-        // $buffer=str_replace('</ body>','</body>',$buffer);
-            
-        // $html='<div id="blablabla">heyyy</div>';
-        // $buffer=str_replace('</body>',$html."\n</body>",$buffer);
-                
-        // // if($this->app->input->getCmd('option')=='com_virtuemart' && $this->app->input->getCmd('view')=='cart')
-        // // {
-        // //     $db = JFactory::getDBO();
-        // //     $db->setQuery('SELECT virtuemart_shipmentmethod_id FROM `#__virtuemart_shipmentmethods` WHERE `shipment_element`='.$db->quote("bownow").' AND `published`=1 ORDER BY `virtuemart_shipmentmethod_id` ASC LIMIT 1;');
-        // //     $method=$this->getVmPluginMethod($db->loadResult());
-        // //     $this->convert($method);
-            
-        //     $url = \Joomla\CMS\Router\Route::_('index.php?option=com_virtuemart&view=cart&tmpl=component&plg=boxnow',false);
+    // if($app->isClient('site')) exit ;
 
-        //     $headData='<script>
-        //             alert("test");
-        //     </script>';
-        //     $buffer=str_replace('</head>',$headData."\n</head>",$buffer);
-        // // }
-        // $this->app->setBody($buffer);
+    // $buffer=$this->app->getBody();
+    // $buffer=str_replace('</ body>','</body>',$buffer);
+
+    // $html='<div id="blablabla">heyyy</div>';
+    // $buffer=str_replace('</body>',$html."\n</body>",$buffer);
+
+    // // if($this->app->input->getCmd('option')=='com_virtuemart' && $this->app->input->getCmd('view')=='cart')
+    // // {
+    // //     $db = JFactory::getDBO();
+    // //     $db->setQuery('SELECT virtuemart_shipmentmethod_id FROM `#__virtuemart_shipmentmethods` WHERE `shipment_element`='.$db->quote("bownow").' AND `published`=1 ORDER BY `virtuemart_shipmentmethod_id` ASC LIMIT 1;');
+    // //     $method=$this->getVmPluginMethod($db->loadResult());
+    // //     $this->convert($method);
+
+    //     $url = \Joomla\CMS\Router\Route::_('index.php?option=com_virtuemart&view=cart&tmpl=component&plg=boxnow',false);
+
+    //     $headData='<script>
+    //             alert("test");
+    //     </script>';
+    //     $buffer=str_replace('</head>',$headData."\n</head>",$buffer);
+    // // }
+    // $this->app->setBody($buffer);
     // }
-    
-    // public function onCartView($cart) : string{        
+
+    // public function onCartView($cart) : string{
     // }
 
     // public function onOrderFormSubmit($form){
@@ -106,11 +105,13 @@ final class Standard extends ShipmentsPlugin
     /*
      *  Cost calculation.
      */
-    public function onCalculateShippingCost($event){
+    public function onCalculateShippingCost($event)
+    {
         $event->setShippingCost(self::calculateShippingCost($event->getCart()));
     }
 
-    public function calculateShippingCost($cart){
+    public function calculateShippingCost($cart)
+    {
 
         $cost = 0;
 
@@ -125,8 +126,9 @@ final class Standard extends ShipmentsPlugin
 
 
         $zipCode = "000000";
-        if(isset($cartData->user_info_delivery->zip_code) && !empty($cartData->user_info_delivery->zip_code))
+        if (isset($cartData->user_info_delivery->zip_code) && !empty($cartData->user_info_delivery->zip_code)) {
             $zipCode = $cartData->user_info_delivery->zip_code;
+        }
 
 
         $calculationData = null;
@@ -136,24 +138,25 @@ final class Standard extends ShipmentsPlugin
 
             if (isset($entry['places'])) {
                 foreach ($entry['places'] as $place) {
-                    if($place == $countrySelected){ //found calculation costs for specific place
+                    if ($place == $countrySelected) { //found calculation costs for specific place
                         $calculationData = $entry;
                     }
                 }
-            }else{ //means we have a global entry for all places
+            } else { //means we have a global entry for all places
                 $calculationData = $entry;
             }
 
         }
 
         // No valid entries found.
-        if(empty($calculationData))
+        if (empty($calculationData)) {
             return 0;
+        }
 
-//        echo "<pre>";
-//        print_r($calculationData);
-//        echo "</pre>";
-//        exit;
+        //        echo "<pre>";
+        //        print_r($calculationData);
+        //        echo "</pre>";
+        //        exit;
 
 
         // if (isset($calculationData['costs']) && is_array($calculationData['costs'])) {
@@ -173,10 +176,12 @@ final class Standard extends ShipmentsPlugin
         return $cost;
     }
 
-    public function findBestShippingMethod($products, $shippingMethods, $zipCode = -1) {
+    public function findBestShippingMethod($products, $shippingMethods, $zipCode = -1)
+    {
 
-        if(empty($products) || empty($shippingMethods))
+        if (empty($products) || empty($shippingMethods)) {
             return 0;
+        }
 
         // Calculate total dimensions of products
         $packageDimensions = self::getTotalDimensions($products);
@@ -201,7 +206,8 @@ final class Standard extends ShipmentsPlugin
         return 0; // Return the cheapest valid shipping method
     }
 
-    public function getTotalDimensions($products) {
+    public function getTotalDimensions($products)
+    {
 
         $totalWidth = 0;
         $maxHeight = 0;
@@ -224,17 +230,18 @@ final class Standard extends ShipmentsPlugin
     }
 
 
-    function isValueInRange($value, $min, $max) {
+    public function isValueInRange($value, $min, $max)
+    {
 
         // Normalize all to strings
-        $valueStr = is_string($value) ? $value  : strval($value);
-        $minStr   = is_string($min)   ? $min    : strval($min);
-        $maxStr   = is_string($max)   ? $max    : strval($max);
+        $valueStr = is_string($value) ? $value : strval($value);
+        $minStr   = is_string($min) ? $min : strval($min);
+        $maxStr   = is_string($max) ? $max : strval($max);
 
-//        echo $valueStr;
-//        echo "<br>" . $min;
-//        echo "<br>" . $max;
-//        echo "<br>";
+        //        echo $valueStr;
+        //        echo "<br>" . $min;
+        //        echo "<br>" . $max;
+        //        echo "<br>";
 
         // If all are numeric, compare numerically (including floats)
         if (is_numeric($valueStr) && is_numeric($minStr) && is_numeric($maxStr)) {
@@ -245,7 +252,8 @@ final class Standard extends ShipmentsPlugin
         return strcmp($valueStr, $minStr) >= 0 && strcmp($valueStr, $maxStr) <= 0;
     }
 
-    public function getShipmentPackages($shipmentID){
+    public function getShipmentPackages($shipmentID)
+    {
         $db = self::getDatabase();
         $query = $db->getQuery(true);
 

@@ -15,6 +15,7 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Field\ListField;
 use Joomla\CMS\HTML\HTMLHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PaymentsHelper;
+
 // use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 
 // phpcs:disable PSR1.Files.SideEffects
@@ -46,14 +47,14 @@ class PaymentTypeField extends ListField
      *
      * @since   3.7.0
      */
-     public function setup(\SimpleXMLElement $element, $value, $group = null)
-     {
-         $return = parent::setup($element, $value, $group);
+    public function setup(\SimpleXMLElement $element, $value, $group = null)
+    {
+        $return = parent::setup($element, $value, $group);
 
-//         $this->onchange = 'Joomla.typeHasChanged(this);';
+        //         $this->onchange = 'Joomla.typeHasChanged(this);';
 
-         return $return;
-     }
+        return $return;
+    }
 
     /**
      * Method to get the field options.
@@ -76,19 +77,19 @@ class PaymentTypeField extends ListField
         }
 
         // Sorting the fields based on the text which is displayed
-         usort(
-             $options,
-             function ($a, $b) {
-                 return strcmp($a->text, $b->text);
-             }
-         );
+        usort(
+            $options,
+            function ($a, $b) {
+                return strcmp($a->text, $b->text);
+            }
+        );
 
-//		print_r($options);
+        //		print_r($options);
 
         // Load scripts
-//         Factory::getApplication()->getDocument()->getWebAssetManager()
-//             ->useScript('com_alfa.admin-field-typehaschanged')
-//             ->useScript('webcomponent.core-loader');
+        //         Factory::getApplication()->getDocument()->getWebAssetManager()
+        //             ->useScript('com_alfa.admin-field-typehaschanged')
+        //             ->useScript('webcomponent.core-loader');
 
         return $options;
     }

@@ -26,25 +26,24 @@ use Joomla\CMS\Event\Result\ResultTypeStringAware;
  */
 class AdminOrderPrepareFormEvent extends FormEvent
 {
-//    public function getOrder()
-//    {
-//        return $this->getArgument("order");
-//    }
-//
-//    public function setOrder($order)
-//    {
-//        $this->setArgument("order", $order);
-//    }
+    //    public function getOrder()
+    //    {
+    //        return $this->getArgument("order");
+    //    }
+    //
+    //    public function setOrder($order)
+    //    {
+    //        $this->setArgument("order", $order);
+    //    }
 
-//    public function getForm(): Form
-//    {
-//        return $this->arguments["orderForm"];
-//    }
-//
-//    public function setForm($form)
-//    {
-//        $this->setArgument("orderForm", $form);
-//    }
+    //    public function getForm(): Form
+    //    {
+    //        return $this->arguments["orderForm"];
+    //    }
+    //
+    //    public function setForm($form)
+    //    {
+    //        $this->setArgument("orderForm", $form);
+    //    }
 
 }
-

@@ -20,13 +20,12 @@ use Joomla\CMS\Language\Text;
  */
 abstract class PaymentsPlugin extends Plugin //implements SubscriberInterface
 {
-    
     // Used to uniquely identify a payment log entry.
     protected $logIdentifierField = "id_order_payment";
 
-	protected $mustHaveColumns = [
-        ['name'=>'id_order','mysql_type' => 'int(11)', 'default' => 'NULL'],
-        ['name'=>'id_order_payment','mysql_type' => 'int(11)', 'default' => 'NULL'],
+    protected $mustHaveColumns = [
+        ['name' => 'id_order','mysql_type' => 'int(11)', 'default' => 'NULL'],
+        ['name' => 'id_order_payment','mysql_type' => 'int(11)', 'default' => 'NULL'],
 //        ['name'=>'status', 'mysql_type' => 'char(3)', 'default' => 'NULL'],//S ( success ) ,P ( pending ) , F ( failed ) ,R ( refunded )
     ];
 
@@ -39,7 +38,7 @@ abstract class PaymentsPlugin extends Plugin //implements SubscriberInterface
     //     //     return;
     //     // }
 
-    //     $html = 
+    //     $html =
     //         <<<HTML
     //             <div>aaa
     //                 <h5>{$method->name}</h5>
@@ -50,90 +49,92 @@ abstract class PaymentsPlugin extends Plugin //implements SubscriberInterface
     //     return $html;
     // }
 
-	/**
-	 * Returns an array of events this subscriber will listen to.
-	 *
-	 * @return  array
-	 *
-	 * @since   5.0.0
-	 */
-	//	public static function getSubscribedEvents(): array
-	//	{
-	//		return [
-	//          'onAdminOrderView'  => 'adminOrderView',
-	//			'onCartView'     	=> 'cartView',
-	//			'onProcessPayment' 	=> 'processPayment',
-	//			'onCompleteOrder'   => 'completeOrder',
-	//		];
-	//	}
+    /**
+     * Returns an array of events this subscriber will listen to.
+     *
+     * @return  array
+     *
+     * @since   5.0.0
+     */
+    //	public static function getSubscribedEvents(): array
+    //	{
+    //		return [
+    //          'onAdminOrderView'  => 'adminOrderView',
+    //			'onCartView'     	=> 'cartView',
+    //			'onProcessPayment' 	=> 'processPayment',
+    //			'onCompleteOrder'   => 'completeOrder',
+    //		];
+    //	}
 
-	/**
-	 * Affects constructor behavior. If true, language files will be loaded automatically.
-	 *
-	 * @var    boolean
-	 * @since  3.7.0
-	 */
-//	protected $autoloadLanguage = true;
+    /**
+     * Affects constructor behavior. If true, language files will be loaded automatically.
+     *
+     * @var    boolean
+     * @since  3.7.0
+     */
+    //	protected $autoloadLanguage = true;
 
-	/**
-	 * Application object.
-	 *
-	 * @var    \Joomla\CMS\Application\CMSApplication
-	 * @since  4.0.0
-	 */
-//	protected $app;
+    /**
+     * Application object.
+     *
+     * @var    \Joomla\CMS\Application\CMSApplication
+     * @since  4.0.0
+     */
+    //	protected $app;
 
-//	public function __construct(DispatcherInterface $dispatcher, array $config = [])
-//	{
-//		parent::__construct($dispatcher, $config);
-//		$this->database = Factory::getContainer()->get('DatabaseDriver');
-//		$this->layoutPath = JPATH_PLUGINS . '/' . $this->_type . '/' . $this->_name.'/tmpl';
-//
-//		// $this->emptyLogData = $this->createEmptyLog();
-//
-//	}
+    //	public function __construct(DispatcherInterface $dispatcher, array $config = [])
+    //	{
+    //		parent::__construct($dispatcher, $config);
+    //		$this->database = Factory::getContainer()->get('DatabaseDriver');
+    //		$this->layoutPath = JPATH_PLUGINS . '/' . $this->_type . '/' . $this->_name.'/tmpl';
+    //
+    //		// $this->emptyLogData = $this->createEmptyLog();
+    //
+    //	}
 
 
-    
-   
+
+
     // $orderId = $this->app->getUserState('com_alfa.order_id');
 
 
-    protected function insertOrderPayment($data):int {
+    protected function insertOrderPayment($data): int
+    {
 
-    	// $this->app->getUserState('com_alfa.order_id')
+        // $this->app->getUserState('com_alfa.order_id')
 
         // Function can only handle arrays.
-        if(is_object($data))
-            $data = (array)$data; //json_decode(json_encode($data), true); // for nested also
+        if (is_object($data)) {
+            $data = (array)$data;
+        } //json_decode(json_encode($data), true); // for nested also
 
-//    	 $user  = $this->app->getIdentity();
-//    	 $userId = $user->id;
-//         if(empty($userId))
-//            $userId = $data['id_user'];
+        //    	 $user  = $this->app->getIdentity();
+        //    	 $userId = $user->id;
+        //         if(empty($userId))
+        //            $userId = $data['id_user'];
 
 
-		// use Joomla\CMS\Date\Date;//libraries > src > Date > Date.php
-		// $offset = Factory::getConfig()->get('offset');
+        // use Joomla\CMS\Date\Date;//libraries > src > Date > Date.php
+        // $offset = Factory::getConfig()->get('offset');
 
-		// $now = new Date('now',$offset);
+        // $now = new Date('now',$offset);
 
-         $component_params = ComponentHelper::getParams('com_alfa');
-         $currency_id = $component_params->get('default_currency', 47);//47 is euro with number 978
+        $component_params = ComponentHelper::getParams('com_alfa');
+        $currency_id = $component_params->get('default_currency', 47);//47 is euro with number 978
 
-         $paymentObject = new \stdClass();
-//         $paymentObject->id              = isset($data['id']) ? intval($data['id']) : 0;
-         $paymentObject->id_order        = isset($data['id_order']) ? $data['id_order'] : 0;
-         $paymentObject->id_currency     = isset($data['id_currency']) && $data['id_currency'] > 0 ? intval($data['id_currency']) : $currency_id;
-         $paymentObject->id_payment_method  = isset($data['id_payment_method']) ? intval($data['id_payment_method']) : 0;
-         $paymentObject->id_user         = isset($data['id_user']) ? $data['id_user'] : 0;
-         $paymentObject->amount          = isset($data['amount']) ? floatval($data['amount']) : 0.0;
-         $paymentObject->conversion_rate = isset($data['conversion_rate']) ? floatval($data['conversion_rate']) : 0.0;
-         $paymentObject->transaction_id  = isset($data['transaction_id']) ? $data['transaction_id'] : '';
-         $paymentObject->added        = !empty($data['added']) ? Factory::getDate($data['added'])->toSql() : NULL;
+        $paymentObject = new \stdClass();
+        //         $paymentObject->id              = isset($data['id']) ? intval($data['id']) : 0;
+        $paymentObject->id_order        = isset($data['id_order']) ? $data['id_order'] : 0;
+        $paymentObject->id_currency     = isset($data['id_currency']) && $data['id_currency'] > 0 ? intval($data['id_currency']) : $currency_id;
+        $paymentObject->id_payment_method  = isset($data['id_payment_method']) ? intval($data['id_payment_method']) : 0;
+        $paymentObject->id_user         = isset($data['id_user']) ? $data['id_user'] : 0;
+        $paymentObject->amount          = isset($data['amount']) ? floatval($data['amount']) : 0.0;
+        $paymentObject->conversion_rate = isset($data['conversion_rate']) ? floatval($data['conversion_rate']) : 0.0;
+        $paymentObject->transaction_id  = isset($data['transaction_id']) ? $data['transaction_id'] : '';
+        $paymentObject->added        = !empty($data['added']) ? Factory::getDate($data['added'])->toSql() : null;
 
         $errorMessage = "Insufficient data to insert a payment.";
-        if(!$paymentObject){
+        if (!$paymentObject) {
             $this->app->enqueueMessage($errorMessage, "error");
             return 0;
         }
@@ -144,7 +145,8 @@ abstract class PaymentsPlugin extends Plugin //implements SubscriberInterface
         return $paymentObject->id;
     }
 
-     public function createEmptyOrderPayment(){
+    public function createEmptyOrderPayment()
+    {
         $orderPaymentArray = [
             'id_order' => null,
             'id_currency' => null,
@@ -158,57 +160,61 @@ abstract class PaymentsPlugin extends Plugin //implements SubscriberInterface
 
         return $orderPaymentArray;
 
-     }
+    }
 
-	public function onAdminOrderPaymentPrepareForm($event)
-	{
-		$order = $event->getData();
-		$form = $event->getForm();
+    public function onAdminOrderPaymentPrepareForm($event)
+    {
+        $order = $event->getData();
+        $form = $event->getForm();
 
-		$event->setData($order);
-		$event->setForm($form);
-	}
+        $event->setData($order);
+        $event->setForm($form);
+    }
 
-	public function onAdminOrderPaymentView($event) {
-		$order = $event->getOrder();
-		$event->setOrder($order);
+    public function onAdminOrderPaymentView($event)
+    {
+        $order = $event->getOrder();
+        $event->setOrder($order);
 
-		$event->setLayoutPluginName($this->_name);
-		$event->setLayoutPluginType($this->_type);
-		$event->setLayout('default_order_view');
-//	    $event->setLayoutData(
-//		    [
-//			    "logData" => $logData,
-//			    "xml" => $xml
-//		    ]
-//	    );
-	}
+        $event->setLayoutPluginName($this->_name);
+        $event->setLayoutPluginType($this->_type);
+        $event->setLayout('default_order_view');
+        //	    $event->setLayoutData(
+        //		    [
+        //			    "logData" => $logData,
+        //			    "xml" => $xml
+        //		    ]
+        //	    );
+    }
 
     // ???
-	public function onAdminOrderPaymentViewLogs($event) {
+    public function onAdminOrderPaymentViewLogs($event)
+    {
 
         $order = $event->getOrder();
         $method = $event->getMethod();  // Represents the shipping order's shipment.
 
-		// load logs from xml
-		$formFile = JPATH_PLUGINS . '/' . $this->_type . '/' . $this->_name.'/params/logs.xml';
-		if (!file_exists($formFile)) return;
+        // load logs from xml
+        $formFile = JPATH_PLUGINS . '/' . $this->_type . '/' . $this->_name.'/params/logs.xml';
+        if (!file_exists($formFile)) {
+            return;
+        }
 
-		$xml = simplexml_load_file($formFile);
+        $xml = simplexml_load_file($formFile);
 
-		// Get logs data from db
-		$logData = self::loadLogData($order->id, $method->id);
+        // Get logs data from db
+        $logData = self::loadLogData($order->id, $method->id);
 
-		$event->setLayoutPluginName($this->_name);
-		$event->setLayoutPluginType($this->_type);
-		$event->setLayout('default_order_logs_view');
-		$event->setLayoutData(
-			[
-				"logData" => $logData,
-				"xml" => $xml
-			]
-		);
+        $event->setLayoutPluginName($this->_name);
+        $event->setLayoutPluginType($this->_type);
+        $event->setLayout('default_order_logs_view');
+        $event->setLayoutData(
+            [
+                "logData" => $logData,
+                "xml" => $xml
+            ]
+        );
 
-	}
+    }
 
 }

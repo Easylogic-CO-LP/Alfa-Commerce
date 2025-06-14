@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -27,8 +28,7 @@ use Joomla\Utilities\ArrayHelper;
  */
 class ItemsController extends FormController
 {
-
-    public function display($cachable = false, $urlparams = array())
+    public function display($cachable = false, $urlparams = [])
     {
         $viewType = $this->input->get('format', 'html');
         $view = $this->input->get('view', 'items');
@@ -39,19 +39,19 @@ class ItemsController extends FormController
         return $this;
     }
 
-	/**
-	 * Proxy for getModel.
-	 *
-	 * @param   string  $name    The model name. Optional.
-	 * @param   string  $prefix  The class prefix. Optional
-	 * @param   array   $config  Configuration array for model. Optional
-	 *
-	 * @return  object	The model
-	 *
-	 * @since   1.0.1
-	 */
-	public function getModel($name = 'Items', $prefix = 'Site', $config = array())
-	{
-		return parent::getModel($name, $prefix, array('ignore_request' => true));
-	}
+    /**
+     * Proxy for getModel.
+     *
+     * @param   string  $name    The model name. Optional.
+     * @param   string  $prefix  The class prefix. Optional
+     * @param   array   $config  Configuration array for model. Optional
+     *
+     * @return  object	The model
+     *
+     * @since   1.0.1
+     */
+    public function getModel($name = 'Items', $prefix = 'Site', $config = [])
+    {
+        return parent::getModel($name, $prefix, ['ignore_request' => true]);
+    }
 }

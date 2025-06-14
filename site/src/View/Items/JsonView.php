@@ -9,12 +9,13 @@
  */
 
 namespace Alfa\Component\Alfa\Site\View\Items;
+
 // No direct access
 defined('_JEXEC') or die;
 
-use \Joomla\CMS\MVC\View\JsonView as BaseJsonView;
-use \Joomla\CMS\Factory;
-use \Joomla\CMS\Language\Text;
+use Joomla\CMS\MVC\View\JsonView as BaseJsonView;
+use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Response\JsonResponse;
 
 /**
@@ -24,57 +25,56 @@ use Joomla\CMS\Response\JsonResponse;
  */
 class JsonView extends BaseJsonView
 {
-	protected $items;
+    protected $items;
 
-	protected $pagination;
+    protected $pagination;
 
-	protected $state;
+    protected $state;
 
-	protected $params;
+    protected $params;
 
-	/**
-	 * Display the view
-	 *
-	 * @param   string  $tpl  Template name
-	 *
-	 * @return void
-	 *
-	 * @throws Exception
-	 */
-	public function display($tpl = null)
-	{
-		$app = Factory::getApplication();
+    /**
+     * Display the view
+     *
+     * @param   string  $tpl  Template name
+     *
+     * @return void
+     *
+     * @throws Exception
+     */
+    public function display($tpl = null)
+    {
+        $app = Factory::getApplication();
 
         // Get the search term from the request
         $searchTerm = $app->input->getString('filter[search]', '');
 
-		$this->state = $this->get('State');
-		$this->items = $this->get('Items');
-		$this->pagination = $this->get('Pagination');
-		$this->params = $app->getParams('com_alfa');
-//		$this->filterForm = $this->get('FilterForm');
-//		$this->activeFilters = $this->get('ActiveFilters');
+        $this->state = $this->get('State');
+        $this->items = $this->get('Items');
+        $this->pagination = $this->get('Pagination');
+        $this->params = $app->getParams('com_alfa');
+        //		$this->filterForm = $this->get('FilterForm');
+        //		$this->activeFilters = $this->get('ActiveFilters');
 
-		// Check for errors.
-		if (count($errors = $this->get('Errors')))
-		{
-			throw new \Exception(implode("\n", $errors));
-		}
+        // Check for errors.
+        if (count($errors = $this->get('Errors'))) {
+            throw new \Exception(implode("\n", $errors));
+        }
 
-//        $this->app->enqueueMessage('minima 1');
-        $response = new JsonResponse($this->items,'Items fetched succesufully',false);
+        //        $this->app->enqueueMessage('minima 1');
+        $response = new JsonResponse($this->items, 'Items fetched succesufully', false);
         echo $response;
 
         $app->close();
 
 
-//        $this->sendJsonResponse($this->items);
+        //        $this->sendJsonResponse($this->items);
 
         // Output JSON
-//        $this->response->setBody(json_encode($data));
-//        $this->response->setHeader('Content-Type', 'application/json');
-//		parent::display($tpl);
-	}
+        //        $this->response->setBody(json_encode($data));
+        //        $this->response->setHeader('Content-Type', 'application/json');
+        //		parent::display($tpl);
+    }
 
 
     /**
@@ -84,13 +84,13 @@ class JsonView extends BaseJsonView
      *
      * @return  void
      */
-//    protected function sendJsonResponse($data)
-//    {
-//        $app = Factory::getApplication();
-//        $app->setHeader('Content-Type', 'application/json', true);
-//
-//        echo json_encode($data);
-//        $app->close();
-//    }
+    //    protected function sendJsonResponse($data)
+    //    {
+    //        $app = Factory::getApplication();
+    //        $app->setHeader('Content-Type', 'application/json', true);
+    //
+    //        echo json_encode($data);
+    //        $app->close();
+    //    }
 
 }

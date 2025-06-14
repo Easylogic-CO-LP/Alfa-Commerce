@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -8,17 +9,19 @@
  */
 
 namespace Alfa\Component\Alfa\Administrator\View\Formfields;
+
 // No direct access
 defined('_JEXEC') or die;
 
-use \Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
-use \Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
-use \Joomla\CMS\Toolbar\Toolbar;
-use \Joomla\CMS\Toolbar\ToolbarHelper;
-use \Joomla\CMS\Language\Text;
-use \Joomla\Component\Content\Administrator\Extension\ContentComponent;
-use \Joomla\CMS\Form\Form;
-use \Joomla\CMS\HTML\Helpers\Sidebar;
+use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Joomla\CMS\Toolbar\Toolbar;
+use Joomla\CMS\Toolbar\ToolbarHelper;
+use Joomla\CMS\Language\Text;
+use Joomla\Component\Content\Administrator\Extension\ContentComponent;
+use Joomla\CMS\Form\Form;
+use Joomla\CMS\HTML\Helpers\Sidebar;
+
 /**
  * View class for a list of Items.
  *
@@ -50,8 +53,7 @@ class HtmlView extends BaseHtmlView
         $this->activeFilters = $this->get('ActiveFilters');
 
         // Check for errors.
-        if (count($errors = $this->get('Errors')))
-        {
+        if (count($errors = $this->get('Errors'))) {
             throw new \Exception(implode("\n", $errors));
         }
 
@@ -80,16 +82,13 @@ class HtmlView extends BaseHtmlView
         // Check if the form exists before showing the add/edit buttons
         $formPath = JPATH_COMPONENT_ADMINISTRATOR . '/src/View/Formfields';
 
-        if (file_exists($formPath))
-        {
-            if ($canDo->get('core.create'))
-            {
+        if (file_exists($formPath)) {
+            if ($canDo->get('core.create')) {
                 $toolbar->addNew('formfield.add');
             }
         }
 
-        if ($canDo->get('core.edit.state'))
-        {
+        if ($canDo->get('core.edit.state')) {
             $dropdown = $toolbar->dropdownButton('status-group')
                 ->text('JTOOLBAR_CHANGE_STATUS')
                 ->toggleSplit(false)
@@ -99,14 +98,13 @@ class HtmlView extends BaseHtmlView
 
             $childBar = $dropdown->getChildToolbar();
 
-//            if (isset($this->items[0]->state))
-//            {
-                $childBar->publish('formfields.publish')->listCheck(true);
-                $childBar->unpublish('formfields.unpublish')->listCheck(true);
-                $childBar->archive('formfields.archive')->listCheck(true);
-//            }
-            if (isset($this->items[0]))
-            {
+            //            if (isset($this->items[0]->state))
+            //            {
+            $childBar->publish('formfields.publish')->listCheck(true);
+            $childBar->unpublish('formfields.unpublish')->listCheck(true);
+            $childBar->archive('formfields.archive')->listCheck(true);
+            //            }
+            if (isset($this->items[0])) {
                 // If this component does not use state then show a direct delete button as we can not trash
                 $toolbar->delete('formfields.delete')
                     ->text('JTOOLBAR_EMPTY_TRASH')
@@ -135,24 +133,20 @@ class HtmlView extends BaseHtmlView
             // 	->task('items.duplicate')
             // 	->listCheck(true);
 
-            if (isset($this->items[0]->checked_out))
-            {
+            if (isset($this->items[0]->checked_out)) {
                 $childBar->checkin('formfields.checkin')->listCheck(true);
             }
 
-            if (isset($this->items[0]->state))
-            {
+            if (isset($this->items[0]->state)) {
                 $childBar->trash('formfields.trash')->listCheck(true);
             }
         }
 
 
         // Show trash and delete for components that uses the state field
-        if (isset($this->items[0]->state))
-        {
+        if (isset($this->items[0]->state)) {
 
-            if ($this->state->get('filter.state') == ContentComponent::CONDITION_TRASHED && $canDo->get('core.delete'))
-            {
+            if ($this->state->get('filter.state') == ContentComponent::CONDITION_TRASHED && $canDo->get('core.delete')) {
                 $toolbar->delete('formfields.delete')
                     ->text('JTOOLBAR_EMPTY_TRASH')
                     ->message('JGLOBAL_CONFIRM_DELETE')
@@ -160,8 +154,7 @@ class HtmlView extends BaseHtmlView
             }
         }
 
-        if ($canDo->get('core.admin'))
-        {
+        if ($canDo->get('core.admin')) {
             $toolbar->preferences('com_alfa');
         }
 

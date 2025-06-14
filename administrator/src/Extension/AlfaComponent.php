@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -32,36 +33,36 @@ use Joomla\CMS\Categories\CategoryServiceInterface;
  */
 class AlfaComponent extends MVCComponent implements RouterServiceInterface, BootableExtensionInterface, CategoryServiceInterface
 {
-	use AssociationServiceTrait;
-	use RouterServiceTrait;
-	use HTMLRegistryAwareTrait;
-	use CategoryServiceTrait, TagServiceTrait {
-		CategoryServiceTrait::getTableNameForSection insteadof TagServiceTrait;
-		CategoryServiceTrait::getStateColumnForSection insteadof TagServiceTrait;
-	}
+    use AssociationServiceTrait;
+    use RouterServiceTrait;
+    use HTMLRegistryAwareTrait;
+    use CategoryServiceTrait, TagServiceTrait {
+        CategoryServiceTrait::getTableNameForSection insteadof TagServiceTrait;
+        CategoryServiceTrait::getStateColumnForSection insteadof TagServiceTrait;
+    }
 
-	/** @inheritdoc  */
-	public function boot(ContainerInterface $container)
-	{
-		$db = $container->get('DatabaseDriver');
-		$this->getRegistry()->register('alfa', new ALFA($db));
-	}
+    /** @inheritdoc  */
+    public function boot(ContainerInterface $container)
+    {
+        $db = $container->get('DatabaseDriver');
+        $this->getRegistry()->register('alfa', new ALFA($db));
+    }
 
-	
-/**
- * Returns the table for the count items functions for the given section.
-	 *
-	 * @param   string    The section
-	 *
-	 * * @return  string|null
-	 *
-	 * @since   4.0.0
-	 */
-	    protected function getTableNameForSection(string $section = null)            
-	{
-	}
-	
-	/**
+
+    /**
+     * Returns the table for the count items functions for the given section.
+         *
+         * @param   string    The section
+         *
+         * * @return  string|null
+         *
+         * @since   4.0.0
+         */
+    protected function getTableNameForSection(string $section = null)
+    {
+    }
+
+    /**
      * Adds Count Items for Category Manager.
      *
      * @param   \stdClass[]  $items    The category objects
@@ -73,5 +74,5 @@ class AlfaComponent extends MVCComponent implements RouterServiceInterface, Boot
      */
     public function countItems(array $items, string $section)
     {
-	}
+    }
 }

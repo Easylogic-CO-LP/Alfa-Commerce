@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -20,37 +21,37 @@ use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
  */
 class JsonApiView extends BaseApiView
 {
-	/**
-	 * The fields to render item in the documents
-	 *
-	 * @var    array
-	 * @since  1.0.1
-	 */
-	protected $fieldsToRenderItem = [
-		'id', 
-		'state', 
-		'ordering', 
-		'coupon_code', 
-		'value_type', 
-		'value', 
-		'start_date', 
-		'end_date', 
-	];
+    /**
+     * The fields to render item in the documents
+     *
+     * @var    array
+     * @since  1.0.1
+     */
+    protected $fieldsToRenderItem = [
+        'id',
+        'state',
+        'ordering',
+        'coupon_code',
+        'value_type',
+        'value',
+        'start_date',
+        'end_date',
+    ];
 
-	/**
-	 * The fields to render items in the documents
-	 *
-	 * @var    array
-	 * @since  1.0.1
-	 */
-	protected $fieldsToRenderList = [
-		'id', 
-		'state', 
-		'ordering', 
-		'coupon_code', 
-		'value_type', 
-		'value', 
-		'start_date', 
-		'end_date', 
-	];
+    /**
+     * The fields to render items in the documents
+     *
+     * @var    array
+     * @since  1.0.1
+     */
+    protected $fieldsToRenderList = [
+        'id',
+        'state',
+        'ordering',
+        'coupon_code',
+        'value_type',
+        'value',
+        'start_date',
+        'end_date',
+    ];
 }

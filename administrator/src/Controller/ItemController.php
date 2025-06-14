@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -21,12 +22,12 @@ use Joomla\CMS\Router\Route;
  * @since  1.0.1
  */
 class ItemController extends FormController
-{	
-	use VersionableControllerTrait;
+{
+    use VersionableControllerTrait;
 
-	protected $view_list = 'items';
+    protected $view_list = 'items';
 
-	    /**
+    /**
      * Method to run batch operations.
      *
      * @param   object  $model  The model.

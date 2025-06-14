@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -8,17 +9,19 @@
  */
 
 namespace Alfa\Component\Alfa\Administrator\View\Items;
+
 // No direct access
 defined('_JEXEC') or die;
 
-use \Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
-use \Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
-use \Joomla\CMS\Toolbar\Toolbar;
-use \Joomla\CMS\Toolbar\ToolbarHelper;
-use \Joomla\CMS\Language\Text;
-use \Joomla\Component\Content\Administrator\Extension\ContentComponent;
-use \Joomla\CMS\Form\Form;
-use \Joomla\CMS\HTML\Helpers\Sidebar;
+use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Joomla\CMS\Toolbar\Toolbar;
+use Joomla\CMS\Toolbar\ToolbarHelper;
+use Joomla\CMS\Language\Text;
+use Joomla\Component\Content\Administrator\Extension\ContentComponent;
+use Joomla\CMS\Form\Form;
+use Joomla\CMS\HTML\Helpers\Sidebar;
+
 /**
  * View class for a list of Items.
  *
@@ -26,148 +29,136 @@ use \Joomla\CMS\HTML\Helpers\Sidebar;
  */
 class HtmlView extends BaseHtmlView
 {
-	protected $items;
+    protected $items;
 
-	protected $pagination;
+    protected $pagination;
 
-	protected $state;
+    protected $state;
 
-	/**
-	 * Display the view
-	 *
-	 * @param   string  $tpl  Template name
-	 *
-	 * @return void
-	 *
-	 * @throws Exception
-	 */
-	public function display($tpl = null)
-	{
-		$this->state = $this->get('State');
-		$this->items = $this->get('Items');
-		$this->pagination = $this->get('Pagination');
-		$this->filterForm = $this->get('FilterForm');
-		$this->activeFilters = $this->get('ActiveFilters');
+    /**
+     * Display the view
+     *
+     * @param   string  $tpl  Template name
+     *
+     * @return void
+     *
+     * @throws Exception
+     */
+    public function display($tpl = null)
+    {
+        $this->state = $this->get('State');
+        $this->items = $this->get('Items');
+        $this->pagination = $this->get('Pagination');
+        $this->filterForm = $this->get('FilterForm');
+        $this->activeFilters = $this->get('ActiveFilters');
 
-		// Check for errors.
-		if (count($errors = $this->get('Errors')))
-		{
-			throw new \Exception(implode("\n", $errors));
-		}
+        // Check for errors.
+        if (count($errors = $this->get('Errors'))) {
+            throw new \Exception(implode("\n", $errors));
+        }
 
-		$this->addToolbar();
+        $this->addToolbar();
 
-		$this->sidebar = Sidebar::render();
-		parent::display($tpl);
-	}
+        $this->sidebar = Sidebar::render();
+        parent::display($tpl);
+    }
 
-	/**
-	 * Add the page title and toolbar.
-	 *
-	 * @return  void
-	 *
-	 * @since   1.0.1
-	 */
-	protected function addToolbar()
-	{
-		$state = $this->get('State');
-		$canDo = AlfaHelper::getActions();
+    /**
+     * Add the page title and toolbar.
+     *
+     * @return  void
+     *
+     * @since   1.0.1
+     */
+    protected function addToolbar()
+    {
+        $state = $this->get('State');
+        $canDo = AlfaHelper::getActions();
 
-		ToolbarHelper::title(Text::_('COM_ALFA_TITLE_ITEMS'), "generic");
+        ToolbarHelper::title(Text::_('COM_ALFA_TITLE_ITEMS'), "generic");
 
-		$toolbar = Toolbar::getInstance('toolbar');
+        $toolbar = Toolbar::getInstance('toolbar');
 
-		// Check if the form exists before showing the add/edit buttons
-		$formPath = JPATH_COMPONENT_ADMINISTRATOR . '/src/View/Items';
+        // Check if the form exists before showing the add/edit buttons
+        $formPath = JPATH_COMPONENT_ADMINISTRATOR . '/src/View/Items';
 
-		if (file_exists($formPath))
-		{
-			if ($canDo->get('core.create'))
-			{
-				$toolbar->addNew('item.add');
-			}
-		}
+        if (file_exists($formPath)) {
+            if ($canDo->get('core.create')) {
+                $toolbar->addNew('item.add');
+            }
+        }
 
-		if ($canDo->get('core.edit.state'))
-		{
-			$dropdown = $toolbar->dropdownButton('status-group')
-				->text('JTOOLBAR_CHANGE_STATUS')
-				->toggleSplit(false)
-				->icon('fas fa-ellipsis-h')
-				->buttonClass('btn btn-action')
-				->listCheck(true);
+        if ($canDo->get('core.edit.state')) {
+            $dropdown = $toolbar->dropdownButton('status-group')
+                ->text('JTOOLBAR_CHANGE_STATUS')
+                ->toggleSplit(false)
+                ->icon('fas fa-ellipsis-h')
+                ->buttonClass('btn btn-action')
+                ->listCheck(true);
 
-			$childBar = $dropdown->getChildToolbar();
+            $childBar = $dropdown->getChildToolbar();
 
-			if (isset($this->items[0]->state))
-			{
-				$childBar->publish('items.publish')->listCheck(true);
-				$childBar->unpublish('items.unpublish')->listCheck(true);
-				$childBar->archive('items.archive')->listCheck(true);
-			}
-			elseif (isset($this->items[0]))
-			{
-				// If this component does not use state then show a direct delete button as we can not trash
-				$toolbar->delete('items.delete')
-				->text('JTOOLBAR_EMPTY_TRASH')
-				->message('JGLOBAL_CONFIRM_DELETE')
-				->listCheck(true);
-			}
+            if (isset($this->items[0]->state)) {
+                $childBar->publish('items.publish')->listCheck(true);
+                $childBar->unpublish('items.unpublish')->listCheck(true);
+                $childBar->archive('items.archive')->listCheck(true);
+            } elseif (isset($this->items[0])) {
+                // If this component does not use state then show a direct delete button as we can not trash
+                $toolbar->delete('items.delete')
+                ->text('JTOOLBAR_EMPTY_TRASH')
+                ->message('JGLOBAL_CONFIRM_DELETE')
+                ->listCheck(true);
+            }
 
-			// Add a batch button
+            // Add a batch button
             // if (
             //     $user->authorise('core.create', 'com_alfa')
             //     && $user->authorise('core.edit', 'com_alfa')
             //     && $user->authorise('core.execute.transition', 'com_alfa')
             // ) {
-                $childBar->popupButton('batch', 'JTOOLBAR_BATCH')
-                    ->popupType('inline')
-                    ->textHeader(Text::_('COM_CONTENT_BATCH_OPTIONS'))
-                    ->url('#joomla-dialog-batch')
-                    ->modalWidth('800px')
-                    ->modalHeight('fit-content')
-                    ->listCheck(true);
+            $childBar->popupButton('batch', 'JTOOLBAR_BATCH')
+                ->popupType('inline')
+                ->textHeader(Text::_('COM_CONTENT_BATCH_OPTIONS'))
+                ->url('#joomla-dialog-batch')
+                ->modalWidth('800px')
+                ->modalHeight('fit-content')
+                ->listCheck(true);
             // }
 
-			// $childBar->standardButton('duplicate')
-			// 	->text('JTOOLBAR_DUPLICATE')
-			// 	->icon('fas fa-copy')
-			// 	->task('items.duplicate')
-			// 	->listCheck(true);
+            // $childBar->standardButton('duplicate')
+            // 	->text('JTOOLBAR_DUPLICATE')
+            // 	->icon('fas fa-copy')
+            // 	->task('items.duplicate')
+            // 	->listCheck(true);
 
-			if (isset($this->items[0]->checked_out))
-			{
-				$childBar->checkin('items.checkin')->listCheck(true);
-			}
+            if (isset($this->items[0]->checked_out)) {
+                $childBar->checkin('items.checkin')->listCheck(true);
+            }
 
-			if (isset($this->items[0]->state))
-			{
-				$childBar->trash('items.trash')->listCheck(true);
-			}
-		}
+            if (isset($this->items[0]->state)) {
+                $childBar->trash('items.trash')->listCheck(true);
+            }
+        }
 
-		
 
-		// Show trash and delete for components that uses the state field
-		if (isset($this->items[0]->state))
-		{
 
-			if ($this->state->get('filter.state') == ContentComponent::CONDITION_TRASHED && $canDo->get('core.delete'))
-			{
-				$toolbar->delete('items.delete')
-					->text('JTOOLBAR_EMPTY_TRASH')
-					->message('JGLOBAL_CONFIRM_DELETE')
-					->listCheck(true);
-			}
-		}
+        // Show trash and delete for components that uses the state field
+        if (isset($this->items[0]->state)) {
 
-		if ($canDo->get('core.admin'))
-		{
-			$toolbar->preferences('com_alfa');
-		}
+            if ($this->state->get('filter.state') == ContentComponent::CONDITION_TRASHED && $canDo->get('core.delete')) {
+                $toolbar->delete('items.delete')
+                    ->text('JTOOLBAR_EMPTY_TRASH')
+                    ->message('JGLOBAL_CONFIRM_DELETE')
+                    ->listCheck(true);
+            }
+        }
 
-		// Set sidebar action
-		Sidebar::setAction('index.php?option=com_alfa&view=items');
-	}
-	
+        if ($canDo->get('core.admin')) {
+            $toolbar->preferences('com_alfa');
+        }
+
+        // Set sidebar action
+        Sidebar::setAction('index.php?option=com_alfa&view=items');
+    }
+
 }

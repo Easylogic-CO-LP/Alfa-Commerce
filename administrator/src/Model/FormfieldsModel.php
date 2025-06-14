@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -8,16 +9,17 @@
  */
 
 namespace Alfa\Component\Alfa\Administrator\Model;
+
 // No direct access.
 defined('_JEXEC') or die;
 
-use \Joomla\CMS\MVC\Model\ListModel;
-use \Joomla\Component\Fields\Administrator\Helper\FieldsHelper;
-use \Joomla\CMS\Factory;
-use \Joomla\CMS\Language\Text;
-use \Joomla\CMS\Helper\TagsHelper;
-use \Joomla\Database\ParameterType;
-use \Joomla\Utilities\ArrayHelper;
+use Joomla\CMS\MVC\Model\ListModel;
+use Joomla\Component\Fields\Administrator\Helper\FieldsHelper;
+use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
+use Joomla\CMS\Helper\TagsHelper;
+use Joomla\Database\ParameterType;
+use Joomla\Utilities\ArrayHelper;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 
 /**
@@ -27,7 +29,6 @@ use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
  */
 class FormFieldsModel extends ListModel
 {
-
     protected $orderUserInfoTableName = "#__alfa_user_info";
 
     /**
@@ -38,11 +39,10 @@ class FormFieldsModel extends ListModel
      * @see        JController
      * @since      1.6
      */
-    public function __construct($config = array())
+    public function __construct($config = [])
     {
-        if (empty($config['filter_fields']))
-        {
-            $config['filter_fields'] = array(
+        if (empty($config['filter_fields'])) {
+            $config['filter_fields'] = [
                 'id', 'a.id',
                 'ordering', 'a.ordering',
                 'created_by', 'a.created_by',
@@ -50,7 +50,7 @@ class FormFieldsModel extends ListModel
                 'name', 'a.name',
                 'state', 'a.state',
                 'id', 'a.id'
-            );
+            ];
         }
 
         parent::__construct($config);
@@ -78,16 +78,16 @@ class FormFieldsModel extends ListModel
         $this->setState('filter.search', $context);
 
         // Split context into component and optional section
-//        if (!empty($context))
-//        {
-//            $parts = FieldsHelper::extract($context);
-//
-//            if ($parts)
-//            {
-//                $this->setState('filter.component', $parts[0]);
-//                $this->setState('filter.section', $parts[1]);
-//            }
-//        }
+        //        if (!empty($context))
+        //        {
+        //            $parts = FieldsHelper::extract($context);
+        //
+        //            if ($parts)
+        //            {
+        //                $this->setState('filter.component', $parts[0]);
+        //                $this->setState('filter.section', $parts[1]);
+        //            }
+        //        }
     }
 
     /**
@@ -130,33 +130,34 @@ class FormFieldsModel extends ListModel
 
         $query->select(
             $this->getState(
-                'list.select', 'DISTINCT a.*'
+                'list.select',
+                'DISTINCT a.*'
             )
         );
 
-        $query->from($db->qn("#__alfa_form_fields","a"))
+        $query->from($db->qn("#__alfa_form_fields", "a"))
             ->order("ordering", "ASC");
 
 
         // Select the required fields from the table.
-//        $query->select(
-//            $this->getState(
-//                'list.select', 'DISTINCT a.*'
-//            )
-//        );
-//        $query->from('`#__alfa_form_fields` AS a');
-//
-//        // Join over the users for the checked out user
-//        $query->select("uc.name AS uEditor");
-//        $query->join("LEFT", "#__users AS uc ON uc.id=a.checked_out");
-//
-//        // Join over the user field 'created_by'
-//        $query->select('`created_by`.name AS `created_by`');
-//        $query->join('LEFT', '#__users AS `created_by` ON `created_by`.id = a.`created_by`');
-//
-//        // Join over the user field 'modified_by'
-//        $query->select('`modified_by`.name AS `modified_by`');
-//        $query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
+        //        $query->select(
+        //            $this->getState(
+        //                'list.select', 'DISTINCT a.*'
+        //            )
+        //        );
+        //        $query->from('`#__alfa_form_fields` AS a');
+        //
+        //        // Join over the users for the checked out user
+        //        $query->select("uc.name AS uEditor");
+        //        $query->join("LEFT", "#__users AS uc ON uc.id=a.checked_out");
+        //
+        //        // Join over the user field 'created_by'
+        //        $query->select('`created_by`.name AS `created_by`');
+        //        $query->join('LEFT', '#__users AS `created_by` ON `created_by`.id = a.`created_by`');
+        //
+        //        // Join over the user field 'modified_by'
+        //        $query->select('`modified_by`.name AS `modified_by`');
+        //        $query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
 
 
         // Filter by published state
@@ -164,26 +165,21 @@ class FormFieldsModel extends ListModel
 
 
 
-        if (is_numeric($published))
-        {
+        if (is_numeric($published)) {
             $query->where('a.state = ' . (int) $published);
         }
-//        elseif (empty($published))
-//        {
-//            $query->where('(a.state IN (0, 1))');
-//        }
+        //        elseif (empty($published))
+        //        {
+        //            $query->where('(a.state IN (0, 1))');
+        //        }
 
         // Filter by search in title
         $search = $this->getState('filter.search');
 
-        if (!empty($search))
-        {
-            if (stripos($search, 'id:') === 0)
-            {
+        if (!empty($search)) {
+            if (stripos($search, 'id:') === 0) {
                 $query->where('a.id = ' . (int) substr($search, 3));
-            }
-            else
-            {
+            } else {
                 $search = $db->Quote('%' . $db->escape($search, true) . '%');
                 $query->where('( a.name LIKE ' . $search . ' )');
             }
@@ -193,8 +189,7 @@ class FormFieldsModel extends ListModel
         $orderCol  = $this->state->get('list.ordering', 'id');
         $orderDirn = $this->state->get('list.direction', 'DESC');
 
-        if ($orderCol && $orderDirn)
-        {
+        if ($orderCol && $orderDirn) {
             $query->order($db->escape($orderCol . ' ' . $orderDirn));
         }
 
@@ -216,26 +211,24 @@ class FormFieldsModel extends ListModel
     }
 
 
-    public function delete(&$pks){
+    public function delete(&$pks)
+    {
 
         $app = Factory::getApplication();
         $db = self::getDatabase();
         $query = $db->getQuery(true);
 
         $fieldNames = self::getFieldNames($pks);
-        
+
 
         $query
             ->delete("#__alfa_form_fields")
             ->whereIn($db->qn("id"), $pks);
 
         $db->setQuery($query);
-        if($db->execute())
-        {
+        if ($db->execute()) {
             $app->enqueueMessage("Entry was deleted successfully!", "success");
-        }
-        else
-        {
+        } else {
             $app->enqueueMessage("Entry was could not be deleted.", "error");
         }
 
@@ -248,14 +241,14 @@ class FormFieldsModel extends ListModel
      *  @param $columnName string the name of the column to delete.
      *  @return void
      */
-    protected function deleteUserInfoTableColumn($columnName){
+    protected function deleteUserInfoTableColumn($columnName)
+    {
 
         $formFieldModel = $this->app->bootComponent('com_alfa')
             ->getMVCFactory()->createModel('Formfield', 'Admin', ['ignore_request' => true]);
 
         // Delete column if it exists.
-        if($formFieldModel->getTableColumn($this->orderUserInfoTableName, $columnName) != NULL)
-        {
+        if ($formFieldModel->getTableColumn($this->orderUserInfoTableName, $columnName) != null) {
             $db = self::getDatabase();
             $query = $db->getQuery(true);
             $query = 'ALTER TABLE ' . $db->quoteName($this->orderUserInfoTableName) . " DROP COLUMN " . $db->qn($columnName);

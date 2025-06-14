@@ -12,7 +12,7 @@ use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Layout\FileLayout;
 use Joomla\CMS\Plugin\PluginHelper;
-use \Joomla\CMS\Uri\Uri;
+use Joomla\CMS\Uri\Uri;
 
 // phpcs:disable PSR1.Files.SideEffects
 \defined('_JEXEC') or die;
@@ -25,14 +25,14 @@ use \Joomla\CMS\Uri\Uri;
  */
 final class Revolut extends PaymentsPlugin
 {
-
-    public function onOrderProcessView($event) {
+    public function onOrderProcessView($event)
+    {
 
         $app = self::getApplication();
         $order = $event->getOrder();
 
         $sandboxUrl = 'https://sandbox-merchant.revolut.com/api/orders';
-//        $productionUrl = 'https://merchant.revolut.com/api/orders';
+        //        $productionUrl = 'https://merchant.revolut.com/api/orders';
         $productionUrl = 'https://sandbox-merchant.revolut.com/api/orders';
 
         // Parameters set by administrator.
@@ -48,7 +48,7 @@ final class Revolut extends PaymentsPlugin
         $revolutCreateOrderResponse = self::createOrder($order, $paymentData);
 
         $revolutCheckoutUrl = $revolutCreateOrderResponse['checkout_url'];
-        $revolutOrderId     = $revolutCreateOrderResponse['id']?:'';
+        $revolutOrderId     = $revolutCreateOrderResponse['id'] ?: '';
 
         $revolutErrorCode = $revolutCreateOrderResponse['code'] ?? '';
         $revolutErrorMessage = $revolutCreateOrderResponse['message'] ?? '';
@@ -57,7 +57,7 @@ final class Revolut extends PaymentsPlugin
         $app->setUserState('com_alfa.revolut_order_id', $revolutOrderId);
         $app->setUserState('com_alfa.revolut_response_url', $revolutCheckoutUrl);
 
-        $orderStatus = empty($revolutErrorCode)?'pending':'failed';
+        $orderStatus = empty($revolutErrorCode) ? 'pending' : 'failed';
 
         // Logging.
         $logData = $this->createEmptyLog();
@@ -77,8 +77,7 @@ final class Revolut extends PaymentsPlugin
 
         $this->insertLog($logData);
 
-        if(!empty($errorCode))
-        {
+        if (!empty($errorCode)) {
             $app->enqueueMessage('(Oops.. '.$revolutErrorCode.') '.$revolutErrorMessage);
             return;
         }
@@ -87,7 +86,8 @@ final class Revolut extends PaymentsPlugin
 
     }
 
-    public function onPaymentResponse($event){
+    public function onPaymentResponse($event)
+    {
 
         $app = self::getApplication();
         $order = $event->getOrder();
@@ -103,7 +103,7 @@ final class Revolut extends PaymentsPlugin
         $orderStatus = empty($errorCode) ? $response['state'] : "failed";
 
         // Insert payment data.
-        if($orderStatus == 'completed'){
+        if ($orderStatus == 'completed') {
             $orderPaymentData = self::createEmptyOrderPayment();
             $orderPaymentData = [
                 'id_order' => $order->id,
@@ -123,7 +123,7 @@ final class Revolut extends PaymentsPlugin
         $logData["id"]              = null;
         $logData["id_order"]        = $order->id;      //should always be passed
         $logData["status"]          = $orderStatus;    //should always be passed
-        $logData["id_order_payment"]= $id_order_payment ?? 0;
+        $logData["id_order_payment"] = $id_order_payment ?? 0;
         $logData["order_code"]      = 0;
         $logData["transaction_id"]  = $response['id'] ?: '';
         $logData["order_total"]     = $order->original_price;  // Do we store cents?
@@ -140,32 +140,35 @@ final class Revolut extends PaymentsPlugin
 
         $this->insertLog($logData);
 
-        if(!empty($errorCode)){
+        if (!empty($errorCode)) {
             $app->enqueueMessage("Something went wrong while retrieving data from a Revolut order.");
             $app->setUserState('com_alfa.payment_done', false);
-        }
-        else
+        } else {
             $app->setUserState('com_alfa.payment_done', true);
+        }
 
         $orderViewUrl = 'index.php?option=com_alfa&view=cart&layout=default_order_completed';
         $event->setRedirectUrl($orderViewUrl);
 
     }
 
-    public function onOrderCompleteView($event) {
+    public function onOrderCompleteView($event)
+    {
 
         $app = $this->getApplication();
 
         $paymentStatus = $app->getUserState('com_alfa.payment_done', false); // handle the variable set in the payment response
 
-        if($paymentStatus)
+        if ($paymentStatus) {
             $event->setLayout("default_payment_success");
-        else
+        } else {
             $event->setLayout("default_payment_failed");
+        }
 
     }
 
-    public function onItemView($event){
+    public function onItemView($event)
+    {
         $item = $event->getItem();
         $method = $event->getMethod();
 
@@ -173,7 +176,7 @@ final class Revolut extends PaymentsPlugin
             'method' => $method,
             'item' => $item
         ];
-        
+
         $event->setLayoutPluginName($this->_name);
         $event->setLayout('default_product_view');
         $event->setLayoutData($layoutData);
@@ -187,7 +190,8 @@ final class Revolut extends PaymentsPlugin
      *  @param $paymentData array Contains specific payment data (secret key, urls, etc).
      *  @return array associative array with the response from revolut.
      */
-    protected function createOrder($order, $paymentData){
+    protected function createOrder($order, $paymentData)
+    {
 
         $url = $paymentData['url'];
         $secretKey = $paymentData['secret_key'];
@@ -208,7 +212,7 @@ final class Revolut extends PaymentsPlugin
 
         $postFieldsJSON = json_encode($postFieldsJSON);
 
-        curl_setopt_array($curl, array(
+        curl_setopt_array($curl, [
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
@@ -218,13 +222,13 @@ final class Revolut extends PaymentsPlugin
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'POST',
             CURLOPT_POSTFIELDS => $postFieldsJSON,
-            CURLOPT_HTTPHEADER => array(
+            CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
                 'Accept: application/json',
                 'Revolut-Api-Version: 2024-09-01',
                 'Authorization: Bearer ' . $secretKey,
-            ),
-        ));
+            ],
+        ]);
 
         $response = curl_exec($curl);
         curl_close($curl);
@@ -239,7 +243,8 @@ final class Revolut extends PaymentsPlugin
      *  @param $order object Contains data about the order.
      *  @return array The details of the Revolut order/payment.
      */
-    protected function retrieveOrderDetails($order){
+    protected function retrieveOrderDetails($order)
+    {
 
         $params = $order->selected_payment->params;
         $secret_key = $params['revolut_secret_key'];
@@ -250,12 +255,12 @@ final class Revolut extends PaymentsPlugin
 
         // Get correct url.
         $sandboxUrl = 'https://sandbox-merchant.revolut.com/api/orders';
-//        $productionUrl = 'https://merchant.revolut.com/api/orders';
+        //        $productionUrl = 'https://merchant.revolut.com/api/orders';
         $productionUrl = 'https://sandbox-merchant.revolut.com/api/orders';
         $sandboxMode = $params['revolut_sandbox_mode'];
         $url = $sandboxMode ? $sandboxUrl : $productionUrl;
 
-        curl_setopt_array($curl, array(
+        curl_setopt_array($curl, [
             CURLOPT_URL => $url . '/' . $order_id,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
@@ -264,12 +269,12 @@ final class Revolut extends PaymentsPlugin
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'GET',
-            CURLOPT_HTTPHEADER => array(
+            CURLOPT_HTTPHEADER => [
                 'Accept: application/json',
                 'Revolut-Api-Version: 2024-09-01',
                 'Authorization: Bearer ' . $secret_key
-            ),
-        ));
+            ],
+        ]);
 
         $response = curl_exec($curl);
         curl_close($curl);

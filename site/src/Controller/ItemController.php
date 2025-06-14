@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -12,20 +13,19 @@ namespace Alfa\Component\Alfa\Site\Controller;
 \defined('_JEXEC') or die;
 
 use Exception;
-use \Joomla\CMS\Application\SiteApplication;
-use \Joomla\CMS\Factory;
-use \Joomla\CMS\Language\Multilanguage;
-use \Joomla\CMS\Language\Text;
-use \Joomla\CMS\MVC\Controller\BaseController;
-use \Joomla\CMS\Router\Route;
-use \Joomla\CMS\Uri\Uri;
+use Joomla\CMS\Application\SiteApplication;
+use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Multilanguage;
+use Joomla\CMS\Language\Text;
+use Joomla\CMS\MVC\Controller\BaseController;
+use Joomla\CMS\Router\Route;
+use Joomla\CMS\Uri\Uri;
 use Joomla\CMS\User\UserFactoryInterface;
-use \Joomla\Utilities\ArrayHelper;
-use \Joomla\CMS\Response\JsonResponse;
+use Joomla\Utilities\ArrayHelper;
+use Joomla\CMS\Response\JsonResponse;
 use Joomla\CMS\Layout\LayoutHelper;
-
 // use \Alfa\Component\Alfa\Site\Helper\ProductHelper;
-use \Alfa\Component\Alfa\Site\Helper\PriceCalculator;
+use Alfa\Component\Alfa\Site\Helper\PriceCalculator;
 
 /**
  * Item class.
@@ -34,5 +34,4 @@ use \Alfa\Component\Alfa\Site\Helper\PriceCalculator;
  */
 class ItemController extends BaseController
 {
-
 }

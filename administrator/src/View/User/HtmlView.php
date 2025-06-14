@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -8,14 +9,15 @@
  */
 
 namespace Alfa\Component\Alfa\Administrator\View\User;
+
 // No direct access
 defined('_JEXEC') or die;
 
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
-use \Joomla\CMS\Toolbar\ToolbarHelper;
-use \Joomla\CMS\Factory;
-use \Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
-use \Joomla\CMS\Language\Text;
+use Joomla\CMS\Toolbar\ToolbarHelper;
+use Joomla\CMS\Factory;
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Joomla\CMS\Language\Text;
 
 /**
  * View class for a single User.
@@ -24,91 +26,81 @@ use \Joomla\CMS\Language\Text;
  */
 class HtmlView extends BaseHtmlView
 {
-	protected $state;
+    protected $state;
 
-	protected $item;
+    protected $item;
 
-	protected $form;
+    protected $form;
 
-	/**
-	 * Display the view
-	 *
-	 * @param   string  $tpl  Template name
-	 *
-	 * @return void
-	 *
-	 * @throws Exception
-	 */
-	public function display($tpl = null)
-	{
-		$this->state = $this->get('State');
-		$this->item  = $this->get('Item');
-		$this->form  = $this->get('Form');
+    /**
+     * Display the view
+     *
+     * @param   string  $tpl  Template name
+     *
+     * @return void
+     *
+     * @throws Exception
+     */
+    public function display($tpl = null)
+    {
+        $this->state = $this->get('State');
+        $this->item  = $this->get('Item');
+        $this->form  = $this->get('Form');
 
-		// Check for errors.
-		if (count($errors = $this->get('Errors')))
-		{
-			throw new \Exception(implode("\n", $errors));
-		}
-				$this->addToolbar();
-		
-		parent::display($tpl);
-	}
+        // Check for errors.
+        if (count($errors = $this->get('Errors'))) {
+            throw new \Exception(implode("\n", $errors));
+        }
+        $this->addToolbar();
 
-	/**
-	 * Add the page title and toolbar.
-	 *
-	 * @return void
-	 *
-	 * @throws Exception
-	 */
-	protected function addToolbar()
-	{
-		Factory::getApplication()->input->set('hidemainmenu', true);
+        parent::display($tpl);
+    }
 
-		$user  = Factory::getApplication()->getIdentity();
-		$isNew = ($this->item->id == 0);
+    /**
+     * Add the page title and toolbar.
+     *
+     * @return void
+     *
+     * @throws Exception
+     */
+    protected function addToolbar()
+    {
+        Factory::getApplication()->input->set('hidemainmenu', true);
 
-		if (isset($this->item->checked_out))
-		{
-			$checkedOut = !($this->item->checked_out == 0 || $this->item->checked_out == $user->get('id'));
-		}
-		else
-		{
-			$checkedOut = false;
-		}
+        $user  = Factory::getApplication()->getIdentity();
+        $isNew = ($this->item->id == 0);
 
-		$canDo = AlfaHelper::getActions();
+        if (isset($this->item->checked_out)) {
+            $checkedOut = !($this->item->checked_out == 0 || $this->item->checked_out == $user->get('id'));
+        } else {
+            $checkedOut = false;
+        }
 
-		ToolbarHelper::title(Text::_('COM_ALFA_TITLE_USER'), "generic");
+        $canDo = AlfaHelper::getActions();
 
-		// If not checked out, can save the item.
-		if (!$checkedOut && ($canDo->get('core.edit') || ($canDo->get('core.create'))))
-		{
-			ToolbarHelper::apply('user.apply', 'JTOOLBAR_APPLY');
-			ToolbarHelper::save('user.save', 'JTOOLBAR_SAVE');
-		}
+        ToolbarHelper::title(Text::_('COM_ALFA_TITLE_USER'), "generic");
 
-		if (!$checkedOut && ($canDo->get('core.create')))
-		{
-			ToolbarHelper::custom('user.save2new', 'save-new.png', 'save-new_f2.png', 'JTOOLBAR_SAVE_AND_NEW', false);
-		}
+        // If not checked out, can save the item.
+        if (!$checkedOut && ($canDo->get('core.edit') || ($canDo->get('core.create')))) {
+            ToolbarHelper::apply('user.apply', 'JTOOLBAR_APPLY');
+            ToolbarHelper::save('user.save', 'JTOOLBAR_SAVE');
+        }
 
-		// If an existing item, can save to a copy.
-		if (!$isNew && $canDo->get('core.create'))
-		{
-			ToolbarHelper::custom('user.save2copy', 'save-copy.png', 'save-copy_f2.png', 'JTOOLBAR_SAVE_AS_COPY', false);
-		}
+        if (!$checkedOut && ($canDo->get('core.create'))) {
+            ToolbarHelper::custom('user.save2new', 'save-new.png', 'save-new_f2.png', 'JTOOLBAR_SAVE_AND_NEW', false);
+        }
 
-		
+        // If an existing item, can save to a copy.
+        if (!$isNew && $canDo->get('core.create')) {
+            ToolbarHelper::custom('user.save2copy', 'save-copy.png', 'save-copy_f2.png', 'JTOOLBAR_SAVE_AS_COPY', false);
+        }
 
-		if (empty($this->item->id))
-		{
-			ToolbarHelper::cancel('user.cancel', 'JTOOLBAR_CANCEL');
-		}
-		else
-		{
-			ToolbarHelper::cancel('user.cancel', 'JTOOLBAR_CLOSE');
-		}
-	}
+
+
+        if (empty($this->item->id)) {
+            ToolbarHelper::cancel('user.cancel', 'JTOOLBAR_CANCEL');
+        } else {
+            ToolbarHelper::cancel('user.cancel', 'JTOOLBAR_CLOSE');
+        }
+    }
 }

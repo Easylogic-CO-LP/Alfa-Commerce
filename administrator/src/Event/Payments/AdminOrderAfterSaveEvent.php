@@ -46,4 +46,3 @@ class AdminOrderAfterSaveEvent extends PaymentsEvent
     }
 
 }
-

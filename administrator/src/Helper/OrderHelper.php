@@ -13,7 +13,8 @@ class StockOperation
     public const RESTOCK_STOCK = 1;
 }
 
-class ManageStock{
+class ManageStock
+{
     public const FROM_CONFIGURATION = -1;
     public const DONT_MANAGE = 0;
     public const MANAGE = 1;
@@ -21,8 +22,6 @@ class ManageStock{
 
 class OrderHelper
 {
-
-
     public static function getOrder($orderID = null)
     {
 
@@ -38,7 +37,7 @@ class OrderHelper
         return $order;
     }
 
-     static function getOrderItems($orderId = null)
+    public static function getOrderItems($orderId = null)
     {
         // Get order items
         $db = Factory::getContainer()->get('DatabaseDriver');
@@ -62,13 +61,14 @@ class OrderHelper
 
 
 
-    public static function setOrderItems($orderId, $data, $previousOrderData){
+    public static function setOrderItems($orderId, $data, $previousOrderData)
+    {
 
-//        echo "<pre>";
-//        print_r($data);
-//        echo "</pre>";
-//
-//        exit;
+        //        echo "<pre>";
+        //        print_r($data);
+        //        echo "</pre>";
+        //
+        //        exit;
         // There can't be an order with no items.
         if (!is_array($data['items']) || $orderId <= 0) {
             return false;
@@ -85,8 +85,8 @@ class OrderHelper
         // Get previous and current items' details.
         $prevOrderItemIds = array_column($prevOrderTableItemsData, 'id_item');
 
-        $currOrderItemIds = array();
-        $currOrderItemIds = array_map(fn($item) => intval($item['id_item']), $data['items']);
+        $currOrderItemIds = [];
+        $currOrderItemIds = array_map(fn ($item) => intval($item['id_item']), $data['items']);
 
         // Get IDs that are present in both previous and current lists
         $allOrderItemIds = array_merge($prevOrderItemIds, $currOrderItemIds);
@@ -95,12 +95,13 @@ class OrderHelper
 
         // Get new items to be inserted.
         $configuredItems =  self::configureCurrentItems($orderId, $data, $prevOrderTableItemsData, $allItemsData, $previousOrderData);
-        
+
         $toUpdateItems = $configuredItems['items'];
         $orderItems = $configuredItems['order_items'];
 
-        if(empty($orderItems))
+        if (empty($orderItems)) {
             return false;
+        }
 
         // Delete the removed items
         $idsToDelete = array_diff($prevOrderItemIds, $currOrderItemIds);
@@ -112,7 +113,7 @@ class OrderHelper
         }
 
         // Update items' stock.
-        foreach($toUpdateItems as $item) {
+        foreach ($toUpdateItems as $item) {
             $db->updateObject('#__alfa_items', $item, 'id', true);
         }
 
@@ -130,7 +131,8 @@ class OrderHelper
 
 
     // Delete order items from their table & replenish their stock.
-    static function deleteOrderItems($orderId, $idsToDelete, &$prevOrderTableItemsData, &$allItemsTableData){
+    public static function deleteOrderItems($orderId, $idsToDelete, &$prevOrderTableItemsData, &$allItemsTableData)
+    {
 
         $db = Factory::getContainer()->get('DatabaseDriver');
 
@@ -171,7 +173,8 @@ class OrderHelper
 
 
     // Get order's items based on given id.
-    static function getOlderOrderItems($orderId){
+    public static function getOlderOrderItems($orderId)
+    {
         $db = Factory::getContainer()->get('DatabaseDriver');
 
         // Get the previous order's items.
@@ -187,7 +190,8 @@ class OrderHelper
     }
 
     // Get items based on given ids.
-    static function getItemsWithGivenIDs($ids){
+    public static function getItemsWithGivenIDs($ids)
+    {
         $db = Factory::getContainer()->get('DatabaseDriver');
 
         $query = $db->getQuery(true);
@@ -209,10 +213,12 @@ class OrderHelper
      *  @return array The new order items, ready to be updated/inserted.
      *  @throws \Exception
      */
-    static function configureCurrentItems($orderId, $data, $previousOrderItemsData, $allItemsData, $previousOrderData){
+    public static function configureCurrentItems($orderId, $data, $previousOrderItemsData, $allItemsData, $previousOrderData)
+    {
 
-        if(empty($allItemsData))
+        if (empty($allItemsData)) {
             return null;
+        }
 
         $app = Factory::getApplication();
         $db = Factory::getContainer()->get("DatabaseDriver");
@@ -220,12 +226,12 @@ class OrderHelper
         $generalManageStock = $component_params->get('manage_stock', 1);
 
         $orderItems = $data['items'];
-        
+
         $orderStatuses = AlfaHelper::getOrderStatuses();
 
         $newOrderStatus = $orderStatuses[$data['id_order_status']];
         $oldOrderStatus = $orderStatuses[$previousOrderData['id_order_status']];
-        
+
         $itemOrderObjectsTable = $itemObjectsTable = [];
 
         foreach ($orderItems as $orderItem) {
@@ -255,18 +261,19 @@ class OrderHelper
             if (isset($allItemsData[$itemOrderObject->id_item])) { // means item exists in items table database
 
                 $itemManageStock = $allItemsData[$itemOrderObject->id_item]->manage_stock;
-                if($itemManageStock == ManageStock::FROM_CONFIGURATION)
+                if ($itemManageStock == ManageStock::FROM_CONFIGURATION) {
                     $itemManageStock = $generalManageStock;
+                }
 
                 // Check whether the item manages its stock.
-                if ($itemManageStock == ManageStock::MANAGE){
+                if ($itemManageStock == ManageStock::MANAGE) {
                     $app->enqueueMessage('MANAGING STOCK');
 
                     $currentStock     = $allItemsData[$itemOrderObject->id_item]->stock;
                     $previousQuantity   = isset($previousOrderItemsData[$orderItem['id_item']]) ? $previousOrderItemsData[$orderItem['id_item']]['quantity'] : 0;
                     $newQuantity        = $orderItem['quantity'];
-                    
-                    $itemObject = new \stdClass;
+
+                    $itemObject = new \stdClass();
                     $itemObject->id = $itemOrderObject->id_item;
                     $itemObject->stock = self::handleStock(
                         $currentStock,
@@ -278,8 +285,9 @@ class OrderHelper
                     $app->enqueueMessage('OLD STATUS'.$oldOrderStatus->stock_operation);
                     $app->enqueueMessage('NEW STATUS'.$newOrderStatus->stock_operation);
 
-                    if(is_null($itemObject->stock))
+                    if (is_null($itemObject->stock)) {
                         return null;
+                    }
 
                     // Updating the quantity of edited items.
                     $itemObjectsTable[] = $itemObject;
@@ -292,7 +300,7 @@ class OrderHelper
         // Order Items properly configured.
         return [
                 'items' => $itemObjectsTable,
-                'order_items'=>$itemOrderObjectsTable
+                'order_items' => $itemOrderObjectsTable
                 ];
 
     }
@@ -308,13 +316,16 @@ class OrderHelper
      * @param StockOperation $newOperation
      * @return int Updated stock
      */
-    static function handleStock($currentStock, $previousQuantity, $newQuantity, $oldOperation, $newOperation) {
-        
-        if($oldOperation == StockOperation::RESTOCK_STOCK)
-            $previousQuantity = 0;
+    public static function handleStock($currentStock, $previousQuantity, $newQuantity, $oldOperation, $newOperation)
+    {
 
-        if($newOperation == StockOperation::RESTOCK_STOCK)
+        if ($oldOperation == StockOperation::RESTOCK_STOCK) {
+            $previousQuantity = 0;
+        }
+
+        if ($newOperation == StockOperation::RESTOCK_STOCK) {
             $newQuantity = 0;
+        }
 
         $quantityDifference = $newQuantity - $previousQuantity;
 
@@ -330,9 +341,10 @@ class OrderHelper
     }
 
     // Attempts to save order's user info.
-    static function saveUserInfo($userInfoID, $userInfo): bool{
+    public static function saveUserInfo($userInfoID, $userInfo): bool
+    {
 
-        if(!is_object($userInfo)){
+        if (!is_object($userInfo)) {
             $userInfo = json_decode(json_encode($userInfo));
         }
 
@@ -342,24 +354,23 @@ class OrderHelper
         // echo "<pre>";
         // print_r($userInfo);
         // echo "</pre>";
-//        exit;
+        //        exit;
 
         $userInfo->id = $userInfoID;
 
-//        exit;
+        //        exit;
 
         try {
             $db->updateObject('#__alfa_user_info', $userInfo, 'id', true);
-        }
-        catch(Exception $e){
+        } catch (Exception $e) {
             Factory::getApplication()->enqueueMessage($e->getMessage(), "error");
             return false;
         }
 
-//        echo "<pre>";
-//        print_r($userInfo);
-//        echo "</pre>";
-//exit;
+        //        echo "<pre>";
+        //        print_r($userInfo);
+        //        echo "</pre>";
+        //exit;
 
         return true;
     }

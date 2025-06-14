@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -8,12 +9,13 @@
  */
 
 namespace Alfa\Component\Alfa\Administrator\Table;
+
 // No direct access
 defined('_JEXEC') or die;
 
 
-use \Joomla\CMS\Table\Table;
-use \Joomla\Database\DatabaseDriver;
+use Joomla\CMS\Table\Table;
+use Joomla\Database\DatabaseDriver;
 
 /**
  * Order table
@@ -22,7 +24,6 @@ use \Joomla\Database\DatabaseDriver;
  */
 class FormfieldTable extends Table
 {
-
     /**
      * Indicates that columns fully support the NULL value in the database
      *
