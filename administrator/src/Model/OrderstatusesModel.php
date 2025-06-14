@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -9,17 +8,16 @@
  */
 
 namespace Alfa\Component\Alfa\Administrator\Model;
-
 // No direct access.
 defined('_JEXEC') or die;
 
-use Joomla\CMS\MVC\Model\ListModel;
-use Joomla\Component\Fields\Administrator\Helper\FieldsHelper;
-use Joomla\CMS\Factory;
-use Joomla\CMS\Language\Text;
-use Joomla\CMS\Helper\TagsHelper;
-use Joomla\Database\ParameterType;
-use Joomla\Utilities\ArrayHelper;
+use \Joomla\CMS\MVC\Model\ListModel;
+use \Joomla\Component\Fields\Administrator\Helper\FieldsHelper;
+use \Joomla\CMS\Factory;
+use \Joomla\CMS\Language\Text;
+use \Joomla\CMS\Helper\TagsHelper;
+use \Joomla\Database\ParameterType;
+use \Joomla\Utilities\ArrayHelper;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 
 /**
@@ -37,17 +35,18 @@ class OrderstatusesModel extends ListModel
      * @see        JController
      * @since      1.6
      */
-    public function __construct($config = [])
+    public function __construct($config = array())
     {
-        if (empty($config['filter_fields'])) {
-            $config['filter_fields'] = [
+        if (empty($config['filter_fields']))
+        {
+            $config['filter_fields'] = array(
                 'name', 'a.name',
                 'color', 'a.color',
                 'bg_color', 'a.bg_color',
                 'stock_operation', 'a.stock_operation',
                 'state', 'a.state',
                 'ordering', 'a.ordering',
-            ];
+            );
         }
 
         parent::__construct($config);
@@ -74,10 +73,12 @@ class OrderstatusesModel extends ListModel
         $this->setState('filter.search', $context);
 
         // Split context into component and optional section
-        if (!empty($context)) {
+        if (!empty($context))
+        {
             $parts = FieldsHelper::extract($context);
 
-            if ($parts) {
+            if ($parts)
+            {
                 $this->setState('filter.component', $parts[0]);
                 $this->setState('filter.section', $parts[1]);
             }
@@ -125,12 +126,11 @@ class OrderstatusesModel extends ListModel
         // Select the required fields from the table.
         $query->select(
             $this->getState(
-                'list.select',
-                'DISTINCT a.*'
+                'list.select', 'DISTINCT a.*'
             )
         );
         $query->from('`#__alfa_orders_statuses` AS a');
-
+        
         // Join over the users for the checked out user
         $query->select("uc.name AS uEditor");
         $query->join("LEFT", "#__users AS uc ON uc.id=a.checked_out");
@@ -142,34 +142,42 @@ class OrderstatusesModel extends ListModel
         // Join over the user field 'modified_by'
         $query->select('`modified_by`.name AS `modified_by`');
         $query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
-
+        
 
         // Filter by published state
         $published = $this->getState('filter.state');
 
-        if (is_numeric($published)) {
+        if (is_numeric($published))
+        {
             $query->where('a.state = ' . (int) $published);
-        } elseif (empty($published)) {
+        }
+        elseif (empty($published))
+        {
             $query->where('(a.state IN (0, 1))');
         }
 
         // Filter by search in title
         $search = $this->getState('filter.search');
 
-        if (!empty($search)) {
-            if (stripos($search, 'id:') === 0) {
+        if (!empty($search))
+        {
+            if (stripos($search, 'id:') === 0)
+            {
                 $query->where('a.id = ' . (int) substr($search, 3));
-            } else {
+            }
+            else
+            {
                 $search = $db->Quote('%' . $db->escape($search, true) . '%');
                 $query->where('( a.name LIKE ' . $search . ' )');
             }
         }
-
+        
         // Add the list ordering clause.
         $orderCol  = $this->state->get('list.ordering', 'id');
         $orderDirn = $this->state->get('list.direction', 'DESC');
 
-        if ($orderCol && $orderDirn) {
+        if ($orderCol && $orderDirn)
+        {
             $query->order($db->escape($orderCol . ' ' . $orderDirn));
         }
 

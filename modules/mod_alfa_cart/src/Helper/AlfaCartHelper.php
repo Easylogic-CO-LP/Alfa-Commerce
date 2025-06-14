@@ -31,20 +31,20 @@ class AlfaCartHelper
         $lang->load('com_alfa');
 
         $cart = new CartHelper();
-        //        $isEmpty = $cart->isEmpty();
+//        $isEmpty = $cart->isEmpty();
 
         $layout = new FileLayout('default_items', JPATH_ROOT . '/modules/mod_alfa_cart/tmpl/');
         $result = $layout->render($cart);
-        $response_data = [
+        $response_data = array(
             'tmpl' => $result,
             'total_quantity' => $cart->getTotalQuantity(),
             'total_items' => $cart->getTotalItems(),
             // 'isEmpty' => $isEmpty
-        ];
+        );
 
         // Send the response as JSON
         header('Content-Type: application/json');
-        $response = new JsonResponse($response_data, 'Module cart layout loaded!', false);
+        $response = new JsonResponse($response_data, 'Module cart layout loaded!' , false);
         echo $response;
 
         $app->close();
@@ -63,7 +63,7 @@ class AlfaCartHelper
         $lang = $app->getLanguage();
         $lang->load('mod_alfa_cart');
         $lang->load('com_alfa');
-
+        
         $cartItems = [];
 
         $app->getSession()->set('application.queue', $app->getMessageQueue());
@@ -76,7 +76,7 @@ class AlfaCartHelper
 
         $cart = new CartHelper();
 
-        $errorOccured = !$cart->addToCart($itemId, $quantity);
+        $errorOccured = !$cart->addToCart($itemId,$quantity);
 
         $result = '';
 
@@ -85,12 +85,12 @@ class AlfaCartHelper
         $layout = new FileLayout('default_items', JPATH_ROOT . '/modules/mod_alfa_cart/tmpl/');
         $result = $layout->render($cart);
 
-        $response_data = [
+        $response_data = array(
             'tmpl' => $result,
             'total_quantity' => $cart->getTotalQuantity(),
             'total_items' => $cart->getTotalItems(),
             // 'isEmpty' => $isEmpty
-        ];
+        );
 
         header('Content-Type: application/json');
         $response = new JsonResponse($response_data, $errorOccured ? 'Item Failed to be updated!' : 'Item successfully updated!', $errorOccured);

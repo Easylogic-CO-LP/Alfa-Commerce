@@ -84,8 +84,7 @@ class Router extends RouterView
         $this->attachRule(new NomenuRules($this));
     }
 
-    public function parse(&$segments)
-    {
+    public function parse(&$segments){
         exit;
     }
 
@@ -114,9 +113,9 @@ class Router extends RouterView
         if ($this->noIDs) {
             list($void, $segment) = explode(':', $id, 2);
 
-            return [$void => $segment];
+            return array($void => $segment);
         }
-        return [(int)$id => $id];
+        return array((int)$id => $id);
     }
 
 
@@ -188,9 +187,9 @@ class Router extends RouterView
         if ($this->noIDs) {
             list($void, $segment) = explode(':', $id, 2);
 
-            return [$void => $segment];
+            return array($void => $segment);
         }
-        return [(int)$id => $id];
+        return array((int)$id => $id);
     }
 
     /**
