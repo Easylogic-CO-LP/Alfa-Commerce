@@ -12,7 +12,6 @@ While we are still in the pre-alpha phase, the core is being actively built and 
     Go to main branch
     Download the whole zip
     Install it in joomla.
-    Ensure you have **PHP 8.3** or later installed.
 
 🌐 API Integration with Postman
 
@@ -25,69 +24,15 @@ The Alfa-Commerce API empowers developers to seamlessly integrate eCommerce func
 
 Contributions are what make the open-source community such an amazing place to learn, inspire, and create. We welcome contributions from everyone, especially those excited to help alfa-commerce grow.
 
-### Step-by-Step Contribution Guide
+To contribute:
 
-1. **Fork** the repository on GitHub and **clone** your fork:
-
-   ```bash
-   git clone https://github.com/<your-username>/Alfa-Commerce.git
-   cd Alfa-Commerce
-   ```
-
-2. **Install** the project dependencies (this sets up PHP-CS-Fixer):
-
-   ```bash
-   composer install
-
-   # Commit the generated composer.lock file
-   git add composer.lock
-   git commit -m "Add composer.lock"
-   ```
-
-3. **Create** a feature branch based on the developer branch (`developer`):
-
-   ```bash
-   git checkout -b my-feature-branch origin/developer
-   ```
-
-4. **Run** the coding style checks:
-
-   ```bash
-   composer phpcsfixer
-   ```
-
-5. **Make** your changes, **commit**, and **push** the branch:
-
-   ```bash
-   git add .
-   git commit -m "Describe your change"
-   git push origin my-feature-branch
-   ```
-
-6. **Open a Pull Request**. The CI workflow will automatically run the PHP-CS-Fixer checks. Address any issues reported by the CI before requesting a review.
-
-You can also get in touch with the team if you want to be a part of the project.
-
-## Development Tools
-
-This project uses Composer to manage development utilities such as
-[PHP-CS-Fixer](https://github.com/PHP-CS-Fixer/PHP-CS-Fixer).
-
-1. Install the dependencies:
-
-   ```bash
-   composer install
-   ```
-
-2. Check the coding style:
-
-   ```bash
-   composer phpcsfixer
-   ```
-
-## Continuous Integration
-
-GitHub Actions run the PHP-CS-Fixer checks on each push and pull request. The workflow is defined in `.github/workflows/ci.yml` and helps keep the codebase consistent. Make sure the local checks pass before opening a pull request so the CI succeeds.
+    Fork the repository.
+    Create a branch derived from developer branch for your feature or bugfix.
+    Commit your changes (git commit -m 'Add some feature').
+    Push to the branch (git push origin feature-branch).
+    Open a Pull Request.
+    
+    or you can be a part of our team by getting in touch with us.
 
 
 Developer Contact
