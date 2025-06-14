@@ -33,7 +33,7 @@ Contributions are what make the open-source community such an amazing place to l
    cd Alfa-Commerce
    ```
 
-2. **Install** the project dependencies (this sets up PHPStan and PHP-CS-Fixer):
+2. **Install** the project dependencies (this sets up PHP-CS-Fixer):
 
    ```bash
    composer install
@@ -45,10 +45,9 @@ Contributions are what make the open-source community such an amazing place to l
    git checkout -b my-feature-branch origin/developer
    ```
 
-4. **Run** the static analysis and coding style checks:
+4. **Run** the coding style checks:
 
    ```bash
-   composer phpstan
    composer phpcsfixer
    ```
 
@@ -60,14 +59,13 @@ Contributions are what make the open-source community such an amazing place to l
    git push origin my-feature-branch
    ```
 
-6. **Open a Pull Request**. The CI workflow will automatically run the same PHPStan and PHP-CS-Fixer checks. Address any issues reported by the CI before requesting a review.
+6. **Open a Pull Request**. The CI workflow will automatically run the PHP-CS-Fixer checks. Address any issues reported by the CI before requesting a review.
 
 You can also get in touch with the team if you want to be a part of the project.
 
 ## Development Tools
 
 This project uses Composer to manage development utilities such as
-[PHPStan](https://phpstan.org/) and
 [PHP-CS-Fixer](https://github.com/PHP-CS-Fixer/PHP-CS-Fixer).
 
 1. Install the dependencies:
@@ -76,13 +74,7 @@ This project uses Composer to manage development utilities such as
    composer install
    ```
 
-2. Run a static analysis:
-
-   ```bash
-   composer phpstan
-   ```
-
-3. Check the coding style:
+2. Check the coding style:
 
    ```bash
    composer phpcsfixer
@@ -90,7 +82,7 @@ This project uses Composer to manage development utilities such as
 
 ## Continuous Integration
 
-GitHub Actions run the same PHPStan and PHP-CS-Fixer checks on each push and pull request. The workflow is defined in `.github/workflows/ci.yml` and helps keep the codebase consistent. Make sure the local checks pass before opening a pull request so the CI succeeds.
+GitHub Actions run the PHP-CS-Fixer checks on each push and pull request. The workflow is defined in `.github/workflows/ci.yml` and helps keep the codebase consistent. Make sure the local checks pass before opening a pull request so the CI succeeds.
 
 
 Developer Contact

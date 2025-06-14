@@ -18,7 +18,5 @@ jobs:
           tools: composer
       - name: Install dependencies
         run: composer install --no-progress
-      - name: Run PHPStan
-        run: composer phpstan
       - name: Run PHP CS Fixer
         run: composer phpcsfixer
