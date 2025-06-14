@@ -11,5 +11,4 @@ use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 
 class PluginController extends \Alfa\Component\Alfa\Administrator\Controller\PluginController
 {
-
 }

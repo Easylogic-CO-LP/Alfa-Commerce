@@ -39,16 +39,18 @@ class AdminOrderViewLogsEvent extends PaymentsLayoutEvent
      *  layout_type == base     // Base layout
      *  layout_type == derived  // Derived, layout provided by plugin.
      */
-    public function getLayoutType(){
+    public function getLayoutType()
+    {
         return $this->arguments['layout_type'];
     }
 
-    public function setLayoutType($type){
+    public function setLayoutType($type)
+    {
         // Excluding invalid values.
-        if(
+        if (
             $type == "base" ||
             $type == "derived"
-        ){
+        ) {
             $this->setArgument('layout_type', $type);
         }
     }

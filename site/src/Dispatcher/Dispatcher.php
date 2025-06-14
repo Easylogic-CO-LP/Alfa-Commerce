@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -21,15 +22,15 @@ use Joomla\CMS\Language\Text;
  */
 class Dispatcher extends ComponentDispatcher
 {
-	/**
-	 * Dispatch a controller task. Redirecting the user if appropriate.
-	 *
-	 * @return  void
-	 *
-	 * @since   1.0.1
-	 */
-	public function dispatch()
-	{
-		parent::dispatch();
-	}
+    /**
+     * Dispatch a controller task. Redirecting the user if appropriate.
+     *
+     * @return  void
+     *
+     * @since   1.0.1
+     */
+    public function dispatch()
+    {
+        parent::dispatch();
+    }
 }

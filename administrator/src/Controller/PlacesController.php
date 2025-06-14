@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -27,20 +28,20 @@ use Joomla\Utilities\ArrayHelper;
  */
 class PlacesController extends AdminController
 {
-	/**
-	 * Proxy for getModel.
-	 *
-	 * @param   string  $name    Optional. Model name
-	 * @param   string  $prefix  Optional. Class prefix
-	 * @param   array   $config  Optional. Configuration array for model
-	 *
-	 * @return  object	The Model
-	 *
-	 * @since   1.0.1
-	 */
-	public function getModel($name = 'Place', $prefix = 'Administrator', $config = array())
-	{
-		return parent::getModel($name, $prefix, array('ignore_request' => true));
-	}
+    /**
+     * Proxy for getModel.
+     *
+     * @param   string  $name    Optional. Model name
+     * @param   string  $prefix  Optional. Class prefix
+     * @param   array   $config  Optional. Configuration array for model
+     *
+     * @return  object	The Model
+     *
+     * @since   1.0.1
+     */
+    public function getModel($name = 'Place', $prefix = 'Administrator', $config = [])
+    {
+        return parent::getModel($name, $prefix, ['ignore_request' => true]);
+    }
 
 }

@@ -9,19 +9,20 @@
  */
 
 namespace Alfa\Component\Alfa\Site\View\Manufacturer;
+
 // No direct access
 defined('_JEXEC') or die;
 
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
-use \Joomla\CMS\Factory;
-use \Joomla\CMS\Language\Text;
+use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 
 /**
  * View class for a list of Alfa.
  *
  * @since  1.0.1
  */
-class  HtmlView extends BaseHtmlView
+class HtmlView extends BaseHtmlView
 {
     protected $state;
 
@@ -50,25 +51,22 @@ class  HtmlView extends BaseHtmlView
         $this->item = $this->get('Item');
         $this->params = $app->getParams('com_alfa');
 
-       /* if (!empty($this->item))
-        {
+        /* if (!empty($this->item))
+         {
 
-        }*/
+         }*/
 
         // Check for errors.
-        if (count($errors = $this->get('Errors')))
-        {
+        if (count($errors = $this->get('Errors'))) {
             throw new \Exception(implode("\n", $errors));
         }
 
 
 
-        if ($this->_layout == 'edit')
-        {
+        if ($this->_layout == 'edit') {
             $authorised = $user->authorise('core.create', 'com_alfa');
 
-            if ($authorised !== true)
-            {
+            if ($authorised !== true) {
                 throw new \Exception(Text::_('JERROR_ALERTNOAUTHOR'));
             }
         }
@@ -95,44 +93,33 @@ class  HtmlView extends BaseHtmlView
         // We need to get it from the menu manufacturer itself
         $menu = $menus->getActive();
 
-        if ($menu)
-        {
+        if ($menu) {
             $this->params->def('page_heading', $this->params->get('page_title', $menu->title));
-        }
-        else
-        {
+        } else {
             $this->params->def('page_heading', Text::_('COM_ALFA_DEFAULT_PAGE_TITLE'));
         }
 
         $title = $this->item->name;
 
-        if (empty($title))
-        {
+        if (empty($title)) {
             $title = $app->get('sitename');
-        }
-        elseif ($app->get('sitename_pagetitles', 0) == 1)
-        {
+        } elseif ($app->get('sitename_pagetitles', 0) == 1) {
             $title = Text::sprintf('JPAGETITLE', $app->get('sitename'), $title);
-        }
-        elseif ($app->get('sitename_pagetitles', 0) == 2)
-        {
+        } elseif ($app->get('sitename_pagetitles', 0) == 2) {
             $title = Text::sprintf('JPAGETITLE', $title, $app->get('sitename'));
         }
 
         $this->document->setTitle($title);
 
-        if ($this->params->get('menu-meta_description'))
-        {
+        if ($this->params->get('menu-meta_description')) {
             $this->document->setDescription($this->params->get('menu-meta_description'));
         }
 
-        if ($this->params->get('menu-meta_keywords'))
-        {
+        if ($this->params->get('menu-meta_keywords')) {
             $this->document->setMetadata('keywords', $this->params->get('menu-meta_keywords'));
         }
 
-        if ($this->params->get('robots'))
-        {
+        if ($this->params->get('robots')) {
             $this->document->setMetadata('robots', $this->params->get('robots'));
         }
 
@@ -140,12 +127,12 @@ class  HtmlView extends BaseHtmlView
         $pathway = $app->getPathway();
         $breadcrumbList = Text::_('COM_ALFA_TITLE_MANUFACTURERS');
 
-        if(!in_array($breadcrumbList, $pathway->getPathwayNames())) {
+        if (!in_array($breadcrumbList, $pathway->getPathwayNames())) {
             $pathway->addItem($breadcrumbList, "index.php?option=com_alfa&view=manufacturers");
         }
         $breadcrumbTitle = $this->item->name;
 
-        if(!in_array($breadcrumbTitle, $pathway->getPathwayNames())) {
+        if (!in_array($breadcrumbTitle, $pathway->getPathwayNames())) {
             $pathway->addItem($breadcrumbTitle);
         }
 

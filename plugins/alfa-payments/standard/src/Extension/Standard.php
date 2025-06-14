@@ -28,8 +28,8 @@ use Joomla\CMS\Factory;
  */
 final class Standard extends PaymentsPlugin
 {
-
-    public function onOrderCompleteView($event){
+    public function onOrderCompleteView($event)
+    {
         $order = $event->getOrder();
         $method = $event->getMethod();
 
@@ -44,7 +44,8 @@ final class Standard extends PaymentsPlugin
 
 
 
-    public function onOrderProcessView($event) {
+    public function onOrderProcessView($event)
+    {
 
         $order = $event->getOrder();
 

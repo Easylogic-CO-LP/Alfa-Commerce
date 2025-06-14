@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -8,17 +9,18 @@
  */
 
 namespace Alfa\Component\Alfa\Administrator\View\Categories;
+
 // No direct access
 defined('_JEXEC') or die;
 
-use \Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
-use \Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
-use \Joomla\CMS\Toolbar\Toolbar;
-use \Joomla\CMS\Toolbar\ToolbarHelper;
-use \Joomla\CMS\Language\Text;
-use \Joomla\Component\Content\Administrator\Extension\ContentComponent;
-use \Joomla\CMS\Form\Form;
-use \Joomla\CMS\HTML\Helpers\Sidebar;
+use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Joomla\CMS\Toolbar\Toolbar;
+use Joomla\CMS\Toolbar\ToolbarHelper;
+use Joomla\CMS\Language\Text;
+use Joomla\Component\Content\Administrator\Extension\ContentComponent;
+use Joomla\CMS\Form\Form;
+use Joomla\CMS\HTML\Helpers\Sidebar;
 
 /**
  * View class for a list of Categories.
@@ -33,9 +35,9 @@ class HtmlView extends BaseHtmlView
 
     protected $state;
 
-    protected $sortedNames = array();
+    protected $sortedNames = [];
 
-    protected $nestedNames = array();
+    protected $nestedNames = [];
 
     /**
      * Display the view
@@ -59,16 +61,16 @@ class HtmlView extends BaseHtmlView
             throw new \Exception(implode("\n", $errors));
         }
 
-//	    $listOrdering = $this->state['list.ordering'];
-//	    $listDirection = $this->state['list.direction'];
-//print_r($listOrdering);
-//exit;
+        //	    $listOrdering = $this->state['list.ordering'];
+        //	    $listDirection = $this->state['list.direction'];
+        //print_r($listOrdering);
+        //exit;
         // Create associative array
-//        $nestedCategories = AlfaHelper::buildNestedArray($this->items);
-//	    // Sprt array and its nested arrays
-//	    AlfaHelper::sort_nested_items($nestedCategories,'name','asc');
-//	    // Flatten the array
-//		$this->items = AlfaHelper::flatten_nested_items($nestedCategories);
+        //        $nestedCategories = AlfaHelper::buildNestedArray($this->items);
+        //	    // Sprt array and its nested arrays
+        //	    AlfaHelper::sort_nested_items($nestedCategories,'name','asc');
+        //	    // Flatten the array
+        //		$this->items = AlfaHelper::flatten_nested_items($nestedCategories);
 
         $this->addToolbar();
 
@@ -163,15 +165,14 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      */
-    protected
-    function getSortFields()
+    protected function getSortFields()
     {
-        return array(
+        return [
             'a.`ordering`' => Text::_('JGRID_HEADING_ORDERING'),
             'a.`id`' => Text::_('JGRID_HEADING_ID'),
             'a.`name`' => Text::_('COM_ALFA_CATEGORIES_NAME'),
             'a.`state`' => Text::_('JSTATUS'),
-        );
+        ];
     }
 
     /**
@@ -181,8 +182,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return bool
      */
-    public
-    function getState($state)
+    public function getState($state)
     {
         return isset($this->state->{$state}) ? $this->state->{$state} : false;
     }

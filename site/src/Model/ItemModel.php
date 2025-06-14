@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -8,20 +9,21 @@
  */
 
 namespace Alfa\Component\Alfa\Site\Model;
+
 // No direct access.
 defined('_JEXEC') or die;
 
-use \Joomla\CMS\Factory;
-use \Joomla\Utilities\ArrayHelper;
-use \Joomla\CMS\Language\Text;
-use \Joomla\CMS\Table\Table;
-use \Joomla\CMS\MVC\Model\ItemModel as BaseItemModel;
-use \Joomla\CMS\Helper\TagsHelper;
-use \Joomla\CMS\Object\CMSObject;
-use \Joomla\CMS\User\UserFactoryInterface;
-use \Alfa\Component\Alfa\Site\Helper\AlfaHelper;
-use \Alfa\Component\Alfa\Site\Helper\PriceCalculator;
-use \Joomla\Database\ParameterType;
+use Joomla\CMS\Factory;
+use Joomla\Utilities\ArrayHelper;
+use Joomla\CMS\Language\Text;
+use Joomla\CMS\Table\Table;
+use Joomla\CMS\MVC\Model\ItemModel as BaseItemModel;
+use Joomla\CMS\Helper\TagsHelper;
+use Joomla\CMS\Object\CMSObject;
+use Joomla\CMS\User\UserFactoryInterface;
+use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Site\Helper\PriceCalculator;
+use Joomla\Database\ParameterType;
 
 /**
  * Alfa model.
@@ -30,12 +32,12 @@ use \Joomla\Database\ParameterType;
  */
 class ItemModel extends BaseItemModel
 {
-	/**
-	 * Model context string.
-	 *
-	 * @var        string
-	 */
-	protected $_context = 'com_alfa.item';
+    /**
+     * Model context string.
+     *
+     * @var        string
+     */
+    protected $_context = 'com_alfa.item';
 
     /**
      * Method to auto-populate the model state.
@@ -93,8 +95,8 @@ class ItemModel extends BaseItemModel
     public function getItem($pk = null)
     {
         $user = $this->getCurrentUser();
-//      $user->id
-//		$user->groups erxetai ws array [1,2,3]
+        //      $user->id
+        //		$user->groups erxetai ws array [1,2,3]
 
         $pk = (int)($pk ?: $this->getState('item.id'));
 
@@ -129,17 +131,19 @@ class ItemModel extends BaseItemModel
 
                 //Setting correct stock action settings in case they are to be retrieved from general settings (global configuration).
                 $settings = AlfaHelper::getGeneralSettings();
-                if($data->stock_action == -1) {
+                if ($data->stock_action == -1) {
                     $data->stock_action = $settings->get("stock_action");
                     $data->stock_low_message = $settings->get("stock_low_message");
                     $data->stock_zero_message = $settings->get("stock_zero_message");
                 }
 
-                if(empty($data->stock_low_message))
+                if (empty($data->stock_low_message)) {
                     $data->stock_low_message = $settings->get("stock_low_message");
+                }
 
-                if(empty($data->stock_zero_message))
+                if (empty($data->stock_zero_message)) {
                     $data->stock_zero_message = $settings->get("stock_zero_message");
+                }
 
                 $categories = $this->getItemCategories($pk);
 
@@ -158,8 +162,8 @@ class ItemModel extends BaseItemModel
                 // Calculate the dynamic price
                 $quantity = (int)$this->getState('quantity', 1); // Default to 1 if not set
                 // $quantity = 1; // You can pass a different quantity based on user input
-                $userGroupId=0;
-                $currencyId=0;
+                $userGroupId = 0;
+                $currencyId = 0;
                 $priceCalculator = new PriceCalculator($pk, $quantity, $userGroupId, $currencyId);
                 $data->price = $priceCalculator->calculatePrice();
 
@@ -174,8 +178,8 @@ class ItemModel extends BaseItemModel
 
                 $categoryIDs = empty($data->categories) ? [] : array_keys($data->categories);
                 $manufacturerIDs = empty($data->manufacturers) ? [] : array_keys($data->manufacturers);
-                $this->_item[$pk]->payment_methods = AlfaHelper::getFilteredMethods($categoryIDs,$manufacturerIDs,$user->groups,$user->id,'payment');
-                $this->_item[$pk]->shipment_methods = AlfaHelper::getFilteredMethods($categoryIDs,$manufacturerIDs,$user->groups,$user->id,'shipment');
+                $this->_item[$pk]->payment_methods = AlfaHelper::getFilteredMethods($categoryIDs, $manufacturerIDs, $user->groups, $user->id, 'payment');
+                $this->_item[$pk]->shipment_methods = AlfaHelper::getFilteredMethods($categoryIDs, $manufacturerIDs, $user->groups, $user->id, 'shipment');
 
 
             } catch (\Exception $e) {
@@ -188,10 +192,10 @@ class ItemModel extends BaseItemModel
                 $this->_item[$pk] = false;
             }
         }
-//            echo "<pre>";
-//            print_r($this->_item[$pk]->id);
-//            echo "</pre>";
-//            exit;
+        //            echo "<pre>";
+        //            print_r($this->_item[$pk]->id);
+        //            echo "</pre>";
+        //            exit;
 
 
 
@@ -266,10 +270,10 @@ class ItemModel extends BaseItemModel
 
 
         if (key_exists('alias', $properties)) {
-            $table->load(array('alias' => $alias));
+            $table->load(['alias' => $alias]);
             $result = $table->id;
         } elseif (isset($aliasKey) && key_exists($aliasKey, $properties)) {
-            $table->load(array($aliasKey => $alias));
+            $table->load([$aliasKey => $alias]);
             $result = $table->id;
         }
 

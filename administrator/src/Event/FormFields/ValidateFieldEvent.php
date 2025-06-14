@@ -32,19 +32,23 @@ class ValidateFieldEvent extends FormFieldsEvent
     }
 
 
-    public function getField(){
+    public function getField()
+    {
         return $this->arguments["field_"];
     }
 
-    public function setField($field){
+    public function setField($field)
+    {
         $this->setArgument("field_", $field);
     }
 
-    public function getValid(){
+    public function getValid()
+    {
         return $this->arguments["valid_"];
     }
 
-    public function setValid($valid){
+    public function setValid($valid)
+    {
         $this->setArgument("valid_", $valid);
     }
 

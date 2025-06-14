@@ -4,12 +4,11 @@ namespace Alfa\Component\Alfa\Site\Helper;
 
 defined('_JEXEC') or die;
 
-use \Joomla\CMS\Factory;
-use \Alfa\Component\Alfa\Site\Helper\PriceCalculator;
-use \Alfa\Component\Alfa\Administrator\Event\Payments\CartViewEvent as PaymentsCartViewEvent;
-use \Alfa\Component\Alfa\Administrator\Event\Shipments\CartViewEvent as ShipmentsCartViewEvent;
-use \Alfa\Component\Alfa\Administrator\Event\Shipments\CalculateShippingCostEvent as ShipmentsCalculateShippingCostEvent;
-
+use Joomla\CMS\Factory;
+use Alfa\Component\Alfa\Site\Helper\PriceCalculator;
+use Alfa\Component\Alfa\Administrator\Event\Payments\CartViewEvent as PaymentsCartViewEvent;
+use Alfa\Component\Alfa\Administrator\Event\Shipments\CartViewEvent as ShipmentsCartViewEvent;
+use Alfa\Component\Alfa\Administrator\Event\Shipments\CalculateShippingCostEvent as ShipmentsCalculateShippingCostEvent;
 
 class CartHelper
 {
@@ -42,7 +41,7 @@ class CartHelper
         // print_r(var_dump($this->cart));
         // exit;
         // $this->cart->items = [];
-        $this->payment_methods = AlfaHelper::getFilteredMethods($this->categories,$this->manufacturers,$this->user->groups,$this->user->id, "payment");
+        $this->payment_methods = AlfaHelper::getFilteredMethods($this->categories, $this->manufacturers, $this->user->groups, $this->user->id, "payment");
         $this->shipment_methods = AlfaHelper::getFilteredMethods($this->categories, $this->manufacturers, $this->user->groups, $this->user->id, "shipment");
     }
 
@@ -52,21 +51,24 @@ class CartHelper
         return $this->cartId;
     }
 
-    public function getPaymentMethods(){
+    public function getPaymentMethods()
+    {
         return $this->payment_methods;
     }
 
-    public function getShipmentMethods(){
+    public function getShipmentMethods()
+    {
         return $this->shipment_methods;
     }
 
-    public function getShipmentMethodData($shipmentMethodId = 0) {
+    public function getShipmentMethodData($shipmentMethodId = 0)
+    {
 
-        if($shipmentMethodId == 0){
-            $shipmentMethodId = self::getData()->id_shipment??0;
+        if ($shipmentMethodId == 0) {
+            $shipmentMethodId = self::getData()->id_shipment ?? 0;
         }
 
-        if($shipmentMethodId == 0){
+        if ($shipmentMethodId == 0) {
             return null;
         }
 
@@ -83,11 +85,13 @@ class CartHelper
     }
 
 
-    public function getData(){
+    public function getData()
+    {
         return $this->cart;
     }
 
-    protected function getCart(){
+    protected function getCart()
+    {
 
         // Creating new cart?
         if ($this->user->id <= 0 && $this->recognizeKey == '' && $this->cartId <= 0) {
@@ -104,9 +108,9 @@ class CartHelper
             $query->select('*')
                 ->from($db->quoteName($this->cart_table, 'a'));
 
-            if($this->cartId>0){
+            if ($this->cartId > 0) {
                 $query->where($db->quoteName('id') . ' = ' . $db->quote($this->cartId));
-            }else{
+            } else {
                 if ($this->user->id > 0) {
                     $query->where($db->quoteName('id_customer') . ' = ' . $db->quote($this->user->id));
                 } else {
@@ -117,17 +121,17 @@ class CartHelper
             $db->setQuery($query);
             $cart_data = $db->loadObject();
 
-            if($cart_data){
+            if ($cart_data) {
                 $this->cartId = $cart_data->id;
 
                 // Add shipment costs.
                 // TODO: shipmment costs
                 // $cart_data->shipment_costs_total = 10;
                 // if(!property_exists($cart_data, 'shipment_costs_total')){
-                    // $cart_data->shipment_costs_total = new \stdClass();
-                    
+                // $cart_data->shipment_costs_total = new \stdClass();
+
                 // }
-            }else{
+            } else {
                 $cart_data = new \stdClass();
                 $this->cartId = 0;
             }
@@ -138,53 +142,53 @@ class CartHelper
 
         } catch (\Exception $e) {
             // if ($e->getCode() == 404) {
-                // Need to go through the error handler to allow Redirect to work.
-                // throw $e;
+            // Need to go through the error handler to allow Redirect to work.
+            // throw $e;
             // }
             // $this->setError($e);
             // $this->cart = false;
         }
 
         // Add user info in case the user is a real user.
-//        if($this->user->id > 0) {
-//            try {
-//
-//                // DEBUGGING.
-//                $user_id = 2;
-//                $cart_data->id_user_info_delivery = 1;
-//
-//                $query = $db->getQuery(true);
-//
-//                $query
-//                    ->select("*")
-//                    ->from("#__alfa_user_info")
-//                    ->where($db->qn("id") . '=' . (int)$cart_data->id_user_info_delivery)
-//                    ->order('id DESC')
-//                    ->setLimit(1);
-//
-//                $db->setQuery($query);
-//                $userInfoDelivery = $db->loadObject();
-//
-//            } catch(\Exception $e){
-//
-//            }
-//        }
+        //        if($this->user->id > 0) {
+        //            try {
+        //
+        //                // DEBUGGING.
+        //                $user_id = 2;
+        //                $cart_data->id_user_info_delivery = 1;
+        //
+        //                $query = $db->getQuery(true);
+        //
+        //                $query
+        //                    ->select("*")
+        //                    ->from("#__alfa_user_info")
+        //                    ->where($db->qn("id") . '=' . (int)$cart_data->id_user_info_delivery)
+        //                    ->order('id DESC')
+        //                    ->setLimit(1);
+        //
+        //                $db->setQuery($query);
+        //                $userInfoDelivery = $db->loadObject();
+        //
+        //            } catch(\Exception $e){
+        //
+        //            }
+        //        }
 
         // DEBUGGING.
-//        $cart_data->id_user_info_delivery = 2;
+        //        $cart_data->id_user_info_delivery = 2;
 
         // Collect user's info.
-        if(isset($cart_data->id_user_info_delivery)) {
+        if (isset($cart_data->id_user_info_delivery)) {
             $user_info_delivery = self::getUserInfo($cart_data->id_user_info_delivery);
             $cart_data->user_info_delivery = $user_info_delivery;
         }
-        if(isset($cart_data->id_user_info_invoice)) {
+        if (isset($cart_data->id_user_info_invoice)) {
             $user_info_invoice = self::getUserInfo($cart_data->id_user_info_invoice);
             $cart_data->user_info_invoice = $user_info_invoice;
         }
 
-//        $cart_data->user_info_delivery = $user_info_delivery;
-//        $cart_data->user_info_invoice = $user_info_invoice;
+        //        $cart_data->user_info_delivery = $user_info_delivery;
+        //        $cart_data->user_info_invoice = $user_info_invoice;
 
         return $cart_data;
 
@@ -195,10 +199,13 @@ class CartHelper
      *  @param $info_id int the id of the user_info entry to be returned.
      *  @return null|object
      */
-    protected function getUserInfo($info_id){
+    protected function getUserInfo($info_id)
+    {
         $userInfo = null;
 
-        if($info_id <= 0) return null;
+        if ($info_id <= 0) {
+            return null;
+        }
 
         $db = $this->db;
         $query = $db->getQuery(true);
@@ -213,7 +220,7 @@ class CartHelper
             $db->setQuery($query);
             $userInfo = $db->loadObject();
 
-        } catch(\Exception $e){
+        } catch (\Exception $e) {
             $this->app->enqueueMessage($e->getMessage());
         }
 
@@ -226,7 +233,7 @@ class CartHelper
     protected function getCartItems()
     {
 
-        if($this->cartId<=0){
+        if ($this->cartId <= 0) {
             return [];
         }
 
@@ -251,7 +258,7 @@ class CartHelper
 
             ->join('LEFT', '#__alfa_items_categories AS ic ON i.id = ic.item_id')
             ->join('LEFT', '#__alfa_items_manufacturers AS im ON i.id = im.item_id')
-            
+
             ->where($db->quoteName('ci.id_cart') . ' = ' . $db->quote($this->cartId))
 
             ->group('ci.id_cart, ci.id_item')
@@ -260,7 +267,7 @@ class CartHelper
         $db->setQuery($query);
         $cart_items = $db->loadObjectList();
 
-        if(empty($cart_items)) {
+        if (empty($cart_items)) {
             return [];
         }
 
@@ -268,7 +275,7 @@ class CartHelper
         $currencyId = 978;
 
         foreach ($cart_items as $index => &$cart_item) {
-            
+
             // save only common categories
             if (!empty($cart_item->category_ids)) {
                 $cart_item_categories = explode(',', $cart_item->category_ids); // Split by comma to get an array of categories
@@ -315,16 +322,17 @@ class CartHelper
 
         $rkCookie = $this->app->input->cookie->get($cookieName, '');
         // if ($rkCookie == '') {
-        // }        
+        // }
 
         return $rkCookie;
     }
 
-    protected function createRecognizeKey(){
+    protected function createRecognizeKey()
+    {
         $cookieName = 'recognize_key';
         $cookieValue = rand();//TODO: something more specific to the user computer to be surely unique
 
-         // Define the cookie parameters
+        // Define the cookie parameters
         $expires = time() + 3600 * 24; // Cookie expires in 1 hour
         $path = '/'; // Cookie is available across the entire domain
         $domain = ''; // Leave empty for the current domain
@@ -341,25 +349,30 @@ class CartHelper
                 'secure' => $secure,
                 'httponly' => $httponly,
                 'samesite' => $samesite
-            ]);
-        
+            ]
+        );
+
         $this->recognizeKey = $cookieValue;
     }
 
-    public function getCategories(){
+    public function getCategories()
+    {
         return $this->categories;
     }
 
-    public function getManufacturers(){
+    public function getManufacturers()
+    {
         return $this->manufacturers;
     }
 
-    public function getUser(){
+    public function getUser()
+    {
         return $this->user;
     }
 
-    protected function createCart(): bool{
-        $currentDate = Factory::getDate('now','UTC');
+    protected function createCart(): bool
+    {
+        $currentDate = Factory::getDate('now', 'UTC');
 
         $cartObject = new \stdClass();
         $cartObject->id_shop_group = 1;
@@ -377,12 +390,12 @@ class CartHelper
         // TODO: if user id is not 0 , by default assign the latest user info delivery and invoice ids
 
         // Create new user data if none was found.
-//        $cartObject->id_user_info_delivery = self::createNewUserInfo();
-//        $cartObject->id_user_info_invoice = self::createNewUserInfo();
+        //        $cartObject->id_user_info_delivery = self::createNewUserInfo();
+        //        $cartObject->id_user_info_invoice = self::createNewUserInfo();
 
         try {
             $db = $this->db;
-            $db->insertObject($this->cart_table, $cartObject , 'id');
+            $db->insertObject($this->cart_table, $cartObject, 'id');
             $this->cartId = $db->insertid();//or $cartObject->id cause insert updates this value
         } catch (\Exception $e) {
             $this->app->enqueueMessage($e->getMessage());
@@ -396,7 +409,7 @@ class CartHelper
 
     }
 
-    
+
     // if quantity = 0 it will delete this item
     public function addToCart($itemId, $quantity)
     {
@@ -409,18 +422,19 @@ class CartHelper
 
         // CREATE CART IF DOESNT EXIST
         if ($this->cartId <= 0) {
-            if(!$this->createCart())
+            if (!$this->createCart()) {
                 return false;
+            }
         }
 
         $itemExistsInCart = false;
         $cartItemData = null;
 
         // check in cart for the current item
-        foreach($this->cart->items as $cart_item){
+        foreach ($this->cart->items as $cart_item) {
             // print_r($cart_item);
             // exit;
-            if($cart_item->id == $itemId){
+            if ($cart_item->id == $itemId) {
                 $cartItemData = $cart_item;
                 $itemExistsInCart = true;
                 break;  // Exit the loop once the item is found
@@ -428,7 +442,7 @@ class CartHelper
         }
 
         // not found in cart so get the item data the same way the cart would get those
-        if(!$itemExistsInCart){
+        if (!$itemExistsInCart) {
             //Retrieving item data
             $query = $db->getQuery(true);
             $query->select("*")
@@ -444,8 +458,8 @@ class CartHelper
         $checkStock = ($cartItemData->stock_action == 1 || $cartItemData->stock_action == 2);
 
         //In case we need to check for stock availability, we check if stock is set and above 0.
-        if( $checkStock && $cartItemData->stock != null && $cartItemData->stock <= 0){
-            $this->app->enqueueMessage('Product is out of stock','error');
+        if ($checkStock && $cartItemData->stock != null && $cartItemData->stock <= 0) {
+            $this->app->enqueueMessage('Product is out of stock', 'error');
             return false;
         }
 
@@ -453,7 +467,7 @@ class CartHelper
         $itemObject->id_cart     = $this->cartId;
         $itemObject->id_item     = $itemId;
         $itemObject->quantity    = $quantity;
-        $itemObject->added    = Factory::getDate('now','UTC')->toSql(false);
+        $itemObject->added    = Factory::getDate('now', 'UTC')->toSql(false);
 
 
         if ($itemObject->quantity % $cartItemData->quantity_step != 0) { // Not divisible by step
@@ -476,33 +490,33 @@ class CartHelper
         }
 
 
-        try{
-            if($itemExistsInCart){
+        try {
+            if ($itemExistsInCart) {
 
                 $query = $db->getQuery(true);
 
                 // Fields to update.
-                $fields = array(
+                $fields = [
                     $db->quoteName('quantity') . ' = ' . intval($itemObject->quantity),
                     $db->quoteName('added') . ' = ' . $db->quote($itemObject->added)
-                );
+                ];
 
                 // Conditions for which records should be updated.
-                $conditions = array(
-                    $db->quoteName('id_item') . ' = ' . intval($itemId), 
+                $conditions = [
+                    $db->quoteName('id_item') . ' = ' . intval($itemId),
                     $db->quoteName('id_cart') . ' = ' . intval($this->cartId)
-                );
+                ];
 
 
-                if($quantity > 0){//update the item if quantity given is grater than 0
+                if ($quantity > 0) {//update the item if quantity given is grater than 0
                     $query->update($db->quoteName($this->cart_items_table))->set($fields)->where($conditions);
-                }else{//delete the item if quantity give is 0
+                } else {//delete the item if quantity give is 0
                     $query->delete($db->quoteName($this->cart_items_table))->where($conditions);
                 }
-                
+
                 // $updateNulls = true;
                 // $db->updateObject('#__alfa_cart_items', $itemObject, 'id', $updateNulls);
-                
+
                 // Set the query and execute it
                 $db->setQuery($query);
                 $db->execute();
@@ -540,7 +554,7 @@ class CartHelper
         }
 
 
-        if(!$clearOnlyItems){
+        if (!$clearOnlyItems) {
             $query = $db->getQuery(true)
                 ->delete($this->cart_table)
                 ->where('id = ' . $this->db->quote($this->cartId));
@@ -567,9 +581,9 @@ class CartHelper
         $shipmentID = $this->cart->id_shipment;
         $currentMethod = $this->shipment_methods[$shipmentID] ?? null;
         $currentType = $currentMethod ? $currentMethod->type : null;
-        
+
         // Get shipment cost from selected plugin if it's a valid one.
-        if(!empty($currentType)){
+        if (!empty($currentType)) {
             $onShowShippingCostEventName = "onCalculateShippingCost";
             $showShippingCostEvent = new ShipmentsCalculateShippingCostEvent($onShowShippingCostEventName, [
                 "subject" => $this,
@@ -590,7 +604,7 @@ class CartHelper
         // $cartItems = $this->getCartItems();
 
         foreach ($this->cart->items as $item) {
-            $total += $item->price['final_price'];  
+            $total += $item->price['final_price'];
         }
 
         // TODO: add the shipments costs based on shipment selected and items in cart
@@ -600,12 +614,12 @@ class CartHelper
         return $total;
     }
 
-        // Check if the cart is empty
+    // Check if the cart is empty
     public function getTotalItems()
     {
         $totalItems = 0;
 
-        if(isset($this->cart->items)){
+        if (isset($this->cart->items)) {
             $totalItems = count($this->cart->items);
         }
 
@@ -618,7 +632,7 @@ class CartHelper
         $quantity = 0;
         // $cartItems = $this->getCartItems();
 
-        if(isset($this->cart->items)){
+        if (isset($this->cart->items)) {
             foreach ($this->cart->items as $item) {
                 $quantity += $item->quantity;
             }
@@ -634,11 +648,13 @@ class CartHelper
     }
 
     // Remove item from cart
-    public function removeItem($itemId){
-        return $this->updateQuantity(0,$itemId);
+    public function removeItem($itemId)
+    {
+        return $this->updateQuantity(0, $itemId);
     }
 
-    public function updateUserInfo(){
+    public function updateUserInfo()
+    {
         // if ($this->cartId <= 0)
         //     if(!$this->createCart())
         //         return false;
@@ -665,10 +681,13 @@ class CartHelper
         // return $result;
     }
 
-    public function updateShipment($id){
-        if ($this->cartId <= 0)
-            if(!$this->createCart())
+    public function updateShipment($id)
+    {
+        if ($this->cartId <= 0) {
+            if (!$this->createCart()) {
                 return false;
+            }
+        }
 
         $db = $this->db;
         $query = $db->getQuery(true);
@@ -686,16 +705,20 @@ class CartHelper
         }
 
         // self::getData()->id_shipment = $id;
-        if(!empty($result))
+        if (!empty($result)) {
             $this->cart->id_shipment = $id;
+        }
 
         return $result;
     }
 
-    public function updatePayment($id){
-        if ($this->cartId <= 0)
-            if(!$this->createCart())
+    public function updatePayment($id)
+    {
+        if ($this->cartId <= 0) {
+            if (!$this->createCart()) {
                 return false;
+            }
+        }
 
         $db = $this->db;
         $query = $db->getQuery(true);
@@ -703,7 +726,7 @@ class CartHelper
             ->update($this->cart_table)
             ->set("id_payment" . '=' . $id)
             ->where('id=' . $this->cartId);
-        
+
         try {
             $db->setQuery($query);
             $result = $db->execute();
@@ -713,14 +736,16 @@ class CartHelper
         }
 
         // self::getData()->id_payment = $id;
-        if($result)
+        if ($result) {
             $this->cart->id_payment = $id;
+        }
 
         return $result;
     }
 
 
-    public function addEventsToShipments(){
+    public function addEventsToShipments()
+    {
 
         // Load payment methods.
         foreach (self::getShipmentMethods() as &$shipmentMethod) {
@@ -729,30 +754,32 @@ class CartHelper
 
             $onCartViewEventName = 'onCartView';
 
-	        // Create event.
-	        $shipmentEvent = new ShipmentsCartViewEvent($onCartViewEventName, [
-		        'subject' => $this,
-		        'method'  => $shipmentMethod
-	        ]);
+            // Create event.
+            $shipmentEvent = new ShipmentsCartViewEvent($onCartViewEventName, [
+                'subject' => $this,
+                'method'  => $shipmentMethod
+            ]);
 
             $this->app->bootPlugin($shipmentMethod->type, "alfa-shipments")->{$onCartViewEventName}($shipmentEvent);
-            
-			// if not selected we do not set layout name and type or boot the plugin
-			if($isSelected)
-			{
 
-				if (empty($shipmentEvent->getLayoutPluginName())) $shipmentEvent->setLayoutPluginName($shipmentMethod->type);
-				if (empty($shipmentEvent->getLayoutPluginType())) $shipmentEvent->setLayoutPluginType("alfa-shipments");
-				if ($shipmentEvent->hasRedirect())
-				{
-					$this->app->redirect(
-						$shipmentEvent->getRedirectUrl(),
-						$shipmentEvent->getRedirectCode() ?? 303
-					);
+            // if not selected we do not set layout name and type or boot the plugin
+            if ($isSelected) {
 
-					return;
-				}
-			}
+                if (empty($shipmentEvent->getLayoutPluginName())) {
+                    $shipmentEvent->setLayoutPluginName($shipmentMethod->type);
+                }
+                if (empty($shipmentEvent->getLayoutPluginType())) {
+                    $shipmentEvent->setLayoutPluginType("alfa-shipments");
+                }
+                if ($shipmentEvent->hasRedirect()) {
+                    $this->app->redirect(
+                        $shipmentEvent->getRedirectUrl(),
+                        $shipmentEvent->getRedirectCode() ?? 303
+                    );
+
+                    return;
+                }
+            }
 
             $shipmentMethod->events = new \stdClass();
             $shipmentMethod->events->{$onCartViewEventName} = $shipmentEvent;
@@ -761,7 +788,8 @@ class CartHelper
 
     }
 
-    public function addEventsToPayments(){
+    public function addEventsToPayments()
+    {
 
         // Load payment methods.
         foreach (self::getPaymentMethods() as &$paymentMethod) {
@@ -777,22 +805,24 @@ class CartHelper
 
             $this->app->bootPlugin($paymentMethod->type, "alfa-payments")->{$onCartViewEventName}($paymentEvent);
 
-	        // if not selected we do not set layout name and type or boot the plugin
-	        if($isSelected)
-	        {
+            // if not selected we do not set layout name and type or boot the plugin
+            if ($isSelected) {
 
-		        if (empty($paymentEvent->getLayoutPluginName())) $paymentEvent->setLayoutPluginName($paymentMethod->type);
-		        if (empty($paymentEvent->getLayoutPluginType())) $paymentEvent->setLayoutPluginType("alfa-payments");
-		        if ($paymentEvent->hasRedirect())
-		        {
-			        $this->app->redirect(
-				        $paymentEvent->getRedirectUrl(),
-				        $paymentEvent->getRedirectCode() ?? 303
-			        );
+                if (empty($paymentEvent->getLayoutPluginName())) {
+                    $paymentEvent->setLayoutPluginName($paymentMethod->type);
+                }
+                if (empty($paymentEvent->getLayoutPluginType())) {
+                    $paymentEvent->setLayoutPluginType("alfa-payments");
+                }
+                if ($paymentEvent->hasRedirect()) {
+                    $this->app->redirect(
+                        $paymentEvent->getRedirectUrl(),
+                        $paymentEvent->getRedirectCode() ?? 303
+                    );
 
-			        return;
-		        }
-	        }
+                    return;
+                }
+            }
 
             $paymentMethod->events = new \stdClass();
             $paymentMethod->events->{$onCartViewEventName} = $paymentEvent;
@@ -801,94 +831,94 @@ class CartHelper
     }
 
 
-	//	TODO: WILL CHANGE WHEN USERS INCLUDED IN THE APP
-//    public function updateUserData($column, $value){
-//
-//        $db = $this->db;
-//        $cartData = self::getData();
-//
-//        // If we create new user_info entries, we'll need to update the cart to refer to them.
-//        $needToUpdateCart = false;
-//
-//        // Create user info if no user info exists
-//	    // Every cart has assigned user info . if there is 0 then we should create a new entry for it
-//        if($cartData->id_user_info_delivery == 0 || $cartData->id_user_info_invoice==0) {   // 0 for none.
-//            $cartData->id_user_info_delivery = $cartData->id_user_info_invoice = $createUserInfoResult = self::createNewUserInfo(["id_user" => $this->user->id]);
-//	        if($createUserInfoResult==0){
-//				return false;
-//	        }
-//			$needToUpdateCart = true;
-//        }
-//
-//        // if($cartData->id_user_info_invoice == 0){
-//        //     $cartData->id_user_info_invoice = self::createNewUserInfo(["id_user" => $this->user->id]);
-//        //     $needToUpdateCart = true;
-//        // }
-//
-//
-//        try {   // Currently only updating delivery user info. TODO: Determine what should happen here.
-//            $query = $db->getQuery(true);
-//            $query
-//                ->update("#__alfa_user_info")
-//                ->set($db->qn($column) . ' = ' . $db->q($value))
-//                ->where($db->qn("id") . " = " . (int) $cartData->id_user_info_delivery);
-//
-//            $db->setQuery($query);
-//            $db->execute();
-//
-//        } catch (\Exception $e) {
-//            $this->app->enqueueMessage($e->getMessage());
-//            return false;
-//        }
-//
-//        // Update data in the user info IDs in the database.
-//        if($needToUpdateCart) {
-//            $updateArray = [
-//                "id" => $cartData->id,
-//                "id_user_info_delivery" => $cartData->id_user_info_delivery,
-//                "id_user_info_invoice" => $cartData->id_user_info_invoice
-//            ];
-//            self::updateCartData($updateArray);
-//        }
-//
-//        return true;
-//    }
+    //	TODO: WILL CHANGE WHEN USERS INCLUDED IN THE APP
+    //    public function updateUserData($column, $value){
+    //
+    //        $db = $this->db;
+    //        $cartData = self::getData();
+    //
+    //        // If we create new user_info entries, we'll need to update the cart to refer to them.
+    //        $needToUpdateCart = false;
+    //
+    //        // Create user info if no user info exists
+    //	    // Every cart has assigned user info . if there is 0 then we should create a new entry for it
+    //        if($cartData->id_user_info_delivery == 0 || $cartData->id_user_info_invoice==0) {   // 0 for none.
+    //            $cartData->id_user_info_delivery = $cartData->id_user_info_invoice = $createUserInfoResult = self::createNewUserInfo(["id_user" => $this->user->id]);
+    //	        if($createUserInfoResult==0){
+    //				return false;
+    //	        }
+    //			$needToUpdateCart = true;
+    //        }
+    //
+    //        // if($cartData->id_user_info_invoice == 0){
+    //        //     $cartData->id_user_info_invoice = self::createNewUserInfo(["id_user" => $this->user->id]);
+    //        //     $needToUpdateCart = true;
+    //        // }
+    //
+    //
+    //        try {   // Currently only updating delivery user info. TODO: Determine what should happen here.
+    //            $query = $db->getQuery(true);
+    //            $query
+    //                ->update("#__alfa_user_info")
+    //                ->set($db->qn($column) . ' = ' . $db->q($value))
+    //                ->where($db->qn("id") . " = " . (int) $cartData->id_user_info_delivery);
+    //
+    //            $db->setQuery($query);
+    //            $db->execute();
+    //
+    //        } catch (\Exception $e) {
+    //            $this->app->enqueueMessage($e->getMessage());
+    //            return false;
+    //        }
+    //
+    //        // Update data in the user info IDs in the database.
+    //        if($needToUpdateCart) {
+    //            $updateArray = [
+    //                "id" => $cartData->id,
+    //                "id_user_info_delivery" => $cartData->id_user_info_delivery,
+    //                "id_user_info_invoice" => $cartData->id_user_info_invoice
+    //            ];
+    //            self::updateCartData($updateArray);
+    //        }
+    //
+    //        return true;
+    //    }
 
-	/**
-	 *  Inserts a new entry on the user info table to be used.
-	 *  @return int the id of the newly inserted entry.
-	 */
-//	protected function createNewUserInfo($insertObject = null){
-//
-//		$db = $this->db;
-//		if(is_array($insertObject))
-//			$insertObject = json_decode(json_encode($insertObject));
-//
-//		try {
-//			$db->insertObject("#__alfa_user_info", $insertObject, "id");
-//		} catch (\Exception $e) {
-//			$this->app->enqueueMessage($e->getMessage());
-//			return 0;
-//		}
-//
-//		return $insertObject->id;
-//		// return $db->insertid();
-//	}
-//
-//    protected function updateCartData($dataObject){
-//
-//        // Invalid input.
-//        if(empty($dataObject))
-//            return false;
-//
-//        if(is_array($dataObject))
-//            $dataObject = json_decode(json_encode($dataObject));
-//
-//        $db = $this->db;
-//        $db->updateObject("#__alfa_cart", $dataObject, "id");
-//
-//        return true;
-//    }
+    /**
+     *  Inserts a new entry on the user info table to be used.
+     *  @return int the id of the newly inserted entry.
+     */
+    //	protected function createNewUserInfo($insertObject = null){
+    //
+    //		$db = $this->db;
+    //		if(is_array($insertObject))
+    //			$insertObject = json_decode(json_encode($insertObject));
+    //
+    //		try {
+    //			$db->insertObject("#__alfa_user_info", $insertObject, "id");
+    //		} catch (\Exception $e) {
+    //			$this->app->enqueueMessage($e->getMessage());
+    //			return 0;
+    //		}
+    //
+    //		return $insertObject->id;
+    //		// return $db->insertid();
+    //	}
+    //
+    //    protected function updateCartData($dataObject){
+    //
+    //        // Invalid input.
+    //        if(empty($dataObject))
+    //            return false;
+    //
+    //        if(is_array($dataObject))
+    //            $dataObject = json_decode(json_encode($dataObject));
+    //
+    //        $db = $this->db;
+    //        $db->updateObject("#__alfa_cart", $dataObject, "id");
+    //
+    //        return true;
+    //    }
 
 
 }
