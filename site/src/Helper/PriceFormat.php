@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -9,12 +8,11 @@
  */
 
 namespace Alfa\Component\Alfa\Site\Helper;
-
 use Joomla\CMS\Component\ComponentHelper;
 
 defined('_JEXEC') or die;
 
-use Joomla\CMS\Factory;
+use \Joomla\CMS\Factory;
 
 /**
  * Class PriceFormat
@@ -23,6 +21,7 @@ use Joomla\CMS\Factory;
  */
 class PriceFormat
 {
+
     /*
      * Inputs: the price value, and the format settings.
      * If there are no format settings provided, we look for cached settings.
@@ -31,21 +30,20 @@ class PriceFormat
      * Format the $value.
      * Returns: the formatted $value.
      */
-    public static function format($value, $decimal_place = null, $decimal_symbol = null, $thousand_separator = null, $pattern = null)
-    {
+    public static function format($value, $decimal_place=null, $decimal_symbol=null, $thousand_separator=null, $pattern = null){
 
         $symbol = '';
-        //If settings have not been given,
-        if ($decimal_place == null || $decimal_symbol == null || $thousand_separator == null || $pattern == null || !strpos($pattern, "{number}")) {
+        //If settings have not been given, 
+        if($decimal_place == null || $decimal_symbol == null || $thousand_separator == null || $pattern == null || !strpos($pattern, "{number}")) {
 
             //We check for cached settings.
-            $cache = Factory::getCache('com_alfa', '');
+            $cache = Factory::getCache('com_alfa','');
             $cache->setCaching(true);
             $cacheKey = "general_currency_settings";
             $generalCurrencySettings = $cache->get($cacheKey);
 
             //Applying the cached settings if they exist.
-            if (!empty($generalCurrencySettings)) {
+            if(!empty($generalCurrencySettings)) {
                 $symbol = $generalCurrencySettings->symbol;
                 $decimal_place = $generalCurrencySettings->decimal_place;
                 $decimal_symbol = $generalCurrencySettings->decimal_symbol;
@@ -59,7 +57,7 @@ class PriceFormat
 
                 $defaultCurrID = $settings->get('default_currency', '978'); //Euro
 
-                try {
+                try{
                     $db = Factory::getContainer()->get('DatabaseDriver');
                     $query = $db->getQuery(true);
                     $query->
@@ -67,7 +65,8 @@ class PriceFormat
                     from('#__alfa_currencies')->
                     where($db->quoteName('number') . '=' . (int) $defaultCurrID);
                     $db->setQuery($query);
-                } catch (\Exception $e) {
+                }
+                catch (\Exception $e) {
                     Factory::getApplication()->enqueueMessage($e->getMessage());
                     return false;
                 }
@@ -95,5 +94,5 @@ class PriceFormat
 
     }
 
-
+	
 }

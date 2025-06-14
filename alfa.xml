@@ -57,7 +57,7 @@
 
             <menu link="option=com_alfa&amp;view=items" view="items" alt="Alfa/Items">COM_ALFA_TITLE_ITEMS</menu>
 
-            
+            <menu link="option=com_alfa&amp;view=formfields" view="formfields" alt="Alfa/Formfields">COM_ALFA_TITLE_FORM_FIELDS</menu>
 
             <menu link="option=com_alfa&amp;view=orders" view="orders" alt="Alfa/Orders">COM_ALFA_TITLE_ORDERS</menu>
 
@@ -71,21 +71,19 @@
 
             <menu link="option=com_alfa&amp;view=customs" view="customs" alt="Alfa/Customs">COM_ALFA_TITLE_CUSTOMS</menu>
 
-	    <menu link="option=com_alfa&amp;view=manufacturers" view="manufacturers" alt="Alfa/Manufacturers">COM_ALFA_TITLE_MANUFACTURERS</menu>
+			<menu link="option=com_alfa&amp;view=manufacturers" view="manufacturers" alt="Alfa/Manufacturers">COM_ALFA_TITLE_MANUFACTURERS</menu>
 
-    	    <menu link="option=com_alfa&amp;view=shipments" view="shipments" alt="Alfa/Shipments">COM_ALFA_TITLE_SHIPMENTS</menu>
+			<menu link="option=com_alfa&amp;view=shipments" view="shipments" alt="Alfa/Shipments">COM_ALFA_TITLE_SHIPMENTS</menu>
 
             <menu link="option=com_alfa&amp;view=payments" view="payments" alt="Alfa/Payments">COM_ALFA_TITLE_PAYMENTS</menu>
 
-            <menu link="option=com_alfa&amp;view=taxes" view="taxes" alt="Alfa/Taxes">COM_ALFA_TITLE_TAXES</menu>
+		    <menu link="option=com_alfa&amp;view=taxes" view="taxes" alt="Alfa/Taxes">COM_ALFA_TITLE_TAXES</menu>
 
             <menu link="option=com_alfa&amp;view=discounts" view="discounts" alt="Alfa/Discounts">COM_ALFA_TITLE_DISCOUNTS</menu>
 
-	    <menu link="option=com_alfa&amp;view=places" view="places" alt="Alfa/Places">COM_ALFA_TITLE_PLACES</menu>
+		    <menu link="option=com_alfa&amp;view=places" view="places" alt="Alfa/Places">COM_ALFA_TITLE_PLACES</menu>
 
-	    <menu link="option=com_alfa&amp;view=formfields" view="formfields" alt="Alfa/Formfields">COM_ALFA_TITLE_FORM_FIELDS</menu>
-		
-	    <menu link="option=com_alfa&amp;view=currencies" view="currencies" alt="Alfa/Currencies">COM_ALFA_TITLE_CURRENCIES</menu>
+			<menu link="option=com_alfa&amp;view=currencies" view="currencies" alt="Alfa/Currencies">COM_ALFA_TITLE_CURRENCIES</menu>
 
         </submenu>
         <files folder="administrator">
