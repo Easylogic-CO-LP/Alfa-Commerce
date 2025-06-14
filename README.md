@@ -12,6 +12,7 @@ While we are still in the pre-alpha phase, the core is being actively built and 
     Go to main branch
     Download the whole zip
     Install it in joomla.
+    Ensure you have **PHP 8.3** or later installed.
 
 🌐 API Integration with Postman
 
@@ -37,6 +38,10 @@ Contributions are what make the open-source community such an amazing place to l
 
    ```bash
    composer install
+
+   # Commit the generated composer.lock file
+   git add composer.lock
+   git commit -m "Add composer.lock"
    ```
 
 3. **Create** a feature branch based on the developer branch (`developer`):

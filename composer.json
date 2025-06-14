@@ -18,7 +18,9 @@
             "Joomla\\Plugin\\AlfaFields\\Textarea\\": "plugins/alfa-fields/textarea/src/"
         }
     },
-    "require": {},
+    "require": {
+        "php": "^8.3"
+    },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.0"
     },
