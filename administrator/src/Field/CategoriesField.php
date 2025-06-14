@@ -19,12 +19,14 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Field\ListField;
+
 // use Joomla\CMS\Date\Date;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\HTML\HTMLHelper;
 
 class CategoriesField extends ListField
 {
+
     protected $type = 'categories';
 
     protected $options = [];
@@ -93,22 +95,21 @@ class CategoriesField extends ListField
             }
 
             $this->options['cat-' . $category->id] =
-                ['value' => $category->id,
+                array('value' => $category->id,
 
-                    'text' => (
-                        $showPath
+                    'text' => ($showPath
                         ? $category->path
                         : str_repeat('-', $category->depth) . $category->name
                     ),
                     'disable' => $disableCurrent, // Adding the disabled attribute
-                ];
+                );
 
 
         }
 
 
-        //      $removeCurrent = $this->element['removeCurrent']=='true' ? true : false;
-        //      if ($removeCurrent){ unset($this->options['cat-' . $currentCategoryId]); }
+//      $removeCurrent = $this->element['removeCurrent']=='true' ? true : false;
+//      if ($removeCurrent){ unset($this->options['cat-' . $currentCategoryId]); }
 
         return $this->options;
 

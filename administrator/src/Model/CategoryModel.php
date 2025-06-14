@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -9,18 +8,17 @@
  */
 
 namespace Alfa\Component\Alfa\Administrator\Model;
-
 // No direct access.
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
-use Joomla\CMS\Table\Table;
-use Joomla\CMS\Factory;
-use Joomla\CMS\Language\Text;
-use Joomla\CMS\Plugin\PluginHelper;
-use Joomla\CMS\MVC\Model\AdminModel;
-use Joomla\CMS\Filter\OutputFilter;
-use Joomla\CMS\Event\Model;
+use \Joomla\CMS\Table\Table;
+use \Joomla\CMS\Factory;
+use \Joomla\CMS\Language\Text;
+use \Joomla\CMS\Plugin\PluginHelper;
+use \Joomla\CMS\MVC\Model\AdminModel;
+use \Joomla\CMS\Filter\OutputFilter;
+use \Joomla\CMS\Event\Model;
 
 /**
  * Category model.
@@ -62,7 +60,7 @@ class CategoryModel extends AdminModel
      *
      * @since   1.0.1
      */
-    public function getTable($type = 'Category', $prefix = 'Administrator', $config = [])
+    public function getTable($type = 'Category', $prefix = 'Administrator', $config = array())
     {
         return parent::getTable($type, $prefix, $config);
     }
@@ -77,7 +75,7 @@ class CategoryModel extends AdminModel
      *
      * @since   1.0.1
      */
-    public function getForm($data = [], $loadData = true)
+    public function getForm($data = array(), $loadData = true)
     {
         // Initialise variables.
         $app = Factory::getApplication();
@@ -86,10 +84,10 @@ class CategoryModel extends AdminModel
         $form = $this->loadForm(
             'com_alfa.category',
             'category',
-            [
+            array(
                 'control' => 'jform',
                 'load_data' => $loadData
-            ]
+            )
         );
 
 
@@ -111,7 +109,7 @@ class CategoryModel extends AdminModel
     protected function loadFormData()
     {
         // Check the session for previously entered form data.
-        $data = Factory::getApplication()->getUserState('com_alfa.edit.category.data', []);
+        $data = Factory::getApplication()->getUserState('com_alfa.edit.category.data', array());
 
         if (empty($data)) {
             if ($this->item === null) {
@@ -143,11 +141,11 @@ class CategoryModel extends AdminModel
             }
 
             // Do any procesing on fields here if needed
-            $item->allowedUsers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_categories_users', 'category_id', 'user_id');
-            $item->allowedUserGroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_categories_usergroups', 'category_id', 'usergroup_id');
+            $item->allowedUsers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_categories_users', 'category_id','user_id');
+            $item->allowedUserGroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_categories_usergroups', 'category_id','usergroup_id');
         }
-
-        if (!empty($item->prices)) {
+        
+        if(!empty($item->prices)) {
             $item->prices = json_decode($item->prices);
             $item->base_price_show = $item->prices->base_price_show;
             $item->base_price_show_label = $item->prices->base_price_show_label;
@@ -180,10 +178,10 @@ class CategoryModel extends AdminModel
     {
 
         $app = Factory::getApplication();
-
+        
         $data['alias'] = $data['alias'] ?: $data['name'];
 
-        if ($app->get('unicodeslugs') == 1) {
+        if ($app->get('unicodeslugs') == 1){
             $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
         } else {
             $data['alias'] = OutputFilter::stringURLSafe($data['alias']);
@@ -207,19 +205,17 @@ class CategoryModel extends AdminModel
         $data['prices'] = json_encode($prices);
 
 
-        if (!parent::save($data)) {
-            return false;
-        }
+        if (!parent::save($data))return false;
 
         $currentId = 0;
-        if ($data['id'] > 0) { //not a new
+        if($data['id']>0){ //not a new
             $currentId = intval($data['id']);
-        } else { // is new
-            $currentId = intval($this->getState($this->getName().'.id')); // get the id from the Joomla state
+        }else{ // is new
+            $currentId = intval($this->getState($this->getName().'.id'));//get the id from setted joomla state
         }
 
-        AlfaHelper::setAssocsToDb($currentId, $data['allowedUsers'] ?? [], '#__alfa_categories_users', 'category_id', 'user_id');
-        AlfaHelper::setAssocsToDb($currentId, $data['allowedUserGroups'] ?? [], '#__alfa_categories_usergroups', 'category_id', 'usergroup_id');
+        AlfaHelper::setAssocsToDb($currentId, $data['allowedUsers']??[], '#__alfa_categories_users', 'category_id','user_id');
+        AlfaHelper::setAssocsToDb($currentId, $data['allowedUserGroups']??[], '#__alfa_categories_usergroups', 'category_id','usergroup_id');
 
         return true;
 

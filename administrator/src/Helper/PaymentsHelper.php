@@ -11,7 +11,6 @@
 namespace Alfa\Component\Alfa\Administrator\Helper;
 
 use Joomla\CMS\Plugin\PluginHelper;
-
 // use Joomla\CMS\Event\CustomFields\AfterPrepareFieldEvent;
 // use Joomla\CMS\Event\CustomFields\BeforePrepareFieldEvent;
 // use Joomla\CMS\Event\CustomFields\GetTypesEvent;
@@ -40,6 +39,9 @@ use Joomla\CMS\Plugin\PluginHelper;
  */
 class PaymentsHelper
 {
+
+
+
     /**
      * Loads the fields plugins and returns an array of field types from the plugins.
      *
@@ -56,7 +58,7 @@ class PaymentsHelper
     {
         $plugin_types = [];
 
-        // load all payment plugins from dppayment folder and attach the fields to the form
+         // load all payment plugins from dppayment folder and attach the fields to the form
         $pluginGroup = 'alfa-payments';
         // $pluginDir = JPATH_PLUGINS . '/' . $pluginGroup;
         // PluginHelper::importPlugin($pluginGroup);
@@ -71,8 +73,8 @@ class PaymentsHelper
         // exit;
 
         foreach ($plugins as $plugin) {// Process each dppayment group plugin
-
-            $plugin_types[] =
+            
+            $plugin_types[] =   
                                 [
                                     'id' => $plugin->id,
                                     'name' => $plugin->name,

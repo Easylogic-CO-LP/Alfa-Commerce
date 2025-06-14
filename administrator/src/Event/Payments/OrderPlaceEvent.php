@@ -9,8 +9,7 @@ class OrderPlaceEvent extends PaymentsEvent
         return $this->getSubject();
     }
 
-    public function setCart($cart)
-    {
+    public function setCart($cart){
         $this->setArgument("subject", $cart);
     }
 
