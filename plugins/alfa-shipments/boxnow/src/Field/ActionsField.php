@@ -6,14 +6,12 @@ namespace Joomla\Plugin\AlfaShipments\Boxnow\Field;
 
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\FormField;
-
 // use Joomla\CMS\Date\Date;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\HTML\HTMLHelper;
 
 class ActionsField extends FormField
 {
-
     protected $type = 'actions';
 
     protected function getInput()
@@ -23,7 +21,7 @@ class ActionsField extends FormField
 
 
         // $orderId = $this->form->getData()->get('id', 0);
-        $orderId = $input->get('id',0);
+        $orderId = $input->get('id', 0);
         // print_r($this->form->getData());
 
         return <<<HTML
@@ -39,7 +37,7 @@ class ActionsField extends FormField
             </button>
         </div>
         HTML;
-        
+
 
     }
 

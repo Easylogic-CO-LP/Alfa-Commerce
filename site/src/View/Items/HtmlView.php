@@ -9,12 +9,13 @@
  */
 
 namespace Alfa\Component\Alfa\Site\View\Items;
+
 // No direct access
 defined('_JEXEC') or die;
 
-use \Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
-use \Joomla\CMS\Factory;
-use \Joomla\CMS\Language\Text;
+use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
+use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 
 /**
  * View class for a list of Alfa.
@@ -23,150 +24,138 @@ use \Joomla\CMS\Language\Text;
  */
 class HtmlView extends BaseHtmlView
 {
-	protected $items;
+    protected $items;
 
-	protected $categories;
+    protected $categories;
 
-	protected $pagination;
+    protected $pagination;
 
-	protected $state;
+    protected $state;
 
-	protected $params;
+    protected $params;
 
-	/**
-	 * Display the view
-	 *
-	 * @param   string  $tpl  Template name
-	 *
-	 * @return void
-	 *
-	 * @throws Exception
-	 */
-	public function display($tpl = null)
-	{
-		$app = Factory::getApplication();
+    /**
+     * Display the view
+     *
+     * @param   string  $tpl  Template name
+     *
+     * @return void
+     *
+     * @throws Exception
+     */
+    public function display($tpl = null)
+    {
+        $app = Factory::getApplication();
 
-		$this->state = $this->get('State');
-		$this->items = $this->get('Items');
-		$this->pagination = $this->get('Pagination');
-		$this->params = $app->getParams('com_alfa');
-		$this->filterForm = $this->get('FilterForm');
-		$this->activeFilters = $this->get('ActiveFilters');
-
-		
-
-		$db = Factory::getDbo();
+        $this->state = $this->get('State');
+        $this->items = $this->get('Items');
+        $this->pagination = $this->get('Pagination');
+        $this->params = $app->getParams('com_alfa');
+        $this->filterForm = $this->get('FilterForm');
+        $this->activeFilters = $this->get('ActiveFilters');
 
 
-		if(empty($this->category_filter)){
-			$this->category_filter = 0;
-		}
 
-		$db = Factory::getDbo();
+        $db = Factory::getDbo();
 
-		// SET CATEGORIES LOGIC
-		$category_filter = $this->state->get('filter.category_id');
-		if(empty($category_filter)){
-			$category_filter = 0;
-		}
 
-		$component = $app->bootComponent('com_alfa');
+        if (empty($this->category_filter)) {
+            $this->category_filter = 0;
+        }
+
+        $db = Factory::getDbo();
+
+        // SET CATEGORIES LOGIC
+        $category_filter = $this->state->get('filter.category_id');
+        if (empty($category_filter)) {
+            $category_filter = 0;
+        }
+
+        $component = $app->bootComponent('com_alfa');
         $mvcFactory = $component->getMVCFactory();
         $categoriesModel = $mvcFactory->createModel('Categories', 'Site', ['ignore_request' => true]);
-    	$categoriesModel->getState('list.ordering');//we should use get before set the list state fields
+        $categoriesModel->getState('list.ordering');//we should use get before set the list state fields
         $categoriesModel->setState('filter.parent_id', $category_filter);
-    	$this->categories = $categoriesModel->getItems();
+        $this->categories = $categoriesModel->getItems();
 
-		// END OF SET CATEGORIES LOGIC
+        // END OF SET CATEGORIES LOGIC
 
-		// Check for errors.
-		if (count($errors = $this->get('Errors')))
-		{
-			throw new \Exception(implode("\n", $errors));
-		}
+        // Check for errors.
+        if (count($errors = $this->get('Errors'))) {
+            throw new \Exception(implode("\n", $errors));
+        }
 
-		$this->_prepareDocument();
-		parent::display($tpl);
-	}
+        $this->_prepareDocument();
+        parent::display($tpl);
+    }
 
-	/**
-	 * Prepares the document
-	 *
-	 * @return void
-	 *
-	 * @throws Exception
-	 */
-	protected function _prepareDocument()
-	{
-		$app   = Factory::getApplication();
-		$menus = $app->getMenu();
-		$title = null;
+    /**
+     * Prepares the document
+     *
+     * @return void
+     *
+     * @throws Exception
+     */
+    protected function _prepareDocument()
+    {
+        $app   = Factory::getApplication();
+        $menus = $app->getMenu();
+        $title = null;
 
-		// Because the application sets a default page title,
-		// we need to get it from the menu item itself
-		$menu = $menus->getActive();
+        // Because the application sets a default page title,
+        // we need to get it from the menu item itself
+        $menu = $menus->getActive();
 
-		if ($menu)
-		{
-			$this->params->def('page_heading', $this->params->get('page_title', $menu->title));
-		}
-		else
-		{
-			$this->params->def('page_heading', Text::_('COM_ALFA_DEFAULT_PAGE_TITLE'));
-		}
+        if ($menu) {
+            $this->params->def('page_heading', $this->params->get('page_title', $menu->title));
+        } else {
+            $this->params->def('page_heading', Text::_('COM_ALFA_DEFAULT_PAGE_TITLE'));
+        }
 
-		$title = $this->params->get('page_title', '');
+        $title = $this->params->get('page_title', '');
 
-		if (empty($title))
-		{
-			$title = $app->get('sitename');
-		}
-		elseif ($app->get('sitename_pagetitles', 0) == 1)
-		{
-			$title = Text::sprintf('JPAGETITLE', $app->get('sitename'), $title);
-		}
-		elseif ($app->get('sitename_pagetitles', 0) == 2)
-		{
-			$title = Text::sprintf('JPAGETITLE', $title, $app->get('sitename'));
-		}
+        if (empty($title)) {
+            $title = $app->get('sitename');
+        } elseif ($app->get('sitename_pagetitles', 0) == 1) {
+            $title = Text::sprintf('JPAGETITLE', $app->get('sitename'), $title);
+        } elseif ($app->get('sitename_pagetitles', 0) == 2) {
+            $title = Text::sprintf('JPAGETITLE', $title, $app->get('sitename'));
+        }
 
-		$this->document->setTitle($title);
+        $this->document->setTitle($title);
 
-		if ($this->params->get('menu-meta_description'))
-		{
-			$this->document->setDescription($this->params->get('menu-meta_description'));
-		}
+        if ($this->params->get('menu-meta_description')) {
+            $this->document->setDescription($this->params->get('menu-meta_description'));
+        }
 
-		if ($this->params->get('menu-meta_keywords'))
-		{
-			$this->document->setMetadata('keywords', $this->params->get('menu-meta_keywords'));
-		}
+        if ($this->params->get('menu-meta_keywords')) {
+            $this->document->setMetadata('keywords', $this->params->get('menu-meta_keywords'));
+        }
 
-		if ($this->params->get('robots'))
-		{
-			$this->document->setMetadata('robots', $this->params->get('robots'));
-		}
+        if ($this->params->get('robots')) {
+            $this->document->setMetadata('robots', $this->params->get('robots'));
+        }
 
-		
-            // Add Breadcrumbs
-            $pathway = $app->getPathway();
-                        $breadcrumbTitle = Text::_('COM_ALFA_TITLE_ITEMS');
 
-                        if(!in_array($breadcrumbTitle, $pathway->getPathwayNames())) {
-                            $pathway->addItem($breadcrumbTitle);
-                        }
-                
-	}
+        // Add Breadcrumbs
+        $pathway = $app->getPathway();
+        $breadcrumbTitle = Text::_('COM_ALFA_TITLE_ITEMS');
 
-	/**
-	 * Check if state is set
-	 *
-	 * @param   mixed  $state  State
-	 *
-	 * @return bool
-	 */
-	public function getState($state)
-	{
-		return isset($this->state->{$state}) ? $this->state->{$state} : false;
-	}
+        if (!in_array($breadcrumbTitle, $pathway->getPathwayNames())) {
+            $pathway->addItem($breadcrumbTitle);
+        }
+
+    }
+
+    /**
+     * Check if state is set
+     *
+     * @param   mixed  $state  State
+     *
+     * @return bool
+     */
+    public function getState($state)
+    {
+        return isset($this->state->{$state}) ? $this->state->{$state} : false;
+    }
 }

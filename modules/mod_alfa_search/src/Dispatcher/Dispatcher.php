@@ -17,6 +17,7 @@ namespace Alfa\Module\AlfaSearch\Site\Dispatcher;
 // use Joomla\CMS\HTML\HTMLHelper;
 
 use Joomla\CMS\Dispatcher\AbstractModuleDispatcher;
+
 // use Alfa\Module\AlfaSearch\Site\Helper\AlfasearchHelper;
 
 // phpcs:disable PSR1.Files.SideEffects
@@ -47,9 +48,9 @@ class Dispatcher extends AbstractModuleDispatcher
             ->useStyle('mod_alfa_search.searchbar');
         // $items = AlfaSearchHelper::getItemsFromDatabase();
 
-//        echo '<pre>';
-//        print_r($items);
-//        echo '</pre>';
+        //        echo '<pre>';
+        //        print_r($items);
+        //        echo '</pre>';
 
         // $data['alfa_items'] = $items;
         // ($data['params'])->get('text_field', '');  //to deutero pedio orizei thn default timh

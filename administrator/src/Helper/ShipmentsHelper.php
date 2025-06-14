@@ -23,7 +23,6 @@ use Joomla\CMS\Plugin\PluginHelper;
  */
 class ShipmentsHelper
 {
-
     /**
      * Loads the fields plugins and returns an array of field types from the plugins.
      *

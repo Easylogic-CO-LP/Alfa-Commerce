@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -11,11 +12,11 @@ namespace Alfa\Component\Alfa\Site\Helper;
 
 defined('_JEXEC') or die;
 
-use \Joomla\CMS\Factory;
-use \Joomla\Database\DatabaseDriver;
-use \Joomla\CMS\MVC\Model\BaseDatabaseModel;
-use \Joomla\CMS\Component\ComponentHelper;
-use \Alfa\Component\Alfa\Site\Helper\AlfaHelper;
+use Joomla\CMS\Factory;
+use Joomla\Database\DatabaseDriver;
+use Joomla\CMS\MVC\Model\BaseDatabaseModel;
+use Joomla\CMS\Component\ComponentHelper;
+use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 
 class PriceCalculator
 {
@@ -41,7 +42,7 @@ class PriceCalculator
 
 
         // Create a cache object
-        $this->cache = Factory::getCache('com_alfa',''); // 'com_alfa' is the cache group,
+        $this->cache = Factory::getCache('com_alfa', ''); // 'com_alfa' is the cache group,
         $this->cache->setCaching(true);
         // $this->cache = Factory::getCache('com_alfa', '', ['lifetime' => 3600]); // 1-hour cache lifetime
 
@@ -50,20 +51,20 @@ class PriceCalculator
 
     // Load all prices from the database
 
-	/**
-	 *
-	 * @return mixed
-	 *
-	 * @since version
-	 */
-	protected function loadPrices()
+    /**
+     *
+     * @return mixed
+     *
+     * @since version
+     */
+    protected function loadPrices()
     {
         // Define cache key
         $cacheKey = 'product_prices_' . $this->productId;
 
         $cachedPrices = $this->cache->get($cacheKey);
 
-        if (!empty($cachedPrices)){
+        if (!empty($cachedPrices)) {
             return $cachedPrices;
         }
         $db = $this->db;
@@ -80,7 +81,8 @@ class PriceCalculator
                 ' AND ' .
                 // Check if the coupon has not expired
                 'IFNULL(' . $db->qn('publish_down') . ' != "0000-00-00 00:00:00" ' .
-                'AND NOW() > ' . $db->qn('publish_down') . ', 0) = 0' );
+                'AND NOW() > ' . $db->qn('publish_down') . ', 0) = 0'
+            );
 
         $db->setQuery($query);
 
@@ -102,71 +104,76 @@ class PriceCalculator
         $price = $basePrice;
         $priceWithTax = $price;
         $finalPrice = $price;
-        
+
         $productDiscounts = $this->findDiscounts();
         $productTaxes = $this->findTaxes();
 
         // Apply discounts before tax
-        $basePriceWithDiscount = $this->applyDiscounts($basePrice,$productDiscounts->beforeTax);
-        $finalPrice = $this->applyDiscounts($finalPrice,$productDiscounts->beforeTax);
+        $basePriceWithDiscount = $this->applyDiscounts($basePrice, $productDiscounts->beforeTax);
+        $finalPrice = $this->applyDiscounts($finalPrice, $productDiscounts->beforeTax);
 
 
         // Apply the taxes
         $basePriceWithTax = $this->applyPercentages($basePriceWithDiscount, $productTaxes);
         $finalPrice = $this->applyPercentages($finalPrice, $productTaxes);
         $priceWithDiscAndTax = $basePriceWithDiscount;
-        foreach($productTaxes as $tax)
+        foreach ($productTaxes as $tax) {
             $priceWithDiscAndTax *= (100 + $tax) / 100;
+        }
 
         // Apply discounts after tax
-        $finalPrice = $this->applyDiscounts($finalPrice,$productDiscounts->afterTax);
+        $finalPrice = $this->applyDiscounts($finalPrice, $productDiscounts->afterTax);
 
         // if tax is not shown the final price will be the basePriceWith the discount
         // if(!$showTax){
         //     $finalPrice = $basePriceWithDiscount;
         // }
-        
-        $discountBasePriceToCalculateFrom = $discountFinalPriceToCalculateFrom  =0;
-        if(!empty($productDiscounts->beforeTax)){
+
+        $discountBasePriceToCalculateFrom = $discountFinalPriceToCalculateFrom  = 0;
+        if (!empty($productDiscounts->beforeTax)) {
             $discountBasePriceToCalculateFrom = $basePrice;
             $discountFinalPriceToCalculateFrom = $basePriceWithDiscount;
         }
 
-        if(!empty($productDiscounts->afterTax)){
+        if (!empty($productDiscounts->afterTax)) {
             $discountBasePriceToCalculateFrom = $basePriceWithTax;
             $discountFinalPriceToCalculateFrom = $finalPrice;
         }
 
-        
+
         //Setting reduced amount and reduced percentage.
         //amount
         $reducedDiscountAmount = $discountBasePriceToCalculateFrom - $discountFinalPriceToCalculateFrom;
         //percentage
         $reducedDiscountPercentage = 0;
-        if($discountBasePriceToCalculateFrom>0){
+        if ($discountBasePriceToCalculateFrom > 0) {
             $reducedDiscountPercentage = 100 - (100 * $discountFinalPriceToCalculateFrom / $discountBasePriceToCalculateFrom);
         }
 
         //Validating.
-        if($reducedDiscountPercentage < 0)
+        if ($reducedDiscountPercentage < 0) {
             $reducedDiscountPercentage = 0;
-        if($reducedDiscountAmount < 0)
+        }
+        if ($reducedDiscountAmount < 0) {
             $reducedDiscountAmount = 0;
+        }
 
 
-        $total_discounts = 
+        $total_discounts =
                         [
-                            'amount'=> $reducedDiscountAmount,
-                            'percent'=> $reducedDiscountPercentage
+                            'amount' => $reducedDiscountAmount,
+                            'percent' => $reducedDiscountPercentage
                         ];
 
         //Taxes
         $taxPercentage = 0;
         $taxAmount = 0;
         $taxPercentage = 100 + $productTaxes[0];
-        foreach($productTaxes as $i => $tax)
-            if ($i != 0)
+        foreach ($productTaxes as $i => $tax) {
+            if ($i != 0) {
                 $taxPercentage *= (100 + $tax) / 100;
+            }
+        }
 
         $taxPercentage -= 100;
         //Tax is calculated as the price with discounts and taxes, minus the price with discounts.
@@ -185,7 +192,7 @@ class PriceCalculator
             'base_price_with_tax' => $basePriceWithTax,// only taxes applied
             'final_price' => $finalPrice, // with discounts and tax applied
 
-            'discounts_totals'=> $total_discounts,
+            'discounts_totals' => $total_discounts,
             'tax_totals' => $total_taxes,
             'taxes' => $productTaxes, //24%
             'discounts' => $productDiscounts, //20%
@@ -220,13 +227,13 @@ class PriceCalculator
             // Convert price values and quantities to float to ensure proper comparison
             $aValue = floatval($a['value']);
             $bValue = floatval($b['value']);
-            
+
             $aQuantityStart = floatval($a['quantity_start'] ?? 0);
             $bQuantityStart = floatval($b['quantity_start'] ?? 0);
-            
+
             $aQuantityEnd = floatval($a['quantity_end'] ?? INF); // Use INF if quantity_end is null (no upper limit)
             $bQuantityEnd = floatval($b['quantity_end'] ?? INF);
-            
+
             // Calculate the range for each price
             $aRange = $aQuantityEnd - $aQuantityStart;
             $bRange = $bQuantityEnd - $bQuantityStart;
@@ -263,53 +270,55 @@ class PriceCalculator
     // Find tax for the current product
     // TODO: FOR ALL CATEGORIES ALSO IF NOTHING IS SELECTED
 
-    protected function findDiscounts(){
+    protected function findDiscounts()
+    {
         $db = $this->db;
         $productId = $this->productId;
 
 
-//        $discounts = AlfaHelper::getFilteredMethods($this->productId,'discount');
+        //        $discounts = AlfaHelper::getFilteredMethods($this->productId,'discount');
 
         // METHOD 1
-         $query = $db->getQuery(true);
+        $query = $db->getQuery(true);
 
-         $query
-             ->select('DISTINCT d.id, d.name, d.value, d.is_amount, d.behavior, d.operation , d.apply_before_tax')
-             ->from('#__alfa_discounts AS d')
-            
-             // Join discount tables
-             ->join('LEFT', '#__alfa_discount_categories AS dc ON dc.discount_id = d.id')
-             ->join('LEFT', '#__alfa_discount_manufacturers AS dm ON dm.discount_id = d.id')
-             ->join('LEFT', '#__alfa_discount_usergroups AS du ON du.discount_id = d.id')
-             ->join('LEFT', '#__alfa_discount_users AS dg ON dg.discount_id = d.id')
-            
-             // Join item tables to match categories, manufacturers, places, etc. based on item_id
-             ->join('LEFT', '#__alfa_items_categories AS ic ON ic.category_id = dc.category_id')
-             ->join('LEFT', '#__alfa_items_manufacturers AS im ON im.manufacturer_id = dm.manufacturer_id')
-             ->join('LEFT', '#__alfa_items_usergroups AS iug ON iug.usergroup_id = du.usergroup_id')
-             ->join('LEFT', '#__alfa_items_users AS iu ON iu.user_id = dg.user_id')
+        $query
+            ->select('DISTINCT d.id, d.name, d.value, d.is_amount, d.behavior, d.operation , d.apply_before_tax')
+            ->from('#__alfa_discounts AS d')
 
-             // Apply conditions to check if the item matches the category, manufacturer, place, or usergroup
-             ->where('(ic.item_id = ' . $db->quote($productId) . ' OR dc.category_id = 0)')
-             ->where('(im.item_id = ' . $db->quote($productId) . ' OR dm.manufacturer_id = 0)')
-             ->where('(iug.item_id = ' . $db->quote($productId) . ' OR du.usergroup_id = 0)')
-             ->where('(iu.item_id = ' . $db->quote($productId) . ' OR dg.user_id = 0)')
-             ->where(// Check if the coupon start date is valid or not set
-                 'IFNULL(NOW() >= ' . $db->quoteName('d.publish_up') .
-                 ' OR ' . $db->quoteName('d.publish_up') . ' = "0000-00-00 00:00:00", 1) = 1 ' .
-                 //
-                 ' AND ' .
-                 // Check if the coupon has not expired
-                 'IFNULL(' . $db->quoteName('d.publish_down') . ' != "0000-00-00 00:00:00" ' .
-                 'AND NOW() > ' . $db->quoteName('d.publish_down') . ', 0) = 0' )
+            // Join discount tables
+            ->join('LEFT', '#__alfa_discount_categories AS dc ON dc.discount_id = d.id')
+            ->join('LEFT', '#__alfa_discount_manufacturers AS dm ON dm.discount_id = d.id')
+            ->join('LEFT', '#__alfa_discount_usergroups AS du ON du.discount_id = d.id')
+            ->join('LEFT', '#__alfa_discount_users AS dg ON dg.discount_id = d.id')
 
-             // Only active discounts
-             ->where('d.state = 1')
-             ->order('d.ordering ASC');
+            // Join item tables to match categories, manufacturers, places, etc. based on item_id
+            ->join('LEFT', '#__alfa_items_categories AS ic ON ic.category_id = dc.category_id')
+            ->join('LEFT', '#__alfa_items_manufacturers AS im ON im.manufacturer_id = dm.manufacturer_id')
+            ->join('LEFT', '#__alfa_items_usergroups AS iug ON iug.usergroup_id = du.usergroup_id')
+            ->join('LEFT', '#__alfa_items_users AS iu ON iu.user_id = dg.user_id')
+
+            // Apply conditions to check if the item matches the category, manufacturer, place, or usergroup
+            ->where('(ic.item_id = ' . $db->quote($productId) . ' OR dc.category_id = 0)')
+            ->where('(im.item_id = ' . $db->quote($productId) . ' OR dm.manufacturer_id = 0)')
+            ->where('(iug.item_id = ' . $db->quote($productId) . ' OR du.usergroup_id = 0)')
+            ->where('(iu.item_id = ' . $db->quote($productId) . ' OR dg.user_id = 0)')
+            ->where(// Check if the coupon start date is valid or not set
+                'IFNULL(NOW() >= ' . $db->quoteName('d.publish_up') .
+                ' OR ' . $db->quoteName('d.publish_up') . ' = "0000-00-00 00:00:00", 1) = 1 ' .
+                //
+                ' AND ' .
+                // Check if the coupon has not expired
+                'IFNULL(' . $db->quoteName('d.publish_down') . ' != "0000-00-00 00:00:00" ' .
+                'AND NOW() > ' . $db->quoteName('d.publish_down') . ', 0) = 0'
+            )
+
+            // Only active discounts
+            ->where('d.state = 1')
+            ->order('d.ordering ASC');
 
 
-         $db->setQuery($query);
-         $discounts = $db->loadObjectList();
+        $db->setQuery($query);
+        $discounts = $db->loadObjectList();
 
         // METHOD 2
         // If the above query slows down the system and use a lot of sources we can do the each join as sepearte query and
@@ -322,8 +331,8 @@ class PriceCalculator
         //     ->join('LEFT', '#__alfa_discount_categories as dca ON dca.category_id = ca.category_id') //or dca.category_id = 0
         //     ->where('ca.item_id = ' . $db->quote($this->productId));
         // $categories = $db->setQuery($query)->loadColumn();
-        
-        // combine results only the 
+
+        // combine results only the
         // $discountIds = array_unique(array_merge($categories, $manufacturers, $userGroups));
 
         //         $query->clear()
@@ -335,21 +344,23 @@ class PriceCalculator
 
         $discountValueArray = new DiscountGroup();
 
-        foreach($discounts as $discount){
-            if(empty($discount->value)){continue;}
+        foreach ($discounts as $discount) {
+            if (empty($discount->value)) {
+                continue;
+            }
 
             $isAmountIndex = ($discount->is_amount == 1 ? 'amount' : 'percent');//same as our DiscountGroup object
             $isBeforeTaxIndex = ($discount->apply_before_tax == 1 ? 'beforeTax' : 'afterTax');//same as our DiscountGroup object
 
-            if($discount->behavior=='0'){//Only this discount
+            if ($discount->behavior == '0') {//Only this discount
                 $discountValueArray->{$isBeforeTaxIndex}[0][$isAmountIndex] = []; // empty all previous if exist
                 $discountValueArray->{$isBeforeTaxIndex}[0][$isAmountIndex] = new DiscountValue($discount->value, $discount->is_amount, $discount->operation, $discount->name);//Create a new and reassign it to this
                 break;
-                
-            }else if($discount->behavior=='1'){//combined   10%,2%    $calculated_discount_value = 12%
+
+            } elseif ($discount->behavior == '1') {//combined   10%,2%    $calculated_discount_value = 12%
                 $discountValueArray->{$isBeforeTaxIndex}[0][$isAmountIndex]->addValue($discount->value, $discount->is_amount, $discount->operation, $discount->name);
 
-            }else if($discount->behavior=='2'){//one after another 10%,2%    $calculated_discount_value = price*10% + price*2%
+            } elseif ($discount->behavior == '2') {//one after another 10%,2%    $calculated_discount_value = price*10% + price*2%
                 $discountValueArray->{$isBeforeTaxIndex}[][$isAmountIndex] = new DiscountValue($discount->value, $discount->is_amount, $discount->operation, $discount->name);
             }
         }
@@ -370,14 +381,14 @@ class PriceCalculator
                 foreach ($discounts as $discountKey => $discount) {
 
                     // Determine the adjustment value
-                    $adjustment = $discount->isAmount == 1 
-                        ? $discount->value 
+                    $adjustment = $discount->isAmount == 1
+                        ? $discount->value
                         : $this->getPercentage($finalPrice, $discount->value);
 
                     // Apply the operation dynamically
                     $finalPrice += ($discount->operation == 1 ? $adjustment : -$adjustment);
 
-                    if($finalPrice <= 0){
+                    if ($finalPrice <= 0) {
                         $finalPrice = 0;
                         break;
                     }
@@ -395,114 +406,115 @@ class PriceCalculator
     // Find tax for the current product
     protected function findTaxes()
     {
-        
+
         $db = $this->db;
         $productId = $this->productId;
 
         $query = $db->getQuery(true);
 
         $totals = 0;
-/*
-        
-        $subCat =
-            "SELECT tc.tax_id
-                    FROM #__alfa_tax_categories as tc
-                    JOIN #__alfa_items_categories ic
-                    ON ic.category_id = tc.category_id
-                    WHERE ic.item_id = " . $productId;
+        /*
 
-        $subMan =
-            "SELECT tc.tax_id
-                    FROM #__alfa_tax_manufacturers as tc
-                    JOIN #__alfa_items_manufacturers ic
-                    ON ic.manufacturer_id = tc.manufacturer_id
-                    WHERE ic.item_id = " . $productId;
+                $subCat =
+                    "SELECT tc.tax_id
+                            FROM #__alfa_tax_categories as tc
+                            JOIN #__alfa_items_categories ic
+                            ON ic.category_id = tc.category_id
+                            WHERE ic.item_id = " . $productId;
 
-        $subUsgr =
-            "SELECT tc.tax_id
-                    FROM #__alfa_tax_usergroups as tc
-                    JOIN #__alfa_items_usergroups ic
-                    ON ic.usergroup_id = tc.usergroup_id
-                    WHERE ic.item_id = " . $productId;
+                $subMan =
+                    "SELECT tc.tax_id
+                            FROM #__alfa_tax_manufacturers as tc
+                            JOIN #__alfa_items_manufacturers ic
+                            ON ic.manufacturer_id = tc.manufacturer_id
+                            WHERE ic.item_id = " . $productId;
 
-        $subUs =
-            "SELECT tc.tax_id
-                    FROM #__alfa_tax_users as tc
-                    JOIN #__alfa_items_users ic
-                    ON ic.user_id = tc.user_id
-                    WHERE ic.item_id = " . $productId;
+                $subUsgr =
+                    "SELECT tc.tax_id
+                            FROM #__alfa_tax_usergroups as tc
+                            JOIN #__alfa_items_usergroups ic
+                            ON ic.usergroup_id = tc.usergroup_id
+                            WHERE ic.item_id = " . $productId;
 
-        $selCat0 = "SELECT tax_id
-                    FROM #__alfa_tax_categories
-                    WHERE category_id = 0";
+                $subUs =
+                    "SELECT tc.tax_id
+                            FROM #__alfa_tax_users as tc
+                            JOIN #__alfa_items_users ic
+                            ON ic.user_id = tc.user_id
+                            WHERE ic.item_id = " . $productId;
 
-        $selMan0 = "SELECT tax_id
-                    FROM #__alfa_tax_manufacturers
-                    WHERE manufacturer_id = 0";
+                $selCat0 = "SELECT tax_id
+                            FROM #__alfa_tax_categories
+                            WHERE category_id = 0";
 
-        $selUsgr0 = "SELECT tax_id
-                    FROM #__alfa_tax_usergroups
-                    WHERE usergroup_id = 0";
+                $selMan0 = "SELECT tax_id
+                            FROM #__alfa_tax_manufacturers
+                            WHERE manufacturer_id = 0";
 
-        $selUs0 = "SELECT tax_id
-                    FROM #__alfa_tax_users
-                    WHERE user_id = 0";
+                $selUsgr0 = "SELECT tax_id
+                            FROM #__alfa_tax_usergroups
+                            WHERE usergroup_id = 0";
+
+                $selUs0 = "SELECT tax_id
+                            FROM #__alfa_tax_users
+                            WHERE user_id = 0";
 
 
-        for($i = 0; $i < 10000; $i++) {
-*/
-            $start = hrtime(true);
-            $query = $db->getQuery(true);
-            $query
-                ->select('DISTINCT t.id, t.value, t.behavior')
-                ->from('#__alfa_taxes AS t')
+                for($i = 0; $i < 10000; $i++) {
+        */
+        $start = hrtime(true);
+        $query = $db->getQuery(true);
+        $query
+            ->select('DISTINCT t.id, t.value, t.behavior')
+            ->from('#__alfa_taxes AS t')
 
-                // Join tax tables
+            // Join tax tables
            ->join('LEFT', '#__alfa_tax_categories AS tc ON tc.tax_id = t.id')
            ->join('LEFT', '#__alfa_tax_manufacturers AS tm ON tm.tax_id = t.id')
            ->join('LEFT', '#__alfa_tax_usergroups AS tu ON tu.tax_id = t.id')
            ->join('LEFT', '#__alfa_tax_users AS tg ON tg.tax_id = t.id')
 
-                // Join item tables to match categories, manufacturers, places, etc. based on item_id
+            // Join item tables to match categories, manufacturers, places, etc. based on item_id
            ->join('LEFT', '#__alfa_items_categories AS ic ON ic.category_id = tc.category_id')
            ->join('LEFT', '#__alfa_items_manufacturers AS im ON im.manufacturer_id = tm.manufacturer_id')
            ->join('LEFT', '#__alfa_items_usergroups AS iug ON iug.usergroup_id = tu.usergroup_id')
            ->join('LEFT', '#__alfa_items_users AS iu ON iu.user_id = tg.user_id')
 
-                // Apply conditions to check if the item matches the category, manufacturer, place, or usergroup
+            // Apply conditions to check if the item matches the category, manufacturer, place, or usergroup
            ->where('(ic.item_id = ' . $db->quote($productId) . ' OR tc.category_id = 0)')
            ->where('(im.item_id = ' . $db->quote($productId) . ' OR tm.manufacturer_id = 0)')
            ->where('(iug.item_id = ' . $db->quote($productId) . ' OR tu.usergroup_id = 0)')
            ->where('(iu.item_id = ' . $db->quote($productId) . ' OR tg.user_id = 0)')
-            ->where(// Check if the tax start date is valid or not set
-                'IFNULL(NOW() >= ' . $db->quoteName('t.publish_up') .
-                ' OR ' . $db->quoteName('t.publish_up') . ' = "0000-00-00 00:00:00", 1) = 1 ' .
-                //
-                ' AND ' .
-                // Check if the coupon has not expired
-                'IFNULL(' . $db->quoteName('t.publish_down') . ' != "0000-00-00 00:00:00" ' .
-                'AND NOW() > ' . $db->quoteName('t.publish_down') . ', 0) = 0')
+        ->where(// Check if the tax start date is valid or not set
+            'IFNULL(NOW() >= ' . $db->quoteName('t.publish_up') .
+            ' OR ' . $db->quoteName('t.publish_up') . ' = "0000-00-00 00:00:00", 1) = 1 ' .
+            //
+            ' AND ' .
+            // Check if the coupon has not expired
+            'IFNULL(' . $db->quoteName('t.publish_down') . ' != "0000-00-00 00:00:00" ' .
+            'AND NOW() > ' . $db->quoteName('t.publish_down') . ', 0) = 0'
+        )
 
 /*
-                ->where('t.id IN (' . $subCat . ')
-                        OR t.id IN (' . $subMan . ')
-                        OR t.id IN (' . $subUsgr . ')
-                        OR t.id IN (' . $subUs . ')'.
-                       'OR t.id IN (' . $selCat0 . ')' .
-                        'OR t.id IN (' . $selMan0 . ')' .
-                        'OR t.id IN (' . $selUsgr0 . ')' .
-                        'OR t.id IN (' . $selUs0 . ')'
-                )
+            ->where('t.id IN (' . $subCat . ')
+                    OR t.id IN (' . $subMan . ')
+                    OR t.id IN (' . $subUsgr . ')
+                    OR t.id IN (' . $subUs . ')'.
+                   'OR t.id IN (' . $selCat0 . ')' .
+                    'OR t.id IN (' . $selMan0 . ')' .
+                    'OR t.id IN (' . $selUsgr0 . ')' .
+                    'OR t.id IN (' . $selUs0 . ')'
+            )
 */
-                // Only active taxes
-                ->where('t.state = 1')
-                ->order('t.ordering ASC');
+            // Only active taxes
+            ->where('t.state = 1')
+            ->order('t.ordering ASC');
 
-            $db->setQuery($query);
+        $db->setQuery($query);
 
-            $end = hrtime(true);
+        $end = hrtime(true);
 
-            $totals += $end - $start;
+        $totals += $end - $start;
         // }
 
         // echo "Duration: " . $totals / 1e+9 . "<br>";
@@ -525,15 +537,17 @@ class PriceCalculator
 
         // TODO: default category on products should be added to calculate the right tax
 
-        foreach($taxes as $tax){
-            if(empty($tax->value)){continue;}
+        foreach ($taxes as $tax) {
+            if (empty($tax->value)) {
+                continue;
+            }
 
-            if($tax->behavior=='0'){    //only this tax so we reinitialize the array and break the loop
+            if ($tax->behavior == '0') {    //only this tax so we reinitialize the array and break the loop
                 $tax_value_array = [$tax->value];
                 break;
-            }else if($tax->behavior=='1'){//combined   10%,2%    $calculated_tax_value = 12%
+            } elseif ($tax->behavior == '1') {//combined   10%,2%    $calculated_tax_value = 12%
                 $tax_value_array[0] += $tax->value;
-            }else if($tax->behavior=='2'){//one after another 10%,2%    $calculated_tax_value = price*10% + price*2%
+            } elseif ($tax->behavior == '2') {//one after another 10%,2%    $calculated_tax_value = price*10% + price*2%
                 $tax_value_array[] = $tax->value;
             }
         }
@@ -551,14 +565,14 @@ class PriceCalculator
                 if ($priceRule['modify_type'] == 'amount') {
                     return $price + $priceRule['value'];
                 } elseif ($priceRule['modify_type'] == 'percentage') {
-                    return $price + $this->getPercentage($price,$priceRule['value']);
+                    return $price + $this->getPercentage($price, $priceRule['value']);
                 }
                 break;
             case 'remove':
                 if ($priceRule['modify_type'] == 'amount') {
                     return $price - $priceRule['value'];
                 } elseif ($priceRule['modify_type'] == 'percentage') {
-                    return $price - $this->getPercentage($price,$priceRule['value']);
+                    return $price - $this->getPercentage($price, $priceRule['value']);
                 }
                 break;
         }
@@ -568,39 +582,45 @@ class PriceCalculator
     // Apply tax to the price
     protected function applyPercentages($price, $percentagesData)
     {
-        if(empty($percentagesData) || !is_array($percentagesData)){ return $price; }
+        if (empty($percentagesData) || !is_array($percentagesData)) {
+            return $price;
+        }
 
         $price_calculated = $price;
-       
+
         // tax_value_array have on first position all combined or only this tax value and on next places the one after another values
-        foreach($percentagesData as $percentage){
-            $price_calculated += $this->getPercentage($price_calculated,$percentage);    
+        foreach ($percentagesData as $percentage) {
+            $price_calculated += $this->getPercentage($price_calculated, $percentage);
         }
-        
+
         return $price_calculated;
         // return $price + ($price * $taxRate);
     }
 
-    protected function getPercentage($value,$percent){
+    protected function getPercentage($value, $percent)
+    {
         return (abs($value) * ($percent / 100));
     }
 }
 
-class DiscountValue {
+class DiscountValue
+{
     public $value;
     public $isAmount;
     public $name;
     public $operation;
     public $combinedValues;
 
-    public function __construct($value = 0, $isAmount = 0, $operation = 0, $name = '') {
+    public function __construct($value = 0, $isAmount = 0, $operation = 0, $name = '')
+    {
         $this->value = $value;
         $this->isAmount = $isAmount;
         $this->name = $name;
         $this->operation = $operation;
     }
 
-    public function addValue($value,$isAmount, $operation, $name) {
+    public function addValue($value, $isAmount, $operation, $name)
+    {
 
         $value = abs($value);// an einai -24 to kanw 24
         $this->value = abs($this->value);
@@ -619,12 +639,12 @@ class DiscountValue {
 
 
         // Construct $this value according to the main operation
-        if($this->operation == 0){
+        if ($this->operation == 0) {
             $this->value = $this->value * -1;
         }
 
         // Construct current value according the the current operation
-        if($operation == 0){
+        if ($operation == 0) {
             $value = $value * -1;
         }
 
@@ -635,18 +655,20 @@ class DiscountValue {
         $this->operation = ($this->value < 0 ? 0 : 1);
         $this->value = abs($this->value);
 
-        if($this->name==''){
+        if ($this->name == '') {
             $this->name = $name;
         }
 
     }
 }
 
-class DiscountGroup {
+class DiscountGroup
+{
     public $beforeTax = [];
     public $afterTax = [];
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->beforeTax[0]['amount'] = new DiscountValue();
         $this->beforeTax[0]['percent'] = new DiscountValue();
 
@@ -654,11 +676,12 @@ class DiscountGroup {
         $this->afterTax[0]['percent'] = new DiscountValue();
     }
 
-    public function cleanEmptys(){
+    public function cleanEmptys()
+    {
 
         // Define a function to clean nested structures
         $cleanNested = function (&$array) {
-            
+
             foreach ($array as $key => &$item) {
                 if (is_array($item)) {
                     foreach ($item as $subKey => $subItem) {
@@ -678,7 +701,7 @@ class DiscountGroup {
 
                 // we break instant the loop cause we want to check only the first position of the array
                 // we do this because in construct we create empty values and we dont always want them which exist in 0 index
-                break; 
+                break;
             }
         };
 

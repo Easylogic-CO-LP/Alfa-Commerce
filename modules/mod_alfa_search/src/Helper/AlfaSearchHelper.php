@@ -57,8 +57,8 @@ class AlfaSearchHelper
         $input = $app->input;
         $lang  = $app->getLanguage();
         $lang->load('mod_alfa_search');
-        
-//         $limit        = $input->getInt('limit', 6);
+
+        //         $limit        = $input->getInt('limit', 6);
         // $limitstart   = $input->getInt('limitstart', 0);
         $keyword = $input->getString('query', '');
         $params = new Registry($module->params);
@@ -81,8 +81,8 @@ class AlfaSearchHelper
         $itemsModel->getState('list.ordering');//we should use get before set the list state fields
         $itemsModel->setState('filter.state', '1');
         $itemsModel->setState('filter.search', $keyword);
-//      $itemsModel->setState('list.ordering', $orderBy);
-//      $itemsModel->setState('list.direction', $orderDir);
+        //      $itemsModel->setState('list.ordering', $orderBy);
+        //      $itemsModel->setState('list.direction', $orderDir);
         $products = $itemsModel->getItems();
 
         // Get categories from alfa component
@@ -92,10 +92,10 @@ class AlfaSearchHelper
             $categoriesModel->getState('list.ordering');//we should use get before set the list state fields
             $categoriesModel->setState('filter.state', '1');
             $categoriesModel->setState('filter.search', $keyword);
-//            $categoriesModel->setState('list.limit', '0'); //TODO: take limit from form field. Mans too
+            //            $categoriesModel->setState('list.limit', '0'); //TODO: take limit from form field. Mans too
 
-//      $itemsModel->setState('list.ordering', $orderBy);
-//      $itemsModel->setState('list.direction', $orderDir);
+            //      $itemsModel->setState('list.ordering', $orderBy);
+            //      $itemsModel->setState('list.direction', $orderDir);
             $categories = $categoriesModel->getItems();
         }
 
@@ -106,17 +106,17 @@ class AlfaSearchHelper
             $manufacturersModel->getState('list.ordering');//we should use get before set the list state fields
             $manufacturersModel->setState('filter.state', '1');
             $manufacturersModel->setState('filter.search', $keyword);
-//      $itemsModel->setState('list.ordering', $orderBy);
-//      $itemsModel->setState('list.direction', $orderDir);
+            //      $itemsModel->setState('list.ordering', $orderBy);
+            //      $itemsModel->setState('list.direction', $orderDir);
             $manufacturers = $manufacturersModel->getItems();
         }
-//        if (!empty($products)) {
-//            $count = count($products);
-//
-//             if($count >= $limit)
-//             {
-//                 $end = false;
-//             }
+        //        if (!empty($products)) {
+        //            $count = count($products);
+        //
+        //             if($count >= $limit)
+        //             {
+        //                 $end = false;
+        //             }
 
         // get tha filelayout we use for our result of each product
         $layout = new FileLayout('result', JPATH_ROOT . '/modules/mod_alfa_search/tmpl');
@@ -144,14 +144,14 @@ class AlfaSearchHelper
         // }
 
 
-        $data = array(
+        $data = [
             'query' => $keyword,
             'suggestions' => $results,
             // 'limitstart' => $limitstart,
             // 'limit' => $limit,
             // 'count' => $count,
             // 'end' => $end
-        );
+        ];
 
 
         // json output

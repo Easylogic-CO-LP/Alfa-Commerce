@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -9,7 +10,7 @@
 
 namespace Alfa\Component\Alfa\Site\Helper;
 
-use \Joomla\CMS\Factory;
+use Joomla\CMS\Factory;
 use Joomla\CMS\Layout\FileLayout;
 use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Plugin\PluginHelper;
@@ -23,67 +24,65 @@ defined('_JEXEC') or die;
  */
 class PluginLayoutHelper
 {
+    public static function pluginLayout($pluginType, $pluginName, $fileName): FileLayout
+    {
+        if (empty($pluginType) || empty($pluginName) || empty($fileName)) {
+            return self::getEmptyLayout();
+        }
 
-	public static function pluginLayout($pluginType,$pluginName,$fileName): FileLayout
-	{
-		if(empty($pluginType) || empty($pluginName) || empty($fileName)){
-			return self::getEmptyLayout();
-		}
+        $path = dirname(PluginHelper::getLayoutPath($pluginType, $pluginName, $fileName));
 
-		$path = dirname(PluginHelper::getLayoutPath($pluginType, $pluginName, $fileName));
+        if (file_exists($path . '/' . $fileName . '.php')) {
+            return new FileLayout($fileName, $path);
+        } else {
+            if (JDEBUG) {
+                Factory::getApplication()->enqueueMessage(
+                    "Plugin layout not found: $pluginType / $pluginName / $fileName.",
+                    'warning'
+                );
+            }
 
-		if (file_exists($path . '/' . $fileName . '.php')) {
-			return new FileLayout($fileName, $path);
-		}else{
-			if (JDEBUG)
-			{
-				Factory::getApplication()->enqueueMessage(
-					"Plugin layout not found: $pluginType / $pluginName / $fileName.",
-					'warning'
-				);
-			}
+            return self::getDefaultPluginLayout($pluginType);
+        }
 
-			return self::getDefaultPluginLayout($pluginType);
-		}
+    }
 
-	}
+    public static function getDefaultPluginLayout($type): FileLayout
+    {
 
-	public static function getDefaultPluginLayout($type): FileLayout
-	{
+        $layoutType = explode('-', $type)[1] ?? '';
+        $layoutFile = self::getLayoutDefaultFilename();
 
-		$layoutType = explode('-', $type)[1] ?? '';
-		$layoutFile = self::getLayoutDefaultFilename();
+        if (!empty($layoutType) && !empty($layoutFile)) {
+            $layout = new FileLayout($layoutType.'.'.$layoutFile, JPATH_SITE . '/components/com_alfa/layouts');
+        } else {
+            $layout = self::getEmptyLayout();
+        }
 
-		if(!empty($layoutType) && !empty($layoutFile)){
-			$layout = new FileLayout($layoutType.'.'.$layoutFile, JPATH_SITE . '/components/com_alfa/layouts');
-		}else{
-			$layout = self::getEmptyLayout();
-		}
+        return $layout;
+    }
 
-		return $layout;
-	}
+    public static function getLayoutDefaultFilename(): string
+    {
+        $app = Factory::getApplication();
+        $input = $app->input;
+        $view = $input->get('view', $input->get('controller', ''));
 
-	public static function getLayoutDefaultFilename(): string
-	{
-		$app = Factory::getApplication();
-		$input = $app->input;
-		$view = $input->get('view',$input->get('controller',''));
+        $layoutFile = '';
 
-		$layoutFile = '';
+        if ($view == 'cart') {
+            $layoutFile = 'default_cart_view';
+        }
 
-		if($view == 'cart'){
-			$layoutFile = 'default_cart_view';
-		}
-
-		return $layoutFile;
-	}
+        return $layoutFile;
+    }
 
 
-	public static function getEmptyLayout(): FileLayout
-	{
-		$empty_layout = new FileLayout('non.existing.layout'); // Or any layout ID that doesn’t exist
-		$empty_layout->clearIncludePaths(); // Optional: ensures no valid paths are searched
-		return $empty_layout; // dummy empty layout which with render will output ''
-	}
+    public static function getEmptyLayout(): FileLayout
+    {
+        $empty_layout = new FileLayout('non.existing.layout'); // Or any layout ID that doesn’t exist
+        $empty_layout->clearIncludePaths(); // Optional: ensures no valid paths are searched
+        return $empty_layout; // dummy empty layout which with render will output ''
+    }
 
 }

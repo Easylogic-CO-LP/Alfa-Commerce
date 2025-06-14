@@ -25,8 +25,8 @@ use Joomla\CMS\Event\Result\ResultTypeStringAware;
  */
 class ProductViewEvent extends PaymentsLayoutEvent
 {
-	public function getItem()
-	{
-		return $this->getSubject();
-	}
+    public function getItem()
+    {
+        return $this->getSubject();
+    }
 }

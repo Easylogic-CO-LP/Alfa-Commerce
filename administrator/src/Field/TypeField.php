@@ -65,16 +65,16 @@ class TypeField extends ListField
     {
         $options = parent::getOptions();
 
-//        $fieldTypes = FieldsHelper::getFieldTypes();
+        //        $fieldTypes = FieldsHelper::getFieldTypes();
 
         $fieldTypes = AlfaHelper::getFieldTypes('fields');
-//        print_r($fieldTypes);
-//        exit;
-//        $options[] = HTMLHelper::_('select.option', 'test', 'test');
-//        return $options;
+        //        print_r($fieldTypes);
+        //        exit;
+        //        $options[] = HTMLHelper::_('select.option', 'test', 'test');
+        //        return $options;
         foreach ($fieldTypes as $fieldType) {
             $options[] = HTMLHelper::_('select.option', $fieldType['name'], $fieldType['name']);
-//            $options[] = HTMLHelper::_('select.option', $fieldType['type'], $fieldType['label']);
+            //            $options[] = HTMLHelper::_('select.option', $fieldType['type'], $fieldType['label']);
         }
 
         // Sorting the fields based on the text which is displayed

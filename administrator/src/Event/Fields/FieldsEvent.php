@@ -10,6 +10,7 @@
 namespace Alfa\Component\Alfa\Administrator\Event\Fields;
 
 use Joomla\CMS\Event\AbstractImmutableEvent;
+
 // use Joomla\CMS\Event\ReshapeArgumentsAware;
 
 // phpcs:disable PSR1.Files.SideEffects

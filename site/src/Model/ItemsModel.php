@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -8,22 +9,22 @@
  */
 
 namespace Alfa\Component\Alfa\Site\Model;
+
 // No direct access.
 defined('_JEXEC') or die;
 
-use \Joomla\CMS\Factory;
-use \Joomla\CMS\Language\Text;
-use \Joomla\CMS\MVC\Model\ListModel;
-use \Joomla\Component\Fields\Administrator\Helper\FieldsHelper;
-use \Joomla\CMS\Helper\TagsHelper;
-use \Joomla\CMS\Layout\FileLayout;
-use \Joomla\Database\ParameterType;
-use \Joomla\Utilities\ArrayHelper;
-use \Alfa\Component\Alfa\Site\Helper\AlfaHelper;
-use \Alfa\Component\Alfa\Site\Helper\ProductHelper;
-use \Alfa\Component\Alfa\Site\Helper\PriceCalculator;
-
-use \Joomla\CMS\Component\ComponentHelper;
+use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
+use Joomla\CMS\MVC\Model\ListModel;
+use Joomla\Component\Fields\Administrator\Helper\FieldsHelper;
+use Joomla\CMS\Helper\TagsHelper;
+use Joomla\CMS\Layout\FileLayout;
+use Joomla\Database\ParameterType;
+use Joomla\Utilities\ArrayHelper;
+use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Site\Helper\ProductHelper;
+use Alfa\Component\Alfa\Site\Helper\PriceCalculator;
+use Joomla\CMS\Component\ComponentHelper;
 
 /**
  * Methods supporting a list of Alfa records.
@@ -40,10 +41,10 @@ class ItemsModel extends ListModel
      * @see    JController
      * @since  1.0.1
      */
-    public function __construct($config = array())
+    public function __construct($config = [])
     {
         if (empty($config['filter_fields'])) {
-            $config['filter_fields'] = array(
+            $config['filter_fields'] = [
                 'state', 'a.state',
                 'ordering', 'a.ordering',
 //				'created_by', 'a.created_by',
@@ -61,7 +62,7 @@ class ItemsModel extends ListModel
                 'alias', 'a.alias',
                 'meta_title', 'a.meta_title',
                 'meta_desc', 'a.meta_desc',
-            );
+            ];
         }
 
         parent::__construct($config);
@@ -137,11 +138,12 @@ class ItemsModel extends ListModel
 
         // Select the required fields from the table.
         $query->select(
-            $this->getState('list.select',
+            $this->getState(
+                'list.select',
                 'DISTINCT a.*,
 								GROUP_CONCAT(cat.category_id ORDER BY cat.category_id ASC) AS category_ids,
 								GROUP_CONCAT(man.manufacturer_id ORDER BY man.manufacturer_id ASC) AS manufacturer_ids'
-                                // 'GROUP_CONCAT(pr.id ORDER BY pr.id ASC) AS price_ids'
+                // 'GROUP_CONCAT(pr.id ORDER BY pr.id ASC) AS price_ids'
             )
         );
 
@@ -220,7 +222,8 @@ class ItemsModel extends ListModel
      */
 
 
-   public function getItems(){
+    public function getItems()
+    {
 
         $app = Factory::getApplication();
         $user = $app->getIdentity();
@@ -258,18 +261,20 @@ class ItemsModel extends ListModel
             $item->manufacturers = $this->mapIdsToNames($item->manufacturer_ids, $manufacturersMapping);
 
             //Setting correct stock action settings in case they are to be retrieved from general settings (global configuration).
-            if($item->stock_action == -1) {
+            if ($item->stock_action == -1) {
                 $item->stock_action = $settings->get("stock_action");
                 $item->stock_low_message = $settings->get("stock_low_message");
                 $item->stock_zero_message = $settings->get("stock_zero_message");
             }
 
-            if(empty($item->stock_low_message))
+            if (empty($item->stock_low_message)) {
                 $item->stock_low_message = $settings->get("stock_low_message");
+            }
 
-            if(empty($item->stock_zero_message))
+            if (empty($item->stock_zero_message)) {
                 $item->stock_zero_message = $settings->get("stock_zero_message");
-            
+            }
+
         }
 
 
