@@ -38,10 +38,10 @@ class CalculateShippingCostEvent extends ShipmentsEvent
     {
         $this->arguments['shippingCost'] = $cost;
     }
-
+    
     public function getShippingCost(): ?int
     {
         return $this->arguments['shippingCost'] ?? 0;
     }
-
+    
 }

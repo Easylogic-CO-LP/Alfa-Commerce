@@ -19,6 +19,7 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Field\ListField;
+
 // use Joomla\CMS\Date\Date;
 use Joomla\CMS\Form\Field\TextField;
 use Joomla\CMS\Language\LanguageHelper;
@@ -29,59 +30,60 @@ use Joomla\CMS\Uri\Uri;
 
 class MultilingualTextField extends TextField
 {
-    protected $type = 'MultilingualText';
 
-    protected function getInput()
-    {
+	protected $type = 'MultilingualText';
 
-        $html = '';
-        $languages = LanguageHelper::getLanguages('lang_code'); // Get all installed languages
-        //		$value = $this->value;
-        $defaultName = $this->name;
-        $defaultId = $this->id;
-        //		$flagPath = Uri::root().'media/com_languages/images/'; // Path to the flag images
+	protected function getInput()
+	{
 
-        // Check if there are multiple languages
-        $multilang = count($languages) > 1;// && Multilanguage::isEnabled();
+		$html = '';
+		$languages = LanguageHelper::getLanguages('lang_code'); // Get all installed languages
+//		$value = $this->value;
+		$defaultName = $this->name;
+		$defaultId = $this->id;
+//		$flagPath = Uri::root().'media/com_languages/images/'; // Path to the flag images
 
-        foreach ($languages as $langCode => $language) {
-            // Convert language code from 'el-GR' to 'el_gr'
-            $formattedLangCode = str_replace('-', '_', strtolower($langCode));
+		// Check if there are multiple languages
+		$multilang = count($languages) > 1;// && Multilanguage::isEnabled();
 
-            // Prepare unique name and id for each language
-            $inputId = $defaultId . '_' . $formattedLangCode;
-            //			$inputName = str_replace('jform['.$defaultName.']', $defaultName . '_' . $formattedLangCode, strtolower($langCode)) ;
-            $inputName = $defaultName;
+		foreach ($languages as $langCode => $language) {
+			// Convert language code from 'el-GR' to 'el_gr'
+			$formattedLangCode = str_replace('-', '_', strtolower($langCode));
 
-            //			print_r($inputName);
-            //			exit;
-            // Input field
-            $inputField = $this->render(
-                $this->layout,
-                [
-                    'id'             => $inputId,
-                    'name'           => 'jform[name_'.$formattedLangCode.']',
-                    'value'          => 'test',
-                ]
-            );
+			// Prepare unique name and id for each language
+			$inputId = $defaultId . '_' . $formattedLangCode;
+//			$inputName = str_replace('jform['.$defaultName.']', $defaultName . '_' . $formattedLangCode, strtolower($langCode)) ;
+			$inputName = $defaultName;
 
-            // Flag Image - Only set the flag image if there are multiple languages
-            $flagImage = '';
-            if ($multilang) {
-                $flagImageInlineStyle = 'position:absolute;right:0;top:0;';
-                $flagImage = HTMLHelper::_('image', 'mod_languages/' . $language->image . '.gif', $language->title_native, ['title' => $language->title_native,'style' => $flagImageInlineStyle], true);
-            }
+//			print_r($inputName);
+//			exit;
+			// Input field
+			$inputField = $this->render(
+				$this->layout,
+				[
+					'id'             => $inputId,
+					'name'           => 'jform[name_'.$formattedLangCode.']',
+					'value'          => 'test',
+				]
+			);
 
-            // Create a div to hold the input and the flag
-            $html .= '<div style="position:relative">'.
-                $inputField .
-                $flagImage
-                .'</div>';
+			// Flag Image - Only set the flag image if there are multiple languages
+			$flagImage = '';
+			if ($multilang) {
+				$flagImageInlineStyle = 'position:absolute;right:0;top:0;';
+				$flagImage = HTMLHelper::_('image', 'mod_languages/' . $language->image . '.gif', $language->title_native, ['title' => $language->title_native,'style'=>$flagImageInlineStyle], true);
+			}
 
-        }
-        return $html;
+			// Create a div to hold the input and the flag
+			$html .= '<div style="position:relative">'.
+				$inputField .
+				$flagImage
+				.'</div>';
 
-    }
+		}
+		return $html;
+
+	}
 
 }
 

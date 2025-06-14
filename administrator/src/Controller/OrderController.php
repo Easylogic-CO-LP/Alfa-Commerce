@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -16,6 +15,7 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\MVC\Controller\FormController;
 use Joomla\CMS\Router\Route;
 
+
 /**
  * Order controller class.
  *
@@ -23,7 +23,7 @@ use Joomla\CMS\Router\Route;
  */
 class OrderController extends FormController
 {
-    protected $view_list = 'orders';
+	protected $view_list = 'orders';
 
 
     // TODO: Error handling.
@@ -38,9 +38,8 @@ class OrderController extends FormController
         $data = $this->input->post->get('jform', [], 'array');
         $model = $this->getModel();
 
-        if ($model->saveOrderShipment($data)) {
+        if($model->saveOrderShipment($data))
             $this->app->enqueueMessage("The order's shipment was saved successfully.", "success");
-        }
 
         $redirectURL = "index.php?option={$this->option}&view=order&layout=edit_shipment&tmpl=component&id={$data["id"]}&id_order={$orderID}";
         $this->setRedirect(Route::_($redirectURL, false));
@@ -57,47 +56,42 @@ class OrderController extends FormController
         $data = $this->input->post->get('jform', [], 'array');
         $model = $this->getModel();
 
-        if ($model->saveOrderPayment($data)) {
+        if($model->saveOrderPayment($data))
             $this->app->enqueueMessage("The order's payment was saved successfully.", "success");
-        }
 
         $redirectURL = "index.php?option={$this->option}&view=order&layout=edit_payment&tmpl=component&id={$data["id"]}&id_order={$orderID}";
         $this->setRedirect(Route::_($redirectURL, false));
     }
 
-    public function deleteShipment()
-    {
+    public function deleteShipment(){
         $this->checkToken();
         $input = Factory::getApplication()->getInput();
 
         $shipmentID = $input->getInt("id");
         $orderID = $input->getInt("id_order");
 
-        //        $data = $this->input->post->get('jform', [], 'array');
+//        $data = $this->input->post->get('jform', [], 'array');
         $model = $this->getModel();
 
-        if ($model->deleteOrderShipment($shipmentID, $orderID)) {
+        if($model->deleteOrderShipment($shipmentID, $orderID))
             $this->app->enqueueMessage("The shipment was deleted successfully.", "success");
-        }
 
         $redirectURL = "index.php?option={$this->option}&view=order&layout=edit_shipment&tmpl=component&id=0&id_order={$orderID}";
         $this->setRedirect(Route::_($redirectURL, false));
     }
 
-    public function deletePayment()
-    {
+    public function deletePayment(){
         $this->checkToken();
         $input = Factory::getApplication()->getInput();
 
         $paymentID = $input->getInt("id");
         $orderID = $input->getInt("id_order");
 
-        //        $data = $this->input->post->get('jform', [], 'array');
+//        $data = $this->input->post->get('jform', [], 'array');
         $model = $this->getModel();
 
-        if ($model->deleteOrderPayment($paymentID, $orderID)) {
+        if($model->deleteOrderPayment($paymentID, $orderID))
             $this->app->enqueueMessage("The payment was deleted successfully.", "success");
-        }
 
         $redirectURL = "index.php?option={$this->option}&view=order&layout=edit_shipment&tmpl=component&id=0&id_order={$orderID}";
         $this->setRedirect(Route::_($redirectURL, false));

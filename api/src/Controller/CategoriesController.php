@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -7,7 +6,6 @@
  * @copyright  2024 Easylogic CO LP
  * @license    GNU General Public License version 2 or later; see LICENSE.txt
  */
-
 namespace Alfa\Component\Alfa\Api\Controller;
 
 \defined('_JEXEC') or die;
@@ -19,21 +17,21 @@ use Joomla\CMS\MVC\Controller\ApiController;
  *
  * @since  1.0.1
  */
-class CategoriesController extends ApiController
+class CategoriesController extends ApiController 
 {
-    /**
-     * The content type of the item.
-     *
-     * @var    string
-     * @since  1.0.1
-     */
-    protected $contentType = 'categories';
+	/**
+	 * The content type of the item.
+	 *
+	 * @var    string
+	 * @since  1.0.1
+	 */
+	protected $contentType = 'categories';
 
-    /**
-     * The default view for the display method.
-     *
-     * @var    string
-     * @since  1.0.1
-     */
-    protected $default_view = 'categories';
+	/**
+	 * The default view for the display method.
+	 *
+	 * @var    string
+	 * @since  1.0.1
+	 */
+	protected $default_view = 'categories';
 }

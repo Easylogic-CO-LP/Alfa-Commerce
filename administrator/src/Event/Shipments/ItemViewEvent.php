@@ -25,8 +25,8 @@ use Joomla\CMS\Event\Result\ResultTypeStringAware;
  */
 class ItemViewEvent extends ShipmentsLayoutEvent
 {
-    public function getItem()
-    {
-        return $this->getSubject();
-    }
+	public function getItem()
+	{
+		return $this->getSubject();
+	}
 }

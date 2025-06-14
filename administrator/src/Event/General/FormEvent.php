@@ -24,119 +24,118 @@ use Joomla\CMS\Form\Form;
  */
 abstract class FormEvent extends AbstractImmutableEvent
 {
-    /**
-     * Constructor.
-     *
-     * @param   string  $name       The event name.
-     * @param   array   $arguments  The event arguments.
-     *
-     * @throws  \BadMethodCallException
-     *
-     * @since   5.0.0
-     */
-    public function __construct($name, array $arguments = [])
-    {
 
-        parent::__construct($name, $arguments);
+	/**
+	 * Constructor.
+	 *
+	 * @param   string  $name       The event name.
+	 * @param   array   $arguments  The event arguments.
+	 *
+	 * @throws  \BadMethodCallException
+	 *
+	 * @since   5.0.0
+	 */
+	public function __construct($name, array $arguments = [])
+	{
 
-        if (!\array_key_exists('subject', $this->arguments)) {
-            throw new \BadMethodCallException("Argument 'subject' of event {$name} is required but has not been provided");
-        }
+		parent::__construct($name, $arguments);
 
-        if (!\array_key_exists('data', $this->arguments)) {
-            throw new \BadMethodCallException("Argument 'data' of event {$name} is required but has not been provided");
-        }
-    }
+		if (!\array_key_exists('subject', $this->arguments)) {
+			throw new \BadMethodCallException("Argument 'subject' of event {$name} is required but has not been provided");
+		}
 
-    /**
-     * Setter for the context argument.
-     *
-     * @param   string  $value  The value to set
-     *
-     * @return  string
-     *
-     * @since  5.0.0
-     */
-    protected function onSetContext(string $value): string
+		if (!\array_key_exists('data', $this->arguments)) {
+			throw new \BadMethodCallException("Argument 'data' of event {$name} is required but has not been provided");
+		}
+	}
+
+	/**
+	 * Setter for the context argument.
+	 *
+	 * @param   string  $value  The value to set
+	 *
+	 * @return  string
+	 *
+	 * @since  5.0.0
+	 */
+	protected function onSetContext(string $value): string
+	{
+		return $value;
+	}
+
+	/**
+	 * Getter for the context argument.
+	 *
+	 * @return  string
+	 *
+	 * @since  5.0.0
+	 */
+	public function getContext(): string
+	{
+		return $this->arguments['context'];
+	}
+
+	/**
+	 * Setter for the subject argument.
+	 *
+	 * @param   Form  $value  The value to set
+	 *
+	 * @return  Form
+	 *
+	 * @since  5.0.0
+	 */
+	protected function onSetSubject(Form $value): Form
     {
         return $value;
     }
 
-    /**
-     * Getter for the context argument.
-     *
-     * @return  string
-     *
-     * @since  5.0.0
-     */
-    public function getContext(): string
-    {
-        return $this->arguments['context'];
-    }
-
-    /**
-     * Setter for the subject argument.
-     *
-     * @param   Form  $value  The value to set
-     *
-     * @return  Form
-     *
-     * @since  5.0.0
-     */
-    protected function onSetSubject(Form $value): Form
-    {
-        return $value;
-    }
 
 
 
-
-    public function setForm($form)
-    {
+    public function setForm($form){
         $this->arguments["subject"] = $form;
     }
 
 
-    /**
-     * Setter for the data argument.
-     *
-     * @param   object|array  $value  The value to set
-     *
-     * @return  object|array
-     *
-     * @since  5.0.0
-     */
-    protected function onSetData(object|array $value): object|array
-    {
-        return $value;
-    }
+	/**
+	 * Setter for the data argument.
+	 *
+	 * @param   object|array  $value  The value to set
+	 *
+	 * @return  object|array
+	 *
+	 * @since  5.0.0
+	 */
+	protected function onSetData(object|array $value): object|array
+	{
+		return $value;
+	}
 
-    /**
-     * Getter for the form.
-     *
-     * @return  Form
-     *
-     * @since  5.0.0
-     */
-    public function getForm(): Form
-    {
-        return $this->arguments['subject'];
-    }
+	/**
+	 * Getter for the form.
+	 *
+	 * @return  Form
+	 *
+	 * @since  5.0.0
+	 */
+	public function getForm(): Form
+	{
+		return $this->arguments['subject'];
+	}
 
-    /**
-     * Getter for the data.
-     *
-     * @return  object|array
-     *
-     * @since  5.0.0
-     */
-    public function getData(): object|array
-    {
-        return $this->arguments['data'];
-    }
+	/**
+	 * Getter for the data.
+	 *
+	 * @return  object|array
+	 *
+	 * @since  5.0.0
+	 */
+	public function getData(): object|array
+	{
+		return $this->arguments['data'];
+	}
 
-    public function setData($data)
-    {
+    public function setData($data){
         $this->arguments["data"] = $data;
     }
 

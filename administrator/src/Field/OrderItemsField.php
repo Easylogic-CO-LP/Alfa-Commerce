@@ -19,41 +19,42 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 use Alfa\Component\Alfa\Administrator\Helper\OrderHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Field\ListField;
+
 // use Joomla\CMS\Date\Date;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
-
 // use Joomla\CMS\HTML\HTMLHelper;
 
 class OrderItemsField extends ListField
 {
+
     protected $type = 'orderItems';
 
     protected $options = [];
 
-    protected $value;
+	protected $value;
 
     protected function getOptions()
-    {
+    {   
 
         $this->options = parent::getOptions();
-        $inputIdName = $this->getAttribute('input_id', 'id');
+	    $inputIdName = $this->getAttribute('input_id','id');
 
         $app = Factory::getApplication();
         $input = $app->input;
 
 
-        $orderId = $input->get($inputIdName, 0);
+        $orderId = $input->get($inputIdName,0);
 
-        //		print_r($orderId);
+//		print_r($orderId);
         // $orderId = $this->form->getValue('id_order',0)
 
-        if ($orderId > 0) {
+        if($orderId > 0){
             $orderItems = OrderHelper::getOrderItems($orderId);
 
-            foreach ($orderItems as $index => $item) {
+            foreach ($orderItems as $index=>$item) {
 
-                //	            $this->options[] = HTMLHelper::_('select.option', $item->id, $item->name);
+//	            $this->options[] = HTMLHelper::_('select.option', $item->id, $item->name);
 
                 $this->options['item-' . $item->id] =
                         [

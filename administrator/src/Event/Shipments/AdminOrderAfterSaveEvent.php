@@ -31,3 +31,4 @@ class AdminOrderAfterSaveEvent extends ShipmentsEvent
     }
 
 }
+

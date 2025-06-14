@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -21,5 +20,5 @@ use Joomla\CMS\MVC\Controller\FormController;
  */
 class PlaceController extends FormController
 {
-    protected $view_list = 'places';
+	protected $view_list = 'places';
 }

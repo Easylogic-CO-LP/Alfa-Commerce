@@ -14,7 +14,6 @@ use Alfa\Component\Alfa\Administrator\Helper\ShipmentsHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Field\ListField;
 use Joomla\CMS\HTML\HTMLHelper;
-
 //use Alfa\Component\Alfa\Administrator\Helper\PaymentsHelper;
 // use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 
@@ -51,7 +50,7 @@ class FormfieldField extends ListField
     {
         $return = parent::setup($element, $value, $group);
 
-        //         $this->onchange = 'Joomla.typeHasChanged(this);';
+//         $this->onchange = 'Joomla.typeHasChanged(this);';
 
         return $return;
     }

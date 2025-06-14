@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -9,15 +8,14 @@
  */
 
 namespace Alfa\Component\Alfa\Administrator\View\Orderstatus;
-
 // No direct access
 defined('_JEXEC') or die;
 
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
-use Joomla\CMS\Toolbar\ToolbarHelper;
-use Joomla\CMS\Factory;
-use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
-use Joomla\CMS\Language\Text;
+use \Joomla\CMS\Toolbar\ToolbarHelper;
+use \Joomla\CMS\Factory;
+use \Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use \Joomla\CMS\Language\Text;
 
 /**
  * View class for a single Order.
@@ -48,7 +46,8 @@ class HtmlView extends BaseHtmlView
         $this->form  = $this->get('Form');
 
         // Check for errors.
-        if (count($errors = $this->get('Errors'))) {
+        if (count($errors = $this->get('Errors')))
+        {
             throw new \Exception(implode("\n", $errors));
         }
         $this->addToolbar();
@@ -70,9 +69,12 @@ class HtmlView extends BaseHtmlView
         $user  = Factory::getApplication()->getIdentity();
         $isNew = ($this->item->id == 0);
 
-        if (isset($this->item->checked_out)) {
+        if (isset($this->item->checked_out))
+        {
             $checkedOut = !($this->item->checked_out == 0 || $this->item->checked_out == $user->get('id'));
-        } else {
+        }
+        else
+        {
             $checkedOut = false;
         }
 
@@ -81,25 +83,31 @@ class HtmlView extends BaseHtmlView
         ToolbarHelper::title(Text::_('COM_ALFA_TITLE_ORDER_STATUS'), "generic");
 
         // If not checked out, can save the item.
-        if (!$checkedOut && ($canDo->get('core.edit') || ($canDo->get('core.create')))) {
+        if (!$checkedOut && ($canDo->get('core.edit') || ($canDo->get('core.create'))))
+        {
             ToolbarHelper::apply('orderstatus.apply', 'JTOOLBAR_APPLY');
             ToolbarHelper::save('orderstatus.save', 'JTOOLBAR_SAVE');
         }
 
-        if (!$checkedOut && ($canDo->get('core.create'))) {
+        if (!$checkedOut && ($canDo->get('core.create')))
+        {
             ToolbarHelper::custom('orderstatus.save2new', 'save-new.png', 'save-new_f2.png', 'JTOOLBAR_SAVE_AND_NEW', false);
         }
 
         // If an existing item, can save to a copy.
-        if (!$isNew && $canDo->get('core.create')) {
+        if (!$isNew && $canDo->get('core.create'))
+        {
             ToolbarHelper::custom('orderstatus.save2copy', 'save-copy.png', 'save-copy_f2.png', 'JTOOLBAR_SAVE_AS_COPY', false);
         }
 
 
 
-        if (empty($this->item->id)) {
+        if (empty($this->item->id))
+        {
             ToolbarHelper::cancel('orderstatus.cancel', 'JTOOLBAR_CANCEL');
-        } else {
+        }
+        else
+        {
             ToolbarHelper::cancel('orderstatus.cancel', 'JTOOLBAR_CLOSE');
         }
     }

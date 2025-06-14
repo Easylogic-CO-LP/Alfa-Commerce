@@ -15,7 +15,6 @@ use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Field\ListField;
 use Joomla\CMS\HTML\HTMLHelper;
-
 //use Alfa\Component\Alfa\Administrator\Helper\PaymentsHelper;
 // use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 
@@ -52,7 +51,7 @@ class ShipmentTypeField extends ListField
     {
         $return = parent::setup($element, $value, $group);
 
-        //         $this->onchange = 'Joomla.typeHasChanged(this);';
+//         $this->onchange = 'Joomla.typeHasChanged(this);';
 
         return $return;
     }
@@ -85,12 +84,12 @@ class ShipmentTypeField extends ListField
             }
         );
 
-        //		print_r($options);
+//		print_r($options);
 
         // Load scripts
-        //         Factory::getApplication()->getDocument()->getWebAssetManager()
-        //             ->useScript('com_alfa.admin-field-typehaschanged')
-        //             ->useScript('webcomponent.core-loader');
+//         Factory::getApplication()->getDocument()->getWebAssetManager()
+//             ->useScript('com_alfa.admin-field-typehaschanged')
+//             ->useScript('webcomponent.core-loader');
 
         return $options;
     }

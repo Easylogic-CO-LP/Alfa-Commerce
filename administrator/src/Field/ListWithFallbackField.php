@@ -11,6 +11,7 @@ use Joomla\CMS\HTML\HTMLHelper;
 
 class ListWithFallbackField extends ListField
 {
+
     protected $type = 'ListWithFallback';
 
     protected $options = [];
@@ -33,10 +34,10 @@ class ListWithFallbackField extends ListField
 
     protected function getOptions()
     {
-
+        
         // Get the database object
         $db = Factory::getContainer()->get('DatabaseDriver');
-
+        
         $table = (string) $this->getAttribute('table') ?: '#__alfa_items';
         $idField = (string) $this->getAttribute('id_field') ?: 'id';
         $nameField = (string) $this->getAttribute('name_field') ?: 'name';
@@ -62,7 +63,7 @@ class ListWithFallbackField extends ListField
         // print_r($db->replacePrefix((string) $query));
         // exit;
         $items = $db->loadObjectList();
-
+        
         // Initialize options array with any existing options (if defined)
         $this->options = parent::getOptions();
 

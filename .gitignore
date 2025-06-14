@@ -1,7 +1,4 @@
 .DS_Store
-vendor/
-.php-cs-fixer.cache
-composer.lock
 /.htaccess
 /administrator/cache/*
 /administrator/components/com_actionlogs/*

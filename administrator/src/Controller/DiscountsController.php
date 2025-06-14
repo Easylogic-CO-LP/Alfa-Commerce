@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -22,6 +21,8 @@ use Joomla\CMS\Uri\Uri;
 use Joomla\Utilities\ArrayHelper;
 use Alfa\Component\Alfa\Administrator\Model;
 
+
+
 /**
  * Discounts list controller class.
  *
@@ -29,86 +30,91 @@ use Alfa\Component\Alfa\Administrator\Model;
  */
 class DiscountsController extends AdminController
 {
-    /**
-     * Method to clone existing Discounts
-     *
-     * @return  void
-     *
-     * @throws  Exception
-     */
-    public function duplicate()
-    {
-        // Check for request forgeries
-        $this->checkToken();
+	/**
+	 * Method to clone existing Discounts
+	 *
+	 * @return  void
+	 *
+	 * @throws  Exception
+	 */
+	public function duplicate()
+	{
+		// Check for request forgeries
+		$this->checkToken();
 
-        // Get id(s)
-        $pks = $this->input->post->get('cid', [], 'array');
+		// Get id(s)
+		$pks = $this->input->post->get('cid', array(), 'array');
 
-        try {
-            if (empty($pks)) {
-                throw new \Exception(Text::_('COM_ALFA_NO_ELEMENT_SELECTED'));
-            }
+		try
+		{
+			if (empty($pks))
+			{
+				throw new \Exception(Text::_('COM_ALFA_NO_ELEMENT_SELECTED'));
+			}
 
-            ArrayHelper::toInteger($pks);
-            $model = $this->getModel();
-            $model->duplicate($pks);
-            $this->setMessage(Text::_('COM_ALFA_ITEMS_SUCCESS_DUPLICATED'));
-        } catch (\Exception $e) {
-            Factory::getApplication()->enqueueMessage($e->getMessage(), 'warning');
-        }
+			ArrayHelper::toInteger($pks);
+			$model = $this->getModel();
+			$model->duplicate($pks);
+			$this->setMessage(Text::_('COM_ALFA_ITEMS_SUCCESS_DUPLICATED'));
+		}
+		catch (\Exception $e)
+		{
+			Factory::getApplication()->enqueueMessage($e->getMessage(), 'warning');
+		}
 
-        $this->setRedirect('index.php?option=com_alfa&view=discounts');
-    }
+		$this->setRedirect('index.php?option=com_alfa&view=discounts');
+	}
 
-    /**
-     * Proxy for getModel.
-     *
-     * @param   string  $name    Optional. Model name
-     * @param   string  $prefix  Optional. Class prefix
-     * @param   array   $config  Optional. Configuration array for model
-     *
-     * @return  object	The Model
-     *
-     * @since   1.0.1
-     */
-    public function getModel($name = 'Discount', $prefix = 'Administrator', $config = [])
-    {
-        return parent::getModel($name, $prefix, ['ignore_request' => true]);
-    }
+	/**
+	 * Proxy for getModel.
+	 *
+	 * @param   string  $name    Optional. Model name
+	 * @param   string  $prefix  Optional. Class prefix
+	 * @param   array   $config  Optional. Configuration array for model
+	 *
+	 * @return  object	The Model
+	 *
+	 * @since   1.0.1
+	 */
+	public function getModel($name = 'Discount', $prefix = 'Administrator', $config = array())
+	{
+		return parent::getModel($name, $prefix, array('ignore_request' => true));
+	}
+
+	
+
+	/**
+	 * Method to save the submitted ordering values for records via AJAX.
+	 *
+	 * @return  void
+	 *
+	 * @since   1.0.1
+	 *
+	 * @throws  Exception
+	 */
+	public function saveOrderAjax()
+	{
+		// Get the input
+		$pks   = $this->input->post->get('cid', array(), 'array');
+		$order = $this->input->post->get('order', array(), 'array');
 
 
+		// Sanitize the input
+		ArrayHelper::toInteger($pks);
+		ArrayHelper::toInteger($order);
 
-    /**
-     * Method to save the submitted ordering values for records via AJAX.
-     *
-     * @return  void
-     *
-     * @since   1.0.1
-     *
-     * @throws  Exception
-     */
-    public function saveOrderAjax()
-    {
-        // Get the input
-        $pks   = $this->input->post->get('cid', [], 'array');
-        $order = $this->input->post->get('order', [], 'array');
+		// Get the model
+		$model = $this->getModel();
 
+		// Save the ordering
+		$return = $model->saveorder($pks, $order);
 
-        // Sanitize the input
-        ArrayHelper::toInteger($pks);
-        ArrayHelper::toInteger($order);
+		if ($return)
+		{
+			echo "1";
+		}
 
-        // Get the model
-        $model = $this->getModel();
-
-        // Save the ordering
-        $return = $model->saveorder($pks, $order);
-
-        if ($return) {
-            echo "1";
-        }
-
-        // Close the application
-        Factory::getApplication()->close();
-    }
+		// Close the application
+		Factory::getApplication()->close();
+	}
 }

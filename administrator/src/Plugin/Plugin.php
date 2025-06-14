@@ -11,8 +11,10 @@ use Joomla\Event\SubscriberInterface;
 use Joomla\CMS\Layout\FileLayout;
 use Joomla\CMS\Plugin\PluginHelper;
 
+
 abstract class Plugin extends CMSPlugin implements SubscriberInterface
 {
+
     /**
      * Affects constructor behavior. If true, language files will be loaded automatically.
      *
@@ -28,11 +30,11 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * @since  4.0.0
      */
     protected $app;
-
+    
     // Inheriting classes must set this.
     // Used to identify which field of plugin's log table is used to identify a log entry.
     // (id_order_shipment or id_order_payment).
-    protected $logIdentifierField = "";
+    protected $logIdentifierField = "";    
 
 
     public static function getSubscribedEvents(): array
@@ -45,7 +47,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
     private $database;
 
     protected $mustHaveColumns = [
-        ['name' => 'id_order','mysql_type' => 'int(11)', 'default' => 'NULL'],
+        ['name'=>'id_order','mysql_type' => 'int(11)', 'default' => 'NULL'],
 //        ['name'=>'id_order_shipment','mysql_type' => 'int(11)', 'default' => 'NULL'],
     ];
 
@@ -63,9 +65,8 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
         // $this->getDispatcher()->addSubscriber($this);
 
     }
-
-    public function onAdminOrderBeforeSave($event)
-    {
+    
+    public function onAdminOrderBeforeSave($event) {
         $event->setCanSave(true);
     }
 
@@ -83,63 +84,56 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
         $event->setForm($form);
     }
 
-    public function onAdminOrderViewLogs($event)
-    {
+    public function onAdminOrderViewLogs($event) {
 
         $order = $event->getOrder();
 
         // load logs from xml
         $formFile = JPATH_PLUGINS . '/' . $this->_type . '/' . $this->_name.'/params/logs.xml';
-        if (!file_exists($formFile)) {
-            return;
-        }
+        if (!file_exists($formFile)) return;
 
         $xml = simplexml_load_file($formFile);
 
         // Get logs data from db
-        $logData = self::loadLogData($order->id, false);
+        $logData = self::loadLogData($order->id,false);
 
-        $event->setLayoutPluginName($this->_name);
-        $event->setLayoutPluginType($this->_type);
-        $event->setLayout('default_order_logs_view');
-        $event->setLayoutData(
-            [
+		$event->setLayoutPluginName($this->_name);
+		$event->setLayoutPluginType($this->_type);
+	    $event->setLayout('default_order_logs_view');
+	    $event->setLayoutData(
+		    [
                 "logData" => $logData,
                 "xml" => $xml
             ]
-        );
+	    );
 
     }
 
 
-    public function onAdminOrderView($event)
-    {
+    public function onAdminOrderView($event) {
         $order = $event->getOrder();
         $event->setOrder($order);
 
-        $event->setLayoutPluginName($this->_name);
-        $event->setLayoutPluginType($this->_type);
-        $event->setLayout('default_order_view');
-        //	    $event->setLayoutData(
-        //		    [
-        //			    "logData" => $logData,
-        //			    "xml" => $xml
-        //		    ]
-        //	    );
+	    $event->setLayoutPluginName($this->_name);
+	    $event->setLayoutPluginType($this->_type);
+	    $event->setLayout('default_order_view');
+//	    $event->setLayoutData(
+//		    [
+//			    "logData" => $logData,
+//			    "xml" => $xml
+//		    ]
+//	    );
     }
 
-    public function onAdminOrderDelete($event)
-    {
+    public function onAdminOrderDelete($event){
         $event->setCanDelete(true);
     }
 
-    public function onOrderBeforePlace($event)
-    {
+    public function onOrderBeforePlace($event){
         return;
     }
 
-    public function onOrderAfterPlace($event)
-    {
+    public function onOrderAfterPlace($event){
         $order = $event->getOrder();
     }
 
@@ -148,24 +142,22 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * @param $method object holds the data of the payment method it was called from.
      * @return void
      */
-    public function onItemView($event)
-    {
-        $item = $event->getItem();
-        $method = $event->getMethod();
+	public function onItemView($event){
+		$item = $event->getItem();
+		$method = $event->getMethod();
 
-        $layoutData = [
-            'method' => $method,
-            'item' => $item,
-        ];
+		$layoutData = [
+			'method' => $method,
+			'item' => $item,
+		];
 
-        $event->setLayoutPluginName('standard'); //fallback to standard if never set
-        $event->setLayout('default_product_view');
-        $event->setLayoutData($layoutData);
+		$event->setLayoutPluginName('standard'); //fallback to standard if never set
+		$event->setLayout('default_product_view');
+		$event->setLayoutData($layoutData);
 
-    }
+	}
 
-    public function onCartView($event)
-    {
+    public function onCartView($event) {
         $cart = $event->getCart();
         $method = $event->getMethod();
 
@@ -184,8 +176,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      *          (#)
      *  Returns: The html of a layout to be displayed as html on proccess order view.
      */
-    public function onOrderProcessView($event)
-    {
+    public function onOrderProcessView($event){
         $order = $event->getOrder();
         $method = $event->getMethod();
 
@@ -197,8 +188,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
         $event->setRedirectUrl("index.php?option=com_alfa&view=cart&layout=default_order_completed");
     }
 
-    public function onOrderCompleteView($event)
-    {
+    public function onOrderCompleteView($event) {
         $order = $event->getOrder();
         $method = $event->getMethod();
 
@@ -213,15 +203,14 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
     }
 
     // Logging.
-    public function createEmptyLog()
-    {
+    public function createEmptyLog(){
         $logsTableArrayToReturn = [
-            'id' => '',
+            'id'=>'',
             // 'order_id'=>'',
             // 'status'=>'',
         ];
 
-        foreach ($this->mustHaveColumns as $column) {//add must have columns
+        foreach($this->mustHaveColumns as $column){//add must have columns
             $logsTableArrayToReturn[$column['name']] = '';
         }
 
@@ -241,31 +230,27 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
         if (file_exists($formFile)) {
             $xml = simplexml_load_file($formFile);
 
-            //            exit;
+//            exit;
 
-            if (isset($xml->fields->fieldset->field)) {
+            if(isset($xml->fields->fieldset->field)){
 
-                foreach ($xml->fields->fieldset->field as $curr_field) {
+                foreach($xml->fields->fieldset->field as $curr_field){
                     $fieldName = strval($curr_field['name']);
 
-                    if (strval($curr_field['type']) == 'integer') {
-                        $fieldType = 'int(11)';
-                    }
-                    // If mysql_type is set in dpconfig and in the field attribute, then listen to this
-                    if (isset($curr_field['mysql_type'])) {
-                        $fieldType = strval($curr_field['mysql_type']);
-                    }
+                    if(strval($curr_field['type'])=='integer'){$fieldType='int(11)';}
+                    //if mysql_type is setted in dpconfig and in field as attribute mysql then listen to this
+                    if(isset($curr_field['mysql_type'])){$fieldType=strval($curr_field['mysql_type']);}
                     // TODO CHECK IF ATTRIBUTE IS FINE STRUCTURED like mysql_type default etc
 
-                    $fieldDefault = (isset($curr_field['default']) ? strval($curr_field['default']) : 'NULL');
+                    $fieldDefault = (isset($curr_field['default'])?strval($curr_field['default']):'NULL');
                     // $fieldDefaultSql = ($fieldDefault=='NULL'?'DEFAULT NULL':'NOT NULL DEFAULT '. $db->quote($fieldDefault));
 
 
-                    $logsTableArrayToReturn[$fieldName] = $fieldDefault;
+                    $logsTableArrayToReturn[$fieldName]=$fieldDefault;
 
                 }
 
-            } else {
+            }else{
                 $app->enqueueMessage("No right structure in $formFile", 'warning');
                 return [];
             }
@@ -290,22 +275,20 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * @param $data object|array with the data to be inserted.
      * @return bool True if data was submitted successfully, false if not.
      */
-    protected function insertLog($data): bool
-    {
+    protected function insertLog($data): bool{
 
-        //        if(!isset($data["id_order_shipment"])) {
-        //            echo "<pre>";
-        //            print_r($data);
-        //            echo "</pre>";
-        //            exit;
-        //        }
+//        if(!isset($data["id_order_shipment"])) {
+//            echo "<pre>";
+//            print_r($data);
+//            echo "</pre>";
+//            exit;
+//        }
 
 
 
         // Function cannot handle objects.
-        if (is_object($data)) {
-            $data = (array)$data;
-        } //json_decode(json_encode($data), true); // for nested also
+        if(is_object($data))
+            $data = (array)$data; //json_decode(json_encode($data), true); // for nested also
 
 
         //If table exists, we log our data.
@@ -315,7 +298,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
         $plugin_name = $this->_name;
 
         foreach ($this->mustHaveColumns as $column) {
-            if (!isset($data[$column['name']])) {
+            if(!isset($data[$column['name']])){
                 $app->enqueueMessage("insertLog : {$column['name']} is missing from \$data", 'warning');
                 return false;
             }
@@ -329,18 +312,18 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
 
         if (file_exists($formFile)) {
             $xml = simplexml_load_file($formFile);
-            if (isset($xml->fields->fieldset->field)) {
+            if(isset($xml->fields->fieldset->field)){
 
                 // CREATE PLUGINS TABLE IF NOT EXIST
                 // $tableName = "#__deliveryplus_".$pluginGroup."_".$pluginName;
                 $tableName = self::getLogsTableName();
 
-                $insertColumns = [];
-                $insertValues = [];
+                $insertColumns = array();
+                $insertValues = array();
 
-                if (isset($data['id']) && !empty($data['id'])) { // for replace into to update the values if id is set
-                    array_push($insertColumns, 'id');
-                    array_push($insertValues, $db->quote($data['id']));
+                if(isset($data['id']) && !empty($data['id'])){// for replace into to update the values if id is setted
+                    array_push($insertColumns,'id');
+                    array_push($insertValues,$db->quote($data['id']));
                 }
 
                 // epishs to query auto parousiazetai sto settings model
@@ -353,37 +336,33 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
                     //	push must have columns from our local array to the create query
                     $create_query .= ", `" . $column['name'] . "` " . $column['mysql_type'] . " " . $column['default'];
 
-                    array_push($insertColumns, $column['name']);
-                    array_push($insertValues, $db->quote($data[$column['name']]));
+                    array_push($insertColumns,$column['name']);
+                    array_push($insertValues,$db->quote($data[$column['name']]));
                 }
 
-                foreach ($xml->fields->fieldset->field as $curr_field) {
+                foreach($xml->fields->fieldset->field as $curr_field){
                     $fieldName = strval($curr_field['name']);
                     $fieldType = 'varchar(255)';
 
-                    if (strval($curr_field['type']) == 'integer') {
-                        $fieldType = 'int(11)';
-                    }
-                    // If mysql_type is set in dpconfig and in the field attribute, then listen to this
-                    if (isset($curr_field['mysql_type'])) {
-                        $fieldType = strval($curr_field['mysql_type']);
-                    }
+                    if(strval($curr_field['type'])=='integer'){$fieldType='int(11)';}
+                    //if mysql_type is setted in dpconfig and in field as attribute mysql then listen to this
+                    if(isset($curr_field['mysql_type'])){$fieldType=strval($curr_field['mysql_type']);}
                     // TODO CHECK IF ATTRIBUTE IS FINE STRUCTURED like mysql_type default etc
 
-                    $fieldDefault = (isset($curr_field['default']) ? strval($curr_field['default']) : 'NULL');
-                    $fieldDefaultSql = ($fieldDefault == 'NULL' ? 'DEFAULT NULL' : 'NOT NULL DEFAULT '. $db->quote($fieldDefault));
+                    $fieldDefault = (isset($curr_field['default'])?strval($curr_field['default']):'NULL');
+                    $fieldDefaultSql = ($fieldDefault=='NULL'?'DEFAULT NULL':'NOT NULL DEFAULT '. $db->quote($fieldDefault));
 
                     $create_query .= ",`".$fieldName."` ".$fieldType." ".$fieldDefaultSql;
 
                     //	push other columns from logs.xml file
-                    if (isset($data[$fieldName])) {//is this data passed then insert it or update it
-                        array_push($insertColumns, $fieldName);
+                    if(isset($data[$fieldName])){//is this data passed then insert it or update it
+                        array_push($insertColumns,$fieldName);
 
                         // if(str_contains($data[$fieldName], '()')){// do not add quotes on mysql functions cause it doesnt work
-                        if (str_ends_with($data[$fieldName], '()')) {// do not add quotes on mysql functions because it doesn't work
-                            array_push($insertValues, $data[$fieldName]);
-                        } else {
-                            array_push($insertValues, $db->quote($data[$fieldName]));
+                        if(str_ends_with($data[$fieldName], '()')){// do not add quotes on mysql functions because it doesn't work
+                            array_push($insertValues,$data[$fieldName]);
+                        }else{
+                            array_push($insertValues,$db->quote($data[$fieldName]));
                         }
                     }
 
@@ -401,15 +380,15 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
                 $insert_query .= "(".implode(',', $insertColumns).")";
                 $insert_query .= "VALUES(".implode(',', $insertValues).")";
 
-                try {
+                try{
                     $db->setQuery($insert_query);
                     $db->execute();
-                } catch (\Exception $e) {
-                    $app->enqueueMessage('('.$e->getCode().') ' . $e->getMessage() . '! Log data was not inserted!', 'error');
+                }catch(\Exception $e){
+                    $app->enqueueMessage('('.$e->getCode().') ' . $e->getMessage() . '! Log data was not inserted!','error');
                     return false;
                 }
                 // Factory::getApplication()->enqueueMessage("$tableName values inserted successfully", "notice");
-            } else {
+            }else{
                 $app->enqueueMessage("No right structure in $formFile", 'warning');
                 return false;
             }
@@ -430,10 +409,9 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
     // ['is_active' => '1']
     // ['status' => ['IN', ['pending', 'completed']]]
     // raw filter - ['__raw' => 'DATE(created_at) = CURDATE()']
-
+    
     // isOrderId = true means the orderCode is the id_order
-    public function loadLogData($orderId, $identifierFieldID = 0, $asArray = true, $filter = null)
-    {
+    public function loadLogData($orderId, $identifierFieldID = 0, $asArray=true , $filter = null) {
 
         $order_result = null;
 
@@ -445,9 +423,9 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
 
         $query->where($db->quoteName('id_order') . ' = ' . $db->quote($orderId));
 
-        if (!empty($identifierFieldID)) {
-            $query->where($db->quoteName($this->logIdentifierField) . ' = ' . $db->quote($identifierFieldID));
-        }
+		if(!empty($identifierFieldID)){
+			$query->where($db->quoteName($this->logIdentifierField) . ' = ' . $db->quote($identifierFieldID));
+		}
 
         // filtering logic
         if (is_array($filter) && !empty($filter)) {
@@ -505,14 +483,14 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
 
             $db->setQuery($query);
 
-            if ($asArray) {
+            if($asArray){
                 $order_result = $db->loadAssocList();
-            } else {
+            }else{
                 $order_result = $db->loadObjectList();
             }
         } catch (\Exception $e) {
 
-            if ($e->getCode() == '1146') { //table is missing error
+            if($e->getCode() == '1146'){ //table is missing error
 
             }
 
@@ -533,24 +511,19 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      *
      * @since version
      */
-    protected function getLogsTableName($prefix = 2): string
-    {
+    protected function getLogsTableName($prefix=2) : string{
 
-        $tableNameNoPrefix = str_replace("-", "_", $this->_type)."_" . $this->_name.'_logs';
+        $tableNameNoPrefix = str_replace("-","_",$this->_type)."_" . $this->_name.'_logs';
 
         $returnedTableString = '#__'.$tableNameNoPrefix;
 
-        if ($prefix == 0) {
-            $returnedTableString = $tableNameNoPrefix;
-        } elseif ($prefix == 1) {
-            $returnedTableString = $this->db->getPrefix().$tableNameNoPrefix;
-        }
+        if($prefix==0){$returnedTableString = $tableNameNoPrefix;}
+        elseif($prefix==1){ $returnedTableString = $this->db->getPrefix().$tableNameNoPrefix;}
 
         return $returnedTableString;
     }
 
-    protected function deleteLogEntry($id_order, $id_order_shipment = 0)
-    {
+    protected function deleteLogEntry($id_order,$id_order_shipment=0){
 
         $tableName = self::getLogsTableName();
         $db = self::getDatabase();
@@ -559,9 +532,9 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
         $query
             ->delete($db->quoteName($tableName))
             ->where("id_order = " . $id_order);
-        if (!empty($id_order_shipment)) {
-            $query->where("id_order_shipment = " . $id_order_shipment);
-        }
+		if(!empty($id_order_shipment)){
+			$query->where("id_order_shipment = " . $id_order_shipment);
+		}
         $db->setQuery($query);
         $db->execute();
 
@@ -583,13 +556,12 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
         return $this->pluginPath;
     }
 
-    protected function isValueInRange($value, $min, $max)
-    {
+    protected function isValueInRange($value, $min, $max) {
 
         // Normalize all to strings
-        $valueStr = is_string($value) ? $value : strval($value);
-        $minStr   = is_string($min) ? $min : strval($min);
-        $maxStr   = is_string($max) ? $max : strval($max);
+        $valueStr = is_string($value) ? $value  : strval($value);
+        $minStr   = is_string($min)   ? $min    : strval($min);
+        $maxStr   = is_string($max)   ? $max    : strval($max);
 
         // If all are numeric, compare numerically (including floats)
         if (is_numeric($valueStr) && is_numeric($minStr) && is_numeric($maxStr)) {
@@ -600,8 +572,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
         return strcmp($valueStr, $minStr) >= 0 && strcmp($valueStr, $maxStr) <= 0;
     }
 
-    protected function pluginLayout($fileName)
-    {
+    protected function pluginLayout($fileName){
         $path = dirname(PluginHelper::getLayoutPath($this->_type, $this->_name, $fileName));
         return new FileLayout($fileName,$path);
     }
