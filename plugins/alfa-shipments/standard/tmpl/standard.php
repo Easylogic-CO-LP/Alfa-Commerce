@@ -21,5 +21,4 @@ defined('_JEXEC') or die;
 // }
 
 // echo htmlentities($value);
-// Default output for the Standard shipment plugin
-echo htmlspecialchars($value ?? '');
+echo 'test view frontend of standard shipment';

@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -9,7 +8,6 @@
  */
 
 namespace Alfa\Component\Alfa\Administrator\View\Orders;
-
 // No direct access
 defined('_JEXEC') or die;
 
@@ -30,140 +28,146 @@ use Alfa\Component\Alfa\Administrator\Helper;
  */
 class HtmlView extends BaseHtmlView
 {
-    protected $items;
+	protected $items;
 
-    protected $pagination;
+	protected $pagination;
 
-    protected $state;
+	protected $state;
 
-    /**
-     * Display the view
-     *
-     * @param   string  $tpl  Template name
-     *
-     * @return void
-     *
-     * @throws Exception
-     */
-    public function display($tpl = null)
-    {
-        $this->state = $this->get('State');
-        $this->items = $this->get('Items');
-        $this->pagination = $this->get('Pagination');
-        $this->filterForm = $this->get('FilterForm');
-        $this->activeFilters = $this->get('ActiveFilters');
+	/**
+	 * Display the view
+	 *
+	 * @param   string  $tpl  Template name
+	 *
+	 * @return void
+	 *
+	 * @throws Exception
+	 */
+	public function display($tpl = null)
+	{
+		$this->state = $this->get('State');
+		$this->items = $this->get('Items');
+		$this->pagination = $this->get('Pagination');
+		$this->filterForm = $this->get('FilterForm');
+		$this->activeFilters = $this->get('ActiveFilters');
 
-        //        echo "<pre>";
-        //        print_r($this->items);
-        //        echo "</pre>";
-        ////
-        //        echo "here";
-        //        exit;
+//        echo "<pre>";
+//        print_r($this->items);
+//        echo "</pre>";
+////
+//        echo "here";
+//        exit;
 
-        // Check for errors.
-        //		if (count($errors = $this->get('Errors')))
-        //		{
-        //			throw new \Exception(implode("\n", $errors));
-        //		}
+		// Check for errors.
+//		if (count($errors = $this->get('Errors')))
+//		{
+//			throw new \Exception(implode("\n", $errors));
+//		}
 
         $this->orderStatuses = AlfaHelper::getOrderStatuses();
 
-        $this->addToolbar();
+		$this->addToolbar();
 
-        $this->sidebar = Sidebar::render();
-        parent::display($tpl);
-    }
+		$this->sidebar = Sidebar::render();
+		parent::display($tpl);
+	}
 
-    /**
-     * Add the page title and toolbar.
-     *
-     * @return  void
-     *
-     * @since   1.0.1
-     */
-    protected function addToolbar()
-    {
-        $state = $this->get('State');
-        $canDo = AlfaHelper::getActions();
+	/**
+	 * Add the page title and toolbar.
+	 *
+	 * @return  void
+	 *
+	 * @since   1.0.1
+	 */
+	protected function addToolbar()
+	{
+		$state = $this->get('State');
+		$canDo = AlfaHelper::getActions();
 
-        ToolbarHelper::title(Text::_('COM_ALFA_TITLE_ORDERS'), "generic");
+		ToolbarHelper::title(Text::_('COM_ALFA_TITLE_ORDERS'), "generic");
 
-        $toolbar = Toolbar::getInstance('toolbar');
+		$toolbar = Toolbar::getInstance('toolbar');
 
-        // Check if the form exists before showing the add/edit buttons
-        $formPath = JPATH_COMPONENT_ADMINISTRATOR . '/src/View/Orders';
+		// Check if the form exists before showing the add/edit buttons
+		$formPath = JPATH_COMPONENT_ADMINISTRATOR . '/src/View/Orders';
 
-        if (file_exists($formPath)) {
-            if ($canDo->get('core.create')) {
-                // TODO: be  able to create a new order
-                $toolbar->addNew('order.add');
-            }
-        }
+		if (file_exists($formPath))
+		{
+			if ($canDo->get('core.create'))
+			{
+				// TODO: be  able to create a new order
+				$toolbar->addNew('order.add');
+			}
+		}
 
-        if ($canDo->get('core.edit.state')) {
-            $dropdown = $toolbar->dropdownButton('status-group')
-                ->text('JTOOLBAR_CHANGE_STATUS')
-                ->toggleSplit(false)
-                ->icon('fas fa-ellipsis-h')
-                ->buttonClass('btn btn-action')
-                ->listCheck(true);
+		if ($canDo->get('core.edit.state'))
+		{
+			$dropdown = $toolbar->dropdownButton('status-group')
+				->text('JTOOLBAR_CHANGE_STATUS')
+				->toggleSplit(false)
+				->icon('fas fa-ellipsis-h')
+				->buttonClass('btn btn-action')
+				->listCheck(true);
 
-            $childBar = $dropdown->getChildToolbar();
+			$childBar = $dropdown->getChildToolbar();
 
-            // if (isset($this->items[0]->state))
-            // {
-            $childBar->publish('orders.publish')->listCheck(true);
-            $childBar->unpublish('orders.unpublish')->listCheck(true);
-            $childBar->archive('orders.archive')->listCheck(true);
-            $childBar->trash('orders.trash')->listCheck(true);
-            // }
+			// if (isset($this->items[0]->state))
+			// {
+				$childBar->publish('orders.publish')->listCheck(true);
+				$childBar->unpublish('orders.unpublish')->listCheck(true);
+				$childBar->archive('orders.archive')->listCheck(true);
+				$childBar->trash('orders.trash')->listCheck(true);
+			// }
 
-            if (isset($this->items[0]) && $this->items[0]->state == '-2') {
-                // If this component does not use state then show a direct delete button as we can not trash
-                $toolbar->delete('orders.delete')
-                    ->text('JTOOLBAR_EMPTY_TRASH')
-                    ->message('JGLOBAL_CONFIRM_DELETE')
-                    ->listCheck(true);
-            }
+			if (isset($this->items[0]) && $this->items[0]->state == '-2')
+			{
+				// If this component does not use state then show a direct delete button as we can not trash
+				$toolbar->delete('orders.delete')
+					->text('JTOOLBAR_EMPTY_TRASH')
+					->message('JGLOBAL_CONFIRM_DELETE')
+					->listCheck(true);
+			}
 
-            // $childBar->standardButton('duplicate')
-            // 	->text('JTOOLBAR_DUPLICATE')
-            // 	->icon('fas fa-copy')
-            // 	->task('orders.duplicate')
-            // 	->listCheck(true);
+			// $childBar->standardButton('duplicate')
+			// 	->text('JTOOLBAR_DUPLICATE')
+			// 	->icon('fas fa-copy')
+			// 	->task('orders.duplicate')
+			// 	->listCheck(true);
 
-            if (isset($this->items[0]->checked_out)) {
-                $childBar->checkin('orders.checkin')->listCheck(true);
-            }
+			if (isset($this->items[0]->checked_out))
+			{
+				$childBar->checkin('orders.checkin')->listCheck(true);
+			}
 
-            // if (isset($this->items[0]->state))
-            // {
-            // 	$childBar->trash('orders.trash')->listCheck(true);
-            // }
-        }
+			// if (isset($this->items[0]->state))
+			// {
+			// 	$childBar->trash('orders.trash')->listCheck(true);
+			// }
+		}
 
+		
 
+		// Show trash and delete for components that uses the state field
+		// if (isset($this->items[0]->state))
+		// {
 
-        // Show trash and delete for components that uses the state field
-        // if (isset($this->items[0]->state))
-        // {
+		// 	if ($this->state->get('filter.state') == ContentComponent::CONDITION_TRASHED && $canDo->get('core.delete'))
+		// 	{
+				// $toolbar->delete('orders.delete')
+				// 	->text('JTOOLBAR_EMPTY_TRASH')
+				// 	->message('JGLOBAL_CONFIRM_DELETE')
+				// 	->listCheck(true);
+			// }
+		// }
 
-        // 	if ($this->state->get('filter.state') == ContentComponent::CONDITION_TRASHED && $canDo->get('core.delete'))
-        // 	{
-        // $toolbar->delete('orders.delete')
-        // 	->text('JTOOLBAR_EMPTY_TRASH')
-        // 	->message('JGLOBAL_CONFIRM_DELETE')
-        // 	->listCheck(true);
-        // }
-        // }
+		if ($canDo->get('core.admin'))
+		{
+			$toolbar->preferences('com_alfa');
+		}
 
-        if ($canDo->get('core.admin')) {
-            $toolbar->preferences('com_alfa');
-        }
-
-        // Set sidebar action
-        Sidebar::setAction('index.php?option=com_alfa&view=orders');
-    }
-
+		// Set sidebar action
+		Sidebar::setAction('index.php?option=com_alfa&view=orders');
+	}
+	
 
 }

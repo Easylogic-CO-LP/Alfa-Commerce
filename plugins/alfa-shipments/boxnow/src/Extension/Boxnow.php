@@ -7,13 +7,13 @@
 
 namespace Joomla\Plugin\AlfaShipments\Boxnow\Extension;
 
-use Alfa\Component\Alfa\Administrator\Plugin\ShipmentsPlugin;
-use Joomla\CMS\Factory;
-use Joomla\CMS\Language\Text;
-use Joomla\CMS\Uri\Uri;
-use Joomla\CMS\Response\JsonResponse;
-use Joomla\CMS\Plugin\PluginHelper;
-use Joomla\CMS\Layout\FileLayout;
+use \Alfa\Component\Alfa\Administrator\Plugin\ShipmentsPlugin;
+use \Joomla\CMS\Factory;
+use \Joomla\CMS\Language\Text;
+use \Joomla\CMS\Uri\Uri;
+use \Joomla\CMS\Response\JsonResponse;
+use \Joomla\CMS\Plugin\PluginHelper;
+use \Joomla\CMS\Layout\FileLayout;
 
 // phpcs:disable PSR1.Files.SideEffects
 \defined('_JEXEC') or die;
@@ -22,14 +22,12 @@ use Joomla\CMS\Layout\FileLayout;
 /**
  * Bow Now - Alfa Shipment Plugin
  */
-class AuthenticationData
-{
+class AuthenticationData {
     public string $schema = 'https://';
     public array $urls;
     public string $access_token;
 
-    public function __construct()
-    {
+    public function __construct() {
         $this->urls = [
             'sandbox' => 'api-stage.boxnow.gr/api/v1',
             'live' => 'api.boxnow.gr/api/v1'
@@ -38,8 +36,9 @@ class AuthenticationData
     }
 }
 
-final class Boxnow extends ShipmentsPlugin
+final class Boxnow extends ShipmentsPlugin 
 {
+    
     protected $authenticationData;
 
     protected $order = null;
@@ -53,7 +52,7 @@ final class Boxnow extends ShipmentsPlugin
     public function __construct($dispatcher, array $config = [])
     {
         parent::__construct($dispatcher, $config);
-
+        
         //Uri::root()."media/plg_alfa-shipments_boxnow/images/vouchers/"
         $this->relativeVoucherPath = "/media/plg_{$this->_type}_{$this->_name}/images/vouchers";
         $this->authenticationData = new AuthenticationData();
@@ -64,12 +63,12 @@ final class Boxnow extends ShipmentsPlugin
     {
         return array_merge(
             parent::getSubscribedEvents(), //keep the already subscribed
-            [
+            [ 
                 'onBeforeCompileHead' => 'onBeforeCompileHead',//we added a system event
             ]
         );
     }
-
+    
     // TODO: ALSO TRANSLATE ALL TEXTS/STRINGS IN PLUGIN
     // TODO: TO LANGUAGE FILES
 
@@ -79,8 +78,7 @@ final class Boxnow extends ShipmentsPlugin
      *
      */
     // include javascript, css and main map html always and once by calling joomla system onBeforeCompileHead event
-    public function onBeforeCompileHead()
-    {
+    public function onBeforeCompileHead(){
 
         $app = $this->getApplication();
         $input = $app->input;
@@ -89,35 +87,34 @@ final class Boxnow extends ShipmentsPlugin
         $doc = $app->getDocument();
         $wa = $doc->getWebAssetManager();
 
-        if (!($doc instanceof \Joomla\CMS\Document\HtmlDocument) || //if it's not an html document
+        if( !($doc instanceof \Joomla\CMS\Document\HtmlDocument) || //if it's not an html document
             !$app->isClient('site') ||  //if it's not in frontend
             $option != 'com_alfa' ||    //if it's not in alfa commerce component
-            $view != 'cart'  //if it's not in cart view
-        ) {
+            $view !='cart'  //if it's not in cart view
+        ){
             return;
-        }
-
+        }  
+        
         $boxNowMapFileName = 'default_site_map';
         $boxNowMapPath = dirname(PluginHelper::getLayoutPath($this->_type, $this->_name, $boxNowMapFileName));
-        $boxnowMapLayout = new FileLayout($boxNowMapFileName, $boxNowMapPath);
+        $boxnowMapLayout = new FileLayout($boxNowMapFileName,$boxNowMapPath);
 
         // add custom structure to the frontend html
         $doc->addCustomTag($boxnowMapLayout->render()); // on locker select it calls saveCurrentCartBoxNowData
 
-        $wa->registerAndUseStyle('box-now', 'media/plg_alfa-shipments_boxnow/css/site/main.css', [], ['defer' => true]);
+        $wa->registerAndUseStyle('box-now','media/plg_alfa-shipments_boxnow/css/site/main.css',[],['defer' => true]);
     }
 
-    public function saveCurrentCartBoxNowData()
-    {
+    public function saveCurrentCartBoxNowData(){
         $app = $this->getApplication();
         $input = $app->input;
 
-        $boxNowPostalCode = $input->get('boxNowPostalCode', '');
+        $boxNowPostalCode = $input->get('boxNowPostalCode','');
 
         $boxNowAddress = rawurldecode($input->get('boxNowAddress', '', 'RAW'));
         $boxNowAddress = mb_convert_encoding($boxNowAddress, 'UTF-8', 'auto');// If we're still getting garbled text
 
-        $boxNowLockerId = $input->get('boxNowLockerId', '');
+        $boxNowLockerId = $input->get('boxNowLockerId','');
 
         $app->setUserState('com_alfa.boxnow.postalCode', $boxNowPostalCode);
         $app->setUserState('com_alfa.boxnow.address', $boxNowAddress);
@@ -128,8 +125,7 @@ final class Boxnow extends ShipmentsPlugin
 
     }
 
-    public function onCartView($event)
-    {
+    public function onCartView($event){
 
         $cart = $event->getCart();
 
@@ -138,7 +134,7 @@ final class Boxnow extends ShipmentsPlugin
         $wa = $doc->getWebAssetManager();
 
         $lang = $app->getLanguage();
-        $lang->load('plg_alfa-shipments_boxnow', JPATH_ADMINISTRATOR);
+        $lang->load('plg_alfa-shipments_boxnow',JPATH_ADMINISTRATOR);
 
         $shippingCost = 0;
 
@@ -148,21 +144,21 @@ final class Boxnow extends ShipmentsPlugin
         $boxNowLockerId = $app->getUserState('com_alfa.boxnow.lockerId', '');
 
         $shipmentMethodData = $cart->getShipmentMethodData();
-        $this->boxnow_params = (!empty($shipmentMethodData)) ? $shipmentMethodData->params : null;
-
+        $this->boxnow_params = (!empty($shipmentMethodData)) ? $shipmentMethodData->params : null; 
+        
         // echo '<pre>';
         // print_r($this->boxnow_params['backgroundcolor']);
         // echo '</pre>';
         // exit;
 
         // Data that will pass to our layout file
-        $cartLayoutData =
+        $cartLayoutData = 
                 [
                     'selected_postal_code' => $boxNowPostalCode,
                     'selected_address' => $boxNowAddress,
                     'selected_locker_id' => $boxNowLockerId,
-                    'button_background_color' => $this->boxnow_params['backgroundcolor'] ?? '#000000',
-                    'button_text_color' => $this->boxnow_params['color'] ?? '#ffffff',
+                    'button_background_color' => $this->boxnow_params['backgroundcolor']??'#000000',
+                    'button_text_color' => $this->boxnow_params['color']??'#ffffff',
                 ];
 
 
@@ -185,7 +181,7 @@ final class Boxnow extends ShipmentsPlugin
 
         // $params = $order->shipment->params;
 
-        $currentDate = Factory::getDate('now', 'UTC');
+        $currentDate = Factory::getDate('now','UTC');
 
         // Inserting order shipment For Alfa Commerce and calculate the cost/amount of it.
         $shipmentEntry = self::createEmptyOrderShipment();
@@ -200,15 +196,15 @@ final class Boxnow extends ShipmentsPlugin
         $shipmentEntry['date_add'] = $currentDate->toSql(false); //date('Y-m-d H:i:s'); or format('Y-m-d H:i:s');
         $insertedId = self::insertOrderShipment($shipmentEntry);
 
-        //Add Logging For Box Now Shipment
-        $boxNowLog = self::createEmptyLog();
-        $boxNowLog["id_order"] = $order->id;
-        $boxNowLog["id_order_shipment"] = $insertedId;
-        $boxNowLog["locker_id"] = $app->getUserState('com_alfa.boxnow.lockerId', $input->getInt("boxNowLockerIdHidden"));
-        $boxNowLog["shipment_total"] = $order->total_shipping;
-        $boxNowLog["created_on"]      = $currentDate->toSql(false);
-        $boxNowLog["created_by"]      = $user->id;
-        self::insertLog($boxNowLog);
+	    //Add Logging For Box Now Shipment
+	    $boxNowLog = self::createEmptyLog();
+	    $boxNowLog["id_order"] = $order->id;
+	    $boxNowLog["id_order_shipment"] = $insertedId;
+	    $boxNowLog["locker_id"] = $app->getUserState('com_alfa.boxnow.lockerId', $input->getInt("boxNowLockerIdHidden"));
+	    $boxNowLog["shipment_total"] = $order->total_shipping;
+	    $boxNowLog["created_on"]      = $currentDate->toSql(false);
+	    $boxNowLog["created_by"]      = $user->id;
+	    self::insertLog($boxNowLog);
 
         $event->setOrder($order);
     }
@@ -217,13 +213,11 @@ final class Boxnow extends ShipmentsPlugin
     /*
      *  Cost calculation.
      */
-    public function onCalculateShippingCost($event)
-    {
+    public function onCalculateShippingCost($event){
         $event->setShippingCost(self::calculateShippingCost($event->getCart()));
     }
 
-    public function calculateShippingCost($cart)
-    {
+    public function calculateShippingCost($cart){
 
         $cost = 0;
 
@@ -239,9 +233,8 @@ final class Boxnow extends ShipmentsPlugin
 
 
         $zipCode = "000000";
-        if (isset($cartData->user_info_delivery->zip_code) && !empty($cartData->user_info_delivery->zip_code)) {
+        if(isset($cartData->user_info_delivery->zip_code) && !empty($cartData->user_info_delivery->zip_code))
             $zipCode = $cartData->user_info_delivery->zip_code;
-        }
 
 
         $calculationData = null;
@@ -251,20 +244,19 @@ final class Boxnow extends ShipmentsPlugin
 
             if (isset($entry['places'])) {
                 foreach ($entry['places'] as $place) {
-                    if ($place == $countrySelected) { //found calculation costs for specific place
+                    if($place == $countrySelected){ //found calculation costs for specific place
                         $calculationData = $entry;
                     }
                 }
-            } else { //means we have a global entry for all places
+            }else{ //means we have a global entry for all places
                 $calculationData = $entry;
             }
 
         }
 
         // No valid entries found.
-        if (empty($calculationData)) {
+        if(empty($calculationData))
             return 0;
-        }
 
         $cartItems = $cart->getData()->items;
         $selectedShipmentCosts = $calculationData['costs'];
@@ -274,12 +266,10 @@ final class Boxnow extends ShipmentsPlugin
         return $cost;
     }
 
-    public function findBestShippingMethod($products, $shippingCosts, $zipCode)
-    {
+    public function findBestShippingMethod($products, $shippingCosts, $zipCode) {
 
-        if (empty($products) || empty($shippingCosts)) {
+        if(empty($products) || empty($shippingCosts))
             return 0;
-        }
 
         // Calculate total dimensions of products
         $packageDimensions = self::getTotalDimensions($products);
@@ -304,8 +294,7 @@ final class Boxnow extends ShipmentsPlugin
         return 0; // Return the cheapest valid shipping method
     }
 
-    public function getTotalDimensions($products)
-    {
+    public function getTotalDimensions($products) {
 
         $totalWidth = 0;
         $maxHeight = 0;
@@ -333,11 +322,10 @@ final class Boxnow extends ShipmentsPlugin
      * BACKEND ADMIN
      *
      */
-    public function onAdminOrderShipmentView($event)
-    {
+    public function onAdminOrderShipmentView($event) {
 
         $order = $event->getOrder();
-        $method = $event->getMethod();
+	    $method = $event->getMethod();
 
         $app = $this->getApplication();
         $input = $app->input;
@@ -347,22 +335,20 @@ final class Boxnow extends ShipmentsPlugin
         $wa = $doc->getWebAssetManager();
 
         $this->latestLogData = self::loadLogData($order->id);
-        if (!empty($this->latestLogData)) {//only one log
+        if(!empty($this->latestLogData))//only one log
             $this->latestLogData = $this->latestLogData[0];
-        }
 
-        if (!empty($this->latestLogData["parcel_data"])) {
+        if(!empty($this->latestLogData["parcel_data"]))
             $this->latestLogData["parcel_data"] = json_decode($this->latestLogData["parcel_data"]);
-        }
 
         // No data found.
-        //        if(empty($this->latestLogData["parcel_data"])) {
-        ////            $event->setLayoutPluginType($this->_type);
-        ////            $event->setLayoutPluginName($this->_name);
-        //            $event->setLayout("default_empty");
-        //            $event->setLayoutData([]);
-        //            return;
-        //        }
+//        if(empty($this->latestLogData["parcel_data"])) {
+////            $event->setLayoutPluginType($this->_type);
+////            $event->setLayoutPluginName($this->_name);
+//            $event->setLayout("default_empty");
+//            $event->setLayoutData([]);
+//            return;
+//        }
 
         // data initialize
         $parcelData = json_encode($this->latestLogData["parcel_data"]) ?? "";
@@ -373,8 +359,8 @@ final class Boxnow extends ShipmentsPlugin
         // {
         //  "id":"50192",
         //  "parcels":[{"id":"2416803409","created_sticker":0,"cancelled":0,"package_value":"0.00","compartment_size":"2","weight":"0"}
-        // {"id":"9926830420","created_sticker":0,"cancelled":0,"package_value":"0.00","compartment_size":"1","weight":"0"}
-        // ],
+                        // {"id":"9926830420","created_sticker":0,"cancelled":0,"package_value":"0.00","compartment_size":"1","weight":"0"}
+                    // ],
         //  "order_price":"0",
         //  "payment_mode":"prepaid",
         //  "collected_amount":"0"
@@ -384,35 +370,34 @@ final class Boxnow extends ShipmentsPlugin
         // LayoutHelper::render('com_mycomponent.payments.form', $payment_form_data)
 
         // data that will pass to our layout file
-        $backendOrderLayoutData =
+        $backendOrderLayoutData = 
                 [
                     'plugin_type' => $this->_type,
                     'plugin_name' => $this->_name,
                     'order' => $order,
-                    'method' => $method,
+	                'method' => $method,
                     'parcel_data' => addslashes($parcelData),
                     'voucher_url' => $basicVoucherURL
                 ];
 
         $backendOrderLayoutFileName = 'default_admin_order_view';
         $backendOrderLayoutPath = dirname(PluginHelper::getLayoutPath($this->_type, $this->_name, $backendOrderLayoutFileName));
-        $backendOrderLayout = new FileLayout($backendOrderLayoutFileName, $backendOrderLayoutPath);
-        //
-        //		print_r('hey');
-        //		exit;
+        $backendOrderLayout = new FileLayout($backendOrderLayoutFileName,$backendOrderLayoutPath);
+//
+//		print_r('hey');
+//		exit;
 
         // HERE.
-        //        $event->setLayoutPluginType($this->_type);
-        //        $event->setLayoutPluginName($this->_name);
+//        $event->setLayoutPluginType($this->_type);
+//        $event->setLayoutPluginName($this->_name);
         $event->setLayout("default_admin_order_view");
         $event->setLayoutData($backendOrderLayoutData);
 
 
-        //        return $backendOrderLayout->render($backendOrderLayoutData);
+//        return $backendOrderLayout->render($backendOrderLayoutData);
     }
 
-    public function onAdminOrderShipmentPrepareForm($event)
-    {
+    public function onAdminOrderShipmentPrepareForm($event){
 
         $order = $event->getData();
         $form = $event->getForm();
@@ -422,7 +407,7 @@ final class Boxnow extends ShipmentsPlugin
 
         // JPATH_PLUGINS . '/' . $this->_type . '/' . $this->_name.'/forms/admin_order_view_form.xml';
         $xmlForm = $this->getPluginPath() .'/forms/admin_order_view_form.xml';
-        if (!file_exists($xmlForm)) {
+        if(!file_exists($xmlForm)){
             return '';
         }
 
@@ -432,14 +417,12 @@ final class Boxnow extends ShipmentsPlugin
 
         // Get latest log data.
         $this->latestLogData = self::loadLogData($order->id);
-        if (empty($this->latestLogData)) {
+        if(empty($this->latestLogData))
             return '';
-        }
 
         $this->latestLogData = $this->latestLogData[0];
-        if (empty($this->latestLogData["parcel_data"])) {
+        if(empty($this->latestLogData["parcel_data"]))
             return '';
-        }
         $this->latestLogData["parcel_data"] = json_decode($this->latestLogData["parcel_data"]);
 
         $form->setValue('order_price', 'shipment', $this->latestLogData["parcel_data"]->order_price);
@@ -448,7 +431,7 @@ final class Boxnow extends ShipmentsPlugin
 
         // Repeatable fields.
         $subformData = [];
-        foreach ($this->latestLogData["parcel_data"]->parcels as $parcel) {
+        foreach($this->latestLogData["parcel_data"]->parcels as $parcel){
             $subformData[] =
                 [
                     'packages_value' => $parcel->package_value,
@@ -462,7 +445,7 @@ final class Boxnow extends ShipmentsPlugin
 
         $event->setForm($form);
         $event->setData($order);
-
+        
     }
 
     /*
@@ -470,8 +453,7 @@ final class Boxnow extends ShipmentsPlugin
      * GENERAL FUNCTIONS
      *
      */
-    protected function getOrderData($orderID)
-    {
+    protected function getOrderData($orderID){
         $orderModel = self::getApplication()->bootComponent('com_alfa')->getMVCFactory()->createModel('order', 'Administrator', ['ignore_request' => true]);
         return $orderModel->getItem($orderID);
     }
@@ -481,8 +463,7 @@ final class Boxnow extends ShipmentsPlugin
      * BOX NOW MAIN REQUESTS
      *
      */
-    public function requestDelivery()
-    {
+    public function requestDelivery() {
 
         $app = $this->getApplication();
         $input = $app->input;
@@ -490,24 +471,24 @@ final class Boxnow extends ShipmentsPlugin
         $rawData = file_get_contents('php://input');
 
         $orderId = $input->get('order_id', '');
-        $orderShipmentId = $input->get('order_shipment_id', '');
+	    $orderShipmentId = $input->get('order_shipment_id', '');
 
-        if (empty($orderId)) {
+        if(empty($orderId)){
             return new JsonResponse(null, 'Order id is empty', true);
         }
 
         $order = self::getOrderData($orderId);
 
-        if (empty($order)) {
+        if(empty($order)){
             return new JsonResponse(null, "Order with {$orderId} not found!", true);
         }
 
         // TODO: an o diaxeiristis prosthesei meta th boxnow tote tha prepei na ftiaksoume ena log toulaxiston
-        $allLogData = self::loadLogData($orderId, $orderShipmentId);
+        $allLogData = self::loadLogData($orderId,$orderShipmentId);
         $this->latestLogData = $allLogData[0];
 
         // we already requested a delivery
-        if (!empty($this->latestLogData["parcel_data"])) {
+        if(!empty($this->latestLogData["parcel_data"])){
             return new JsonResponse(null, "A previous delivery request was already found active!", true);
         }
 
@@ -529,10 +510,10 @@ final class Boxnow extends ShipmentsPlugin
 
         $parcelData = json_decode($rawData, true);
 
-        $invoiceValue = (float) $parcelData["order_price"];
+        $invoiceValue = (double) $parcelData["order_price"];
         $invoiceValue = number_format($invoiceValue, 2, '.', '');
         $paymentMode = $parcelData["payment_mode"];
-        $collectedAmount = (float) $parcelData["collected_amount"];
+        $collectedAmount = (double) $parcelData["collected_amount"];
         $collectedAmount = number_format($collectedAmount, 2, '.', '');
 
         // for test initialize
@@ -547,7 +528,7 @@ final class Boxnow extends ShipmentsPlugin
 
         $items = [];
         // REQUIRES ERROR HANDLING: CHECK IF PARCEL DATA HAS ENOUGH DATA FOR AT LEAST ONE ENTRY.
-        foreach ($parcelData["packages_data"] as $i => $data) {
+        foreach($parcelData["packages_data"] as $i => $data){
             $items[] = [
                 "id" => (string) ($i + 1),
                 "name" => "voucher",
@@ -582,9 +563,9 @@ final class Boxnow extends ShipmentsPlugin
         $contentType = "application/json";
         $response = self::doPost('delivery-requests', $data);
 
-        if ($response->success) {
+        if($response->success){
             // Tracking states of each parcel.
-            foreach ($response->data['parcels'] as $i => &$parcel) {
+            foreach($response->data['parcels'] as $i => &$parcel){
                 $parcel["created_sticker"] = 0;
                 $parcel["cancelled"] = 0;
                 $parcel["package_value"] = $parcelData["packages_data"][$i]["package_value"];
@@ -599,8 +580,8 @@ final class Boxnow extends ShipmentsPlugin
 
             $this->latestLogData['parcel_data'] = json_encode($response->data);
             $this->insertLog($this->latestLogData); // updates the log because the auto increment id is passed
-        } else {
-            $app->enqueueMessage($response->message, 'error');
+        }else{
+            $app->enqueueMessage($response->message,'error');
         }
 
         return $response;
@@ -608,43 +589,37 @@ final class Boxnow extends ShipmentsPlugin
 
 
     // Creates a label for every ID given, if a label has not been already made.
-    public function fetchCreateLabels()
-    {
+    public function fetchCreateLabels(){
         $app = $this->getApplication();
         $input = $app->input;
 
         $orderId = $input->get('order_id', '');
 
-        if (empty($orderId)) {
+        if(empty($orderId))
             return new JsonResponse(null, 'Order id is empty', true);
-        }
 
         $order = self::getOrderData($orderId);
 
-        if (empty($order)) {
+        if(empty($order))
             return new JsonResponse(null, "Order with {$orderId} not found!", true);
-        }
 
 
         $allLogData = self::loadLogData($orderId);
         $this->latestLogData = $allLogData[0];
-        if (!empty($this->latestLogData["parcel_data"])) {
+        if(!empty($this->latestLogData["parcel_data"]))
             $this->latestLogData["parcel_data"] = json_decode($this->latestLogData["parcel_data"]);
-        } else { // Cannot handle request on our own.
+        else    // Cannot handle request on our own.
             return new JsonResponse(null, "No delivery request has been made. Request a delivery before attempting to print the labels!", true);
-        }
 
         // Create a label for each parcel that doesn't have one.
-        foreach ($this->latestLogData["parcel_data"]->parcels as $i => &$parcel) {
+        foreach($this->latestLogData["parcel_data"]->parcels as $i => &$parcel){
 
             // Skip already cancelled parcels.
-            if ($parcel->cancelled == 1) {
+            if($parcel->cancelled == 1)
                 continue;
-            }
 
-            if (empty($parcel->id)) {
+            if(empty($parcel->id))
                 return new JsonResponse(null, "One or more parcels had an invalid ID.", true);
-            }
 
 
             $filePath = $this->relativeVoucherPath;//"/media/plg_{$this->_type}_{$this->_name}/images/vouchers";
@@ -656,7 +631,7 @@ final class Boxnow extends ShipmentsPlugin
             $response_pdf_data = self::doPost("parcels/{$parcel->id}/label.pdf", [], false, "application/pdf");
 
             if ($response_pdf_data->success) {
-
+                
             } else {
                 return new JsonResponse(null, $response_pdf_data->message, true);
             }
@@ -687,46 +662,41 @@ final class Boxnow extends ShipmentsPlugin
     }
 
 
-    public function fetchCancelDelivery()
-    {
+    public function fetchCancelDelivery(){
 
         $app = $this->getApplication();
         $input = $app->input;
 
         $orderId = $input->get('order_id', '');
 
-        if (empty($orderId)) {
+        if(empty($orderId))
             return new JsonResponse(null, 'Order id is empty', true);
-        }
 
         $order = self::getOrderData($orderId);
 
-        if (empty($order)) {
+        if(empty($order))
             return new JsonResponse(null, "Order with {$orderId} not found!", true);
-        }
 
         $allLogData = self::loadLogData($orderId);
         $this->latestLogData = $allLogData[0];
-        if (empty($this->latestLogData["parcel_data"])) {
+        if(empty($this->latestLogData["parcel_data"]))
             return new JsonResponse(null, 'No parcel data found to cancel!', true);
-        } else {
+        else
             $this->latestLogData["parcel_data"] = json_decode($this->latestLogData["parcel_data"]);
-        }
 
-        foreach ($this->latestLogData["parcel_data"]->parcels as $parcel) {
+        foreach($this->latestLogData["parcel_data"]->parcels as $parcel){
 
             $filePath = JPATH_ROOT . $this->relativeVoucherPath;//"/media/plg_{$this->_type}_{$this->_name}/images/vouchers";
             $fileName = "{$order->id}_{$parcel->id}.pdf";
 
-            if (file_exists("{$filePath}/{$fileName}")) {
+            if (file_exists("{$filePath}/{$fileName}"))
                 unlink("{$filePath}/{$fileName}");
-            }
 
             // $parcelID = $this->latestLogData["parcel_data"];
             $response = self::doPost("parcels/{$parcel->id}:cancel");
 
-            if ($response->success) { // ??
-            } else {
+            if($response->success){ // ??
+            }else{
                 return new JsonResponse(null, $response->message, true);
                 // $app->enqueueMessage($response->message,'error');
             }
@@ -736,13 +706,12 @@ final class Boxnow extends ShipmentsPlugin
         }
 
         // Return empty pdf file link.
-        $response_data = [];
+        $response_data= [];
 
         return new JsonResponse($response_data, "Cancel done!", false);
     }
 
-    public function fetchCancelIndividualParcel()
-    {
+    public function fetchCancelIndividualParcel(){
 
         $app = $this->getApplication();
         $input = $app->input;
@@ -751,27 +720,23 @@ final class Boxnow extends ShipmentsPlugin
         $orderId = $input->get('order_id', '');
         $parcelId = $input->get('parcel_id', '');//because we passed it in the body of the request
 
-        if (empty($orderId)) {
+        if(empty($orderId))
             return new JsonResponse(null, 'Order id is empty', true);
-        }
 
-        if (empty($parcelId)) {
+        if(empty($parcelId))
             return new JsonResponse(null, 'Parcel id is empty', true);
-        }
 
         $order = self::getOrderData($orderId);
 
-        if (empty($order)) {
+        if(empty($order))
             return new JsonResponse(null, "Order with {$orderId} not found!", true);
-        }
 
         $allLogData = self::loadLogData($orderId);
         $this->latestLogData = $allLogData[0];
-        if (empty($this->latestLogData["parcel_data"])) {
+        if(empty($this->latestLogData["parcel_data"]))
             return new JsonResponse(null, 'No parcel data found to cancel!', true);
-        } else {
+        else
             $this->latestLogData["parcel_data"] = json_decode($this->latestLogData["parcel_data"]);
-        }
 
         // $parcelData = json_decode($rawData, true);
 
@@ -779,46 +744,39 @@ final class Boxnow extends ShipmentsPlugin
         $filePath = JPATH_ROOT . $this->relativeVoucherPath;//"/media/plg_{$this->_type}_{$this->_name}/images/vouchers";
         $fileName = "{$order->id}_{$parcelId}.pdf";
 
-        if (file_exists("{$filePath}/{$fileName}")) {
+        if (file_exists("{$filePath}/{$fileName}"))
             unlink("{$filePath}/{$fileName}");
-        }
 
         $response = self::doPost("parcels/{$parcelId}:cancel");
 
-        if ($response->success) { // ??
-        } else {
+        if($response->success){ // ??
+        }else{
             return new JsonResponse(null, $response->message, true);
         }
 
         // Update the status of the parcel.
-        foreach ($this->latestLogData["parcel_data"]->parcels as &$parcel) {
-            if ($parcel->id == $parcelId) {
+        foreach($this->latestLogData["parcel_data"]->parcels as &$parcel)
+            if($parcel->id == $parcelId)
                 $parcel->cancelled = 1;
-            }
-        }
 
         $allCancelled = true;
         // If every parcel of the order has been cancelled, delete it altogether.
-        foreach ($this->latestLogData["parcel_data"]->parcels as &$parcel) {
-            if ($parcel->cancelled != 1) {
+        foreach($this->latestLogData["parcel_data"]->parcels as &$parcel)
+            if($parcel->cancelled != 1) {
                 $allCancelled = false;
                 break;
             }
-        }
 
         // Remove data, all parcels have been cancelled.
-        if ($allCancelled) {
+        if($allCancelled)
             $this->latestLogData["parcel_data"] = null;
-        }
 
-        if ($this->latestLogData["parcel_data"] != null) {
+        if($this->latestLogData["parcel_data"] != null)
             $this->latestLogData["parcel_data"] = json_encode($this->latestLogData["parcel_data"]);
-        }
 
         self::insertLog($this->latestLogData);  //updates the log because the auto increment id is passed
-        if ($this->latestLogData["parcel_data"] != null) {
+        if($this->latestLogData["parcel_data"] != null)
             $this->latestLogData["parcel_data"] = json_decode($this->latestLogData["parcel_data"]);
-        }
 
         return new JsonResponse([], "Cancel done!", false);
 
@@ -830,28 +788,27 @@ final class Boxnow extends ShipmentsPlugin
      */
 
     // AUTHENTICATE REQUEST - GET BEARER TOKEN
-    public function authenticateForRequests()
-    {
+    public function authenticateForRequests(){
 
         $app = $this->getApplication();
-
+        
         $sandboxMode = $this->boxnow_params->sandbox_mode == 1;
         $sandboxMode = true;        // Always on sandbox.
 
-        if (empty($this->boxnow_params->client_id) || empty($this->boxnow_params->client_secret)) {
+        if(empty($this->boxnow_params->client_id) || empty($this->boxnow_params->client_secret)){
             $app->enqueueMessage('Client ID or Client Secret is missing.', 'error');
             return false;
         }
 
         $request_url = 'auth-sessions';
-
-        $domain = $sandboxMode ? $this->authenticationData->urls['sandbox'] : $this->authenticationData->urls['live'];
+        
+        $domain = $sandboxMode?$this->authenticationData->urls['sandbox']:$this->authenticationData->urls['live'];
         $url = $this->authenticationData->schema . $domain . '/' .$request_url;
 
         // $url = "https://api-stage.boxnow.gr/api/v1/auth-sessions";
 
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_URL,  $url);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
@@ -869,7 +826,7 @@ final class Boxnow extends ShipmentsPlugin
 
         // Check for cURL errors
         if ($curlError) {
-            $app->enqueueMessage('CURL Error: '. curl_error($ch), 'error');
+            $app->enqueueMessage('CURL Error: '. curl_error($ch) , 'error');
             return false;
             // throw new \Exception("cURL Error: " . curl_error($ch));
         }
@@ -879,7 +836,7 @@ final class Boxnow extends ShipmentsPlugin
             $app->enqueueMessage("HTTP Error {$httpCode}: {$response}", 'error');
             // throw new \Exception("HTTP Error: " . $httpCode . " - Response: " . $response);
             return false;
-
+            
         }
 
         // Validate JSON response
@@ -893,7 +850,7 @@ final class Boxnow extends ShipmentsPlugin
         return $decodedResponse;
     }
 
-    protected function doPost($request_url, $fields = [], $post = true, $contentType = 'application/json')
+    protected function doPost($request_url, $fields = array(),$post=true, $contentType='application/json')
     {
         $app = $this->getApplication();
 
@@ -902,7 +859,7 @@ final class Boxnow extends ShipmentsPlugin
         $response_error = false;
 
         // We need to authenticate before any request.
-        if (empty($this->authenticationData->access_token)) {
+        if(empty($this->authenticationData->access_token)){
             $response = self::authenticateForRequests();
 
             // Handle authentication failure
@@ -919,38 +876,37 @@ final class Boxnow extends ShipmentsPlugin
         $sandboxMode = $this->boxnow_params->sandbox_mode == 1;
         $sandboxMode = true;        // Always on sandbox.
 
-        $domain = $sandboxMode ? $this->authenticationData->urls['sandbox'] : $this->authenticationData->urls['live'];
+        $domain = $sandboxMode?$this->authenticationData->urls['sandbox']:$this->authenticationData->urls['live'];
         $url = $this->authenticationData->schema . $domain . '/' . $request_url;
 
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: '. $contentType ,'Authorization: Bearer '. $this->authenticationData->access_token]); // Inject the token into the header
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: '. $contentType ,'Authorization: Bearer '. $this->authenticationData->access_token)); // Inject the token into the header
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, $post);
-        if (count($fields)) {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($fields));
-        }   // Body is not always necessary.
-
+        if(count($fields)) curl_setopt($ch, CURLOPT_POSTFIELDS,json_encode($fields));   // Body is not always necessary.
+        
         $result = curl_exec($ch);
         $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlError = curl_errno($ch);
         curl_close($ch);
-
+        
         // Handle cURL errors
         if ($curlError) {
             $response_message = 'cURL Error: ' . curl_error($ch);
             $response_error = true;
-        } else {
+        }
+        else{
             // Return pdf response raw.
-
-            if ($contentType == 'application/pdf' && (substr($result, 0, 4) === "%PDF")) {
+            
+            if($contentType == 'application/pdf' && (substr($result, 0, 4) === "%PDF")){
                 $response_data = $result;//no need to decode the pdf file
-            } else {
+            }else{
 
-                $response_decoded = json_decode($result, true);
+                $response_decoded = json_decode($result,true);
 
                 // Associating error code with error message to get a clearer picture.
-                if (!empty($response_decoded) && isset($response_decoded['code'])) {
+                if(!empty($response_decoded) && isset($response_decoded['code'])){
                     $detailedErrorMessage = (isset($response_decoded['jsonSchemaErrors']) ? '(' . implode(",", $response_decoded['jsonSchemaErrors']) . ')' : '');
 
                     $lang  = $app->getLanguage();
@@ -959,7 +915,7 @@ final class Boxnow extends ShipmentsPlugin
                     $response_message = Text::_("PLG_ALFA_SHIPMENTS_BOXNOW_ERROR_CODE_" . $response_decoded['code']) . $detailedErrorMessage;
                     $response_error = true;
                     $response_data = $fields;
-                } else {
+                }else{
                     $response_data = $response_decoded;
                 }
 

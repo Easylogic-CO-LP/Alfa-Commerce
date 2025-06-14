@@ -1,5 +1,4 @@
 <?php
-
 namespace Alfa\Component\Alfa\Api\Controller;
 
 \defined('_JEXEC') or die;

@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -74,9 +73,9 @@ class OrderstatusesController extends AdminController
      *
      * @since   1.0.1
      */
-    public function getModel($name = 'Orderstatus', $prefix = 'Administrator', $config = [])
+    public function getModel($name = 'Orderstatus', $prefix = 'Administrator', $config = array())
     {
-        return parent::getModel($name, $prefix, ['ignore_request' => true]);
+        return parent::getModel($name, $prefix, array('ignore_request' => true));
     }
 
 
