@@ -1,4 +1,5 @@
 .DS_Store
+vendor/
 /.htaccess
 /administrator/cache/*
 /administrator/components/com_actionlogs/*
