@@ -325,15 +325,20 @@ class AlfaHelper
         $app = Factory::getApplication();
 
         $pluginGroup = 'alfa-'.$type; //alfa-payments , alfa-shipments etc...
+        $pluginName = $data['type'] ?? $form->getValue('type'); // $data when we save but when we open the form we get it from getValue
 
-        $pluginName = $data['type'] ?? $form->getValue('type'); //$data when we save but when we open the form we get it from getValue
-        
+        // New entry - Auto select the default value for first time
+        if(empty($pluginName)) {
+            if ($type == "fields")   // Fields plugin type, use text as default.
+                $pluginName = "text";
+            else if ($type == "shipments" || $type == "payments")    // Shipments/Payments plugin type, use standard as default.
+                $pluginName = "standard";
+        }
+
         $paramsFile = JPATH_ROOT . '/plugins/'.$pluginGroup.'/'.$pluginName.'/params/params.xml';
         $paramsFile2 = JPATH_ROOT . '/plugins/'.$pluginGroup.'/'.$pluginName.'/params/'.$pluginName.'.xml';
 
         $app->getLanguage()->load('plg_'.$pluginGroup.'_'.$pluginName);
-//            print_r($paramsFile2);
-//            exit;
 
         if (file_exists($paramsFile)) {
             // Load the XML file into the form.

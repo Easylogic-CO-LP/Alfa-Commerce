@@ -10,7 +10,8 @@ $cart = !empty($displayData) ? $displayData : $this->cart;
     
     <?php
 
-    foreach($cart->getPaymentMethods() as $payment): 
+    foreach($cart->getPaymentMethods() as $payment):
+
         $checked = $cart->getData()->id_payment == $payment->id ? 'checked' : '';
         ?>
         <div>

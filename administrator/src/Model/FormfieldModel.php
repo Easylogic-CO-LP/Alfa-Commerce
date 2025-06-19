@@ -424,4 +424,21 @@ class FormfieldModel extends AdminModel
 	}
 
 
+    // Gets the IDs and names of all available form fields.
+    public function getAllFields(){
+        $db = self::getDatabase();
+        $query = $db->getQuery(true);
+
+        $query
+            ->select($db->qn("field_name") . "," . $db->qn("name"))
+            ->from($db->qn("#__alfa_form_fields"))
+            ->where($db->qn("state") . "=" . $db->q("1"));  // Published fields.
+
+        $db->setQuery($query);
+        return $db->loadObjectList();
+    }
+
+
+
+
 }

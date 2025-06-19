@@ -723,7 +723,7 @@ class CartHelper
     public function addEventsToShipments(){
 
         // Load payment methods.
-        foreach (self::getShipmentMethods() as &$shipmentMethod) {
+        foreach (self::getShipmentMethods() as $index => &$shipmentMethod) {
 
             $isSelected = (self::getData()->id_shipment == $shipmentMethod->id);
 
@@ -756,7 +756,6 @@ class CartHelper
 
             $shipmentMethod->events = new \stdClass();
             $shipmentMethod->events->{$onCartViewEventName} = $shipmentEvent;
-
         }
 
     }
@@ -764,7 +763,7 @@ class CartHelper
     public function addEventsToPayments(){
 
         // Load payment methods.
-        foreach (self::getPaymentMethods() as &$paymentMethod) {
+        foreach (self::getPaymentMethods() as $index => &$paymentMethod) {
 
             $isSelected = (self::getData()->id_payment == $paymentMethod->id);
             $onCartViewEventName = 'onCartView';

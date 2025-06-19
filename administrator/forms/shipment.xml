@@ -13,6 +13,15 @@
             required="true"
     />
 
+<!--    <field-->
+<!--        name="formField"-->
+<!--        type="AlfaField"-->
+<!--        label="FIELD NAME:"-->
+<!--        required="false"-->
+<!--        list_value="id"-->
+<!--        list_text="name"-->
+<!--    />-->
+
     <field
             name="color"
             type="color"

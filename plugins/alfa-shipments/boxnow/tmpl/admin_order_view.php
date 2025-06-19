@@ -41,6 +41,7 @@ $inlineScript = <<<JS
     var fetchRequestDeliveryURL = "{$fetchRequestDeliveryURL}";
     var fetchCreateLabelURL = "{$fetchCreateLabelURL}";
     var fetchCancelDeliveryURL = "{$fetchCancelDeliveryURL}";
+    var fetchCancelIndividualParcelURL = "{$fetchCancelIndividualParcelFunctionURL}";
     var rawParcelData = "{$parcelData}";
     var vouchersURL = "{$vouchersURL}";
     var orderId = "{$orderID}";
@@ -50,7 +51,6 @@ $wa->addInlineScript($inlineScript);
 
 $wa->registerAndUseScript('box-now-api-functions','media/plg_alfa-shipments_boxnow/js/admin/api-functions.js'); //['defer' => true]); to lazy load
 $wa->registerAndUseScript('box-now-main-functions','media/plg_alfa-shipments_boxnow/js/admin/main.js');
-
 $wa->registerAndUseStyle('box-now-admin-css','media/plg_alfa-shipments_boxnow/css/admin/main.css');
 
 ?>

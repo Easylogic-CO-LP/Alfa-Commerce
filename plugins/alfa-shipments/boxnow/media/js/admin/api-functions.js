@@ -67,14 +67,14 @@ function requestDelivery(){
         else{
             alert("Delivery request failed. Message: " + response.message);
         }
-        console.log(response);
     });
 
 }
 
 // Logic handling the print labels boxnow button.
 // document.getElementById("boxnow_create_stickers_btn").addEventListener("click", fn => {
-function createStickers(){  
+function createStickers(){
+
     // Make sure all necessary data is present.
     let orderPrice = document.getElementById("jform_shipment_order_price");
     let paymentMode = document.querySelector('input[name="jform[shipment][payment_mode]"]:checked');
@@ -112,7 +112,6 @@ function createStickers(){
         else{
             alert("Sticker creation failed. Message: " + data.message);
         }
-        console.log(data);
     });
 
 }
@@ -120,7 +119,8 @@ function createStickers(){
 // Logic handling the cancel delivery boxnow button.
 // document.getElementById("boxnow_cancel_delivery_btn").addEventListener("click", fn => {
 function cancelDelivery(){
-    
+
+
     // Make sure all necessary data is present.
     let orderPrice = document.getElementById("jform_shipment_order_price");
     let paymentMode = document.querySelector('input[name="jform[shipment][payment_mode]"]:checked');
@@ -142,7 +142,7 @@ function cancelDelivery(){
         alert("No packages found for printing.");
         return;
     }
-    
+
     let url = fetchCancelDeliveryURL;
     
     fetch(url, {
@@ -162,7 +162,6 @@ function cancelDelivery(){
         else{
             alert("Delivery cancelling failed. Message: " + data.message);
         }
-        console.log(data);
     });
     
 }
@@ -171,12 +170,10 @@ function cancelDelivery(){
 function cancelIndividualParcel(parcelID){
     
     // ?parcel_id="+parcelID
-    let url = fetchCancelIndividualParcelFunctionURL;
-    url+="&parcel_id="+parcelID;
+    let url = fetchCancelIndividualParcelURL;
+    url += "&parcel_id=" + parcelID;
 
     // let passedData = {"parcel_id": parcelID};
-    
-    console.log("clicked");
     
     fetch(url, {
             method: "POST",

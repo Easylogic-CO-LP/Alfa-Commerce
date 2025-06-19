@@ -51,7 +51,7 @@ class ShipmentTypeField extends ListField
     {
         $return = parent::setup($element, $value, $group);
 
-//         $this->onchange = 'Joomla.typeHasChanged(this);';
+         $this->onchange = 'Joomla.typeHasChanged(this);';
 
         return $return;
     }
@@ -87,9 +87,9 @@ class ShipmentTypeField extends ListField
 //		print_r($options);
 
         // Load scripts
-//         Factory::getApplication()->getDocument()->getWebAssetManager()
-//             ->useScript('com_alfa.admin-field-typehaschanged')
-//             ->useScript('webcomponent.core-loader');
+         Factory::getApplication()->getDocument()->getWebAssetManager()
+             ->useScript('com_alfa.admin-field-typehaschanged')
+             ->useScript('webcomponent.core-loader');
 
         return $options;
     }

@@ -309,7 +309,6 @@ final class Viva extends PaymentsPlugin
 
         $event->setLayout('default_cart_view');
         $event->setLayoutData($layoutData);
-
     }
 
     public function onItemView($event){

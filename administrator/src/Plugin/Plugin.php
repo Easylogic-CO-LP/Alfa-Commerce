@@ -106,7 +106,6 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
                 "xml" => $xml
             ]
 	    );
-
     }
 
 
@@ -146,15 +145,13 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
 		$item = $event->getItem();
 		$method = $event->getMethod();
 
-		$layoutData = [
-			'method' => $method,
-			'item' => $item,
-		];
-
-		$event->setLayoutPluginName('standard'); //fallback to standard if never set
-		$event->setLayout('default_product_view');
-		$event->setLayoutData($layoutData);
-
+        $layoutData = [
+            'method' => $method,
+            'item' => $item,
+        ];
+        $event->setLayoutPluginName('standard'); //fallback to standard if never set
+        $event->setLayout('default_product_view');
+        $event->setLayoutData($layoutData);
 	}
 
     public function onCartView($event) {
@@ -165,7 +162,6 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
             'method' => $method,
             'item' => $cart,
         ];
-
         $event->setLayoutPluginName($this->_name); //fallback to standard if never set
         $event->setLayout('default_cart_view');
         $event->setLayoutData($layoutData);
@@ -330,11 +326,12 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
                 $create_query = $db->getQuery(true);
                 $create_query = "CREATE TABLE IF NOT EXISTS " . $db->quoteName($tableName) . " (";
 
-                $create_query .= "`id` int(11) AUTO_INCREMENT PRIMARY KEY NOT NULL";
+                $create_query .= "{$db->qn("id")} int(11) AUTO_INCREMENT PRIMARY KEY NOT NULL";
 
                 foreach ($this->mustHaveColumns as $index => $column) {
                     //	push must have columns from our local array to the create query
-                    $create_query .= ", `" . $column['name'] . "` " . $column['mysql_type'] . " " . $column['default'];
+//                    $create_query .= ", `" . $column['name'] . "` " . $column['mysql_type'] . " " . $column['default'];   // prev - 17/6/25
+                    $create_query .= ", " . $db->qn($column['name']) . " " . $column['mysql_type'] . " " . $column['default'];
 
                     array_push($insertColumns,$column['name']);
                     array_push($insertValues,$db->quote($data[$column['name']]));
@@ -352,7 +349,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
                     $fieldDefault = (isset($curr_field['default'])?strval($curr_field['default']):'NULL');
                     $fieldDefaultSql = ($fieldDefault=='NULL'?'DEFAULT NULL':'NOT NULL DEFAULT '. $db->quote($fieldDefault));
 
-                    $create_query .= ",`".$fieldName."` ".$fieldType." ".$fieldDefaultSql;
+                    $create_query .= ",". $db->qn($fieldName) ." ".$fieldType." ".$fieldDefaultSql;
 
                     //	push other columns from logs.xml file
                     if(isset($data[$fieldName])){//is this data passed then insert it or update it
@@ -576,5 +573,12 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
         $path = dirname(PluginHelper::getLayoutPath($this->_type, $this->_name, $fileName));
         return new FileLayout($fileName,$path);
     }
+
+
+    // Used to check if the current plugin has been configured properly by the administrator.
+//    protected function properlyConfigured($params): bool
+//    {
+//        return true;
+//    }
 
 }

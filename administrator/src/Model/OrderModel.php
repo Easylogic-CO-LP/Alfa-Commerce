@@ -491,7 +491,6 @@ class OrderModel extends AdminModel
      *
      * @since   1.6
      */
-
     public function save($data)
     {
 
@@ -664,7 +663,6 @@ class OrderModel extends AdminModel
 
 
     // GET AND SET ORDER PAYMENTS
-
     public function getOrderPayments($orderId)
     {
 
@@ -772,28 +770,54 @@ class OrderModel extends AdminModel
         }
 
         $onAdminOrderDeleteEventName = "onAdminOrderDelete";
-        foreach($orders as $i => $order){
-            $paymentDeleteOrderDataEvent = new PaymentBeforeDeleteEvent($onAdminOrderDeleteEventName, [
-                "subject" => $order,
-                "method" => $order->payment
-            ]);
 
-            $app->bootPlugin($order->payment_type, "alfa-payments")
-                ->{$onAdminOrderDeleteEventName}($paymentDeleteOrderDataEvent);
-            $deleteEntry = $paymentDeleteOrderDataEvent->getCanDelete();
+        // Calling onAdminOrderDelete on order's shipment/payment plugins lets us know if the order can be deleted.
+        foreach($orders as $i => $order)
+        {
 
-            if($deleteEntry){
-                $shipmentDeleteOrderDataEvent = new ShipmentBeforeDeleteEvent($onAdminOrderDeleteEventName, [
+//            echo "<pre>";
+//            print_r($order);
+//            echo "</pre>";
+//            exit;
+
+            $deleteEntry = true;
+
+            // Check if each payment allows us to delete the order.
+            foreach($order->payments as $j => $payment) {
+                if(!$deleteEntry)   // Can't delete this order, no need to check further payments.
+                    break;
+
+                $paymentDeleteOrderDataEvent = new PaymentBeforeDeleteEvent($onAdminOrderDeleteEventName, [
                     "subject" => $order,
-                    "method" => $order->shipment
+                    "method" => $payment
                 ]);
 
-                $app->bootPlugin($order->shipment_type, "alfa-shipments")
-                    ->{$onAdminOrderDeleteEventName}($shipmentDeleteOrderDataEvent);
-                $deleteEntry = $shipmentDeleteOrderDataEvent->getCanDelete();
+                $app->bootPlugin($payment->params->type, "alfa-payments")
+                    ->{$onAdminOrderDeleteEventName}($paymentDeleteOrderDataEvent);
+                $deleteEntry = $paymentDeleteOrderDataEvent->getResult();
+
             }
 
-            if(!$deleteEntry)
+            // Further checks required.
+            if ($deleteEntry) {
+
+                // Check if shipments allow us to delete the order.
+                foreach($order->shipments as $shipment) {
+                    if(!$deleteEntry)   // No need for further checks.
+                        break;
+
+                    $shipmentDeleteOrderDataEvent = new ShipmentBeforeDeleteEvent($onAdminOrderDeleteEventName, [
+                        "subject" => $order,
+                        "method" => $shipment
+                    ]);
+
+                    $app->bootPlugin($shipment->params->type, "alfa-shipments")
+                        ->{$onAdminOrderDeleteEventName}($shipmentDeleteOrderDataEvent);
+                    $deleteEntry = $shipmentDeleteOrderDataEvent->getResult();
+                }
+            }
+
+            if (!$deleteEntry)
                 unset($pks[$i]);
 
         }
@@ -811,25 +835,50 @@ class OrderModel extends AdminModel
         $db->setQuery($query);
         $db->execute();
 
-//        try {
-        // Deleting non-user user info.
+
+        // Deleting guest user info.
         $ids = implode(',', array_map([$db, 'quote'], $pks));
 
-        $subQuery1 = 'SELECT ' . $db->qn('id_address_delivery') .
-            ' FROM ' . $db->qn('#__alfa_orders') .
-            ' WHERE ' . $db->qn('id') . ' IN (' . $ids . ')';
+        // Get IDs given by orders' id_address_delivery.
+        $subQuery1 = $db->getQuery(true)
+            ->select($db->qn('id_address_delivery'))
+            ->from($db->qn('#__alfa_orders'))
+            ->where($db->qn('id') . ' IN (' . $ids . ')');
 
-        $subQuery2 = 'SELECT ' . $db->qn('id_address_invoice') .
-            ' FROM ' . $db->qn('#__alfa_orders') .
-            ' WHERE ' . $db->qn('id') . ' IN (' . $ids . ')';
+        // Get IDs given by orders' id_address_invoice.
+        $subQuery2 = $db->getQuery(true)
+            ->select($db->qn('id_address_invoice'))
+            ->from($db->qn('#__alfa_orders'))
+            ->where($db->qn('id') . ' IN (' . $ids . ')');
 
+        // Delete user info entries of given IDs, if they are associated with a guest user.
         $query = $db->getQuery(true)
             ->delete($db->qn('#__alfa_user_info'))
             ->where('(' . $db->qn('id') . ' IN (' . $subQuery1 . ') OR ' . $db->qn('id') . ' IN (' . $subQuery2 . '))')
             ->where($db->qn('id_user') . ' = 0');
 
+        // Execute
         $db->setQuery($query);
         $db->execute();
+
+
+        // Deleting non-user user info.
+//
+//        $subQuery1 = 'SELECT ' . $db->qn('id_address_delivery') .
+//            ' FROM ' . $db->qn('#__alfa_orders') .
+//            ' WHERE ' . $db->qn('id') . ' IN (' . $ids . ')';
+//
+//        $subQuery2 = 'SELECT ' . $db->qn('id_address_invoice') .
+//            ' FROM ' . $db->qn('#__alfa_orders') .
+//            ' WHERE ' . $db->qn('id') . ' IN (' . $ids . ')';
+//
+//        $query = $db->getQuery(true)
+//            ->delete($db->qn('#__alfa_user_info'))
+//            ->where('(' . $db->qn('id') . ' IN (' . $subQuery1 . ') OR ' . $db->qn('id') . ' IN (' . $subQuery2 . '))')
+//            ->where($db->qn('id_user') . ' = 0');
+//
+//        $db->setQuery($query);
+//        $db->execute();
 
 //        }
 //        catch(\Exception $e){
