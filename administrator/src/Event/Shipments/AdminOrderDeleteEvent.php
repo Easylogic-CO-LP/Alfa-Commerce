@@ -30,19 +30,19 @@ class AdminOrderDeleteEvent extends ShipmentsEvent
         return $this->getSubject();
     }
 
-    public function onSetCanDelete(bool $canDelete): bool
+    public function onSetResult(bool $result): bool
     {
-        return $this->getCanDelete();
+        return $this->getResult();
     }
 
-    public function setCanDelete(bool $canDelete): void
+    public function setResult(bool $result): void
     {
-        $this->arguments['can_delete'] = $canDelete;
+        $this->arguments['result'] = $result;
     }
 
-    public function getCanDelete(): bool
+    public function getResult(): bool
     {
-        return $this->arguments['can_delete'];
+        return $this->arguments['result'];
     }
 
 
