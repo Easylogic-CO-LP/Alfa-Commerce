@@ -92,10 +92,12 @@
         />
 
         <field
-                name="created_by" type="createdby"
-                default="0" label="JGLOBAL_FIELD_CREATED_BY_LABEL"
+                name="created_by"
+                type="user"
+                default="0"
+                label="JGLOBAL_FIELD_CREATED_BY_LABEL"
                 description="JGLOBAL_FIELD_CREATED_BY_DESC"
-                hidden="true"
+
                 hint="COM_ALFA_FORM_LBL_ITEM_CREATED_BY"
         />
 
@@ -123,7 +125,6 @@
         />
 
         <field name="ordering"/>
-
 
         <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL"
                description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>

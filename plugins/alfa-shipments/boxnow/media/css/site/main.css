@@ -1,4 +1,12 @@
-#boxNowButton a{
-	background-color: var(--box-now-btn-background-color);
-	color: var(--box-now-btn-color);
+/*#boxNowButton a*/
+/*{*/
+/*	background-color: var(--box-now-btn-background-color);*/
+/*	color: var(--box-now-btn-color);*/
+/*}*/
+
+#boxnowmap
+{
+	/*display:none;*/
+	position: relative;
+	z-index: 9999;
 }

@@ -136,6 +136,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const options = {
             method: 'POST',
             headers: {
+                'X-CSRF-Token': Joomla.getOptions('csrf.token', ''),
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
             // body: params

@@ -29,4 +29,5 @@ class CartViewEvent extends ShipmentsLayoutEvent
     {
         return $this->getSubject();
     }
+
 }
