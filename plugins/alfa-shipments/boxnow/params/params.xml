@@ -22,23 +22,43 @@
                 <option value="1">JYES</option>
             </field>
 
-            <field name="contact_name" type="text"
-                   label="PLG_ALFA_SHIPMENTS_BOXNOW_CONTACT_NAME"
-                   description="PLG_ALFA_SHIPMENTS_BOXNOW_CONTACT_NAME_DESC"
+            <field
+                name="origin_id"
+                type="text"
+                label="PLG_ALFA_SHIPMENTS_BOXNOW_ORIGIN_ID"
+                description="PLG_ALFA_SHIPMENTS_BOXNOW_ORIGIN_ID_DESC"
+                default="2"
+                required="false"
+                showon="sandbox_mode:1"
+                />
+
+            <field
+                    name="destination_id"
+                    type="text"
+                    label="PLG_ALFA_SHIPMENTS_BOXNOW_DESTINATION_ID"
+                    description="PLG_ALFA_SHIPMENTS_BOXNOW_DESTINATION_ID_DESC"
+                    default="4"
+                    required="false"
+                    showon="sandbox_mode:1"
+            />
+
+            <field name="admin_name" type="text"
+                   label="PLG_ALFA_SHIPMENTS_BOXNOW_ADMIN_NAME"
+                   description="PLG_ALFA_SHIPMENTS_BOXNOW_ADMIN_NAME_DESC"
                    default=""
                    required="false"
             />
 
-            <field name="contact_email" type="text"
-                   label="PLG_ALFA_SHIPMENTS_BOXNOW_CONTACT_EMAIL"
-                   description="PLG_ALFA_SHIPMENTS_BOXNOW_CONTACT_EMAIL_DESC"
+            <field name="admin_email" type="email"
+                   label="PLG_ALFA_SHIPMENTS_BOXNOW_ADMIN_EMAIL"
+                   description="PLG_ALFA_SHIPMENTS_BOXNOW_ADMIN_EMAIL_DESC"
                    default=""
                    required="false"
             />
 
-            <field name="phone_number" type="text"
-                   label="PLG_ALFA_SHIPMENTS_BOXNOW_PHONE_NUMBER"
-                   description="PLG_ALFA_SHIPMENTS_BOXNOW_PHONE_NUMBER_DESC"
+            <field name="admin_phone_number" type="text"
+                   label="PLG_ALFA_SHIPMENTS_BOXNOW_ADMIN_PHONE_NUMBER"
+                   description="PLG_ALFA_SHIPMENTS_BOXNOW_ADMIN_PHONE_NUMBER_DESC"
                    default=""
                    required="false"
            />
@@ -59,30 +79,30 @@
             />
 
             <!-- TODO: SELECT THE FIELD DYNAMICALLY FROM SQL -->
-              <field name="email_form_name" type="text"
-                   label="Email input name"
-                   description="The name of the input field"
+              <field name="email_form_name" type="AlfaField"
+                   label="PLG_ALFA_SHIPMENTS_BOXNOW_CLIENT_EMAIL"
+                   description="PLG_ALFA_SHIPMENTS_BOXNOW_CLIENT_EMAIL_DESC"
                    default="email"
                    required="true"
               />
 
-              <field name="telephone_form_name" type="text"
-                   label="Telephone input name"
-                   description="The name of the input field"
+              <field name="telephone_form_name" type="AlfaField"
+                   label="PLG_ALFA_SHIPMENTS_BOXNOW_CLIENT_TELEPHONE_NUMBER"
+                   description="PLG_ALFA_SHIPMENTS_BOXNOW_CLIENT_TELEPHONE_NUMBER_DESC"
                    default="telephone"
                    required="true"
               />
 
-              <field name="firstname_form_name" type="text"
-                   label="First name input name"
-                   description="The name of the input field"
+              <field name="firstname_form_name" type="AlfaField"
+                   label="PLG_ALFA_SHIPMENTS_BOXNOW_CLIENT_FIRST_NAME"
+                   description="PLG_ALFA_SHIPMENTS_BOXNOW_CLIENT_FIRST_NAME_DESC"
                    default="firstname"
                    required="true"
               />
 
-              <field name="lastname_form_name" type="text"
-                   label="Last name input name"
-                   description="The name of the input field"
+              <field name="lastname_form_name" type="AlfaField"
+                   label="PLG_ALFA_SHIPMENTS_BOXNOW_CLIENT_LAST_NAME"
+                   description="PLG_ALFA_SHIPMENTS_BOXNOW_CLIENT_LAST_NAME_DESC"
                    default="lastname"
                    required="true"
               />

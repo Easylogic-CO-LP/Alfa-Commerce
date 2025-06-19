@@ -442,7 +442,9 @@ class CartController extends FormController implements UserFactoryAwareInterface
 
 
 
-//    public function updateUserInfo(){
+//    public function updateUserInfo()
+//{
+//        $this->checkToken();
 //
 //        $input = $this->app->input;
 //        $failMessage = 'Field failed to be updated';

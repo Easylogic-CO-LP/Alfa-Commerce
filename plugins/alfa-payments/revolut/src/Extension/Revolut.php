@@ -31,6 +31,12 @@ final class Revolut extends PaymentsPlugin
         $app = self::getApplication();
         $order = $event->getOrder();
 
+        // Plugin is not configured properly. Cannot proceed to payment.
+        if(!$this->properlyConfigured($order->selected_payment->params)) {
+            $this->app->enqueueMessage("Revolut payment was improperly configurerd. Please inform the site's administrator.", "error");
+            return;
+        }
+
         $sandboxUrl = 'https://sandbox-merchant.revolut.com/api/orders';
 //        $productionUrl = 'https://merchant.revolut.com/api/orders';
         $productionUrl = 'https://sandbox-merchant.revolut.com/api/orders';
@@ -77,9 +83,9 @@ final class Revolut extends PaymentsPlugin
 
         $this->insertLog($logData);
 
-        if(!empty($errorCode))
+        if(!empty($revolutErrorCode))
         {
-            $app->enqueueMessage('(Oops.. '.$revolutErrorCode.') '.$revolutErrorMessage);
+            $app->enqueueMessage("(" . $revolutErrorCode.') '.$revolutErrorMessage);
             return;
         }
 
@@ -166,6 +172,7 @@ final class Revolut extends PaymentsPlugin
     }
 
     public function onItemView($event){
+
         $item = $event->getItem();
         $method = $event->getMethod();
 
@@ -173,11 +180,10 @@ final class Revolut extends PaymentsPlugin
             'method' => $method,
             'item' => $item
         ];
-        
+
         $event->setLayoutPluginName($this->_name);
         $event->setLayout('default_product_view');
         $event->setLayoutData($layoutData);
-
     }
 
 
@@ -192,8 +198,6 @@ final class Revolut extends PaymentsPlugin
         $url = $paymentData['url'];
         $secretKey = $paymentData['secret_key'];
         $redirectUrl = $paymentData['redirect_url'];
-
-        echo "URL: {$url}";
 
         $priceAmount = $order->original_price * (10 ** $order->currency_data->decimal_place);
 
@@ -275,6 +279,28 @@ final class Revolut extends PaymentsPlugin
         curl_close($curl);
 
         return json_decode($response, true);
+    }
+
+
+    protected function properlyConfigured($params): bool
+    {
+        // Ensure $params is an object.
+        if(!is_object($params))
+            $params = json_decode(json_encode($params));
+
+        // Decode the json if it comes as a string.
+        if(is_string($params))
+            $params = json_decode($params);
+
+        if( !isset($params->revolut_secret_key)
+            || empty($params->revolut_secret_key)   // Validating secret key.
+            || !isset($params->revolut_sandbox_mode)
+            || empty($params->revolut_sandbox_mode)     // Validating sandbox mode.
+        ){
+            return false;
+        }
+
+        return true;
     }
 
 

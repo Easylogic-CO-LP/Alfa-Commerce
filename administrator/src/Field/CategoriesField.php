@@ -52,9 +52,6 @@ class CategoriesField extends ListField
             return $this->options;
         }
 
-
-
-
         $model->getState('list.ordering');//we should use get before set the list state fields
 
         $model->setState('filter.state', '*');
