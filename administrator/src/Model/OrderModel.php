@@ -794,7 +794,7 @@ class OrderModel extends AdminModel
 
                 $app->bootPlugin($payment->params->type, "alfa-payments")
                     ->{$onAdminOrderDeleteEventName}($paymentDeleteOrderDataEvent);
-                $deleteEntry = $paymentDeleteOrderDataEvent->getCanDelete();
+                $deleteEntry = $paymentDeleteOrderDataEvent->getResult();
 
             }
 
@@ -813,7 +813,7 @@ class OrderModel extends AdminModel
 
                     $app->bootPlugin($shipment->params->type, "alfa-shipments")
                         ->{$onAdminOrderDeleteEventName}($shipmentDeleteOrderDataEvent);
-                    $deleteEntry = $shipmentDeleteOrderDataEvent->getCanDelete();
+                    $deleteEntry = $shipmentDeleteOrderDataEvent->getResult();
                 }
             }
 
