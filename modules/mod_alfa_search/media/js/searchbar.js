@@ -117,7 +117,7 @@ document.addEventListener("DOMContentLoaded", () => {
             .then(data => {
                 // hide loading
                 // Assuming `data` contains the search results
-                console.log(data);
+                // console.log(data);
                 displayResults(data);
                 searchPopup.classList.add("active");
 

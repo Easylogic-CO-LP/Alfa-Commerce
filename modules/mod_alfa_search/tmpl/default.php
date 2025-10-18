@@ -2,10 +2,16 @@
 
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Uri\Uri;
 
 defined('_JEXEC') or die;
 
 // to keep the functionallity do not change the ids search-container-input , search-container-popup , search-container-loading-img
+
+$basePath = Uri::base(true);
+
+$formAction = $basePath . '/index.php?option=com_alfa&view=items';
+$ajaxAction = $basePath . '/index.php?option=com_ajax&module=alfa_search&method=get&format=json';
 
 $min_characters = (int)$params->get('minCharacters', '2');
 $loadingImageType = $params->get('loadingImageType', '3');
@@ -14,8 +20,8 @@ $loadingImageInline = $params->get('loadingImageInline', '');
 ?>
 
 <div class="alfasearch-wrapper">
-    <form action="/index.php?option=com_alfa&view=items" data-minchars="<?php echo $min_characters ?>"
-          data-action="/index.php?option=com_ajax&module=alfa_search&method=get&format=json" method="get">
+    <form action="<?php echo $formAction; ?>" data-minchars="<?php echo $min_characters ?>"
+          data-action="<?php echo $ajaxAction; ?>" method="get">
         <div class="search-container">
             <input type="search" name="filter[search]" class="searchbar" id="search-container-input" autocomplete="off"
                    placeholder="<?php echo Text::_('MOD_ALFA_SEARCH_SEARCHBAR_PLACEHOLDER'); ?>">

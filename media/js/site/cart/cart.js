@@ -131,7 +131,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function clearCart() {
 
-        let url = '/index.php?option=com_alfa&task=cart.clearCart&format=json';
+        const basePath = Joomla.getOptions('system.paths').base || '';
+        let url = basePath + '/index.php?option=com_alfa&task=cart.clearCart&format=json';
 
         const options = {
             method: 'POST',
@@ -254,9 +255,8 @@ document.addEventListener("DOMContentLoaded", () => {
         params.append('quantity', quantity);
         // params.append("shipment_id", shipment_id);
 
-        // console.log(params);
-
-        const url = '/index.php?option=com_alfa&task=cart.updateQuantity&format=json';
+        const basePath = Joomla.getOptions('system.paths').base || '';
+        let url = basePath + '/index.php?option=com_alfa&task=cart.updateQuantity&format=json';
 
         const options = {
             method: 'POST',
@@ -337,7 +337,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // console.log(params);
 
-        const url = '/index.php?option=com_alfa&task=cart.updateShipment&format=json';
+        const basePath = Joomla.getOptions('system.paths').base || '';
+        let url = basePath + '/index.php?option=com_alfa&task=cart.updateShipment&format=json';
 
         const options = {
             method: 'POST',
@@ -426,7 +427,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // console.log(params);
 
-        const url = '/index.php?option=com_alfa&task=cart.updatePayment&format=json';
+        const basePath = Joomla.getOptions('system.paths').base || '';
+        let url = basePath + '/index.php?option=com_alfa&task=cart.updatePayment&format=json';
 
         const options = {
             method: 'POST',
@@ -513,21 +515,6 @@ document.addEventListener("DOMContentLoaded", () => {
     //
     //
     // }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     // Saves input field data to history state.
