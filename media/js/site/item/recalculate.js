@@ -101,7 +101,8 @@ document.addEventListener("DOMContentLoaded", () => {
         params.append("quantity", quantity.value);
         params.append("item_id", item_id);
 
-        let url = '/index.php?option=com_alfa&task=cart.recalculate&format=json';
+        const basePath = Joomla.getOptions('system.paths').base || '';
+        let url = basePath + '/index.php?option=com_alfa&task=cart.recalculate&format=json';
         const options = {
             method: 'POST',
             headers: {
