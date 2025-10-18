@@ -68,7 +68,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     document.addEventListener("alfaProductAdded", async (event) => {
-        const url = "/index.php?option=com_ajax&module=alfa_cart&method=reload&format=json";
+        const basePath = Joomla.getOptions('system.paths').base || '';
+        const url = basePath + "/index.php?option=com_ajax&module=alfa_cart&method=reload&format=json";
         
         fetch(url)
             .then((response) => {
@@ -107,7 +108,8 @@ document.addEventListener("DOMContentLoaded", () => {
         await changeQuantity(itemId, 0);
 
         // Fetch updated cart data after removing an item
-        const url = "/index.php?option=com_ajax&module=alfa_cart&method=reload&format=json";
+        const basePath = Joomla.getOptions('system.paths').base || '';
+        const url = basePath + "/index.php?option=com_ajax&module=alfa_cart&method=reload&format=json";
 
         try {
             const response = await fetch(url);
@@ -143,7 +145,8 @@ document.addEventListener("DOMContentLoaded", () => {
         params.append("id_item", itemId);
         params.append('quantity', quantity);
 
-        const url = '/index.php?option=com_ajax&module=alfa_cart&method=get&format=json';
+        const basePath = Joomla.getOptions('system.paths').base || '';
+        const url = basePath + '/index.php?option=com_ajax&module=alfa_cart&method=get&format=json';
 
         const options = {
             method: 'POST',
