@@ -202,8 +202,9 @@ function navigation(slider) {
     })
 }
 
+// TODO: TO BE FIXED TO BE BETTER tabbing logic!!!
 // Tabs & Amount
-function openTab(evt, cityName) {
+function openTab(evt, tabName) {
     let i, tabcontent, tablinks;
 
     // Get all elements with class="tabcontent" and hide them
@@ -220,7 +221,7 @@ function openTab(evt, cityName) {
     }
 
     // Show the current tab, and add an "active" class to the button that opened the tab
-    const selectedTab = document.getElementById(cityName);
+    const selectedTab = document.getElementById(tabName);
     selectedTab.style.display = "block";
     setTimeout(function () {
         selectedTab.style.opacity = "1";

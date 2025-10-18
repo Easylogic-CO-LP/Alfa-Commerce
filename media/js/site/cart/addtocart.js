@@ -20,11 +20,13 @@ async function addToCart() {
         return;
     }
     
+    const basePath = Joomla.getOptions('system.paths').base || '';
+
     const params = new URLSearchParams();
     params.append("item_id", item_id);
     params.append("quantity", quantity.value);
 
-    let url = '/index.php?option=com_alfa&task=cart.addToCart&format=json';
+    let url = basePath + '/index.php?option=com_alfa&task=cart.addToCart&format=json';
     const options = {
         method: 'POST',
         headers: {
