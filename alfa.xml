@@ -53,7 +53,7 @@
         <menu>COM_ALFA</menu>
         <submenu>
 
-            <menu link="option=com_alfa&amp;view=categories" view="categories" alt="Alfa/Categories">COM_ALFA_TITLE_CATEGORIES</menu>
+            <menu link="option=com_alfa&amp;view=categories" view="categories" alt="Alfa/Categories">COM_ALFA_TITLE_CATEGORIESs</menu>
 
             <menu link="option=com_alfa&amp;view=items" view="items" alt="Alfa/Items">COM_ALFA_TITLE_ITEMS</menu>
 
