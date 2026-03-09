@@ -41,6 +41,5 @@ Developer Contact
     Contact the dev team at info@easylogic.gr
 
 Documentation for alfa-commerce is coming soon. For now, you can refer to the codebase and the inline comments to understand the structure.
-🏷️ License
 
 Developed with ❤️ by the Easylogic Team.
