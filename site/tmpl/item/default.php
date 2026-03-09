@@ -56,7 +56,7 @@ $priceSettings = $this->priceSettings;
 
 
         <div class="item-payment-methods">
-            Payment Methods :
+            <?php echo Text::_('COM_ALFA_ITEM_PAYMENT_METHODS'); ?> :
 
             <?php
             if (!empty($this->item->payment_methods))
@@ -77,7 +77,7 @@ $priceSettings = $this->priceSettings;
         </div>
 
         <div class="item-shipment-methods">
-            Shipment Methods :
+            <?php echo Text::_('COM_ALFA_ITEM_SHIPMENT_METHODS'); ?> :
 
             <?php
             if (!empty($this->item->shipment_methods))

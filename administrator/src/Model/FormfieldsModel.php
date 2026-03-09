@@ -14,6 +14,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 use Joomla\CMS\MVC\Model\ListModel;
 
@@ -193,9 +194,9 @@ class FormFieldsModel extends ListModel
 
         $db->setQuery($query);
         if ($db->execute()) {
-            $app->enqueueMessage('Entry was deleted successfully!', 'success');
+            $app->enqueueMessage(Text::_('COM_ALFA_ENTRY_DELETED_SUCCESSFULLY'), 'success');
         } else {
-            $app->enqueueMessage('Entry was could not be deleted.', 'error');
+            $app->enqueueMessage(Text::_('COM_ALFA_ENTRY_COULD_NOT_BE_DELETED'), 'error');
         }
     }
 

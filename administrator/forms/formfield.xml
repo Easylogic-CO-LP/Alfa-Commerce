@@ -11,7 +11,7 @@
         <field
                 name="type"
                 type="type"
-                label="Type is"
+                label="COM_ALFA_FORM_LBL_TYPE_IS"
                 default="text"
                 required="true"
                 list_value="name"
@@ -22,7 +22,7 @@
         <field
                 name="field_name"
                 type="text"
-                label="Field Name"
+                label="COM_ALFA_FORM_LBL_FIELD_NAME"
                 hint="JFIELD_NAME_PLACEHOLDER"
                 required="false"
         />
@@ -30,21 +30,21 @@
         <field
                 name="field_label"
                 type="text"
-                label="Field Label"
+                label="COM_ALFA_FORM_LBL_FIELD_LABEL"
                 required="true"
         />
 
         <field
                 name="field_description"
                 type="text"
-                label="Field Description"
+                label="COM_ALFA_FORM_LBL_FIELD_DESCRIPTION"
                 required="false"
         />
 
 
         <field name="required" type="radio"
                layout="joomla.form.field.radio.switcher"
-               label="Required"
+               label="COM_ALFA_FORM_LBL_REQUIRED"
                description=""
                default="0">
             <option value="0">JNO</option>
@@ -54,7 +54,7 @@
 
         <field name="registration" type="radio"
                layout="joomla.form.field.radio.switcher"
-               label="Registration"
+               label="COM_ALFA_FORM_LBL_REGISTRATION"
                description=""
                default="0">
             <option value="0">JNO</option>
@@ -63,7 +63,7 @@
 
         <field name="billing" type="radio"
                layout="joomla.form.field.radio.switcher"
-               label="Billing"
+               label="COM_ALFA_FORM_LBL_BILLING"
                description=""
                default="0">
             <option value="0">JNO</option>
@@ -72,7 +72,7 @@
 
         <field name="shipping" type="radio"
                layout="joomla.form.field.radio.switcher"
-               label="Shipping"
+               label="COM_ALFA_FORM_LBL_SHIPPING"
                description=""
                default="0">
             <option value="0">JNO</option>
@@ -88,7 +88,7 @@
                 multiple="true"
                 checksuperusergroup="1"
                 default="8"
-                header="All User Groups"
+                header="COM_ALFA_FORM_HEADER_ALL_USERGROUPS"
         />
 
         <field

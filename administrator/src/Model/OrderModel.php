@@ -876,7 +876,7 @@ class OrderModel extends AdminModel
         $adminPrice = (float) ($data['unit_price_tax_incl'] ?? 0); // Admin-set price (tax incl)
 
         if ($orderId <= 0 || $idItem <= 0) {
-            $app->enqueueMessage('Invalid order ID or product ID', 'error');
+            $app->enqueueMessage(Text::_('COM_ALFA_ERROR_INVALID_ORDER_OR_PRODUCT'), 'error');
             return false;
         }
 
@@ -884,7 +884,7 @@ class OrderModel extends AdminModel
         $context = OrderHelper::buildOrderPriceContext($orderId);
         $product = OrderHelper::getProductById($idItem, $context, $quantity);
         if (!$product) {
-            $app->enqueueMessage('Product not found in catalog (ID: ' . $idItem . ')', 'error');
+            $app->enqueueMessage(Text::sprintf('COM_ALFA_ERROR_PRODUCT_NOT_FOUND', $idItem), 'error');
             return false;
         }
 
@@ -1184,13 +1184,13 @@ class OrderModel extends AdminModel
         // Load item to get quantity and product ID for stock restore
         $item = $this->loadExistingItemRow($id);
         if (!$item) {
-            Factory::getApplication()->enqueueMessage('Order item not found', 'error');
+            Factory::getApplication()->enqueueMessage(Text::_('COM_ALFA_ERROR_ORDER_ITEM_NOT_FOUND'), 'error');
             return false;
         }
 
         // Verify order ownership
         if ((int) $item->id_order !== $orderId) {
-            Factory::getApplication()->enqueueMessage('Order item does not belong to this order', 'error');
+            Factory::getApplication()->enqueueMessage(Text::_('COM_ALFA_ERROR_ORDER_ITEM_NOT_IN_ORDER'), 'error');
             return false;
         }
 
@@ -1431,7 +1431,7 @@ class OrderModel extends AdminModel
 
         if (!empty($userInfoData) && !empty($data['id_address_delivery'])) {
             if (!OrderHelper::saveUserInfo((int) $data['id_address_delivery'], $userInfoData)) {
-                $app->enqueueMessage('Could not save user info.', 'error');
+                $app->enqueueMessage(Text::_('COM_ALFA_ERROR_SAVE_USER_INFO'), 'error');
             }
         }
 
@@ -2084,7 +2084,7 @@ class OrderModel extends AdminModel
         $filteredData = array_intersect_key($data, $tableColumns);
 
         if (empty($filteredData)) {
-            Factory::getApplication()->enqueueMessage('No valid columns to save', 'error');
+            Factory::getApplication()->enqueueMessage(Text::_('COM_ALFA_ERROR_NO_VALID_COLUMNS'), 'error');
             return false;
         }
 
