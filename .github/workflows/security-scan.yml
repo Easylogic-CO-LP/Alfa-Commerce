@@ -1,0 +1,79 @@
+name: Security Scan
+
+on:
+  pull_request:
+    branches: [main, developer]
+  push:
+    branches: [main, developer]
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript-typescript"
+
+  php-security:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          tools: composer
+
+      - name: Install PHP security checker dependencies
+        run: composer global require --dev enlightn/security-checker
+
+      - name: Run Enlightn Security Checker
+        run: |
+          if [ -f composer.lock ]; then
+            security-checker security:check composer.lock
+          else
+            echo "No composer.lock found — skipping dependency vulnerability scan."
+          fi
+
+      - name: PHP Static Analysis for Security
+        uses: php-actions/phpstan@v3
+        with:
+          php_version: "8.2"
+          path: "administrator/src/ site/src/ api/src/ plugins/ modules/"
+          level: 5
+        continue-on-error: true
+
+  secret-scanning:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: TruffleHog Secret Scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified
