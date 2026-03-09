@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 use \Joomla\CMS\MVC\Model\ListModel;
 use \Joomla\Component\Fields\Administrator\Helper\FieldsHelper;
 use \Joomla\CMS\Factory;
@@ -35,7 +36,7 @@ class PaymentsModel extends ListModel
 	* @see        JController
 	* @since      1.6
 	*/
-	public function __construct($config = array())
+    public function __construct($config = [], ?MVCFactoryInterface $factory = null)
 	{
 		if (empty($config['filter_fields']))
 		{
@@ -50,15 +51,8 @@ class PaymentsModel extends ListModel
 			);
 		}
 
-		parent::__construct($config);
+		parent::__construct($config, $factory);
 	}
-
-
-	
-
-	
-
-	
 
 	/**
 	 * Method to auto-populate the model state.
@@ -72,26 +66,10 @@ class PaymentsModel extends ListModel
 	 *
 	 * @throws Exception
 	 */
-	protected function populateState($ordering = null, $direction = null)
-	{
-		// List state information.
-		parent::populateState('id', 'ASC');
-
-		$context = $this->getUserStateFromRequest($this->context.'.filter.search', 'filter_search');
-		$this->setState('filter.search', $context);
-
-		// Split context into component and optional section
-		if (!empty($context))
-		{
-			$parts = FieldsHelper::extract($context);
-
-			if ($parts)
-			{
-				$this->setState('filter.component', $parts[0]);
-				$this->setState('filter.section', $parts[1]);
-			}
-		}
-	}
+    protected function populateState($ordering = 'a.id', $direction = 'ASC')
+    {
+        parent::populateState($ordering, $direction);
+    }
 
 	/**
 	 * Method to get a store id based on model configuration state.

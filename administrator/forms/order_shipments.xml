@@ -1,71 +1,189 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Shipment form — complete coverage of #__alfa_order_shipments columns.
+
+    Used for BOTH:
+    1. Popup add/edit form (getShipmentForm → edit_shipment.php)
+    2. List column definitions (edit_shipments.php subform)
+
+    Field groups:
+      ITEMS:    items (virtual — assign products to shipment)
+      CORE:     id_shipment_method, status, shipping_cost_tax_incl/excl
+      CARRIER:  tracking_number, carrier_name, weight
+      DATES:    added, shipped (readonly), delivered (readonly)
+      HIDDEN:   id, id_order, id_currency, id_employee,
+                shipment_method_name, id_order_invoice
+
+    The `status` list field has NO static options — always injected by
+    OrderModel::getShipmentForm() from OrderShipmentHelper constants.
+
+    The `shipped` and `delivered` fields are readonly calendar fields.
+    They are set programmatically by the builder (->shipped(), ->delivered())
+    but visible in the edit form and list for admin reference.
+
+    DB: #__alfa_order_shipments
+-->
 <form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
     <fieldset name="shipment">
-        <field
-                name="items" type="orderItems"
-                input_id="id_order"
-                multiple="true"
-                label="Items"
-                description=""
-                layout="joomla.form.field.list-fancy-select"
-                required="false"
 
-        >
-        </field>
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- CORE FIELDS                                             -->
+        <!-- ═══════════════════════════════════════════════════════ -->
 
-        <field
-                name="amount"
-                type="number"
-                label="COM_ALFA_FORM_ORDER_AMOUNT"
-                description="COM_ALFA_FORM_ORDER_AMOUNT_DESC"
-                readonly="false"
-                required="true"
-        />
-
+        <!-- Shipment method (dropdown from shipments table) -->
         <field
                 name="id_shipment_method" type="sql"
                 input_type="list"
                 required="true"
                 multiple="false"
-                label="COM_ALFA_FORM_ORDER_SHIPMENT_METHOD"
-                description="COM_ALFA_FORM_ORDER_SHIPMENT_METHOD_DESC"
+                label="COM_ALFA_SHIPMENT_METHOD"
+                description="COM_ALFA_SHIPMENT_METHOD_DESC"
                 layout="joomla.form.field.list-fancy-select"
-                query="SELECT `id`, `name` AS `val` FROM `#__alfa_shipments`" key_field="id" value_field="val"
+                query="SELECT `id`, `name` AS `val` FROM `#__alfa_shipments`"
+                key_field="id" value_field="val"
         />
 
+        <!-- Shipment status — options injected by OrderModel::getShipmentForm() -->
         <field
-                name="track_id"
+                name="status"
+                type="list"
+                label="COM_ALFA_STATUS"
+                description="COM_ALFA_SHIPMENT_STATUS_DESC"
+                default="pending"
+                required="true"
+        />
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- ITEMS — virtual field (not a DB column)                 -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+
+        <!-- Items assigned to this shipment.
+             assign_column filters: shows unshipped + items in THIS shipment.
+             Processed by saveOrderShipment() → assignItemsToShipment() -->
+        <field
+                name="items" type="orderItems"
+                input_id="id_order"
+                entity_id="id"
+                assign_column="id_order_shipment"
+                show_quantity="true"
+                show_sku="false"
+                multiple="true"
+                label="COM_ALFA_ITEMS"
+                description=""
+                layout="joomla.form.field.list-fancy-select"
+                required="false"
+        />
+
+        <!-- Shipping cost tax included -->
+        <field
+                name="shipping_cost_tax_incl"
+                type="number"
+                label="COM_ALFA_COST_TAX_INCL"
+                description=""
+                step="0.01"
+                min="0"
+                default="0"
+                required="false"
+        />
+
+        <!-- Shipping cost tax excluded -->
+        <field
+                name="shipping_cost_tax_excl"
+                type="number"
+                label="COM_ALFA_COST_TAX_EXCL"
+                description=""
+                step="0.01"
+                min="0"
+                default="0"
+                required="false"
+        />
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- CARRIER FIELDS                                          -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+
+        <!-- Tracking number from carrier -->
+        <field
+                name="tracking_number"
                 type="text"
                 default=""
-                label="COM_ALFA_FORM_ORDER_TRACK_ID"
-                description="COM_ALFA_FORM_ORDER_TRACK_ID_DESC"
+                label="COM_ALFA_TRACKING_NUMBER"
+                description="COM_ALFA_TRACKING_NUMBER_DESC"
         />
 
+        <!-- Carrier name (DHL, FedEx, ACS, Speedex, etc.) -->
+        <field
+                name="carrier_name"
+                type="text"
+                default=""
+                label="COM_ALFA_CARRIER_NAME"
+                description="COM_ALFA_CARRIER_NAME_DESC"
+        />
+
+        <!-- Package weight -->
+        <field
+                name="weight"
+                type="number"
+                label="COM_ALFA_WEIGHT"
+                description=""
+                step="0.001"
+                min="0"
+                default="0"
+                required="false"
+        />
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- DATE FIELDS                                             -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+
+        <!-- Date added (auto-filled for new, editable for existing) -->
         <field
                 name="added"
                 type="calendar"
-                label="COM_ALFA_FORM_ORDER_ITEM_DATE"
-                description="COM_ALFA_FORM_ORDER_ITEM_DATE_DESC"
+                label="COM_ALFA_DATE_ADDED"
+                description=""
                 class="form-control"
                 translateformat="true"
                 showtime="true"
                 filter="user_utc"
         />
 
+        <!-- Shipped timestamp — set by builder's ->shipped(), readonly in form -->
         <field
-                name="id_user"
-                type="user"
-                required="true"
-                label="COM_ALFA_FORM_ORDER_ID_USER"
-                description="COM_ALFA_FORM_ORDER_ID_USER_DESC"
-                validate="UserId"
+                name="shipped"
+                type="calendar"
+                label="COM_ALFA_SHIPPED_DATE"
+                description="COM_ALFA_SHIPPED_DATE_DESC"
+                class="form-control"
+                translateformat="true"
+                showtime="true"
+                filter="user_utc"
+                readonly="true"
         />
 
-        <!-- id     id_order    id_currency     amount  payment_method  conversion_rate transaction_id  date_add    id_user      -->
+        <!-- Delivered timestamp — set by builder's ->delivered(), readonly in form -->
+        <field
+                name="delivered"
+                type="calendar"
+                label="COM_ALFA_DELIVERED_DATE"
+                description="COM_ALFA_DELIVERED_DATE_DESC"
+                class="form-control"
+                translateformat="true"
+                showtime="true"
+                filter="user_utc"
+                readonly="true"
+        />
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- HIDDEN — auto-filled by model, not shown in form/list  -->
+        <!-- ═══════════════════════════════════════════════════════ -->
 
         <field name="id" type="hidden"/>
         <field name="id_order" type="hidden"/>
-        <field name="id_currency" type="hidden" default="978"/>
-    </fieldset>
+        <field name="id_currency" type="hidden"/>
+        <field name="id_employee" type="hidden"/>
+        <field name="shipment_method_name" type="hidden"/>
+        <field name="id_order_invoice" type="hidden"/>
 
+    </fieldset>
 </form>

@@ -1,178 +1,278 @@
 <?php
+/**
+ * @package     Alfa.Component
+ * @subpackage  Administrator.Plugin
+ * @version     3.5.1
+ * @author      Agamemnon Fakas <info@easylogic.gr>
+ * @copyright   2026 Easylogic CO LP
+ * @license     GNU General Public License version 2 or later
+ *
+ * Base Shipment Plugin
+ *
+ * All shipment plugins extend this class.
+ * Provides fluent builder wrappers for shipment operations
+ * and empty action hooks for the admin UI.
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ *  FLUENT BUILDER API (recommended for programmatic use):
+ *
+ *    CREATE:
+ *      $id = $this->shipment($order)->pending()->withAllItems()->cost(12.50)->save();
+ *      $id = $this->shipment($order)->delivered()->withAllItems()->cost(0)->save();
+ *
+ *    UPDATE:
+ *      $this->shipmentUpdate($id)->shipped()->trackingNumber('TRACK123')->save();
+ *      $this->shipmentUpdate($id)->delivered()->save();
+ *      $this->shipmentUpdate($id)->cancelled()->save();
+ *
+ *  READ / DELETE / ITEMS (no builder needed):
+ *    $shipment  = $this->getShipment($id);
+ *    $shipments = $this->getShipmentsByOrder($orderId);
+ *    $this->deleteShipment($id, $orderId);
+ *    $this->assignShipmentItems($shipmentId, $orderId, [101, 102]);
+ *
+ *  LOGGING (inherited from Plugin.php):
+ *    $logId = $this->log(['id_order' => $orderId, ...]);
+ *    $logs  = $this->loadLogs($orderId, $shipmentId);
+ *    $xml   = $this->getLogsSchema();
+ *
+ *  ADMIN ACTIONS (Fluent API on event):
+ *    $event->add('mark_shipped', 'Mark as Shipped')
+ *        ->icon('truck')->css('btn-primary')
+ *        ->confirm('Ship this?')->priority(200);
+ * ═══════════════════════════════════════════════════════════════════
+ *
+ * LOG IDENTIFIER: Sets logIdentifierField = 'id_order_shipment'
+ *
+ * Path: administrator/components/com_alfa/src/Plugin/ShipmentsPlugin.php
+ *
+ * @since  3.0.0
+ */
 
 namespace Alfa\Component\Alfa\Administrator\Plugin;
 
-
-use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
-use Joomla\CMS\Component\ComponentHelper;
-use Joomla\CMS\Factory;
-use Joomla\CMS\HTML\HTMLHelper;
+use Alfa\Component\Alfa\Administrator\Event\Shipments\CalculateShippingCostEvent;
+use Alfa\Component\Alfa\Administrator\Helper\OrderShipmentHelper;
 use Joomla\CMS\Plugin\CMSPlugin;
-use Joomla\Event\DispatcherInterface;
-use Joomla\Utilities\ArrayHelper;
-use Joomla\CMS\Language\Text;
+use Joomla\Event\SubscriberInterface;
 
-// phpcs:disable PSR1.Files.SideEffects
-\defined('_JEXEC') or die;
-// phpcs:enable PSR1.Files.SideEffects
+defined('_JEXEC') or die;
 
-/**
- * Abstract Fields Plugin
- *
- * @since  3.7.0
- */
-abstract class ShipmentsPlugin extends Plugin //implements SubscriberInterface
+abstract class ShipmentsPlugin extends Plugin
 {
-
-    // Used to uniquely identify a shipment log entry.
-    protected $logIdentifierField = "id_order_shipment";
-
-    protected $mustHaveColumns = [
-        ['name'=>'id_order','mysql_type' => 'int(11)', 'default' => 'NULL'],
-        ['name'=>'id_order_shipment','mysql_type' => 'int(11)', 'default' => 'NULL'],
-    ];
-
-    protected function createEmptyOrderShipment(){
-        $orderPaymentArray = [
-            'id_order' => null,
-            'id_currency' => null,
-            'id_shipment_method' => null,
-            'id_user' => null,
-            'amount' => null,
-            'track_id' => null,
-            'date_add' => null,
-        ];
-
-        return $orderPaymentArray;
-    }
-
-    protected function insertOrderShipment($data){
-
-        if(is_object($data))
-            $data = (array)$data; //json_decode(json_encode($data), true); // for nested also
-
-        $component_params = ComponentHelper::getParams('com_alfa');
-        $currency_id = $component_params->get('default_currency', 47);  //47 is euro with number 978
-
-        $shipmentObject = new \stdClass();
-//         $paymentObject->id              = isset($data['id']) ? intval($data['id']) : 0;
-        $shipmentObject->id_order        = isset($data['id_order']) ? $data['id_order'] : 0;
-        $shipmentObject->id_currency     = isset($data['id_currency']) && $data['id_currency'] > 0 ? intval($data['id_currency']) : $currency_id;
-        $shipmentObject->id_shipment_method  = isset($data['id_shipment_method']) ? intval($data['id_shipment_method']) : 0;
-        $shipmentObject->id_user         = isset($data['id_user']) ? $data['id_user'] : 0;
-        $shipmentObject->amount          = isset($data['amount']) ? floatval($data['amount']) : 0.0;
-        $shipmentObject->track_id  = isset($data['track_id']) ? $data['track_id'] : '';
-        $shipmentObject->added        = !empty($data['date_add']) ? Factory::getDate($data['date_add'])->toSql() : NULL;
-
-        $errorMessage = "Insufficient data to insert a shipment.";
-        if(!$shipmentObject){
-            $this->app->enqueueMessage($errorMessage, "error");
-            return 0;
-        }
-
-        $db = self::getDatabase();
-        $db->insertObject('#__alfa_order_shipments', $shipmentObject,"id");
-
-        return $shipmentObject->id;
-    }
-    
-
-	public function onAdminOrderShipmentPrepareForm($event)
-    {
-        $order = $event->getData();
-        $form = $event->getForm();
-
-        $event->setData($order);
-        $event->setForm($form);
-    }
-
-    public function onAdminOrderShipmentView($event) {
-        $order = $event->getOrder();
-        $event->setOrder($order);
-
-	    $event->setLayoutPluginName($this->_name);
-	    $event->setLayoutPluginType($this->_type);
-	    $event->setLayout('default_order_view');
-//	    $event->setLayoutData(
-//		    [
-//			    "logData" => $logData,
-//			    "xml" => $xml
-//		    ]
-//	    );
-    }
-
-	public function onAdminOrderShipmentViewLogs($event) {
-
-		$order = $event->getOrder();
-        $method = $event->getMethod();  // Represents the shipping order's shipment.
-
-		// load logs from xml
-		$formFile = JPATH_PLUGINS . '/' . $this->_type . '/' . $this->_name.'/params/logs.xml';
-		if (!file_exists($formFile)) return;
-
-		$xml = simplexml_load_file($formFile);
-
-		// Get logs data from db
-		$logData = self::loadLogData($order->id, $method->id);
-
-		$event->setLayoutPluginName($this->_name);
-		$event->setLayoutPluginType($this->_type);
-		$event->setLayout('default_order_logs_view');
-		$event->setLayoutData(
-			[
-				"logData" => $logData,
-				"xml" => $xml
-			]
-		);
-
-
+	/**
+	 * Events this plugin subscribes to.
+	 *
+	 * @return  array
+	 * @since   3.0.0
+	 */
+	public static function getSubscribedEvents(): array
+	{
+		return [
+			'onItemView' => 'onItemView',
+			'onCartView' => 'onCartView',
+		];
 	}
 
+	/**
+	 * Constructor.
+	 *
+	 * Sets logIdentifierField so $this->loadLogs($orderId, $shipmentId)
+	 * correctly filters by id_order_shipment in the plugin's log table.
+	 *
+	 * @param   array  $config  Plugin configuration
+	 * @since   3.0.0
+	 */
+	public function __construct(array $config = [])
+	{
+		parent::__construct($config);
 
+		$this->logIdentifierField = 'id_order_shipment';
+	}
 
-//Improved Function with Rotation Consideration
+	// ==========================================================
+	//  SHIPMENT FLUENT BUILDER WRAPPERS
+	//
+	//  These return an OrderShipmentHelper builder instance.
+	//  The builder validates, auto-fills, and delegates to
+	//  static CRUD methods internally.
+	//
+	//  For direct CRUD access (batch ops, admin form saves),
+	//  use OrderShipmentHelper::create/update/delete() directly.
+	// ==========================================================
 
-//    public function getTotalDimensions2($products)
-//    {
-//        $totalWidth = 0;
-//        $maxHeight = 0;
-//        $maxDepth = 0;
-//
-//        foreach ($products as $product) {
-//            // Try different orientations and pick the best one dynamically
-//            $orientations = [
-//                [$product['width'], $product['height'], $product['depth']], // Default
-//                [$product['height'], $product['width'], $product['depth']], // Swap width and height
-//                [$product['depth'], $product['height'], $product['width']], // Swap width and depth
-//                [$product['depth'], $product['width'], $product['height']], // Swap height and depth
-//                [$product['width'], $product['depth'], $product['height']], // Another rotation
-//                [$product['height'], $product['depth'], $product['width']], // Another rotation
-//            ];
-//
-//            // Pick the best orientation to minimize the final package dimensions
-//            $bestOrientation = $orientations[0];
-//            foreach ($orientations as $o) {
-//                if ($o[0] <= $o[1] && $o[0] <= $o[2]) { // Ensure width is the smallest
-//                    $bestOrientation = $o;
-//                    break;
-//                }
-//            }
-//
-//            // Update package dimensions
-//            $totalWidth += $bestOrientation[0]; // Sum best width
-//            $maxHeight = max($maxHeight, $bestOrientation[1]); // Max height
-//            $maxDepth = max($maxDepth, $bestOrientation[2]); // Max depth
-//        }
-//
-//        return [
-//            'width' => $totalWidth,
-//            'height' => $maxHeight,
-//            'depth' => $maxDepth
-//        ];
-//    }
+	/**
+	 * Create a new shipment (returns fluent builder in CREATE mode).
+	 *
+	 * Auto-fills from order: id_order, id_shipment_method, weight.
+	 * Chain ->withAllItems() or ->withItems([...]) to assign items.
+	 *
+	 * Usage:
+	 *   $id = $this->shipment($order)->pending()->withAllItems()->cost(12.50)->save();
+	 *   $id = $this->shipment($order)->delivered()->withAllItems()->cost(0)->save();
+	 *   $id = $this->shipment($order)->pending()->withItems([101])->cost(8)->save();
+	 *
+	 * @param   object  $order  Full order object (->id, ->items, ->id_shipment_method)
+	 *
+	 * @return  OrderShipmentHelper  Builder — chain setters, finish with ->save()
+	 *
+	 * @since   3.5.1
+	 */
+	protected function shipment(object $order): OrderShipmentHelper
+	{
+		return OrderShipmentHelper::for($order);
+	}
 
-    public function onCalculateShippingCost($event){
-        $event->setShippingCost(0);
-    }
+	/**
+	 * Update an existing shipment (returns fluent builder in UPDATE mode).
+	 *
+	 * Only fields you explicitly set are sent to the database.
+	 * Status shortcuts auto-set timestamps:
+	 *   ->shipped()   → sets 'shipped' timestamp
+	 *   ->delivered() → sets 'shipped' + 'delivered' timestamps
+	 *
+	 * Usage:
+	 *   $this->shipmentUpdate($id)->shipped()->trackingNumber('TRACK123')->save();
+	 *   $this->shipmentUpdate($id)->delivered()->save();
+	 *   $this->shipmentUpdate($id)->cancelled()->save();
+	 *
+	 * @param   int  $shipmentId  Existing shipment row PK
+	 *
+	 * @return  OrderShipmentHelper  Builder — chain setters, finish with ->save()
+	 *
+	 * @throws  \RuntimeException  If shipment not found in DB
+	 *
+	 * @since   3.5.1
+	 */
+	protected function shipmentUpdate(int $shipmentId): OrderShipmentHelper
+	{
+		return OrderShipmentHelper::load($shipmentId);
+	}
 
+	// ==========================================================
+	//  SHIPMENT READ / DELETE / ITEMS (no builder needed)
+	// ==========================================================
+
+	/**
+	 * Delete an order shipment record.
+	 *
+	 * Automatically clears item assignments before deletion.
+	 *
+	 * @param   int  $id       Shipment row PK
+	 * @param   int  $orderId  Order PK (for activity log)
+	 *
+	 * @return  bool  True on success
+	 *
+	 * @since   3.5.0
+	 */
+	protected function deleteShipment(int $id, int $orderId): bool
+	{
+		return OrderShipmentHelper::delete($id, $orderId);
+	}
+
+	/**
+	 * Load a single shipment with method params attached.
+	 *
+	 * @param   int  $id  Shipment row PK
+	 *
+	 * @return  object|null  Shipment record with ->params, or null
+	 *
+	 * @since   3.5.0
+	 */
+	protected function getShipment(int $id): ?object
+	{
+		return OrderShipmentHelper::get($id);
+	}
+
+	/**
+	 * Load all shipments for an order (lightweight — no params).
+	 *
+	 * @param   int  $orderId  Order PK
+	 *
+	 * @return  array  Array of shipment row objects
+	 *
+	 * @since   3.5.0
+	 */
+	protected function getShipmentsByOrder(int $orderId): array
+	{
+		return OrderShipmentHelper::getByOrder($orderId);
+	}
+
+	/**
+	 * Assign order items to a shipment.
+	 *
+	 * Clears previous assignments for this shipment, then sets new ones.
+	 * Scoped to order to prevent cross-order item assignment.
+	 *
+	 * @param   int    $shipmentId  Shipment PK
+	 * @param   int    $orderId     Order PK (security scope)
+	 * @param   array  $itemIds     Array of order_items.id values
+	 *
+	 * @return  bool  True on success
+	 *
+	 * @since   3.5.0
+	 */
+	protected function assignShipmentItems(int $shipmentId, int $orderId, array $itemIds): bool
+	{
+		return OrderShipmentHelper::assignItems($shipmentId, $orderId, $itemIds);
+	}
+
+	// ==========================================================
+	//  FRONTEND HOOKS (abstract — plugin MUST implement)
+	// ==========================================================
+
+	/**
+	 * Calculate shipping cost for the cart.
+	 *
+	 * @param   CalculateShippingCostEvent  $event
+	 * @return  void
+	 * @since   3.0.0
+	 */
+	abstract public function onCalculateShippingCost(CalculateShippingCostEvent $event): void;
+
+	// ==========================================================
+	//  ADMIN ACTION HOOKS (empty — plugin overrides as needed)
+	// ==========================================================
+
+	/**
+	 * Register available action buttons for a shipment.
+	 *
+	 * Override this to add buttons using the fluent API:
+	 *
+	 *   $event->add('mark_shipped', 'Mark as Shipped')
+	 *       ->icon('truck')->css('btn-primary')
+	 *       ->confirm('Ship this?');
+	 *
+	 * Default: no actions.
+	 *
+	 * @param   object  $event  GetShipmentActionsEvent
+	 * @return  void
+	 * @since   3.0.0
+	 */
+	public function onGetActions($event): void
+	{
+		// Empty — plugin overrides to register actions
+	}
+
+	/**
+	 * Handle an action button click for a shipment.
+	 *
+	 * Override and use match() to route actions:
+	 *
+	 *   match ($event->getAction()) {
+	 *       'mark_shipped' => $this->handleMarkShipped($event),
+	 *       'view_logs'    => $this->handleViewLogs($event),
+	 *       default        => $event->setError('Unknown action'),
+	 *   };
+	 *
+	 * Default: sets error "Unknown action".
+	 *
+	 * @param   object  $event  ExecuteShipmentActionEvent
+	 * @return  void
+	 * @since   3.0.0
+	 */
+	public function onExecuteAction($event): void
+	{
+		$event->setError('Unknown action: ' . $event->getAction());
+	}
 }

@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -26,10 +26,6 @@ HTMLHelper::_('bootstrap.tooltip');
 	action="<?php echo Route::_('index.php?option=com_alfa&layout=edit&id=' . (int) $this->item->id); ?>"
 	method="post" enctype="multipart/form-data" name="adminForm" id="user-form" class="form-validate form-horizontal">
 
-	
-			</fieldset>
-		</div>
-	</div>
 	<?php echo HTMLHelper::_('uitab.endTab'); ?>
 	<input type="hidden" name="jform[id]" value="<?php echo $this->item->id; ?>" />
 	<input type="hidden" name="jform[state]" value="<?php echo $this->item->state; ?>" />
@@ -42,7 +38,6 @@ HTMLHelper::_('bootstrap.tooltip');
 	
 	<?php echo HTMLHelper::_('uitab.endTabSet'); ?>
 
-	<input type="hidden" name="task" value=""/>
-	<?php echo HTMLHelper::_('form.token'); ?>
+	<?php echo $this->form->renderControlFields(); ?>
 
 </form>

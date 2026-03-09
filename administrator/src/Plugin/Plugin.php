@@ -1,4 +1,86 @@
 <?php
+/**
+ * @package     Alfa.Component
+ * @subpackage  Administrator.Plugin
+ * @version     3.0.0
+ * @author      Agamemnon Fakas <info@easylogic.gr>
+ * @copyright   2025 Easylogic CO LP
+ * @license     GNU General Public License version 2 or later
+ *
+ * Base Plugin Class
+ *
+ * Abstract base for all Alfa commerce plugins (payments, shipments, etc.).
+ * Provides the shared logging system, utility methods, and plugin lifecycle.
+ *
+ * ═══════════════════════════════════════════════════════════════
+ *  LOGGING SYSTEM
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * Every plugin can maintain its own log table. The table schema is
+ * defined in the plugin's params/logs.xml file. The system:
+ *
+ *   - Auto-creates the table on first use (cached per request)
+ *   - Merges XML-defined defaults with your data
+ *   - Provides a single-method API for writing logs
+ *
+ * Usage in any plugin:
+ *
+ *   // Write a log entry — pass only what you have
+ *   $logId = $this->log([
+ *       'id_order'          => $order->id,
+ *       'id_order_payment'  => $paymentId,
+ *       'transaction_id'    => $txnId,
+ *       'status'            => 'completed',
+ *       'response_raw'      => $gatewayResponse,
+ *   ]);
+ *
+ *   // Update an existing log (pass 'id' to update instead of insert)
+ *   $this->log([
+ *       'id'                => $logId,
+ *       'id_order'          => $order->id,
+ *       'status'            => 'refunded',
+ *       'response_raw'      => $refundResponse,
+ *   ]);
+ *
+ *   // Read logs for an order
+ *   $logs = $this->loadLogs($orderId);
+ *
+ *   // Read logs for a specific payment/shipment within an order
+ *   $logs = $this->loadLogs($orderId, $paymentId);
+ *
+ *   // Read logs with filters
+ *   $logs = $this->loadLogs($orderId, 0, [
+ *       'status' => 'completed',
+ *       'created_on' => ['>=', '2025-01-01'],
+ *   ]);
+ *
+ *   // Delete logs
+ *   $this->deleteLog($orderId, $paymentId);
+ *
+ *   // Get XML schema (for the logs view template)
+ *   $xml = $this->getLogsSchema();
+ *
+ * ═══════════════════════════════════════════════════════════════
+ *  LOG TABLE NAMING
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * Each plugin gets its own table:
+ *   #__alfa_payments_standard_logs   (for plugin type=alfa-payments, name=standard)
+ *   #__alfa_shipments_standard_logs  (for plugin type=alfa-shipments, name=standard)
+ *   #__alfa_payments_stripe_logs     (for plugin type=alfa-payments, name=stripe)
+ *
+ * Table has these mandatory columns:
+ *   id              int AUTO_INCREMENT PRIMARY KEY
+ *   id_order        int NOT NULL
+ *
+ * Plus all columns defined in the plugin's params/logs.xml.
+ *
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * Path: administrator/components/com_alfa/src/Plugin/Plugin.php
+ *
+ * @since  3.0.0
+ */
 
 namespace Alfa\Component\Alfa\Administrator\Plugin;
 
@@ -11,574 +93,717 @@ use Joomla\Event\SubscriberInterface;
 use Joomla\CMS\Layout\FileLayout;
 use Joomla\CMS\Plugin\PluginHelper;
 
+defined('_JEXEC') or die;
 
 abstract class Plugin extends CMSPlugin implements SubscriberInterface
 {
+	/**
+	 * Auto-load language files.
+	 *
+	 * @var    bool
+	 * @since  3.0.0
+	 */
+	protected $autoloadLanguage = true;
 
-    /**
-     * Affects constructor behavior. If true, language files will be loaded automatically.
-     *
-     * @var    boolean
-     * @since  3.7.0
-     */
-    protected $autoloadLanguage = true;
+	/**
+	 * Application object.
+	 *
+	 * @var    \Joomla\CMS\Application\CMSApplication
+	 * @since  3.0.0
+	 */
+	protected $app;
 
-    /**
-     * Application object.
-     *
-     * @var    \Joomla\CMS\Application\CMSApplication
-     * @since  4.0.0
-     */
-    protected $app;
-    
-    // Inheriting classes must set this.
-    // Used to identify which field of plugin's log table is used to identify a log entry.
-    // (id_order_shipment or id_order_payment).
-    protected $logIdentifierField = "";    
+	/**
+	 * URL for the order completion page. Payment plugins may override.
+	 *
+	 * @var    string
+	 * @since  3.0.0
+	 */
+	protected string $completePageUrl;
 
+	/**
+	 * Identifier field for filtering logs by payment/shipment.
+	 *
+	 * Payment plugins set this to 'id_order_payment'.
+	 * Shipment plugins set this to 'id_order_shipment'.
+	 * Set by PaymentsPlugin / ShipmentsPlugin base classes.
+	 *
+	 * @var    string
+	 * @since  3.0.0
+	 */
+	protected string $logIdentifierField = '';
 
-    public static function getSubscribedEvents(): array
-    {
-        return [
-            'onItemView' => 'onItemView',
-        ];
-    }
+	/**
+	 * Cached parsed logs.xml schema. Null = not loaded yet.
+	 *
+	 * @var    \SimpleXMLElement|null|false
+	 * @since  3.0.0
+	 */
+	private $logsSchemaCache = null;
 
-    private $database;
+	/**
+	 * Cached default values from logs.xml. Null = not built yet.
+	 *
+	 * @var    array|null
+	 * @since  3.0.0
+	 */
+	private ?array $logsDefaultsCache = null;
 
-    protected $mustHaveColumns = [
-        ['name'=>'id_order','mysql_type' => 'int(11)', 'default' => 'NULL'],
-//        ['name'=>'id_order_shipment','mysql_type' => 'int(11)', 'default' => 'NULL'],
-    ];
+	/**
+	 * Whether the log table has been ensured this request.
+	 *
+	 * @var    bool
+	 * @since  3.0.0
+	 */
+	private bool $logTableEnsured = false;
 
-    private $pluginPath;
-    private $mediaPath;
+	/**
+	 * Constructor.
+	 *
+	 * @param   array  $config  Plugin configuration
+	 *
+	 * @since   3.0.0
+	 */
+	public function __construct(array $config = [])
+	{
+		parent::__construct($config);
 
-    public function __construct(DispatcherInterface $dispatcher, array $config = [])
-    {
-        parent::__construct($dispatcher, $config);
-        $this->database = Factory::getContainer()->get('DatabaseDriver');
-        $this->mediaPath = JPATH_ROOT . '/media/plg_' . $this->_type . '_' . $this->_name;
-        $this->pluginPath = JPATH_PLUGINS . '/' . $this->_type . '/' . $this->_name;
-
-        $this->registerListeners();//register listeners dynamically
-        // $this->getDispatcher()->addSubscriber($this);
-
-    }
-    
-    public function onAdminOrderBeforeSave($event) {
-        $event->setCanSave(true);
-    }
-
-    public function onAdminOrderAfterSave($event)
-    {
-
-    }
-
-    public function onAdminOrderPrepareForm($event)
-    {
-        $order = $event->getData();
-        $form = $event->getForm();
-
-        $event->setData($order);
-        $event->setForm($form);
-    }
-
-    public function onAdminOrderViewLogs($event) {
-
-        $order = $event->getOrder();
-
-        // load logs from xml
-        $formFile = JPATH_PLUGINS . '/' . $this->_type . '/' . $this->_name.'/params/logs.xml';
-        if (!file_exists($formFile)) return;
-
-        $xml = simplexml_load_file($formFile);
-
-        // Get logs data from db
-        $logData = self::loadLogData($order->id,false);
-
-		$event->setLayoutPluginName($this->_name);
-		$event->setLayoutPluginType($this->_type);
-	    $event->setLayout('default_order_logs_view');
-	    $event->setLayoutData(
-		    [
-                "logData" => $logData,
-                "xml" => $xml
-            ]
-	    );
-    }
-
-
-    public function onAdminOrderView($event) {
-        $order = $event->getOrder();
-        $event->setOrder($order);
-
-	    $event->setLayoutPluginName($this->_name);
-	    $event->setLayoutPluginType($this->_type);
-	    $event->setLayout('default_order_view');
-//	    $event->setLayoutData(
-//		    [
-//			    "logData" => $logData,
-//			    "xml" => $xml
-//		    ]
-//	    );
-    }
-
-    public function onAdminOrderDelete($event){
-        $event->setCanDelete(true);
-    }
-
-    public function onOrderBeforePlace($event){
-        return;
-    }
-
-    public function onOrderAfterPlace($event){
-        $order = $event->getOrder();
-    }
-
-    /**
-     * @param $productData object holds the data of the current product.
-     * @param $method object holds the data of the payment method it was called from.
-     * @return void
-     */
-	public function onItemView($event){
-		$item = $event->getItem();
-		$method = $event->getMethod();
-
-        $layoutData = [
-            'method' => $method,
-            'item' => $item,
-        ];
-        $event->setLayoutPluginName('standard'); //fallback to standard if never set
-        $event->setLayout('default_product_view');
-        $event->setLayoutData($layoutData);
+		$this->completePageUrl = 'index.php?option=com_alfa&view=cart&layout=default_order_completed';
 	}
 
-    public function onCartView($event) {
-        $cart = $event->getCart();
-        $method = $event->getMethod();
-
-        $layoutData = [
-            'method' => $method,
-            'item' => $cart,
-        ];
-        $event->setLayoutPluginName($this->_name); //fallback to standard if never set
-        $event->setLayout('default_cart_view');
-        $event->setLayoutData($layoutData);
-    }
-
-    /*
-     *  Inputs: An alfa-commerce order object.
-     *          (#)
-     *  Returns: The html of a layout to be displayed as html on proccess order view.
-     */
-    public function onOrderProcessView($event){
-        $order = $event->getOrder();
-        $method = $event->getMethod();
-
-        $layoutData = [
-            'method' => $method,
-            'item' => $order,
-        ];
-
-        $event->setRedirectUrl("index.php?option=com_alfa&view=cart&layout=default_order_completed");
-    }
-
-    public function onOrderCompleteView($event) {
-        $order = $event->getOrder();
-        $method = $event->getMethod();
-
-        $layoutData = [
-            'method' => $method,
-            'item' => $order,
-        ];
-
-        $event->setLayoutPluginName("standard"); //fallback to standard if never set
-        $event->setLayout('default_payment_success');
-        $event->setLayoutData($layoutData);
-    }
-
-    // Logging.
-    public function createEmptyLog(){
-        $logsTableArrayToReturn = [
-            'id'=>'',
-            // 'order_id'=>'',
-            // 'status'=>'',
-        ];
-
-        foreach($this->mustHaveColumns as $column){//add must have columns
-            $logsTableArrayToReturn[$column['name']] = '';
-        }
-
-        //If table exists, we log our data.
-        //Import XML fields.
-        $app    = $this->getApplication();
-        $db     = $this->getDatabase();
-        $plugin_name = $this->_name;
-
-        $pluginGroup = $this->_type;
-
-        $pluginDir = JPATH_PLUGINS . '/' . $pluginGroup;
-        $pluginName = $plugin_name;
-        $formFile = $pluginDir . '/' . $pluginName . '/params/logs.xml';
-
-
-        if (file_exists($formFile)) {
-            $xml = simplexml_load_file($formFile);
-
-//            exit;
-
-            if(isset($xml->fields->fieldset->field)){
-
-                foreach($xml->fields->fieldset->field as $curr_field){
-                    $fieldName = strval($curr_field['name']);
-
-                    if(strval($curr_field['type'])=='integer'){$fieldType='int(11)';}
-                    //if mysql_type is setted in dpconfig and in field as attribute mysql then listen to this
-                    if(isset($curr_field['mysql_type'])){$fieldType=strval($curr_field['mysql_type']);}
-                    // TODO CHECK IF ATTRIBUTE IS FINE STRUCTURED like mysql_type default etc
-
-                    $fieldDefault = (isset($curr_field['default'])?strval($curr_field['default']):'NULL');
-                    // $fieldDefaultSql = ($fieldDefault=='NULL'?'DEFAULT NULL':'NOT NULL DEFAULT '. $db->quote($fieldDefault));
-
-
-                    $logsTableArrayToReturn[$fieldName]=$fieldDefault;
-
-                }
-
-            }else{
-                $app->enqueueMessage("No right structure in $formFile", 'warning');
-                return [];
-            }
-
-        } else {
-            $app->enqueueMessage("Form file ( $formFile ) does not exist for plugin: $pluginName", 'info');
-            return [];
-        }
-
-
-        return $logsTableArrayToReturn;
-
-    }
-
-
-    /**
-     *  - Checks if a log table exists in database.
-     *  - Tries to create one if there isn't.
-     *  - Imports logs.xml (the file that contains the plugin's logging form)
-     *  - Inserts order data into the table.
-     *  - If $data['id'] is passed it will update this row
-     * @param $data object|array with the data to be inserted.
-     * @return bool True if data was submitted successfully, false if not.
-     */
-    protected function insertLog($data): bool{
-
-//        if(!isset($data["id_order_shipment"])) {
-//            echo "<pre>";
-//            print_r($data);
-//            echo "</pre>";
-//            exit;
-//        }
-
-
-
-        // Function cannot handle objects.
-        if(is_object($data))
-            $data = (array)$data; //json_decode(json_encode($data), true); // for nested also
-
-
-        //If table exists, we log our data.
-        //Import XML fields.
-        $app    = $this->getApplication();
-        $db     = $this->getDatabase();
-        $plugin_name = $this->_name;
-
-        foreach ($this->mustHaveColumns as $column) {
-            if(!isset($data[$column['name']])){
-                $app->enqueueMessage("insertLog : {$column['name']} is missing from \$data", 'warning');
-                return false;
-            }
-        }
-
-        $pluginGroup = $this->_type;
-
-        $pluginDir = JPATH_PLUGINS . '/' . $pluginGroup;
-        $pluginName = $plugin_name;
-        $formFile = $pluginDir . '/' . $pluginName . '/params/logs.xml';
-
-        if (file_exists($formFile)) {
-            $xml = simplexml_load_file($formFile);
-            if(isset($xml->fields->fieldset->field)){
-
-                // CREATE PLUGINS TABLE IF NOT EXIST
-                // $tableName = "#__deliveryplus_".$pluginGroup."_".$pluginName;
-                $tableName = self::getLogsTableName();
-
-                $insertColumns = array();
-                $insertValues = array();
-
-                if(isset($data['id']) && !empty($data['id'])){// for replace into to update the values if id is setted
-                    array_push($insertColumns,'id');
-                    array_push($insertValues,$db->quote($data['id']));
-                }
-
-                // epishs to query auto parousiazetai sto settings model
-                $create_query = $db->getQuery(true);
-                $create_query = "CREATE TABLE IF NOT EXISTS " . $db->quoteName($tableName) . " (";
-
-                $create_query .= "{$db->qn("id")} int(11) AUTO_INCREMENT PRIMARY KEY NOT NULL";
-
-                foreach ($this->mustHaveColumns as $index => $column) {
-                    //	push must have columns from our local array to the create query
-//                    $create_query .= ", `" . $column['name'] . "` " . $column['mysql_type'] . " " . $column['default'];   // prev - 17/6/25
-                    $create_query .= ", " . $db->qn($column['name']) . " " . $column['mysql_type'] . " " . $column['default'];
-
-                    array_push($insertColumns,$column['name']);
-                    array_push($insertValues,$db->quote($data[$column['name']]));
-                }
-
-                foreach($xml->fields->fieldset->field as $curr_field){
-                    $fieldName = strval($curr_field['name']);
-                    $fieldType = 'varchar(255)';
-
-                    if(strval($curr_field['type'])=='integer'){$fieldType='int(11)';}
-                    //if mysql_type is setted in dpconfig and in field as attribute mysql then listen to this
-                    if(isset($curr_field['mysql_type'])){$fieldType=strval($curr_field['mysql_type']);}
-                    // TODO CHECK IF ATTRIBUTE IS FINE STRUCTURED like mysql_type default etc
-
-                    $fieldDefault = (isset($curr_field['default'])?strval($curr_field['default']):'NULL');
-                    $fieldDefaultSql = ($fieldDefault=='NULL'?'DEFAULT NULL':'NOT NULL DEFAULT '. $db->quote($fieldDefault));
-
-                    $create_query .= ",". $db->qn($fieldName) ." ".$fieldType." ".$fieldDefaultSql;
-
-                    //	push other columns from logs.xml file
-                    if(isset($data[$fieldName])){//is this data passed then insert it or update it
-                        array_push($insertColumns,$fieldName);
-
-                        // if(str_contains($data[$fieldName], '()')){// do not add quotes on mysql functions cause it doesnt work
-                        if(str_ends_with($data[$fieldName], '()')){// do not add quotes on mysql functions because it doesn't work
-                            array_push($insertValues,$data[$fieldName]);
-                        }else{
-                            array_push($insertValues,$db->quote($data[$fieldName]));
-                        }
-                    }
-
-                }
-                $create_query .= ") ENGINE=InnoDB DEFAULT CHARSET=utf8";
-
-                $db->setQuery($create_query);
-                $db->execute();
-                // Factory::getApplication()->enqueueMessage("$tableName created successfully", "notice");
-
-                // Create a new query object.
-                $insert_query = $db->getQuery(true);
-
-                $insert_query = "REPLACE INTO".$db->quoteName($tableName);
-                $insert_query .= "(".implode(',', $insertColumns).")";
-                $insert_query .= "VALUES(".implode(',', $insertValues).")";
-
-                try{
-                    $db->setQuery($insert_query);
-                    $db->execute();
-                }catch(\Exception $e){
-                    $app->enqueueMessage('('.$e->getCode().') ' . $e->getMessage() . '! Log data was not inserted!','error');
-                    return false;
-                }
-                // Factory::getApplication()->enqueueMessage("$tableName values inserted successfully", "notice");
-            }else{
-                $app->enqueueMessage("No right structure in $formFile", 'warning');
-                return false;
-            }
-
-        } else {
-            $app->enqueueMessage("Form file ( $formFile ) does not exist for plugin: $pluginName", 'info');
-            return false;
-        }
-
-        //Data inserted.
-        return true;
-
-    }
-
-
-    // filter support
-
-    // ['is_active' => '1']
-    // ['status' => ['IN', ['pending', 'completed']]]
-    // raw filter - ['__raw' => 'DATE(created_at) = CURDATE()']
-    
-    // isOrderId = true means the orderCode is the id_order
-    public function loadLogData($orderId, $identifierFieldID = 0, $asArray=true , $filter = null) {
-
-        $order_result = null;
-
-        $db = $this->getDatabase();
-        $query = $db->getQuery(true);
-        $query
-            ->select("*")
-            ->from($db->quoteName(self::getLogsTableName()));
-
-        $query->where($db->quoteName('id_order') . ' = ' . $db->quote($orderId));
-
-		if(!empty($identifierFieldID)){
-			$query->where($db->quoteName($this->logIdentifierField) . ' = ' . $db->quote($identifierFieldID));
+	// ═════════════════════════════════════════════════════════
+	//  ABSTRACT HOOKS — Every plugin must implement
+	// ═════════════════════════════════════════════════════════
+
+	/**
+	 * Cart display hook.
+	 *
+	 * Every plugin MUST set a layout, even if it is empty.
+	 * Called during cart rendering for each active method.
+	 *
+	 * Available on $event:
+	 *   $event->getCart()    → Cart object with items, totals, and user info
+	 *   $event->getMethod()  → The payment/shipment method record
+	 *   $event->setLayout('default_cart_view')   → Layout file in tmpl/
+	 *   $event->setLayoutData([...])             → Data for the layout
+	 *
+	 * Usage example:
+	 * <code>
+	 * $cart   = $event->getCart();
+	 * $method = $event->getMethod();
+	 *
+	 * $event->setLayout('default_cart_view');
+	 * $event->setLayoutData([
+	 *     'method' => $method,
+	 *     'cart'   => $cart,
+	 * ]);
+	 * </code>
+	 *
+	 * @param   object  $event  CartViewEvent
+	 *
+	 * @return  void
+	 *
+	 * @since   3.0.0
+	 */
+	abstract public function onCartView($event): void;
+
+	/**
+	 * Item display hook.
+	 *
+	 * Every plugin MUST set a layout, even if it is empty.
+	 * Called during product page rendering for each active method.
+	 *
+	 * Available on $event:
+	 *   $event->getItem()    → The product item object
+	 *   $event->getMethod()  → The payment/shipment method record
+	 *   $event->setLayout('default_item_view')   → Layout file in tmpl/
+	 *   $event->setLayoutData([...])             → Data for the layout
+	 *
+	 * Usage example:
+	 * <code>
+	 * $item   = $event->getItem();
+	 * $method = $event->getMethod();
+	 *
+	 * $event->setLayout('default_item_view');
+	 * $event->setLayoutData([
+	 *     'method' => $method,
+	 *     'item'   => $item,
+	 * ]);
+	 * </code>
+	 *
+	 * @param   object  $event  ItemViewEvent
+	 *
+	 * @return  void
+	 *
+	 * @since   3.0.0
+	 */
+	abstract public function onItemView($event): void;
+
+	// ═════════════════════════════════════════════════════════
+	//  LOGGING — Public API
+	// ═════════════════════════════════════════════════════════
+
+	/**
+	 * Write a log entry.
+	 *
+	 * Pass only the fields you have — missing fields get defaults from logs.xml.
+	 * If 'id' is set and non-empty, the row is UPDATED (REPLACE INTO).
+	 * If 'id' is null/empty/0, a new row is INSERTED.
+	 *
+	 * The 'id_order' field is REQUIRED.
+	 *
+	 * Examples:
+	 *
+	 *   // Insert a new log
+	 *   $logId = $this->log([
+	 *       'id_order'         => $order->id,
+	 *       'id_order_payment' => $paymentId,
+	 *       'transaction_id'   => 'txn_123',
+	 *       'status'           => 'completed',
+	 *       'response_raw'     => json_encode($response),
+	 *       'created_on'       => Factory::getDate()->format('Y-m-d H:i:s'),
+	 *       'created_by'       => Factory::getApplication()->getIdentity()->id,
+	 *   ]);
+	 *
+	 *   // Update an existing log (pass the id)
+	 *   $this->log([
+	 *       'id'       => $logId,
+	 *       'id_order' => $order->id,
+	 *       'status'   => 'refunded',
+	 *   ]);
+	 *
+	 * @param   array  $data  Log data (key => value pairs matching logs.xml fields)
+	 *
+	 * @return  int  The inserted/updated log row ID, or 0 on failure
+	 *
+	 * @since   3.0.0
+	 */
+	protected function log(array $data): int
+	{
+		$app = $this->getApplication();
+
+		// Validate required field
+		if (empty($data['id_order']))
+		{
+			$app->enqueueMessage('log(): id_order is required', 'error');
+
+			return 0;
 		}
 
-        // filtering logic
-        if (is_array($filter) && !empty($filter)) {
-            foreach ($filter as $key => $condition) {
-                // Allow raw SQL condition
-                if ($key === '__raw' && is_string($condition)) {
-                    $query->where($condition);
-                    continue;
-                }
+		// Get default values from logs.xml (cached)
+		$defaults = $this->getLogsDefaults();
 
-                $field = $db->quoteName($key);
-
-                // If advanced format: ['operator', value]
-                if (is_array($condition) && count($condition) >= 2) {
-                    [$operator, $value] = $condition;
-                    $operator = strtoupper(trim($operator));
-
-                    switch ($operator) {
-                        case 'IN':
-                            $escaped = array_map([$db, 'quote'], (array) $value);
-                            $query->where("$field IN (" . implode(', ', $escaped) . ")");
-                            // $query->whereIn($field, $value);
-                            break;
-                        case 'NOT IN':
-                            $escaped = array_map([$db, 'quote'], (array) $value);
-                            $query->where("$field NOT IN (" . implode(', ', $escaped) . ")");
-                            break;
-                        case '=':
-                        case '!=':
-                        case '<>':
-                        case '<':
-                        case '>':
-                        case '<=':
-                        case '>=':
-                            $query->where("$field $operator " . $db->quote($value));
-                            break;
-                        case 'LIKE':
-                            $query->where("$field LIKE " . $db->quote($value));
-                            break;
-                        default:
-                            // unsupported operator - optionally log or skip
-                            break;
-                    }
-                } else {
-                    // Simple format: ['key' => 'value']
-                    $query->where("$field = " . $db->quote($condition));
-                }
-            }
-        }
-
-        // $query->where($db->quoteName('id_order') . ' = ' . $db->quote($orderId));
-        $query->order('id DESC');
-
-        try {
-
-            $db->setQuery($query);
-
-            if($asArray){
-                $order_result = $db->loadAssocList();
-            }else{
-                $order_result = $db->loadObjectList();
-            }
-        } catch (\Exception $e) {
-
-            if($e->getCode() == '1146'){ //table is missing error
-
-            }
-
-        }
-
-        return $order_result;
-
-    }
-
-
-    /**
-     * @param $prefix
-     *               0 no prefix
-     *               1 real prefix
-     *               2 #__ as prefix
-     *
-     * @return string the table name
-     *
-     * @since version
-     */
-    protected function getLogsTableName($prefix=2) : string{
-
-        $tableNameNoPrefix = str_replace("-","_",$this->_type)."_" . $this->_name.'_logs';
-
-        $returnedTableString = '#__'.$tableNameNoPrefix;
-
-        if($prefix==0){$returnedTableString = $tableNameNoPrefix;}
-        elseif($prefix==1){ $returnedTableString = $this->db->getPrefix().$tableNameNoPrefix;}
-
-        return $returnedTableString;
-    }
-
-    protected function deleteLogEntry($id_order,$id_order_shipment=0){
-
-        $tableName = self::getLogsTableName();
-        $db = self::getDatabase();
-
-        $query = $db->getQuery(true);
-        $query
-            ->delete($db->quoteName($tableName))
-            ->where("id_order = " . $id_order);
-		if(!empty($id_order_shipment)){
-			$query->where("id_order_shipment = " . $id_order_shipment);
+		if ($defaults === null)
+		{
+			// No logs.xml found — nothing to log
+			return 0;
 		}
-        $db->setQuery($query);
-        $db->execute();
 
-    }
+		// Ensure the log table exists (once per request)
+		if (!$this->ensureLogTable())
+		{
+			return 0;
+		}
 
-    // Utility.
-    protected function getDatabase()
-    {
-        return $this->database;
-    }
+		// Merge: defaults ← user data (user data wins)
+		$merged = array_merge($defaults, $data);
 
-    protected function getMediaPath()
-    {
-        return $this->mediaPath;
-    }
+		// Build columns and values for REPLACE INTO
+		$db            = Factory::getContainer()->get('DatabaseDriver');
+		$insertColumns = [];
+		$insertValues  = [];
 
-    protected function getPluginPath()
-    {
-        return $this->pluginPath;
-    }
+		foreach ($merged as $key => $value)
+		{
+			// Skip empty 'id' — let auto-increment handle new rows
+			if ($key === 'id' && empty($value))
+			{
+				continue;
+			}
 
-    protected function isValueInRange($value, $min, $max) {
+			$insertColumns[] = $db->quoteName($key);
 
-        // Normalize all to strings
-        $valueStr = is_string($value) ? $value  : strval($value);
-        $minStr   = is_string($min)   ? $min    : strval($min);
-        $maxStr   = is_string($max)   ? $max    : strval($max);
+			// MySQL functions like NOW() — don't quote them
+			if (is_string($value) && str_ends_with($value, '()'))
+			{
+				$insertValues[] = $value;
+			}
+			else
+			{
+				$insertValues[] = $db->quote($value);
+			}
+		}
 
-        // If all are numeric, compare numerically (including floats)
-        if (is_numeric($valueStr) && is_numeric($minStr) && is_numeric($maxStr)) {
-            return $valueStr >= $minStr && $valueStr <= $maxStr;
-        }
+		$tableName = $this->getLogTableName();
 
-        // Otherwise, compare as normalized strings
-        return strcmp($valueStr, $minStr) >= 0 && strcmp($valueStr, $maxStr) <= 0;
-    }
+		$query = 'REPLACE INTO ' . $db->quoteName($tableName)
+			. ' (' . implode(', ', $insertColumns) . ')'
+			. ' VALUES (' . implode(', ', $insertValues) . ')';
 
-    protected function pluginLayout($fileName){
-        $path = dirname(PluginHelper::getLayoutPath($this->_type, $this->_name, $fileName));
-        return new FileLayout($fileName,$path);
-    }
+		try
+		{
+			$db->setQuery($query);
+			$db->execute();
 
+			return (int) $db->insertid();
+		}
+		catch (\Exception $e)
+		{
+			$app->enqueueMessage(
+				'(' . $e->getCode() . ') ' . $e->getMessage() . ' — Log data was not inserted.',
+				'error'
+			);
 
-    // Used to check if the current plugin has been configured properly by the administrator.
-//    protected function properlyConfigured($params): bool
-//    {
-//        return true;
-//    }
+			return 0;
+		}
+	}
 
+	/**
+	 * Load log entries for an order.
+	 *
+	 * Examples:
+	 *
+	 *   // All logs for an order
+	 *   $logs = $this->loadLogs($orderId);
+	 *
+	 *   // Logs for a specific payment within an order
+	 *   $logs = $this->loadLogs($orderId, $paymentId);
+	 *
+	 *   // Logs with extra filters
+	 *   $logs = $this->loadLogs($orderId, 0, [
+	 *       'status'     => 'completed',                          // Simple: field = value
+	 *       'amount'     => ['>', 100],                           // Operator: field > value
+	 *       'status'     => ['IN', ['pending', 'completed']],     // IN clause
+	 *       '__raw'      => 'DATE(created_on) = CURDATE()',       // Raw SQL
+	 *   ]);
+	 *
+	 * @param   int    $orderId       Order ID
+	 * @param   int    $identifierId  Payment/shipment ID (0 = all)
+	 * @param   array  $filters       Optional extra filters
+	 * @param   bool   $asArray       true = assoc arrays, false = objects
+	 *
+	 * @return  array|null  Array of log rows, or null if table doesn't exist
+	 *
+	 * @since   3.0.0
+	 */
+	protected function loadLogs(int $orderId, int $identifierId = 0, array $filters = [], bool $asArray = true): ?array
+	{
+		$db    = Factory::getContainer()->get('DatabaseDriver');
+		$query = $db->getQuery(true)
+			->select('*')
+			->from($db->quoteName($this->getLogTableName()))
+			->where($db->quoteName('id_order') . ' = ' . (int) $orderId)
+			->order('id DESC');
+
+		// Filter by payment/shipment ID if set
+		if ($identifierId > 0 && !empty($this->logIdentifierField))
+		{
+			$query->where($db->quoteName($this->logIdentifierField) . ' = ' . (int) $identifierId);
+		}
+
+		// Apply extra filters
+		$this->applyLogFilters($query, $filters, $db);
+
+		try
+		{
+			$db->setQuery($query);
+
+			return $asArray ? $db->loadAssocList() : $db->loadObjectList();
+		}
+		catch (\Exception $e)
+		{
+			// Table doesn't exist yet (error 1146) — return null, not an error
+			if ($e->getCode() == 1146)
+			{
+				return null;
+			}
+
+			throw $e;
+		}
+	}
+
+	/**
+	 * Delete log entries.
+	 *
+	 * @param   int  $orderId       Order ID
+	 * @param   int  $identifierId  Payment/shipment ID (0 = delete all for order)
+	 *
+	 * @return  void
+	 *
+	 * @since   3.0.0
+	 */
+	protected function deleteLog(int $orderId, int $identifierId = 0): void
+	{
+		$db    = Factory::getContainer()->get('DatabaseDriver');
+		$query = $db->getQuery(true)
+			->delete($db->quoteName($this->getLogTableName()))
+			->where($db->quoteName('id_order') . ' = ' . (int) $orderId);
+
+		if ($identifierId > 0 && !empty($this->logIdentifierField))
+		{
+			$query->where($db->quoteName($this->logIdentifierField) . ' = ' . (int) $identifierId);
+		}
+
+		try
+		{
+			$db->setQuery($query);
+			$db->execute();
+		}
+		catch (\Exception $e)
+		{
+			// Table doesn't exist — nothing to delete
+			if ($e->getCode() != 1146)
+			{
+				throw $e;
+			}
+		}
+	}
+
+	/**
+	 * Get the parsed logs.xml schema.
+	 *
+	 * Used by the logs view template to build table headings.
+	 * Returns the SimpleXMLElement or null if no logs.xml exists.
+	 *
+	 * Example:
+	 *   $xml = $this->getLogsSchema();
+	 *   foreach ($xml->fields->fieldset->field as $field) { ... }
+	 *
+	 * @return  \SimpleXMLElement|null
+	 *
+	 * @since   3.0.0
+	 */
+	protected function getLogsSchema(): ?\SimpleXMLElement
+	{
+		$schema = $this->loadLogsSchema();
+
+		return ($schema instanceof \SimpleXMLElement) ? $schema : null;
+	}
+
+	// ═════════════════════════════════════════════════════════
+	//  LOGGING — Internal (private)
+	// ═════════════════════════════════════════════════════════
+
+	/**
+	 * Get the log table name for this plugin.
+	 *
+	 * Format: #__alfa_{type}_{name}_logs
+	 * Example: #__alfa_payments_standard_logs
+	 *
+	 * @param   int  $prefix  0 = no prefix, 1 = real prefix, 2 = #__ prefix
+	 *
+	 * @return  string
+	 *
+	 * @since   3.0.0
+	 */
+	protected function getLogTableName(int $prefix = 2): string
+	{
+		// Normalize type: "alfa-payments" → "alfa_payments"
+		$type = str_replace('-', '_', $this->_type);
+		$name = $this->_name;
+		$bare = $type . '_' . $name . '_logs';
+
+		if ($prefix === 0)
+		{
+			return $bare;
+		}
+
+		if ($prefix === 1)
+		{
+			$db = Factory::getContainer()->get('DatabaseDriver');
+
+			return $db->getPrefix() . $bare;
+		}
+
+		return '#__' . $bare;
+	}
+
+	/**
+	 * Load and cache the logs.xml schema.
+	 *
+	 * @return  \SimpleXMLElement|false  Parsed XML or false if not found
+	 *
+	 * @since   3.0.0
+	 */
+	private function loadLogsSchema()
+	{
+		// Already cached this request
+		if ($this->logsSchemaCache !== null)
+		{
+			return $this->logsSchemaCache;
+		}
+
+		$formFile = JPATH_PLUGINS . '/' . $this->_type . '/' . $this->_name . '/params/logs.xml';
+
+		if (!file_exists($formFile))
+		{
+			$this->logsSchemaCache = false;
+
+			return false;
+		}
+
+		$xml = simplexml_load_file($formFile);
+
+		if (!$xml || !isset($xml->fields->fieldset->field))
+		{
+			$this->getApplication()->enqueueMessage(
+				'Invalid logs.xml structure in plugin: ' . $this->_name,
+				'warning'
+			);
+
+			$this->logsSchemaCache = false;
+
+			return false;
+		}
+
+		$this->logsSchemaCache = $xml;
+
+		return $xml;
+	}
+
+	/**
+	 * Get default values for all log fields (cached).
+	 *
+	 * Builds an array from logs.xml with field names as keys
+	 * and their default values. Includes mandatory columns:
+	 *   id, id_order, and the logIdentifierField (if set).
+	 *
+	 * @return  array|null  Defaults array, or null if no logs.xml
+	 *
+	 * @since   3.0.0
+	 */
+	private function getLogsDefaults(): ?array
+	{
+		// Already cached
+		if ($this->logsDefaultsCache !== null)
+		{
+			return $this->logsDefaultsCache;
+		}
+
+		$xml = $this->loadLogsSchema();
+
+		if (!$xml)
+		{
+			return null;
+		}
+
+		// Start with mandatory columns
+		$defaults = [
+			'id'       => '',
+			'id_order' => '',
+		];
+
+		// Add the identifier column default (id_order_payment / id_order_shipment)
+		if (!empty($this->logIdentifierField))
+		{
+			$defaults[$this->logIdentifierField] = '';
+		}
+
+		// Add fields from logs.xml with their default values
+		foreach ($xml->fields->fieldset->field as $field)
+		{
+			$name            = (string) $field['name'];
+			$default         = isset($field['default']) ? (string) $field['default'] : 'NULL';
+			$defaults[$name] = $default;
+		}
+
+		$this->logsDefaultsCache = $defaults;
+
+		return $defaults;
+	}
+
+	/**
+	 * Ensure the log table exists in the database.
+	 *
+	 * Runs CREATE TABLE IF NOT EXISTS once per request, then caches.
+	 * Builds the table schema from mandatory columns + logs.xml fields.
+	 *
+	 * Mandatory columns (always created):
+	 *   id              int AUTO_INCREMENT PRIMARY KEY
+	 *   id_order        int NOT NULL
+	 *   {identifier}    int DEFAULT NULL  (from logIdentifierField, e.g. id_order_payment)
+	 *
+	 * @return  bool  true if table is ready, false on failure
+	 *
+	 * @since   3.0.0
+	 */
+	private function ensureLogTable(): bool
+	{
+		// Already ensured this request — skip
+		if ($this->logTableEnsured)
+		{
+			return true;
+		}
+
+		$xml = $this->loadLogsSchema();
+
+		if (!$xml)
+		{
+			return false;
+		}
+
+		$db        = Factory::getContainer()->get('DatabaseDriver');
+		$tableName = $this->getLogTableName();
+
+		// Build CREATE TABLE statement with mandatory columns
+		$sql = 'CREATE TABLE IF NOT EXISTS ' . $db->quoteName($tableName) . ' ('
+			. $db->quoteName('id') . ' INT(11) AUTO_INCREMENT PRIMARY KEY NOT NULL, '
+			. $db->quoteName('id_order') . ' INT(11) NOT NULL';
+
+		// Add the identifier column if set (id_order_payment / id_order_shipment)
+		// This column links each log entry to a specific payment or shipment.
+		if (!empty($this->logIdentifierField))
+		{
+			$sql .= ', ' . $db->quoteName($this->logIdentifierField) . ' INT(11) DEFAULT NULL';
+		}
+
+		// Add columns from logs.xml
+		foreach ($xml->fields->fieldset->field as $field)
+		{
+			$name     = (string) $field['name'];
+			$type     = isset($field['mysql_type']) ? (string) $field['mysql_type'] : 'VARCHAR(255)';
+			$default  = isset($field['default']) ? (string) $field['default'] : 'NULL';
+			$defaultSql = ($default === 'NULL')
+				? 'DEFAULT NULL'
+				: 'NOT NULL DEFAULT ' . $db->quote($default);
+
+			$sql .= ', ' . $db->quoteName($name) . ' ' . $type . ' ' . $defaultSql;
+		}
+
+		// Add index on id_order for fast lookups
+		$sql .= ', KEY ' . $db->quoteName('idx_id_order') . ' (' . $db->quoteName('id_order') . ')';
+
+		// Add index on the identifier column for filtered lookups
+		if (!empty($this->logIdentifierField))
+		{
+			$sql .= ', KEY ' . $db->quoteName('idx_' . $this->logIdentifierField)
+				. ' (' . $db->quoteName($this->logIdentifierField) . ')';
+		}
+
+		$sql .= ') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
+
+		try
+		{
+			$db->setQuery($sql);
+			$db->execute();
+
+			$this->logTableEnsured = true;
+
+			return true;
+		}
+		catch (\Exception $e)
+		{
+			$this->getApplication()->enqueueMessage(
+				'Failed to create log table: ' . $e->getMessage(),
+				'error'
+			);
+
+			return false;
+		}
+	}
+
+	/**
+	 * Apply filter conditions to a log query.
+	 *
+	 * Supports:
+	 *   ['status' => 'completed']                       → status = 'completed'
+	 *   ['amount' => ['>', 100]]                        → amount > 100
+	 *   ['status' => ['IN', ['pending', 'completed']]]  → status IN ('pending', 'completed')
+	 *   ['__raw'  => 'DATE(created_on) = CURDATE()']    → raw SQL
+	 *
+	 * @param   object  $query    Query builder
+	 * @param   array   $filters  Filter definitions
+	 * @param   object  $db       Database driver
+	 *
+	 * @return  void
+	 *
+	 * @since   3.0.0
+	 */
+	private function applyLogFilters($query, array $filters, $db): void
+	{
+		foreach ($filters as $key => $condition)
+		{
+			// Raw SQL condition
+			if ($key === '__raw' && is_string($condition))
+			{
+				$query->where($condition);
+
+				continue;
+			}
+
+			$field = $db->quoteName($key);
+
+			// Advanced format: ['operator', value]
+			if (is_array($condition) && count($condition) >= 2)
+			{
+				[$operator, $value] = $condition;
+				$operator = strtoupper(trim($operator));
+
+				switch ($operator)
+				{
+					case 'IN':
+					case 'NOT IN':
+						$escaped = array_map([$db, 'quote'], (array) $value);
+						$query->where($field . ' ' . $operator . ' (' . implode(', ', $escaped) . ')');
+
+						break;
+
+					case '=':
+					case '!=':
+					case '<>':
+					case '<':
+					case '>':
+					case '<=':
+					case '>=':
+					case 'LIKE':
+						$query->where($field . ' ' . $operator . ' ' . $db->quote($value));
+
+						break;
+
+					default:
+						// Unsupported operator — skip silently
+						break;
+				}
+			}
+			else
+			{
+				// Simple format: field = value
+				$query->where($field . ' = ' . $db->quote($condition));
+			}
+		}
+	}
+
+	// ═════════════════════════════════════════════════════════
+	//  UTILITY
+	// ═════════════════════════════════════════════════════════
+
+	/**
+	 * Check if a value falls within a numeric or string range.
+	 *
+	 * Compares numerically when all values are numeric,
+	 * otherwise compares as strings (lexicographic).
+	 *
+	 * @param   mixed  $value  The value to check
+	 * @param   mixed  $min    Range minimum (inclusive)
+	 * @param   mixed  $max    Range maximum (inclusive)
+	 *
+	 * @return  bool
+	 *
+	 * @since   3.0.0
+	 */
+	protected function isValueInRange($value, $min, $max): bool
+	{
+		$valueStr = is_string($value) ? $value : strval($value);
+		$minStr   = is_string($min)   ? $min   : strval($min);
+		$maxStr   = is_string($max)   ? $max   : strval($max);
+
+		// Numeric comparison when all values are numeric
+		if (is_numeric($valueStr) && is_numeric($minStr) && is_numeric($maxStr))
+		{
+			return $valueStr >= $minStr && $valueStr <= $maxStr;
+		}
+
+		// String comparison (lexicographic)
+		return strcmp($valueStr, $minStr) >= 0 && strcmp($valueStr, $maxStr) <= 0;
+	}
 }

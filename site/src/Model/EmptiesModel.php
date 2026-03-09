@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -41,15 +41,12 @@ class EmptiesModel extends ListModel
 	{
 		if (empty($config['filter_fields']))
 		{
-			$config['filter_fields'] = array(
-				
-			);
+			$config['filter_fields'] = array();
 		}
 
 		parent::__construct($config);
 	}
 
-	
 
 	/**
 	 * Method to auto-populate the model state.
@@ -70,30 +67,29 @@ class EmptiesModel extends ListModel
 		// List state information.
 		parent::populateState("a.id", "ASC");
 
-		$app = Factory::getApplication();
+		$app  = Factory::getApplication();
 		$list = $app->getUserState($this->context . '.list');
 
-		$value = $app->getUserState($this->context . '.list.limit', $app->get('list_limit', 25));
+		$value         = $app->getUserState($this->context . '.list.limit', $app->get('list_limit', 25));
 		$list['limit'] = $value;
-		
+
 		$this->setState('list.limit', $value);
 
 		$value = $app->input->get('limitstart', 0, 'uint');
 		$this->setState('list.start', $value);
 
-		$ordering  = $this->getUserStateFromRequest($this->context .'.filter_order', 'filter_order', "a.id");
-		$direction = strtoupper($this->getUserStateFromRequest($this->context .'.filter_order_Dir', 'filter_order_Dir', "ASC"));
-		
-		if(!empty($ordering) || !empty($direction))
+		$ordering  = $this->getUserStateFromRequest($this->context . '.filter_order', 'filter_order', "a.id");
+		$direction = strtoupper($this->getUserStateFromRequest($this->context . '.filter_order_Dir', 'filter_order_Dir', "ASC"));
+
+		if (!empty($ordering) || !empty($direction))
 		{
 			$list['fullordering'] = $ordering . ' ' . $direction;
 		}
 
 		$app->setUserState($this->context . '.list', $list);
 
-		
 
-		$context = $this->getUserStateFromRequest($this->context.'.filter.search', 'filter_search');
+		$context = $this->getUserStateFromRequest($this->context . '.filter.search', 'filter_search');
 		$this->setState('filter.search', $context);
 
 		// Split context into component and optional section
@@ -118,8 +114,8 @@ class EmptiesModel extends ListModel
 	 */
 	protected function getListQuery()
 	{
-		$db	= $this->getDbo();
-		$query	= $db->getQuery(true);
+		$db    = $this->getDbo();
+		$query = $db->getQuery(true);
 
 		return $query;
 	}
@@ -132,7 +128,7 @@ class EmptiesModel extends ListModel
 	public function getItems()
 	{
 		$items = parent::getItems();
-		
+
 
 		return $items;
 	}
@@ -177,6 +173,7 @@ class EmptiesModel extends ListModel
 	private function isValidDate($date)
 	{
 		$date = str_replace('/', '-', $date);
+
 		return (date_create($date)) ? Factory::getDate($date)->format("Y-m-d") : null;
 	}
 }

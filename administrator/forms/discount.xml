@@ -27,21 +27,21 @@
     />
 
     <field
-        name="value"
-        type="number"
-        step="0.01"
-        label="COM_ALFA_FORM_LBL_DISCOUNT_VALUE"
-        required="true"
-        description="COM_ALFA_FORM_DESC_DISCOUNT_VALUE"
+            name="value"
+            type="number"
+            step="0.01"
+            label="COM_ALFA_FORM_LBL_DISCOUNT_VALUE"
+            required="true"
+            description="COM_ALFA_FORM_DESC_DISCOUNT_VALUE"
     />
 
     <field
-        name="behavior"
-        type="radio"
-        label="COM_ALFA_FORM_LBL_DISCOUNT_BEHAVIOR"
-        class="btn-group"
-        default="0"
-        validate="options"
+            name="behavior"
+            type="radio"
+            label="COM_ALFA_FORM_LBL_DISCOUNT_BEHAVIOR"
+            class="btn-group"
+            default="0"
+            validate="options"
     >
       <option value="0">Only this discount</option>
       <option value="1">Combined</option>
@@ -54,7 +54,7 @@
             label="COM_ALFA_FORM_LBL_DISCOUNT_APPLY_BEFORE_TAX"
             class="btn-group"
             default="1"
-            valildate="options"
+            validate="options"
     >
       <option value="1">Before Tax</option>
       <option value="0">After Tax</option>
@@ -66,94 +66,145 @@
             label="COM_ALFA_FORM_LBL_DISCOUNT_OPERATION"
             class="btn-group"
             default="0"
-            valildate="options"
+            validate="options"
     >
       <option value="0">-</option>
       <option value="1">+</option>
     </field>
 
-    <!--For notes/details && yes/no-->
     <field
             name="show_tag"
             type="radio"
             label="COM_ALFA_FORM_LBL_DISCOUNT_SHOW_TAG"
             class="btn-group"
             default="0"
-            valildate="options"
+            validate="options"
     >
       <option value="0">No</option>
       <option value="1">Yes</option>
     </field>
 
     <field
-        class="btn-group"
-        name="is_amount"
-        type="radio"
-        label="COM_ALFA_FORM_LBL_DISCOUNT_IS_AMOUNT"
-        default="0"
+            class="btn-group"
+            name="is_amount"
+            type="radio"
+            label="COM_ALFA_FORM_LBL_DISCOUNT_IS_AMOUNT"
+            default="0"
     >
-            <option value="1">Amount</option>
-            <option value="0">Percentage</option>
+      <option value="1">Amount</option>
+      <option value="0">Percentage</option>
     </field>
 
-    <field name="categories" type="categories" showPath="true" multiple="true" default="0" layout="joomla.form.field.list-fancy-select" label="Categories" description="" header="COM_ALFA_FORM_CATEGORY_ALL"/>
+    <!--
+        categories: 0 = applies to ALL categories.
+        <option value="0"> instead of header="..." so the DB value 0
+        matches the option value directly — no blank selection on load.
+    -->
+    <field
+            name="categories"
+            type="categories"
+            showPath="true"
+            multiple="true"
+            label="Categories"
+            description=""
+            layout="joomla.form.field.list-fancy-select"
+    >
+      <option value="0">COM_ALFA_FORM_CATEGORY_ALL</option>
+    </field>
+
+    <!--
+        manufacturers: 0 = applies to ALL manufacturers.
+        <option value="0"> instead of header="...".
+        Removed default="0" — redundant when option value="0" is first.
+    -->
+    <field
+            name="manufacturers"
+            type="sql"
+            input_type="list"
+            required="false"
+            multiple="true"
+            label="COM_ALFA_FORM_LBL_MANUFACTURERS"
+            description="COM_ALFA_FORM_DESC_MANUFACTURERS"
+            layout="joomla.form.field.list-fancy-select"
+            query="SELECT `id`, `name` AS val FROM `#__alfa_manufacturers`"
+            key_field="id"
+            value_field="val"
+    >
+      <option value="0">All manufacturers</option>
+    </field>
+
+    <!--
+        places: 0 = applies to ALL places/countries.
+        <option value="0"> instead of header="...".
+    -->
+    <field
+            name="places"
+            type="sql"
+            required="false"
+            multiple="true"
+            label="COM_ALFA_FORM_CATEGORY_PLACE_LBL"
+            layout="joomla.form.field.list-fancy-select"
+            query="SELECT `id`, `name` AS val FROM `#__alfa_places`"
+            key_field="id"
+            value_field="val"
+    >
+      <option value="0">COM_ALFA_FORM_PLACE_ALL</option>
+    </field>
+
+    <!--
+        usergroups: 0 = applies to ALL user groups.
+        Changed from type="UserGroupList" to type="sql" against #__usergroups
+        because UserGroupList's header always emits value="" which does not
+        match the integer 0 stored in the DB.
+        Removed default="8" — 0 (all groups) is the correct default.
+        <option value="0"> instead of header="...".
+    -->
+    <field
+            name="usergroups"
+            type="sql"
+            input_type="list"
+            required="false"
+            multiple="true"
+            label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_LBL"
+            description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_DESC"
+            layout="joomla.form.field.list-fancy-select"
+            query="SELECT `id`, `title` AS val FROM `#__usergroups`"
+            key_field="id"
+            value_field="val"
+    >
+      <option value="0">All User Groups</option>
+    </field>
+
+    <!--
+        users: 0 = applies to ALL users (not user-specific).
+        Added <option value="0"> — previously missing entirely, so there was
+        no way to represent "all users" in the form and nothing showed
+        as selected when loading a record saved with user_id = 0.
+    -->
+    <field
+            name="users"
+            type="sql"
+            input_type="list"
+            required="false"
+            multiple="true"
+            label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERS_LBL"
+            description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERS_DESC"
+            layout="joomla.form.field.list-fancy-select"
+            query="SELECT `id`, `name` AS val FROM `#__users`"
+            key_field="id"
+            value_field="val"
+    >
+      <option value="0">All users</option>
+    </field>
 
     <field
-        name="manufacturers" type="sql"
-        input_type="list"
-        required="false"
-        multiple="true"
-        default="0"
-        label="COM_ALFA_FORM_LBL_MANUFACTURERS"
-        description="COM_ALFA_FORM_DESC_MANUFACTURERS"
-        layout="joomla.form.field.list-fancy-select"
-        query="SELECT `id`, `name` AS val FROM `#__alfa_manufacturers`" key_field="id" value_field="val"
-        header="All manufacturers"
-    /> 
-
-    <field
-        name="places"
-        type="sql"
-        required="false"
-        multiple="true"
-        default="0"
-        label="COM_ALFA_FORM_CATEGORY_PLACE_LBL"
-        layout="joomla.form.field.list-fancy-select"
-        query="SELECT `id`, `name` AS val FROM `#__alfa_places`" key_field="id" value_field="val"
-        header="COM_ALFA_FORM_PLACE_ALL"
-    />
-
-    <field
-          name="usergroups"
-          type="UserGroupList"
-          label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_LBL"
-          description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_DESC"
-          layout="joomla.form.field.list-fancy-select"
-          multiple="true"
-          checksuperusergroup="1"
-          default="8"
-          header="All User Groups"
-    />
-
-    <field 
-        name="users" type="sql"
-        input_type="list"
-        required="false"
-        multiple="true"
-        label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERS_LBL"
-        description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERS_DESC"
-        layout="joomla.form.field.list-fancy-select"
-        query="SELECT `id`, `name` FROM `#__users`" key_field="id" value_field="name"
-    />
-
-    <field
-        name="publish_up"
-        type="calendar"
-        showtime="true"
-        format="%Y-%m-%d %H:%M"
-        filter="USER_UTC"
-        label="COM_ALFA_FORM_LBL_DISCOUNT_START_DATE"
-        description=""
+            name="publish_up"
+            type="calendar"
+            showtime="true"
+            format="%Y-%m-%d %H:%M"
+            filter="USER_UTC"
+            label="COM_ALFA_FORM_LBL_DISCOUNT_START_DATE"
+            description=""
     />
 
     <field
@@ -180,18 +231,8 @@
       <option value="-2">JTRASHED</option>
     </field>
 
-
-    <field
-            name="checked_out"
-            type="hidden"
-            filter="unset"
-    />
-
-    <field
-            name="checked_out_time"
-            type="hidden"
-            filter="unset"
-    />
+    <field name="checked_out" type="hidden" filter="unset"/>
+    <field name="checked_out_time" type="hidden" filter="unset"/>
 
     <field
             name="created_by"
@@ -199,7 +240,6 @@
             label="JGLOBAL_FIELD_CREATED_BY_LABEL"
             validate="UserId"
     />
-
 
     <field
             name="modified"
@@ -222,11 +262,7 @@
             validate="UserId"
     />
 
-    <field
-            name="ordering"
-            type="hidden"
-    />
-
+    <field name="ordering" type="hidden"/>
 
   </fieldset>
 </form>

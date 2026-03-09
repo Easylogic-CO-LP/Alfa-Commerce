@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -34,7 +34,7 @@ class CategoriesController extends FormController
 	 * @param   string  $prefix  The class prefix. Optional
 	 * @param   array   $config  Configuration array for model. Optional
 	 *
-	 * @return  object	The model
+	 * @return  object    The model
 	 *
 	 * @since   1.0.1
 	 */

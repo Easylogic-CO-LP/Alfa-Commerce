@@ -1,92 +1,112 @@
 <?php
+/**
+ * @package     Alfa.Component
+ * @subpackage  Administrator.View.Order
+ * @version     3.0.0
+ * @author      Agamemnon Fakas <info@easylogic.gr>
+ * @copyright   2025 Easylogic CO LP
+ * @license     GNU General Public License version 2 or later
+ *
+ * Single shipment edit form — rendered inside a modal iframe.
+ * Shows the form fields + plugin action buttons (for existing shipments).
+ *
+ * Path: administrator/components/com_alfa/tmpl/order/edit_shipment.php
+ *
+ * @since  3.0.0
+ */
 
 defined('_JEXEC') or die;
 
-use \Alfa\Component\Alfa\Administrator\Helper\PluginLayoutHelper;
-use \Joomla\CMS\HTML\HTMLHelper;
-use \Joomla\CMS\Language\Text;
-use \Joomla\CMS\Factory;
-use \Joomla\CMS\Router\Route;
+use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
+use Alfa\Component\Alfa\Administrator\Helper\PluginLayoutHelper;
+use Joomla\CMS\HTML\HTMLHelper;
+use Joomla\CMS\Language\Text;
+use Joomla\CMS\Router\Route;
 
 $wa = $this->document->getWebAssetManager();
 $wa->useScript('keepalive')
-    ->useScript('form.validate')
-    ->useStyle('com_alfa.admin');
+	->useScript('form.validate')
+	->useScript('com_alfa.admin')
+	->useScript('com_alfa.order-actions')
+	->useStyle('com_alfa.admin');
 
-HTMLHelper::_('bootstrap.tooltip');
+$isNew = empty($this->shipment);
 
-$input = Factory::getApplication()->input;
+$shipmentID = $isNew ? 0 : (int) $this->shipment->id;
+$orderID    = (int) $this->order->id;
 
-$shipmentID = $input->getInt("id", 0);
-$orderID = $input->getInt("id_order", 0);
+// ── Get plugin actions (only for existing shipments) ─────────
+$actions    = [];
+$pluginType = '';
 
+if (!$isNew && $this->shipment) {
+	$actions    = ActionRegistry::getShipmentActions($this->shipment, $this->order);
+	$pluginType = $this->shipment->params->type ?? 'standard';
+}
 
 ?>
 
-<form
-    action="<?php echo Route::_("index.php?option=com_alfa&layout=order_shipment&tmpl=component&id={$shipmentID}&id_order={$orderID}"); ?>"
-    method="post" enctype="multipart/form-data" name="adminForm" id="order_shipment-form"
-    class="form-validate form-horizontal">
+    <!-- Toolbar -->
+    <div class="subhead noshadow mb-3">
+		<?php echo $this->getDocument()->getToolbar('toolbar')->render(); ?>
+    </div>
 
-    <button type="button" class="btn btn-success"
-            onclick="Joomla.submitbutton('order.saveShipment')">
-        <span class="icon-apply" aria-hidden="true"></span>
-        <?php echo Text::_("COM_ALFA_ORDER_SHIPMENT_SAVE")?>
-    </button>
+    <div class="container-popup">
 
-    <?php if($shipmentID > 0): // Display delete button on existing shipments. ?>
-        <button type="button" class="btn btn-danger"
-                onclick="Joomla.submitbutton('order.deleteShipment')">
-            <span class="icon-apply" aria-hidden="true"></span>
-            <?php echo Text::_("COM_ALFA_ORDER_SHIPMENT_DELETE")?>
-        </button>
-    <?php endif;?>
+		<?php // ── Plugin action buttons (existing shipments only) ─── ?>
+		<?php if (!empty($actions)): ?>
+            <div class="mb-3 p-2 bg-light border rounded d-flex align-items-center flex-wrap gap-2">
+			<span class="fw-semibold text-muted me-2">
+				<span class="icon-cogs" aria-hidden="true"></span>
+				<?php echo Text::_('Actions'); ?>:
+			</span>
+				<?php foreach ($actions as $action):
+					$buttonLayout = PluginLayoutHelper::pluginLayout(
+						'alfa-shipments',
+						$pluginType,
+						$action->button_layout ?? 'action_button'
+					);
 
-    <?php echo $this->form->renderFieldset('shipment'); ?>
+					echo $buttonLayout->render([
+						'action'  => $action,
+						'context' => 'shipment',
+						'id'      => $shipmentID,
+					]);
+				endforeach; ?>
+            </div>
+		<?php endif; ?>
 
-    <?php if ($this->shipment): ?>
-        <div>
+        <form
+                action="<?php echo Route::_("index.php?option=com_alfa&layout=edit_shipment&tmpl=component&id={$shipmentID}&id_order={$orderID}"); ?>"
+                method="post"
+                enctype="multipart/form-data"
+                name="adminForm"
+                id="shipment-form"
+                class="form-validate form-horizontal">
 
-            <?php
-            echo PluginLayoutHelper::pluginLayout(
-                $this->shipment->onAdminOrderShipmentView->getLayoutPluginType(),
-                $this->shipment->onAdminOrderShipmentView->getLayoutPluginName(),
-                $this->shipment->onAdminOrderShipmentView->getLayout(),
-            )->render($this->shipment->onAdminOrderShipmentView->getLayoutData());
+            <!-- Form Fields -->
+			<?php echo $this->form->renderFieldset('shipment'); ?>
 
-            ?>
+            <!-- Hidden Fields -->
+			<?php echo HTMLHelper::_('form.token'); ?>
+            <input type="hidden" name="task" value="" />
+            <input type="hidden" name="id" value="<?php echo $shipmentID; ?>" />
+            <input type="hidden" name="id_order" value="<?php echo $orderID; ?>" />
+        </form>
+    </div>
 
-            <?php
-            $logsContent = PluginLayoutHelper::pluginLayout(
-                $this->shipment->onAdminOrderShipmentViewLogs->getLayoutPluginType(),
-                $this->shipment->onAdminOrderShipmentViewLogs->getLayoutPluginName(),
-                $this->shipment->onAdminOrderShipmentViewLogs->getLayout(),
-            )->render($this->shipment->onAdminOrderShipmentViewLogs->getLayoutData());
-
-            echo HTMLHelper::_(
-                'bootstrap.renderModal',    //html helper type for bootstrap modals
-                'logsModal',     //the id of the modal
-                [
-                    'title'  => 'Shipment Details',
-                    'footer' => '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>',
-                ],
-                $logsContent
-            );
-
-            ?>
-
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal"
-                    data-bs-target="#logsModal">
-                View Shipment Logs
-            </button>
-
-<!--            <button type="submit">submit</button>-->
-
-        </div>
-    <?php endif; ?>
-
-
-    <?php echo HTMLHelper::_('form.token'); ?>
-    <input type="hidden" name="task" value="" />
-
-</form>
+<?php if (!$isNew): ?>
+    <script>
+        /**
+         * Iframe context flag for order-actions.js.
+         *
+         * When set, executeAction() will notify the parent window
+         * instead of reloading the iframe on refresh/redirect actions.
+         */
+        window.AlfaActionContext = {
+            iframe: true,
+            messageType: 'alfa:shipment-action',
+            entityId: <?php echo $shipmentID; ?>
+        };
+    </script>
+<?php endif; ?>

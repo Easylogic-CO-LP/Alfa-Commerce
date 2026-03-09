@@ -1,7 +1,7 @@
 <?php
 
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -9,88 +9,233 @@
  */
 
 namespace Alfa\Component\Alfa\Site\View\Items;
-// No direct access
+
 defined('_JEXEC') or die;
 
-use \Joomla\CMS\MVC\View\JsonView as BaseJsonView;
-use \Joomla\CMS\Factory;
-use \Joomla\CMS\Language\Text;
+use Joomla\CMS\Factory;
+use Joomla\CMS\MVC\View\JsonView as BaseJsonView;
 use Joomla\CMS\Response\JsonResponse;
+use Joomla\CMS\Router\Route;
 
 /**
- * View class for a list of Alfa.
+ * JSON View class for a list of Alfa items.
  *
  * @since  1.0.1
  */
 class JsonView extends BaseJsonView
 {
+	/**
+	 * The items to display
+	 *
+	 * @var    array
+	 * @since  1.0.1
+	 */
 	protected $items;
 
+	/**
+	 * The pagination object
+	 *
+	 * @var    \Joomla\CMS\Pagination\Pagination
+	 * @since  1.0.1
+	 */
 	protected $pagination;
 
+	/**
+	 * The model state
+	 *
+	 * @var    \Joomla\CMS\Object\CMSObject
+	 * @since  1.0.1
+	 */
 	protected $state;
 
+	/**
+	 * The component parameters
+	 *
+	 * @var    \Joomla\Registry\Registry
+	 * @since  1.0.1
+	 */
 	protected $params;
+
+	/**
+	 * The subcategories list
+	 *
+	 * @var    array
+	 * @since  1.0.1
+	 */
+	protected $categories;
+
+	/**
+	 * The current category
+	 *
+	 * @var    object|null
+	 * @since  1.0.1
+	 */
+	protected $category;
 
 	/**
 	 * Display the view
 	 *
 	 * @param   string  $tpl  Template name
 	 *
-	 * @return void
+	 * @return  void
 	 *
-	 * @throws Exception
+	 * @since   1.0.1
 	 */
 	public function display($tpl = null)
 	{
-		$app = Factory::getApplication();
+		header('Content-Type: application/json; charset=utf-8');
 
-        // Get the search term from the request
-        $searchTerm = $app->input->getString('filter[search]', '');
-
-		$this->state = $this->get('State');
-		$this->items = $this->get('Items');
-		$this->pagination = $this->get('Pagination');
+		$app          = Factory::getApplication();
 		$this->params = $app->getParams('com_alfa');
-//		$this->filterForm = $this->get('FilterForm');
-//		$this->activeFilters = $this->get('ActiveFilters');
 
-		// Check for errors.
+		$itemsModel = $this->getModel();
+
+		// Get data from model
+		$this->items      = $itemsModel->getItems();
+		$this->pagination = $itemsModel->getPagination();
+		$this->state      = $itemsModel->getState();
+		$this->categories = $itemsModel->getItemsCategories();
+		$this->category   = $itemsModel->getItemsCategory();
+
+		// Check for errors from the model
 		if (count($errors = $this->get('Errors')))
 		{
-			throw new \Exception(implode("\n", $errors));
+			echo new JsonResponse(null, implode(', ', $errors), true);
+			$app->close();
 		}
 
-//        $this->app->enqueueMessage('minima 1');
-        $response = new JsonResponse($this->items,'Items fetched succesufully',false);
-        echo $response;
+		// Build response data
+		$data = [
+			'items'      => $this->items,
+			'pagination' => $this->preparePaginationData(),
+			'state'      => $this->prepareStateData(),
+			'categories' => $this->categories,
+		];
 
-        $app->close();
+		// Add current category if exists
+		if (!empty($this->category))
+		{
+			$data['category'] = $this->prepareCategoryData();
+		}
 
+		// Send JSON response
+		echo new JsonResponse($data, 'Items fetched successfully', false);
 
-//        $this->sendJsonResponse($this->items);
-
-        // Output JSON
-//        $this->response->setBody(json_encode($data));
-//        $this->response->setHeader('Content-Type', 'application/json');
-//		parent::display($tpl);
+		$app->close();
 	}
 
+	/**
+	 * Prepare pagination data
+	 *
+	 * @return  array
+	 *
+	 * @since   1.0.1
+	 */
+	protected function preparePaginationData()
+	{
+		$paginationData = [
+			'total'        => (int) $this->pagination->total,
+			'limitstart'   => (int) $this->pagination->limitstart,
+			'limit'        => (int) $this->pagination->limit,
+			'pagesTotal'   => (int) $this->pagination->pagesTotal,
+			'pagesCurrent' => (int) $this->pagination->pagesCurrent,
+		];
 
-    /**
-     * Send JSON response
-     *
-     * @param   mixed  $data  The data to send as JSON
-     *
-     * @return  void
-     */
-//    protected function sendJsonResponse($data)
-//    {
-//        $app = Factory::getApplication();
-//        $app->setHeader('Content-Type', 'application/json', true);
-//
-//        echo json_encode($data);
-//        $app->close();
-//    }
+		// Add pagination links if multiple pages exist
+		if ($this->pagination->pagesTotal > 1)
+		{
+			$paginationData['links'] = $this->preparePaginationLinks();
+		}
 
+		return $paginationData;
+	}
+
+	/**
+	 * Prepare pagination links
+	 *
+	 * @return  array
+	 *
+	 * @since   1.0.1
+	 */
+	protected function preparePaginationLinks()
+	{
+		$links             = [];
+		$paginationDataObj = $this->pagination->getData();
+
+		// Previous page link
+		if ($this->pagination->pagesCurrent > 1 && !empty($paginationDataObj->previous->link))
+		{
+			$links['previous'] = Route::_($paginationDataObj->previous->link);
+		}
+
+		// Next page link
+		if ($this->pagination->pagesCurrent < $this->pagination->pagesTotal && !empty($paginationDataObj->next->link))
+		{
+			$links['next'] = Route::_($paginationDataObj->next->link);
+		}
+
+		// First page link
+		if (!empty($paginationDataObj->start->link))
+		{
+			$links['first'] = Route::_($paginationDataObj->start->link);
+		}
+
+		// Last page link
+		if (!empty($paginationDataObj->end->link))
+		{
+			$links['end'] = Route::_($paginationDataObj->end->link);
+		}
+
+		// Individual page links
+		if (!empty($paginationDataObj->pages))
+		{
+			$links['pages'] = [];
+
+			foreach ($paginationDataObj->pages as $page)
+			{
+				$links['pages'][] = [
+					'number' => (int) $page->text,
+					'link'   => !empty($page->link) ? Route::_($page->link) : null,
+					'active' => (bool) ($page->active ?? false),
+				];
+			}
+		}
+
+		return $links;
+	}
+
+	/**
+	 * Prepare state data
+	 *
+	 * @return  array
+	 *
+	 * @since   1.0.1
+	 */
+	protected function prepareStateData()
+	{
+		return [
+			'ordering'    => $this->state->get('list.ordering'),
+			'direction'   => $this->state->get('list.direction'),
+			'search'      => $this->state->get('filter.search', ''),
+			'category_id' => (int) $this->state->get('filter.category_id', 0),
+		];
+	}
+
+	/**
+	 * Prepare category data
+	 *
+	 * @return  array
+	 *
+	 * @since   1.0.1
+	 */
+	protected function prepareCategoryData()
+	{
+		return [
+			'id'        => (int) $this->category->id,
+			'name'      => $this->category->name,
+			'alias'     => $this->category->alias,
+			'desc'      => $this->category->desc ?? '',
+			'parent_id' => (int) ($this->category->parent_id ?? 0),
+		];
+	}
 }

@@ -1,90 +1,102 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
  * @license    GNU General Public License version 2 or later; see LICENSE.txt
  */
-// No direct access
+
 defined('_JEXEC') or die;
 
-use \Joomla\CMS\HTML\HTMLHelper;
-use \Joomla\CMS\Factory;
-use \Joomla\CMS\Uri\Uri;
-use \Joomla\CMS\Router\Route;
-use \Joomla\CMS\Language\Text;
-use \Joomla\CMS\Layout\LayoutHelper;
-use \Joomla\CMS\Session\Session;
-use \Joomla\CMS\User\UserFactoryInterface;
-use \Alfa\Component\Alfa\Site\Helper\AlfaHelper;
+use Joomla\CMS\Uri\Uri;
+use Joomla\CMS\Layout\LayoutHelper;
 
-HTMLHelper::_('bootstrap.tooltip');
-HTMLHelper::_('behavior.multiselect');
-HTMLHelper::_('formbehavior.chosen', 'select');
-
-$app = Factory::getApplication();
-$user = $app->getIdentity();
-$userId = $user->get('id');
-$listOrder = $this->state->get('list.ordering');
-$listDirn = $this->state->get('list.direction');
-
-// Import CSS
 $wa = $this->document->getWebAssetManager();
-
-$categorySettings = AlfaHelper::getCategorySettings();
-
 $wa->useStyle('com_alfa.list')
-    ->useStyle('com_alfa.item')
-    ->useScript('com_alfa.item.recalculate')
-    ->useScript('com_alfa.item.addtocart');
-?>  
+	->useStyle('com_alfa.item')
+	->useScript('com_alfa.item.recalculate')
+	->useScript('com_alfa.item.addtocart');
 
-    <?php echo $this->loadTemplate('categories'); ?>
+// ============================================================================
+// PRICE SETTINGS - CUSTOMIZABLE
+// ============================================================================
+// Default: Use settings from view (resolved by user group)
+$priceSettings = $this->priceSettings;
 
-    <form action="<?php echo htmlspecialchars(Uri::getInstance()->toString()); ?>" method="post" name="adminForm" id="adminForm">
-      <?php if (!empty($this->filterForm)) { echo LayoutHelper::render('joomla.searchtools.default', array('view' => $this)); } ?>
+// TEMPLATE OVERRIDE EXAMPLES (uncomment to use) else you can overwrite the price layout:
+//
+// Example 1: Hide tax on this page
+// $priceSettings = PriceSettings::except('tax');
+//
+// Example 2: Show only final price (minimal display)
+// $priceSettings = PriceSettings::minimal();
+//
+// Example 3: Show everything with labels
+// $priceSettings = PriceSettings::full();
+//
+// Example 4: Show everything without labels (compact)
+// $priceSettings = PriceSettings::compact();
+//
+// Example 5: Custom - show base, discount (no label), and final
+// $priceSettings = PriceSettings::make()
+//     ->show('base')             // With label
+//     ->show('discount', false)  // Without label
+//     ->show('final')            // With label
+//     ->get();
+//
+// Example 6: Show multiple elements without labels
+// $priceSettings = PriceSettings::make()
+//     ->show('base', false)
+//     ->show('discount', false)
+//     ->show('final', false)
+//     ->get();
+//
+// Example 7: Show elements then remove all labels (alternative to example 6)
+// $priceSettings = PriceSettings::make()
+//     ->show('base')
+//     ->show('discount')
+//     ->show('final')
+//     ->withoutLabels()  // Removes all labels
+//     ->get();
+//
+// Example 8: Show only base and final (comparison view)
+// $priceSettings = PriceSettings::only('base', 'final');
+//
+// Example 9: Hide base price and tax
+// $priceSettings = PriceSettings::except('base', 'tax');
+// ============================================================================
+?>
 
-        <input type="hidden" name="task" value=""/>
-        <input type="hidden" name="boxchecked" value="0"/>
-        <input type="hidden" name="filter_order" value=""/>
-        <input type="hidden" name="filter_order_Dir" value=""/>
-      <?php echo HTMLHelper::_('form.token'); ?>
-    </form>
+<?php echo $this->loadTemplate('categories'); ?>
 
-    <section>
-        <div class="list-container items-list">
-            <?php foreach ($this->items as $item) : ?>
+<?php echo LayoutHelper::render('filter_form', ['view' => $this]); ?>
 
-                <?php
-//                    $showItem = true;
-//                    if($item->stock_action == 2 && $item->stock <= 0)
-//                        $showItem = false;
-//                    if($showItem):  //SHOWING BASIC ITEM.
-                ?>
+<section>
+	<?php echo $this->pagination->getListFooter(); ?>
+    <div class="list-container items-list">
+		<?php foreach ($this->items as $item) : ?>
 
-                    <article class="list-item item-item" data-item-id="<?php echo $item->id;?>">
-                        <div>
-                            <a href="<?php echo Route::_('index.php?option=com_alfa&view=item&id=' . (int)$item->id); ?>">
-                                <img src="https://americanathleticshoe.com/cdn/shop/t/23/assets/placeholder_600x.png?v=113555733946226816651665571258">
-                            </a>
-                            </a>
-                        </div>
-                        <div class="item-title">
-                            <a href="<?php echo Route::_('index.php?option=com_alfa&view=item&id=' . (int)$item->id); ?>">
-                                <?php echo $this->escape($item->name); ?></a>
-                        </div>
+            <article class="list-item" data-item-id="<?php echo $item->id; ?>">
+                <div>
+                    <a href="<?= $item->link ?>">
+                        <img src="<?= Uri::root() . '/media/com_alfa/images/placeholder_600x.webp' ?>" alt="<?= $item->name ?>" />
+                    </a>
+                </div>
+                <div class="item-title">
+                    <a href="<?= $item->link ?>">
+						<?php echo $this->escape($item->name); ?></a>
+                </div>
 
-                            <!-- <div class="item-price" > -->
-                                <?php echo LayoutHelper::render('price', ['item'=>$item, 'settings'=>$categorySettings] ); //passed data as $displayData in layout ?>
-                            <!-- </div> -->
+	            <?php echo LayoutHelper::render('price', [ 'item' => $item,  'settings' => $priceSettings ]); ?>
 
-                            <?php echo LayoutHelper::render('stock_info', ['item'=>$item,'quantity'=>$item->quantity_min]); ?>
-                            
-                            <?php echo LayoutHelper::render('add_to_cart', $item); ?>
+				<?php echo LayoutHelper::render('stock_info', ['item' => $item]); ?>
 
-                    </article>
-<!--                --><?php //endif;?>
-            <?php endforeach; ?>
-        </div>
-    </section>
+				<?php echo LayoutHelper::render('add_to_cart', $item); ?>
+
+            </article>
+
+		<?php endforeach; ?>
+    </div>
+	<?php echo $this->pagination->getListFooter(); ?>
+</section>
