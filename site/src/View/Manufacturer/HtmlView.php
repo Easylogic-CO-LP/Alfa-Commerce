@@ -1,7 +1,7 @@
 <?php
 
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -12,7 +12,7 @@ namespace Alfa\Component\Alfa\Site\View\Manufacturer;
 // No direct access
 defined('_JEXEC') or die;
 
-use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
+use Alfa\Component\Alfa\Site\View\HtmlView as BaseHtmlView;
 use \Joomla\CMS\Factory;
 use \Joomla\CMS\Language\Text;
 
@@ -23,131 +23,132 @@ use \Joomla\CMS\Language\Text;
  */
 class  HtmlView extends BaseHtmlView
 {
-    protected $state;
+	protected $state;
 
-    protected $item;
+	protected $item;
 
-    protected $form;
+	protected $form;
 
-    protected $params;
-
-
-    /**
-     * Display the view
-     *
-     * @param   string  $tpl  Template name
-     *
-     * @return void
-     *
-     * @throws Exception
-     */
-    public function display($tpl = null)
-    {
-        $app  = Factory::getApplication();
-        $user = $app->getIdentity();
-
-        $this->state  = $this->get('State');
-        $this->item = $this->get('Item');
-        $this->params = $app->getParams('com_alfa');
-
-       /* if (!empty($this->item))
-        {
-
-        }*/
-
-        // Check for errors.
-        if (count($errors = $this->get('Errors')))
-        {
-            throw new \Exception(implode("\n", $errors));
-        }
+	protected $params;
 
 
+	/**
+	 * Display the view
+	 *
+	 * @param   string  $tpl  Template name
+	 *
+	 * @return void
+	 *
+	 * @throws \Exception
+	 */
+	public function display($tpl = null)
+	{
+		$app  = Factory::getApplication();
+		$user = $app->getIdentity();
 
-        if ($this->_layout == 'edit')
-        {
-            $authorised = $user->authorise('core.create', 'com_alfa');
+		$this->state  = $this->get('State');
+		$this->item   = $this->get('Item');
+		$this->params = $app->getParams('com_alfa');
 
-            if ($authorised !== true)
-            {
-                throw new \Exception(Text::_('JERROR_ALERTNOAUTHOR'));
-            }
-        }
+		/* if (!empty($this->item))
+		 {
 
-        $this->_prepareDocument();
+		 }*/
 
-        parent::display($tpl);
-    }
+		// Check for errors.
+		if (count($errors = $this->get('Errors')))
+		{
+			throw new \Exception(implode("\n", $errors));
+		}
 
-    /**
-     * Prepares the document
-     *
-     * @return void
-     *
-     * @throws Exception
-     */
-    protected function _prepareDocument()
-    {
-        $app   = Factory::getApplication();
-        $menus = $app->getMenu();
-        $title = null;
 
-        // Because the application sets a default page title,
-        // We need to get it from the menu manufacturer itself
-        $menu = $menus->getActive();
+		if ($this->_layout == 'edit')
+		{
+			$authorised = $user->authorise('core.create', 'com_alfa');
 
-        if ($menu)
-        {
-            $this->params->def('page_heading', $this->params->get('page_title', $menu->title));
-        }
-        else
-        {
-            $this->params->def('page_heading', Text::_('COM_ALFA_DEFAULT_PAGE_TITLE'));
-        }
+			if ($authorised !== true)
+			{
+				throw new \Exception(Text::_('JERROR_ALERTNOAUTHOR'));
+			}
+		}
 
-        $title = $this->item->name;
+		$this->_prepareDocument();
 
-        if (empty($title))
-        {
-            $title = $app->get('sitename');
-        }
-        elseif ($app->get('sitename_pagetitles', 0) == 1)
-        {
-            $title = Text::sprintf('JPAGETITLE', $app->get('sitename'), $title);
-        }
-        elseif ($app->get('sitename_pagetitles', 0) == 2)
-        {
-            $title = Text::sprintf('JPAGETITLE', $title, $app->get('sitename'));
-        }
+		parent::display($tpl);
+	}
 
-        $this->document->setTitle($title);
+	/**
+	 * Prepares the document
+	 *
+	 * @return void
+	 *
+	 * @throws \Exception
+	 */
+	protected function _prepareDocument()
+	{
+		$app   = Factory::getApplication();
+		$menus = $app->getMenu();
+		$title = null;
 
-        if ($this->params->get('menu-meta_description'))
-        {
-            $this->document->setDescription($this->params->get('menu-meta_description'));
-        }
+		// Because the application sets a default page title,
+		// We need to get it from the menu manufacturer itself
+		$menu = $menus->getActive();
 
-        if ($this->params->get('menu-meta_keywords'))
-        {
-            $this->document->setMetadata('keywords', $this->params->get('menu-meta_keywords'));
-        }
+		if ($menu)
+		{
+			$this->params->def('page_heading', $this->params->get('page_title', $menu->title));
+		}
+		else
+		{
+			$this->params->def('page_heading', Text::_('COM_ALFA_DEFAULT_PAGE_TITLE'));
+		}
 
-        if ($this->params->get('robots'))
-        {
-            $this->document->setMetadata('robots', $this->params->get('robots'));
-        }
+		$title = $this->item->name;
 
-        // Add Breadcrumbs
-        $pathway = $app->getPathway();
-        $breadcrumbList = Text::_('COM_ALFA_TITLE_MANUFACTURERS');
+		if (empty($title))
+		{
+			$title = $app->get('sitename');
+		}
+		elseif ($app->get('sitename_pagetitles', 0) == 1)
+		{
+			$title = Text::sprintf('JPAGETITLE', $app->get('sitename'), $title);
+		}
+		elseif ($app->get('sitename_pagetitles', 0) == 2)
+		{
+			$title = Text::sprintf('JPAGETITLE', $title, $app->get('sitename'));
+		}
 
-        if(!in_array($breadcrumbList, $pathway->getPathwayNames())) {
-            $pathway->addItem($breadcrumbList, "index.php?option=com_alfa&view=manufacturers");
-        }
-        $breadcrumbTitle = $this->item->name;
+		$this->document->setTitle($title);
 
-        if(!in_array($breadcrumbTitle, $pathway->getPathwayNames())) {
-            $pathway->addItem($breadcrumbTitle);
-        }
+		if ($this->params->get('menu-meta_description'))
+		{
+			$this->document->setDescription($this->params->get('menu-meta_description'));
+		}
 
-    }
+		if ($this->params->get('menu-meta_keywords'))
+		{
+			$this->document->setMetadata('keywords', $this->params->get('menu-meta_keywords'));
+		}
+
+		if ($this->params->get('robots'))
+		{
+			$this->document->setMetadata('robots', $this->params->get('robots'));
+		}
+
+		// Add Breadcrumbs
+		$pathway        = $app->getPathway();
+		$breadcrumbList = Text::_('COM_ALFA_TITLE_MANUFACTURERS');
+
+		if (!in_array($breadcrumbList, $pathway->getPathwayNames()))
+		{
+			$pathway->addItem($breadcrumbList, "index.php?option=com_alfa&view=manufacturers");
+		}
+		$breadcrumbTitle = $this->item->name;
+
+		if (!in_array($breadcrumbTitle, $pathway->getPathwayNames()))
+		{
+			$pathway->addItem($breadcrumbTitle);
+		}
+
+	}
 }

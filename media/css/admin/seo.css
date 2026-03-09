@@ -1,0 +1,434 @@
+/**
+ * SEO Preview Styles - v2.0 Enhanced
+ * Google-style focus keyword input + centered loading
+ *
+ * @package     Com_Alfa
+ * @version     2.0.0
+ */
+
+/* ===================================
+   Preview Container
+   =================================== */
+
+.seo-preview-container {
+    position: relative;
+    margin-top: 1.5rem;
+}
+
+.seo-preview-container .card {
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+/* ===================================
+   Focus Keyword Input (Google 2024 Style)
+   =================================== */
+
+/* Main input group */
+.seo-focus-keyword-wrapper .input-group {
+    border-radius: 24px !important;
+    overflow: hidden !important;
+    box-shadow: 0 1px 3px rgba(60, 64, 67, 0.15) !important;
+    transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    border: 1px solid #dfe1e5;
+    background: #fff;
+}
+
+.seo-focus-keyword-wrapper .input-group:hover {
+    box-shadow: 0 1px 6px rgba(32, 33, 36, 0.28) !important;
+}
+
+.seo-focus-keyword-wrapper .input-group:focus-within {
+    box-shadow: 0 1px 6px rgba(32, 33, 36, 0.28) !important;
+    border-color: transparent !important;
+}
+
+/* Icon on the left */
+.seo-focus-keyword-wrapper .input-group-text:first-child {
+    background: #fff;
+    border: none;
+    padding: 12px 14px 12px 16px;
+    color: #5f6368;
+}
+
+.seo-focus-keyword-wrapper .icon-key {
+    font-size: 20px;
+    color: #4285f4;
+}
+
+/* The actual input */
+#seo-focus-keyword-input {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 16px;
+    padding: 11px 8px;
+    border: none;
+    background: #fff;
+    color: #202124;
+    flex: 1;
+}
+
+#seo-focus-keyword-input:focus {
+    outline: none;
+    box-shadow: none;
+    border: none;
+}
+
+#seo-focus-keyword-input::placeholder {
+    color: #9aa0a6;
+    font-weight: 400;
+}
+
+/* Badge on the right */
+.seo-focus-keyword-wrapper .input-group-text:last-child {
+    background: #f8f9fa;
+    border: none;
+    padding: 12px 16px 12px 14px;
+    font-size: 12px;
+    color: #5f6368;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+}
+
+/* Helper text below (Google style) */
+.seo-focus-keyword-wrapper .form-text {
+    font-size: 13px;
+    color: #5f6368;
+    margin-top: 8px;
+    padding-left: 16px;
+    line-height: 1.5;
+}
+
+.seo-focus-keyword-wrapper .form-text .icon-info-circle {
+    font-size: 14px;
+    margin-right: 5px;
+    vertical-align: text-bottom;
+    color: #4285f4;
+}
+
+/* ===================================
+   Google Search Preview Box
+   =================================== */
+
+.seo-google-preview {
+    background: #fff;
+    border: 1px solid #e8eaed;
+    border-radius: 8px;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    margin-bottom: 1.5rem;
+}
+
+.seo-google-preview .seo-preview-url {
+    font-size: 14px;
+    line-height: 1.3;
+}
+
+.seo-google-preview .seo-preview-url .icon-globe {
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+.seo-google-preview .seo-preview-title {
+    font-size: 20px;
+    line-height: 1.3;
+    color: #1a0dab;
+    margin-bottom: 3px;
+    text-decoration: none;
+    font-weight: 400;
+}
+
+.seo-google-preview .seo-preview-title:hover {
+    text-decoration: underline;
+}
+
+.seo-google-preview .seo-preview-description {
+    font-size: 14px;
+    line-height: 1.58;
+    color: #4d5156;
+}
+
+.seo-google-preview .seo-date {
+    color: #70757a;
+    font-weight: 400;
+}
+
+/* ===================================
+   SEO Analysis Section
+   =================================== */
+
+.seo-analysis-group {
+    margin-bottom: 1rem;
+}
+
+.seo-analysis-group:last-child {
+    margin-bottom: 0;
+}
+
+.seo-check-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    background: #f8f9fa;
+    transition: background-color 0.2s ease;
+}
+
+.seo-check-item:hover {
+    background: #e9ecef;
+}
+
+.seo-check-item .icon {
+    margin-right: 10px;
+    font-size: 16px;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.seo-check-item.good {
+    border-left: 3px solid #28a745;
+}
+
+.seo-check-item.warning {
+    border-left: 3px solid #ffc107;
+}
+
+.seo-check-item.error {
+    border-left: 3px solid #dc3545;
+}
+
+.seo-check-item.info {
+    border-left: 3px solid #17a2b8;
+}
+
+.seo-check-message {
+    flex: 1;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #212529;
+}
+
+/* ===================================
+   Focus Keyword Badge
+   =================================== */
+
+.seo-focus-keyword-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 14px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    margin-top: 1rem;
+}
+
+.seo-focus-keyword-badge .icon {
+    margin-right: 6px;
+    font-size: 14px;
+}
+
+.seo-focus-keyword-badge .keyword-text {
+    font-weight: 600;
+    margin-left: 4px;
+}
+
+/* ===================================
+   Loading State (Centered Overlay)
+   =================================== */
+
+.seo-preview-container.is-loading {
+    position: relative;
+    pointer-events: none;
+}
+
+.seo-loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.97);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    border-radius: 0.5rem;
+}
+
+.seo-loading-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid #f3f4f6;
+    border-top: 4px solid #4285f4;
+    border-radius: 50%;
+    animation: seo-spin 0.8s linear infinite;
+}
+
+.seo-loading-text {
+    margin-top: 16px;
+    color: #5f6368;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+}
+
+@keyframes seo-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ===================================
+   Score Badge
+   =================================== */
+
+[data-seo-score-badge] {
+    min-width: 70px;
+    text-align: center;
+    font-size: 14px !important;
+    padding: 8px 16px !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    animation: scoreChange 0.3s ease;
+}
+
+@keyframes scoreChange {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+/* ===================================
+   Refresh Button
+   =================================== */
+
+[data-seo-refresh-btn] {
+    color: #5f6368;
+    font-size: 13px;
+    transition: color 0.2s ease;
+}
+
+[data-seo-refresh-btn]:hover {
+    color: #4285f4;
+}
+
+[data-seo-refresh-btn] .icon-refresh {
+    font-size: 14px;
+    margin-right: 4px;
+}
+
+/* ===================================
+   Responsive Design
+   =================================== */
+
+@media (max-width: 768px) {
+    .seo-google-preview {
+        padding: 16px;
+    }
+
+    .seo-google-preview .seo-title {
+        font-size: 18px;
+    }
+
+    .seo-google-preview .seo-description {
+        font-size: 13px;
+    }
+
+    #seo-focus-keyword-input {
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+
+    .seo-check-item {
+        padding: 8px 10px;
+        font-size: 13px;
+    }
+}
+
+/* ===================================
+   Dark Mode Support (Optional)
+   =================================== */
+
+@media (prefers-color-scheme: dark) {
+    .seo-google-preview {
+        background: #202124;
+        border-color: #3c4043;
+    }
+
+    .seo-google-preview .seo-url {
+        color: #bdc1c6;
+    }
+
+    .seo-google-preview .seo-title {
+        color: #8ab4f8;
+    }
+
+    .seo-google-preview .seo-description {
+        color: #bdc1c6;
+    }
+
+    .seo-google-preview .seo-date {
+        color: #9aa0a6;
+    }
+
+    .seo-check-item {
+        background: #292a2d;
+    }
+
+    .seo-check-item:hover {
+        background: #35363a;
+    }
+
+    #seo-focus-keyword-input,
+    .seo-focus-keyword-wrapper .input-group {
+        background: #292a2d;
+        border-color: #3c4043;
+        color: #e8eaed;
+    }
+
+    .seo-focus-keyword-wrapper .input-group-text:first-child,
+    #seo-focus-keyword-input {
+        background: #292a2d;
+        color: #e8eaed;
+    }
+
+    .seo-focus-keyword-wrapper .input-group-text:last-child {
+        background: #35363a;
+    }
+}
+
+/* ===================================
+   Accessibility
+   =================================== */
+
+/* Focus visible for keyboard navigation */
+#seo-focus-keyword-input:focus-visible {
+    outline: 2px solid #4285f4;
+    outline-offset: 2px;
+}
+
+[data-seo-refresh-btn]:focus-visible {
+    outline: 2px solid #4285f4;
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .seo-check-item {
+        border: 2px solid currentColor;
+    }
+
+    .seo-google-preview {
+        border: 2px solid currentColor;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

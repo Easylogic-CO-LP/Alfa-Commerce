@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -11,15 +11,10 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
-use \Joomla\CMS\Table\Table;
-use \Joomla\CMS\Factory;
-use \Joomla\CMS\Language\Text;
-use \Joomla\CMS\Plugin\PluginHelper;
-use \Joomla\CMS\MVC\Model\AdminModel;
-use \Joomla\CMS\Helper\TagsHelper;
-use \Joomla\CMS\Filter\OutputFilter;
-use \Joomla\CMS\Event\Model;
-use \Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Joomla\CMS\Table\Table;
+use Joomla\CMS\Factory;
+use Joomla\CMS\MVC\Model\AdminModel;
+use Joomla\CMS\Filter\OutputFilter;
 
 /**
  * Place model.
@@ -69,12 +64,13 @@ class PlaceModel extends AdminModel
 			'com_alfa.' . $this->formName,
 			$this->formName,
 			array(
-				'control' => 'jform',
+				'control'   => 'jform',
 				'load_data' => $loadData
 			)
 		);
 
-		if (empty($form)){
+		if (empty($form))
+		{
 			return false;
 		}
 
@@ -148,32 +144,38 @@ class PlaceModel extends AdminModel
 	{
 
 		$app = Factory::getApplication();
-		$db = $this->getDatabase();
+		$db  = $this->getDatabase();
 
 //		$data['alias']='the alias';
 //		$data['name']='the name';
 
 		$data['alias'] = $data['alias'] ?: $data['name'];
 
-		if ($app->get('unicodeslugs') == 1){
+		if ($app->get('unicodeslugs') == 1)
+		{
 			$data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
-		} else {
+		}
+		else
+		{
 			$data['alias'] = OutputFilter::stringURLSafe($data['alias']);
 		}
 
 
-		if (!parent::save($data))return false;
+		if (!parent::save($data)) return false;
 
 		$currentId = 0;
-		if($data['id']>0){ //not a new
+		if ($data['id'] > 0)
+		{ //not a new
 			$currentId = intval($data['id']);
-		}else{ // is new
-			$currentId = intval($this->getState($this->getName().'.id'));//get the id from setted joomla state
+		}
+		else
+		{ // is new
+			$currentId = intval($this->getState($this->getName() . '.id'));//get the id from setted joomla state
 		}
 
-        return true;
+		return true;
 
-    }
+	}
 
 
 //
@@ -278,10 +280,8 @@ class PlaceModel extends AdminModel
 			$table->created_by = $user->id;
 		}
 
-		$table->modified = Factory::getDate()->toSql();
+		$table->modified    = Factory::getDate()->toSql();
 		$table->modified_by = $user->id;
-
-		return parent::prepareTable($table);
 
 	}
 

@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -11,21 +11,8 @@ namespace Alfa\Component\Alfa\Administrator\Table;
 // No direct access
 defined('_JEXEC') or die;
 
-use \Joomla\Utilities\ArrayHelper;
-use \Joomla\CMS\Factory;
-use \Joomla\CMS\Access\Access;
-use \Joomla\CMS\Language\Text;
-use \Joomla\CMS\Table\Table as Table;
-use \Joomla\CMS\Versioning\VersionableTableInterface;
-use Joomla\CMS\Tag\TaggableTableInterface;
-use Joomla\CMS\Tag\TaggableTableTrait;
-use \Joomla\Database\DatabaseDriver;
-use \Joomla\CMS\Filter\OutputFilter;
-use \Joomla\CMS\Filesystem\File;
-use \Joomla\Registry\Registry;
-use \Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
-use \Joomla\CMS\Helper\ContentHelper;
-
+use Joomla\CMS\Table\Table;
+use Joomla\Database\DatabaseDriver;
 
 /**
  * Place table

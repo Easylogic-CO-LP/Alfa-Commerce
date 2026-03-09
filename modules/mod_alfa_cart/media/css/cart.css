@@ -14,13 +14,26 @@
     gap: 10px;
 }
 
-
+/* CLOSE BUTTON*/
 .mod-alfa-cart .close-btn {
-    background: none;
-    border: none;
-    font-size: 20px;
-    color: #333;
     cursor: pointer;
+    color:#777;
+    border: 1px solid #f1f1f1;
+    width: 30px;
+    height: 30px;
+    background: white;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    aspect-ratio: 1/1;
+    transition: color .2s ease,background-color .2s ease;
+}
+
+.mod-alfa-cart .close-btn:hover {
+    color:#333;
+    background-color: #f1f1f1;
 }
 
 /* body */
@@ -37,7 +50,8 @@
 
 .mod-alfa-cart .cart-quantity {
     font-weight: bold;
-    display: block;
+    display: inline-flex;
+    gap:5px;
 }
 
 .mod-alfa-cart .cart-item-outer {
@@ -47,25 +61,27 @@
     padding: 15px;
     border-bottom: 1px solid #eaeaea;
 }
-
-.mod-alfa-cart .cart-item-name {
-    font-size: 14px;
+.mod-alfa-cart .cart-item-details{
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
     flex-grow: 1;
+}
+.mod-alfa-cart .cart-item-name {
+    font-size: 1.125rem;
     color: #333;
 }
 
 .mod-alfa-cart .cart-item-remove {
     background: none;
     border: none;
-    padding: 5px;
+    width: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    color: #ff6b6b;
-    transition: color 0.3s ease;
-}
-
-.mod-alfa-cart .cart-item-remove svg {
-    width: 16px;
-    height: 16px;
+    color: #333;
+    transition: color 0.2s ease;
 }
 
 .mod-alfa-cart .cart-item-remove:hover {
@@ -118,9 +134,15 @@
     gap: 10px;
 }
 
+.mod-alfa-cart .cart-footer .totals-row{
+    display: flex;
+    gap: 5px;
+}
+
 /* toggler */
 .mod-alfa-cart .cart-toggler{
     position:relative;
+    color:var(--mod-alfa-cart-toggler-color, #FFFFFF);
 }
 
 .mod-alfa-cart .cart-toggler::after {
@@ -136,7 +158,6 @@
   right: -4px;
   top: -3px;
   content: attr(data-counter);
-  position: absolute;
 }
 
 /* main wrapper */
@@ -168,7 +189,6 @@
     flex-direction: column;
     justify-content: space-between;
     pointer-events: none;
-    background: #f1f1f1;
     top: 0;
     left: 0;
     width: 100%;
@@ -200,25 +220,6 @@
 .mod-alfa-cart .cart--visible.mod-alfa-cart-data:after {
     opacity: 1;
     pointer-events: auto;
-}
-
-/* CLOSE BUTTON*/
-.mod-alfa-cart .close-btn {
-    border: 1px solid #f1f1f1;
-    width: 30px;
-    height: 30px;
-    font-size: 20px;
-    cursor: pointer;
-    background: white;
-    border-radius: 3px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    aspect-ratio: 1/1;
-}
-
-.mod-alfa-cart .close-btn:hover {
-    background-color: #f1f1f1;
 }
 
 

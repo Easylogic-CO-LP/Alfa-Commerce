@@ -1,47 +1,168 @@
 <?php
 
 /**
- * Joomla! Content Management System
+ * Shipping cost calculation event.
  *
- * @copyright  (C) 2023 Open Source Matters, Inc. <https://www.joomla.org>
- * @license        GNU General Public License version 2 or later; see LICENSE.txt
+ * Fired by CartHelper::computeShipmentCosts() to let the active
+ * shipment plugin provide shipping cost for the current cart.
+ *
+ * Plugins MUST call setShippingCost() with the tax-inclusive amount.
+ * Plugins SHOULD call setShippingCostTaxExcl() with the tax-exclusive
+ * amount when shipping is taxable. If not set, excl defaults to incl
+ * (zero-tax shipping — the common case).
+ *
+ * Usage in plugin:
+ *   public function onCalculateShippingCost($event): void
+ *   {
+ *       $cart   = $event->getCart();
+ *       $method = $event->getMethod();
+ *
+ *       $costIncl = $this->calculateCost($cart, $method);
+ *       $event->setShippingCost($costIncl);
+ *
+ *       // Optional: only if shipping is taxable
+ *       $event->setShippingCostTaxExcl($costExcl);
+ *   }
+ *
+ * @package    Com_Alfa
+ * @subpackage Administrator.Event.Shipments
+ * @version    3.5.1
+ * @author     Agamemnon Fakas <info@easylogic.gr>
+ * @copyright  2026 Easylogic CO LP
+ * @license    GNU General Public License version 2 or later
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\Shipments;
 
-use Joomla\CMS\Form\Form;
-use Joomla\CMS\Event\Result\ResultAware;
-use Joomla\CMS\Event\Result\ResultAwareInterface;
-use Joomla\CMS\Event\Result\ResultTypeStringAware;
-
-// phpcs:disable PSR1.Files.SideEffects
 \defined('_JEXEC') or die;
-// phpcs:enable PSR1.Files.SideEffects
 
-/**
- * Class for CustomFields events
- *
- * @since  5.0.0
- */
 class CalculateShippingCostEvent extends ShipmentsEvent
 {
-    public function getCart()
-    {
-        return $this->getSubject();
-    }
+	/**
+	 * Constructor — requires 'method' argument.
+	 *
+	 * @param   string  $name       Event name
+	 * @param   array   $arguments  Must include 'method' and 'shippingCost'
+	 *
+	 * @throws  \BadMethodCallException  If 'method' is missing
+	 */
+	public function __construct($name, array $arguments = [])
+	{
+		parent::__construct($name, $arguments);
 
-    public function onSetShippingCost(int $cost)
-    {
-        $this->setShippingCost($cost);
-    }
-    public function setShippingCost(int $cost)
-    {
-        $this->arguments['shippingCost'] = $cost;
-    }
-    
-    public function getShippingCost(): ?int
-    {
-        return $this->arguments['shippingCost'] ?? 0;
-    }
-    
+		if (!\array_key_exists('method', $this->arguments)) {
+			throw new \BadMethodCallException(
+				"Argument 'method' of event {$name} is required but has not been provided"
+			);
+		}
+	}
+
+	/**
+	 * Get the cart helper instance (subject).
+	 *
+	 * @return  \Alfa\Component\Alfa\Site\Helper\CartHelper
+	 */
+	public function getCart()
+	{
+		return $this->getSubject();
+	}
+
+	/**
+	 * Setter validator for the 'method' argument.
+	 *
+	 * @param   mixed  $value  Shipment method object
+	 * @return  mixed
+	 */
+	protected function onSetMethod($value)
+	{
+		return $value;
+	}
+
+	/**
+	 * Get the shipment method configuration.
+	 *
+	 * @return  object  Shipment method with params, type, etc.
+	 */
+	public function getMethod()
+	{
+		return $this->arguments['method'];
+	}
+
+	// =====================================================================
+	// SHIPPING COST — TAX INCLUSIVE
+	// =====================================================================
+
+	/**
+	 * Set shipping cost (tax inclusive).
+	 *
+	 * Plugins MUST call this. This is the primary shipping cost value.
+	 *
+	 * @param   float  $cost  Shipping cost including tax
+	 * @return  void
+	 */
+	public function setShippingCost(float $cost): void
+	{
+		$this->arguments['shippingCost'] = $cost;
+	}
+
+	/**
+	 * Joomla event setter hook — delegates to setShippingCost().
+	 *
+	 * @param   float  $cost  Shipping cost including tax
+	 * @return  void
+	 */
+	public function onSetShippingCost(float $cost): void
+	{
+		$this->setShippingCost($cost);
+	}
+
+	/**
+	 * Get shipping cost (tax inclusive).
+	 *
+	 * @return  float
+	 */
+	public function getShippingCost(): float
+	{
+		return (float) ($this->arguments['shippingCost'] ?? 0.0);
+	}
+
+	// =====================================================================
+	// SHIPPING COST — TAX EXCLUSIVE
+	//
+	// Optional. If the plugin doesn't set this, it defaults to the
+	// tax-inclusive value (assumes zero tax on shipping — the common case).
+	// =====================================================================
+
+	/**
+	 * Set shipping cost (tax exclusive).
+	 *
+	 * Call this when shipping is taxable and you know the pre-tax amount.
+	 * If not called, getShippingCostTaxExcl() returns the incl value
+	 * (zero-tax default).
+	 *
+	 * @param   float  $cost  Shipping cost excluding tax
+	 * @return  void
+	 */
+	public function setShippingCostTaxExcl(float $cost): void
+	{
+		$this->arguments['shippingCostTaxExcl'] = $cost;
+	}
+
+	/**
+	 * Get shipping cost (tax exclusive).
+	 *
+	 * Falls back to tax-inclusive value if not explicitly set.
+	 *
+	 * @return  float
+	 */
+	public function getShippingCostTaxExcl(): float
+	{
+		// If plugin set excl explicitly, use it
+		if (isset($this->arguments['shippingCostTaxExcl'])) {
+			return (float) $this->arguments['shippingCostTaxExcl'];
+		}
+
+		// Default: same as incl (zero tax on shipping)
+		return $this->getShippingCost();
+	}
 }

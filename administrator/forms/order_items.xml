@@ -1,106 +1,114 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<form>
+<!--
+    Order Items Form Definition
 
-<!--     <field
-            hiddenLabel="true"
-            parentclass="id-item-field col-lg-1"
-            name="id_item"
-            type="sql"
-            input_type="list"
-            required="true"
-            multiple="false"
-            label="Name"
-            description=""
-            layout="joomla.form.field.list-fancy-select"
-            query="SELECT id, name FROM #__alfa_items" key_field="id" value_field="name"
-    /> -->
+    Used in TWO contexts (same pattern as order_payments.xml):
+    1. LIST (edit_order_items.php): loadSubForm()->getFieldset() for table headers
+    2. POPUP (edit_order_item.php): renderFieldset('order_item') for edit form
+
+    Hidden fields: not shown in list table, rendered as <input type="hidden"> in popup
+    Visible fields: shown as <th> in list, rendered as form controls in popup
+    Readonly fields: displayed in list, shown but not editable in popup
+-->
+<form>
+    <fieldset name="order_item">
+
+        <!-- ======================================================== -->
+        <!-- HIDDEN: System fields (not visible in list) -->
+        <!-- ======================================================== -->
+        <field
+                name="id"
+                type="hidden"
+                default="0"
+                readonly="true"
+                label="JGLOBAL_FIELD_ID_LABEL"
+        />
 
         <field
-            hiddenLabel="true"
-            parentclass="id-item-field col-lg-1"
-            name="id_item"
-            type="ListWithFallback"
-            input_type="list"
-            required="true"
-            readonly="false"
-            multiple="false"
-            label="Name"
-            description=""
-            layout="joomla.form.field.list-fancy-select"
-            table="#__alfa_items"
-            id_field="id"
-            name_field="name"
-            order_field="name"
-            fallback_table="#__alfa_order_items"
-            fallback_id_field="id_item"
-            fallback_name_field="product_name"
-    />
+                name="id_order"
+                type="hidden"
+                default="0"
+        />
 
-    <field
-            hiddenLabel="true"
-            parentclass="quantity-field col-lg-1"
-            name="quantity"
-            type="number"
-            min='1'
-            readonly="false"
-            required="true"
-            label="COM_ALFA_FORM_ORDER_ITEM_QUANTITY"
-            description="COM_ALFA_FORM_ORDER_ITEM_QUANTITY_DESC"
-    />
+        <field
+                name="id_item"
+                type="hidden"
+                default="0"
+                label="COM_ALFA_ORDER_ITEM_PRODUCT_ID"
+        />
 
-    <field
-            hiddenLabel="true"
-            parentclass="price-field col-lg-1"
-            name="price"
-            type="number"
-            step="0.01"
-            required="false"
-            readonly="true"
-            label="COM_ALFA_FORM_ORDER_ITEM_PRICE"
-            description="COM_ALFA_FORM_ORDER_ITEM_PRICE_DESC"
-    />
+        <!-- ======================================================== -->
+        <!-- VISIBLE: Product snapshot (shown in list + readonly in popup) -->
+        <!-- ======================================================== -->
+        <field
+                name="name"
+                type="text"
+                label="Product"
+                readonly="true"
+                class="readonly"
+                description=""
+        />
 
-    <field
-            hiddenLabel="true"
-            parentclass="total-field col-lg-1"
-            name="total"
-            step="0.01"
-            type="number"
-            readonly="true"
-            required="false"
-            label="COM_ALFA_FORM_ORDER_ITEM_TOTAL"
-            description="COM_ALFA_FORM_ORDER_ITEM_TOTAL_DESC"
-    />
+        <field
+                name="reference"
+                type="text"
+                label="Sku"
+                readonly="true"
+                class="readonly"
+                description="COM_ALFA_SKU_DESC"
+        />
 
-    <field
-            hiddenLabel="true"
-            parentclass="col-lg-1"
-            class="btn-group"
-            name="price_calculate_type"
-            type="checkbox"
-            required="false"
-            label="Recalculate"
-            description="Recalculate based on current price"
-            default="0"
-    />
+        <!-- ======================================================== -->
+        <!-- EDITABLE: Quantity and pricing -->
+        <!-- ======================================================== -->
+        <field
+                name="quantity"
+                type="number"
+                label="Quantity"
+                description=""
+                required="true"
+                min="1"
+                step="1"
+                default="1"
+        />
 
+        <field
+                name="unit_price_tax_incl"
+                type="number"
+                label="Unit price"
+                description=""
+                required="true"
+                min="0"
+                step="0.01"
+                hint="0.00"
+        />
 
-    <field
-            parentclass="id-field hidden"
-            name="id"
-            type="hidden"
-            required="false"
-            readonly="true"
-            label="JGLOBAL_FIELD_ID_DESC"
-    />
+        <!-- ======================================================== -->
+        <!-- READONLY: Calculated fields (auto-computed, display only) -->
+        <!-- ======================================================== -->
+        <field
+                name="unit_price_tax_excl"
+                type="text"
+                label="Price tax excl"
+                readonly="true"
+                class="readonly"
+        />
 
-    <field
-            parentclass="item-name-field"
-            name="name"
-            type="hidden"
-            required="false"
-            readonly="true"
-            label="Item name"
-    />
+        <field
+                name="total_price_tax_incl"
+                type="text"
+                label="Total price"
+                readonly="true"
+                class="readonly"
+        />
 
+        <field
+                name="tax_rate"
+                type="text"
+                label="Tax rate"
+                readonly="true"
+                class="readonly"
+        />
+
+    </fieldset>
 </form>

@@ -3,6 +3,7 @@
 namespace Alfa\Module\AlfaCart\Site\Helper;
 
 use Alfa\Component\Alfa\Site\Helper\CartHelper;
+use Alfa\Component\Alfa\Site\Helper\PriceSettings;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Layout\FileLayout;
 use Joomla\Registry\Registry;
@@ -26,6 +27,8 @@ class AlfaCartHelper
         $app = Factory::getApplication();
         $params = new Registry($module->params);
 
+	    $priceSettings = self::buildPriceSettings($params);
+
         $lang = $app->getLanguage();
         $lang->load('mod_alfa_cart');
         $lang->load('com_alfa');
@@ -33,12 +36,18 @@ class AlfaCartHelper
         $cart = new CartHelper();
 //        $isEmpty = $cart->isEmpty();
 
+	    $displayData = [
+		    'cart'          => $cart,
+		    'priceSettings' => $priceSettings,
+	    ];
+
         $layout = new FileLayout('default_items', JPATH_ROOT . '/modules/mod_alfa_cart/tmpl/');
-        $result = $layout->render($cart);
+        $result = $layout->render($displayData);
         $response_data = array(
             'tmpl' => $result,
             'total_quantity' => $cart->getTotalQuantity(),
             'total_items' => $cart->getTotalItems(),
+			'priceSettings' => $priceSettings,
             // 'isEmpty' => $isEmpty
         );
 
@@ -74,6 +83,8 @@ class AlfaCartHelper
         $quantity = $input->getInt('quantity', 1);
         $userId = Factory::getApplication()->getIdentity()->id;
 
+	    $priceSettings = self::buildPriceSettings($params);
+
         $cart = new CartHelper();
 
         $errorOccured = !$cart->addToCart($itemId,$quantity);
@@ -82,8 +93,14 @@ class AlfaCartHelper
 
         $isEmpty = $cart->isEmpty();
 
-        $layout = new FileLayout('default_items', JPATH_ROOT . '/modules/mod_alfa_cart/tmpl/');
-        $result = $layout->render($cart);
+	    $displayData = [
+		    'cart'          => $cart,
+		    'priceSettings' => $priceSettings,
+	    ];
+
+
+	    $layout = new FileLayout('default_items', JPATH_ROOT . '/modules/mod_alfa_cart/tmpl/');
+        $result = $layout->render($displayData);
 
         $response_data = array(
             'tmpl' => $result,
@@ -98,4 +115,58 @@ class AlfaCartHelper
 
         $app->close();
     }
+
+	public static function buildPriceSettings(Registry $params): array
+	{
+		$builder = PriceSettings::make();
+
+		if ($params->get('base_price_show')) {
+			$builder->show(
+				'base_price',
+				(bool) $params->get('base_price_show_label', 1)
+			);
+		}
+
+		if ($params->get('discount_amount_show')) {
+			$builder->show(
+				'discount_amount',
+				(bool) $params->get('discount_amount_show_label', 1)
+			);
+		}
+
+		if ($params->get('base_price_with_discounts_show')) {
+			$builder->show(
+				'base_price_with_discounts',
+				(bool) $params->get('base_price_with_discounts_show_label', 1)
+			);
+		}
+
+		if ($params->get('tax_amount_show')) {
+			$builder->show(
+				'tax_amount',
+				(bool) $params->get('tax_amount_show_label', 1)
+			);
+		}
+
+		if ($params->get('base_price_with_tax_show')) {
+			$builder->show(
+				'base_price_with_tax',
+				(bool) $params->get('base_price_with_tax_show_label', 1)
+			);
+		}
+
+		if ($params->get('final_price_show', 1)) {
+			$builder->show(
+				'final_price',
+				(bool) $params->get('final_price_show_label', 0)
+			);
+		}
+
+		if ($params->get('price_breakdown_show')) {
+			$builder->show('price_breakdown');
+		}
+
+		return $builder->get();
+	}
+
 }

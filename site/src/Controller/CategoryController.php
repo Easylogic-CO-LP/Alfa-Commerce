@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -32,9 +32,9 @@ class CategoryController extends BaseController
 	 *
 	 * @return  void
 	 *
+	 * @throws  Exception
 	 * @since   1.0.1
 	 *
-	 * @throws  Exception
 	 */
 	public function edit()
 	{
@@ -112,7 +112,7 @@ class CategoryController extends BaseController
 			}
 			else
 			{
-				$this->setRedirect(Route::_('index.php?Itemid='. $item->id, false));
+				$this->setRedirect(Route::_('index.php?Itemid=' . $item->id, false));
 			}
 		}
 		else
@@ -133,14 +133,15 @@ class CategoryController extends BaseController
 		// Check for request forgeries.
 		$this->checkToken('GET');
 
-		$id 	= $this->input->getInt('id', 0);
-		$model 	= $this->getModel();
-		$item 	= $model->getItem($id);
+		$id    = $this->input->getInt('id', 0);
+		$model = $this->getModel();
+		$item  = $model->getItem($id);
 
 		// Checking if the user can remove object
 		$user = $this->app->getIdentity();
 
-		if ($user->authorise('core.manage', 'com_alfa') || $item->checked_out == $user->id) { 
+		if ($user->authorise('core.manage', 'com_alfa') || $item->checked_out == $user->id)
+		{
 
 			$return = $model->checkin($id);
 
@@ -149,6 +150,7 @@ class CategoryController extends BaseController
 				// Checkin failed.
 				$message = Text::sprintf('JLIB_APPLICATION_ERROR_CHECKIN_FAILED', $model->getError());
 				$this->setRedirect(Route::_('index.php?option=com_alfa&view=category' . '&id=' . $id, false), $message, 'error');
+
 				return false;
 			}
 			else
@@ -156,6 +158,7 @@ class CategoryController extends BaseController
 				// Checkin succeeded.
 				$message = Text::_('COM_ALFA_CHECKEDIN_SUCCESSFULLY');
 				$this->setRedirect(Route::_('index.php?option=com_alfa&view=category' . '&id=' . $id, false), $message);
+
 				return true;
 			}
 		}

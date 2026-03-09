@@ -1,7 +1,7 @@
 <?php
 
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -12,7 +12,7 @@ namespace Alfa\Component\Alfa\Site\View\Categories;
 // No direct access
 defined('_JEXEC') or die;
 
-use \Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
+use Alfa\Component\Alfa\Site\View\HtmlView as BaseHtmlView;
 use \Joomla\CMS\Factory;
 use \Joomla\CMS\Language\Text;
 
@@ -38,17 +38,17 @@ class HtmlView extends BaseHtmlView
 	 *
 	 * @return void
 	 *
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	public function display($tpl = null)
 	{
 		$app = Factory::getApplication();
 
-		$this->state = $this->get('State');
-		$this->items = $this->get('Items');
-		$this->pagination = $this->get('Pagination');
-		$this->params = $app->getParams('com_alfa');
-		$this->filterForm = $this->get('FilterForm');
+		$this->state         = $this->get('State');
+		$this->items         = $this->get('Items');
+		$this->pagination    = $this->get('Pagination');
+		$this->params        = $app->getParams('com_alfa');
+		$this->filterForm    = $this->get('FilterForm');
 		$this->activeFilters = $this->get('ActiveFilters');
 
 		// Check for errors.
@@ -66,7 +66,7 @@ class HtmlView extends BaseHtmlView
 	 *
 	 * @return void
 	 *
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	protected function _prepareDocument()
 	{
@@ -119,15 +119,16 @@ class HtmlView extends BaseHtmlView
 			$this->document->setMetadata('robots', $this->params->get('robots'));
 		}
 
-		
-            // Add Breadcrumbs
-            $pathway = $app->getPathway();
-                        $breadcrumbTitle = Text::_('COM_ALFA_TITLE_CATEGORIES');
 
-                        if(!in_array($breadcrumbTitle, $pathway->getPathwayNames())) {
-                            $pathway->addItem($breadcrumbTitle);
-                        }
-                
+		// Add Breadcrumbs
+		$pathway         = $app->getPathway();
+		$breadcrumbTitle = Text::_('COM_ALFA_TITLE_CATEGORIES');
+
+		if (!in_array($breadcrumbTitle, $pathway->getPathwayNames()))
+		{
+			$pathway->addItem($breadcrumbTitle);
+		}
+
 	}
 
 	/**

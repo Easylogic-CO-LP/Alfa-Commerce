@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -11,15 +11,13 @@ namespace Alfa\Component\Alfa\Site\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
-use \Joomla\CMS\Factory;
-use \Joomla\CMS\Language\Text;
-use \Joomla\CMS\MVC\Model\ListModel;
-use \Joomla\Component\Fields\Administrator\Helper\FieldsHelper;
-use \Joomla\CMS\Helper\TagsHelper;
-use \Joomla\CMS\Layout\FileLayout;
-use \Joomla\Database\ParameterType;
-use \Joomla\Utilities\ArrayHelper;
-use \Alfa\Component\Alfa\Site\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
+use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
+use Joomla\CMS\MVC\Model\ListModel;
+use Joomla\Component\Fields\Administrator\Helper\FieldsHelper;
+use Joomla\CMS\Router\Route;
+use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 
 
 /**
@@ -58,7 +56,6 @@ class CategoriesModel extends ListModel
 		parent::__construct($config);
 	}
 
-	
 
 	/**
 	 * Method to auto-populate the model state.
@@ -70,7 +67,7 @@ class CategoriesModel extends ListModel
 	 *
 	 * @return  void
 	 *
-	 * @throws  Exception
+	 * @throws  \Exception
 	 *
 	 * @since   1.0.1
 	 */
@@ -79,30 +76,29 @@ class CategoriesModel extends ListModel
 		// List state information.
 		parent::populateState('a.name', 'ASC');
 
-		$app = Factory::getApplication();
+		$app  = Factory::getApplication();
 		$list = $app->getUserState($this->context . '.list');
 
-		$value = $app->getUserState($this->context . '.list.limit', $app->get('list_limit', 25));
+		$value         = $app->getUserState($this->context . '.list.limit', $app->get('list_limit', 25));
 		$list['limit'] = $value;
-		
+
 		$this->setState('list.limit', $value);
 
 		$value = $app->input->get('limitstart', 0, 'uint');
 		$this->setState('list.start', $value);
 
-		$ordering  = $this->getUserStateFromRequest($this->context .'.filter_order', 'filter_order', 'a.name');
-		$direction = strtoupper($this->getUserStateFromRequest($this->context .'.filter_order_Dir', 'filter_order_Dir', 'ASC'));
-		
-		if(!empty($ordering) || !empty($direction))
+		$ordering  = $this->getUserStateFromRequest($this->context . '.filter_order', 'filter_order', 'a.name');
+		$direction = strtoupper($this->getUserStateFromRequest($this->context . '.filter_order_Dir', 'filter_order_Dir', 'ASC'));
+
+		if (!empty($ordering) || !empty($direction))
 		{
 			$list['fullordering'] = $ordering . ' ' . $direction;
 		}
 
 		$app->setUserState($this->context . '.list', $list);
 
-		
 
-		$context = $this->getUserStateFromRequest($this->context.'.filter.search', 'filter_search');
+		$context = $this->getUserStateFromRequest($this->context . '.filter.search', 'filter_search');
 		$this->setState('filter.search', $context);
 
 		// Split context into component and optional section
@@ -121,59 +117,92 @@ class CategoriesModel extends ListModel
 	/**
 	 * Build an SQL query to load the list data.
 	 *
-	 * @return  DatabaseQuery
 	 *
 	 * @since   1.0.1
 	 */
 	protected function getListQuery()
 	{
-			// Create a new query object.
-			$db    = $this->getDbo();
-			$query = $db->getQuery(true);
+		// Create a new query object.
+		$db    = $this->getDatabase();
+		$query = $db->getQuery(true);
 
-			// Select the required fields from the table.
-			$query->select(
-						$this->getState(
-								'list.select', 'DISTINCT a.*'
-						)
-				);
+		// Select the required fields from the table.
+		$query->select(
+			$this->getState(
+				'list.select', 'DISTINCT a.*'
+			)
+		);
 
-			$query->from('`#__alfa_categories` AS a');
-			
-	        $category_filter = $this->getState('filter.parent_id');
-	        if (!empty($category_filter)) {
-	            $query->where('a.parent_id = ' . $category_filter[0]);
-	        }
+		$query->from('`#__alfa_categories` AS a');
 
-			$query->where('a.state = 1');
+		$parentCategoryFilter = $this->getState('filter.parent_id');
+		if ($parentCategoryFilter !== null)
+		{
+			$query->where('a.parent_id = ' . (int) $parentCategoryFilter);
+		}
 
-			// Filter by search in title
-			$search = $this->getState('filter.search');
+		// FILTER BY CATEGORy/CATEGORIES
+		$categoriesFilter = $this->getState('filter.categories');
 
-			if (!empty($search))
+		if ($categoriesFilter !== null)
+		{
+			// Normalize to array
+			if (!is_array($categoriesFilter))
 			{
-				if (stripos($search, 'id:') === 0)
+				if (is_numeric($categoriesFilter))
 				{
-					$query->where('a.id = ' . (int) substr($search, 3));
+					$categoriesFilter = [(int) $categoriesFilter];
 				}
 				else
 				{
-					$search = $db->Quote('%' . $db->escape($search, true) . '%');
-					$query->where('( a.name LIKE ' . $search . ' )');
+					$categoriesFilter = null;
 				}
 			}
-			
-			
-			// Add the list ordering clause.
-			$orderCol  = $this->state->get('list.ordering', 'a.name');
-			$orderDirn = $this->state->get('list.direction', 'ASC');
 
-			if ($orderCol && $orderDirn)
+			if ($categoriesFilter !== null)
 			{
-				$query->order($db->escape($orderCol . ' ' . $orderDirn));
-			}
+				// Sanitize: convert to int, keep only positive values
+				$categoriesFilter = array_map('intval', $categoriesFilter);
+				$categoriesFilter = array_filter($categoriesFilter, function($id) {
+					return $id > 0;
+				});
 
-			return $query;
+				if (!empty($categoriesFilter))
+				{
+					$query->whereIn('a.id', $categoriesFilter);
+				}
+			}
+		}
+
+		$query->where('a.state = 1');
+
+		// Filter by search in title
+		$search = $this->getState('filter.search');
+
+		if (!empty($search))
+		{
+			if (stripos($search, 'id:') === 0)
+			{
+				$query->where('a.id = ' . (int) substr($search, 3));
+			}
+			else
+			{
+				$search = $db->quote('%' . $db->escape($search, true) . '%');
+				$query->where('( a.name LIKE ' . $search . ' )');
+			}
+		}
+
+
+		// Add the list ordering clause.
+		$orderCol  = $this->state->get('list.ordering', 'a.name');
+		$orderDirn = $this->state->get('list.direction', 'ASC');
+
+		if ($orderCol && $orderDirn)
+		{
+			$query->order($db->escape($orderCol . ' ' . $orderDirn));
+		}
+
+		return $query;
 	}
 
 	/**
@@ -184,51 +213,30 @@ class CategoriesModel extends ListModel
 	public function getItems()
 	{
 		$items = parent::getItems();
-		
+
+		// Generate links for categories
+		if (!empty($items)) {
+			foreach ($items as $category) {
+				$category->link = Route::_('index.php?option=com_alfa&view=items&category_id=' . (int) $category->id);
+			}
+		}
 
 		return $items;
 	}
 
 	/**
-	 * Overrides the default function to check Date fields format, identified by
-	 * "_dateformat" suffix, and erases the field if it's not correct.
+	 * Get category path from a category to root
 	 *
-	 * @return void
+	 * Delegates to AlfaHelper for actual implementation
+	 *
+	 * @param   int  $categoryId  Category ID
+	 *
+	 * @return  array  Array of categories from root to current
+	 *
+	 * @since   1.0.1
 	 */
-	protected function loadFormData()
+	public function getCategoryPath($categoryId)
 	{
-		$app              = Factory::getApplication();
-		$filters          = $app->getUserState($this->context . '.filter', array());
-		$error_dateformat = false;
-
-		foreach ($filters as $key => $value)
-		{
-			if (strpos($key, '_dateformat') && !empty($value) && $this->isValidDate($value) == null)
-			{
-				$filters[$key]    = '';
-				$error_dateformat = true;
-			}
-		}
-
-		if ($error_dateformat)
-		{
-			$app->enqueueMessage(Text::_("COM_ALFA_SEARCH_FILTER_DATE_FORMAT"), "warning");
-			$app->setUserState($this->context . '.filter', $filters);
-		}
-
-		return parent::loadFormData();
-	}
-
-	/**
-	 * Checks if a given date is valid and in a specified format (YYYY-MM-DD)
-	 *
-	 * @param   string  $date  Date to be checked
-	 *
-	 * @return bool
-	 */
-	private function isValidDate($date)
-	{
-		$date = str_replace('/', '-', $date);
-		return (date_create($date)) ? Factory::getDate($date)->format("Y-m-d") : null;
+		return CategoryHelper::getCategoryPath($categoryId);
 	}
 }

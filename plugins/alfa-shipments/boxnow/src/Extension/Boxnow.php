@@ -219,7 +219,7 @@ final class Boxnow extends ShipmentsPlugin
     /*
      *  Cost calculation.
      */
-    public function onCalculateShippingCost($event)
+    public function onCalculateShippingCost($event): void
     {
         $event->setShippingCost(self::calculateShippingCost($event->getCart()));
     }
