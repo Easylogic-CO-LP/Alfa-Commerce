@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -11,14 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 
 \defined('_JEXEC') or die;
 
-use Joomla\CMS\Application\SiteApplication;
-use Joomla\CMS\Factory;
-use Joomla\CMS\Language\Multilanguage;
-use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\AdminController;
-use Joomla\CMS\Router\Route;
-use Joomla\CMS\Uri\Uri;
-use Joomla\Utilities\ArrayHelper;
 
 /**
  * Categories list controller class.
@@ -38,45 +31,9 @@ class CategoriesController extends AdminController
 	 *
 	 * @since   1.0.1
 	 */
-	public function getModel($name = 'Category', $prefix = 'Administrator', $config = array())
-	{
-		return parent::getModel($name, $prefix, array('ignore_request' => true));
-	}
-
-
-	/**
-	 * Method to clone existing Categories
-	 *
-	 * @return  void
-	 *
-	 * @throws  Exception
-	 */
-	// public function duplicate()
-	// {
-	// 	// Check for request forgeries
-	// 	$this->checkToken();
-
-	// 	// Get id(s)
-	// 	$pks = $this->input->post->get('cid', array(), 'array');
-
-	// 	try
-	// 	{
-	// 		if (empty($pks))
-	// 		{
-	// 			throw new \Exception(Text::_('COM_ALFA_NO_ELEMENT_SELECTED'));
-	// 		}
-
-	// 		ArrayHelper::toInteger($pks);
-	// 		$model = $this->getModel();
-	// 		$model->duplicate($pks);
-	// 		$this->setMessage(Text::_('COM_ALFA_ITEMS_SUCCESS_DUPLICATED'));
-	// 	}
-	// 	catch (\Exception $e)
-	// 	{
-	// 		Factory::getApplication()->enqueueMessage($e->getMessage(), 'warning');
-	// 	}
-
-	// 	$this->setRedirect('index.php?option=com_alfa&view=categories');
-	// }
+    public function getModel($name = 'Category', $prefix = 'Administrator', $config = ['ignore_request' => true]): object
+    {
+        return parent::getModel($name, $prefix, $config);
+    }
 
 }

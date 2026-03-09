@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -11,9 +11,8 @@ namespace Alfa\Component\Alfa\Administrator\Table;
 // No direct access
 defined('_JEXEC') or die;
 
-
-use \Joomla\CMS\Table\Table;
-use \Joomla\Database\DatabaseDriver;
+use Joomla\CMS\Table\Table;
+use Joomla\Database\DatabaseDriver;
 
 /**
  * Order table
@@ -34,7 +33,7 @@ class OrderTable extends Table
 	/**
 	 * Constructor
 	 *
-	 * @param   JDatabase  &$db  A database connector object
+	 * @param   Database  &$db  A database connector object
 	 */
 	public function __construct(DatabaseDriver $db)
 	{

@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -8,17 +8,16 @@
  */
 
 namespace Alfa\Component\Alfa\Administrator\Model;
-// No direct access.
-defined('_JEXEC') or die;
 
-use \Joomla\CMS\MVC\Model\ListModel;
-use \Joomla\Component\Fields\Administrator\Helper\FieldsHelper;
-use \Joomla\CMS\Factory;
-use \Joomla\CMS\Language\Text;
-use \Joomla\CMS\Helper\TagsHelper;
-use \Joomla\Database\ParameterType;
-use \Joomla\Utilities\ArrayHelper;
+
+use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
+use Joomla\CMS\MVC\Model\ListModel;
+use Joomla\Database\QueryInterface;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+
+// phpcs:disable PSR1.Files.SideEffects
+\defined('_JEXEC') or die;
+// phpcs:enable PSR1.Files.SideEffects
 
 /**
  * Methods supporting a list of Categories records.
@@ -35,7 +34,7 @@ class CategoriesModel extends ListModel
 	* @see        JController
 	* @since      1.6
 	*/
-	public function __construct($config = array())
+    public function __construct($config = [], ?MVCFactoryInterface $factory = null)
 	{
 		if (empty($config['filter_fields']))
 		{
@@ -53,18 +52,12 @@ class CategoriesModel extends ListModel
 			);
 		}
 
-		parent::__construct($config);
+		parent::__construct($config,$factory);
 	}
-
-
-	
-
-	
-
 	
 
 	/**
-	 * Method to auto-populate the model state.
+	 * Method to autopopulate the model state.
 	 *
 	 * Note. Calling getState in this method will result in recursion.
 	 *
@@ -75,26 +68,10 @@ class CategoriesModel extends ListModel
 	 *
 	 * @throws Exception
 	 */
-	protected function populateState($ordering = null, $direction = null)
-	{
-		// List state information.
-		parent::populateState('id', 'ASC');
-
-		$context = $this->getUserStateFromRequest($this->context.'.filter.search', 'filter_search');
-		$this->setState('filter.search', $context);
-
-		// Split context into component and optional section
-		if (!empty($context))
-		{
-			$parts = FieldsHelper::extract($context);
-
-			if ($parts)
-			{
-				$this->setState('filter.component', $parts[0]);
-				$this->setState('filter.section', $parts[1]);
-			}
-		}
-	}
+    protected function populateState($ordering = 'a.id', $direction = 'ASC')
+    {
+        parent::populateState($ordering, $direction);
+    }
 
 	/**
 	 * Method to get a store id based on model configuration state.
@@ -115,23 +92,21 @@ class CategoriesModel extends ListModel
 		$id .= ':' . $this->getState('filter.search');
 		$id .= ':' . $this->getState('filter.state');
 
-		
 		return parent::getStoreId($id);
-		
 	}
 
-	/**
-	 * Build an SQL query to load the list data.
-	 *
-	 * @return  DatabaseQuery
-	 *
-	 * @since   1.0.1
-	 */
+    /**
+     * Build an SQL query to load the list data.
+     *
+     * @return  QueryInterface
+     *
+     * @since   1.6
+     */
 	protected function getListQuery()
 	{
 		// Create a new query object.
 		$db    = $this->getDatabase();
-		$query = $db->getQuery(true);
+        $query = $db->createQuery();
 
 		// Select the required fields from the table.
 		$query->select(
@@ -139,18 +114,14 @@ class CategoriesModel extends ListModel
 				'list.select', 'DISTINCT a.*'
 			)
 		);
+        $query->select("uc.name AS uEditor");
+        $query->select('`created_by`.name AS `created_by`');
+        $query->select('`modified_by`.name AS `modified_by`');
+
 		$query->from('`#__alfa_categories` AS a');
-		
-		// Join over the users for the checked out user
-		$query->select("uc.name AS uEditor");
+
 		$query->join("LEFT", "#__users AS uc ON uc.id=a.checked_out");
-
-		// Join over the user field 'created_by'
-		$query->select('`created_by`.name AS `created_by`');
 		$query->join('LEFT', '#__users AS `created_by` ON `created_by`.id = a.`created_by`');
-
-		// Join over the user field 'modified_by'
-		$query->select('`modified_by`.name AS `modified_by`');
 		$query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
 		
 

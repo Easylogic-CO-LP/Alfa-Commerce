@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2025 Easylogic CO LP
@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 use \Joomla\CMS\MVC\Model\ListModel;
 use \Joomla\Component\Fields\Administrator\Helper\FieldsHelper;
 use \Joomla\CMS\Factory;
@@ -38,7 +39,7 @@ class FormFieldsModel extends ListModel
      * @see        JController
      * @since      1.6
      */
-    public function __construct($config = array())
+    public function __construct($config = [], ?MVCFactoryInterface $factory = null)
     {
         if (empty($config['filter_fields']))
         {
@@ -53,7 +54,7 @@ class FormFieldsModel extends ListModel
             );
         }
 
-        parent::__construct($config);
+        parent::__construct($config, $factory);
     }
 
 
@@ -69,25 +70,9 @@ class FormFieldsModel extends ListModel
      *
      * @throws Exception
      */
-    protected function populateState($ordering = null, $direction = null)
+    protected function populateState($ordering = 'a.id', $direction = 'DESC')
     {
-        // List state information.
-        parent::populateState('id', 'DESC');
-
-        $context = $this->getUserStateFromRequest($this->context.'.filter.search', 'filter_search');
-        $this->setState('filter.search', $context);
-
-        // Split context into component and optional section
-//        if (!empty($context))
-//        {
-//            $parts = FieldsHelper::extract($context);
-//
-//            if ($parts)
-//            {
-//                $this->setState('filter.component', $parts[0]);
-//                $this->setState('filter.section', $parts[1]);
-//            }
-//        }
+        parent::populateState($ordering, $direction);
     }
 
     /**
@@ -135,7 +120,7 @@ class FormFieldsModel extends ListModel
         );
 
         $query->from($db->qn("#__alfa_form_fields","a"))
-            ->order("ordering", "ASC");
+            ->order("ordering ASC");
 
 
         // Select the required fields from the table.

@@ -14,7 +14,6 @@ use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Field\ListField;
 use Joomla\CMS\HTML\HTMLHelper;
-use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 
 // phpcs:disable PSR1.Files.SideEffects
 \defined('_JEXEC') or die;
@@ -27,69 +26,71 @@ use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
  */
 class TypeField extends ListField
 {
-    /**
-     * @var    string
-     */
-    public $type = 'Type';
+	/**
+	 * @var    string
+	 */
+	public $type = 'Type';
 
-    /**
-     * Method to attach a Form object to the field.
-     *
-     * @param   \SimpleXMLElement  $element  The SimpleXMLElement object representing the `<field>` tag for the form field object.
-     * @param   mixed              $value    The form field value to validate.
-     * @param   string             $group    The field name group control value. This acts as an array container for the field.
-     *                                       For example if the field has name="foo" and the group value is set to "bar" then the
-     *                                       full field name would end up being "bar[foo]".
-     *
-     * @return  boolean  True on success.
-     *
-     * @since   3.7.0
-     */
-    public function setup(\SimpleXMLElement $element, $value, $group = null)
-    {
-        $return = parent::setup($element, $value, $group);
+	/**
+	 * Method to attach a Form object to the field.
+	 *
+	 * @param   \SimpleXMLElement  $element  The SimpleXMLElement object representing the `<field>` tag for the form field object.
+	 * @param   mixed              $value    The form field value to validate.
+	 * @param   string             $group    The field name group control value. This acts as an array container for the field.
+	 *                                       For example if the field has name="foo" and the group value is set to "bar" then the
+	 *                                       full field name would end up being "bar[foo]".
+	 *
+	 * @return  boolean  True on success.
+	 *
+	 * @since   3.7.0
+	 */
+	public function setup(\SimpleXMLElement $element, $value, $group = null)
+	{
+		$return = parent::setup($element, $value, $group);
 
-        $this->onchange = 'Joomla.typeHasChanged(this);';
+		$this->onchange = 'Joomla.typeHasChanged(this);';
 
-        return $return;
-    }
+		return $return;
+	}
 
-    /**
-     * Method to get the field options.
-     *
-     * @return  array  The field option objects.
-     *
-     * @since   3.7.0
-     */
-    protected function getOptions()
-    {
-        $options = parent::getOptions();
+	/**
+	 * Method to get the field options.
+	 *
+	 * @return  array  The field option objects.
+	 *
+	 * @since   3.7.0
+	 */
+	protected function getOptions()
+	{
+		$list_value = (string) $this->element['list_value'] ?: 'name';
+		$list_text = (string) $this->element['list_text'] ?: 'name';
+		$plugin_type = (string) $this->element['plugin_type'] ?: '';
 
-//        $fieldTypes = FieldsHelper::getFieldTypes();
+		$options = parent::getOptions();
 
-        $fieldTypes = AlfaHelper::getFieldTypes('fields');
-//        print_r($fieldTypes);
-//        exit;
-//        $options[] = HTMLHelper::_('select.option', 'test', 'test');
-//        return $options;
-        foreach ($fieldTypes as $fieldType) {
-            $options[] = HTMLHelper::_('select.option', $fieldType['name'], $fieldType['name']);
-//            $options[] = HTMLHelper::_('select.option', $fieldType['type'], $fieldType['label']);
-        }
+		if(empty($plugin_type)){
+			return $options;
+		}
 
-        // Sorting the fields based on the text which is displayed
-        usort(
-            $options,
-            function ($a, $b) {
-                return strcmp($a->text, $b->text);
-            }
-        );
+		$fieldTypes = AlfaHelper::getFieldTypes($plugin_type);
 
-        // Load scripts
-        Factory::getApplication()->getDocument()->getWebAssetManager()
-           ->useScript('com_alfa.admin-field-typehaschanged')
-           ->useScript('webcomponent.core-loader');//to show the loading indicator till the page loads
+		foreach ($fieldTypes as $fieldType) {
+			$options[] = HTMLHelper::_('select.option', $fieldType[$list_value], $fieldType[$list_text]);
+		}
 
-        return $options;
-    }
+		// Sorting the fields based on the text which is displayed
+		usort(
+			$options,
+			function ($a, $b) {
+				return strcmp($a->text, $b->text);
+			}
+		);
+
+		// Load scripts
+		Factory::getApplication()->getDocument()->getWebAssetManager()
+			->useScript('com_alfa.admin-field-typehaschanged')
+			->useScript('webcomponent.core-loader');
+
+		return $options;
+	}
 }

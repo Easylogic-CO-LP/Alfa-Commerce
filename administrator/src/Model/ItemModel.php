@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2025 Easylogic CO LP
@@ -12,19 +12,38 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
-use Joomla\CMS\Language\Multilanguage;
-use \Joomla\CMS\Table\Table;
-use \Joomla\CMS\Factory;
-use \Joomla\CMS\Language\Text;
-use \Joomla\CMS\Plugin\PluginHelper;
-use \Joomla\CMS\MVC\Model\AdminModel;
-use \Joomla\CMS\Helper\TagsHelper;
-use \Joomla\CMS\Filter\OutputFilter;
-use \Joomla\CMS\Event\Model;
-use Joomla\CMS\Language\LanguageHelper;
+use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
+use Joomla\CMS\Table\Table;
+use Joomla\CMS\Factory;
+use Joomla\CMS\Log\Log;
+use Joomla\CMS\MVC\Model\AdminModel;
+use Joomla\CMS\Filter\OutputFilter;
+use Joomla\String\StringHelper;
 
 /**
  * Item model.
+ *
+ * PRICE INDEX SYNC HOOKS
+ * ----------------------
+ * The price index (#__alfa_items_price_index) must be kept in sync whenever
+ * an item's published state or pricing data changes. Three hooks are added:
+ *
+ *   save()          — re-indexes this item after ALL associated data is committed
+ *                     (prices, categories, manufacturers, users, usergroups).
+ *                     Call order inside save() is critical — syncItem() is LAST.
+ *
+ *   publish()       — if state becomes 1 (published): re-index the item so it
+ *                     appears in the filter with correct prices.
+ *                     If state is anything else (0=unpublish, -2=trash): remove
+ *                     the item's index rows so it disappears from the filter.
+ *
+ *   delete()        — remove the item's index rows.
+ *                     Note: the FK ON DELETE CASCADE on the index table already
+ *                     handles hard deletes automatically. This call is an explicit
+ *                     safety net for soft-delete / trash scenarios.
+ *
+ * All sync operations are wrapped in try/catch and are NON-FATAL — a sync
+ * failure is logged as a warning but never blocks the admin save operation.
  *
  * @since  1.0.1
  */
@@ -37,143 +56,154 @@ class ItemModel extends AdminModel
 	 */
 	public $typeAlias = 'com_alfa.item';
 
-    protected $formName = 'item';
+	protected $formName = 'item';
 
 	/**
 	 * Method to get the record form.
 	 *
 	 * @param   array    $data      Data for the form.
-     * @param   boolean  $loadData  True if the form is to load its own data (default case), false if not.
-     *
-     * @return  Form|boolean  A Form object on success, false on failure
-     *
-     * @since   1.6
+	 * @param   boolean  $loadData  True if the form is to load its own data (default case), false if not.
+	 *
+	 * @return  Form|boolean  A Form object on success, false on failure
+	 *
+	 * @since   1.6
 	 */
 
 
 	protected $item = null;
 	protected $batch_copymove = false;
 
-    protected $batch_commands = [
-        'category_id' => 'batchCategory',
-        'manufacturer_id' => 'batchManufacturer',
-        'user_id' => 'batchUser',
-        'usergroup_id' => 'batchUserGroup',
-    ];
+	protected $batch_commands = [
+		'category_id'     => 'batchCategory',
+		'manufacturer_id' => 'batchManufacturer',
+		'user_id'         => 'batchUser',
+		'usergroup_id'    => 'batchUserGroup',
+	];
 
-     protected function batchUser($value, $pks, $contexts)
-    {
-	    $app = Factory::getApplication();
+	protected function batchUser($value, $pks, $contexts)
+	{
+		$app = Factory::getApplication();
 
-	    if(sizeof($value) == 1 && $value[0]==''){
-	    	$app->enqueueMessage('Users not changed', 'info');
-	    	return true;
-	    }
+		if (sizeof($value) == 1 && $value[0] == '')
+		{
+			$app->enqueueMessage('Users not changed', 'info');
 
-        foreach ($pks as $id) {
-        	AlfaHelper::setAllowedUsers($id, $value, '#__alfa_items_users', 'item_id','user_id');
-        }
+			return true;
+		}
+
+		foreach ($pks as $id)
+		{
+//			TODO:: CHECK
+			AlfaHelper::setAllowedUsers($id, $value, '#__alfa_items_users', 'item_id', 'user_id');
+		}
 
 		$app->enqueueMessage('Users setted successfully', 'info');
 
-        return true;
-    }
+		return true;
+	}
 
-     protected function batchUserGroup($value, $pks, $contexts)
-    {
-	    $app = Factory::getApplication();
+	protected function batchUserGroup($value, $pks, $contexts)
+	{
+		$app = Factory::getApplication();
 
-	    if(sizeof($value) == 1 && $value[0]==''){
-	    	$app->enqueueMessage('Usergroup not changed', 'info');
-	    	return true;
-	    }
+		if (sizeof($value) == 1 && $value[0] == '')
+		{
+			$app->enqueueMessage('Usergroup not changed', 'info');
 
-        foreach ($pks as $id) {
-        	AlfaHelper::setAllowedUserGroups($id, $value, '#__alfa_items_usergroups', 'item_id','usergroup_id');
-        }
+			return true;
+		}
+
+		foreach ($pks as $id)
+		{
+			AlfaHelper::setAllowedUserGroups($id, $value, '#__alfa_items_usergroups', 'item_id', 'usergroup_id');
+		}
 
 		$app->enqueueMessage('Usergroup setted successfully', 'info');
 
-        return true;
-    }
+		return true;
+	}
 
-    protected function batchManufacturer($value, $pks, $contexts)
-    {
-	    $app = Factory::getApplication();
+	protected function batchManufacturer($value, $pks, $contexts)
+	{
+		$app = Factory::getApplication();
 
-	    if(sizeof($value) == 1 && $value[0]==''){
-	    	$app->enqueueMessage('Manufacturers not changed', 'info');
-	    	return true;
-	    }
+		if (sizeof($value) == 1 && $value[0] == '')
+		{
+			$app->enqueueMessage('Manufacturers not changed', 'info');
 
-        foreach ($pks as $id) {
-        	AlfaHelper::setAssocsToDb($id, $value, '#__alfa_items_manufacturers', 'item_id','manufacturer_id');
-        }
+			return true;
+		}
+
+		foreach ($pks as $id)
+		{
+			AlfaHelper::setAssocsToDb($id, $value, '#__alfa_items_manufacturers', 'item_id', 'manufacturer_id');
+		}
 
 		$app->enqueueMessage('Manufacturers setted successfully', 'info');
 
-        return true;
-    }
+		return true;
+	}
 
 	protected function batchCategory($value, $pks, $contexts)
-    {
-	    $app = Factory::getApplication();
-   		
-	    if(sizeof($value) == 1 && $value[0]==''){
-	    	$app->enqueueMessage('Categories not changed', 'info');
-	    	return true;
-	    }
+	{
+		$app = Factory::getApplication();
 
-        foreach ($pks as $id) {
-			AlfaHelper::setAssocsToDb($id, $value, '#__alfa_items_categories', 'item_id','category_id');
-        }
+		if (sizeof($value) == 1 && $value[0] == '')
+		{
+			$app->enqueueMessage('Categories not changed', 'info');
+
+			return true;
+		}
+
+		foreach ($pks as $id)
+		{
+			AlfaHelper::setAssocsToDb($id, $value, '#__alfa_items_categories', 'item_id', 'category_id');
+		}
 
 		$app->enqueueMessage('Categories setted successfully', 'info');
-   
-        return true;
-    }
+
+		return true;
+	}
 
 
 	public function getForm($data = array(), $loadData = true)
 	{
-		// Initialise variables.
-		// $app = Factory::getApplication();
-		// Form::addFieldPath(JPATH_ADMINISTRATOR . '/components/com_users/models/fields');
 
 		// $this->formName is item
 		// Get the form.
 		$form = $this->loadForm(
-					'com_alfa.' . $this->formName, 
-					$this->formName,
-					array(
-						'control' => 'jform',
-						'load_data' => $loadData 
-					)
-				);
-		
+			'com_alfa.' . $this->formName,
+			$this->formName,
+			array(
+				'control'   => 'jform',
+				'load_data' => $loadData
+			)
+		);
 
-		if (empty($form)){
+
+		if (empty($form))
+		{
 			return false;
 		}
 
-        // Modify the form based on access controls.
-        // if (!$this->canEditState((object) $data)) {
-        //     // Disable fields for display.
-        //     $form->setFieldAttribute('featured', 'disabled', 'true');
-        //     $form->setFieldAttribute('ordering', 'disabled', 'true');
-        //     $form->setFieldAttribute('published', 'disabled', 'true');
+		// Modify the form based on access controls.
+		// if (!$this->canEditState((object) $data)) {
+		//     // Disable fields for display.
+		//     $form->setFieldAttribute('featured', 'disabled', 'true');
+		//     $form->setFieldAttribute('ordering', 'disabled', 'true');
+		//     $form->setFieldAttribute('published', 'disabled', 'true');
 
-        //     // Disable fields while saving.
-        //     // The controller has already verified this is a record you can edit.
-        //     $form->setFieldAttribute('featured', 'filter', 'unset');
-        //     $form->setFieldAttribute('ordering', 'filter', 'unset');
-        //     $form->setFieldAttribute('published', 'filter', 'unset');
-        // }
+		//     // Disable fields while saving.
+		//     // The controller has already verified this is a record you can edit.
+		//     $form->setFieldAttribute('featured', 'filter', 'unset');
+		//     $form->setFieldAttribute('ordering', 'filter', 'unset');
+		//     $form->setFieldAttribute('published', 'filter', 'unset');
+		// }
 
-        // // Don't allow to change the created_by user if not allowed to access com_users.
-        // if (!$this->getCurrentUser()->authorise('core.manage', 'com_users')) {
-        //     $form->setFieldAttribute('created_by', 'filter', 'unset');
-        // }
+		// // Don't allow to change the created_by user if not allowed to access com_users.
+		// if (!$this->getCurrentUser()->authorise('core.manage', 'com_users')) {
+		//     $form->setFieldAttribute('created_by', 'filter', 'unset');
+		// }
 
 		return $form;
 	}
@@ -192,13 +222,7 @@ class ItemModel extends AdminModel
 
 		if (empty($data))
 		{
-			if ($this->item === null)
-			{
-				$this->item = $this->getItem();
-			}
-
-			$data = $this->item;
-			
+			$data = ($this->item === null ? $this->getItem() : $this->item);
 		}
 
 		return $data;
@@ -214,200 +238,383 @@ class ItemModel extends AdminModel
 	 *
 	 * @since   1.0.1
 	 */
-  
+
 	public function getItem($pk = null)
 	{
-		
-			if ($item = parent::getItem($pk))
-			{
-				if (isset($item->params))
-				{
-					$item->params = json_encode($item->params);
-				}
+		$pk = (!empty($pk)) ? $pk : (int) $this->getState($this->getName() . '.id');
 
-				$item->prices = $this->getPrices($item->id);
+		if (isset($this->item[$pk]))
+		{
+			return $this->item[$pk];
+		}
 
-            	$item->categories = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_categories', 'item_id','category_id');
-				$item->manufacturers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_manufacturers', 'item_id','manufacturer_id');
+		if ($item = parent::getItem($pk))
+		{
+			$meta_data    = json_decode($item->meta_data ?? '{}');
+			$item->robots = $meta_data->robots ?? '';
 
-	            $item->allowedUsers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_users', 'item_id','user_id');
-            	$item->allowedUserGroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_usergroups', 'item_id','usergroup_id');
+			$item->prices = $this->getPrices($item->id);
 
+			$item->categories    = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_categories', 'item_id', 'category_id');
+			$item->manufacturers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_manufacturers', 'item_id', 'manufacturer_id');
 
-			}
+			$item->allowedUsers      = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_users', 'item_id', 'user_id');
+			$item->allowedUserGroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_usergroups', 'item_id', 'usergroup_id');
+		}
 
-			return $item;
-		
-  }
+		$this->item[$pk] = $item;
+
+		return $item;
+	}
 
 
 	/**
-	* Method to save the form data.
-	*
-	* @param   array  $data  The form data.
-	*
-	* @return  boolean  True on success, False on error.
-	*
-	* @since   1.6
-	*/
+	 * Method to save the form data.
+	 *
+	 * Extends the parent save() to also maintain the price index.
+	 *
+	 * CALL ORDER — the price index sync MUST be the very last step because
+	 * it reads all associated data committed in the steps before it:
+	 *
+	 *   1. parent::save()           — commits the #__alfa_items row
+	 *   2. setPrices()              — commits #__alfa_items_prices rows
+	 *   3. setAssocsToDb() x 4     — commits categories, manufacturers, users, usergroups
+	 *   4. PriceIndexSyncService    — reads everything above, writes the index
+	 *
+	 * @param   array  $data  The form data.
+	 *
+	 * @return  boolean  True on success, False on error.
+	 *
+	 * @since   1.6
+	 */
 	public function save($data)
 	{
 
-		$app = Factory::getApplication();
-		$db = $this->getDatabase();
+//		$app = Factory::getApplication();
+//		$input = $app->input;
+//		$user = $app->getIdentity();
+//		$db = $this->getDatabase();
+		$table = $this->getTable();
 
-//		$data['alias']='the alias';
-//		$data['name']='the name';
+//		$key   = $table->getKeyName();
+//		$pk  = $data[$key] ?? (int) $this->getState($this->getName() . '.id');
+		$pk  = $data['id'] ?? (int) $this->getState($this->getName() . '.id');
+//		$isNew = $pk <= 0;
+//		$prevItem = !$isNew ? $this->getItem($pk) : null;
+//		$isClientApi = $app->isClient('api');
 
 		$data['alias'] = $data['alias'] ?: $data['name'];
 
-		if ($app->get('unicodeslugs') == 1){
-			$data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
-		} else {
-			$data['alias'] = OutputFilter::stringURLSafe($data['alias']);
-		}
+		// Sanitize alias
+		$data['alias'] = $this->sanitizeAlias($data['alias']);
+		// Check alias uniqueness
+		$data['alias'] = $this->getUniqueAlias($data['alias'], $pk);
 
-		// if ($table->load(['slug' => $data['slug']])) { //checks for duplicates
-        //     $data['slug'].= '-'.$pk;//if slug exists add the id after
-        //     // = OutputFilter::stringURLSafe($data['name'].'-'.$pk);
-        // }
-		// if ($input->get('task') == 'save2copy') {
-		// 	if ($table->load(['slug' => $data['slug']])) {
+		// Checking valid height/width/depth/weight.
+		if ($data["width"] < 0) $data["width"] = 0;
+		if ($data["height"] < 0) $data["height"] = 0;
+		if ($data["depth"] < 0) $data["depth"] = 0;
+		if ($data["weight"] < 0) $data["weight"] = 0;
 
-		// }
-		// $origTable = clone $this->getTable();
+		$data['meta_data'] = json_encode(
+			['robots' => $data['robots']]
+		);
 
-        // Checking valid height/width/depth/weight.
-        if($data["width"] < 0) $data["width"] = 0;
-        if($data["height"] < 0) $data["height"] = 0;
-        if($data["depth"] < 0) $data["depth"] = 0;
-        if($data["weight"] < 0) $data["weight"] = 0;
+		// Step 1: save the main item row
+		if (!parent::save($data)) return false;
 
-		if (!parent::save($data))return false;
-
-		$currentId = 0;
-		if($data['id']>0){ //not a new
-			$currentId = intval($data['id']);
-		}else{ // is new
-			$currentId = intval($this->getState($this->getName().'.id'));//get the id from setted joomla state
-		}
+		$currentId = $pk > 0 ? $pk : (int)$this->getState($this->getName() . '.id'); //get the id from joomla state
 
 		// AUTO SET DEFAULT CATEGORY ID AND CATEGORIES ARRAY
 		// Check if $categoryIdDefault is set, if not set it to the first category
 		$categoryIdDefault = $data['id_category_default'];
-		$categories = $data['categories']??[];
+		$categories        = $data['categories'] ?? [];
 
-		if (!isset($categoryIdDefault) && !empty($categories)) {
-		    $categoryIdDefault = $categories[0]; // assuming categories are indexed as an array
+		if (!isset($categoryIdDefault) && !empty($categories))
+		{
+			$categoryIdDefault = $categories[0]; // assuming categories are indexed as an array
 		}
 
 		// Check if $defaultCategoryId exists in $data['categories'], if not, add it
-		if (!in_array($categoryIdDefault, $categories)) {
-		    $data['categories'][] = $categoryIdDefault;
+		if (!in_array($categoryIdDefault, $categories))
+		{
+			$data['categories'][] = $categoryIdDefault;
 		}
 		// END OF AUTO SET DEFAULT CATEGORY ID AND CATEGORIES ARRAY
 
-        $this->setPrices($currentId,$data['prices']);
+		// Step 2: save prices
+		$this->setPrices($currentId, $data['prices']);
 
-		AlfaHelper::setAssocsToDb($currentId, $data['categories']??[], '#__alfa_items_categories', 'item_id','category_id');
-		AlfaHelper::setAssocsToDb($currentId, $data['manufacturers']??[], '#__alfa_items_manufacturers', 'item_id','manufacturer_id');
+		// Step 3: save all associations
+		AlfaHelper::setAssocsToDb($currentId, $data['categories'] ?? [], '#__alfa_items_categories', 'item_id', 'category_id');
+		AlfaHelper::setAssocsToDb($currentId, $data['manufacturers'] ?? [], '#__alfa_items_manufacturers', 'item_id', 'manufacturer_id');
 
-		AlfaHelper::setAssocsToDb($currentId, $data['allowedUsers']??[], '#__alfa_items_users', 'item_id','user_id');
-		AlfaHelper::setAssocsToDb($currentId, $data['allowedUserGroups']??[], '#__alfa_items_usergroups','item_id', 'usergroup_id');
+		AlfaHelper::setAssocsToDb($currentId, $data['allowedUsers'] ?? [], '#__alfa_items_users', 'item_id', 'user_id');
+		AlfaHelper::setAssocsToDb($currentId, $data['allowedUserGroups'] ?? [], '#__alfa_items_usergroups', 'item_id', 'usergroup_id');
+
+		// Step 4: update the price index.
+		// This MUST be the last step — it reads prices and associations committed above.
+		// Non-fatal: if the sync fails we log a warning but do NOT block the save.
+		$priceIndexSyncService = new PriceIndexSyncService();
+
+		try
+		{
+			$priceIndexSyncService->syncItem($currentId);
+		}
+		catch (\Throwable $syncException)
+		{
+			Log::add(
+				'[ItemModel::save] Price index sync failed for item ' . $currentId . ': ' . $syncException->getMessage(),
+				Log::WARNING,
+				'com_alfa'
+			);
+		}
 
 		return true;
 		// return parent::save($data);
 	}
 
-	public function getPrices($id){
-	    $id = intval($id);
-	    if($id <= 0) {
-	        return [];
-	    }
 
-	    // Get the database object
-	    $db = $this->getDatabase();
+	/**
+	 * Method to change the published state of one or more items.
+	 *
+	 * Extends the parent publish() to keep the price index in sync:
+	 *
+	 *   state = 1 (publish)             → syncItem()      item re-enters the filter
+	 *   state = 0 / -2 (unpublish/trash) → deleteForItem() item leaves the filter immediately
+	 *
+	 * Non-fatal: sync failures are logged but never block the publish operation.
+	 *
+	 * @param   array    $pks    An array of item primary keys.
+	 * @param   integer  $value  The target state: 1=publish, 0=unpublish, -2=trash.
+	 *
+	 * @return  boolean  True on success.
+	 *
+	 * @since   1.0.1
+	 */
+	public function publish(&$pks, $value = 1)
+	{
+		// Let Joomla handle the actual state change in the database
+		$result = parent::publish($pks, $value);
 
-	    // Build the query to select all relevant fields
-	    $query = $db->getQuery(true);
-	    $query
-	        ->select('*')
-	        ->from('#__alfa_items_prices')
-	        ->where('item_id = ' . $db->quote($id));
+		if (!$result)
+		{
+			return false;
+		}
 
-	    // Execute the query
-	    $db->setQuery($query);
+		$priceIndexSyncService = new PriceIndexSyncService();
 
-	    // Return the result as an associative array
-	    return $db->loadAssocList();
+		foreach ($pks as $pk)
+		{
+			$pk = (int) $pk;
+
+			if ($pk <= 0)
+			{
+				continue;
+			}
+
+			if ((int) $value === 1)
+			{
+				// Item was re-published: rebuild its index rows so it appears in the price filter
+				try
+				{
+					$priceIndexSyncService->syncItem($pk);
+				}
+				catch (\Throwable $syncException)
+				{
+					Log::add(
+						'[ItemModel::publish] Price index sync failed for item ' . $pk . ': ' . $syncException->getMessage(),
+						Log::WARNING,
+						'com_alfa'
+					);
+				}
+			}
+			else
+			{
+				// Item was unpublished or trashed: remove it from the filter immediately
+				try
+				{
+					$priceIndexSyncService->deleteForItem($pk);
+				}
+				catch (\Throwable $syncException)
+				{
+					Log::add(
+						'[ItemModel::publish] Price index delete failed for item ' . $pk . ': ' . $syncException->getMessage(),
+						Log::WARNING,
+						'com_alfa'
+					);
+				}
+			}
+		}
+
+		return true;
 	}
 
 
-	public function setPrices($productId, $prices){
-	    if (!is_array($prices) || $productId<=0) {
-	        return false;
-	    }
+	/**
+	 * Method to delete one or more records.
+	 *
+	 * Extends the parent delete() to remove the item's price index rows.
+	 *
+	 * Note: the FK ON DELETE CASCADE on #__alfa_items_price_index already handles
+	 * hard deletes automatically. This explicit call is a safety net for soft-delete
+	 * scenarios and any future cases where the FK is not active.
+	 *
+	 * Non-fatal: sync failures are logged but never block the delete operation.
+	 *
+	 * @param   array  $pks  An array of item primary keys to delete.
+	 *
+	 * @return  boolean  True on success.
+	 *
+	 * @since   1.0.1
+	 */
+	public function delete(&$pks)
+	{
+		// Let Joomla handle the actual delete
+		$result = parent::delete($pks);
 
-	    $db = $this->getDatabase();
+		if (!$result)
+		{
+			return false;
+		}
+
+		$priceIndexSyncService = new PriceIndexSyncService();
+
+		foreach ($pks as $pk)
+		{
+			$pk = (int) $pk;
+
+			if ($pk <= 0)
+			{
+				continue;
+			}
+
+			// Remove the item's price index rows.
+			// The FK CASCADE already handles hard deletes, but we call this
+			// explicitly for soft-delete / trash safety.
+			try
+			{
+				$priceIndexSyncService->deleteForItem($pk);
+			}
+			catch (\Throwable $syncException)
+			{
+				Log::add(
+					'[ItemModel::delete] Price index delete failed for item ' . $pk . ': ' . $syncException->getMessage(),
+					Log::WARNING,
+					'com_alfa'
+				);
+			}
+		}
+
+		return true;
+	}
 
 
-	    // Get all existing price IDs for the product
-	    $query = $db->getQuery(true);
-	    $query->select('id')
-	          ->from('#__alfa_items_prices')
-	          ->where('item_id = ' . intval($productId));
-	    $db->setQuery($query);
-	    $existingPriceIds = $db->loadColumn();  // Array of existing price IDs
+	public function getPrices($id)
+	{
+		$id = intval($id);
+		if ($id <= 0)
+		{
+			return [];
+		}
 
-	    // Extract incoming IDs from the $prices array
-	    $incomingIds = array();
-	    foreach ($prices as $price) {
-	        if (isset($price['id']) && intval($price['id']) > 0) {//not those except new with id 0
-	            $incomingIds[] = intval($price['id']);
-	        }
-	    }
+		// Get the database object
+		$db = $this->getDatabase();
 
-	    // Find differences
-	    $idsToDelete = array_diff($existingPriceIds, $incomingIds);
+		// Build the query to select all relevant fields
+		$query = $db->getQuery(true);
+		$query
+			->select('*')
+			->from('#__alfa_items_prices')
+			->where('item_id = ' . $db->quote($id));
 
-	    //  Delete records that are no longer present in incoming prices array
-	    if (!empty($idsToDelete)) {
-	        $query = $db->getQuery(true);
-	        $query->delete('#__alfa_items_prices')->whereIn('id', $idsToDelete);
-	        $db->setQuery($query);
-	        $db->execute();
-	    }
+		// Execute the query
+		$db->setQuery($query);
 
-	    foreach ($prices as $price) {
+		// Return the result as an associative array
+		return $db->loadAssocList();
+	}
 
-	    	$priceObject = new \stdClass();
-	        $priceObject->id        = isset($price['id']) ? intval($price['id']) : 0;
-	        $priceObject->item_id = $productId;
-	        $priceObject->value     = isset($price['value']) ? floatval($price['value']) : 0.0;
-	        $priceObject->country_id    = isset($price['country_id']) ? intval($price['country_id']) : 0;
-	        $priceObject->usergroup_id  = isset($price['usergroup_id']) ? intval($price['usergroup_id']) : 0;
-	        $priceObject->user_id         = isset($price['user_id']) ? intval($price['user_id']) : 0;
-	        $priceObject->currency_id   = isset($price['currency_id']) ? intval($price['currency_id']) : 0;
-	        $priceObject->modify = isset($price['modify']) ? intval($price['modify']) : 0;
-	        $priceObject->modify_function = $price['modify_function'] ?? NULL;
-	        $priceObject->modify_type = $price['modify_type'] ?? NULL;
-	        $priceObject->publish_up  = !empty($price['publish_up']) ? Factory::getDate($price['publish_up'])->toSql() : NULL;
-	        $priceObject->publish_down    = !empty($price['publish_down']) ? Factory::getDate($price['publish_down'])->toSql() : NULL;
-	        $priceObject->quantity_start = !empty($price['quantity_start']) ? intval($price['quantity_start']) : NULL;
-	        $priceObject->quantity_end = !empty($price['quantity_end']) ? intval($price['quantity_end']) : NULL;
 
-	        $query = $db->getQuery(true);
+	public function setPrices($productId, $prices)
+	{
+		if (!is_array($prices) || $productId <= 0)
+		{
+			return false;
+		}
 
-	        if ($priceObject->id > 0 && in_array($priceObject->id, $existingPriceIds)) {
-	        	$updateNulls = true;
-	        	$db->updateObject('#__alfa_items_prices', $priceObject, 'id', $updateNulls);
-	        }else{
-	        	$db->insertObject('#__alfa_items_prices', $priceObject);
-	        }
+		$db = $this->getDatabase();
 
-	    }
 
-	    return true;
+		// Get all existing price IDs for the product
+		$query = $db->getQuery(true);
+		$query->select('id')
+			->from('#__alfa_items_prices')
+			->where('item_id = ' . intval($productId));
+		$db->setQuery($query);
+		$existingPriceIds = $db->loadColumn();  // Array of existing price IDs
+
+		// Extract incoming IDs from the $prices array
+		$incomingIds = array();
+		foreach ($prices as $price)
+		{
+			if (isset($price['id']) && intval($price['id']) > 0)
+			{//not those except new with id 0
+				$incomingIds[] = intval($price['id']);
+			}
+		}
+
+		// Find differences
+		$idsToDelete = array_diff($existingPriceIds, $incomingIds);
+
+		//  Delete records that are no longer present in incoming prices array
+		if (!empty($idsToDelete))
+		{
+			$query = $db->getQuery(true);
+			$query->delete('#__alfa_items_prices')->whereIn('id', $idsToDelete);
+			$db->setQuery($query);
+			$db->execute();
+		}
+
+		foreach ($prices as $price)
+		{
+
+			$priceObject                  = new \stdClass();
+			$priceObject->id              = isset($price['id']) ? intval($price['id']) : 0;
+			$priceObject->item_id         = $productId;
+			$priceObject->value           = isset($price['value']) ? floatval($price['value']) : 0.0;
+			$priceObject->country_id      = isset($price['country_id']) ? intval($price['country_id']) : 0;
+			$priceObject->usergroup_id    = isset($price['usergroup_id']) ? intval($price['usergroup_id']) : 0;
+			$priceObject->user_id         = isset($price['user_id']) ? intval($price['user_id']) : 0;
+			$priceObject->currency_id     = isset($price['currency_id']) ? intval($price['currency_id']) : 0;
+			$priceObject->modify          = isset($price['modify']) ? intval($price['modify']) : 0;
+			$priceObject->modify_function = $price['modify_function'] ?? null;
+			$priceObject->modify_type     = $price['modify_type'] ?? null;
+			$priceObject->publish_up      = !empty($price['publish_up']) ? Factory::getDate($price['publish_up'])->toSql() : null;
+			$priceObject->publish_down    = !empty($price['publish_down']) ? Factory::getDate($price['publish_down'])->toSql() : null;
+			$priceObject->quantity_start  = !empty($price['quantity_start']) ? intval($price['quantity_start']) : null;
+			$priceObject->quantity_end    = !empty($price['quantity_end']) ? intval($price['quantity_end']) : null;
+
+			$query = $db->getQuery(true);
+
+			if ($priceObject->id > 0 && in_array($priceObject->id, $existingPriceIds))
+			{
+				// Update existing price row.
+				// $updateNulls = true so nullable fields (like publish_down,
+				// quantity_end) can be explicitly cleared back to NULL.
+				$updateNulls = true;
+				$db->updateObject('#__alfa_items_prices', $priceObject, 'id', $updateNulls);
+			}
+			else
+			{
+				// Insert new price (unset ID to let DB auto-increment)
+				unset($priceObject->id);
+				$db->insertObject('#__alfa_items_prices', $priceObject);
+			}
+
+		}
+
+		return true;
 
 	}
 
@@ -421,50 +628,127 @@ class ItemModel extends AdminModel
 	 *
 	 * @since   1.0.1
 	 */
-    protected function prepareTable($table)
-    {
+	protected function prepareTable($table)
+	{
 		$user = $this->getCurrentUser();
 
-		if(empty($table->stock) || $table->stock <= 0)
+		if (empty($table->stock) || $table->stock <= 0)
 		{
 			$table->stock = null;
 		}
 
-		if(empty($table->quantity_min) || $table->quantity_min <= 0){
-			$table->quantity_min=1;
+		if (empty($table->quantity_min) || $table->quantity_min <= 0)
+		{
+			$table->quantity_min = 1;
 		}
 
-		if(empty($table->quantity_step) || $table->quantity_step <= 0) {
-			$table->quantity_step=1;
+		if (empty($table->quantity_step) || $table->quantity_step <= 0)
+		{
+			$table->quantity_step = 1;
 		}
 
-		if(empty($table->quantity_max) || $table->quantity_max <= 0){
-			$table->quantity_max=null;
+		if (empty($table->quantity_max) || $table->quantity_max <= 0)
+		{
+			$table->quantity_max = null;
 		}
 
-        if(empty($table->stock_low) || $table->stock_low <= 0){
-            $table->stock_low = null;
-        }
+		if (empty($table->stock_low) || $table->stock_low <= 0)
+		{
+			$table->stock_low = null;
+		}
 
-	    if ($table->id == 0 && empty($table->created_by))
-	    {
-		    $table->created_by = $user->id;
-	    }
+		if ($table->id == 0 && empty($table->created_by))
+		{
+			$table->created_by = $user->id;
+		}
 
-    	$table->modified = Factory::getDate()->toSql();
-    	$table->modified_by = $user->id;
+		$table->modified    = Factory::getDate()->toSql();
+		$table->modified_by = $user->id;
 
-        if (empty($table->publish_up)) {
-            $table->publish_up = null;
-        }
+		if (empty($table->publish_up))
+		{
+			$table->publish_up = null;
+		}
 
-        if (empty($table->publish_down)) {
-            $table->publish_down = null;
-        }
+		if (empty($table->publish_down))
+		{
+			$table->publish_down = null;
+		}
 
-        parent::prepareTable($table);
-        
-    }
+		parent::prepareTable($table);
 
+	}
+
+	/**
+	 * Sanitize alias based on Joomla configuration.
+	 *
+	 * @param   string  $alias  The alias to sanitize.
+	 *
+	 * @return  string  The sanitized alias.
+	 *
+	 * @since   1.0.1
+	 */
+	protected function sanitizeAlias($alias)
+	{
+		$app = Factory::getApplication();
+
+		if ($app->get('unicodeslugs') == 1)
+		{
+			return OutputFilter::stringUrlUnicodeSlug($alias);
+		}
+
+		return OutputFilter::stringURLSafe($alias);
+	}
+
+	/**
+	 * Method to ensure alias is unique, incrementing if necessary.
+	 *
+	 * @param   string   $alias  The desired alias.
+	 * @param   integer  $id     The item id (0 for new items).
+	 *
+	 * @return  string  The unique alias.
+	 *
+	 * @since   1.0.1
+	 */
+	/**
+	 * Method to ensure alias is unique.
+	 *
+	 * @param   string   $alias  The desired alias.
+	 * @param   integer  $id     The item id (0 for new items).
+	 *
+	 * @return  string  The unique alias.
+	 *
+	 * @since   1.0.1
+	 */
+	protected function getUniqueAlias($alias, $id = 0)
+	{
+		$db = $this->getDatabase();
+		$maxAttempts = 100;
+		$attempts = 0;
+
+		while ($attempts < $maxAttempts) {
+			$attempts++;
+
+			$query = $db->getQuery(true)
+				->select($db->quoteName('id'))
+				->from($db->quoteName('#__alfa_items'))
+				->where($db->quoteName('alias') . ' = ' . $db->quote($alias));
+
+			if ($id > 0) {
+				$query->where($db->quoteName('id') . ' != ' . (int)$id);
+			}
+
+			$db->setQuery($query);
+
+			if (!$db->loadResult()) {
+				return $alias;
+			}
+
+			$alias = StringHelper::increment($alias, 'dash');
+		}
+
+		// Fallback if max attempts reached
+		return $alias . '-' . time();
+	}
 
 }

@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -11,14 +11,13 @@ namespace Alfa\Component\Alfa\Administrator\View\Orderstatuses;
 // No direct access
 defined('_JEXEC');
 
-use \Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
-use \Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
-use \Joomla\CMS\Toolbar\Toolbar;
-use \Joomla\CMS\Toolbar\ToolbarHelper;
-use \Joomla\CMS\Language\Text;
-use \Joomla\Component\Content\Administrator\Extension\ContentComponent;
-use \Joomla\CMS\Form\Form;
-use \Joomla\CMS\HTML\Helpers\Sidebar;
+use Alfa\Component\Alfa\Administrator\View\HtmlView as BaseHtmlView;
+use Joomla\CMS\Toolbar\ToolbarHelper;
+use Joomla\CMS\Language\Text;
+use Joomla\CMS\Helper\ContentHelper;
+use Alfa\Component\Alfa\Administrator\Extension\AlfaComponent;
+
+
 /**
  * View class for a list of Orders.
  *
@@ -32,32 +31,34 @@ class HtmlView extends BaseHtmlView
 
     protected $state;
 
+    public $filterForm;
+
+    public $activeFilters;
+
     /**
      * Display the view
      *
-     * @param   string  $tpl  Template name
+     * @param   string  $tpl  The name of the template file to parse; automatically searches through the template paths.
      *
-     * @return void
-     *
-     * @throws Exception
+     * @return  void
      */
     public function display($tpl = null)
     {
-        $this->state = $this->get('State');
-        $this->items = $this->get('Items');
-        $this->pagination = $this->get('Pagination');
-        $this->filterForm = $this->get('FilterForm');
-        $this->activeFilters = $this->get('ActiveFilters');
+        $model = $this->getModel();
 
-        // Check for errors.
-        if (count($errors = $this->get('Errors')))
-        {
-            throw new \Exception(implode("\n", $errors));
-        }
+        $this->items         = $model->getItems();
+        $this->pagination    = $model->getPagination();
+        $this->state         = $model->getState();
+        $this->filterForm    = $model->getFilterForm();
+        $this->activeFilters = $model->getActiveFilters();
 
         $this->addToolbar();
 
-        $this->sidebar = Sidebar::render();
+        // Add form control fields
+        $this->filterForm
+            ->addControlField('task', '')
+            ->addControlField('boxchecked', '0');
+
         parent::display($tpl);
     }
 
@@ -70,22 +71,14 @@ class HtmlView extends BaseHtmlView
      */
     protected function addToolbar()
     {
-        $state = $this->get('State');
-        $canDo = AlfaHelper::getActions();
+        $canDo    = ContentHelper::getActions('com_alfa');
+        $toolbar  = $this->getDocument()->getToolbar();
 
         ToolbarHelper::title(Text::_('COM_ALFA_TITLE_ORDER_STATUSES'), "generic");
 
-        $toolbar = Toolbar::getInstance('toolbar');
-
-        // Check if the form exists before showing the add/edit buttons
-        $formPath = JPATH_COMPONENT_ADMINISTRATOR . '/src/View/Orderstatuses';
-
-        if (file_exists($formPath))
+        if ($canDo->get('core.create'))
         {
-            if ($canDo->get('core.create'))
-            {
-                $toolbar->addNew('orderstatus.add');
-            }
+            $toolbar->addNew('orderstatus.add');
         }
 
         if ($canDo->get('core.edit.state'))
@@ -99,14 +92,15 @@ class HtmlView extends BaseHtmlView
 
             $childBar = $dropdown->getChildToolbar();
 
-            if (isset($this->items[0]->state))
-            {
-                $childBar->publish('orderstatuses.publish')->listCheck(true);
-                $childBar->unpublish('orderstatuses.unpublish')->listCheck(true);
-                $childBar->archive('orderstatuses.archive')->listCheck(true);
+            $childBar->publish('orderstatuses.publish')->listCheck(true);
+            $childBar->unpublish('orderstatuses.unpublish')->listCheck(true);
+            $childBar->archive('orderstatuses.archive')->listCheck(true);
+
+            if ($this->state->get('filter.state') != AlfaComponent::CONDITION_TRASHED) {
+                $childBar->trash('orderstatuses.trash')->listCheck(true);
             }
-            elseif (isset($this->items[0]))
-            {
+
+            if ($this->state->get('filter.state') == AlfaComponent::CONDITION_TRASHED && $canDo->get('core.delete')) {
                 // If this component does not use state then show a direct delete button as we can not trash
                 $toolbar->delete('orderstatuses.delete')
                     ->text('JTOOLBAR_EMPTY_TRASH')
@@ -114,36 +108,8 @@ class HtmlView extends BaseHtmlView
                     ->listCheck(true);
             }
 
-            $childBar->standardButton('duplicate')
-                ->text('JTOOLBAR_DUPLICATE')
-                ->icon('fas fa-copy')
-                ->task('orderstatuses.duplicate')
-                ->listCheck(true);
+            $childBar->checkin('orderstatuses.checkin')->listCheck(true);
 
-            if (isset($this->items[0]->checked_out))
-            {
-                $childBar->checkin('orderstatuses.checkin')->listCheck(true);
-            }
-
-            if (isset($this->items[0]->state))
-            {
-                $childBar->trash('orderstatuses.trash')->listCheck(true);
-            }
-        }
-
-
-
-        // Show trash and delete for components that uses the state field
-        if (isset($this->items[0]->state))
-        {
-
-            if ($this->state->get('filter.state') == ContentComponent::CONDITION_TRASHED && $canDo->get('core.delete'))
-            {
-                $toolbar->delete('orderstatuses.delete')
-                    ->text('JTOOLBAR_EMPTY_TRASH')
-                    ->message('JGLOBAL_CONFIRM_DELETE')
-                    ->listCheck(true);
-            }
         }
 
         if ($canDo->get('core.admin'))
@@ -151,32 +117,6 @@ class HtmlView extends BaseHtmlView
             $toolbar->preferences('com_alfa');
         }
 
-        // Set sidebar action
-        Sidebar::setAction('index.php?option=com_alfa&view=orderstatuses');
     }
-    /**
-     * Method to order fields
-     *
-     * @return void
-     */
-//    protected function getSortFields()
-//    {
-//        return array(
-//            'a.`id`' => Text::_('JGRID_HEADING_ID'),
-//            'a.`state`' => Text::_('JSTATUS'),
-//            'a.`ordering`' => Text::_('JGRID_HEADING_ORDERING'),
-//        );
-//    }
 
-    /**
-     * Check if state is set
-     *
-     * @param   mixed  $state  State
-     *
-     * @return bool
-     */
-    public function getState($state)
-    {
-        return $this->state->{$state} ?? false;
-    }
 }

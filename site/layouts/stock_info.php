@@ -1,11 +1,12 @@
 <?php
 
-use \Joomla\CMS\Language\Text;
+use Joomla\CMS\Language\Text;
 
-$item = $displayData['item'];
-$quantity = $displayData['quantity'];
+extract($displayData);
 
-if(empty($item)) return;
+if (empty($item)) return;
+
+if(empty($quantity)){ $quantity = $item->quantity_min; }
 
 // Condition to show a "zero stock" message if the quantity exceeds stock
 $zeroStockShow = !empty($item->stock) && $quantity > $item->stock;
@@ -13,14 +14,17 @@ $zeroStockShow = !empty($item->stock) && $quantity > $item->stock;
 $lowStockShow = !empty($item->stock_low) && $item->stock - $quantity <= $item->stock_low;
 
 // Determine the class to add and message to show based on stock conditions
-$stockClass = '';
+$stockClass   = '';
 $stockMessage = '';
-if ($zeroStockShow) {
-    $stockClass = 'zero-stock';
-    $stockMessage = Text::_($item->stock_zero_message);
-} elseif ($lowStockShow) {
-    $stockClass = 'low-stock';
-    $stockMessage = Text::_($item->stock_low_message);
+if ($zeroStockShow)
+{
+	$stockClass   = 'zero-stock';
+	$stockMessage = Text::_($item->stock_zero_message);
+}
+elseif ($lowStockShow)
+{
+	$stockClass   = 'low-stock';
+	$stockMessage = Text::_($item->stock_low_message);
 }
 
 // HTML structure
@@ -28,5 +32,5 @@ if ($zeroStockShow) {
 ?>
 
 <div class="<?php echo $stockClass; ?>" data-item-stock-info>
-    <?php echo $stockMessage; ?>
+	<?php echo $stockMessage; ?>
 </div>

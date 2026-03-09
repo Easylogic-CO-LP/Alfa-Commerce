@@ -1,10 +1,16 @@
 /**
- * @version     CVS: 1.0.1
+ * @version     1.0.1
  * @package     com_alfa
  * @copyright   2024 Easylogic CO LP
  * @license     GNU General Public License version 2 or later; see LICENSE.txt
  * @author      Agamemnon Fakas <info@easylogic.gr>
  */
+
+.item-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
 
 /* PRODUCT AMOUNT */
 
@@ -22,8 +28,7 @@
     width: 50px;
     text-align: center;
     border: 1px solid lightgray;
-    /* Hides the default spinner buttons in the input */
-    appearance: textfield;
+    appearance: textfield; /* Hides the default spinner buttons in the input */
 }
 
 .item-quantity::-webkit-outer-spin-button,
@@ -52,80 +57,87 @@
     color: white;
 }
 
-/* TODO: CHECK THE NAMES AND CSS REMOVE ANY BOOTSTRAP */
-
 /* PRODUCT IMAGES SECTION */
-
-.main-images img {
+.main-images {
+    display: flex;
+    overflow: hidden;
+    position: relative;
     width: 100%;
+}
+
+.main-images .item-image {
+    min-width: 100%;
+    max-width: 100%;
+    flex-shrink: 0;
+}
+
+.main-images .item-image img {
+    display: block;
+    width: 100%;
+    height: auto;
 }
 
 .thumbnail-images {
     gap: 6px;
 }
 
+.thumbnail-images .item-image{
+    height: auto;
+}
+
 .thumbnail-images .active {
     border: 2px solid blue;
 }
 
-.thumbnail-images .item-image{
-    width: 100px;
-    height: auto;
-}
+/* Price Breakdown*/
 
-
-/* TAB STYLING */
-
-.item-desc-details {
-    padding: 20px 30px;
-    border: 1px solid lightgray;
-}
-
-.tab {
-    height: 48px;
-    margin-bottom: 20px;
-    padding: 0;
-    border-bottom: 2px solid lightgray;
-    list-style: none;
-    position: relative;
-}
-
-.tab li {
-    float: left;
+.price-breakdown-toggle {
     cursor: pointer;
-    margin-right: 4px;
-    margin-bottom: -2px;
-    position: relative;
-    z-index: 1;
+    user-select: none;
+    display: inline-block;
 }
 
-.tab button {
-    background-color: inherit;
-    border: none;
-    outline: none;
-    font-size: 17px;
-    padding: 10px 15px;
-}
-
-.tab button:hover {
-    border-bottom: 3px solid blue;
-    margin-bottom: -2px;
-}
-
-.tab button.active {
-    color: blue;
-    border-bottom: 3px solid blue;
-    margin-bottom: -2px;
-    z-index: 2;
-}
-
-.tabcontent {
+.price-breakdown-toggle::-webkit-details-marker {
     display: none;
-    opacity: 0;
-    transition: opacity 0.5s ease-in-out;
 }
 
-#description {
-    display: block;
-    opacity: 1;
+.price-breakdown-toggle::before {
+    content: '▸';
+    display: inline-block;
+    transition: transform 0.2s;
 }
+
+.price-breakdown[open] .price-breakdown-toggle::before {
+    transform: rotate(90deg);
+}
+
+.price-breakdown-content {
+    padding: 0.5rem;
+}
+
+.price-breakdown-steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.breakdown-step {
+    display: flex;
+}
+
+.breakdown-description {
+    display: flex;
+    flex: 1;
+}
+
+.breakdown-amount {
+    white-space: nowrap;
+    display: flex;
+    gap: 0.25rem;
+}
+
+/* Highlight different operations */
+.breakdown-step[data-operation="subtract"] .breakdown-amount {
+    color: #388e3c;
+}
+

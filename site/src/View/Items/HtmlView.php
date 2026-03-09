@@ -1,7 +1,7 @@
 <?php
 
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -9,83 +9,74 @@
  */
 
 namespace Alfa\Component\Alfa\Site\View\Items;
-// No direct access
+
 defined('_JEXEC') or die;
 
-use \Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
-use \Joomla\CMS\Factory;
-use \Joomla\CMS\Language\Text;
+use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
+use Alfa\Component\Alfa\Site\Helper\PriceSettings;
+use Alfa\Component\Alfa\Site\View\HtmlView as BaseHtmlView;
+use Joomla\CMS\Factory;
+use Joomla\CMS\Router\Route;
+use Joomla\CMS\Uri\Uri;
 
 /**
- * View class for a list of Alfa.
+ * View class for a list of items
  *
  * @since  1.0.1
  */
 class HtmlView extends BaseHtmlView
 {
+	protected $app;
 	protected $items;
-
 	protected $categories;
-
 	protected $pagination;
-
 	protected $state;
-
 	protected $params;
+	protected $category;
+
+	/**
+	 * Constructor
+	 *
+	 * @param array $config Configuration settings
+	 */
+	public function __construct($config = [])
+	{
+		parent::__construct($config);
+		$this->app = Factory::getApplication();
+	}
 
 	/**
 	 * Display the view
 	 *
-	 * @param   string  $tpl  Template name
+	 * @param string $tpl Template name
 	 *
 	 * @return void
-	 *
-	 * @throws Exception
 	 */
 	public function display($tpl = null)
 	{
-		$app = Factory::getApplication();
+		$this->params = $this->app->getParams('com_alfa');
 
-		$this->state = $this->get('State');
-		$this->items = $this->get('Items');
-		$this->pagination = $this->get('Pagination');
-		$this->params = $app->getParams('com_alfa');
-		$this->filterForm = $this->get('FilterForm');
-		$this->activeFilters = $this->get('ActiveFilters');
+		$itemsModel = $this->getModel();
 
-		
+		// Get items data
+		$this->items         = $itemsModel->getItems();
+		$this->pagination    = $itemsModel->getPagination();
+		$this->state         = $itemsModel->getState();
+		$this->filterForm    = $itemsModel->getFilterForm();
+		$this->activeFilters = $itemsModel->getActiveFilters();
 
-		$db = Factory::getDbo();
+		$this->availableManufacturers = $itemsModel->getAvailableManufacturers();
 
+		// Get category-related data
+		$this->categories = $itemsModel->getItemsCategories();
+		$this->category   = $itemsModel->getItemsCategory();
 
-		if(empty($this->category_filter)){
-			$this->category_filter = 0;
-		}
-
-		$db = Factory::getDbo();
-
-		// SET CATEGORIES LOGIC
-		$category_filter = $this->state->get('filter.category_id');
-		if(empty($category_filter)){
-			$category_filter = 0;
-		}
-
-		$component = $app->bootComponent('com_alfa');
-        $mvcFactory = $component->getMVCFactory();
-        $categoriesModel = $mvcFactory->createModel('Categories', 'Site', ['ignore_request' => true]);
-    	$categoriesModel->getState('list.ordering');//we should use get before set the list state fields
-        $categoriesModel->setState('filter.parent_id', $category_filter);
-    	$this->categories = $categoriesModel->getItems();
-
-		// END OF SET CATEGORIES LOGIC
-
-		// Check for errors.
-		if (count($errors = $this->get('Errors')))
-		{
-			throw new \Exception(implode("\n", $errors));
-		}
+		// Resolve price settings once for all items
+		$this->priceSettings = PriceSettings::get();
 
 		$this->_prepareDocument();
+
 		parent::display($tpl);
 	}
 
@@ -93,80 +84,171 @@ class HtmlView extends BaseHtmlView
 	 * Prepares the document
 	 *
 	 * @return void
-	 *
-	 * @throws Exception
 	 */
-	protected function _prepareDocument()
+	protected function _prepareDocument(): void
 	{
-		$app   = Factory::getApplication();
-		$menus = $app->getMenu();
-		$title = null;
-
-		// Because the application sets a default page title,
-		// we need to get it from the menu item itself
-		$menu = $menus->getActive();
-
-		if ($menu)
-		{
-			$this->params->def('page_heading', $this->params->get('page_title', $menu->title));
-		}
-		else
-		{
-			$this->params->def('page_heading', Text::_('COM_ALFA_DEFAULT_PAGE_TITLE'));
-		}
-
-		$title = $this->params->get('page_title', '');
-
-		if (empty($title))
-		{
-			$title = $app->get('sitename');
-		}
-		elseif ($app->get('sitename_pagetitles', 0) == 1)
-		{
-			$title = Text::sprintf('JPAGETITLE', $app->get('sitename'), $title);
-		}
-		elseif ($app->get('sitename_pagetitles', 0) == 2)
-		{
-			$title = Text::sprintf('JPAGETITLE', $title, $app->get('sitename'));
-		}
-
-		$this->document->setTitle($title);
-
-		if ($this->params->get('menu-meta_description'))
-		{
-			$this->document->setDescription($this->params->get('menu-meta_description'));
-		}
-
-		if ($this->params->get('menu-meta_keywords'))
-		{
-			$this->document->setMetadata('keywords', $this->params->get('menu-meta_keywords'));
-		}
-
-		if ($this->params->get('robots'))
-		{
-			$this->document->setMetadata('robots', $this->params->get('robots'));
-		}
-
-		
-            // Add Breadcrumbs
-            $pathway = $app->getPathway();
-                        $breadcrumbTitle = Text::_('COM_ALFA_TITLE_ITEMS');
-
-                        if(!in_array($breadcrumbTitle, $pathway->getPathwayNames())) {
-                            $pathway->addItem($breadcrumbTitle);
-                        }
-                
+		$this->addBreadcrumbs();
+		$this->addMetaTags();
+		$this->addCanonicalUrl();
+		$this->addRobotsMeta();
 	}
 
 	/**
-	 * Check if state is set
+	 * Add breadcrumbs for category path
 	 *
-	 * @param   mixed  $state  State
+	 * @return void
+	 */
+	protected function addBreadcrumbs(): void
+	{
+		if (empty($this->category->id)) {
+			return;
+		}
+
+		$pathway = $this->app->getPathway();
+		$categoryPath = CategoryHelper::getCategoryPath($this->category->id);
+
+		foreach ($categoryPath as $category) {
+			$link = Route::_('index.php?option=com_alfa&view=items&category_id=' . $category['id']);
+
+			if (!in_array($category['name'], $pathway->getPathwayNames())) {
+				$pathway->addItem($category['name'], $link);
+			}
+		}
+	}
+
+	/**
+	 * Add meta title and description
+	 *
+	 * @return void
+	 */
+	protected function addMetaTags(): void
+	{
+		$document = $this->getDocument();
+
+		// Meta Title
+		$metaTitle = $this->params->get('page_title', '');
+
+		if (!empty($this->category->meta_title)) {
+			$metaTitle = $this->category->meta_title;
+		} elseif (!empty($this->category->name)) {
+			$metaTitle = $this->category->name;
+		}
+
+		// Add site name to title
+		$siteNamePosition = $this->app->get('sitename_pagetitles', 0);
+		$siteName = $this->app->get('sitename');
+
+		if ($siteNamePosition == 1) {
+			$metaTitle = $siteName . ' - ' . $metaTitle;
+		} elseif ($siteNamePosition == 2) {
+			$metaTitle = $metaTitle . ' - ' . $siteName;
+		}
+
+		// Meta Description
+		$metaDescription = $this->params->get('menu-meta_description', '');
+
+		if (!empty($this->category->meta_desc)) {
+			$metaDescription = $this->category->meta_desc;
+		} elseif (!empty($this->category->desc)) {
+			$metaDescription = AlfaHelper::cleanContent(
+				html: $this->category->desc,
+				removeTags: true,
+				removeScripts: true,
+				removeIsolatedPunctuation: false
+			);
+		}
+
+		$document->setTitle($metaTitle);
+		$document->setDescription($metaDescription);
+	}
+
+	/**
+	 * Add canonical URL
+	 *
+	 * Canonical points to base category URL + pagination only
+	 * Removes filters, sorting, and limit from canonical
+	 *
+	 * @return void
+	 */
+	protected function addCanonicalUrl(): void
+	{
+		$uri = Uri::getInstance();
+
+		// Base URL (scheme + host + path, no query params)
+		$canonical = $uri->toString(['scheme', 'host', 'port', 'path']);
+
+		// Keep pagination if > 0
+		$limitstart = (int) $this->state->get('list.start', 0);
+		if ($limitstart > 0) {
+			$canonical .= '?start=' . $limitstart;
+		}
+
+		$this->getDocument()->addHeadLink($canonical, 'canonical');
+	}
+
+	/**
+	 * Add robots meta tag
+	 *
+	 * Filtered/sorted pages get noindex (priority)
+	 * Otherwise uses category or menu setting
+	 *
+	 * @return void
+	 */
+	protected function addRobotsMeta(): void
+	{
+		$document = $this->getDocument();
+
+		// Filtered pages are ALWAYS noindex - takes priority
+		if ($this->isFilteredPage()) {
+			$document->setMetaData('robots', 'noindex, follow');
+			return;
+		}
+
+		// For non-filtered pages, use category or menu robots setting
+		$metaRobots = $this->params->get('robots', '');
+
+		if (!empty($this->category->meta_data)) {
+			$otherMetaData = json_decode($this->category->meta_data, true) ?: [];
+			if (!empty($otherMetaData['robots'])) {
+				$metaRobots = $otherMetaData['robots'];
+			}
+		}
+
+		if (!empty($metaRobots)) {
+			$document->setMetaData('robots', $metaRobots);
+		}
+	}
+
+	/**
+	 * Check if page has filters/sorting/limit applied
 	 *
 	 * @return bool
 	 */
-	public function getState($state)
+	protected function isFilteredPage(): bool
 	{
-		return isset($this->state->{$state}) ? $this->state->{$state} : false;
+		$model = $this->getModel();
+
+		// Has active filters?
+		if (!empty($model->getActiveFilters())) {
+			return true;
+		}
+
+		$defaults = $model->getDefaults();
+
+		// Non-default sort?
+		$currentSort = $this->state->get('list.ordering') . ' ' . $this->state->get('list.direction');
+		$defaultSort = $defaults['list']['fullordering'] ?? 'a.id ASC';
+		if (trim($currentSort) !== trim($defaultSort)) {
+			return true;
+		}
+
+		// Non-default limit?
+		$currentLimit = (int) $this->state->get('list.limit');
+		$defaultLimit = (int) ($defaults['list']['limit'] ?? 25);
+		if ($currentLimit !== $defaultLimit) {
+			return true;
+		}
+
+		return false;
 	}
 }

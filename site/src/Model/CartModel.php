@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -12,22 +12,9 @@ namespace Alfa\Component\Alfa\Site\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
-use \Joomla\CMS\Factory;
-use Joomla\CMS\MVC\Model\FormBehaviorTrait;
+use Alfa\Component\Alfa\Site\Helper\CartHelper;
+
 use Joomla\CMS\MVC\Model\FormModel;
-use Joomla\CMS\Plugin\PluginHelper;
-use \Joomla\Utilities\ArrayHelper;
-use \Joomla\CMS\Language\Text;
-use \Joomla\CMS\Table\Table;
-use \Joomla\CMS\MVC\Model\ItemModel;
-use \Joomla\CMS\Object\CMSObject;
-use \Joomla\CMS\User\UserFactoryInterface;
-use \Alfa\Component\Alfa\Site\Helper\AlfaHelper;
-use \Alfa\Component\Alfa\Site\Helper\PriceCalculator;
-use \Alfa\Component\Alfa\Site\Helper\CartHelper;
-use \Joomla\Database\ParameterType;
-
-
 
 /**
  * Alfa model.
@@ -37,31 +24,23 @@ use \Joomla\Database\ParameterType;
 class CartModel extends FormModel   // Should this extend FormModel? Contact model does do that.
 {
 
-    protected $form_name = "cart";
+	protected $form_name = "cart";
 
-    /**
-     * Method to get an object.
-     *
-     * @param integer $id The id of the object to get.
-     *
-     * @return  mixed    Object on success, false on failure.
-     *
-     * @throws Exception
-     */
-    public function getItem($pk = null)
-    {
-        // $app = Factory::getApplication();
-        // $user = $app->getIdentity();
-        // $input = $app->input;
-        $pk = (int)($pk ?: 0);
+	public function getItem($pk = null)
+	{
+		// $app = Factory::getApplication();
+		// $user = $app->getIdentity();
+		// $input = $app->input;
+		$pk = (int) ($pk ?: 0);
 
-        $cart = new CartHelper($pk);
+		$cart = new CartHelper($pk);
 
-        return $cart;
-       
-    }
+		return $cart;
 
-    public function getForm($data = [], $loadData = true){
+	}
+
+	public function getForm($data = [], $loadData = true)
+	{
 
 
 //	    $data = array(
@@ -78,15 +57,16 @@ class CartModel extends FormModel   // Should this extend FormModel? Contact mod
 
 //	    Factory::getApplication()->setUserState('com_dianemo.cart.data', ['first-name'=>'blabla']);
 
-        $form = $this->loadForm('com_alfa.cart', 'cart',
-            array(
-                'control' => 'cartform',
-                'load_data' => $loadData
-            ));
+		$form = $this->loadForm('com_alfa.cart', 'cart',
+			array(
+				'control'   => 'cartform',
+				'load_data' => $loadData
+			));
 
-        if(empty($form)){
-            return false;
-        }
+		if (empty($form))
+		{
+			return false;
+		}
 
 //	    $app->setUserState('com_dianemo.cart.data', $data);
 
@@ -94,7 +74,7 @@ class CartModel extends FormModel   // Should this extend FormModel? Contact mod
 //	    print_r($data);
 //		exit;
 
-        FieldsHelper::prepareForm('com_alfa.cart', $form, $data);
+		FieldsHelper::prepareForm('com_alfa.cart', $form, $data);
 
 //        echo '<pre>';
 //        echo htmlspecialchars($form->getXml()->saveXML());
@@ -114,10 +94,8 @@ class CartModel extends FormModel   // Should this extend FormModel? Contact mod
 //
 //        exit;
 
-        return $form;
-    }
-
-
+		return $form;
+	}
 
 
 }

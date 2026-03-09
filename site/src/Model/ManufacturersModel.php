@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -59,7 +59,6 @@ class ManufacturersModel extends ListModel
 		parent::__construct($config);
 	}
 
-	
 
 	/**
 	 * Method to auto-populate the model state.
@@ -80,30 +79,29 @@ class ManufacturersModel extends ListModel
 		// List state information.
 		parent::populateState('a.name', 'ASC');
 
-		$app = Factory::getApplication();
+		$app  = Factory::getApplication();
 		$list = $app->getUserState($this->context . '.list');
 
-		$value = $app->getUserState($this->context . '.list.limit', $app->get('list_limit', 25));
+		$value         = $app->getUserState($this->context . '.list.limit', $app->get('list_limit', 25));
 		$list['limit'] = $value;
-		
+
 		$this->setState('list.limit', $value);
 
 		$value = $app->input->get('limitstart', 0, 'uint');
 		$this->setState('list.start', $value);
 
-		$ordering  = $this->getUserStateFromRequest($this->context .'.filter_order', 'filter_order', 'a.name');
-		$direction = strtoupper($this->getUserStateFromRequest($this->context .'.filter_order_Dir', 'filter_order_Dir', 'ASC'));
-		
-		if(!empty($ordering) || !empty($direction))
+		$ordering  = $this->getUserStateFromRequest($this->context . '.filter_order', 'filter_order', 'a.name');
+		$direction = strtoupper($this->getUserStateFromRequest($this->context . '.filter_order_Dir', 'filter_order_Dir', 'ASC'));
+
+		if (!empty($ordering) || !empty($direction))
 		{
 			$list['fullordering'] = $ordering . ' ' . $direction;
 		}
 
 		$app->setUserState($this->context . '.list', $list);
 
-		
 
-		$context = $this->getUserStateFromRequest($this->context.'.filter.search', 'filter_search');
+		$context = $this->getUserStateFromRequest($this->context . '.filter.search', 'filter_search');
 		$this->setState('filter.search', $context);
 
 		// Split context into component and optional section
@@ -128,19 +126,19 @@ class ManufacturersModel extends ListModel
 	 */
 	protected function getListQuery()
 	{
-			// Create a new query object.
-			$db    = $this->getDbo();
-			$query = $db->getQuery(true);
+		// Create a new query object.
+		$db    = $this->getDatabase();
+		$query = $db->getQuery(true);
 
-			// Select the required fields from the table.
-			$query->select(
-						$this->getState(
-								'list.select', 'DISTINCT a.*'
-						)
-				);
+		// Select the required fields from the table.
+		$query->select(
+			$this->getState(
+				'list.select', 'DISTINCT a.*'
+			)
+		);
 
-			$query->from('`#__alfa_manufacturers` AS a');
-			
+		$query->from('`#__alfa_manufacturers` AS a');
+
 		// Join over the users for the checked out user.
 		$query->select('uc.name AS uEditor');
 		$query->join('LEFT', '#__users AS uc ON uc.id=a.checked_out');
@@ -150,7 +148,7 @@ class ManufacturersModel extends ListModel
 
 		// Join over the created by field 'modified_by'
 		$query->join('LEFT', '#__users AS modified_by ON modified_by.id = a.modified_by');
-			
+
 		if (!Factory::getApplication()->getIdentity()->authorise('core.edit', 'com_alfa'))
 		{
 			$query->where('a.state = 1');
@@ -160,35 +158,33 @@ class ManufacturersModel extends ListModel
 			$query->where('(a.state IN (0, 1))');
 		}
 
-			// Filter by search in title
-			$search = $this->getState('filter.search');
+		// Filter by search in title
+		$search = $this->getState('filter.search');
 
-			if (!empty($search))
+		if (!empty($search))
+		{
+			if (stripos($search, 'id:') === 0)
 			{
-				if (stripos($search, 'id:') === 0)
-				{
-					$query->where('a.id = ' . (int) substr($search, 3));
-				}
-				else
-				{
-					$search = $db->Quote('%' . $db->escape($search, true) . '%');
-					$query->where('( a.name LIKE ' . $search . ' )');
-				}
+				$query->where('a.id = ' . (int) substr($search, 3));
 			}
-			
-
-			
-			
-			// Add the list ordering clause.
-			$orderCol  = $this->state->get('list.ordering', 'a.name');
-			$orderDirn = $this->state->get('list.direction', 'ASC');
-
-			if ($orderCol && $orderDirn)
+			else
 			{
-				$query->order($db->escape($orderCol . ' ' . $orderDirn));
+				$search = $db->Quote('%' . $db->escape($search, true) . '%');
+				$query->where('( a.name LIKE ' . $search . ' )');
 			}
+		}
 
-			return $query;
+
+		// Add the list ordering clause.
+		$orderCol  = $this->state->get('list.ordering', 'a.name');
+		$orderDirn = $this->state->get('list.direction', 'ASC');
+
+		if ($orderCol && $orderDirn)
+		{
+			$query->order($db->escape($orderCol . ' ' . $orderDirn));
+		}
+
+		return $query;
 	}
 
 	/**
@@ -199,7 +195,7 @@ class ManufacturersModel extends ListModel
 	public function getItems()
 	{
 		$items = parent::getItems();
-		
+
 
 		return $items;
 	}
@@ -244,6 +240,7 @@ class ManufacturersModel extends ListModel
 	private function isValidDate($date)
 	{
 		$date = str_replace('/', '-', $date);
+
 		return (date_create($date)) ? Factory::getDate($date)->format("Y-m-d") : null;
 	}
 }

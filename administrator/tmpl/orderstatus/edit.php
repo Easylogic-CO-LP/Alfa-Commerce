@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -67,9 +67,6 @@ $input = Factory::getApplication()->getInput();
 
     <?php echo HTMLHelper::_('uitab.endTabSet'); ?>
 
-    <input type="hidden" name="task" value="">
-    <input type="hidden" name="return" value="<?php echo $input->getBase64('return'); ?>">
-
-    <?php echo HTMLHelper::_('form.token'); ?>
+	<?php echo $this->form->renderControlFields(); ?>
 
 </form>
