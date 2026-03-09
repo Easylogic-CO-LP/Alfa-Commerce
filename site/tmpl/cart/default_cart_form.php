@@ -3,7 +3,7 @@
 
     <div class="row">
         <div class="col-md-6">
-            <h4>Customer Details</h4>
+            <h4><?php echo \Joomla\CMS\Language\Text::_('COM_ALFA_FORM_CUSTOMER_DETAILS'); ?></h4>
 
 			<?php
 			//                echo "<pre>";
@@ -41,17 +41,17 @@
         </div>
 
         <div class="col-md-6">
-            <h4>Payment</h4>
+            <h4><?php echo \Joomla\CMS\Language\Text::_('COM_ALFA_FORM_PAYMENT'); ?></h4>
 			<?php echo $this->loadTemplate('select_payment'); ?>
 
-            <h4>Shipment</h4>
+            <h4><?php echo \Joomla\CMS\Language\Text::_('COM_ALFA_FORM_SHIPMENT'); ?></h4>
 			<?php echo $this->loadTemplate('select_shipment'); ?>
         </div>
 
     </div>
 
 
-    <button type="submit" class="btn btn-primary w-100" data-main_button="1">Place Order</button>
+    <button type="submit" class="btn btn-primary w-100" data-main_button="1"><?php echo \Joomla\CMS\Language\Text::_('COM_ALFA_BUTTON_PLACE_ORDER'); ?></button>
 
 	<?php echo \Joomla\CMS\HTML\HTMLHelper::_('form.token'); ?>
 </form>

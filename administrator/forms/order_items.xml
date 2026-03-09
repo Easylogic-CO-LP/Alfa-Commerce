@@ -43,7 +43,7 @@
         <field
                 name="name"
                 type="text"
-                label="Product"
+                label="COM_ALFA_FORM_LBL_PRODUCT"
                 readonly="true"
                 class="readonly"
                 description=""
@@ -52,7 +52,7 @@
         <field
                 name="reference"
                 type="text"
-                label="Sku"
+                label="COM_ALFA_FORM_LBL_SKU"
                 readonly="true"
                 class="readonly"
                 description="COM_ALFA_SKU_DESC"
@@ -64,7 +64,7 @@
         <field
                 name="quantity"
                 type="number"
-                label="Quantity"
+                label="COM_ALFA_FORM_LBL_QUANTITY"
                 description=""
                 required="true"
                 min="1"
@@ -75,7 +75,7 @@
         <field
                 name="unit_price_tax_incl"
                 type="number"
-                label="Unit price"
+                label="COM_ALFA_FORM_LBL_UNIT_PRICE"
                 description=""
                 required="true"
                 min="0"
@@ -89,7 +89,7 @@
         <field
                 name="unit_price_tax_excl"
                 type="text"
-                label="Price tax excl"
+                label="COM_ALFA_FORM_LBL_PRICE_TAX_EXCL"
                 readonly="true"
                 class="readonly"
         />
@@ -97,7 +97,7 @@
         <field
                 name="total_price_tax_incl"
                 type="text"
-                label="Total price"
+                label="COM_ALFA_FORM_LBL_TOTAL_PRICE"
                 readonly="true"
                 class="readonly"
         />
@@ -105,7 +105,7 @@
         <field
                 name="tax_rate"
                 type="text"
-                label="Tax rate"
+                label="COM_ALFA_FORM_LBL_TAX_RATE"
                 readonly="true"
                 class="readonly"
         />

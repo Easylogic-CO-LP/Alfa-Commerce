@@ -12,8 +12,8 @@
     <field
             name="decimal_symbol"
             type="text"
-            label="Decimal Separator"
-            description="Specify the character for the decimal separator, e.g., . or ,."
+            label="COM_ALFA_FORM_LBL_DECIMAL_SEPARATOR"
+            description="COM_ALFA_FORM_DESC_DECIMAL_SEPARATOR"
             default=","
             size="1"
     />
@@ -22,8 +22,8 @@
     <field
             name="thousand_separator"
             type="text"
-            label="Thousand Separator"
-            description="Specify the character for the thousand separator, e.g., , or ."
+            label="COM_ALFA_FORM_LBL_THOUSAND_SEPARATOR"
+            description="COM_ALFA_FORM_DESC_THOUSAND_SEPARATOR"
             default="."
             size="1"
     />
@@ -32,8 +32,8 @@
     <field
             name="decimal_place"
             type="number"
-            label="Decimal Places"
-            description="Enter the number of decimal places to display, e.g., 2."
+            label="COM_ALFA_FORM_LBL_DECIMAL_PLACES"
+            description="COM_ALFA_FORM_DESC_DECIMAL_PLACES"
             default="2"
             min="0"
             max="10"
@@ -43,8 +43,8 @@
             name="format_pattern"
             type="text"
             default="{price}{symbol}"
-            label="Format Pattern"
-            description="Specify the format pattern using {symbol} and {number}, e.g., {symbol}{number} or {number} {symbol}."
+            label="COM_ALFA_FORM_LBL_FORMAT_PATTERN"
+            description="COM_ALFA_FORM_DESC_FORMAT_PATTERN"
     />
 
 

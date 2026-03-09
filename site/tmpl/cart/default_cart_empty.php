@@ -1,13 +1,13 @@
 <?php
 
 use \Joomla\CMS\Uri\Uri;
+use \Joomla\CMS\Language\Text;
 
 ?>
 
 <div>
 
-    Το καλάθι σου είναι άδειο<br>
-    Βρες τα προϊόντα που θέλεις σε μοναδικές τιμές και πρόσθεσε τα στο καλάθι! <br>
-    <a href="<?php echo Uri::root(); ?>">Πίσω στην αρχική</a>
+    <?php echo Text::_('COM_ALFA_CART_EMPTY_MESSAGE'); ?><br>
+    <a href="<?php echo Uri::root(); ?>"><?php echo Text::_('COM_ALFA_CART_EMPTY_CONTINUE'); ?></a>
 
 </div>
