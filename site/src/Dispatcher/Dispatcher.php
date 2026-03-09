@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    1.0.1
  * @package    Com_Alfa
@@ -12,7 +13,6 @@ namespace Alfa\Component\Alfa\Site\Dispatcher;
 defined('_JEXEC') or die;
 
 use Joomla\CMS\Dispatcher\ComponentDispatcher;
-use Joomla\CMS\Language\Text;
 
 /**
  * ComponentDispatcher class for Com_Alfa
@@ -21,15 +21,15 @@ use Joomla\CMS\Language\Text;
  */
 class Dispatcher extends ComponentDispatcher
 {
-	/**
-	 * Dispatch a controller task. Redirecting the user if appropriate.
-	 *
-	 * @return  void
-	 *
-	 * @since   1.0.1
-	 */
-	public function dispatch()
-	{
-		parent::dispatch();
-	}
+    /**
+     * Dispatch a controller task. Redirecting the user if appropriate.
+     *
+     * @return void
+     *
+     * @since   1.0.1
+     */
+    public function dispatch()
+    {
+        parent::dispatch();
+    }
 }

@@ -16,7 +16,7 @@ class DiscountsController extends ApiController
     /**
      * The content type of the item.
      *
-     * @var    string
+     * @var string
      * @since  1.0.1
      */
     protected $contentType = 'discounts';
@@ -24,7 +24,7 @@ class DiscountsController extends ApiController
     /**
      * The default view for the display method.
      *
-     * @var    string
+     * @var string
      * @since  1.0.1
      */
     protected $default_view = 'discounts';

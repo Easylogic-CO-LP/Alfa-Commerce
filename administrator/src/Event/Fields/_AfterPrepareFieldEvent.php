@@ -9,6 +9,8 @@
 
 namespace Joomla\CMS\Event\CustomFields;
 
+use BadMethodCallException;
+
 // phpcs:disable PSR1.Files.SideEffects
 \defined('_JEXEC') or die;
 // phpcs:enable PSR1.Files.SideEffects
@@ -33,10 +35,10 @@ class AfterPrepareFieldEvent extends AbstractPrepareFieldEvent
     /**
      * Constructor.
      *
-     * @param   string  $name       The event name.
-     * @param   array   $arguments  The event arguments.
+     * @param string $name The event name.
+     * @param array $arguments The event arguments.
      *
-     * @throws  \BadMethodCallException
+     * @throws BadMethodCallException
      *
      * @since   5.0.0
      */
@@ -45,7 +47,7 @@ class AfterPrepareFieldEvent extends AbstractPrepareFieldEvent
         parent::__construct($name, $arguments);
 
         if (!\array_key_exists('value', $this->arguments)) {
-            throw new \BadMethodCallException("Argument 'value' of event {$name} is required but has not been provided");
+            throw new BadMethodCallException("Argument 'value' of event {$name} is required but has not been provided");
         }
 
         // For backward compatibility make sure the value is referenced
@@ -61,7 +63,6 @@ class AfterPrepareFieldEvent extends AbstractPrepareFieldEvent
     /**
      * Getter for the value.
      *
-     * @return  mixed
      *
      * @since  5.0.0
      */
@@ -73,7 +74,7 @@ class AfterPrepareFieldEvent extends AbstractPrepareFieldEvent
     /**
      * Update the value.
      *
-     * @return  mixed
+     * @return mixed
      *
      * @since  5.0.0
      */

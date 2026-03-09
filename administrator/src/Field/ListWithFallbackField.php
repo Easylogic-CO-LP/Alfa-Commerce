@@ -4,14 +4,13 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 
 \defined('_JEXEC') or die;
 
-use Joomla\CMS\Form\Field\ListField;
 use Joomla\CMS\Factory;
-use Joomla\CMS\Language\Text;
+use Joomla\CMS\Form\Field\ListField;
 use Joomla\CMS\HTML\HTMLHelper;
+use Joomla\CMS\Language\Text;
 
 class ListWithFallbackField extends ListField
 {
-
     protected $type = 'ListWithFallback';
 
     protected $options = [];
@@ -34,10 +33,9 @@ class ListWithFallbackField extends ListField
 
     protected function getOptions()
     {
-        
         // Get the database object
         $db = Factory::getContainer()->get('DatabaseDriver');
-        
+
         $table = (string) $this->getAttribute('table') ?: '#__alfa_items';
         $idField = (string) $this->getAttribute('id_field') ?: 'id';
         $nameField = (string) $this->getAttribute('name_field') ?: 'name';
@@ -63,7 +61,7 @@ class ListWithFallbackField extends ListField
         // print_r($db->replacePrefix((string) $query));
         // exit;
         $items = $db->loadObjectList();
-        
+
         // Initialize options array with any existing options (if defined)
         $this->options = parent::getOptions();
 
@@ -73,7 +71,6 @@ class ListWithFallbackField extends ListField
                 $this->options[] = HTMLHelper::_('select.option', $item->{$idField}, $item->{$nameField});
             }
         }
-
 
         // Check if the current element value exists in the options
         $currentValue = $this->value;
@@ -95,13 +92,12 @@ class ListWithFallbackField extends ListField
 
             $db->setQuery($nameQuery);
             $itemName = $db->loadResult();
-            $displayName = $itemName ? $itemName . ' ('.Text::_('COM_ALFA_ITEM_DELETED').')' : Text::_('COM_ALFA_ITEM_NOT_FOUND') . ' (' . $currentValue . ')';
+            $displayName = $itemName ? $itemName . ' (' . Text::_('COM_ALFA_ITEM_DELETED') . ')' : Text::_('COM_ALFA_ITEM_NOT_FOUND') . ' (' . $currentValue . ')';
 
             $this->options[] = HTMLHelper::_('select.option', $currentValue, $displayName);
         }
 
         return $this->options;
-
     }
 
     // protected function getInput()
@@ -120,6 +116,4 @@ class ListWithFallbackField extends ListField
 
     //     return $input;
     // }
-
-
 }

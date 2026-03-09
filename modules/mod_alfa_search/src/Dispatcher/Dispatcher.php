@@ -28,7 +28,7 @@ class Dispatcher extends AbstractModuleDispatcher
     /**
      * Returns the layout data.
      *
-     * @return  array
+     * @return array
      *
      * @since   4.4.0
      */
@@ -41,12 +41,12 @@ class Dispatcher extends AbstractModuleDispatcher
         $wa->useScript('mod_alfa_search.searchbar')
             ->useStyle('mod_alfa_search.searchbar');
 
-	    $basePath = Uri::base(true);
-	    $data['formAction'] = $basePath . Route::_('index.php?option=com_alfa&view=items&category_id=0');
-	    $data['ajaxAction'] = $basePath . '/index.php?option=com_ajax&module=alfa_search&method=get&format=json';
+        $basePath = Uri::base(true);
+        $data['formAction'] = $basePath . Route::_('index.php?option=com_alfa&view=items&category_id=0');
+        $data['ajaxAction'] = $basePath . '/index.php?option=com_ajax&module=alfa_search&method=get&format=json';
 
-	    $filters = $this->input->get('filter', array(), 'array');
-	    $data['currentSearch'] = isset($filters['search']) ? $filters['search'] : '';
+        $filters = $this->input->get('filter', [], 'array');
+        $data['currentSearch'] = $filters['search'] ?? '';
 
         return $data;
     }

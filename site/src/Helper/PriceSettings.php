@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Price Settings Helper - Production Ready
  *
@@ -221,9 +222,10 @@
 
 namespace Alfa\Component\Alfa\Site\Helper;
 
-use Joomla\CMS\Factory;
-use Joomla\CMS\Component\ComponentHelper;
+use Exception;
 use Joomla\CMS\Access\Access;
+use Joomla\CMS\Component\ComponentHelper;
+use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
 
 defined('_JEXEC') or die;
@@ -239,499 +241,496 @@ defined('_JEXEC') or die;
  */
 class PriceSettings
 {
-	/**
-	 * Static cache for resolved user settings
-	 * Key format: 'u{userId}'
-	 *
-	 * @var    array
-	 * @since  1.0.1
-	 */
-	private static $userCache = [];
+    /**
+     * Static cache for resolved user settings
+     * Key format: 'u{userId}'
+     *
+     * @var array
+     * @since  1.0.1
+     */
+    private static $userCache = [];
 
-	/**
-	 * Static cache for global component settings
-	 *
-	 * @var    array|null
-	 * @since  1.0.1
-	 */
-	private static $globalCache = null;
+    /**
+     * Static cache for global component settings
+     *
+     * @var array|null
+     * @since  1.0.1
+     */
+    private static $globalCache = null;
 
-	/**
-	 * Database field names for all price visibility settings
-	 * Public for builder class access
-	 *
-	 * @var    array
-	 * @since  1.0.1
-	 */
-	public const FIELDS = [
-		'base_price_show',
-		'base_price_show_label',
-		'base_price_with_discounts_show',
-		'base_price_with_discounts_show_label',
-		'discount_amount_show',
-		'discount_amount_show_label',
-		'tax_amount_show',
-		'tax_amount_show_label',
-		'base_price_with_tax_show',
-		'base_price_with_tax_show_label',
-		'final_price_show',
-		'final_price_show_label',
-		'price_breakdown_show',
-	];
+    /**
+     * Database field names for all price visibility settings
+     * Public for builder class access
+     *
+     * @var array
+     * @since  1.0.1
+     */
+    public const FIELDS = [
+        'base_price_show',
+        'base_price_show_label',
+        'base_price_with_discounts_show',
+        'base_price_with_discounts_show_label',
+        'discount_amount_show',
+        'discount_amount_show_label',
+        'tax_amount_show',
+        'tax_amount_show_label',
+        'base_price_with_tax_show',
+        'base_price_with_tax_show_label',
+        'final_price_show',
+        'final_price_show_label',
+        'price_breakdown_show',
+    ];
 
-	/**
-	 * Element name aliases for user-friendly API
-	 * Maps common variations and abbreviations to internal field names
-	 * Public for builder class access
-	 *
-	 * @var    array
-	 * @since  1.0.1
-	 */
-	public const ALIASES = [
-		// Base price
-		'base' => 'base_price',
-		'base_price' => 'base_price',
-		'baseprice' => 'base_price',
-		'original' => 'base_price',
-		'original_price' => 'base_price',
+    /**
+     * Element name aliases for user-friendly API
+     * Maps common variations and abbreviations to internal field names
+     * Public for builder class access
+     *
+     * @var array
+     * @since  1.0.1
+     */
+    public const ALIASES = [
+        // Base price
+        'base' => 'base_price',
+        'base_price' => 'base_price',
+        'baseprice' => 'base_price',
+        'original' => 'base_price',
+        'original_price' => 'base_price',
 
-		// Subtotal (after discounts, before tax)
-		'subtotal' => 'base_price_with_discounts',
-		'sub' => 'base_price_with_discounts',
-		'after_discount' => 'base_price_with_discounts',
-		'base_price_with_discounts' => 'base_price_with_discounts',
+        // Subtotal (after discounts, before tax)
+        'subtotal' => 'base_price_with_discounts',
+        'sub' => 'base_price_with_discounts',
+        'after_discount' => 'base_price_with_discounts',
+        'base_price_with_discounts' => 'base_price_with_discounts',
 
-		// Discount
-		'discount' => 'discount_amount',
-		'discount_amount' => 'discount_amount',
-		'savings' => 'discount_amount',
-		'save' => 'discount_amount',
+        // Discount
+        'discount' => 'discount_amount',
+        'discount_amount' => 'discount_amount',
+        'savings' => 'discount_amount',
+        'save' => 'discount_amount',
 
-		// Tax
-		'tax' => 'tax_amount',
-		'tax_amount' => 'tax_amount',
-		'vat' => 'tax_amount',
+        // Tax
+        'tax' => 'tax_amount',
+        'tax_amount' => 'tax_amount',
+        'vat' => 'tax_amount',
 
-		// Base with tax
-		'base_with_tax' => 'base_price_with_tax',
-		'base_price_with_tax' => 'base_price_with_tax',
+        // Base with tax
+        'base_with_tax' => 'base_price_with_tax',
+        'base_price_with_tax' => 'base_price_with_tax',
 
-		// Final price
-		'final' => 'final_price',
-		'final_price' => 'final_price',
-		'total' => 'final_price',
-		'price' => 'final_price',
+        // Final price
+        'final' => 'final_price',
+        'final_price' => 'final_price',
+        'total' => 'final_price',
+        'price' => 'final_price',
 
-		// Breakdown
-		'breakdown' => 'price_breakdown',
-		'price_breakdown' => 'price_breakdown',
-		'details' => 'price_breakdown',
-		'calculation' => 'price_breakdown',
-	];
+        // Breakdown
+        'breakdown' => 'price_breakdown',
+        'price_breakdown' => 'price_breakdown',
+        'details' => 'price_breakdown',
+        'calculation' => 'price_breakdown',
+    ];
 
-	// ========================================================================
-	// PRIMARY API
-	// ========================================================================
+    // ========================================================================
+    // PRIMARY API
+    // ========================================================================
 
-	/**
-	 * Get price settings for specified user
-	 *
-	 * Resolution order:
-	 * 1. User group settings (if configured)
-	 * 2. Global component settings (fallback)
-	 *
-	 * Results are cached statically for the duration of the request.
-	 *
-	 * @param   int|null  $userId  User ID (null for current user)
-	 *
-	 * @return  array  Complete settings array with all field values
-	 * @since   1.0.1
-	 */
-	public static function get(?int $userId = null): array
-	{
-		// Resolve user ID
-		if ($userId === null) {
-			try {
-				$user = Factory::getApplication()->getIdentity();
-				$userId = $user->id ?? 0;
-			} catch (\Exception $e) {
-				self::log('Failed to get current user', $e);
-				$userId = 0;
-			}
-		}
+    /**
+     * Get price settings for specified user
+     *
+     * Resolution order:
+     * 1. User group settings (if configured)
+     * 2. Global component settings (fallback)
+     *
+     * Results are cached statically for the duration of the request.
+     *
+     * @param int|null $userId User ID (null for current user)
+     *
+     * @return array Complete settings array with all field values
+     * @since   1.0.1
+     */
+    public static function get(?int $userId = null): array
+    {
+        // Resolve user ID
+        if ($userId === null) {
+            try {
+                $user = Factory::getApplication()->getIdentity();
+                $userId = $user->id ?? 0;
+            } catch (Exception $e) {
+                self::log('Failed to get current user', $e);
+                $userId = 0;
+            }
+        }
 
-		// Check cache
-		$cacheKey = 'u' . $userId;
-		if (isset(self::$userCache[$cacheKey])) {
-			return self::$userCache[$cacheKey];
-		}
+        // Check cache
+        $cacheKey = 'u' . $userId;
+        if (isset(self::$userCache[$cacheKey])) {
+            return self::$userCache[$cacheKey];
+        }
 
-		// Guest user - use global settings
-		if ($userId <= 0) {
-			$settings = self::global();
-			self::$userCache[$cacheKey] = $settings;
-			return $settings;
-		}
+        // Guest user - use global settings
+        if ($userId <= 0) {
+            $settings = self::global();
+            self::$userCache[$cacheKey] = $settings;
+            return $settings;
+        }
 
-		// Resolve from user groups
-		$settings = self::resolveUserGroup($userId);
+        // Resolve from user groups
+        $settings = self::resolveUserGroup($userId);
 
-		// Cache and return
-		self::$userCache[$cacheKey] = $settings;
-		return $settings;
-	}
+        // Cache and return
+        self::$userCache[$cacheKey] = $settings;
+        return $settings;
+    }
 
-	/**
-	 * Get global component settings
-	 *
-	 * Loads from component configuration and caches for request duration.
-	 *
-	 * @return  array  Global settings array
-	 * @since   1.0.1
-	 */
-	public static function global(): array
-	{
-		if (self::$globalCache !== null) {
-			return self::$globalCache;
-		}
+    /**
+     * Get global component settings
+     *
+     * Loads from component configuration and caches for request duration.
+     *
+     * @return array Global settings array
+     * @since   1.0.1
+     */
+    public static function global(): array
+    {
+        if (self::$globalCache !== null) {
+            return self::$globalCache;
+        }
 
-		try {
-			$params = ComponentHelper::getParams('com_alfa');
-			$settings = [];
+        try {
+            $params = ComponentHelper::getParams('com_alfa');
+            $settings = [];
 
-			foreach (self::FIELDS as $field) {
-				$settings[$field] = (int) $params->get($field, 1);
-			}
+            foreach (self::FIELDS as $field) {
+                $settings[$field] = (int) $params->get($field, 1);
+            }
 
-			self::$globalCache = $settings;
-			return $settings;
-		} catch (\Exception $e) {
-			self::log('Failed to load global settings', $e);
-			return self::defaults();
-		}
-	}
+            self::$globalCache = $settings;
+            return $settings;
+        } catch (Exception $e) {
+            self::log('Failed to load global settings', $e);
+            return self::defaults();
+        }
+    }
 
-	// ========================================================================
-	// PRESET METHODS
-	// ========================================================================
+    // ========================================================================
+    // PRESET METHODS
+    // ========================================================================
 
-	/**
-	 * Minimal preset configuration
-	 *
-	 * Shows only the final price without label.
-	 * Suitable for compact displays such as sidebar widgets or product cards.
-	 *
-	 * @return  array  Settings array
-	 * @since   1.0.1
-	 */
-	public static function minimal(): array
-	{
-		$settings = self::hideAll();
-		$settings['final_price_show'] = 1;
-		$settings['final_price_show_label'] = 0;
-		return $settings;
-	}
+    /**
+     * Minimal preset configuration
+     *
+     * Shows only the final price without label.
+     * Suitable for compact displays such as sidebar widgets or product cards.
+     *
+     * @return array Settings array
+     * @since   1.0.1
+     */
+    public static function minimal(): array
+    {
+        $settings = self::hideAll();
+        $settings['final_price_show'] = 1;
+        $settings['final_price_show_label'] = 0;
+        return $settings;
+    }
 
-	/**
-	 * Compact preset configuration
-	 *
-	 * Uses current user's settings but removes all labels.
-	 * Suitable for product listings and grid views.
-	 *
-	 * @return  array  Settings array
-	 * @since   1.0.1
-	 */
-	public static function compact(): array
-	{
-		return self::removeLabels(self::get());
-	}
+    /**
+     * Compact preset configuration
+     *
+     * Uses current user's settings but removes all labels.
+     * Suitable for product listings and grid views.
+     *
+     * @return array Settings array
+     * @since   1.0.1
+     */
+    public static function compact(): array
+    {
+        return self::removeLabels(self::get());
+    }
 
-	/**
-	 * Full preset configuration
-	 *
-	 * Shows all price elements with labels.
-	 * Suitable for detailed product pages.
-	 *
-	 * @return  array  Settings array
-	 * @since   1.0.1
-	 */
-	public static function full(): array
-	{
-		$settings = [];
-		foreach (self::FIELDS as $field) {
-			$settings[$field] = 1;
-		}
-		return $settings;
-	}
+    /**
+     * Full preset configuration
+     *
+     * Shows all price elements with labels.
+     * Suitable for detailed product pages.
+     *
+     * @return array Settings array
+     * @since   1.0.1
+     */
+    public static function full(): array
+    {
+        $settings = [];
+        foreach (self::FIELDS as $field) {
+            $settings[$field] = 1;
+        }
+        return $settings;
+    }
 
-	// ========================================================================
-	// SIMPLE FILTER METHODS
-	// ========================================================================
+    // ========================================================================
+    // SIMPLE FILTER METHODS
+    // ========================================================================
 
-	/**
-	 * Show only specified elements (hide all others)
-	 *
-	 * Accepts element names with smart matching - aliases and common
-	 * variations are automatically resolved. Invalid element names
-	 * are silently ignored to prevent errors.
-	 *
-	 * @param   string  ...$elements  Element names to show
-	 *
-	 * @return  array  Settings array
-	 * @since   1.0.1
-	 */
-	public static function only(string ...$elements): array
-	{
-		$settings = self::hideAll();
+    /**
+     * Show only specified elements (hide all others)
+     *
+     * Accepts element names with smart matching - aliases and common
+     * variations are automatically resolved. Invalid element names
+     * are silently ignored to prevent errors.
+     *
+     * @param string ...$elements Element names to show
+     *
+     * @return array Settings array
+     * @since   1.0.1
+     */
+    public static function only(string ...$elements): array
+    {
+        $settings = self::hideAll();
 
-		foreach ($elements as $element) {
-			$field = self::resolve($element);
-			if ($field !== null) {
-				$settings[$field . '_show'] = 1;
-				$settings[$field . '_show_label'] = 1;
-			}
-		}
+        foreach ($elements as $element) {
+            $field = self::resolve($element);
+            if ($field !== null) {
+                $settings[$field . '_show'] = 1;
+                $settings[$field . '_show_label'] = 1;
+            }
+        }
 
-		return $settings;
-	}
+        return $settings;
+    }
 
-	/**
-	 * Hide specified elements (show all others)
-	 *
-	 * Starts with current user's settings and hides specified elements.
-	 * Invalid element names are silently ignored.
-	 *
-	 * @param   string  ...$elements  Element names to hide
-	 *
-	 * @return  array  Settings array
-	 * @since   1.0.1
-	 */
-	public static function except(string ...$elements): array
-	{
-		$settings = self::get();
+    /**
+     * Hide specified elements (show all others)
+     *
+     * Starts with current user's settings and hides specified elements.
+     * Invalid element names are silently ignored.
+     *
+     * @param string ...$elements Element names to hide
+     *
+     * @return array Settings array
+     * @since   1.0.1
+     */
+    public static function except(string ...$elements): array
+    {
+        $settings = self::get();
 
-		foreach ($elements as $element) {
-			$field = self::resolve($element);
-			if ($field !== null) {
-				$settings[$field . '_show'] = 0;
-				$settings[$field . '_show_label'] = 0;
-			}
-		}
+        foreach ($elements as $element) {
+            $field = self::resolve($element);
+            if ($field !== null) {
+                $settings[$field . '_show'] = 0;
+                $settings[$field . '_show_label'] = 0;
+            }
+        }
 
-		return $settings;
-	}
+        return $settings;
+    }
 
-	// ========================================================================
-	// BUILDER PATTERN
-	// ========================================================================
+    // ========================================================================
+    // BUILDER PATTERN
+    // ========================================================================
 
-	/**
-	 * Create fluent settings builder
-	 *
-	 * Provides chainable API for fine-grained control over price visibility.
-	 *
-	 * @return  PriceSettingsBuilder  Builder instance
-	 * @since   1.0.1
-	 */
-	public static function make(): PriceSettingsBuilder
-	{
-		return new PriceSettingsBuilder();
-	}
+    /**
+     * Create fluent settings builder
+     *
+     * Provides chainable API for fine-grained control over price visibility.
+     *
+     * @return PriceSettingsBuilder Builder instance
+     * @since   1.0.1
+     */
+    public static function make(): PriceSettingsBuilder
+    {
+        return new PriceSettingsBuilder();
+    }
 
-	// ========================================================================
-	// INTERNAL RESOLUTION METHODS
-	// ========================================================================
+    // ========================================================================
+    // INTERNAL RESOLUTION METHODS
+    // ========================================================================
 
-	/**
-	 * Resolve element name to internal field name
-	 *
-	 * Performs case-insensitive matching with normalization of spaces,
-	 * hyphens, and underscores. Returns null for unrecognized names.
-	 *
-	 * @param   string  $element  User-provided element name
-	 *
-	 * @return  string|null  Internal field name or null if not found
-	 * @since   1.0.1
-	 */
-	private static function resolve(string $element): ?string
-	{
-		// Normalize: lowercase, remove separators
-		$normalized = strtolower(trim($element));
-		$normalized = str_replace([' ', '-', '_'], '', $normalized);
+    /**
+     * Resolve element name to internal field name
+     *
+     * Performs case-insensitive matching with normalization of spaces,
+     * hyphens, and underscores. Returns null for unrecognized names.
+     *
+     * @param string $element User-provided element name
+     *
+     * @return string|null Internal field name or null if not found
+     * @since   1.0.1
+     */
+    private static function resolve(string $element): ?string
+    {
+        // Normalize: lowercase, remove separators
+        $normalized = strtolower(trim($element));
+        $normalized = str_replace([' ', '-', '_'], '', $normalized);
 
-		// Match against aliases
-		foreach (self::ALIASES as $alias => $field) {
-			if (str_replace('_', '', $alias) === $normalized) {
-				return $field;
-			}
-		}
+        // Match against aliases
+        foreach (self::ALIASES as $alias => $field) {
+            if (str_replace('_', '', $alias) === $normalized) {
+                return $field;
+            }
+        }
 
-		return null;
-	}
+        return null;
+    }
 
-	/**
-	 * Resolve settings from user group configuration
-	 *
-	 * Queries user group price settings table and merges with global settings.
-	 * Falls back to global settings on any failure.
-	 *
-	 * @param   int  $userId  User ID
-	 *
-	 * @return  array  Resolved settings array
-	 * @since   1.0.1
-	 */
-	private static function resolveUserGroup(int $userId): array
-	{
-		try {
-			$groups = Access::getGroupsByUser($userId, false);
+    /**
+     * Resolve settings from user group configuration
+     *
+     * Queries user group price settings table and merges with global settings.
+     * Falls back to global settings on any failure.
+     *
+     * @param int $userId User ID
+     *
+     * @return array Resolved settings array
+     * @since   1.0.1
+     */
+    private static function resolveUserGroup(int $userId): array
+    {
+        try {
+            $groups = Access::getGroupsByUser($userId, false);
 
-			if (empty($groups)) {
-				return self::global();
-			}
+            if (empty($groups)) {
+                return self::global();
+            }
 
-			$db = Factory::getContainer()->get('DatabaseDriver');
-			$query = $db->getQuery(true)
-				->select('params')
-				->from('#__alfa_usergroup_price_settings')
-				->where('usergroup_id IN (' . implode(',', array_map('intval', $groups)) . ')')
-				->order('usergroup_id DESC')
-				->setLimit(1);
+            $db = Factory::getContainer()->get('DatabaseDriver');
+            $query = $db->getQuery(true)
+                ->select('params')
+                ->from('#__alfa_usergroup_price_settings')
+                ->where('usergroup_id IN (' . implode(',', array_map('intval', $groups)) . ')')
+                ->order('usergroup_id DESC')
+                ->setLimit(1);
 
-			$db->setQuery($query);
-			$params = $db->loadResult();
+            $db->setQuery($query);
+            $params = $db->loadResult();
 
-			if (!$params) {
-				return self::global();
-			}
+            if (!$params) {
+                return self::global();
+            }
 
-			$groupSettings = json_decode($params, true);
-			if (!is_array($groupSettings)) {
-				return self::global();
-			}
+            $groupSettings = json_decode($params, true);
+            if (!is_array($groupSettings)) {
+                return self::global();
+            }
 
-			return self::merge($groupSettings, self::global());
+            return self::merge($groupSettings, self::global());
+        } catch (Exception $e) {
+            self::log('Failed to resolve user group settings', $e);
+            return self::global();
+        }
+    }
 
-		} catch (\Exception $e) {
-			self::log('Failed to resolve user group settings', $e);
-			return self::global();
-		}
-	}
+    /**
+     * Merge group settings with global fallback
+     *
+     * Group values of 0 or 1 are used directly; all other values
+     * fall back to global configuration.
+     *
+     * @param array $group User group settings
+     * @param array $global Global settings
+     *
+     * @return array Merged settings array
+     * @since   1.0.1
+     */
+    private static function merge(array $group, array $global): array
+    {
+        $merged = [];
 
-	/**
-	 * Merge group settings with global fallback
-	 *
-	 * Group values of 0 or 1 are used directly; all other values
-	 * fall back to global configuration.
-	 *
-	 * @param   array  $group   User group settings
-	 * @param   array  $global  Global settings
-	 *
-	 * @return  array  Merged settings array
-	 * @since   1.0.1
-	 */
-	private static function merge(array $group, array $global): array
-	{
-		$merged = [];
+        foreach (self::FIELDS as $field) {
+            $value = isset($group[$field]) ? (int) $group[$field] : -1;
+            $merged[$field] = ($value === 0 || $value === 1) ? $value : ($global[$field] ?? 1);
+        }
 
-		foreach (self::FIELDS as $field) {
-			$value = isset($group[$field]) ? (int) $group[$field] : -1;
-			$merged[$field] = ($value === 0 || $value === 1) ? $value : ($global[$field] ?? 1);
-		}
+        return $merged;
+    }
 
-		return $merged;
-	}
+    // ========================================================================
+    // UTILITY METHODS
+    // ========================================================================
 
-	// ========================================================================
-	// UTILITY METHODS
-	// ========================================================================
+    /**
+     * Create settings array with all elements hidden
+     *
+     * @return array Settings array with all values set to 0
+     * @since   1.0.1
+     */
+    private static function hideAll(): array
+    {
+        $settings = [];
+        foreach (self::FIELDS as $field) {
+            $settings[$field] = 0;
+        }
+        return $settings;
+    }
 
-	/**
-	 * Create settings array with all elements hidden
-	 *
-	 * @return  array  Settings array with all values set to 0
-	 * @since   1.0.1
-	 */
-	private static function hideAll(): array
-	{
-		$settings = [];
-		foreach (self::FIELDS as $field) {
-			$settings[$field] = 0;
-		}
-		return $settings;
-	}
+    /**
+     * Remove all label visibility flags from settings
+     *
+     * @param array $settings Settings array to modify
+     *
+     * @return array Settings array with all labels hidden
+     * @since   1.0.1
+     */
+    private static function removeLabels(array $settings): array
+    {
+        foreach (self::FIELDS as $field) {
+            if (strpos($field, '_show_label') !== false) {
+                $settings[$field] = 0;
+            }
+        }
+        return $settings;
+    }
 
-	/**
-	 * Remove all label visibility flags from settings
-	 *
-	 * @param   array  $settings  Settings array to modify
-	 *
-	 * @return  array  Settings array with all labels hidden
-	 * @since   1.0.1
-	 */
-	private static function removeLabels(array $settings): array
-	{
-		foreach (self::FIELDS as $field) {
-			if (strpos($field, '_show_label') !== false) {
-				$settings[$field] = 0;
-			}
-		}
-		return $settings;
-	}
+    /**
+     * Get default settings (all visible)
+     *
+     * @return array Default settings array
+     * @since   1.0.1
+     */
+    private static function defaults(): array
+    {
+        $settings = [];
+        foreach (self::FIELDS as $field) {
+            $settings[$field] = 1;
+        }
+        return $settings;
+    }
 
-	/**
-	 * Get default settings (all visible)
-	 *
-	 * @return  array  Default settings array
-	 * @since   1.0.1
-	 */
-	private static function defaults(): array
-	{
-		$settings = [];
-		foreach (self::FIELDS as $field) {
-			$settings[$field] = 1;
-		}
-		return $settings;
-	}
+    /**
+     * Log error to Joomla logging system
+     *
+     * Errors are logged but never displayed to end users to ensure
+     * graceful degradation.
+     *
+     * @param string $message Error description
+     * @param Exception $exception Exception object
+     *
+     * @since   1.0.1
+     */
+    private static function log(string $message, Exception $exception): void
+    {
+        try {
+            Log::add(
+                $message . ': ' . $exception->getMessage(),
+                Log::WARNING,
+                'com_alfa.prices',
+            );
+        } catch (Exception $e) {
+            // Logging failed - continue silently
+        }
+    }
 
-	/**
-	 * Log error to Joomla logging system
-	 *
-	 * Errors are logged but never displayed to end users to ensure
-	 * graceful degradation.
-	 *
-	 * @param   string      $message    Error description
-	 * @param   \Exception  $exception  Exception object
-	 *
-	 * @return  void
-	 * @since   1.0.1
-	 */
-	private static function log(string $message, \Exception $exception): void
-	{
-		try {
-			Log::add(
-				$message . ': ' . $exception->getMessage(),
-				Log::WARNING,
-				'com_alfa.prices'
-			);
-		} catch (\Exception $e) {
-			// Logging failed - continue silently
-		}
-	}
-
-	/**
-	 * Clear static cache
-	 *
-	 * Primarily for testing purposes; cache is automatically
-	 * cleared between requests.
-	 *
-	 * @return  void
-	 * @since   1.0.1
-	 */
-	public static function clearCache(): void
-	{
-		self::$userCache = [];
-		self::$globalCache = null;
-	}
+    /**
+     * Clear static cache
+     *
+     * Primarily for testing purposes; cache is automatically
+     * cleared between requests.
+     *
+     * @since   1.0.1
+     */
+    public static function clearCache(): void
+    {
+        self::$userCache = [];
+        self::$globalCache = null;
+    }
 }
 
 /**
@@ -745,122 +744,122 @@ class PriceSettings
  */
 class PriceSettingsBuilder
 {
-	/**
-	 * Settings being constructed
-	 *
-	 * @var    array
-	 * @since  1.0.1
-	 */
-	private $settings = [];
+    /**
+     * Settings being constructed
+     *
+     * @var array
+     * @since  1.0.1
+     */
+    private $settings = [];
 
-	/**
-	 * Constructor
-	 *
-	 * Initializes settings with all elements hidden.
-	 *
-	 * @since  1.0.1
-	 */
-	public function __construct()
-	{
-		foreach (PriceSettings::FIELDS as $field) {
-			$this->settings[$field] = 0;
-		}
-	}
+    /**
+     * Constructor
+     *
+     * Initializes settings with all elements hidden.
+     *
+     * @since  1.0.1
+     */
+    public function __construct()
+    {
+        foreach (PriceSettings::FIELDS as $field) {
+            $this->settings[$field] = 0;
+        }
+    }
 
-	/**
-	 * Show specified element
-	 *
-	 * Invalid element names are silently ignored to maintain chain integrity.
-	 *
-	 * @param   string  $element    Element name
-	 * @param   bool    $withLabel  Show label (default: true)
-	 *
-	 * @return  self  Builder instance for chaining
-	 * @since   1.0.1
-	 */
-	public function show(string $element, bool $withLabel = true): self
-	{
-		$field = $this->resolveField($element);
+    /**
+     * Show specified element
+     *
+     * Invalid element names are silently ignored to maintain chain integrity.
+     *
+     * @param string $element Element name
+     * @param bool $withLabel Show label (default: true)
+     *
+     * @return self Builder instance for chaining
+     * @since   1.0.1
+     */
+    public function show(string $element, bool $withLabel = true): self
+    {
+        $field = $this->resolveField($element);
 
-		if ($field !== null) {
-			$this->settings[$field . '_show'] = 1;
-			$this->settings[$field . '_show_label'] = $withLabel ? 1 : 0;
-		}
+        if ($field !== null) {
+            $this->settings[$field . '_show'] = 1;
+            $this->settings[$field . '_show_label'] = $withLabel ? 1 : 0;
+        }
 
-		return $this;
-	}
+        return $this;
+    }
 
-	/**
-	 * Hide specified element
-	 *
-	 * Invalid element names are silently ignored.
-	 *
-	 * @param   string  $element  Element name
-	 *
-	 * @return  self  Builder instance for chaining
-	 * @since   1.0.1
-	 */
-	public function hide(string $element): self
-	{
-		$field = $this->resolveField($element);
+    /**
+     * Hide specified element
+     *
+     * Invalid element names are silently ignored.
+     *
+     * @param string $element Element name
+     *
+     * @return self Builder instance for chaining
+     * @since   1.0.1
+     */
+    public function hide(string $element): self
+    {
+        $field = $this->resolveField($element);
 
-		if ($field !== null) {
-			$this->settings[$field . '_show'] = 0;
-			$this->settings[$field . '_show_label'] = 0;
-		}
+        if ($field !== null) {
+            $this->settings[$field . '_show'] = 0;
+            $this->settings[$field . '_show_label'] = 0;
+        }
 
-		return $this;
-	}
+        return $this;
+    }
 
-	/**
-	 * Remove all label visibility
-	 *
-	 * @return  self  Builder instance for chaining
-	 * @since   1.0.1
-	 */
-	public function withoutLabels(): self
-	{
-		foreach (PriceSettings::FIELDS as $field) {
-			if (strpos($field, '_show_label') !== false) {
-				$this->settings[$field] = 0;
-			}
-		}
+    /**
+     * Remove all label visibility
+     *
+     * @return self Builder instance for chaining
+     * @since   1.0.1
+     */
+    public function withoutLabels(): self
+    {
+        foreach (PriceSettings::FIELDS as $field) {
+            if (strpos($field, '_show_label') !== false) {
+                $this->settings[$field] = 0;
+            }
+        }
 
-		return $this;
-	}
+        return $this;
+    }
 
-	/**
-	 * Build and return final settings array
-	 *
-	 * @return  array  Complete settings array
-	 * @since   1.0.1
-	 */
-	public function get(): array
-	{
-		return $this->settings;
-	}
+    /**
+     * Build and return final settings array
+     *
+     * @return array Complete settings array
+     * @since   1.0.1
+     */
+    public function get(): array
+    {
+        return $this->settings;
+    }
 
-	/**
-	 * Resolve element name to internal field name
-	 *
-	 * Duplicates PriceSettings::resolve() logic for builder independence.
-	 *
-	 * @param   string  $element  Element name
-	 *
-	 * @return  string|null  Field name or null if not found
-	 * @since   1.0.1
-	 */
-	private function resolveField(string $element): ?string
-	{
-		$normalized = strtolower(trim($element));
-		$normalized = str_replace([' ', '-', '_'], '', $normalized);
+    /**
+     * Resolve element name to internal field name
+     *
+     * Duplicates PriceSettings::resolve() logic for builder independence.
+     *
+     * @param string $element Element name
+     *
+     * @return string|null Field name or null if not found
+     * @since   1.0.1
+     */
+    private function resolveField(string $element): ?string
+    {
+        $normalized = strtolower(trim($element));
+        $normalized = str_replace([' ', '-', '_'], '', $normalized);
 
-		foreach (PriceSettings::ALIASES as $alias => $field) {
-			if (str_replace('_', '', $alias) === $normalized) {
-				return $field;
-			}
-		}
+        foreach (PriceSettings::ALIASES as $alias => $field) {
+            if (str_replace('_', '', $alias) === $normalized) {
+                return $field;
+            }
+        }
 
-		return null;
-	}
+        return null;
+    }
 }

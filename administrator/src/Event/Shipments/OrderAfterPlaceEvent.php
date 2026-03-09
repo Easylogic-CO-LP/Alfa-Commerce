@@ -11,6 +11,6 @@ class OrderAfterPlaceEvent extends ShipmentsEvent
 
     public function setOrder($order)
     {
-        $this->setArgument("subject", $order);
+        $this->setArgument('subject', $order);
     }
 }

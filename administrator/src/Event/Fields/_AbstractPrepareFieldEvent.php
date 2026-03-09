@@ -9,6 +9,8 @@
 
 namespace Joomla\CMS\Event\CustomFields;
 
+use BadMethodCallException;
+
 // phpcs:disable PSR1.Files.SideEffects
 \defined('_JEXEC') or die;
 // phpcs:enable PSR1.Files.SideEffects
@@ -33,10 +35,10 @@ abstract class AbstractPrepareFieldEvent extends CustomFieldsEvent
     /**
      * Constructor.
      *
-     * @param   string  $name       The event name.
-     * @param   array   $arguments  The event arguments.
+     * @param string $name The event name.
+     * @param array $arguments The event arguments.
      *
-     * @throws  \BadMethodCallException
+     * @throws BadMethodCallException
      *
      * @since   5.0.0
      */
@@ -45,20 +47,19 @@ abstract class AbstractPrepareFieldEvent extends CustomFieldsEvent
         parent::__construct($name, $arguments);
 
         if (!\array_key_exists('context', $this->arguments)) {
-            throw new \BadMethodCallException("Argument 'context' of event {$name} is required but has not been provided");
+            throw new BadMethodCallException("Argument 'context' of event {$name} is required but has not been provided");
         }
 
         if (!\array_key_exists('item', $this->arguments)) {
-            throw new \BadMethodCallException("Argument 'item' of event {$name} is required but has not been provided");
+            throw new BadMethodCallException("Argument 'item' of event {$name} is required but has not been provided");
         }
     }
 
     /**
      * Setter for the context argument.
      *
-     * @param   string  $value  The value to set
+     * @param string $value The value to set
      *
-     * @return  string
      *
      * @since  5.0.0
      */
@@ -70,9 +71,8 @@ abstract class AbstractPrepareFieldEvent extends CustomFieldsEvent
     /**
      * Setter for the item argument.
      *
-     * @param   object  $value  The value to set
+     * @param object $value The value to set
      *
-     * @return  object
      *
      * @since  5.0.0
      */
@@ -84,7 +84,6 @@ abstract class AbstractPrepareFieldEvent extends CustomFieldsEvent
     /**
      * Getter for the field.
      *
-     * @return  object
      *
      * @since  5.0.0
      */
@@ -96,7 +95,6 @@ abstract class AbstractPrepareFieldEvent extends CustomFieldsEvent
     /**
      * Getter for the context.
      *
-     * @return  string
      *
      * @since  5.0.0
      */
@@ -108,7 +106,6 @@ abstract class AbstractPrepareFieldEvent extends CustomFieldsEvent
     /**
      * Getter for the item.
      *
-     * @return  object
      *
      * @since  5.0.0
      */
