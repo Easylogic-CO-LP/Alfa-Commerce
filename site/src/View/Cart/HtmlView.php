@@ -29,19 +29,19 @@ use stdClass;
  */
 class HtmlView extends BaseHtmlView
 {
-	protected $state;
+    protected $state;
 
-	protected $cart;
+    protected $cart;
 
-	protected $items;
+    protected $items;
 
     protected $app;
 
-	protected $payment_methods;
+    protected $payment_methods;
 
-	protected $form;
+    protected $form;
 
-	protected $params;
+    protected $params;
 
     protected $event;
 
@@ -91,11 +91,10 @@ class HtmlView extends BaseHtmlView
             $this->_layout == 'default_order_completed') {
             $orderId = $app->getUserState('com_alfa.order_id');
 
-			if ($orderId == null)
-			{
-				$app->enqueueMessage('Order ID is not set.', 'error');
-				$app->redirect(Route::_('/index.php'));//redirect to home page
-			}
+            if ($orderId == null) {
+                $app->enqueueMessage('Order ID is not set.', 'error');
+                $app->redirect(Route::_('/index.php'));//redirect to home page
+            }
 
             $ordersModel = Factory::getApplication()->bootComponent('com_alfa')
                 ->getMVCFactory()->createModel('Order', 'Administrator', ['ignore_request' => true]);
@@ -180,12 +179,10 @@ class HtmlView extends BaseHtmlView
             }
         }
 
-				$paymentEvent = new PaymentsOrderCompleteViewEvent($onOrderCompleteViewEventName, [
-					'subject' => $orderData,
-					'method'  => $orderData->selected_payment
-				]);
+        $this->_prepareDocument();
 
-				$this->app->bootPlugin($orderData->selected_payment->type, "alfa-payments")->{$onOrderCompleteViewEventName}($paymentEvent);
+        parent::display($tpl);
+    }
 
     /**
      * Prepares the document
@@ -200,8 +197,9 @@ class HtmlView extends BaseHtmlView
         $menus = $app->getMenu();
         $title = null;
 
-					return;
-				}
+        // Because the application sets a default page title,
+        // We need to get it from the menu manufacturer itself
+        $menu = $menus->getActive();
 
         if ($menu) {
             $this->params->def('page_heading', $this->params->get('page_title', $menu->title));

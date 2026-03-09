@@ -58,7 +58,7 @@ class ItemModel extends AdminModel
      */
     public $typeAlias = 'com_alfa.item';
 
-	protected $formName = 'item';
+    protected $formName = 'item';
 
     /**
      * Method to get the record form.
@@ -74,12 +74,12 @@ class ItemModel extends AdminModel
     protected $item = null;
     protected $batch_copymove = false;
 
-	protected $batch_commands = [
-		'category_id'     => 'batchCategory',
-		'manufacturer_id' => 'batchManufacturer',
-		'user_id'         => 'batchUser',
-		'usergroup_id'    => 'batchUserGroup',
-	];
+    protected $batch_commands = [
+        'category_id' => 'batchCategory',
+        'manufacturer_id' => 'batchManufacturer',
+        'user_id' => 'batchUser',
+        'usergroup_id' => 'batchUserGroup',
+    ];
 
     protected function batchUser($value, $pks, $contexts)
     {
@@ -98,8 +98,8 @@ class ItemModel extends AdminModel
 
         $app->enqueueMessage('Users setted successfully', 'info');
 
-		return true;
-	}
+        return true;
+    }
 
     protected function batchUserGroup($value, $pks, $contexts)
     {
@@ -117,8 +117,8 @@ class ItemModel extends AdminModel
 
         $app->enqueueMessage('Usergroup setted successfully', 'info');
 
-		return true;
-	}
+        return true;
+    }
 
     protected function batchManufacturer($value, $pks, $contexts)
     {
@@ -136,8 +136,8 @@ class ItemModel extends AdminModel
 
         $app->enqueueMessage('Manufacturers setted successfully', 'info');
 
-		return true;
-	}
+        return true;
+    }
 
     protected function batchCategory($value, $pks, $contexts)
     {
@@ -175,24 +175,24 @@ class ItemModel extends AdminModel
             return false;
         }
 
-		// Modify the form based on access controls.
-		// if (!$this->canEditState((object) $data)) {
-		//     // Disable fields for display.
-		//     $form->setFieldAttribute('featured', 'disabled', 'true');
-		//     $form->setFieldAttribute('ordering', 'disabled', 'true');
-		//     $form->setFieldAttribute('published', 'disabled', 'true');
+        // Modify the form based on access controls.
+        // if (!$this->canEditState((object) $data)) {
+        //     // Disable fields for display.
+        //     $form->setFieldAttribute('featured', 'disabled', 'true');
+        //     $form->setFieldAttribute('ordering', 'disabled', 'true');
+        //     $form->setFieldAttribute('published', 'disabled', 'true');
 
-		//     // Disable fields while saving.
-		//     // The controller has already verified this is a record you can edit.
-		//     $form->setFieldAttribute('featured', 'filter', 'unset');
-		//     $form->setFieldAttribute('ordering', 'filter', 'unset');
-		//     $form->setFieldAttribute('published', 'filter', 'unset');
-		// }
+        //     // Disable fields while saving.
+        //     // The controller has already verified this is a record you can edit.
+        //     $form->setFieldAttribute('featured', 'filter', 'unset');
+        //     $form->setFieldAttribute('ordering', 'filter', 'unset');
+        //     $form->setFieldAttribute('published', 'filter', 'unset');
+        // }
 
-		// // Don't allow to change the created_by user if not allowed to access com_users.
-		// if (!$this->getCurrentUser()->authorise('core.manage', 'com_users')) {
-		//     $form->setFieldAttribute('created_by', 'filter', 'unset');
-		// }
+        // // Don't allow to change the created_by user if not allowed to access com_users.
+        // if (!$this->getCurrentUser()->authorise('core.manage', 'com_users')) {
+        //     $form->setFieldAttribute('created_by', 'filter', 'unset');
+        // }
 
         return $form;
     }
@@ -611,15 +611,13 @@ class ItemModel extends AdminModel
         $table->modified = Factory::getDate()->toSql();
         $table->modified_by = $user->id;
 
-		if (empty($table->publish_up))
-		{
-			$table->publish_up = null;
-		}
+        if (empty($table->publish_up)) {
+            $table->publish_up = null;
+        }
 
-		if (empty($table->publish_down))
-		{
-			$table->publish_down = null;
-		}
+        if (empty($table->publish_down)) {
+            $table->publish_down = null;
+        }
 
         parent::prepareTable($table);
     }

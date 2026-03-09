@@ -25,13 +25,13 @@ use Joomla\CMS\Language\Text;
  */
 class HtmlView extends BaseHtmlView
 {
-	protected $state;
+    protected $state;
 
-	protected $item;
+    protected $item;
 
-	protected $form;
+    protected $form;
 
-	protected $params;
+    protected $params;
 
     /**
      * Display the view
@@ -69,21 +69,10 @@ class HtmlView extends BaseHtmlView
             }
         }
 
-		parent::display($tpl);
-	}
+        $this->_prepareDocument();
 
-	/**
-	 * Prepares the document
-	 *
-	 * @return void
-	 *
-	 * @throws \Exception
-	 */
-	protected function _prepareDocument()
-	{
-		$app   = Factory::getApplication();
-		$menus = $app->getMenu();
-		$title = null;
+        parent::display($tpl);
+    }
 
     /**
      * Prepares the document
@@ -98,14 +87,9 @@ class HtmlView extends BaseHtmlView
         $menus = $app->getMenu();
         $title = null;
 
-		if ($menu)
-		{
-			$this->params->def('page_heading', $this->params->get('page_title', $menu->title));
-		}
-		else
-		{
-			$this->params->def('page_heading', Text::_('COM_ALFA_DEFAULT_PAGE_TITLE'));
-		}
+        // Because the application sets a default page title,
+        // We need to get it from the menu manufacturer itself
+        $menu = $menus->getActive();
 
         if ($menu) {
             $this->params->def('page_heading', $this->params->get('page_title', $menu->title));
@@ -113,18 +97,7 @@ class HtmlView extends BaseHtmlView
             $this->params->def('page_heading', Text::_('COM_ALFA_DEFAULT_PAGE_TITLE'));
         }
 
-		if (empty($title))
-		{
-			$title = $app->get('sitename');
-		}
-		elseif ($app->get('sitename_pagetitles', 0) == 1)
-		{
-			$title = Text::sprintf('JPAGETITLE', $app->get('sitename'), $title);
-		}
-		elseif ($app->get('sitename_pagetitles', 0) == 2)
-		{
-			$title = Text::sprintf('JPAGETITLE', $title, $app->get('sitename'));
-		}
+        $title = $this->item->name;
 
         if (empty($title)) {
             $title = $app->get('sitename');
@@ -134,10 +107,7 @@ class HtmlView extends BaseHtmlView
             $title = Text::sprintf('JPAGETITLE', $title, $app->get('sitename'));
         }
 
-		if ($this->params->get('menu-meta_description'))
-		{
-			$this->document->setDescription($this->params->get('menu-meta_description'));
-		}
+        $this->document->setTitle($title);
 
         if ($this->params->get('menu-meta_description')) {
             $this->document->setDescription($this->params->get('menu-meta_description'));
@@ -151,11 +121,9 @@ class HtmlView extends BaseHtmlView
             $this->document->setMetadata('robots', $this->params->get('robots'));
         }
 
-		if (!in_array($breadcrumbList, $pathway->getPathwayNames()))
-		{
-			$pathway->addItem($breadcrumbList, "index.php?option=com_alfa&view=manufacturers");
-		}
-		$breadcrumbTitle = $this->item->name;
+        // Add Breadcrumbs
+        $pathway = $app->getPathway();
+        $breadcrumbList = Text::_('COM_ALFA_TITLE_MANUFACTURERS');
 
         if (!in_array($breadcrumbList, $pathway->getPathwayNames())) {
             $pathway->addItem($breadcrumbList, 'index.php?option=com_alfa&view=manufacturers');

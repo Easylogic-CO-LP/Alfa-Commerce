@@ -1,4 +1,5 @@
 <?php
+
 /**
  * ═══════════════════════════════════════════════════════════════════════════
  *  STANDARD PAYMENT PLUGIN — Reference Implementation
@@ -299,7 +300,6 @@ namespace Joomla\Plugin\AlfaPayments\Standard\Extension;
 
 use Alfa\Component\Alfa\Administrator\Helper\OrderPaymentHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PaymentsPlugin;
-use Alfa\Component\Alfa\Administrator\Helper\OrderPaymentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;

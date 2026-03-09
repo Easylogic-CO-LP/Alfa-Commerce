@@ -33,7 +33,7 @@ class CartModel extends FormModel   // Should this extend FormModel? Contact mod
         // $input = $app->input;
         $pk = (int) ($pk ?: 0);
 
-		$cart = new CartHelper($pk);
+        $cart = new CartHelper($pk);
 
         return $cart;
     }
@@ -71,7 +71,7 @@ class CartModel extends FormModel   // Should this extend FormModel? Contact mod
         //	    print_r($data);
         //		exit;
 
-		FieldsHelper::prepareForm('com_alfa.cart', $form, $data);
+        FieldsHelper::prepareForm('com_alfa.cart', $form, $data);
 
         //        echo '<pre>';
         //        echo htmlspecialchars($form->getXml()->saveXML());

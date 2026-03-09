@@ -21,18 +21,16 @@ class CategoriesField extends ListField
         $currentCategoryIdField = $this->element['currentIdField'] ?? 'id';
         $modelName = $this->element['model'] ?? 'categories';
 
-		$model->getState('list.ordering');
-		$model->setState('filter.state', '*');
-		$model->setState('filter.search', '');
-		$model->setState('list.limit', '0');
-		$model->setState('list.ordering', $orderBy);
-		$model->setState('list.direction', $orderDir);
+        $this->options = parent::getOptions();
 
-		$categories = $model->getItems();
-		$currentCategoryId = $this->form->getData()->get($currentCategoryIdField);
+        $app = Factory::getApplication();
+        $component = $app->bootComponent('com_alfa');
+        $factory = $component->getMVCFactory();
+        $model = $factory->createModel($modelName, 'Administrator');
 
-		$disableMode = false;
-		$disableParentCategoryLevel = null;
+        if (!$model) {
+            return $this->options;
+        }
 
         $model->getState('list.ordering');
         $model->setState('filter.state', '*');

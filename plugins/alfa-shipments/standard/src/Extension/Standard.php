@@ -1,4 +1,5 @@
 <?php
+
 /**
  * ═══════════════════════════════════════════════════════════════════════════
  *  STANDARD SHIPMENT PLUGIN — Reference Implementation
@@ -211,8 +212,6 @@ namespace Joomla\Plugin\AlfaShipments\Standard\Extension;
 
 use Alfa\Component\Alfa\Administrator\Helper\OrderShipmentHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\ShipmentsPlugin;
-use Alfa\Component\Alfa\Administrator\Plugin\PluginAction;
-use Alfa\Component\Alfa\Administrator\Helper\OrderShipmentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
@@ -865,10 +864,12 @@ final class Standard extends ShipmentsPlugin
         $maxDepth = 0;
         $totalWeight = 0;
 
-		if ($result === false) {
-			$event->setError('Failed to cancel shipment #' . $shipment->id);
-			return;
-		}
+        foreach ($products as $product) {
+            $totalWidth += $product->width * $product->quantity;
+            $maxHeight = max($maxHeight, $product->height);
+            $maxDepth = max($maxDepth, $product->depth);
+            $totalWeight += $product->weight * $product->quantity;
+        }
 
         return [
             'width' => $totalWidth,

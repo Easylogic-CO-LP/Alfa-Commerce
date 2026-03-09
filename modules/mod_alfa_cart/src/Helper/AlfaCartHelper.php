@@ -42,11 +42,6 @@ class AlfaCartHelper
             'priceSettings' => $priceSettings,
         ];
 
-	    $displayData = [
-		    'cart'          => $cart,
-		    'priceSettings' => $priceSettings,
-	    ];
-
         $layout = new FileLayout('default_items', JPATH_ROOT . '/modules/mod_alfa_cart/tmpl/');
         $result = $layout->render($displayData);
         $response_data = [

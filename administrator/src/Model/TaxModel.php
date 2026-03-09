@@ -219,26 +219,8 @@ class TaxModel extends AdminModel
             );
         }
 
-		// Step 3: update the price index for all items this tax affects.
-		// This MUST be last — it reads scope associations committed above.
-		// Non-fatal: if the sync fails we log a warning but do NOT block the save.
-		$priceIndexSyncService = new PriceIndexSyncService();
-
-		try
-		{
-			$priceIndexSyncService->syncByTax($currentId);
-		}
-		catch (\Throwable $syncException)
-		{
-			Log::add(
-				'[TaxModel::save] Price index sync failed for tax ' . $currentId . ': ' . $syncException->getMessage(),
-				Log::WARNING,
-				'com_alfa'
-			);
-		}
-
-		return true;
-	}
+        return true;
+    }
 
     /**
      * Method to change the published state of one or more taxes.
@@ -372,157 +354,7 @@ class TaxModel extends AdminModel
         return true;
     }
 
-	/**
-	 * Method to change the published state of one or more taxes.
-	 *
-	 * Extends the parent publish() to keep the price index in sync.
-	 *
-	 * Both enabling AND disabling a tax change the prices of affected items:
-	 *   - Enabling  a tax  → final_price goes UP,   tax_amount goes UP
-	 *   - Disabling a tax  → final_price goes DOWN,  tax_amount drops to 0
-	 * So syncByTax() must be called in both directions.
-	 *
-	 * Non-fatal: sync failures are logged but never block the publish operation.
-	 *
-	 * @param   array    $pks    An array of tax primary keys.
-	 * @param   integer  $value  The target state: 1=publish, 0=unpublish.
-	 *
-	 * @return  boolean  True on success.
-	 *
-	 * @since   1.0.1
-	 */
-	public function publish(&$pks, $value = 1)
-	{
-		// Let Joomla handle the actual state change in the database
-		$result = parent::publish($pks, $value);
-
-		if (!$result)
-		{
-			return false;
-		}
-
-		$priceIndexSyncService = new PriceIndexSyncService();
-
-		foreach ($pks as $pk)
-		{
-			$pk = (int) $pk;
-
-			if ($pk <= 0)
-			{
-				continue;
-			}
-
-			// Re-index affected items regardless of direction (enable or disable).
-			// Both directions change the final_price and tax_amount in the index.
-			try
-			{
-				$priceIndexSyncService->syncByTax($pk);
-			}
-			catch (\Throwable $syncException)
-			{
-				Log::add(
-					'[TaxModel::publish] Price index sync failed for tax ' . $pk . ': ' . $syncException->getMessage(),
-					Log::WARNING,
-					'com_alfa'
-				);
-			}
-		}
-
-		return true;
-	}
-
-
-	/**
-	 * Method to delete one or more tax records.
-	 *
-	 * Extends the parent delete() to re-index the items that were affected.
-	 *
-	 * CRITICAL ORDER — must collect affected item ids BEFORE the delete:
-	 *
-	 *   Step 1: For each tax, call getItemIdsForTax() while the scope tables
-	 *           (tax_categories, tax_places etc.) still exist.
-	 *           We collect all affected item ids into $affectedItemIds.
-	 *
-	 *   Step 2: parent::delete() removes the tax rows and all associated
-	 *           scope rows from tax_categories, tax_manufacturers, etc.
-	 *
-	 *   Step 3: syncItems() re-indexes all collected items. Because the tax
-	 *           is now deleted, PriceCalculator will compute prices without it —
-	 *           final_price may drop and tax_amount will become 0.
-	 *
-	 * Non-fatal: failures at any step are logged but never block the delete.
-	 *
-	 * @param   array  $pks  An array of tax primary keys to delete.
-	 *
-	 * @return  boolean  True on success.
-	 *
-	 * @since   1.0.1
-	 */
-	public function delete(&$pks)
-	{
-		$priceIndexSyncService = new PriceIndexSyncService();
-
-		// Step 1: collect all item ids affected by these taxes BEFORE deleting.
-		// The scope tables still exist at this point so getItemIdsForTax() can
-		// determine which categories / places / usergroups each tax covers.
-		$affectedItemIds = array();
-
-		foreach ($pks as $pk)
-		{
-			$pk = (int) $pk;
-
-			if ($pk <= 0)
-			{
-				continue;
-			}
-
-			try
-			{
-				$itemIdsForThisTax = $priceIndexSyncService->getItemIdsForTax($pk);
-				$affectedItemIds   = array_unique(array_merge($affectedItemIds, $itemIdsForThisTax));
-			}
-			catch (\Throwable $collectException)
-			{
-				Log::add(
-					'[TaxModel::delete] Could not collect affected item ids for tax ' . $pk . ': ' . $collectException->getMessage(),
-					Log::WARNING,
-					'com_alfa'
-				);
-			}
-		}
-
-		// Step 2: perform the actual delete (removes tax rows + scope rows)
-		$result = parent::delete($pks);
-
-		if (!$result)
-		{
-			return false;
-		}
-
-		// Step 3: re-index the collected items now that the tax is gone.
-		// PriceCalculator will compute prices without the deleted tax,
-		// so final_price may drop and tax_amount will become 0.
-		if (!empty($affectedItemIds))
-		{
-			try
-			{
-				$priceIndexSyncService->syncItems($affectedItemIds);
-			}
-			catch (\Throwable $syncException)
-			{
-				Log::add(
-					'[TaxModel::delete] Price index re-sync failed after deleting taxes: ' . $syncException->getMessage(),
-					Log::WARNING,
-					'com_alfa'
-				);
-			}
-		}
-
-		return true;
-	}
-
-
-	// TODO: ON DELETE TO DELETE ALSO THE TAX_RULES ASSOCIATED WITH OR DO IT WITH REFERENCE TABLE #__tax id AUTOMATICALLY IN SQL
+    // TODO: ON DELETE TO DELETE ALSO THE TAX_RULES ASSOCIATED WITH OR DO IT WITH REFERENCE TABLE #__tax id AUTOMATICALLY IN SQL
 
     /**
      * Prepare and sanitise the table prior to saving.
@@ -544,9 +376,9 @@ class TaxModel extends AdminModel
         $table->modified = Factory::getDate()->toSql();
         $table->modified_by = $user->id;
 
-		if (empty($table->publish_up)) {
-			$table->publish_up = null;
-		}
+        if (empty($table->publish_up)) {
+            $table->publish_up = null;
+        }
 
         if (empty($table->publish_down)) {
             $table->publish_down = null;

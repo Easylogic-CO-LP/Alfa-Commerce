@@ -69,10 +69,9 @@ class ItemModel extends BaseItemModel
         $user = $this->getCurrentUser();
         $pk = (int) ($pk ?: $this->getState('item.id'));
 
-			if (empty($data->stock_low_message))
-			{
-				$data->stock_low_message = $settings->get("stock_low_message");
-			}
+        if ($this->_item === null) {
+            $this->_item = [];
+        }
 
         if (!isset($this->_item[$pk])) {
             $db = $this->getDatabase();
@@ -163,7 +162,8 @@ class ItemModel extends BaseItemModel
             $this->_item[$pk] = $data;
         }
 
-		$db->setQuery($query);
+        return $this->_item[$pk];
+    }
 
     /**
      * Get item categories

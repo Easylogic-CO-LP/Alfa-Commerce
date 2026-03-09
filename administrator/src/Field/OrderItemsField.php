@@ -1,45 +1,4 @@
 <?php
-/**
- * OrderItemsField — Configurable multi-select of order items
- *
- * A reusable field that shows order items filtered by a nullable FK column.
- * Configuration is entirely driven by XML attributes — the field itself
- * knows nothing about shipments, payments, or any specific entity.
- *
- * XML attributes:
- *   input_id        Which URL param holds the order ID     (default: "id_order")
- *   entity_id       Which URL param holds the entity PK    (default: "id")
- *   assign_column   The FK column on order_items to filter  (default: none = show all)
- *   show_quantity   Show "×N" after item name              (default: "true")
- *   show_sku        Show SKU in brackets after name        (default: "false")
- *
- * Usage examples:
- *
- *   <!-- Shipment: filter by id_order_shipment -->
- *   <field name="items" type="orderItems"
- *          input_id="id_order"
- *          entity_id="id"
- *          assign_column="id_order_shipment"
- *          multiple="true"
- *          label="COM_ALFA_SHIPMENT_ITEMS" />
- *
- *   <!-- Refund: filter by id_refund -->
- *   <field name="refund_items" type="orderItems"
- *          input_id="id_order"
- *          entity_id="id"
- *          assign_column="id_refund"
- *          multiple="true"
- *          label="COM_ALFA_REFUND_ITEMS" />
- *
- *   <!-- No filter: show ALL order items (e.g. invoice) -->
- *   <field name="invoice_items" type="orderItems"
- *          input_id="id_order"
- *          multiple="true"
- *          label="COM_ALFA_INVOICE_ITEMS" />
- *
- * @package    Com_Alfa
- * @subpackage Administrator
- */
 
 /**
  * OrderItemsField — Configurable multi-select of order items
@@ -111,8 +70,8 @@ class OrderItemsField extends ListField
     {
         $options = parent::getOptions();
 
-		try {
-			$db = Factory::getContainer()->get('DatabaseDriver');
+        $app = Factory::getApplication();
+        $input = $app->input;
 
         // Read configuration from XML attributes
         $orderIdParam = $this->getAttribute('input_id', 'id_order');
