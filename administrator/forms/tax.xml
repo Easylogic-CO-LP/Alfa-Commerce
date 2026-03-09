@@ -45,7 +45,7 @@
         <field
                 name="behavior"
                 type="radio"
-                label="Behavior"
+                label="COM_ALFA_FORM_LBL_BEHAVIOR"
                 class="btn-group"
                 default="0"
                 validate="options"
@@ -111,7 +111,7 @@
                 type="categories"
                 showPath="true"
                 multiple="true"
-                label="Categories"
+                label="COM_ALFA_FORM_LBL_CATEGORIES"
                 description=""
                 layout="joomla.form.field.list-fancy-select"
         >

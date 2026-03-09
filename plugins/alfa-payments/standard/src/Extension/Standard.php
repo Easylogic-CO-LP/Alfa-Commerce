@@ -633,7 +633,7 @@ final class Standard extends PaymentsPlugin
             'refund' => $this->handleRefund($event),
             'view_details' => $this->handleViewDetails($event),
             'view_logs' => $this->handleViewLogs($event),
-            default => $event->setError('Unknown action: ' . $event->getAction()),
+            default => $event->setError(Text::sprintf('PLG_ALFAPAYMENTS_STANDARD_ERROR_UNKNOWN_ACTION', $event->getAction())),
         };
     }
 
@@ -702,7 +702,7 @@ final class Standard extends PaymentsPlugin
             ->save();
 
         if ($result === false) {
-            $event->setError('Failed to mark payment #' . $payment->id . ' as paid');
+            $event->setError(Text::sprintf('PLG_ALFAPAYMENTS_STANDARD_ERROR_MARK_PAID', $payment->id));
             return;
         }
 
@@ -720,13 +720,13 @@ final class Standard extends PaymentsPlugin
             'currency' => $order->id_currency ?? '',
             'transaction_id' => $payment->transaction_id ?? null,
             'refund_type' => null,
-            'note' => 'Marked as paid by admin',
+            'note' => Text::_('PLG_ALFAPAYMENTS_STANDARD_LOG_MARKED_PAID'),
             'created_on' => $now,
             'created_by' => (int) Factory::getApplication()->getIdentity()->id,
         ]);
 
         // Success: show message and refresh the payments list
-        $event->setMessage('Payment #' . $payment->id . ' marked as paid');
+        $event->setMessage(Text::sprintf('PLG_ALFAPAYMENTS_STANDARD_MSG_MARKED_PAID', $payment->id));
         $event->setRefresh(true);
     }
 
@@ -766,7 +766,7 @@ final class Standard extends PaymentsPlugin
             ->save();
 
         if ($result === false) {
-            $event->setError('Failed to cancel payment #' . $payment->id);
+            $event->setError(Text::sprintf('PLG_ALFAPAYMENTS_STANDARD_ERROR_CANCEL', $payment->id));
             return;
         }
 
@@ -780,12 +780,12 @@ final class Standard extends PaymentsPlugin
             'currency' => $order->id_currency ?? '',
             'transaction_id' => $payment->transaction_id ?? null,
             'refund_type' => null,
-            'note' => 'Cancelled by admin',
+            'note' => Text::_('PLG_ALFAPAYMENTS_STANDARD_LOG_CANCELLED'),
             'created_on' => $now,
             'created_by' => (int) Factory::getApplication()->getIdentity()->id,
         ]);
 
-        $event->setMessage('Payment #' . $payment->id . ' cancelled');
+        $event->setMessage(Text::sprintf('PLG_ALFAPAYMENTS_STANDARD_MSG_CANCELLED', $payment->id));
         $event->setRefresh(true);
     }
 
@@ -847,7 +847,7 @@ final class Standard extends PaymentsPlugin
             ->save();
 
         if ($result === false) {
-            $event->setError('Failed to refund payment #' . $payment->id);
+            $event->setError(Text::sprintf('PLG_ALFAPAYMENTS_STANDARD_ERROR_REFUND', $payment->id));
             return;
         }
 
@@ -858,7 +858,7 @@ final class Standard extends PaymentsPlugin
             ->refunded()                                  // transaction_status = 'refunded'
             ->refundedPayment((int) $payment->id)         // FK → original payment
             ->fullRefund()                                // refund_type = 'full'
-            ->refundReason('Refund for payment #' . $payment->id)
+            ->refundReason(Text::sprintf('PLG_ALFAPAYMENTS_STANDARD_LOG_REFUNDED', $payment->id))
             ->save();
 
         // ── Write plugin-specific log ───────────────────────────
@@ -872,12 +872,12 @@ final class Standard extends PaymentsPlugin
             'currency' => $order->id_currency ?? '',
             'transaction_id' => $payment->transaction_id ?? null,
             'refund_type' => OrderPaymentHelper::REFUND_FULL,
-            'note' => 'Full refund for payment #' . $payment->id,
+            'note' => Text::sprintf('PLG_ALFAPAYMENTS_STANDARD_LOG_REFUNDED', $payment->id),
             'created_on' => $now,
             'created_by' => (int) Factory::getApplication()->getIdentity()->id,
         ]);
 
-        $event->setMessage('Payment #' . $payment->id . ' refunded (full)');
+        $event->setMessage(Text::sprintf('PLG_ALFAPAYMENTS_STANDARD_MSG_REFUNDED', $payment->id));
         $event->setRefresh(true);
     }
 

@@ -9,6 +9,7 @@
  */
 
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 
 $cart = !empty($displayData) ? $displayData : $this->cart;
 
@@ -17,17 +18,17 @@ $cart = !empty($displayData) ? $displayData : $this->cart;
 <div data-cart-items>
 
     <!-- Items Section -->
-    <h4>Items</h4>
+    <h4><?php echo Text::_('COM_ALFA_CART_ITEMS_HEADING'); ?></h4>
 
     <table>
         <thead>
         <tr>
-            <th>Name</th>
-            <th>Quantity</th>
-            <th>Price</th>
-            <th>Tax</th>
-            <th>Discount</th>
-            <th>Total</th>
+            <th><?php echo Text::_('COM_ALFA_CART_TABLE_NAME'); ?></th>
+            <th><?php echo Text::_('COM_ALFA_CART_TABLE_QUANTITY'); ?></th>
+            <th><?php echo Text::_('COM_ALFA_CART_TABLE_PRICE'); ?></th>
+            <th><?php echo Text::_('COM_ALFA_CART_TABLE_TAX'); ?></th>
+            <th><?php echo Text::_('COM_ALFA_CART_TABLE_DISCOUNT'); ?></th>
+            <th><?php echo Text::_('COM_ALFA_CART_TABLE_TOTAL'); ?></th>
         </tr>
         </thead>
         <tbody>
@@ -134,17 +135,17 @@ $cart = !empty($displayData) ? $displayData : $this->cart;
         <!-- Shipping -->
         <tr>
             <td colspan="4"></td>
-            <td><strong>Shipping:</strong></td>
+            <td><strong><?php echo Text::_('COM_ALFA_CART_SHIPPING'); ?>:</strong></td>
             <td><?php echo $cart->getShipmentTotal()->format(); ?></td>
         </tr>
 
         <!-- Grand Total -->
         <tr class="grand-total-row">
             <td colspan="1">
-                <button data-action="cart-clear">Clear Cart</button>
+                <button data-action="cart-clear"><?php echo Text::_('COM_ALFA_CART_CLEAR'); ?></button>
             </td>
             <td colspan="3"></td>
-            <td><strong>Total:</strong></td>
+            <td><strong><?php echo Text::_('COM_ALFA_CART_TOTAL'); ?>:</strong></td>
             <td><strong><?php echo $cart->getGrandTotal()->format(); ?></strong></td>
         </tr>
         </tfoot>

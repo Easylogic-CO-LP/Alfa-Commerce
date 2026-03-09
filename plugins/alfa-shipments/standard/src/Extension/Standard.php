@@ -493,7 +493,7 @@ final class Standard extends ShipmentsPlugin
             'view_details' => $this->handleViewDetails($event),
             'view_logs' => $this->handleViewLogs($event),
             'track' => $this->handleTrack($event),
-            default => $event->setError('Unknown action: ' . $event->getAction()),
+            default => $event->setError(Text::sprintf('PLG_ALFASHIPMENTS_STANDARD_ERROR_UNKNOWN_ACTION', $event->getAction())),
         };
     }
 
@@ -549,7 +549,7 @@ final class Standard extends ShipmentsPlugin
             ->save();
 
         if ($result === false) {
-            $event->setError('Failed to mark shipment #' . $shipment->id . ' as shipped');
+            $event->setError(Text::sprintf('PLG_ALFASHIPMENTS_STANDARD_ERROR_MARK_SHIPPED', $shipment->id));
             return;
         }
 
@@ -563,12 +563,12 @@ final class Standard extends ShipmentsPlugin
             'currency' => $order->id_currency ?? '',
             'tracking_number' => $shipment->tracking_number ?? null,
             'carrier_name' => $shipment->carrier_name ?? null,
-            'note' => 'Marked as shipped by admin',
+            'note' => Text::_('PLG_ALFASHIPMENTS_STANDARD_LOG_MARKED_SHIPPED'),
             'created_on' => $now,
             'created_by' => (int) Factory::getApplication()->getIdentity()->id,
         ]);
 
-        $event->setMessage('Shipment #' . $shipment->id . ' marked as shipped');
+        $event->setMessage(Text::sprintf('PLG_ALFASHIPMENTS_STANDARD_MSG_MARKED_SHIPPED', $shipment->id));
         $event->setRefresh(true);
     }
 
@@ -604,7 +604,7 @@ final class Standard extends ShipmentsPlugin
             ->save();
 
         if ($result === false) {
-            $event->setError('Failed to mark shipment #' . $shipment->id . ' as delivered');
+            $event->setError(Text::sprintf('PLG_ALFASHIPMENTS_STANDARD_ERROR_MARK_DELIVERED', $shipment->id));
             return;
         }
 
@@ -617,12 +617,12 @@ final class Standard extends ShipmentsPlugin
             'currency' => $order->id_currency ?? '',
             'tracking_number' => $shipment->tracking_number ?? null,
             'carrier_name' => $shipment->carrier_name ?? null,
-            'note' => 'Marked as delivered by admin',
+            'note' => Text::_('PLG_ALFASHIPMENTS_STANDARD_LOG_MARKED_DELIVERED'),
             'created_on' => $now,
             'created_by' => (int) Factory::getApplication()->getIdentity()->id,
         ]);
 
-        $event->setMessage('Shipment #' . $shipment->id . ' marked as delivered');
+        $event->setMessage(Text::sprintf('PLG_ALFASHIPMENTS_STANDARD_MSG_MARKED_DELIVERED', $shipment->id));
         $event->setRefresh(true);
     }
 
@@ -655,7 +655,7 @@ final class Standard extends ShipmentsPlugin
             ->save();
 
         if ($result === false) {
-            $event->setError('Failed to cancel shipment #' . $shipment->id);
+            $event->setError(Text::sprintf('PLG_ALFASHIPMENTS_STANDARD_ERROR_CANCEL', $shipment->id));
             return;
         }
 
@@ -668,12 +668,12 @@ final class Standard extends ShipmentsPlugin
             'currency' => $order->id_currency ?? '',
             'tracking_number' => $shipment->tracking_number ?? null,
             'carrier_name' => $shipment->carrier_name ?? null,
-            'note' => 'Cancelled by admin',
+            'note' => Text::_('PLG_ALFASHIPMENTS_STANDARD_LOG_CANCELLED'),
             'created_on' => $now,
             'created_by' => (int) Factory::getApplication()->getIdentity()->id,
         ]);
 
-        $event->setMessage('Shipment #' . $shipment->id . ' cancelled');
+        $event->setMessage(Text::sprintf('PLG_ALFASHIPMENTS_STANDARD_MSG_CANCELLED', $shipment->id));
         $event->setRefresh(true);
     }
 

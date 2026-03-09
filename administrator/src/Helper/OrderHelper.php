@@ -34,6 +34,7 @@ use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Exception;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use stdClass;
 
@@ -128,7 +129,7 @@ class OrderHelper
     public static function setOrderItems(int $orderId, array $data, ?Currency $currency = null): bool
     {
         if ($orderId <= 0) {
-            Factory::getApplication()->enqueueMessage('Invalid order ID', 'error');
+            Factory::getApplication()->enqueueMessage(Text::_('COM_ALFA_ERROR_INVALID_ORDER_ID'), 'error');
             return false;
         }
 

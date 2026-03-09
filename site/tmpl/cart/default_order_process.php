@@ -16,5 +16,5 @@
         </div>
 	<?php endif ?>
 
-    <button onclick="location.reload();">Retry paying</button>
+    <button onclick="location.reload();"><?php echo \Joomla\CMS\Language\Text::_('COM_ALFA_BUTTON_RETRY_PAYING'); ?></button>
 </div>
