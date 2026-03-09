@@ -11,8 +11,8 @@
     <description>PLG_PRIVACY_COM_ALFA_XML_DESCRIPTION</description>
     <namespace path="src">Alfa\Plugin\WebServices\Alfa</namespace>
     <files>
-        <filename plugin="alfa">alfa.php</filename>
-        <filename>index.html</filename>
+        <folder plugin="alfa">services</folder>
+        <folder>src</folder>
     </files>
     <languages folder="languages">
 			<language tag="en-GB">en-GB/plg_webservices_alfa.ini</language>
