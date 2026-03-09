@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    1.0.1
  * @package    Com_Alfa
@@ -8,18 +9,13 @@
  */
 
 namespace Alfa\Component\Alfa\Administrator\Model;
+
 // No direct access.
 defined('_JEXEC') or die;
 
+use Joomla\CMS\Factory;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
-use \Joomla\CMS\MVC\Model\ListModel;
-use \Joomla\Component\Fields\Administrator\Helper\FieldsHelper;
-use \Joomla\CMS\Factory;
-use \Joomla\CMS\Language\Text;
-use \Joomla\CMS\Helper\TagsHelper;
-use \Joomla\Database\ParameterType;
-use \Joomla\Utilities\ArrayHelper;
-use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Joomla\CMS\MVC\Model\ListModel;
 
 /**
  * Methods supporting a list of Items records.
@@ -28,43 +24,40 @@ use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
  */
 class FormFieldsModel extends ListModel
 {
-
-    protected $orderUserInfoTableName = "#__alfa_user_info";
+    protected $orderUserInfoTableName = '#__alfa_user_info';
 
     /**
      * Constructor.
      *
-     * @param   array  $config  An optional associative array of configuration settings.
+     * @param array $config An optional associative array of configuration settings.
      *
      * @see        JController
      * @since      1.6
      */
     public function __construct($config = [], ?MVCFactoryInterface $factory = null)
     {
-        if (empty($config['filter_fields']))
-        {
-            $config['filter_fields'] = array(
+        if (empty($config['filter_fields'])) {
+            $config['filter_fields'] = [
                 'id', 'a.id',
                 'ordering', 'a.ordering',
                 'created_by', 'a.created_by',
                 'modified_by', 'a.modified_by',
                 'name', 'a.name',
                 'state', 'a.state',
-                'id', 'a.id'
-            );
+                'id', 'a.id',
+            ];
         }
 
         parent::__construct($config, $factory);
     }
-
 
     /**
      * Method to auto-populate the model state.
      *
      * Note. Calling getState in this method will result in recursion.
      *
-     * @param   string  $ordering   Elements order
-     * @param   string  $direction  Order direction
+     * @param string $ordering Elements order
+     * @param string $direction Order direction
      *
      * @return void
      *
@@ -82,9 +75,9 @@ class FormFieldsModel extends ListModel
      * different modules that might need different sets of data or different
      * ordering requirements.
      *
-     * @param   string  $id  A prefix for the store id.
+     * @param string $id A prefix for the store id.
      *
-     * @return  string A store id.
+     * @return string A store id.
      *
      * @since   1.0.1
      */
@@ -94,95 +87,82 @@ class FormFieldsModel extends ListModel
         $id .= ':' . $this->getState('filter.search');
         $id .= ':' . $this->getState('filter.state');
 
-
         return parent::getStoreId($id);
-
     }
 
     /**
      * Build an SQL query to load the list data.
      *
-     * @return  DatabaseQuery
+     * @return DatabaseQuery
      *
      * @since   1.0.1
      */
     protected function getListQuery()
     {
-
         // Create a new query object.
-        $db    = $this->getDatabase();
+        $db = $this->getDatabase();
         $query = $db->getQuery(true);
 
         $query->select(
             $this->getState(
-                'list.select', 'DISTINCT a.*'
-            )
+                'list.select',
+                'DISTINCT a.*',
+            ),
         );
 
-        $query->from($db->qn("#__alfa_form_fields","a"))
-            ->order("ordering ASC");
-
+        $query->from($db->qn('#__alfa_form_fields', 'a'))
+            ->order('ordering ASC');
 
         // Select the required fields from the table.
-//        $query->select(
-//            $this->getState(
-//                'list.select', 'DISTINCT a.*'
-//            )
-//        );
-//        $query->from('`#__alfa_form_fields` AS a');
-//
-//        // Join over the users for the checked out user
-//        $query->select("uc.name AS uEditor");
-//        $query->join("LEFT", "#__users AS uc ON uc.id=a.checked_out");
-//
-//        // Join over the user field 'created_by'
-//        $query->select('`created_by`.name AS `created_by`');
-//        $query->join('LEFT', '#__users AS `created_by` ON `created_by`.id = a.`created_by`');
-//
-//        // Join over the user field 'modified_by'
-//        $query->select('`modified_by`.name AS `modified_by`');
-//        $query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
-
+        //        $query->select(
+        //            $this->getState(
+        //                'list.select', 'DISTINCT a.*'
+        //            )
+        //        );
+        //        $query->from('`#__alfa_form_fields` AS a');
+        //
+        //        // Join over the users for the checked out user
+        //        $query->select("uc.name AS uEditor");
+        //        $query->join("LEFT", "#__users AS uc ON uc.id=a.checked_out");
+        //
+        //        // Join over the user field 'created_by'
+        //        $query->select('`created_by`.name AS `created_by`');
+        //        $query->join('LEFT', '#__users AS `created_by` ON `created_by`.id = a.`created_by`');
+        //
+        //        // Join over the user field 'modified_by'
+        //        $query->select('`modified_by`.name AS `modified_by`');
+        //        $query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
 
         // Filter by published state
         $published = $this->getState('filter.state');
 
-
-
-        if (is_numeric($published))
-        {
+        if (is_numeric($published)) {
             $query->where('a.state = ' . (int) $published);
         }
-//        elseif (empty($published))
-//        {
-//            $query->where('(a.state IN (0, 1))');
-//        }
+        //        elseif (empty($published))
+        //        {
+        //            $query->where('(a.state IN (0, 1))');
+        //        }
 
         // Filter by search in title
         $search = $this->getState('filter.search');
 
-        if (!empty($search))
-        {
-            if (stripos($search, 'id:') === 0)
-            {
+        if (!empty($search)) {
+            if (stripos($search, 'id:') === 0) {
                 $query->where('a.id = ' . (int) substr($search, 3));
-            }
-            else
-            {
+            } else {
                 $search = $db->Quote('%' . $db->escape($search, true) . '%');
                 $query->where('( a.name LIKE ' . $search . ' )');
             }
         }
 
         // Add the list ordering clause.
-        $orderCol  = $this->state->get('list.ordering', 'id');
+        $orderCol = $this->state->get('list.ordering', 'id');
         $orderDirn = $this->state->get('list.direction', 'DESC');
 
-        if ($orderCol && $orderDirn)
-        {
+        if ($orderCol && $orderDirn) {
             $query->order($db->escape($orderCol . ' ' . $orderDirn));
         }
-
 
         return $query;
     }
@@ -194,61 +174,49 @@ class FormFieldsModel extends ListModel
      */
     public function getItems()
     {
-
         $items = parent::getItems();
 
         return $items;
     }
 
-
-    public function delete(&$pks){
-
+    public function delete(&$pks)
+    {
         $app = Factory::getApplication();
         $db = self::getDatabase();
         $query = $db->getQuery(true);
 
         $fieldNames = self::getFieldNames($pks);
-        
 
         $query
-            ->delete("#__alfa_form_fields")
-            ->whereIn($db->qn("id"), $pks);
+            ->delete('#__alfa_form_fields')
+            ->whereIn($db->qn('id'), $pks);
 
         $db->setQuery($query);
-        if($db->execute())
-        {
-            $app->enqueueMessage("Entry was deleted successfully!", "success");
+        if ($db->execute()) {
+            $app->enqueueMessage('Entry was deleted successfully!', 'success');
+        } else {
+            $app->enqueueMessage('Entry was could not be deleted.', 'error');
         }
-        else
-        {
-            $app->enqueueMessage("Entry was could not be deleted.", "error");
-        }
-
-
     }
 
-
     /**
-     *
-     *  @param $columnName string the name of the column to delete.
-     *  @return void
+     * @param $columnName string the name of the column to delete.
+     * @return void
      */
-    protected function deleteUserInfoTableColumn($columnName){
-
+    protected function deleteUserInfoTableColumn($columnName)
+    {
         $formFieldModel = $this->app->bootComponent('com_alfa')
             ->getMVCFactory()->createModel('Formfield', 'Admin', ['ignore_request' => true]);
 
         // Delete column if it exists.
-        if($formFieldModel->getTableColumn($this->orderUserInfoTableName, $columnName) != NULL)
-        {
+        if ($formFieldModel->getTableColumn($this->orderUserInfoTableName, $columnName) != null) {
             $db = self::getDatabase();
             $query = $db->getQuery(true);
-            $query = 'ALTER TABLE ' . $db->quoteName($this->orderUserInfoTableName) . " DROP COLUMN " . $db->qn($columnName);
+            $query = 'ALTER TABLE ' . $db->quoteName($this->orderUserInfoTableName) . ' DROP COLUMN ' . $db->qn($columnName);
 
             $db->setQuery($query);
             $db->execute();
         }
-
     }
 
     protected function getFieldNames($pks)
@@ -257,15 +225,11 @@ class FormFieldsModel extends ListModel
         $query = $db->getQuery(true);
 
         $query
-            ->select($db->qn("field_name"))
-            ->from($db->qn("#__alfa_form_fields"))
-            ->whereIn($db->qn("id"), $pks);
+            ->select($db->qn('field_name'))
+            ->from($db->qn('#__alfa_form_fields'))
+            ->whereIn($db->qn('id'), $pks);
         $db->setQuery($query);
 
         return $db->loadObjectList();
     }
-
-
-
-
 }

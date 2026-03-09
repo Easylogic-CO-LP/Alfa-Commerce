@@ -6,33 +6,32 @@ use Joomla\CMS\Language\Text;
 defined('_JEXEC') or die;
 
 // Get data from helper
-$products      = $displayData['products'] ?? [];
-$categories    = $displayData['categories'] ?? [];
+$products = $displayData['products'] ?? [];
+$categories = $displayData['categories'] ?? [];
 $manufacturers = $displayData['manufacturers'] ?? [];
-$params        = $displayData['params'] ?? null;
+$params = $displayData['params'] ?? null;
 
-if (!$params)
-{
-	return;
+if (!$params) {
+    return;
 }
 
 // Get parameters
-$showDescription   = $params->get('show_description', 1);
-$descriptionLimit  = $params->get('description_limit', 50);
-$showCategories    = $params->get('show_categories', 0);
+$showDescription = $params->get('show_description', 1);
+$descriptionLimit = $params->get('description_limit', 50);
+$showCategories = $params->get('show_categories', 0);
 $showManufacturers = $params->get('show_manufacturers', 0);
 
 // Check if we have any results - layout handles this
 $hasResults = !empty($products) || !empty($categories) || !empty($manufacturers);
 
 if (!$hasResults):
-	?>
+    ?>
     <div class="search-no-results">
         <div class="search-no-results-icon">🔍</div>
         <p><?php echo Text::_('MOD_ALFA_SEARCH_NO_RESULTS'); ?></p>
     </div>
 	<?php
-	return;
+    return;
 endif;
 ?>
 
@@ -52,14 +51,15 @@ endif;
                     <h3><?php echo $product->name; ?></h3>
                 </div>
 				<?php
-				$productDescription = isset($product->short_desc) ?
-					AlfaHelper::cleanContent(
-						html: $product->short_desc,
-						removeTags: true,
-						removeScripts: true,
-						removeIsolatedPunctuation: false) :
-					'';
-				if ($showDescription && $productDescription !== ''): ?>
+                $productDescription = isset($product->short_desc) ?
+                    AlfaHelper::cleanContent(
+                        html: $product->short_desc,
+                        removeTags: true,
+                        removeScripts: true,
+                        removeIsolatedPunctuation: false,
+                    ) :
+                    '';
+	    if ($showDescription && $productDescription !== ''): ?>
                     <div class="search-product-description">
 						<?php echo mb_strimwidth($productDescription, 0, $descriptionLimit, '...'); ?>
                     </div>
@@ -85,14 +85,15 @@ endif;
                 </div>
 
 				<?php
-				$categoryDescription = isset($category->desc) ?
-					AlfaHelper::cleanContent(
-						html: $category->desc,
-						removeTags: true,
-						removeScripts: true,
-						removeIsolatedPunctuation: false) :
-					'';
-				if ($showDescription && $categoryDescription !== ''): ?>
+                $categoryDescription = isset($category->desc) ?
+                    AlfaHelper::cleanContent(
+                        html: $category->desc,
+                        removeTags: true,
+                        removeScripts: true,
+                        removeIsolatedPunctuation: false,
+                    ) :
+                    '';
+		    if ($showDescription && $categoryDescription !== ''): ?>
                     <div class="search-category-description">
 						<?php echo mb_strimwidth($categoryDescription, 0, $descriptionLimit, '...'); ?>
                     </div>
@@ -101,7 +102,7 @@ endif;
             </a>
 		<?php
 		endforeach;
-	endif;
+endif;
 endif;
 ?>
 <?php if ($showManufacturers): ?>
@@ -109,22 +110,23 @@ endif;
 	<?php if (empty($manufacturers)): ?>
         <div><?php echo Text::_('MOD_ALFA_SEARCH_RESULT_EMPTY'); ?></div>
 	<?php else: ?>
-		<?php foreach ($manufacturers as $manufacturer): //TODO ADD HREF ?>
+		<?php foreach ($manufacturers as $manufacturer): //TODO ADD HREF?>
             <a class="search-manufacturer-item" tabindex="0">
                 <div class="search-manufacturer-title">
                     <h3><?php echo $manufacturer->name; ?></h3>
                 </div>
 
 				<?php
-				$manufacturerDescription = isset($manufacturer->desc) ?
-					AlfaHelper::cleanContent(
-						html: $manufacturer->desc,
-						removeTags: true,
-						removeScripts: true,
-						removeIsolatedPunctuation: false) :
-					'';
+                $manufacturerDescription = isset($manufacturer->desc) ?
+                    AlfaHelper::cleanContent(
+                        html: $manufacturer->desc,
+                        removeTags: true,
+                        removeScripts: true,
+                        removeIsolatedPunctuation: false,
+                    ) :
+                    '';
 
-				if ($showDescription && $manufacturerDescription !== ''): ?>
+		    if ($showDescription && $manufacturerDescription !== ''): ?>
                     <div class="search-manufacturer-description">
 						<?php echo mb_strimwidth($manufacturerDescription, 0, $descriptionLimit, '...'); ?>
                     </div>
@@ -133,6 +135,6 @@ endif;
             </a>
 		<?php
 		endforeach;
-	endif;
+endif;
 endif;
 ?>

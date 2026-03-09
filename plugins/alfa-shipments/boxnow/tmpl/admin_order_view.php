@@ -13,11 +13,10 @@ $fetchMethodID = $order->id_shipmentmethod;
 $orderID = $order->id;
 
 // functions to call
-$fetchRequestDeliveryFunction = "requestDelivery";
-$fetchCreateLabelFunction = "fetchCreateLabels";
-$fetchCancelDeliveryFunction = "fetchCancelDelivery";
-$fetchCancelIndividualParcelFunction = "fetchCancelIndividualParcel";
-
+$fetchRequestDeliveryFunction = 'requestDelivery';
+$fetchCreateLabelFunction = 'fetchCreateLabels';
+$fetchCancelDeliveryFunction = 'fetchCancelDelivery';
+$fetchCancelIndividualParcelFunction = 'fetchCancelIndividualParcel';
 
 // Request delivery.
 $fetchRequestDeliveryURL = "index.php?option=com_alfa&task=plugin.trigger&name={$fetchName}&type={$fetchType}&func={$fetchRequestDeliveryFunction}&format=json"
@@ -37,21 +36,21 @@ $fetchCancelIndividualParcelFunctionURL = '/administrator/index.php?option=com_a
 
 // Inject BoxNow required script to the head
 $inlineScript = <<<JS
-    // pass php variables to be used from api-functions.js file
-    var fetchRequestDeliveryURL = "{$fetchRequestDeliveryURL}";
-    var fetchCreateLabelURL = "{$fetchCreateLabelURL}";
-    var fetchCancelDeliveryURL = "{$fetchCancelDeliveryURL}";
-    var fetchCancelIndividualParcelURL = "{$fetchCancelIndividualParcelFunctionURL}";
-    var rawParcelData = "{$parcelData}";
-    var vouchersURL = "{$vouchersURL}";
-    var orderId = "{$orderID}";
-JS;
+        // pass php variables to be used from api-functions.js file
+        var fetchRequestDeliveryURL = "{$fetchRequestDeliveryURL}";
+        var fetchCreateLabelURL = "{$fetchCreateLabelURL}";
+        var fetchCancelDeliveryURL = "{$fetchCancelDeliveryURL}";
+        var fetchCancelIndividualParcelURL = "{$fetchCancelIndividualParcelFunctionURL}";
+        var rawParcelData = "{$parcelData}";
+        var vouchersURL = "{$vouchersURL}";
+        var orderId = "{$orderID}";
+    JS;
 
 $wa->addInlineScript($inlineScript);
 
-$wa->registerAndUseScript('box-now-api-functions','media/plg_alfa-shipments_boxnow/js/admin/api-functions.js'); //['defer' => true]); to lazy load
-$wa->registerAndUseScript('box-now-main-functions','media/plg_alfa-shipments_boxnow/js/admin/main.js');
-$wa->registerAndUseStyle('box-now-admin-css','media/plg_alfa-shipments_boxnow/css/admin/main.css');
+$wa->registerAndUseScript('box-now-api-functions', 'media/plg_alfa-shipments_boxnow/js/admin/api-functions.js'); //['defer' => true]); to lazy load
+$wa->registerAndUseScript('box-now-main-functions', 'media/plg_alfa-shipments_boxnow/js/admin/main.js');
+$wa->registerAndUseStyle('box-now-admin-css', 'media/plg_alfa-shipments_boxnow/css/admin/main.css');
 
 ?>
         

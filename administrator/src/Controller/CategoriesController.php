@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    1.0.1
  * @package    Com_Alfa
@@ -20,20 +21,19 @@ use Joomla\CMS\MVC\Controller\AdminController;
  */
 class CategoriesController extends AdminController
 {
-	/**
-	 * Proxy for getModel.
-	 *
-	 * @param   string  $name    Optional. Model name
-	 * @param   string  $prefix  Optional. Class prefix
-	 * @param   array   $config  Optional. Configuration array for model
-	 *
-	 * @return  object	The Model
-	 *
-	 * @since   1.0.1
-	 */
+    /**
+     * Proxy for getModel.
+     *
+     * @param string $name Optional. Model name
+     * @param string $prefix Optional. Class prefix
+     * @param array $config Optional. Configuration array for model
+     *
+     * @return object The Model
+     *
+     * @since   1.0.1
+     */
     public function getModel($name = 'Category', $prefix = 'Administrator', $config = ['ignore_request' => true]): object
     {
         return parent::getModel($name, $prefix, $config);
     }
-
 }

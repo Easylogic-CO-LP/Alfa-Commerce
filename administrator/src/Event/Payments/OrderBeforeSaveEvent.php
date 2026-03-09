@@ -8,5 +8,4 @@ class OrderBeforeSaveEvent extends PaymentsEvent
     {
         return $this->getSubject();
     }
-
 }

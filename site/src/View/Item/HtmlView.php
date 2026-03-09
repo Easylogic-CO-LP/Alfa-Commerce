@@ -13,14 +13,16 @@ namespace Alfa\Component\Alfa\Site\View\Item;
 // No direct access
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Event\Payments\ItemViewEvent as PaymentsItemViewEvent;
+use Alfa\Component\Alfa\Administrator\Event\Shipments\ItemViewEvent as ShipmentsItemViewEvent;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Alfa\Component\Alfa\Site\Helper\PriceSettings;
 use Alfa\Component\Alfa\Site\View\HtmlView as BaseHtmlView;
-use Joomla\CMS\Router\Route;
+use Exception;
 use Joomla\CMS\Factory;
-use Alfa\Component\Alfa\Administrator\Event\Payments\ItemViewEvent as PaymentsItemViewEvent;
-use Alfa\Component\Alfa\Administrator\Event\Shipments\ItemViewEvent as ShipmentsItemViewEvent;
+use Joomla\CMS\Router\Route;
+use stdClass;
 
 /**
  * View class for a list of Alfa.
@@ -29,214 +31,202 @@ use Alfa\Component\Alfa\Administrator\Event\Shipments\ItemViewEvent as Shipments
  */
 class HtmlView extends BaseHtmlView
 {
-	protected $state;
+    protected $state;
 
-	protected $item;
+    protected $item;
 
-	protected $form;
+    protected $form;
 
-	protected $params;
+    protected $params;
 
-	protected $payment_methods;
+    protected $payment_methods;
 
-	protected $category_id;
+    protected $category_id;
 
-	/**
-	 * Display the view
-	 *
-	 * @param   string  $tpl  Template name
-	 *
-	 * @return void
-	 *
-	 * @throws \Exception
-	 */
-	public function display($tpl = null)
-	{
+    /**
+     * Display the view
+     *
+     * @param string $tpl Template name
+     *
+     * @return void
+     *
+     * @throws Exception
+     */
+    public function display($tpl = null)
+    {
+        $app = Factory::getApplication();
+        $input = $app->getInput();
+        $user = $app->getIdentity();
+        $model = $this->getModel();
 
-		$app  = Factory::getApplication();
-		$input        = $app->getInput();
-		$user = $app->getIdentity();
-		$model = $this->getModel();
+        $this->params = $app->getParams('com_alfa');
 
-		$this->params = $app->getParams('com_alfa');
+        $this->category_id = $input->getInt('catid', 0);
 
-		$this->category_id = $input->getInt('catid', 0);
+        $this->state = $model->getState();
+        $this->item = $model->getItem();
 
-		$this->state  = $model->getState();
-		$this->item   = $model->getItem();
+        // Resolve price settings once for all items
+        $this->priceSettings = PriceSettings::get();
 
-		// Resolve price settings once for all items
-		$this->priceSettings = PriceSettings::get();
+        /*
+         *  Setting up alfa-payments onProductView event call to be used on tmpl.
+         */
+        $onProductViewEventName = 'onItemView';
 
-		/*
-		 *  Setting up alfa-payments onProductView event call to be used on tmpl.
-		 */
-		$onProductViewEventName = "onItemView";
+        foreach ($this->item->payment_methods as &$payment_method) {
+            if (!$payment_method->show_on_product) {
+                unset($this->item->payment_methods[$payment_method->id]);
+                continue;
+            }
 
-		foreach ($this->item->payment_methods as &$payment_method)
-		{
+            $paymentEvent = new PaymentsItemViewEvent($onProductViewEventName, [
+                'subject' => $this->item,
+                'method' => $payment_method,
+            ]);
 
-			if (!$payment_method->show_on_product)
-			{
-				unset($this->item->payment_methods[$payment_method->id]);
-				continue;
-			}
+            $app->bootPlugin($payment_method->type, 'alfa-payments')->{$onProductViewEventName}($paymentEvent);
 
-			$paymentEvent = new PaymentsItemViewEvent($onProductViewEventName, [
-				'subject' => $this->item,
-				'method'  => $payment_method,
-			]);
+            if (empty($paymentEvent->getLayoutPluginName())) {
+                $paymentEvent->setLayoutPluginName($payment_method->type);
+            }
+            if (empty($paymentEvent->getLayoutPluginType())) {
+                $paymentEvent->setLayoutPluginType('alfa-payments');
+            }
+            if ($paymentEvent->hasRedirect()) {
+                $app->redirect(
+                    $paymentEvent->getRedirectUrl(),
+                    $paymentEvent->getRedirectCode() ?? 303,
+                );
 
-			$app->bootPlugin($payment_method->type, "alfa-payments")->{$onProductViewEventName}($paymentEvent);
+                return;
+            }
 
-			if (empty($paymentEvent->getLayoutPluginName())) $paymentEvent->setLayoutPluginName($payment_method->type);
-			if (empty($paymentEvent->getLayoutPluginType())) $paymentEvent->setLayoutPluginType("alfa-payments");
-			if ($paymentEvent->hasRedirect())
-			{
-				$app->redirect(
-					$paymentEvent->getRedirectUrl(),
-					$paymentEvent->getRedirectCode() ?? 303
-				);
+            $payment_method->events = new stdClass();
+            $payment_method->events->{$onProductViewEventName} = $paymentEvent;
+        }
 
-				return;
-			}
+        foreach ($this->item->shipment_methods as &$shipment_method) {
+            if (!$shipment_method->show_on_product) {
+                unset($this->item->payment_methods[$shipment_method->id]);
+                continue;
+            }
 
-			$payment_method->events                            = new \stdClass();
-			$payment_method->events->{$onProductViewEventName} = $paymentEvent;
+            $shipment_event = new ShipmentsItemViewEvent($onProductViewEventName, [
+                'subject' => $this->item,
+                'method' => $shipment_method,
+            ]);
 
-		}
+            $app->bootPlugin($shipment_method->type, 'alfa-shipments')->{$onProductViewEventName}($shipment_event);
 
-		foreach ($this->item->shipment_methods as &$shipment_method)
-		{
+            if (empty($shipment_event->getLayoutPluginName())) {
+                $shipment_event->setLayoutPluginName($shipment_method->type);
+            }
+            if (empty($shipment_event->getLayoutPluginType())) {
+                $shipment_event->setLayoutPluginType('alfa-shipments');
+            }
+            if ($shipment_event->hasRedirect()) {
+                $app->redirect(
+                    $shipment_event->getRedirectUrl(),
+                    $shipment_event->getRedirectCode() ?? 303,
+                );
 
-			if (!$shipment_method->show_on_product)
-			{
-				unset($this->item->payment_methods[$shipment_method->id]);
-				continue;
-			}
+                return;
+            }
 
-			$shipment_event = new ShipmentsItemViewEvent($onProductViewEventName, [
-				'subject' => $this->item,
-				'method'  => $shipment_method,
-			]);
+            $shipment_method->events = new stdClass();
+            $shipment_method->events->{$onProductViewEventName} = $shipment_event;
+        }
 
-			$app->bootPlugin($shipment_method->type, "alfa-shipments")->{$onProductViewEventName}($shipment_event);
+        $this->_prepareDocument();
 
-			if (empty($shipment_event->getLayoutPluginName())) $shipment_event->setLayoutPluginName($shipment_method->type);
-			if (empty($shipment_event->getLayoutPluginType())) $shipment_event->setLayoutPluginType("alfa-shipments");
-			if ($shipment_event->hasRedirect())
-			{
-				$app->redirect(
-					$shipment_event->getRedirectUrl(),
-					$shipment_event->getRedirectCode() ?? 303
-				);
+        parent::display($tpl);
+    }
 
-				return;
-			}
+    /**
+     * Prepares the document
+     *
+     * @return void
+     *
+     * @throws Exception
+     */
+    protected function _prepareDocument()
+    {
+        $app = Factory::getApplication();
 
-			$shipment_method->events                            = new \stdClass();
-			$shipment_method->events->{$onProductViewEventName} = $shipment_event;
+        // Add Breadcrumbs
+        $pathway = $app->getPathway();
 
-		}
+        // Use your helper to get the category path
+        $categoryPath = CategoryHelper::getCategoryPath($this->category_id ?: $this->item->id_category_default);
 
+        foreach ($categoryPath as $category) {
+            $link = Route::_('index.php?option=com_alfa&view=items&category_id=' . $category['id']);
+            if (!in_array($category['name'], $pathway->getPathwayNames())) {
+                $pathway->addItem($category['name'], $link);
+            }
+        }
 
-		$this->_prepareDocument();
+        $breadcrumbTitle = $this->item->name;
 
-		parent::display($tpl);
-	}
+        if (!in_array($breadcrumbTitle, $pathway->getPathwayNames())) {
+            $pathway->addItem($breadcrumbTitle);
+        }
 
-	/**
-	 * Prepares the document
-	 *
-	 * @return void
-	 *
-	 * @throws \Exception
-	 */
-	protected function _prepareDocument()
-	{
-		$app   = Factory::getApplication();
+        // META TAGS
+        // Meta Title
+        $metaTitle = $this->params->get('page_title', '');
 
+        if (!empty($this->item->meta_title)) {
+            $metaTitle = $this->item->meta_title;
+        } elseif (!empty($this->item->name)) {
+            $metaTitle = $this->item->name;
+        }
 
-		// Add Breadcrumbs
-		$pathway        = $app->getPathway();
+        $siteNameOnpageTitle = $app->get('sitename_pagetitles', 0);
+        $siteName = $app->get('sitename');
+        if (!empty($siteNameOnpageTitle)) {
+            if ($siteNameOnpageTitle == 1) { // Before
+                $metaTitle = $siteName . ' - ' . $metaTitle;
+            } else { // After
+                $metaTitle = $metaTitle . ' - ' . $siteName;
+            }
+        }
 
-		// Use your helper to get the category path
-		$categoryPath = CategoryHelper::getCategoryPath($this->category_id?:$this->item->id_category_default);
+        // Meta Description
+        $metaDescription = $this->params->get('menu-meta_description', '');
 
-		foreach ($categoryPath as $category)
-		{
-			$link = Route::_('index.php?option=com_alfa&view=items&category_id=' . $category['id']);
-			if (!in_array($category['name'], $pathway->getPathwayNames()))
-			{
-				$pathway->addItem($category['name'], $link);
-			}
-		}
+        if (!empty($this->item->meta_desc)) {
+            $metaDescription = $this->item->meta_desc;
+        } elseif (!empty($this->item->short_desc)) {
+            $metaDescription = AlfaHelper::cleanContent(
+                html:$this->item->short_desc,
+                removeTags: true,
+                removeScripts: true,
+                removeIsolatedPunctuation: false,
+            );
+        }
 
-		$breadcrumbTitle = $this->item->name;
+        $otherMetaData = [];
 
-		if (!in_array($breadcrumbTitle, $pathway->getPathwayNames()))
-		{
-			$pathway->addItem($breadcrumbTitle);
-		}
+        if (!empty($this->item->meta_data)) {
+            $otherMetaData = json_decode($this->item->meta_data, true) ?: [];
+        }
 
+        if ($this->params->get('robots')) {
+            $metaRobots = $this->params->get('robots');
+        }
 
-		// META TAGS
-		// Meta Title
-		$metaTitle = $this->params->get('page_title', '');
+        if (!empty($otherMetaData['robots'])) {
+            $metaRobots = $otherMetaData['robots'];
+        }
 
-		if(!empty($this->item->meta_title)){
-			$metaTitle = $this->item->meta_title;
-		}else if(!empty($this->item->name)){
-			$metaTitle = $this->item->name;
-		}
+        // Set all tags
+        $this->getDocument()->setTitle($metaTitle);
+        $this->getDocument()->setDescription($metaDescription);
 
-		$siteNameOnpageTitle = $app->get('sitename_pagetitles', 0);
-		$siteName = $app->get('sitename');
-		if(!empty($siteNameOnpageTitle)){
-			if($siteNameOnpageTitle == 1){ // Before
-				$metaTitle = $siteName . ' - ' . $metaTitle;
-			}else{ // After
-				$metaTitle = $metaTitle . ' - ' . $siteName;
-			}
-		}
-
-		// Meta Description
-		$metaDescription = $this->params->get('menu-meta_description', '');
-
-		if(!empty($this->item->meta_desc)){
-			$metaDescription = $this->item->meta_desc;
-		}else if(!empty($this->item->short_desc)){
-			$metaDescription = AlfaHelper::cleanContent(
-				html:$this->item->short_desc,
-				removeTags: true,
-				removeScripts: true,
-				removeIsolatedPunctuation: false
-			);
-		}
-
-		$otherMetaData = [];
-
-		if (!empty($this->item->meta_data)) {
-			$otherMetaData = json_decode($this->item->meta_data, true) ?: [];
-		}
-
-		if ($this->params->get('robots'))
-		{
-			$metaRobots = $this->params->get('robots');
-		}
-
-		if(!empty($otherMetaData['robots'])){
-			$metaRobots = $otherMetaData['robots'];
-		}
-
-		// Set all tags
-		$this->getDocument()->setTitle($metaTitle);
-		$this->getDocument()->setDescription($metaDescription);
-
-		if(!empty($metaRobots)){
-			$this->getDocument()->setMetadata('robots', $metaRobots);
-		}
-	}
-
-
+        if (!empty($metaRobots)) {
+            $this->getDocument()->setMetadata('robots', $metaRobots);
+        }
+    }
 }

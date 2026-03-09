@@ -9,6 +9,8 @@
 
 namespace Alfa\Component\Alfa\Administrator\Event\Fields;
 
+use BadMethodCallException;
+use DOMElement;
 use Joomla\CMS\Form\Form;
 
 // phpcs:disable PSR1.Files.SideEffects
@@ -35,10 +37,10 @@ class PrepareDomEvent extends FieldsEvent
     /**
      * Constructor.
      *
-     * @param   string  $name       The event name.
-     * @param   array   $arguments  The event arguments.
+     * @param string $name The event name.
+     * @param array $arguments The event arguments.
      *
-     * @throws  \BadMethodCallException
+     * @throws BadMethodCallException
      *
      * @since   5.0.0
      */
@@ -47,24 +49,23 @@ class PrepareDomEvent extends FieldsEvent
         parent::__construct($name, $arguments);
 
         if (!\array_key_exists('fieldset', $this->arguments)) {
-            throw new \BadMethodCallException("Argument 'fieldset' of event {$name} is required but has not been provided");
+            throw new BadMethodCallException("Argument 'fieldset' of event {$name} is required but has not been provided");
         }
 
         if (!\array_key_exists('form', $this->arguments)) {
-            throw new \BadMethodCallException("Argument 'form' of event {$name} is required but has not been provided");
+            throw new BadMethodCallException("Argument 'form' of event {$name} is required but has not been provided");
         }
     }
 
     /**
      * Setter for the fieldset argument.
      *
-     * @param   \DOMElement  $value  The value to set
+     * @param DOMElement $value The value to set
      *
-     * @return  \DOMElement
      *
      * @since  5.0.0
      */
-    protected function onSetFieldset(\DOMElement $value): \DOMElement
+    protected function onSetFieldset(DOMElement $value): DOMElement
     {
         return $value;
     }
@@ -72,9 +73,8 @@ class PrepareDomEvent extends FieldsEvent
     /**
      * Setter for the form argument.
      *
-     * @param   Form  $value  The value to set
+     * @param Form $value The value to set
      *
-     * @return  Form
      *
      * @since  5.0.0
      */
@@ -86,7 +86,6 @@ class PrepareDomEvent extends FieldsEvent
     /**
      * Getter for the field.
      *
-     * @return  object
      *
      * @since  5.0.0
      */
@@ -98,11 +97,10 @@ class PrepareDomEvent extends FieldsEvent
     /**
      * Getter for the fieldset.
      *
-     * @return  \DOMElement
      *
      * @since  5.0.0
      */
-    public function getFieldset(): \DOMElement
+    public function getFieldset(): DOMElement
     {
         return $this->arguments['fieldset'];
     }
@@ -110,7 +108,6 @@ class PrepareDomEvent extends FieldsEvent
     /**
      * Getter for the form.
      *
-     * @return  Form
      *
      * @since  5.0.0
      */
