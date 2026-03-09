@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @package     Alfa.Component
  * @subpackage  Administrator.Event.Payments
@@ -43,36 +44,33 @@
 namespace Alfa\Component\Alfa\Administrator\Event\Payments;
 
 use Alfa\Component\Alfa\Administrator\Plugin\HasPluginActionsTrait;
-use Alfa\Component\Alfa\Administrator\Plugin\PluginAction;
 use Joomla\CMS\Event\AbstractImmutableEvent;
 
 defined('_JEXEC') or die;
 
 class GetPaymentActionsEvent extends AbstractImmutableEvent
 {
-	use HasPluginActionsTrait;
+    use HasPluginActionsTrait;
 
-	/**
-	 * Get the payment record (with decoded params and method info).
-	 *
-	 * @return  object
-	 *
-	 * @since   3.0.0
-	 */
-	public function getPayment(): object
-	{
-		return $this->arguments['payment'];
-	}
+    /**
+     * Get the payment record (with decoded params and method info).
+     *
+     *
+     * @since   3.0.0
+     */
+    public function getPayment(): object
+    {
+        return $this->arguments['payment'];
+    }
 
-	/**
-	 * Get the order record.
-	 *
-	 * @return  object
-	 *
-	 * @since   3.0.0
-	 */
-	public function getOrder(): object
-	{
-		return $this->arguments['order'];
-	}
+    /**
+     * Get the order record.
+     *
+     *
+     * @since   3.0.0
+     */
+    public function getOrder(): object
+    {
+        return $this->arguments['order'];
+    }
 }

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Order Logs View Layout - v3.5.0
  *
@@ -17,94 +18,84 @@ defined('_JEXEC') or die;
 extract($displayData);
 
 // -- Handle missing schema gracefully (instead of blank modal) --
-if (empty($xml))
-{
-	echo '<div class="alert alert-warning">'
-		. '<span class="icon-warning-circle" aria-hidden="true"></span> '
-		. Text::_('COM_ALFA_LOGS_NO_SCHEMA')
-		. '</div>';
+if (empty($xml)) {
+    echo '<div class="alert alert-warning">'
+        . '<span class="icon-warning-circle" aria-hidden="true"></span> '
+        . Text::_('COM_ALFA_LOGS_NO_SCHEMA')
+        . '</div>';
 
-	return;
+    return;
 }
 
 // -- Handle empty logs gracefully (instead of blank modal) --
-if (empty($logData))
-{
-	echo '<div class="alert alert-info">'
-		. '<span class="icon-info-circle" aria-hidden="true"></span> '
-		. Text::_('COM_ALFA_LOGS_NO_ENTRIES')
-		. '</div>';
+if (empty($logData)) {
+    echo '<div class="alert alert-info">'
+        . '<span class="icon-info-circle" aria-hidden="true"></span> '
+        . Text::_('COM_ALFA_LOGS_NO_ENTRIES')
+        . '</div>';
 
-	return;
+    return;
 }
 
 // -- Build heading labels from XML schema --
 $createHeadingLabel = function ($label, $type) {
-	$field        = new \stdClass();
-	$field->label = Text::_($label);
-	$field->type  = $type;
+    $field = new \stdClass();
+    $field->label = Text::_($label);
+    $field->type = $type;
 
-	return $field;
+    return $field;
 };
 
 $fieldLabels = [];
 
-foreach ($xml->fields->fieldset->field as $field)
-{
-	$fieldLabels[(string) $field['name']] = $createHeadingLabel($field['label'], $field['mysql_type']);
+foreach ($xml->fields->fieldset->field as $field) {
+    $fieldLabels[(string) $field['name']] = $createHeadingLabel($field['label'], $field['mysql_type']);
 }
 
 // -- Get column keys from first log row (supports arrays and objects) --
 $firstRow = reset($logData);
-$headers  = is_array($firstRow)
-	? array_keys($firstRow)
-	: array_keys(get_object_vars($firstRow));
+$headers = is_array($firstRow)
+    ? array_keys($firstRow)
+    : array_keys(get_object_vars($firstRow));
 
 // -- Build table headings --
 $tableHeadings = '';
 
-foreach ($headers as $header)
-{
-	// Auto-generate label for DB columns not defined in XML
-	if (!isset($fieldLabels[$header]) || empty($fieldLabels[$header]->label))
-	{
-		$generatedLabel       = ucfirst(str_replace('_', ' ', $header));
-		$fieldLabels[$header] = $createHeadingLabel($generatedLabel, '');
-	}
+foreach ($headers as $header) {
+    // Auto-generate label for DB columns not defined in XML
+    if (!isset($fieldLabels[$header]) || empty($fieldLabels[$header]->label)) {
+        $generatedLabel = ucfirst(str_replace('_', ' ', $header));
+        $fieldLabels[$header] = $createHeadingLabel($generatedLabel, '');
+    }
 
-	$tableHeadings .= '<th>' . Text::_($fieldLabels[$header]->label) . '</th>';
+    $tableHeadings .= '<th>' . Text::_($fieldLabels[$header]->label) . '</th>';
 }
 
 // -- Build table body rows --
 $tableBody = '';
 
-foreach ($logData as $log)
-{
-	$tableBody .= '<tr>';
+foreach ($logData as $log) {
+    $tableBody .= '<tr>';
 
-	foreach ($headers as $header)
-	{
-		$label = $fieldLabels[$header]->label;
-		$type  = $fieldLabels[$header]->type;
+    foreach ($headers as $header) {
+        $label = $fieldLabels[$header]->label;
+        $type = $fieldLabels[$header]->type;
 
-		// Support both assoc arrays and objects
-		$value = is_array($log)
-			? htmlspecialchars($log[$header] ?? '')
-			: htmlspecialchars($log->$header ?? '');
+        // Support both assoc arrays and objects
+        $value = is_array($log)
+            ? htmlspecialchars($log[$header] ?? '')
+            : htmlspecialchars($log->$header ?? '');
 
-		// Dates: convert to user local timezone via HTMLHelper
-		if (($type === 'datetime' || $type === 'date') && !empty($value) && $value !== '0000-00-00 00:00:00')
-		{
-			$displayDate = HTMLHelper::_('date', $value, Text::_('DATE_FORMAT_LC6'));
-			$tableBody  .= '<td style="text-wrap: wrap;" data-th="' . $label . '">' . $displayDate . '</td>';
-		}
-		else
-		{
-			$tableBody .= '<td style="text-wrap: wrap;" data-th="' . $label . '">' . $value . '</td>';
-		}
-	}
+        // Dates: convert to user local timezone via HTMLHelper
+        if (($type === 'datetime' || $type === 'date') && !empty($value) && $value !== '0000-00-00 00:00:00') {
+            $displayDate = HTMLHelper::_('date', $value, Text::_('DATE_FORMAT_LC6'));
+            $tableBody .= '<td style="text-wrap: wrap;" data-th="' . $label . '">' . $displayDate . '</td>';
+        } else {
+            $tableBody .= '<td style="text-wrap: wrap;" data-th="' . $label . '">' . $value . '</td>';
+        }
+    }
 
-	$tableBody .= '</tr>';
+    $tableBody .= '</tr>';
 }
 
 // -- Render responsive table --

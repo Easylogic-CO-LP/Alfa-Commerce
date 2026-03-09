@@ -13,29 +13,29 @@
 defined('_JEXEC') or die;
 
 $shipment = $displayData['shipment'] ?? null;
-$order    = $displayData['order'] ?? null;
+$order = $displayData['order'] ?? null;
 
 if (!$shipment) {
-	return;
+    return;
 }
 
 $status = $shipment->status ?? 'pending';
 
 $statusBadge = match ($status) {
-	'delivered'       => 'bg-success',
-	'shipped'         => 'bg-primary',
-	'cancelled'       => 'bg-danger',
-	'pending', ''     => 'bg-secondary',
-	default           => 'bg-secondary',
+    'delivered' => 'bg-success',
+    'shipped' => 'bg-primary',
+    'cancelled' => 'bg-danger',
+    'pending', '' => 'bg-secondary',
+    default => 'bg-secondary',
 };
 
 // Handle Money object or raw float
 $costIncl = $shipment->shipping_cost_tax_incl ?? 0;
 $costDisplay = (is_object($costIncl) && method_exists($costIncl, 'format'))
-	? $costIncl->format()
-	: number_format((float) $costIncl, 2);
+    ? $costIncl->format()
+    : number_format((float) $costIncl, 2);
 
-$weight    = $shipment->weight ?? 0;
+$weight = $shipment->weight ?? 0;
 $weightVal = is_object($weight) ? (float) ($weight->value ?? 0) : (float) $weight;
 ?>
 

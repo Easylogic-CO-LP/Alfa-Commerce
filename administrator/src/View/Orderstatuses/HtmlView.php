@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    1.0.1
  * @package    Com_Alfa
@@ -8,15 +9,15 @@
  */
 
 namespace Alfa\Component\Alfa\Administrator\View\Orderstatuses;
+
 // No direct access
 defined('_JEXEC');
 
-use Alfa\Component\Alfa\Administrator\View\HtmlView as BaseHtmlView;
-use Joomla\CMS\Toolbar\ToolbarHelper;
-use Joomla\CMS\Language\Text;
-use Joomla\CMS\Helper\ContentHelper;
 use Alfa\Component\Alfa\Administrator\Extension\AlfaComponent;
-
+use Alfa\Component\Alfa\Administrator\View\HtmlView as BaseHtmlView;
+use Joomla\CMS\Helper\ContentHelper;
+use Joomla\CMS\Language\Text;
+use Joomla\CMS\Toolbar\ToolbarHelper;
 
 /**
  * View class for a list of Orders.
@@ -38,18 +39,18 @@ class HtmlView extends BaseHtmlView
     /**
      * Display the view
      *
-     * @param   string  $tpl  The name of the template file to parse; automatically searches through the template paths.
+     * @param string $tpl The name of the template file to parse; automatically searches through the template paths.
      *
-     * @return  void
+     * @return void
      */
     public function display($tpl = null)
     {
         $model = $this->getModel();
 
-        $this->items         = $model->getItems();
-        $this->pagination    = $model->getPagination();
-        $this->state         = $model->getState();
-        $this->filterForm    = $model->getFilterForm();
+        $this->items = $model->getItems();
+        $this->pagination = $model->getPagination();
+        $this->state = $model->getState();
+        $this->filterForm = $model->getFilterForm();
         $this->activeFilters = $model->getActiveFilters();
 
         $this->addToolbar();
@@ -65,24 +66,22 @@ class HtmlView extends BaseHtmlView
     /**
      * Add the page title and toolbar.
      *
-     * @return  void
+     * @return void
      *
      * @since   1.0.1
      */
     protected function addToolbar()
     {
-        $canDo    = ContentHelper::getActions('com_alfa');
-        $toolbar  = $this->getDocument()->getToolbar();
+        $canDo = ContentHelper::getActions('com_alfa');
+        $toolbar = $this->getDocument()->getToolbar();
 
-        ToolbarHelper::title(Text::_('COM_ALFA_TITLE_ORDER_STATUSES'), "generic");
+        ToolbarHelper::title(Text::_('COM_ALFA_TITLE_ORDER_STATUSES'), 'generic');
 
-        if ($canDo->get('core.create'))
-        {
+        if ($canDo->get('core.create')) {
             $toolbar->addNew('orderstatus.add');
         }
 
-        if ($canDo->get('core.edit.state'))
-        {
+        if ($canDo->get('core.edit.state')) {
             $dropdown = $toolbar->dropdownButton('status-group')
                 ->text('JTOOLBAR_CHANGE_STATUS')
                 ->toggleSplit(false)
@@ -109,14 +108,10 @@ class HtmlView extends BaseHtmlView
             }
 
             $childBar->checkin('orderstatuses.checkin')->listCheck(true);
-
         }
 
-        if ($canDo->get('core.admin'))
-        {
+        if ($canDo->get('core.admin')) {
             $toolbar->preferences('com_alfa');
         }
-
     }
-
 }

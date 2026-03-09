@@ -1,7 +1,9 @@
 <?php
 
 extract($displayData);
-if(!isset($method)) return;
+if (!isset($method)) {
+    return;
+}
 ?>
 
 <div>

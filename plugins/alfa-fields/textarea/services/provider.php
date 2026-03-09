@@ -22,9 +22,9 @@ return new class () implements ServiceProviderInterface {
     /**
      * Registers the service provider with a DI container.
      *
-     * @param   Container  $container  The DI container.
+     * @param Container $container The DI container.
      *
-     * @return  void
+     * @return void
      *
      * @since   4.3.0
      */
@@ -33,14 +33,14 @@ return new class () implements ServiceProviderInterface {
         $container->set(
             PluginInterface::class,
             function (Container $container) {
-                $plugin     = new Textarea(
+                $plugin = new Textarea(
                     $container->get(DispatcherInterface::class),
-                    (array) PluginHelper::getPlugin('alfa-fields', 'textarea')
+                    (array) PluginHelper::getPlugin('alfa-fields', 'textarea'),
                 );
                 $plugin->setApplication(Factory::getApplication());
 
                 return $plugin;
-            }
+            },
         );
     }
 };

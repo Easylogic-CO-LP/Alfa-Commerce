@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @package     Alfa.Component
  * @subpackage  Administrator.Event.Shipments
@@ -36,36 +37,33 @@
 namespace Alfa\Component\Alfa\Administrator\Event\Shipments;
 
 use Alfa\Component\Alfa\Administrator\Plugin\HasPluginActionsTrait;
-use Alfa\Component\Alfa\Administrator\Plugin\PluginAction;
 use Joomla\CMS\Event\AbstractImmutableEvent;
 
 defined('_JEXEC') or die;
 
 class GetShipmentActionsEvent extends AbstractImmutableEvent
 {
-	use HasPluginActionsTrait;
+    use HasPluginActionsTrait;
 
-	/**
-	 * Get the shipment record (with decoded params and method info).
-	 *
-	 * @return  object
-	 *
-	 * @since   3.0.0
-	 */
-	public function getShipment(): object
-	{
-		return $this->arguments['shipment'];
-	}
+    /**
+     * Get the shipment record (with decoded params and method info).
+     *
+     *
+     * @since   3.0.0
+     */
+    public function getShipment(): object
+    {
+        return $this->arguments['shipment'];
+    }
 
-	/**
-	 * Get the order record.
-	 *
-	 * @return  object
-	 *
-	 * @since   3.0.0
-	 */
-	public function getOrder(): object
-	{
-		return $this->arguments['order'];
-	}
+    /**
+     * Get the order record.
+     *
+     *
+     * @since   3.0.0
+     */
+    public function getOrder(): object
+    {
+        return $this->arguments['order'];
+    }
 }

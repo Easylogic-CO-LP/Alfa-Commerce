@@ -6,14 +6,18 @@ use Joomla\CMS\Router\Route;
 
 defined('_JEXEC') or die;
 
-if(isset($displayData)) extract($displayData);
+if (isset($displayData)) {
+    extract($displayData);
+}
 
 $cart = ($cart ?? null);
-if (!isset($cart)) return;
+if (!isset($cart)) {
+    return;
+}
 
 $priceSettings = ($priceSettings ?? null);
 
-$data  = $cart->getData();
+$data = $cart->getData();
 $items = $data->items ?? [];
 $itemsCount = count($items);
 
@@ -53,12 +57,12 @@ $itemsCount = count($items);
                             </div>
                             <div class="cart-item-price">
 								<?php
-								echo LayoutHelper::render('price', [
-									'item' => $cartItem->data,  // Pass item data
-									'settings' => $priceSettings,
-									'options' => ['show_totals' => true],
-								], JPATH_ROOT . '/components/com_alfa/layouts');
-								?>
+                                echo LayoutHelper::render('price', [
+                                    'item' => $cartItem->data,  // Pass item data
+                                    'settings' => $priceSettings,
+                                    'options' => ['show_totals' => true],
+                                ], JPATH_ROOT . '/components/com_alfa/layouts');
+				    ?>
                             </div>
 
                         </div>
@@ -106,7 +110,7 @@ $itemsCount = count($items);
             <div class="cart-totals">
 
                 <!-- Shipping Row -->
-				<?php //if (!$cart->getShipmentTotal()->isZero()): ?>
+				<?php //if (!$cart->getShipmentTotal()->isZero()):?>
                     <div class="totals-row shipping-row">
                         <div class="totals-label">
                             <strong><?php echo Text::_('MOD_ALFA_CART_SHIPPING'); ?>:</strong>
@@ -115,7 +119,7 @@ $itemsCount = count($items);
 							<?php echo $cart->getShipmentTotal()->format(); ?>
                         </div>
                     </div>
-				<?php //endif; ?>
+				<?php //endif;?>
 
                 <!-- Grand Total Row -->
                 <div class="totals-row grand-total-row">

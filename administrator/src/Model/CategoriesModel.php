@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    1.0.1
  * @package    Com_Alfa
@@ -9,11 +10,10 @@
 
 namespace Alfa\Component\Alfa\Administrator\Model;
 
-
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 use Joomla\CMS\MVC\Model\ListModel;
 use Joomla\Database\QueryInterface;
-use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 
 // phpcs:disable PSR1.Files.SideEffects
 \defined('_JEXEC') or die;
@@ -26,167 +26,156 @@ use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
  */
 class CategoriesModel extends ListModel
 {
-	/**
-	* Constructor.
-	*
-	* @param   array  $config  An optional associative array of configuration settings.
-	*
-	* @see        JController
-	* @since      1.6
-	*/
+    /**
+    * Constructor.
+    *
+     * @param array $config An optional associative array of configuration settings.
+    *
+    * @see        JController
+    * @since      1.6
+    */
     public function __construct($config = [], ?MVCFactoryInterface $factory = null)
-	{
-		if (empty($config['filter_fields']))
-		{
-			$config['filter_fields'] = array(
-				'ordering', 'a.ordering',
-				'created_by', 'a.created_by',
-				'modified_by', 'a.modified_by',
-				'parent_id', 'a.parent_id',
-				'id', 'a.id',
-				'name', 'a.name',
-				'state', 'a.state',
-				'alias', 'a.alias',
-				'meta_title', 'a.meta_title',
-				'meta_desc', 'a.meta_desc',
-			);
-		}
+    {
+        if (empty($config['filter_fields'])) {
+            $config['filter_fields'] = [
+                'ordering', 'a.ordering',
+                'created_by', 'a.created_by',
+                'modified_by', 'a.modified_by',
+                'parent_id', 'a.parent_id',
+                'id', 'a.id',
+                'name', 'a.name',
+                'state', 'a.state',
+                'alias', 'a.alias',
+                'meta_title', 'a.meta_title',
+                'meta_desc', 'a.meta_desc',
+            ];
+        }
 
-		parent::__construct($config,$factory);
-	}
-	
+        parent::__construct($config, $factory);
+    }
 
-	/**
-	 * Method to autopopulate the model state.
-	 *
-	 * Note. Calling getState in this method will result in recursion.
-	 *
-	 * @param   string  $ordering   Elements order
-	 * @param   string  $direction  Order direction
-	 *
-	 * @return void
-	 *
-	 * @throws Exception
-	 */
+    /**
+     * Method to autopopulate the model state.
+     *
+     * Note. Calling getState in this method will result in recursion.
+     *
+     * @param string $ordering Elements order
+     * @param string $direction Order direction
+     *
+     * @return void
+     *
+     * @throws Exception
+     */
     protected function populateState($ordering = 'a.id', $direction = 'ASC')
     {
         parent::populateState($ordering, $direction);
     }
 
-	/**
-	 * Method to get a store id based on model configuration state.
-	 *
-	 * This is necessary because the model is used by the component and
-	 * different modules that might need different sets of data or different
-	 * ordering requirements.
-	 *
-	 * @param   string  $id  A prefix for the store id.
-	 *
-	 * @return  string A store id.
-	 *
-	 * @since   1.0.1
-	 */
-	protected function getStoreId($id = '')
-	{
-		// Compile the store id.
-		$id .= ':' . $this->getState('filter.search');
-		$id .= ':' . $this->getState('filter.state');
+    /**
+     * Method to get a store id based on model configuration state.
+     *
+     * This is necessary because the model is used by the component and
+     * different modules that might need different sets of data or different
+     * ordering requirements.
+     *
+     * @param string $id A prefix for the store id.
+     *
+     * @return string A store id.
+     *
+     * @since   1.0.1
+     */
+    protected function getStoreId($id = '')
+    {
+        // Compile the store id.
+        $id .= ':' . $this->getState('filter.search');
+        $id .= ':' . $this->getState('filter.state');
 
-		return parent::getStoreId($id);
-	}
+        return parent::getStoreId($id);
+    }
 
     /**
      * Build an SQL query to load the list data.
      *
-     * @return  QueryInterface
+     * @return QueryInterface
      *
      * @since   1.6
      */
-	protected function getListQuery()
-	{
-		// Create a new query object.
-		$db    = $this->getDatabase();
+    protected function getListQuery()
+    {
+        // Create a new query object.
+        $db = $this->getDatabase();
         $query = $db->createQuery();
 
-		// Select the required fields from the table.
-		$query->select(
-			$this->getState(
-				'list.select', 'DISTINCT a.*'
-			)
-		);
-        $query->select("uc.name AS uEditor");
+        // Select the required fields from the table.
+        $query->select(
+            $this->getState(
+                'list.select',
+                'DISTINCT a.*',
+            ),
+        );
+        $query->select('uc.name AS uEditor');
         $query->select('`created_by`.name AS `created_by`');
         $query->select('`modified_by`.name AS `modified_by`');
 
-		$query->from('`#__alfa_categories` AS a');
+        $query->from('`#__alfa_categories` AS a');
 
-		$query->join("LEFT", "#__users AS uc ON uc.id=a.checked_out");
-		$query->join('LEFT', '#__users AS `created_by` ON `created_by`.id = a.`created_by`');
-		$query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
-		
+        $query->join('LEFT', '#__users AS uc ON uc.id=a.checked_out');
+        $query->join('LEFT', '#__users AS `created_by` ON `created_by`.id = a.`created_by`');
+        $query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
 
-		// Filter by published state
-		$published = $this->getState('filter.state');
+        // Filter by published state
+        $published = $this->getState('filter.state');
 
-		if (is_numeric($published))
-		{
-			$query->where('a.state = ' . (int) $published);
-		}
-		elseif (empty($published))
-		{
-			$query->where('(a.state IN (0, 1))');
-		}
+        if (is_numeric($published)) {
+            $query->where('a.state = ' . (int) $published);
+        } elseif (empty($published)) {
+            $query->where('(a.state IN (0, 1))');
+        }
 
-		// Filter by search in title
-		$search = $this->getState('filter.search');
+        // Filter by search in title
+        $search = $this->getState('filter.search');
 
-		if (!empty($search))
-		{
-			if (stripos($search, 'id:') === 0)
-			{
-				$query->where('a.id = ' . (int) substr($search, 3));
-			}
-			else
-			{
-				$search = $db->Quote('%' . $db->escape($search, true) . '%');
-				$query->where('( a.name LIKE ' . $search . ' )');
-			}
-		}
-		
-		// Add the list ordering clause.
-		$orderCol  = $this->state->get('list.ordering', 'id');
-		$orderDirn = $this->state->get('list.direction', 'ASC');
+        if (!empty($search)) {
+            if (stripos($search, 'id:') === 0) {
+                $query->where('a.id = ' . (int) substr($search, 3));
+            } else {
+                $search = $db->Quote('%' . $db->escape($search, true) . '%');
+                $query->where('( a.name LIKE ' . $search . ' )');
+            }
+        }
+
+        // Add the list ordering clause.
+        $orderCol = $this->state->get('list.ordering', 'id');
+        $orderDirn = $this->state->get('list.direction', 'ASC');
 
         $query->order('a.parent_id ASC');
 
-		if ($orderCol && $orderDirn)
-		{
-			$query->order($db->escape($orderCol . ' ' . $orderDirn));
-		}
+        if ($orderCol && $orderDirn) {
+            $query->order($db->escape($orderCol . ' ' . $orderDirn));
+        }
 
-		return $query;
-	}
+        return $query;
+    }
 
-	/**
-	 * Get an array of data items
-	 *
-	 * @return mixed Array of data items on success, false on failure.
-	 */
-	public function getItems()
-	{
-		$items = parent::getItems();
+    /**
+     * Get an array of data items
+     *
+     * @return mixed Array of data items on success, false on failure.
+     */
+    public function getItems()
+    {
+        $items = parent::getItems();
 
-		$items = AlfaHelper::addHierarchyData($items);
+        $items = AlfaHelper::addHierarchyData($items);
 
-		//		TROPOS 1
-		//		$categories = AlfaHelper::addHierarchyData($categories,'name','/');
+        //		TROPOS 1
+        //		$categories = AlfaHelper::addHierarchyData($categories,'name','/');
 
-		//		TROPOS 2
-		//	    $nestedCategories = AlfaHelper::buildNestedArray($categories);
-		//		AlfaHelper::sort_nested_items($nestedCategories,'name','desc');
-		//	    $flattenArray = AlfaHelper::flatten_nested_items($nestedCategories,'id','/');
+        //		TROPOS 2
+        //	    $nestedCategories = AlfaHelper::buildNestedArray($categories);
+        //		AlfaHelper::sort_nested_items($nestedCategories,'name','desc');
+        //	    $flattenArray = AlfaHelper::flatten_nested_items($nestedCategories,'id','/');
 
-
-		return $items;
-	}
+        return $items;
+    }
 }

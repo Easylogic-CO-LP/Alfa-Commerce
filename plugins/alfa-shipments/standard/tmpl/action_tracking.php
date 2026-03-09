@@ -16,15 +16,15 @@
 defined('_JEXEC') or die;
 
 $shipment = $displayData['shipment'] ?? null;
-$order    = $displayData['order'] ?? null;
+$order = $displayData['order'] ?? null;
 
 if (!$shipment) {
-	return;
+    return;
 }
 
 $trackingNumber = $shipment->tracking_number ?? '';
-$carrierName    = $shipment->shipment_method_name ?? $shipment->carrier_name ?? 'Standard';
-$status         = $shipment->status ?? 'pending';
+$carrierName = $shipment->shipment_method_name ?? $shipment->carrier_name ?? 'Standard';
+$status = $shipment->status ?? 'pending';
 ?>
 
 <div class="card">
