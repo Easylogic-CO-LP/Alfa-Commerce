@@ -1,45 +1,98 @@
-# alfa-commerce (Pre-alpha Version)
+# Alfa Commerce
 
-🚀 About alfa-commerce
+A full-featured eCommerce component for Joomla 4.x / 5.x, developed by [Easylogic](https://easylogic.gr).
 
-Welcome to alfa-commerce, the smartest, fastest, and easiest eCommerce solution for Joomla developed by Easylogic.
-This project is currently in its Pre-alpha phase, with rapid developments underway to provide an optimized eCommerce experience.
+> **Status:** Pre-alpha — the core is being actively built and tested.
 
-While we are still in the pre-alpha phase, the core is being actively built and tested.
+## Features
 
-🛠️ Installation (Pre-alpha Testing)
+- **Product Catalog** — Items, categories, manufacturers, custom fields
+- **Cart & Checkout** — Full shopping cart with multi-step checkout
+- **Orders Management** — Order lifecycle, statuses, history tracking
+- **Payments** — Pluggable payment gateways (Standard, Revolut, Viva Wallet)
+- **Shipping** — Pluggable shipment methods (Standard, BoxNow)
+- **Pricing Engine** — Taxes, discounts, coupons, multi-currency support
+- **Users & Groups** — Customer management with user group pricing
+- **REST API** — 18 JSON-API endpoints for third-party integrations
+- **SEO** — SEF URLs, metadata management
+- **Multilingual** — Full i18n support (en-GB, el-GR)
 
-    Go to main branch
-    Download the whole zip
-    Install it in joomla.
+## Requirements
 
-🌐 API Integration with Postman
+- PHP 8.2+
+- Joomla 4.x or 5.x
+- MySQL (utf8mb4)
 
-The Alfa-Commerce API empowers developers to seamlessly integrate eCommerce functionalities into third-party applications. Use the button below to explore the API directly in Postman:
+## Installation
 
-[<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://null.postman.co/collection/40562641-db6c701d-6cee-4955-96b3-d357447b9bfe?source=rip_markdown)
+1. Download the latest release ZIP from the [main branch](https://github.com/Easylogic-CO-LP/Alfa-Commerce/archive/refs/heads/main.zip)
+2. In your Joomla admin, go to **System > Install > Extensions**
+3. Upload the ZIP file
+4. The installer will automatically set up the component, plugins, and modules
 
+## Project Structure
 
-🤝 Contributing
+```
+administrator/          Backend admin panel (MVC, forms, services, events)
+site/                   Frontend customer-facing views and logic
+api/                    REST JSON-API controllers (18 endpoints)
+plugins/
+  alfa-payments/        Payment gateways (standard, revolut, viva)
+  alfa-shipments/       Shipping methods (standard, boxnow)
+  alfa-fields/          Custom form field types (text, textarea)
+  webservices/          API routing plugin
+modules/
+  mod_alfa_cart/        Shopping cart module
+  mod_alfa_search/      Product search module
+media/com_alfa/         CSS, JavaScript, images
+```
 
-Contributions are what make the open-source community such an amazing place to learn, inspire, and create. We welcome contributions from everyone, especially those excited to help alfa-commerce grow.
+## API
 
-To contribute:
+Alfa Commerce exposes a REST API for integration with external applications.
 
-    Fork the repository.
-    Create a branch derived from developer branch for your feature or bugfix.
-    Commit your changes (git commit -m 'Add some feature').
-    Push to the branch (git push origin feature-branch).
-    Open a Pull Request.
-    
-    or you can be a part of our team by getting in touch with us.
+[![Run in Postman](https://run.pstmn.io/button.svg)](https://null.postman.co/collection/40562641-db6c701d-6cee-4955-96b3-d357447b9bfe?source=rip_markdown)
 
+## Documentation
 
-Developer Contact
+Full documentation is available at **[manual.alfacommerce.gr](https://manual.alfacommerce.gr)**
 
-    Easylogic Website
-    Contact the dev team at info@easylogic.gr
+## Contributing
 
-Documentation for alfa-commerce is coming soon. For now, you can refer to the codebase and the inline comments to understand the structure.
+We welcome contributions from everyone. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide.
 
-Developed with ❤️ by the Easylogic Team.
+**Quick start:**
+
+```bash
+# Fork and clone
+git clone https://github.com/YOUR-USERNAME/Alfa-Commerce.git
+cd Alfa-Commerce
+
+# Create a feature branch from developer
+git checkout developer
+git checkout -b feature/my-feature
+
+# Make changes, commit, push
+git push origin feature/my-feature
+
+# Open a Pull Request targeting the "developer" branch
+```
+
+### Branch Strategy
+
+| Branch | Purpose |
+|--------|---------|
+| `main` | Stable releases. Never commit directly. |
+| `developer` | Active development. Base your branches here. |
+| `feature/*` | New features |
+| `fix/*` | Bug fixes |
+
+## Contact
+
+- **Website:** [easylogic.gr](https://easylogic.gr)
+- **Email:** info@easylogic.gr
+- **Issues:** [GitHub Issues](https://github.com/Easylogic-CO-LP/Alfa-Commerce/issues)
+
+## License
+
+Developed by the Easylogic Team.
