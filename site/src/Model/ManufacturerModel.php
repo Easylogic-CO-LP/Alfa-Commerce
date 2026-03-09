@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -30,9 +30,6 @@ class ManufacturerModel extends ItemModel
 {
 	public $_item;
 
-	
-
-	
 
 	/**
 	 * Method to auto-populate the model state.
@@ -41,9 +38,9 @@ class ManufacturerModel extends ItemModel
 	 *
 	 * @return  void
 	 *
+	 * @throws Exception
 	 * @since   1.0.1
 	 *
-	 * @throws Exception
 	 */
 	protected function populateState()
 	{
@@ -85,7 +82,7 @@ class ManufacturerModel extends ItemModel
 	/**
 	 * Method to get an object.
 	 *
-	 * @param   integer $id The id of the object to get.
+	 * @param   integer  $id  The id of the object to get.
 	 *
 	 * @return  mixed    Object on success, false on failure.
 	 *
@@ -108,7 +105,7 @@ class ManufacturerModel extends ItemModel
 			// Attempt to load the row.
 			if ($table && $table->load($id))
 			{
-				
+
 
 				// Check published state.
 				if ($published = $this->getState('filter.published'))
@@ -123,7 +120,7 @@ class ManufacturerModel extends ItemModel
 				$properties  = $table->getProperties(1);
 				$this->_item = ArrayHelper::toObject($properties, CMSObject::class);
 
-				
+
 			}
 
 			if (empty($this->_item))
@@ -132,39 +129,37 @@ class ManufacturerModel extends ItemModel
 			}
 		}
 
-		
 
-		 $container = \Joomla\CMS\Factory::getContainer();
+		$container = \Joomla\CMS\Factory::getContainer();
 
-		 $userFactory = $container->get(UserFactoryInterface::class);
+		$userFactory = $container->get(UserFactoryInterface::class);
 
 		if (isset($this->_item->created_by))
 		{
-			$user = $userFactory->loadUserById($this->_item->created_by);
+			$user                         = $userFactory->loadUserById($this->_item->created_by);
 			$this->_item->created_by_name = $user->name;
 		}
 
-		 $container = \Joomla\CMS\Factory::getContainer();
+		$container = \Joomla\CMS\Factory::getContainer();
 
-		 $userFactory = $container->get(UserFactoryInterface::class);
+		$userFactory = $container->get(UserFactoryInterface::class);
 
 		if (isset($this->_item->modified_by))
 		{
-			$user = $userFactory->loadUserById($this->_item->modified_by);
+			$user                          = $userFactory->loadUserById($this->_item->modified_by);
 			$this->_item->modified_by_name = $user->name;
 		}
 
 		return $this->_item;
 	}
-	
 
 
 	/**
 	 * Get an instance of Table class
 	 *
-	 * @param   string $type   Name of the Table class to get an instance of.
-	 * @param   string $prefix Prefix for the table class name. Optional.
-	 * @param   array  $config Array of configuration values for the Table object. Optional.
+	 * @param   string  $type    Name of the Table class to get an instance of.
+	 * @param   string  $prefix  Prefix for the table class name. Optional.
+	 * @param   array   $config  Array of configuration values for the Table object. Optional.
 	 *
 	 * @return  Table|bool Table if success, false on failure.
 	 */
@@ -175,10 +170,11 @@ class ManufacturerModel extends ItemModel
 
 	/**
 	 * Get the id of an item by alias
-	 * @param   string $alias Item alias
+	 *
+	 * @param   string  $alias  Item alias
 	 *
 	 * @return  mixed
-	 * 
+	 *
 	 * @deprecated  No replacement
 	 */
 	public function getItemIdByAlias($alias)
@@ -189,9 +185,9 @@ class ManufacturerModel extends ItemModel
 		$aliasKey   = null;
 		if (method_exists($this, 'getAliasFieldNameByView'))
 		{
-			$aliasKey   = $this->getAliasFieldNameByView('manufacturer');
+			$aliasKey = $this->getAliasFieldNameByView('manufacturer');
 		}
-		
+
 
 		if (key_exists('alias', $properties))
 		{
@@ -203,15 +199,15 @@ class ManufacturerModel extends ItemModel
 			$table->load(array($aliasKey => $alias));
 			$result = $table->id;
 		}
-		
-			return $result;
-		
+
+		return $result;
+
 	}
 
 	/**
 	 * Method to check in an item.
 	 *
-	 * @param   integer $id The id of the row to check out.
+	 * @param   integer  $id  The id of the row to check out.
 	 *
 	 * @return  boolean True on success, false on failure.
 	 *
@@ -221,7 +217,7 @@ class ManufacturerModel extends ItemModel
 	{
 		// Get the id.
 		$id = (!empty($id)) ? $id : (int) $this->getState('manufacturer.id');
-				
+
 		if ($id)
 		{
 			// Initialise the table
@@ -238,13 +234,13 @@ class ManufacturerModel extends ItemModel
 		}
 
 		return true;
-		
+
 	}
 
 	/**
 	 * Method to check out an item for editing.
 	 *
-	 * @param   integer $id The id of the row to check out.
+	 * @param   integer  $id  The id of the row to check out.
 	 *
 	 * @return  boolean True on success, false on failure.
 	 *
@@ -255,7 +251,7 @@ class ManufacturerModel extends ItemModel
 		// Get the user id.
 		$id = (!empty($id)) ? $id : (int) $this->getState('manufacturer.id');
 
-				
+
 		if ($id)
 		{
 			// Initialise the table
@@ -275,32 +271,32 @@ class ManufacturerModel extends ItemModel
 		}
 
 		return true;
-				
+
 	}
 
 	/**
 	 * Publish the element
 	 *
-	 * @param   int $id    Item id
-	 * @param   int $state Publish state
+	 * @param   int  $id     Item id
+	 * @param   int  $state  Publish state
 	 *
 	 * @return  boolean
 	 */
 	public function publish($id, $state)
 	{
 		$table = $this->getTable();
-				
+
 		$table->load($id);
 		$table->state = $state;
 
 		return $table->store();
-				
+
 	}
 
 	/**
 	 * Method to delete an item
 	 *
-	 * @param   int $id Element id
+	 * @param   int  $id  Element id
 	 *
 	 * @return  bool
 	 */
@@ -308,9 +304,9 @@ class ManufacturerModel extends ItemModel
 	{
 		$table = $this->getTable();
 
-		
-			return $table->delete($id);
-		
+
+		return $table->delete($id);
+
 	}
 
 	public function getAliasFieldNameByView($view)
@@ -320,15 +316,15 @@ class ManufacturerModel extends ItemModel
 			case 'manufacturer':
 			case 'manufacturerform':
 				return 'alias';
-			break;
+				break;
 			case 'category':
 			case 'categoryform':
 				return 'alias';
-			break;
+				break;
 			case 'item':
 			case 'itemform':
 				return 'alias';
-			break;
+				break;
 		}
 	}
 }

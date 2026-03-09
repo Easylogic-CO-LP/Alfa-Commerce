@@ -1,59 +1,177 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Payment form — complete coverage of #__alfa_order_payments columns.
+
+    Used for BOTH:
+    1. Popup add/edit form (getPaymentForm → edit_payment.php)
+    2. List column definitions (edit_payments.php subform)
+
+    Field groups:
+      CORE:     id_payment_method, amount, payment_type, transaction_status
+      GATEWAY:  transaction_id, gateway_response, processed_at
+      REFUND:   refund_type, refund_reason, id_refunded_payment
+      META:     added, id_employee
+      HIDDEN:   id, id_order, id_currency, conversion_rate,
+                payment_method, order_reference
+
+    List fields (payment_type, transaction_status, refund_type) have
+    NO static options — always injected by OrderModel::getPaymentForm()
+    from OrderPaymentHelper constants. Single source of truth.
+
+    DB: #__alfa_order_payments
+-->
 <form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
     <fieldset name="payment">
-        <field
-                name="amount"
-                type="number"
-                label="COM_ALFA_FORM_ORDER_AMOUNT"
-                description="COM_ALFA_FORM_ORDER_AMOUNT_DESC"
-                readonly="false"
-                required="true"
-        />
 
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- CORE FIELDS                                             -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+
+        <!-- Payment method (dropdown from payments table) -->
         <field
                 name="id_payment_method" type="sql"
                 input_type="list"
                 required="true"
                 multiple="false"
-                label="COM_ALFA_FORM_ORDER_PAYMENTMETHOD"
-                description="COM_ALFA_FORM_ORDER_PAYMENTMETHOD_DESC"
+                label="COM_ALFA_PAYMENT_METHOD"
+                description="COM_ALFA_PAYMENT_METHOD_DESC"
                 layout="joomla.form.field.list-fancy-select"
-                query="SELECT `id`, `name` AS val FROM `#__alfa_payments`" key_field="id" value_field="val"
+                query="SELECT `id`, `name` AS val FROM `#__alfa_payments`"
+                key_field="id" value_field="val"
         />
 
-        <field name="conversion_rate" type="hidden" default="1.00"/>
+        <!-- Amount (tax inclusive) -->
+        <field
+                name="amount"
+                type="number"
+                label="COM_ALFA_AMOUNT"
+                description="COM_ALFA_AMOUNT_DESC"
+                step="0.01"
+                required="true"
+        />
 
+        <!-- Payment type — options injected by model from OrderPaymentHelper::allTypes() -->
+        <field
+                name="payment_type"
+                type="list"
+                label="COM_ALFA_PAYMENT_TYPE"
+                description="COM_ALFA_PAYMENT_TYPE_DESC"
+                default="payment"
+                required="true"
+        />
+
+        <!-- Transaction status — options injected by model from OrderPaymentHelper::allStatuses() -->
+        <field
+                name="transaction_status"
+                type="list"
+                label="COM_ALFA_TRANSACTION_STATUS"
+                description="COM_ALFA_TRANSACTION_STATUS_DESC"
+                default="completed"
+                required="true"
+        />
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- GATEWAY FIELDS                                          -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+
+        <!-- Transaction ID from payment gateway (Stripe charge ID, PayPal txn, etc.) -->
         <field
                 name="transaction_id"
                 type="text"
-                label="COM_ALFA_FORM_ORDER_TRANSACTION_ID"
-                description="COM_ALFA_FORM_ORDER_TRANSACTION_ID_DESC"
+                label="COM_ALFA_TRANSACTION_ID"
+                description="COM_ALFA_TRANSACTION_ID_DESC"
         />
 
+        <!-- When payment was confirmed by gateway or admin -->
         <field
-                name="added"
+                name="processed_at"
                 type="calendar"
-                label="COM_ALFA_FORM_ORDER_ITEM_DATE"
-                description="COM_ALFA_FORM_ORDER_ITEM_DATE_DESC"
+                label="COM_ALFA_PROCESSED_AT"
+                description="COM_ALFA_PROCESSED_AT_DESC"
                 class="form-control"
                 translateformat="true"
                 showtime="true"
                 filter="user_utc"
         />
 
+        <!-- Complete JSON from gateway (card details, metadata, everything) -->
         <field
-                name="id_user"
+                name="gateway_response"
+                type="textarea"
+                label="COM_ALFA_GATEWAY_RESPONSE"
+                description="COM_ALFA_GATEWAY_RESPONSE_DESC"
+                rows="4"
+                readonly="true"
+                class="form-control font-monospace"
+        />
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- REFUND FIELDS                                           -->
+        <!-- Visible when payment_type = 'refund' or editing a       -->
+        <!-- refunded payment. Hidden for normal payments.           -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+
+        <!-- Refund type — options injected by model from OrderPaymentHelper::allRefundTypes() -->
+        <field
+                name="refund_type"
+                type="list"
+                label="COM_ALFA_REFUND_TYPE"
+                description="COM_ALFA_REFUND_TYPE_DESC"
+        />
+
+        <!-- Reason for the refund (free text) -->
+        <field
+                name="refund_reason"
+                type="text"
+                label="COM_ALFA_REFUND_REASON"
+                description="COM_ALFA_REFUND_REASON_DESC"
+        />
+
+        <!-- Links this refund record to the original payment it refunds -->
+        <field
+                name="id_refunded_payment"
+                type="number"
+                label="COM_ALFA_REFUNDED_PAYMENT_ID"
+                description="COM_ALFA_REFUNDED_PAYMENT_ID_DESC"
+                readonly="true"
+        />
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- META FIELDS                                             -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+
+        <!-- Date added -->
+        <field
+                name="added"
+                type="calendar"
+                label="COM_ALFA_DATE_ADDED"
+                description="COM_ALFA_DATE_ADDED_DESC"
+                class="form-control"
+                translateformat="true"
+                showtime="true"
+                filter="user_utc"
+        />
+
+        <!-- Employee who created/modified the payment -->
+        <field
+                name="id_employee"
                 type="user"
                 required="true"
-                label="COM_ALFA_FORM_ORDER_ID_USER"
-                description="COM_ALFA_FORM_ORDER_ID_USER_DESC"
+                label="COM_ALFA_EMPLOYEE"
+                description="COM_ALFA_EMPLOYEE_DESC"
                 validate="UserId"
         />
 
-        <!-- id     id_order    id_currency     amount  payment_method  conversion_rate transaction_id  date_add    id_user      -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- HIDDEN — auto-filled by model, not shown in form/list  -->
+        <!-- ═══════════════════════════════════════════════════════ -->
 
         <field name="id" type="hidden"/>
         <field name="id_order" type="hidden"/>
         <field name="id_currency" type="hidden" default="978"/>
+        <field name="conversion_rate" type="hidden" default="1.00"/>
+        <field name="payment_method" type="hidden"/>
+        <field name="order_reference" type="hidden"/>
+
     </fieldset>
 </form>

@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -10,33 +10,27 @@
 // No direct access
 defined('_JEXEC') or die;
 
-
-use \Joomla\CMS\HTML\HTMLHelper;
-use \Joomla\CMS\Factory;
-use \Joomla\CMS\Uri\Uri;
-use \Joomla\CMS\Router\Route;
-use \Joomla\CMS\Layout\LayoutHelper;
-use \Joomla\CMS\Language\Text;
+use Joomla\CMS\HTML\HTMLHelper;
+use Joomla\CMS\Factory;
+use Joomla\CMS\Router\Route;
+use Joomla\CMS\Layout\LayoutHelper;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Session\Session;
 
-HTMLHelper::_('bootstrap.tooltip');
-HTMLHelper::_('behavior.multiselect');
-
-// Import CSS
-$wa =  $this->document->getWebAssetManager();
+$wa = $this->getDocument()->getWebAssetManager();
 $wa->useStyle('com_alfa.admin')
     ->useScript('com_alfa.admin')
     ->useScript('table.columns');
 
-$user      = Factory::getApplication()->getIdentity();
-$userId    = $user->get('id');
-$listOrder = $this->state->get('list.ordering');
-$listDirn  = $this->state->get('list.direction');
-$canOrder  = $user->authorise('core.edit.state', 'com_alfa');
+$app       = Factory::getApplication();
+$user      = $this->getCurrentUser();
+$userId    = $user->id;
+$listOrder = $this->escape($this->state->get('list.ordering'));
+$listDirn  = $this->escape($this->state->get('list.direction'));
+$orderName = 'a.ordering';
+$saveOrder = $listOrder == $orderName;
 
-$saveOrder = $listOrder == 'a.ordering';
-if (!empty($saveOrder))
-{
+if ($saveOrder && !empty($this->items)) {
 	$saveOrderingUrl = 'index.php?option=com_alfa&task=discounts.saveOrderAjax&tmpl=component&' . Session::getFormToken() . '=1';
 	HTMLHelper::_('draggablelist.draggable');
 }
@@ -62,8 +56,7 @@ if (!empty($saveOrder))
 					<thead>
 					<tr>
 						<th class="w-1 text-center">
-							<input type="checkbox" autocomplete="off" class="form-check-input" name="checkall-toggle" value=""
-								   title="<?php echo Text::_('JGLOBAL_CHECK_ALL'); ?>" onclick="Joomla.checkAll(this)"/>
+                            <?php echo HTMLHelper::_('grid.checkall'); ?>
 						</th>
 						
 					<?php if (isset($this->items[0]->ordering)): ?>
@@ -145,35 +138,25 @@ if (!empty($saveOrder))
 							<td class="text-center">
 								<?php echo HTMLHelper::_('grid.id', $i, $item->id); ?>
 							</td>
-							
-							<?php if (isset($this->items[0]->ordering)) : ?>
 
-							<td class="text-center d-none d-md-table-cell">
-
-
-							<?php
-
-							$iconClass = '';
-
-							if (!$canChange)
-
-							{
-								$iconClass = ' inactive';
-
-							}
-							elseif (!$saveOrder)
-
-							{
-								$iconClass = ' inactive" title="' . Text::_('JORDERINGDISABLED');
-
-							}							?>							<span class="sortable-handler<?php echo $iconClass ?>">
-							<span class="icon-ellipsis-v" aria-hidden="true"></span>
-							</span>
-							<?php if ($canChange && $saveOrder) : ?>
-							<input type="text" name="order[]" size="5" value="<?php echo $item->ordering; ?>" class="width-20 text-area-order hidden">
-								<?php endif; ?>
-							</td>
-							<?php endif; ?>
+                            <?php if (isset($this->items[0]->ordering)) : ?>
+                                <td class="text-center d-none d-md-table-cell">
+                                    <?php
+                                    $iconClass = '';
+                                    if (!$canChange) {
+                                        $iconClass = ' inactive';
+                                    } elseif (!$saveOrder) {
+                                        $iconClass = ' inactive" title="' . Text::_('JORDERINGDISABLED');
+                                    }
+                                    ?>
+                                    <span class="sortable-handler<?php echo $iconClass ?>">
+                                    <span class="icon-ellipsis-v" aria-hidden="true"></span>
+                                </span>
+                                    <?php if ($canChange && $saveOrder) : ?>
+                                        <input type="text" name="order[]" size="5" value="<?php echo $item->ordering; ?>" class="width-20 text-area-order hidden">
+                                    <?php endif; ?>
+                                </td>
+                            <?php endif; ?>
 
 							
 							<td class="text-center">
@@ -256,10 +239,7 @@ if (!empty($saveOrder))
 					</tbody>
 				</table>
 
-				<input type="hidden" name="task" value=""/>
-				<input type="hidden" name="boxchecked" value="0"/>
-				<input type="hidden" name="list[fullorder]" value="<?php echo $listOrder; ?> <?php echo $listDirn; ?>"/>
-				<?php echo HTMLHelper::_('form.token'); ?>
+                <?php echo $this->filterForm->renderControlFields(); ?>
 			</div>
 		</div>
 	</div>

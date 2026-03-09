@@ -30,35 +30,46 @@
             label="COM_ALFA_FORM_CURRENCIES"
             description="COM_ALFA_FORM_CURRENCIES_DESC"
             layout="joomla.form.field.list-fancy-select"
-            query="SELECT `id`, `name` AS val FROM `#__alfa_currencies`" key_field="id" value_field="val"
-            header="All currencies"
-    />
+            query="SELECT `id`, `name` AS val FROM `#__alfa_currencies` WHERE state = 1"
+            key_field="id"
+            value_field="val"
+    >
+        <option value="0">All currencies</option>
+    </field>
 
     <field
             parentclass="price-country-field col-lg-3 pe-3 mb-0"
-            name="country_id" type="sql"
+            name="country_id"
+            type="sql"
             input_type="list"
             required="false"
             multiple="false"
             label="COM_ALFA_FORM_COUNTRIES"
             description="COM_ALFA_FORM_COUNTRIES_DESC"
             layout="joomla.form.field.list-fancy-select"
-            query="SELECT `id`, `name` AS val FROM `#__alfa_places`" key_field="id" value_field="val"
-            header="All countries"
-    />
+            query="SELECT `id`, `name` AS val FROM `#__alfa_places`"
+            key_field="id"
+            value_field="val"
+    >
+        <option value="0">All countries</option>
+    </field>
 
     <field
             parentclass="price-usergroup-field col-lg-3 pe-3 mb-0"
             name="usergroup_id"
-            type="UserGroupList"
+            type="sql"
+            input_type="list"
+            required="false"
+            multiple="false"
             label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_LBL"
             description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_DESC"
             layout="joomla.form.field.list-fancy-select"
-            multiple="false"
-            checksuperusergroup="1"
-            default="8"
-            header="All User Groups"
-    />
+            query="SELECT `id`, `title` AS val FROM `#__usergroups`"
+            key_field="id"
+            value_field="val"
+    >
+        <option value="0">All user groups</option>
+    </field>
 
     <field
             parentclass="price-user-field col-lg-3 mb-0"
@@ -70,9 +81,12 @@
             label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERS_LBL"
             description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERS_DESC"
             layout="joomla.form.field.list-fancy-select"
-            query="SELECT `id`, `name` FROM `#__users`" key_field="id" value_field="name"
-            header="All users"
-    />
+            query="SELECT `id`, `name` AS val FROM `#__users`"
+            key_field="id"
+            value_field="val"
+    >
+        <option value="0">All users</option>
+    </field>
 
 
     <field

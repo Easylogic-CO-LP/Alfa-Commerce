@@ -10,9 +10,9 @@
       "uri": "com_alfa/admin/admin.css"
     },
     {
-        "name": "com_alfa.list",
-        "type": "style",
-        "uri": "com_alfa/site/list.css"
+      "name": "com_alfa.list",
+      "type": "style",
+      "uri": "com_alfa/site/list.css"
     },
     {
       "name": "com_alfa.item",
@@ -45,9 +45,28 @@
       "uri": "com_alfa/libraries/keen-slider.min.css"
     },
     {
+      "name": "com_alfa.admin.orders-list",
+      "type": "script",
+      "uri": "com_alfa/admin/orders-list.js",
+      "attributes": { "defer": true }
+    },
+    {
+      "name": "com_alfa.admin.orders-list",
+      "type": "style",
+      "uri": "com_alfa/admin/orders-list.css"
+    },
+    {
       "name": "com_alfa.admin",
       "type": "script",
       "uri": "com_alfa/admin/admin.js",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_alfa.order-actions",
+      "type": "script",
+      "uri": "com_alfa/admin/order-actions.js",
       "attributes": {
         "defer": true
       }
@@ -110,6 +129,46 @@
       "attributes": {
         "defer": true
       }
+    },
+    {
+      "name": "com_alfa.seo-preview",
+      "type": "style",
+      "uri": "com_alfa/admin/seo.css"
+    },
+    {
+      "name": "com_alfa.seo-preview",
+      "type": "script",
+      "uri": "com_alfa/admin/seo.js",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_alfa.seo-preview",
+      "type": "preset",
+      "dependencies": [
+        "com_alfa.seo-preview#style",
+        "com_alfa.seo-preview#script"
+      ]
+    },
+    {
+      "name": "com_alfa.admin.notifications",
+      "type": "script",
+      "uri": "com_alfa/admin/admin-notifications.js",
+      "attributes": { "defer": true }
+    },
+    {
+      "name": "com_alfa.admin.notifications",
+      "type": "style",
+      "uri": "com_alfa/admin/admin-notifications.css"
+    },
+    {
+      "name": "com_alfa.notifications",
+      "type": "preset",
+      "dependencies": [
+        "com_alfa.admin.notifications#style",
+        "com_alfa.admin.notifications#script"
+      ]
     }
   ]
 }

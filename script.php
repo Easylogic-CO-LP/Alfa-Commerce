@@ -111,6 +111,7 @@ class com_alfaInstallerScript extends InstallerScript
 				$pluginGroup = (string) $plugin['group'];
 				$path        = $installation_folder . '/plugins/' . $pluginGroup . '/' . $pluginName;
 				$installer   = new Installer;
+				$installer->setDatabase(Factory::getContainer()->get('DatabaseDriver'));
 
 				if (!$this->isAlreadyInstalled('plugin', $pluginName, $pluginGroup))
 				{
@@ -208,6 +209,7 @@ class com_alfaInstallerScript extends InstallerScript
 					$moduleName = (string) $module['module'];
 					$path       = $installation_folder . '/modules/' . $moduleName;
 					$installer  = new Installer;
+					$installer->setDatabase(Factory::getContainer()->get('DatabaseDriver'));
 
 					if (!$this->isAlreadyInstalled('module', $moduleName))
 					{
@@ -305,6 +307,7 @@ class com_alfaInstallerScript extends InstallerScript
 				if (!empty($extension))
 				{
 					$installer = new Installer;
+					$installer->setDatabase(Factory::getContainer()->get('DatabaseDriver'));
 					$result    = $installer->uninstall('plugin', $extension);
 
 					if ($result)
@@ -368,6 +371,8 @@ class com_alfaInstallerScript extends InstallerScript
 					if (!empty($extension))
 					{
 						$installer = new Installer;
+						$installer->setDatabase(Factory::getContainer()->get('DatabaseDriver'));
+
 						$result    = $installer->uninstall('module', $extension);
 
 						if ($result)
@@ -395,7 +400,7 @@ class com_alfaInstallerScript extends InstallerScript
 	 */
 	public function postflight($type, $parent)
 	{
-		
+
 
 		return true;
 	}

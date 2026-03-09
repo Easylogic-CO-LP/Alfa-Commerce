@@ -20,11 +20,23 @@ $loadingImageInline = $params->get('loadingImageInline', '');
 ?>
 
 <div class="alfasearch-wrapper">
-    <form action="<?php echo $formAction; ?>" data-minchars="<?php echo $min_characters ?>"
-          data-action="<?php echo $ajaxAction; ?>" method="get">
+    <form
+            method="get"
+            action="<?php echo $formAction; ?>"
+            data-minchars="<?php echo $min_characters ?>"
+            data-action="<?php echo $ajaxAction; ?>">
+
         <div class="search-container">
-            <input type="search" name="filter[search]" class="searchbar" id="search-container-input" autocomplete="off"
+
+            <input type="search"
+                   name="filter[search]"
+                   class="searchbar"
+                   id="search-container-input"
+                   autocomplete="off"
+                   value="<?php echo htmlspecialchars($currentSearch, ENT_COMPAT, 'UTF-8'); ?>"
                    placeholder="<?php echo Text::_('MOD_ALFA_SEARCH_SEARCHBAR_PLACEHOLDER'); ?>">
+
+
             <div class="loading-img" id="search-container-loading-img">
                 <?php if ($loadingImageType == '0' && !empty($loadingImageFile)) {
                     echo HtmlHelper::image($loadingImageFile, 'loading-img');
@@ -44,9 +56,10 @@ $loadingImageInline = $params->get('loadingImageInline', '');
                     echo '';
                 } ?>
             </div>
+            <button type="submit" class="search-submit-button" aria-label="<?php echo Text::_('JSEARCH_FILTER_SUBMIT'); ?>">
+	            <?php echo Text::_('JSEARCH_FILTER_SUBMIT'); ?>
+            </button>
         </div>
-        <input type="hidden" name="option" value="com_alfa">
-        <input type="hidden" name="view" value="items">
     </form>
     <div class="searchbar-popup" id="search-container-popup" tabindex="-1">
     </div>

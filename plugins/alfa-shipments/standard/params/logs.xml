@@ -1,11 +1,53 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Standard Shipment Plugin — Log Schema
+
+    Defines plugin-specific columns for #__alfa_shipments_standard_logs.
+
+    Auto-created by Plugin.php (NOT declared here):
+      id                 int AUTO_INCREMENT PRIMARY KEY
+      id_order           int NOT NULL
+      id_order_shipment  int DEFAULT NULL  (from logIdentifierField)
+
+    These columns capture a complete audit trail per action:
+      WHO:     created_by (admin user ID)
+      WHEN:    created_on (UTC timestamp)
+      WHAT:    action (mark_shipped, mark_delivered, cancel)
+      HOW:     status (status after action), tracking_number, carrier_name
+      VALUE:   shipment_total (shipping cost at time of action), currency
+      EXTRA:   note (free text context)
+
+    Path: plugins/alfa-shipments/standard/params/logs.xml
+-->
 <form>
     <fields name="shipmentslogs">
         <fieldset name="shipmentslogs">
-            <field name="shipment_total" mysql_type="decimal(15,5)" default="0.00000"/>
+
+            <!-- Action performed: mark_shipped, mark_delivered, cancel -->
+            <field name="action" mysql_type="varchar(50)" default="NULL"/>
+
+            <!-- Shipment status AFTER this action -->
+            <field name="status" mysql_type="varchar(20)" default="NULL"/>
+
+            <!-- Shipping cost at time of action -->
+            <field name="shipment_total" mysql_type="decimal(20,6)" default="0.000000"/>
+
+            <!-- Currency code -->
             <field name="currency" mysql_type="char(3)" default="NULL"/>
+
+            <!-- Tracking number at time of action (may be added/changed) -->
+            <field name="tracking_number" mysql_type="varchar(64)" default="NULL"/>
+
+            <!-- Carrier name at time of action -->
+            <field name="carrier_name" mysql_type="varchar(255)" default="NULL"/>
+
+            <!-- Free-text note for context -->
+            <field name="note" mysql_type="varchar(500)" default="NULL"/>
+
+            <!-- When and who -->
             <field name="created_on" mysql_type="datetime" default="0000-00-00 00:00:00"/>
-            <field name="created_by"  mysql_type="int(11)" default="0"/>
+            <field name="created_by" mysql_type="int(11)" default="0"/>
+
         </fieldset>
     </fields>
 </form>

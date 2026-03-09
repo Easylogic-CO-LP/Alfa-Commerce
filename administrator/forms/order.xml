@@ -7,7 +7,7 @@
     </fieldset>
 
     <fieldset name="order_details">
-        <field name="id" type="text" readonly="true" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
+        <field name="id" type="text" readonly="true" default="0" label="ID" description="JGLOBAL_FIELD_ID_DESC"/>
         <field name="id_address_delivery" type="hidden" default="1"/>
 
         <field
@@ -21,17 +21,7 @@
                 query="SELECT `id`, `name` AS val FROM `#__alfa_orders_statuses`" key_field="id" value_field="val"
         />
 
-        <field name="original_price" label="Original Price" type="number" readonly="true" class="readonly" default=""/>
-
-
-        <field name="currency" filter="safehtml" type="text" readonly="true" label="COM_ALFA_FORM_LBL_ORDER_CURRENCY"
-               description="COM_ALFA_FORM_DESC_ORDER_CURRENCY" hint="COM_ALFA_FORM_LBL_ORDER_CURRENCY"/>
-
-        <field name="total" type="number" step="0.01" label="COM_ALFA_FORM_LBL_ORDER_TOTAL"
-               description="COM_ALFA_FORM_DESC_ORDER_TOTAL" hint="COM_ALFA_FORM_LBL_ORDER_TOTAL"/>
-
-        <field name="price" filter="safehtml" type="space" readonly="true" label="COM_ALFA_FORM_LBL_ORDER_PRICE"
-               hint=""/>
+        <field name="id_currency" label="Currency Id" readonly="true" />
 
         <field
                 name="created"
@@ -77,58 +67,18 @@
 
     </fieldset>
 
-    <fieldset name="items">
-        <field
-                name="items"
-                type="subform"
-                buttons="add,remove,move"
-                class=""
-                formsource="administrator/components/com_alfa/forms/order_items.xml"
-                label="COM_ALFA_FORM_ORDER_ITEMS"
-                description=""
-                multiple="true"
-                layout="joomla.form.field.subform.repeatable-table"
-        />
-    </fieldset>
-
-    <fieldset name="shipment_details">
-
-        <field name="id_shipment_method" type="hidden" default="0"/>
-
-
-        <field name="shipping_address"
-               label="COM_ALFA_FORM_LBL_SHIPPING_ADDRESS"
-               type="text"
-               readonly="true"
-               class="readonly"
-               default=""
-        />
-
-        <field name="state"
-               label="COM_ALFA_FORM_LBL_STATE_PROVINCE"
-               type="text"
-               readonly="true"
-               class="readonly"
-               default=""
-        />
-
-        <field name="city"
-               label="COM_ALFA_FORM_LBL_CITY"
-               type="text"
-               readonly="true"
-               class="readonly"
-               default=""
-        />
-
-        <field name="zip_code"
-               label="COM_ALFA_FORM_LBL_ZIP_CODE"
-               type="text"
-               readonly="true"
-               class="readonly"
-               default=""
-        />
-
-    </fieldset>
+    <field
+            name="items"
+            type="subform"
+            buttons=""
+            class=""
+            formsource="administrator/components/com_alfa/forms/order_items.xml"
+            label="COM_ALFA_FORM_ORDER_ITEMS"
+            hiddenLabel="true"
+            description=""
+            multiple="true"
+            layout="joomla.form.field.subform.repeatable-table"
+    />
 
     <field
             name="shipments"
@@ -142,18 +92,6 @@
             multiple="true"
             layout="joomla.form.field.subform.repeatable-table"
     />
-
-
-    <fieldset name="payment_details">
-        <field name="id_payment_method" type="hidden" default="0"/> <!-- TEMPORARY -->
-        <field name="total_payed"
-               label="Total payed ( TO BE DONE )"
-               type="text"
-               readonly="true"
-               class="readonly"
-               default=""
-        />
-    </fieldset>
 
     <field
             name="payments"

@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -8,21 +8,17 @@
  */
 
 namespace Alfa\Component\Alfa\Site\Model;
+
 // No direct access.
 defined('_JEXEC') or die;
 
-use \Joomla\CMS\Factory;
-use \Joomla\Utilities\ArrayHelper;
-use \Joomla\CMS\Language\Text;
-use \Joomla\CMS\Table\Table;
-use \Joomla\CMS\MVC\Model\ItemModel as BaseItemModel;
-use \Joomla\CMS\Helper\TagsHelper;
-use \Joomla\CMS\Object\CMSObject;
-use \Joomla\CMS\User\UserFactoryInterface;
-use \Alfa\Component\Alfa\Site\Helper\AlfaHelper;
-use \Alfa\Component\Alfa\Site\Helper\PriceCalculator;
-use \Joomla\Database\ParameterType;
-
+use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
+use Joomla\CMS\MVC\Model\ItemModel as BaseItemModel;
+use Joomla\Database\ParameterType;
+use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
+//use Alfa\Component\Alfa\Site\Helper\PriceCalculator;
+use Alfa\Component\Alfa\Site\Service\Pricing;
 /**
  * Alfa model.
  *
@@ -33,265 +29,210 @@ class ItemModel extends BaseItemModel
 	/**
 	 * Model context string.
 	 *
-	 * @var        string
+	 * @var string
 	 */
 	protected $_context = 'com_alfa.item';
 
-    /**
-     * Method to auto-populate the model state.
-     *
-     * Note. Calling getState in this method will result in recursion.
-     *
-     * @return  void
-     *
-     * @throws Exception
-     * @since   1.0.1
-     *
-     */
-    protected function populateState()
-    {
-        $app = Factory::getApplication('com_alfa');
-        $user = $app->getIdentity();
+	/**
+	 * Method to auto-populate the model state.
+	 *
+	 * Note. Calling getState in this method will result in recursion.
+	 *
+	 * @return void
+	 *
+	 * @throws \Exception
+	 * @since  1.0.1
+	 */
+	protected function populateState(): void
+	{
+		$app = Factory::getApplication();
 
-        // Check published state
-        if ((!$user->authorise('core.edit.state', 'com_alfa')) && (!$user->authorise('core.edit', 'com_alfa'))) {
-            $this->setState('filter.published', 1);
-            $this->setState('filter.archived', 2);
-        }
+		// Get the item ID from the request
+		$id = $app->input->getInt('id', 0);
+		$this->setState('item.id', $id);
+	}
 
-        // Load state from the request userState on edit or from the passed variable on default
-        if (Factory::getApplication()->input->get('layout') == 'edit') {
-            $id = Factory::getApplication()->getUserState('com_alfa.edit.item.id');
-        } else {
-            $id = Factory::getApplication()->input->get('id');
-            Factory::getApplication()->setUserState('com_alfa.edit.item.id', $id);
-        }
+	/**
+	 * Method to get an object.
+	 *
+	 * @param   integer|null  $pk  The id of the object to get.
+	 *
+	 * @return  mixed  Object on success, false on failure.
+	 *
+	 * @throws  \Exception
+	 * @since   1.0.1
+	 */
+	public function getItem($pk = null): mixed
+	{
+		$user = $this->getCurrentUser();
+		$pk   = (int) ($pk ?: $this->getState('item.id'));
 
-        $this->setState('item.id', $id);
+		if ($this->_item === null)
+		{
+			$this->_item = [];
+		}
 
-        // Load the parameters.
-        $params = $app->getParams();
-        $params_array = $params->toArray();
+		if (!isset($this->_item[$pk]))
+		{
+			$db    = $this->getDatabase();
+			$query = $db->getQuery(true);
 
-        if (isset($params_array['item_id'])) {
-            $this->setState('item.id', $params_array['item_id']);
-        }
+			$query->select(
+				$this->getState(
+					'item.select',
+					['a.*']
+				)
+			)
+				->from($db->quoteName('#__alfa_items', 'a'))
+				->where($db->quoteName('a.id') . ' = :pk')
+				->bind(':pk', $pk, ParameterType::INTEGER);
 
-        $this->setState('params', $params);
+			$db->setQuery($query);
+			$data = $db->loadObject();
 
-    }
+			if (!$data)
+			{
+				throw new \Exception(Text::_('COM_ALFA_ERROR_ITEM_NOT_FOUND'), 404);
+			}
 
-    /**
-     * Method to get an object.
-     *
-     * @param integer $id The id of the object to get.
-     *
-     * @return  mixed    Object on success, false on failure.
-     *
-     * @throws Exception
-     */
-    public function getItem($pk = null)
-    {
-        $user = $this->getCurrentUser();
-//      $user->id
-//		$user->groups erxetai ws array [1,2,3]
+			// Setting correct stock action settings
+			$settings = AlfaHelper::getGeneralSettings();
 
-        $pk = (int)($pk ?: $this->getState('item.id'));
+			if ($data->stock_action == -1)
+			{
+				$data->stock_action       = $settings->get("stock_action");
+				$data->stock_low_message  = $settings->get("stock_low_message");
+				$data->stock_zero_message = $settings->get("stock_zero_message");
+			}
 
-        if ($this->_item === null) {
-            $this->_item = [];
-        }
+			if (empty($data->stock_low_message))
+			{
+				$data->stock_low_message = $settings->get("stock_low_message");
+			}
 
-        if (!isset($this->_item[$pk])) {
-            try {
-                $db = $this->getDatabase();
-                $query = $db->getQuery(true);
-                $query->select(
-                    $this->getState(
-                        'item.select',
-                        [
-                            // from items
-                            'a.*',
-                        ]
-                    )
-                )
-                    ->from($db->quoteName('#__alfa_items', 'a'))
-                    ->where(
-                        [
-                            $db->quoteName('a.id') . ' = :pk',
-                            // $db->quoteName('c.published') . ' > 0',
-                        ]
-                    )
-                    ->bind(':pk', $pk, ParameterType::INTEGER);
-                $db->setQuery($query);
-                $data = $db->loadObject();
+			if (empty($data->stock_zero_message))
+			{
+				$data->stock_zero_message = $settings->get("stock_zero_message");
+			}
 
+			// Get categories
+			$categories       = $this->getItemCategories($pk);
+			$data->categories = [];
 
-                //Setting correct stock action settings in case they are to be retrieved from general settings (global configuration).
-                $settings = AlfaHelper::getGeneralSettings();
-                if($data->stock_action == -1) {
-                    $data->stock_action = $settings->get("stock_action");
-                    $data->stock_low_message = $settings->get("stock_low_message");
-                    $data->stock_zero_message = $settings->get("stock_zero_message");
-                }
+			foreach ($categories as $category)
+			{
+				$data->categories[$category['id']] = $category['name'];
+			}
 
-                if(empty($data->stock_low_message))
-                    $data->stock_low_message = $settings->get("stock_low_message");
+			// Get manufacturers
+			$manufacturers       = $this->getItemManufacturers($pk);
+			$data->manufacturers = [];
 
-                if(empty($data->stock_zero_message))
-                    $data->stock_zero_message = $settings->get("stock_zero_message");
+			foreach ($manufacturers as $manufacturer)
+			{
+				$data->manufacturers[$manufacturer['id']] = $manufacturer['name'];
+			}
 
-                $categories = $this->getItemCategories($pk);
+			// Calculate the dynamic price
+			$quantity        = (int) $this->getState('quantity', 1);
+			$userGroupId     = 0;
+			$currencyId      = 0;
+//			$priceCalculator = new PriceCalculator($pk, $quantity, $userGroupId, $currencyId);
+//			$data->price     = $priceCalculator->calculatePrice();
 
-                $data->categories = [];
-                foreach ($categories as $category) {
-                    $data->categories[$category['id']] = $category['name'];
-                }
+			$calculator = new Pricing\PriceCalculator();
+			$context = Pricing\PriceContext::fromSession();
+			$priceResult = $calculator->calculate($pk, $quantity, $context);
+			$data->price = $priceResult; //->toArray();
 
-                $manufacturers = $this->getItemManufacturers($pk);
+			// Get payment and shipment methods
+			$categoryIDs    = empty($data->categories) ? [] : array_keys($data->categories);
+			$manufacturerIDs = empty($data->manufacturers) ? [] : array_keys($data->manufacturers);
 
-                $data->manufacturers = [];
-                foreach ($manufacturers as $manufacturer) {
-                    $data->manufacturers[$manufacturer['id']] = $manufacturer['name'];
-                }
+			$data->payment_methods  = AlfaHelper::getFilteredMethods(
+				$categoryIDs,
+				$manufacturerIDs,
+				$user->groups,
+				$user->id,
+				'payment'
+			);
 
-                // Calculate the dynamic price
-                $quantity = (int)$this->getState('quantity', 1); // Default to 1 if not set
-                // $quantity = 1; // You can pass a different quantity based on user input
-                $userGroupId=0;
-                $currencyId=0;
-                $priceCalculator = new PriceCalculator($pk, $quantity, $userGroupId, $currencyId);
-                $data->price = $priceCalculator->calculatePrice();
+			$data->shipment_methods = AlfaHelper::getFilteredMethods(
+				$categoryIDs,
+				$manufacturerIDs,
+				$user->groups,
+				$user->id,
+				'shipment'
+			);
 
-                // $data->prices = $this->getPrices($pk);
+			$this->_item[$pk] = $data;
 
-                // $data->prices = [];
-                // foreach ($prices as $price) {
-                //     $data->prices[$price['id']] = $price['value'];
-                // }
+		}
 
-                $this->_item[$pk] = $data;
+		return $this->_item[$pk];
+	}
 
-                $categoryIDs = empty($data->categories) ? [] : array_keys($data->categories);
-                $manufacturerIDs = empty($data->manufacturers) ? [] : array_keys($data->manufacturers);
-                $this->_item[$pk]->payment_methods = AlfaHelper::getFilteredMethods($categoryIDs,$manufacturerIDs,$user->groups,$user->id,'payment');
-                $this->_item[$pk]->shipment_methods = AlfaHelper::getFilteredMethods($categoryIDs,$manufacturerIDs,$user->groups,$user->id,'shipment');
+	/**
+	 * Get item categories
+	 *
+	 * @param   int  $pk  Item ID
+	 *
+	 * @return  array
+	 *
+	 * @since   1.0.1
+	 */
+	protected function getItemCategories(int $pk): array
+	{
+		$db    = $this->getDatabase();
+		$query = $db->getQuery(true);
 
+		$query->select([
+			$db->quoteName('c.id'),
+			$db->quoteName('c.name'),
+		])
+			->from($db->quoteName('#__alfa_categories', 'c'))
+			->join(
+				'INNER',
+				$db->quoteName('#__alfa_items_categories', 'ic'),
+				$db->quoteName('c.id') . ' = ' . $db->quoteName('ic.category_id')
+			)
+			->where($db->quoteName('ic.item_id') . ' = :pk')
+			->bind(':pk', $pk, ParameterType::INTEGER);
 
-            } catch (\Exception $e) {
-                if ($e->getCode() == 404) {
-                    // Need to go through the error handler to allow Redirect to work.
-                    throw $e;
-                }
+		$db->setQuery($query);
 
-                $this->setError($e);
-                $this->_item[$pk] = false;
-            }
-        }
-//            echo "<pre>";
-//            print_r($this->_item[$pk]->id);
-//            echo "</pre>";
-//            exit;
+		return $db->loadAssocList() ?: [];
+	}
 
+	/**
+	 * Get item manufacturers
+	 *
+	 * @param   int  $pk  Item ID
+	 *
+	 * @return  array
+	 *
+	 * @since   1.0.1
+	 */
+	protected function getItemManufacturers(int $pk): array
+	{
+		$db    = $this->getDatabase();
+		$query = $db->getQuery(true);
 
+		$query->select([
+			$db->quoteName('m.id'),
+			$db->quoteName('m.name'),
+		])
+			->from($db->quoteName('#__alfa_manufacturers', 'm'))
+			->join(
+				'INNER',
+				$db->quoteName('#__alfa_items_manufacturers', 'im'),
+				$db->quoteName('m.id') . ' = ' . $db->quoteName('im.manufacturer_id')
+			)
+			->where($db->quoteName('im.item_id') . ' = :pk')
+			->bind(':pk', $pk, ParameterType::INTEGER);
 
-        return $this->_item[$pk];
-    }
+		$db->setQuery($query);
 
-    public function getItemCategories($pk)
-    {
-        $db = $this->getDatabase();
-        $query = $db->getQuery(true);
-        $query->select(
-            [
-                $db->quoteName('c.name'),
-                $db->quoteName('c.id'),
-            ]
-        )
-            ->from($db->quoteName('#__alfa_categories', 'c'))
-            ->join(
-                'INNER',
-                $db->quoteName('#__alfa_items_categories', 'ic'),
-                $db->quoteName('c.id') . ' = ' . $db->quoteName('ic.category_id'),
-            )
-            ->where($db->quoteName('ic.item_id') . ' = ' . $db->quote($pk));
-
-        $db->setQuery($query);
-
-        return $db->loadAssocList();
-    }
-
-
-    public function getItemManufacturers($pk)
-    {
-        $db = $this->getDatabase();
-        $query = $db->getQuery(true);
-        $query->select(
-            [
-                $db->quoteName('m.name'),
-                $db->quoteName('m.id'),
-            ]
-        )
-            ->from($db->quoteName('#__alfa_manufacturers', 'm'))
-            ->join(
-                'INNER',
-                $db->quoteName('#__alfa_items_manufacturers', 'im'),
-                $db->quoteName('m.id') . ' = ' . $db->quoteName('im.manufacturer_id'),
-            )
-            ->where($db->quoteName('im.item_id') . ' = ' . $db->quote($pk));
-
-        $db->setQuery($query);
-
-        return $db->loadAssocList();
-    }
-
-
-    /**
-     * Get the id of an item by alias
-     * @param string $alias Item alias
-     *
-     * @return  mixed
-     *
-     * @deprecated  No replacement
-     */
-    public function getItemIdByAlias($alias)
-    {
-        $table = $this->getTable();
-        $properties = $table->getProperties();
-        $result = null;
-        $aliasKey = null;
-        if (method_exists($this, 'getAliasFieldNameByView')) {
-            $aliasKey = $this->getAliasFieldNameByView('item');
-        }
-
-
-        if (key_exists('alias', $properties)) {
-            $table->load(array('alias' => $alias));
-            $result = $table->id;
-        } elseif (isset($aliasKey) && key_exists($aliasKey, $properties)) {
-            $table->load(array($aliasKey => $alias));
-            $result = $table->id;
-        }
-
-        return $result;
-
-    }
-
-    public function getAliasFieldNameByView($view)
-    {
-        switch ($view) {
-            case 'manufacturer':
-            case 'manufacturerform':
-                return 'alias';
-                break;
-            case 'category':
-            case 'categoryform':
-                return 'alias';
-                break;
-            case 'item':
-            case 'itemform':
-                return 'alias';
-                break;
-        }
-    }
+		return $db->loadAssocList() ?: [];
+	}
 }

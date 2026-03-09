@@ -10,14 +10,9 @@
 
 namespace Alfa\Module\AlfaSearch\Site\Dispatcher;
 
-// use Joomla\CMS\Component\ComponentHelper;
-// use Joomla\CMS\Helper\HelperFactoryAwareInterface;
-// use Joomla\CMS\Helper\HelperFactoryAwareTrait;
-// use Joomla\CMS\Language\Text;
-// use Joomla\CMS\HTML\HTMLHelper;
-
 use Joomla\CMS\Dispatcher\AbstractModuleDispatcher;
-// use Alfa\Module\AlfaSearch\Site\Helper\AlfasearchHelper;
+use Joomla\CMS\Router\Route;
+use Joomla\CMS\Uri\Uri;
 
 // phpcs:disable PSR1.Files.SideEffects
 \defined('_JEXEC') or die;
@@ -45,26 +40,13 @@ class Dispatcher extends AbstractModuleDispatcher
         $wa->getRegistry()->addExtensionRegistryFile('mod_alfa_search');
         $wa->useScript('mod_alfa_search.searchbar')
             ->useStyle('mod_alfa_search.searchbar');
-        // $items = AlfaSearchHelper::getItemsFromDatabase();
 
-//        echo '<pre>';
-//        print_r($items);
-//        echo '</pre>';
+	    $basePath = Uri::base(true);
+	    $data['formAction'] = $basePath . Route::_('index.php?option=com_alfa&view=items&category_id=0');
+	    $data['ajaxAction'] = $basePath . '/index.php?option=com_ajax&module=alfa_search&method=get&format=json';
 
-        // $data['alfa_items'] = $items;
-        // ($data['params'])->get('text_field', '');  //to deutero pedio orizei thn default timh
-
-        // $data['alfasearch'] = 'yo'; //auto tha epistrepsei sto view thn metavlhth $alfasearch
-        // ara ola ta $data['params'] epistrefoun sto tmpl/default.php ws th metavlhth $params kai mporoume na kanoume access $params->text_field
-
-
-        // if (($data['params'])->get('prepare_content', 1)) {
-        //     ($data['module'])->content = HTMLHelper::_('content.prepare', ($data['module'])->content, '', 'mod_alfasearch.content');
-        // }
-
-
-        // $data['ariclesCount'] = $this->getHelperFactory()->getHelper('AlfaSearchHelper', $data)->getNumberOfArticles();
-        // tha episrepsei thn timh $articlesCount sto tmpl/default.php
+	    $filters = $this->input->get('filter', array(), 'array');
+	    $data['currentSearch'] = isset($filters['search']) ? $filters['search'] : '';
 
         return $data;
     }

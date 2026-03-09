@@ -61,7 +61,7 @@ class LayoutEvent extends GeneralEvent //implements ResultAwareInterface
 	/**
 	 * Setter for the fieldset argument.
 	 *
-	 * @param   $value  The value to set
+	 * @param   $value
 	 *
 	 * @return
 	 *

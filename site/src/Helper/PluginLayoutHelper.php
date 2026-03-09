@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -24,17 +24,21 @@ defined('_JEXEC') or die;
 class PluginLayoutHelper
 {
 
-	public static function pluginLayout($pluginType,$pluginName,$fileName): FileLayout
+	public static function pluginLayout($pluginType, $pluginName, $fileName): FileLayout
 	{
-		if(empty($pluginType) || empty($pluginName) || empty($fileName)){
+		if (empty($pluginType) || empty($pluginName) || empty($fileName))
+		{
 			return self::getEmptyLayout();
 		}
 
 		$path = dirname(PluginHelper::getLayoutPath($pluginType, $pluginName, $fileName));
 
-		if (file_exists($path . '/' . $fileName . '.php')) {
+		if (file_exists($path . '/' . $fileName . '.php'))
+		{
 			return new FileLayout($fileName, $path);
-		}else{
+		}
+		else
+		{
 			if (JDEBUG)
 			{
 				Factory::getApplication()->enqueueMessage(
@@ -54,9 +58,12 @@ class PluginLayoutHelper
 		$layoutType = explode('-', $type)[1] ?? '';
 		$layoutFile = self::getLayoutDefaultFilename();
 
-		if(!empty($layoutType) && !empty($layoutFile)){
-			$layout = new FileLayout($layoutType.'.'.$layoutFile, JPATH_SITE . '/components/com_alfa/layouts');
-		}else{
+		if (!empty($layoutType) && !empty($layoutFile))
+		{
+			$layout = new FileLayout($layoutType . '.' . $layoutFile, JPATH_SITE . '/components/com_alfa/layouts');
+		}
+		else
+		{
 			$layout = self::getEmptyLayout();
 		}
 
@@ -65,13 +72,14 @@ class PluginLayoutHelper
 
 	public static function getLayoutDefaultFilename(): string
 	{
-		$app = Factory::getApplication();
+		$app   = Factory::getApplication();
 		$input = $app->input;
-		$view = $input->get('view',$input->get('controller',''));
+		$view  = $input->get('view', $input->get('controller', ''));
 
 		$layoutFile = '';
 
-		if($view == 'cart'){
+		if ($view == 'cart')
+		{
 			$layoutFile = 'default_cart_view';
 		}
 
@@ -83,6 +91,7 @@ class PluginLayoutHelper
 	{
 		$empty_layout = new FileLayout('non.existing.layout'); // Or any layout ID that doesn’t exist
 		$empty_layout->clearIncludePaths(); // Optional: ensures no valid paths are searched
+
 		return $empty_layout; // dummy empty layout which with render will output ''
 	}
 

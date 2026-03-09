@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -12,6 +12,7 @@ defined('_JEXEC') or die;
 
 use \Joomla\CMS\HTML\HTMLHelper;
 use \Joomla\CMS\Factory;
+use Joomla\CMS\Layout\LayoutHelper;
 use \Joomla\CMS\Uri\Uri;
 use \Joomla\CMS\Router\Route;
 use \Joomla\CMS\Language\Text;
@@ -84,12 +85,7 @@ $input = Factory::getApplication()->getInput();
 		<div class="col-12 col-lg-6">
 			<fieldset id="fieldset-publishingdata" class="options-form">
 				<legend><?php echo Text::_('JGLOBAL_FIELDSET_PUBLISHING'); ?></legend>
-				<?php echo $this->form->renderField('allowedUsers'); ?>
-				<?php echo $this->form->renderField('allowedUserGroups'); ?>
-				
 				<?php echo $this->form->renderFieldset('publish'); ?>
-                
-                <?php echo $this->form->renderField('id'); ?>
 			</fieldset>
 		</div>
 		<div class="col-12 col-lg-6">
@@ -97,6 +93,39 @@ $input = Factory::getApplication()->getInput();
                 <legend><?php echo Text::_('JGLOBAL_FIELDSET_METADATA_OPTIONS'); ?></legend>
                 <div>
                     <?php echo $this->form->renderFieldset('meta'); ?>
+
+                    <?php
+                    echo LayoutHelper::render(
+	                    'seo.preview',
+	                    (new \Alfa\Component\Alfa\Administrator\Controller\SeoController())->getResultObject(
+		                    itemId: $this->item->id ?? 0,
+		                    title: $this->item->name ?? '',
+		                    metaTitle: $this->item->meta_title ?? '',
+		                    metaDesc: $this->item->meta_desc ?? '',
+		                    alias: $this->item->alias ?? '',
+		                    defaultAlias: $this->item->alias ?? '',
+		                    content: $this->item->short_desc ?? '',
+		                    additionalContent: [
+			                    'full_desc' => $this->item->full_desc ?? '',
+		                    ],
+		                    focusKeyword: $this->item->focus_keyword ?? '',
+		                    itemType: 'item',
+		                    robots: $this->item->robots ?? '',
+		                    fieldJsSelectors: [
+			                    'title'        => '#jform_name',
+			                    'metaTitle'    => '#jform_meta_title',
+			                    'metaDesc'     => '#jform_meta_desc',
+			                    'alias'        => '#jform_alias',
+			                    'robots'       => '#jform_robots',
+			                    'content'      => '#jform_short_desc',
+								'additionalContent' => [
+									'full_desc' => '#jform_full_desc',
+								],
+			                    'focusKeyword' => '[data-seo-focus-keyword-field]'
+		                    ]
+	                    ));
+                    ?>
+
                 </div>
             </fieldset>
         </div>
@@ -105,7 +134,6 @@ $input = Factory::getApplication()->getInput();
 	
 	<?php echo HTMLHelper::_('uitab.endTabSet'); ?>
 
-	<input type="hidden" name="task" value=""/>
-	<?php echo HTMLHelper::_('form.token'); ?>
+	<?php echo $this->form->renderControlFields(); ?>
 
 </form>

@@ -3,8 +3,6 @@
 
     <fieldset>
 
-        <field name="id" type="text" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
-
         <field name="parent_id"
                type="categories"
                model="categories"
@@ -27,14 +25,6 @@
         <field name="alias" type="text" class="inputbox" generator="name" label="JFIELD_ALIAS_LABEL"
                description="COM_ALFA_FORM_DESC_CATEGORY_ALIAS" hint="COM_ALFA_FORM_LBL_CATEGORY_ALIAS"/>
 
-        <field name="meta_title" maxlength="255" filter="safehtml" type="text" translateLabel="true"
-               translateDescription="true" label="COM_ALFA_FORM_LBL_CATEGORY_META_TITLE"
-               description="COM_ALFA_FORM_DESC_CATEGORY_META_TITLE" hint="COM_ALFA_FORM_LBL_CATEGORY_META_TITLE"/>
-
-        <field name="meta_desc" cols="30" rows="3" filter="safehtml" type="textarea"
-               label="JFIELD_META_DESCRIPTION_LABEL" description="COM_ALFA_FORM_DESC_CATEGORY_META_DESC"
-               hint="COM_ALFA_FORM_LBL_CATEGORY_META_DESC"/>
-
         <field
                 name="state"
                 type="list"
@@ -49,12 +39,6 @@
             <option value="-2">JTRASHED</option>
         </field>
 
-        <field name="publish_up" type="calendar" showtime="true" format="%Y-%m-%d %H:%M" filter="USER_UTC"
-               label="COM_ALFA_FORM_CATEGORY_LBL_PUBLISH_UP" description="COM_ALFA_CATEGORY_PUBLISH_UP_DESC"/>
-
-        <field name="publish_down" type="calendar" showtime="true" format="%Y-%m-%d %H:%M" filter="USER_UTC"
-               label="COM_ALFA_FORM_CATEGORY_LBL_PUBLISH_DOWN" description="COM_ALFA_CATEGORY_PUBLISH_DOWN_DESC"/>
-
         <field
                 name="checked_out"
                 type="hidden"
@@ -67,83 +51,12 @@
                 filter="unset"
         />
 
-
-        <field
-            name="created_by"
-            type="user"
-            label="JGLOBAL_FIELD_CREATED_BY_LABEL"
-            validate="UserId"
-        />
-
-        <field
-                name="modified"
-                type="calendar"
-                label="JGLOBAL_FIELD_MODIFIED_LABEL"
-                class="form-control"
-                translateformat="true"
-                showtime="true"
-                readonly="true"
-                filter="user_utc"
-        />
-
-        <field
-                name="modified_by"
-                type="user"
-                label="JGLOBAL_FIELD_MODIFIED_BY_LABEL"
-                class="readonly"
-                readonly="true"
-                filter="unset"
-                validate="UserId"
-        />
-
-        <field
-                name="allowedUsers" type="sql"
-                input_type="list"
-                required="false"
-                multiple="true"
-                label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERS_LBL"
-                description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERS_DESC"
-                layout="joomla.form.field.list-fancy-select"
-                query="SELECT `id`, `name` FROM `#__users`" key_field="id" value_field="name"
-        />
-
-        <field
-                name="allowedUserGroups"
-                type="UserGroupList"
-                label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_LBL"
-                description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_DESC"
-                layout="joomla.form.field.list-fancy-select"
-                multiple="true"
-                checksuperusergroup="1"
-                default="8"
-        />
-
         <field
                 name="ordering"
                 type="text"
                 label="JFIELD_ORDERING_LABEL"
                 default="0"
         />
-
-
-        <!--    <field-->
-        <!--            name="modified_by"-->
-        <!--            type="user"-->
-        <!--            label="JGLOBAL_FIELD_MODIFIED_BY_LABEL"-->
-        <!--            class="readonly"-->
-        <!--            readonly="true"-->
-        <!--            filter="unset"-->
-        <!--            validate="UserId"-->
-        <!--    />-->
-
-
-        <!--    <field-->
-        <!--            name="created_by"-->
-        <!--            type="user"-->
-        <!--            label="COM_CONTENT_FIELD_CREATED_BY_LABEL"-->
-        <!--            validate="UserId"-->
-        <!--    />-->
-
 
         <field
                 name="version_note"
@@ -152,167 +65,91 @@
                 maxlength="255"
         />
 
+        <fieldset name="publish">
+            <field name="publish_up" type="calendar" showtime="true" format="%Y-%m-%d %H:%M" filter="USER_UTC"
+                   label="COM_ALFA_FORM_CATEGORY_LBL_PUBLISH_UP" description="COM_ALFA_CATEGORY_PUBLISH_UP_DESC"/>
 
-        <fieldset name="prices" label="Price Settings">
+            <field name="publish_down" type="calendar" showtime="true" format="%Y-%m-%d %H:%M" filter="USER_UTC"
+                   label="COM_ALFA_FORM_CATEGORY_LBL_PUBLISH_DOWN" description="COM_ALFA_CATEGORY_PUBLISH_DOWN_DESC"/>
 
+            <field
+                    name="allowedUsers" type="sql"
+                    input_type="list"
+                    required="false"
+                    multiple="true"
+                    label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERS_LBL"
+                    description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERS_DESC"
+                    layout="joomla.form.field.list-fancy-select"
+                    query="SELECT `id`, `name` FROM `#__users`" key_field="id" value_field="name"
+            />
 
-            <fieldset name="base_price" label="Base price settings" class="d-flex">
-                <field
-                        name="base_price_show"
-                        type="radio"
-                        default="-1"
-                        label="Base price"
-                        class="btn-group"
-                >
-                    <option value="-1">JGLOBAL_USE_GLOBAL</option>
-                    <option value="0">JHIDE</option>
-                    <option value="1">JSHOW</option>
-                </field>
-                <field
-                        name="base_price_show_label"
-                        type="radio"
-                        default="-1"
-                        label="Base price label"
-                        class="btn-group"
-                        showon="base_price_show!:0"
-                >
-                    <option value="-1">JGLOBAL_USE_GLOBAL</option>
-                    <option value="0">JHIDE</option>
-                    <option value="1">JSHOW</option>
-                </field>
-            </fieldset>
+            <field
+                    name="allowedUserGroups"
+                    type="UserGroupList"
+                    label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_LBL"
+                    description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_DESC"
+                    layout="joomla.form.field.list-fancy-select"
+                    multiple="true"
+                    checksuperusergroup="1"
+                    default="8"
+            />
 
-            <fieldset name="base_price_with_discounts" label="Base price with discounts settings" class="d-flex">
-                <field
-                        name="base_price_with_discounts_show"
-                        type="radio"
-                        default="-1"
-                        label="Base price with discounts"
-                        class="btn-group"
-                >
-                    <option value="-1">JGLOBAL_USE_GLOBAL</option>
-                    <option value="0">JHIDE</option>
-                    <option value="1">JSHOW</option>
-                </field>
-                <field
-                        name="base_price_with_discounts_show_label"
-                        type="radio"
-                        default="-1"
-                        label="Base price with discounts label"
-                        class="btn-group"
-                        showon="base_price_with_discounts_show!:0"
-                >
-                    <option value="-1">JGLOBAL_USE_GLOBAL</option>
-                    <option value="0">JHIDE</option>
-                    <option value="1">JSHOW</option>
-                </field>
-            </fieldset>
+            <field
+                    name="modified_by"
+                    type="user"
+                    label="JGLOBAL_FIELD_MODIFIED_BY_LABEL"
+                    class="readonly"
+                    readonly="true"
+                    filter="unset"
+                    validate="UserId"
+            />
 
-            <fieldset name="tax_amount" label="Tax amount settings" class="d-flex">
-                <field
-                        name="tax_amount_show"
-                        type="radio"
-                        default="-1"
-                        label="Tax amount"
-                        class="btn-group"
-                >
-                    <option value="-1">JGLOBAL_USE_GLOBAL</option>
-                    <option value="0">JHIDE</option>
-                    <option value="1">JSHOW</option>
-                </field>
-                
-                <field
-                        name="tax_amount_show_label"
-                        type="radio"
-                        default="-1"
-                        label="Tax amount label"
-                        class="btn-group"
-                        showon="tax_amount_show!:0"
-                >
-                    <option value="-1">JGLOBAL_USE_GLOBAL</option>
-                    <option value="0">JHIDE</option>
-                    <option value="1">JSHOW</option>
-                </field>
-            </fieldset>
+            <field
+                    name="modified"
+                    type="calendar"
+                    label="JGLOBAL_FIELD_MODIFIED_LABEL"
+                    class="form-control"
+                    translateformat="true"
+                    showtime="true"
+                    readonly="true"
+                    filter="user_utc"
+            />
 
-            <fieldset name="base_price_with_tax" label="Base price with tax settings" class="d-flex">
-                <field
-                        name="base_price_with_tax_show"
-                        type="radio"
-                        default="-1"
-                        label="Base price with tax show"
-                        class="btn-group"
-                >
-                    <option value="-1">JGLOBAL_USE_GLOBAL</option>
-                    <option value="0">JHIDE</option>
-                    <option value="1">JSHOW</option>
-                </field>
-                <field
-                        name="base_price_with_tax_show_label"
-                        type="radio"
-                        default="-1"
-                        label="Base price with tax show label"
-                        class="btn-group"
-                        showon="base_price_with_tax_show!:0"
-                >
-                    <option value="-1">JGLOBAL_USE_GLOBAL</option>
-                    <option value="0">JHIDE</option>
-                    <option value="1">JSHOW</option>
-                </field>
-            </fieldset>
+            <field
+                    name="created_by"
+                    type="user"
+                    label="JGLOBAL_FIELD_CREATED_BY_LABEL"
+                    validate="UserId"
+            />
 
-            <fieldset name="discount_amount" label="Discount amount settings" class="d-flex">
-                <field
-                        name="discount_amount_show"
-                        type="radio"
-                        default="-1"
-                        label="Discount amount show"
-                        class="btn-group"
-                >
-                    <option value="-1">JGLOBAL_USE_GLOBAL</option>
-                    <option value="0">JHIDE</option>
-                    <option value="1">JSHOW</option>
-                </field>
-                <field
-                        name="discount_amount_show_label"
-                        type="radio"
-                        default="-1"
-                        label="Discount amount show label"
-                        class="btn-group"
-                        showon="discount_amount_show!:0"
-                >
-                    <option value="-1">JGLOBAL_USE_GLOBAL</option>
-                    <option value="0">JHIDE</option>
-                    <option value="1">JSHOW</option>
-                </field>
-            </fieldset>
+            <field name="id" type="text" readonly="true" class="readonly" default="0"
+                   description="JGLOBAL_FIELD_ID_DESC"/>
 
-            <fieldset name="final_price" label="Final price settings" class="d-flex">
-                <field
-                        name="final_price_show"
-                        type="radio"
-                        default="-1"
-                        label="Final price show"
-                        class="btn-group"
-                >
-                    <option value="-1">JGLOBAL_USE_GLOBAL</option>
-                    <option value="0">JHIDE</option>
-                    <option value="1">JSHOW</option>
-                </field>
-                <field
-                        name="final_price_show_label"
-                        type="radio"
-                        default="-1"
-                        label="Final price show label"
-                        class="btn-group"
-                        showon="final_price_show!:0"
-                >
-                    <option value="-1">JGLOBAL_USE_GLOBAL</option>
-                    <option value="0">JHIDE</option>
-                    <option value="1">JSHOW</option>
-                </field>
-            </fieldset>
+        </fieldset>
 
+        <fieldset name="meta">
+            <field name="meta_title" charcounter="true" maxlength="60" filter="safehtml" type="text"
+                   translateLabel="true"
+                   translateDescription="true" label="COM_ALFA_FORM_LBL_CATEGORY_META_TITLE"
+                   description="COM_ALFA_FORM_DESC_CATEGORY_META_TITLE" hint="COM_ALFA_FORM_LBL_CATEGORY_META_TITLE"/>
+
+            <field name="meta_desc" charcounter="true" maxlength="160" cols="30" rows="3" filter="safehtml"
+                   type="textarea"
+                   label="JFIELD_META_DESCRIPTION_LABEL" description="COM_ALFA_FORM_DESC_CATEGORY_META_DESC"
+                   hint="COM_ALFA_FORM_LBL_CATEGORY_META_DESC"/>
+
+            <field
+                    name="robots"
+                    type="list"
+                    label="JFIELD_METADATA_ROBOTS_LABEL"
+                    validate="options"
+            >
+                <option value="">JGLOBAL_USE_GLOBAL</option>
+                <option value="index, follow">COM_ALFA_ROBOTS_INDEX_FOLLOW</option>
+                <option value="noindex, follow">COM_ALFA_ROBOTS_NOINDEX_FOLLOW</option>
+                <option value="index, nofollow">COM_ALFA_ROBOTS_INDEX_NOFOLLOW</option>
+                <option value="noindex, nofollow">COM_ALFA_ROBOTS_NOINDEX_NOFOLLOW</option>
+            </field>
         </fieldset>
 
     </fieldset>

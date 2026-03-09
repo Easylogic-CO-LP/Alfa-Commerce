@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2025 Easylogic CO LP
@@ -11,75 +11,49 @@ namespace Alfa\Component\Alfa\Administrator\View\Formfield;
 // No direct access
 defined('_JEXEC') or die;
 
-use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
-use \Joomla\CMS\Toolbar\ToolbarHelper;
-use \Joomla\CMS\Factory;
-use \Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
-use \Joomla\CMS\Language\Text;
+use Joomla\CMS\Helper\ContentHelper;
+use Joomla\CMS\MVC\View\FormView;
+use Joomla\CMS\Toolbar\ToolbarHelper;
+use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 
 /**
- * View class for a single Item.
+ * View class for a single Category.
  *
  * @since  1.0.1
  */
-class HtmlView extends BaseHtmlView
+class HtmlView extends FormView
 {
-    protected $state;
 
-    protected $item;
+	public function display($tpl = null)
+	{
+		parent::display($tpl);
+	}
 
-    protected $form;
+	protected function initializeView()
+	{
+		parent::initializeView();
 
-    /**
-     * Display the view
-     *
-     * @param   string  $tpl  Template name
-     *
-     * @return void
-     *
-     * @throws Exception
-     */
-    public function display($tpl = null)
-    {
-        $this->state = $this->get('State');
-        $this->item  = $this->get('Item');
-        $this->form  = $this->get('Form');
+		$this->canDo = ContentHelper::getActions('com_alfa');
 
-        // Check for errors.
-        if (count($errors = $this->get('Errors')))
-        {
-            throw new \Exception(implode("\n", $errors));
-        }
-        $this->addToolbar();
+		$input          = Factory::getApplication()->getInput();
 
-//        if(!empty($tpl))
-        parent::display($tpl);
-    }
+		// Add form control fields
+		$this->form
+			->addControlField('task', '')
+			->addControlField('return', $input->getBase64('return', ''));
+	}
 
-    /**
-     * Add the page title and toolbar.
-     *
-     * @return void
-     *
-     * @throws Exception
-     */
-    protected function addToolbar()
-    {
-        Factory::getApplication()->input->set('hidemainmenu', true);
+	protected function addToolbar()
+	{
+		Factory::getApplication()->getInput()->set('hidemainmenu', true);
 
-        $user  = Factory::getApplication()->getIdentity();
-        $isNew = ($this->item->id == 0);
+		$user       = $this->getCurrentUser();
+		$userId     = $user->id;
+		$isNew      = ($this->item->id == 0);
+		$checkedOut = !(\is_null($this->item->checked_out) || $this->item->checked_out == $userId);
 
-        if (isset($this->item->checked_out))
-        {
-            $checkedOut = !($this->item->checked_out == 0 || $this->item->checked_out == $user->get('id'));
-        }
-        else
-        {
-            $checkedOut = false;
-        }
-
-        $canDo = AlfaHelper::getActions();
+		$canDo = $this->canDo;
 
         ToolbarHelper::title(Text::_('COM_ALFA_TITLE_FORM_FIELD'), "generic");
 
@@ -106,13 +80,6 @@ class HtmlView extends BaseHtmlView
             ToolbarHelper::versions('com_alfa.formfield', $this->item->id);
         }
 
-        if (empty($this->item->id))
-        {
-            ToolbarHelper::cancel('formfield.cancel', 'JTOOLBAR_CANCEL');
-        }
-        else
-        {
-            ToolbarHelper::cancel('formfield.cancel', 'JTOOLBAR_CLOSE');
-        }
+        ToolbarHelper::cancel('formfield.cancel', 'JTOOLBAR_CANCEL');
     }
 }

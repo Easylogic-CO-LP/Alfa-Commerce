@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -9,11 +9,8 @@
 
 namespace Alfa\Component\Alfa\Administrator\Extension;
 
-defined('JPATH_PLATFORM') or die;
+\defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\Service\Html\ALFA;
-use Joomla\CMS\Application\SiteApplication;
-use Joomla\CMS\Association\AssociationServiceInterface;
 use Joomla\CMS\Association\AssociationServiceTrait;
 use Joomla\CMS\Categories\CategoryServiceTrait;
 use Joomla\CMS\Component\Router\RouterServiceInterface;
@@ -40,11 +37,44 @@ class AlfaComponent extends MVCComponent implements RouterServiceInterface, Boot
 		CategoryServiceTrait::getStateColumnForSection insteadof TagServiceTrait;
 	}
 
+    /**
+     * The archived condition
+     *
+     * @since   4.0.0
+     */
+    public const CONDITION_ARCHIVED = 2;
+
+    /**
+     * The published condition
+     *
+     * @since   4.0.0
+     */
+    public const CONDITION_PUBLISHED = 1;
+
+    /**
+     * The unpublished condition
+     *
+     * @since   4.0.0
+     */
+    public const CONDITION_UNPUBLISHED = 0;
+
+    /**
+     * The trashed condition
+     *
+     * @since   4.0.0
+     */
+    public const CONDITION_TRASHED = -2;
+
 	/** @inheritdoc  */
 	public function boot(ContainerInterface $container)
 	{
-		$db = $container->get('DatabaseDriver');
-		$this->getRegistry()->register('alfa', new ALFA($db));
+        /**
+         * Load the constant early as it is used in class files before the class itself is loaded.
+         * @deprecated 4.4.0 will be removed in 7.0
+         */
+//        \defined('JPATH_PLATFORM') or \define('JPATH_PLATFORM', __DIR__);
+//		$db = $container->get('DatabaseDriver');
+//		$this->getRegistry()->register('alfa', new ALFA($db));
 	}
 
 	
@@ -57,8 +87,9 @@ class AlfaComponent extends MVCComponent implements RouterServiceInterface, Boot
 	 *
 	 * @since   4.0.0
 	 */
-	    protected function getTableNameForSection(string $section = null)            
-	{
+    protected function getTableNameForSection(string $section = null): ?string
+    {
+        return '#__alfa';
 	}
 	
 	/**
