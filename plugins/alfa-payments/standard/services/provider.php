@@ -3,7 +3,6 @@
 /**
  * @package     Alfa.Plugin
  * @subpackage  AlfaPayments.Standard
- *
  */
 
 \defined('_JEXEC') or die;
@@ -13,16 +12,15 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
-use Joomla\Event\DispatcherInterface;
 use Joomla\Plugin\AlfaPayments\Standard\Extension\Standard;
 
 return new class () implements ServiceProviderInterface {
     /**
      * Registers the service provider with a DI container.
      *
-     * @param   Container  $container  The DI container.
+     * @param Container $container The DI container.
      *
-     * @return  void
+     * @return void
      *
      * @since   4.3.0
      */
@@ -31,13 +29,13 @@ return new class () implements ServiceProviderInterface {
         $container->set(
             PluginInterface::class,
             function (Container $container) {
-                $plugin     = new Standard(
-                    (array) PluginHelper::getPlugin('alfa-payments', 'standard')
+                $plugin = new Standard(
+                    (array) PluginHelper::getPlugin('alfa-payments', 'standard'),
                 );
                 $plugin->setApplication(Factory::getApplication());
 
                 return $plugin;
-            }
+            },
         );
     }
 };

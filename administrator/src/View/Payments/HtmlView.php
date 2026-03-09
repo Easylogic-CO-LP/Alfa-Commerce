@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    1.0.1
  * @package    Com_Alfa
@@ -8,15 +9,15 @@
  */
 
 namespace Alfa\Component\Alfa\Administrator\View\Payments;
+
 // No direct access
 defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\View\HtmlView as BaseHtmlView;
-use Joomla\CMS\Toolbar\ToolbarHelper;
-use Joomla\CMS\Language\Text;
-use Joomla\CMS\Helper\ContentHelper;
 use Alfa\Component\Alfa\Administrator\Extension\AlfaComponent;
-
+use Alfa\Component\Alfa\Administrator\View\HtmlView as BaseHtmlView;
+use Joomla\CMS\Helper\ContentHelper;
+use Joomla\CMS\Language\Text;
+use Joomla\CMS\Toolbar\ToolbarHelper;
 
 /**
  * View class for a list of Payments.
@@ -38,18 +39,18 @@ class HtmlView extends BaseHtmlView
     /**
      * Display the view
      *
-     * @param   string  $tpl  The name of the template file to parse; automatically searches through the template paths.
+     * @param string $tpl The name of the template file to parse; automatically searches through the template paths.
      *
-     * @return  void
+     * @return void
      */
     public function display($tpl = null)
     {
         $model = $this->getModel();
 
-        $this->items         = $model->getItems();
-        $this->pagination    = $model->getPagination();
-        $this->state         = $model->getState();
-        $this->filterForm    = $model->getFilterForm();
+        $this->items = $model->getItems();
+        $this->pagination = $model->getPagination();
+        $this->state = $model->getState();
+        $this->filterForm = $model->getFilterForm();
         $this->activeFilters = $model->getActiveFilters();
 
         $this->addToolbar();
@@ -62,35 +63,33 @@ class HtmlView extends BaseHtmlView
         parent::display($tpl);
     }
 
-	/**
-	 * Add the page title and toolbar.
-	 *
-	 * @return  void
-	 *
-	 * @since   1.0.1
-	 */
-	protected function addToolbar()
-	{
-        $canDo    = ContentHelper::getActions('com_alfa');
-        $toolbar  = $this->getDocument()->getToolbar();
+    /**
+     * Add the page title and toolbar.
+     *
+     * @return void
+     *
+     * @since   1.0.1
+     */
+    protected function addToolbar()
+    {
+        $canDo = ContentHelper::getActions('com_alfa');
+        $toolbar = $this->getDocument()->getToolbar();
 
-		ToolbarHelper::title(Text::_('COM_ALFA_TITLE_PAYMENTS'), "generic");
+        ToolbarHelper::title(Text::_('COM_ALFA_TITLE_PAYMENTS'), 'generic');
 
-        if ($canDo->get('core.create'))
-        {
+        if ($canDo->get('core.create')) {
             $toolbar->addNew('payment.add');
         }
 
-		if ($canDo->get('core.edit.state'))
-		{
-			$dropdown = $toolbar->dropdownButton('status-group')
-				->text('JTOOLBAR_CHANGE_STATUS')
-				->toggleSplit(false)
-				->icon('fas fa-ellipsis-h')
-				->buttonClass('btn btn-action')
-				->listCheck(true);
+        if ($canDo->get('core.edit.state')) {
+            $dropdown = $toolbar->dropdownButton('status-group')
+                ->text('JTOOLBAR_CHANGE_STATUS')
+                ->toggleSplit(false)
+                ->icon('fas fa-ellipsis-h')
+                ->buttonClass('btn btn-action')
+                ->listCheck(true);
 
-			$childBar = $dropdown->getChildToolbar();
+            $childBar = $dropdown->getChildToolbar();
 
             $childBar->publish('payments.publish')->listCheck(true);
             $childBar->unpublish('payments.unpublish')->listCheck(true);
@@ -101,22 +100,18 @@ class HtmlView extends BaseHtmlView
             }
 
             if ($this->state->get('filter.state') == AlfaComponent::CONDITION_TRASHED && $canDo->get('core.delete')) {
-				// If this component does not use state then show a direct delete button as we can not trash
-				$toolbar->delete('payments.delete')
-				->text('JTOOLBAR_EMPTY_TRASH')
-				->message('JGLOBAL_CONFIRM_DELETE')
-				->listCheck(true);
-			}
+                // If this component does not use state then show a direct delete button as we can not trash
+                $toolbar->delete('payments.delete')
+                ->text('JTOOLBAR_EMPTY_TRASH')
+                ->message('JGLOBAL_CONFIRM_DELETE')
+                ->listCheck(true);
+            }
 
             $childBar->checkin('payments.checkin')->listCheck(true);
+        }
 
-		}
-
-		if ($canDo->get('core.admin'))
-		{
-			$toolbar->preferences('com_alfa');
-		}
-
-	}
-
+        if ($canDo->get('core.admin')) {
+            $toolbar->preferences('com_alfa');
+        }
+    }
 }

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @package    Com_Alfa
  * @subpackage Administrator.Service
@@ -13,6 +14,7 @@ use Alfa\Component\Alfa\Site\Service\Pricing\PriceCalculator;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
+use Throwable;
 
 /**
  * PriceIndexSyncService — Builds and maintains the Architecture-B price index.
@@ -62,412 +64,388 @@ use Joomla\CMS\Log\Log;
  */
 class PriceIndexSyncService
 {
-	// =========================================================================
-	// Constants
-	// =========================================================================
+    // =========================================================================
+    // Constants
+    // =========================================================================
 
-	/** Chunk size for bulk item syncs — balances memory vs DB round-trips. */
-	private const CHUNK_SIZE = 50;
+    /** Chunk size for bulk item syncs — balances memory vs DB round-trips. */
+    private const CHUNK_SIZE = 50;
 
-	// =========================================================================
-	// Dependencies
-	// =========================================================================
+    // =========================================================================
+    // Dependencies
+    // =========================================================================
 
-	/** @var \Joomla\Database\DatabaseInterface */
-	private $db;
+    /** @var \Joomla\Database\DatabaseInterface */
+    private $db;
 
-	/** @var PriceCalculator */
-	private $calculator;
+    /** @var PriceCalculator */
+    private $calculator;
 
-	// =========================================================================
-	// Constructor
-	// =========================================================================
+    // =========================================================================
+    // Constructor
+    // =========================================================================
 
-	/**
-	 * @param  PriceCalculator|null  $calculator  Injected for testing; defaults to new instance
-	 */
-	public function __construct(?PriceCalculator $calculator = null)
-	{
-		$this->db         = Factory::getContainer()->get('DatabaseDriver');
-		$this->calculator = $calculator ?? new PriceCalculator();
-	}
+    /**
+     * @param PriceCalculator|null $calculator Injected for testing; defaults to new instance
+     */
+    public function __construct(?PriceCalculator $calculator = null)
+    {
+        $this->db = Factory::getContainer()->get('DatabaseDriver');
+        $this->calculator = $calculator ?? new PriceCalculator();
+    }
 
-	// =========================================================================
-	// Public API
-	// =========================================================================
+    // =========================================================================
+    // Public API
+    // =========================================================================
 
-	/**
-	 * Re-index a single item.
-	 *
-	 * Called from ItemModel::save() and ItemModel::publish() when an item is
-	 * re-published (state = 1). All associated data must already be committed.
-	 *
-	 * @param  int  $itemId
-	 * @return void
-	 */
-	public function syncItem(int $itemId): void
-	{
-		if ($itemId <= 0) {
-			return;
-		}
+    /**
+     * Re-index a single item.
+     *
+     * Called from ItemModel::save() and ItemModel::publish() when an item is
+     * re-published (state = 1). All associated data must already be committed.
+     */
+    public function syncItem(int $itemId): void
+    {
+        if ($itemId <= 0) {
+            return;
+        }
 
-		try {
-			$this->writeIndexRows([$itemId], $this->getActiveContextCombinations());
-		} catch (\Throwable $e) {
-			$this->logWarning("syncItem({$itemId}) failed: " . $e->getMessage());
-		}
-	}
+        try {
+            $this->writeIndexRows([$itemId], $this->getActiveContextCombinations());
+        } catch (Throwable $e) {
+            $this->logWarning("syncItem({$itemId}) failed: " . $e->getMessage());
+        }
+    }
 
-	/**
-	 * Re-index a specific list of items.
-	 *
-	 * Used by the discount and tax delete hooks: the calling model collects
-	 * the affected item ids BEFORE performing the delete (while the scope
-	 * tables still exist), then calls this method AFTER the delete so prices
-	 * are computed without the removed discount/tax.
-	 *
-	 * @param  int[]  $itemIds
-	 * @return int    Number of index rows written
-	 */
-	public function syncItems(array $itemIds): int
-	{
-		$itemIds = array_filter(array_map('intval', $itemIds));
+    /**
+     * Re-index a specific list of items.
+     *
+     * Used by the discount and tax delete hooks: the calling model collects
+     * the affected item ids BEFORE performing the delete (while the scope
+     * tables still exist), then calls this method AFTER the delete so prices
+     * are computed without the removed discount/tax.
+     *
+     * @param int[] $itemIds
+     * @return int Number of index rows written
+     */
+    public function syncItems(array $itemIds): int
+    {
+        $itemIds = array_filter(array_map('intval', $itemIds));
 
-		if (empty($itemIds)) {
-			return 0;
-		}
+        if (empty($itemIds)) {
+            return 0;
+        }
 
-		try {
-			return $this->writeIndexRows(
-				array_values($itemIds),
-				$this->getActiveContextCombinations()
-			);
-		} catch (\Throwable $e) {
-			$this->logWarning("syncItems() failed: " . $e->getMessage());
-			return 0;
-		}
-	}
+        try {
+            return $this->writeIndexRows(
+                array_values($itemIds),
+                $this->getActiveContextCombinations(),
+            );
+        } catch (Throwable $e) {
+            $this->logWarning('syncItems() failed: ' . $e->getMessage());
+            return 0;
+        }
+    }
 
-	/**
-	 * Re-index all items that a discount could affect.
-	 *
-	 * If the discount has category_id = 0 (applies globally) a full syncAll()
-	 * is triggered. Otherwise only items in its specific categories are synced.
-	 *
-	 * Called from DiscountModel::save() and DiscountModel::publish().
-	 * NOT used for delete — see syncItems() and the delete hook comments.
-	 *
-	 * @param  int  $discountId
-	 * @return int  Number of index rows written
-	 */
-	public function syncByDiscount(int $discountId): int
-	{
-		if ($discountId <= 0) {
-			return 0;
-		}
+    /**
+     * Re-index all items that a discount could affect.
+     *
+     * If the discount has category_id = 0 (applies globally) a full syncAll()
+     * is triggered. Otherwise only items in its specific categories are synced.
+     *
+     * Called from DiscountModel::save() and DiscountModel::publish().
+     * NOT used for delete — see syncItems() and the delete hook comments.
+     *
+     * @return int Number of index rows written
+     */
+    public function syncByDiscount(int $discountId): int
+    {
+        if ($discountId <= 0) {
+            return 0;
+        }
 
-		try {
-			if ($this->discountAppliesGlobally($discountId)) {
-				return $this->syncAll();
-			}
+        try {
+            if ($this->discountAppliesGlobally($discountId)) {
+                return $this->syncAll();
+            }
 
-			$categoryIds = $this->getDiscountCategoryIds($discountId);
-			if (empty($categoryIds)) {
-				return 0;
-			}
+            $categoryIds = $this->getDiscountCategoryIds($discountId);
+            if (empty($categoryIds)) {
+                return 0;
+            }
 
-			$itemIds = $this->getItemIdsInCategories($categoryIds);
-			if (empty($itemIds)) {
-				return 0;
-			}
+            $itemIds = $this->getItemIdsInCategories($categoryIds);
+            if (empty($itemIds)) {
+                return 0;
+            }
 
-			return $this->writeIndexRows($itemIds, $this->getActiveContextCombinations());
+            return $this->writeIndexRows($itemIds, $this->getActiveContextCombinations());
+        } catch (Throwable $e) {
+            $this->logWarning("syncByDiscount({$discountId}) failed: " . $e->getMessage());
+            return 0;
+        }
+    }
 
-		} catch (\Throwable $e) {
-			$this->logWarning("syncByDiscount({$discountId}) failed: " . $e->getMessage());
-			return 0;
-		}
-	}
+    /**
+     * Re-index all items that a tax change could affect.
+     *
+     * If the tax has category_id = 0 (applies globally) a full syncAll() is
+     * triggered. Otherwise only items in its specific categories are synced.
+     *
+     * Called from TaxModel::save() and TaxModel::publish().
+     * NOT used for delete — see syncItems() and the delete hook comments.
+     *
+     * @return int Number of index rows written
+     */
+    public function syncByTax(int $taxId): int
+    {
+        if ($taxId <= 0) {
+            return 0;
+        }
 
-	/**
-	 * Re-index all items that a tax change could affect.
-	 *
-	 * If the tax has category_id = 0 (applies globally) a full syncAll() is
-	 * triggered. Otherwise only items in its specific categories are synced.
-	 *
-	 * Called from TaxModel::save() and TaxModel::publish().
-	 * NOT used for delete — see syncItems() and the delete hook comments.
-	 *
-	 * @param  int  $taxId
-	 * @return int  Number of index rows written
-	 */
-	public function syncByTax(int $taxId): int
-	{
-		if ($taxId <= 0) {
-			return 0;
-		}
+        try {
+            if ($this->taxAppliesGlobally($taxId)) {
+                return $this->syncAll();
+            }
 
-		try {
-			if ($this->taxAppliesGlobally($taxId)) {
-				return $this->syncAll();
-			}
+            $categoryIds = $this->getTaxCategoryIds($taxId);
+            if (empty($categoryIds)) {
+                return 0;
+            }
 
-			$categoryIds = $this->getTaxCategoryIds($taxId);
-			if (empty($categoryIds)) {
-				return 0;
-			}
+            $itemIds = $this->getItemIdsInCategories($categoryIds);
+            if (empty($itemIds)) {
+                return 0;
+            }
 
-			$itemIds = $this->getItemIdsInCategories($categoryIds);
-			if (empty($itemIds)) {
-				return 0;
-			}
+            return $this->writeIndexRows($itemIds, $this->getActiveContextCombinations());
+        } catch (Throwable $e) {
+            $this->logWarning("syncByTax({$taxId}) failed: " . $e->getMessage());
+            return 0;
+        }
+    }
 
-			return $this->writeIndexRows($itemIds, $this->getActiveContextCombinations());
+    /**
+     * Rebuild the entire price index from scratch.
+     *
+     * Safe to run at any time — INSERT … ON DUPLICATE KEY UPDATE is idempotent.
+     * Run this once after installation and after bulk catalogue imports.
+     *
+     * @return int Total number of index rows written
+     */
+    public function syncAll(): int
+    {
+        try {
+            return $this->writeIndexRows(
+                $this->getAllPublishedItemIds(),
+                $this->getActiveContextCombinations(),
+            );
+        } catch (Throwable $e) {
+            $this->logWarning('syncAll() failed: ' . $e->getMessage());
+            return 0;
+        }
+    }
 
-		} catch (\Throwable $e) {
-			$this->logWarning("syncByTax({$taxId}) failed: " . $e->getMessage());
-			return 0;
-		}
-	}
+    /**
+     * Remove all index rows for a specific item.
+     *
+     * Call when an item is unpublished, trashed, or soft-deleted so it
+     * disappears from the filter immediately without waiting for a full rebuild.
+     * Hard deletes are also handled automatically by the FK ON DELETE CASCADE.
+     */
+    public function deleteForItem(int $itemId): void
+    {
+        if ($itemId <= 0) {
+            return;
+        }
 
-	/**
-	 * Rebuild the entire price index from scratch.
-	 *
-	 * Safe to run at any time — INSERT … ON DUPLICATE KEY UPDATE is idempotent.
-	 * Run this once after installation and after bulk catalogue imports.
-	 *
-	 * @return int  Total number of index rows written
-	 */
-	public function syncAll(): int
-	{
-		try {
-			return $this->writeIndexRows(
-				$this->getAllPublishedItemIds(),
-				$this->getActiveContextCombinations()
-			);
-		} catch (\Throwable $e) {
-			$this->logWarning("syncAll() failed: " . $e->getMessage());
-			return 0;
-		}
-	}
+        try {
+            $query = $this->db->getQuery(true)
+                ->delete($this->db->quoteName('#__alfa_items_price_index'))
+                ->where($this->db->quoteName('item_id') . ' = ' . (int) $itemId);
 
-	/**
-	 * Remove all index rows for a specific item.
-	 *
-	 * Call when an item is unpublished, trashed, or soft-deleted so it
-	 * disappears from the filter immediately without waiting for a full rebuild.
-	 * Hard deletes are also handled automatically by the FK ON DELETE CASCADE.
-	 *
-	 * @param  int  $itemId
-	 * @return void
-	 */
-	public function deleteForItem(int $itemId): void
-	{
-		if ($itemId <= 0) {
-			return;
-		}
+            $this->db->setQuery($query)->execute();
+        } catch (Throwable $e) {
+            $this->logWarning("deleteForItem({$itemId}) failed: " . $e->getMessage());
+        }
+    }
 
-		try {
-			$query = $this->db->getQuery(true)
-				->delete($this->db->quoteName('#__alfa_items_price_index'))
-				->where($this->db->quoteName('item_id') . ' = ' . (int) $itemId);
+    // =========================================================================
+    // Scope helpers — called by model delete hooks BEFORE the actual delete
+    // =========================================================================
 
-			$this->db->setQuery($query)->execute();
-		} catch (\Throwable $e) {
-			$this->logWarning("deleteForItem({$itemId}) failed: " . $e->getMessage());
-		}
-	}
+    /**
+     * Return all item ids affected by a discount.
+     *
+     * Call this BEFORE deleting the discount so the scope tables still exist.
+     * If the discount applies globally (category_id = 0) all published items
+     * are returned.
+     *
+     * @return int[]
+     */
+    public function getItemIdsForDiscount(int $discountId): array
+    {
+        if ($discountId <= 0) {
+            return [];
+        }
 
-	// =========================================================================
-	// Scope helpers — called by model delete hooks BEFORE the actual delete
-	// =========================================================================
+        if ($this->discountAppliesGlobally($discountId)) {
+            return $this->getAllPublishedItemIds();
+        }
 
-	/**
-	 * Return all item ids affected by a discount.
-	 *
-	 * Call this BEFORE deleting the discount so the scope tables still exist.
-	 * If the discount applies globally (category_id = 0) all published items
-	 * are returned.
-	 *
-	 * @param  int  $discountId
-	 * @return int[]
-	 */
-	public function getItemIdsForDiscount(int $discountId): array
-	{
-		if ($discountId <= 0) {
-			return [];
-		}
+        $categoryIds = $this->getDiscountCategoryIds($discountId);
+        return $this->getItemIdsInCategories($categoryIds);
+    }
 
-		if ($this->discountAppliesGlobally($discountId)) {
-			return $this->getAllPublishedItemIds();
-		}
+    /**
+     * Return all item ids affected by a tax.
+     *
+     * Call this BEFORE deleting the tax so the scope tables still exist.
+     * If the tax applies globally (category_id = 0) all published items
+     * are returned.
+     *
+     * @return int[]
+     */
+    public function getItemIdsForTax(int $taxId): array
+    {
+        if ($taxId <= 0) {
+            return [];
+        }
 
-		$categoryIds = $this->getDiscountCategoryIds($discountId);
-		return $this->getItemIdsInCategories($categoryIds);
-	}
+        if ($this->taxAppliesGlobally($taxId)) {
+            return $this->getAllPublishedItemIds();
+        }
 
-	/**
-	 * Return all item ids affected by a tax.
-	 *
-	 * Call this BEFORE deleting the tax so the scope tables still exist.
-	 * If the tax applies globally (category_id = 0) all published items
-	 * are returned.
-	 *
-	 * @param  int  $taxId
-	 * @return int[]
-	 */
-	public function getItemIdsForTax(int $taxId): array
-	{
-		if ($taxId <= 0) {
-			return [];
-		}
+        $categoryIds = $this->getTaxCategoryIds($taxId);
+        return $this->getItemIdsInCategories($categoryIds);
+    }
 
-		if ($this->taxAppliesGlobally($taxId)) {
-			return $this->getAllPublishedItemIds();
-		}
+    // =========================================================================
+    // Core indexing
+    // =========================================================================
 
-		$categoryIds = $this->getTaxCategoryIds($taxId);
-		return $this->getItemIdsInCategories($categoryIds);
-	}
+    /**
+     * Write index rows for a list of items × context combinations.
+     *
+     * For each (item × currency × place × usergroup) slot:
+     *   1. Build a PriceContext via PriceContext::forIndex()
+     *   2. Batch-compute prices with PriceCalculator at quantity = 1
+     *   3. Derive all column values from the PriceResult
+     *   4. Upsert via INSERT … ON DUPLICATE KEY UPDATE
+     *
+     * Items where base_price = 0 (no price row matched) are skipped.
+     *
+     * @param int[] $itemIds
+     * @param array $combinations From getActiveContextCombinations()
+     * @return int Total rows written
+     */
+    private function writeIndexRows(array $itemIds, array $combinations): int
+    {
+        if (empty($itemIds) || empty($combinations)) {
+            return 0;
+        }
 
-	// =========================================================================
-	// Core indexing
-	// =========================================================================
+        $written = 0;
 
-	/**
-	 * Write index rows for a list of items × context combinations.
-	 *
-	 * For each (item × currency × place × usergroup) slot:
-	 *   1. Build a PriceContext via PriceContext::forIndex()
-	 *   2. Batch-compute prices with PriceCalculator at quantity = 1
-	 *   3. Derive all column values from the PriceResult
-	 *   4. Upsert via INSERT … ON DUPLICATE KEY UPDATE
-	 *
-	 * Items where base_price = 0 (no price row matched) are skipped.
-	 *
-	 * @param  int[]  $itemIds
-	 * @param  array  $combinations  From getActiveContextCombinations()
-	 * @return int    Total rows written
-	 */
-	private function writeIndexRows(array $itemIds, array $combinations): int
-	{
-		if (empty($itemIds) || empty($combinations)) {
-			return 0;
-		}
+        foreach (array_chunk($itemIds, self::CHUNK_SIZE) as $chunk) {
+            foreach ($combinations as $combo) {
+                $currencyId = (int) $combo['currency_id'];
+                $placeId = (int) $combo['place_id'];
+                $usergroupId = (int) $combo['usergroup_id'];
 
-		$written = 0;
+                $context = PriceContext::forIndex($currencyId, $placeId, $usergroupId);
 
-		foreach (array_chunk($itemIds, self::CHUNK_SIZE) as $chunk) {
-			foreach ($combinations as $combo) {
-				$currencyId  = (int) $combo['currency_id'];
-				$placeId     = (int) $combo['place_id'];
-				$usergroupId = (int) $combo['usergroup_id'];
+                try {
+                    $results = $this->calculator->calculate($chunk, 1, $context);
+                } catch (Throwable $e) {
+                    $this->logWarning(
+                        "Calculation failed for currency={$currencyId} place={$placeId} "
+                        . "group={$usergroupId}: " . $e->getMessage(),
+                    );
+                    continue;
+                }
 
-				$context = PriceContext::forIndex($currencyId, $placeId, $usergroupId);
+                foreach ($chunk as $itemId) {
+                    $result = $results[$itemId] ?? null;
+                    if ($result === null) {
+                        continue;
+                    }
 
-				try {
-					$results = $this->calculator->calculate($chunk, 1, $context);
-				} catch (\Throwable $e) {
-					$this->logWarning(
-						"Calculation failed for currency={$currencyId} place={$placeId} "
-						. "group={$usergroupId}: " . $e->getMessage()
-					);
-					continue;
-				}
+                    // ── Map PriceResult → index columns ───────────────────────
+                    // Column names match config fields exactly.
 
-				foreach ($chunk as $itemId) {
-					$result = $results[$itemId] ?? null;
-					if ($result === null) {
-						continue;
-					}
+                    $basePrice = round($result->getBaseTotal()->getAmount(), 4);
 
-					// ── Map PriceResult → index columns ───────────────────────
-					// Column names match config fields exactly.
+                    // Skip items with no price rows — 0 would pollute the slider
+                    if ($basePrice <= 0) {
+                        continue;
+                    }
 
-					$basePrice = round($result->getBaseTotal()->getAmount(), 4);
+                    $discountAmount = round($result->getSavingsTotal()->getAmount(), 4);
+                    $basePriceWithDiscounts = round($result->getSubtotal()->getAmount(), 4);
+                    $taxAmount = round($result->getTaxTotal()->getAmount(), 4);
+                    $finalPrice = round($result->getTotal()->getAmount(), 4);
 
-					// Skip items with no price rows — 0 would pollute the slider
-					if ($basePrice <= 0) {
-						continue;
-					}
+                    // base_price_with_tax = base price + the same tax rate applied
+                    // to the discounted subtotal. Derived: base × (final / subtotal).
+                    // Guard against zero subtotal (tax-exempt items).
+                    $basePriceWithTax = $basePriceWithDiscounts > 0
+                        ? round($basePrice * ($finalPrice / $basePriceWithDiscounts), 4)
+                        : $basePrice;
 
-					$discountAmount           = round($result->getSavingsTotal()->getAmount(), 4);
-					$basePriceWithDiscounts   = round($result->getSubtotal()->getAmount(), 4);
-					$taxAmount                = round($result->getTaxTotal()->getAmount(), 4);
-					$finalPrice               = round($result->getTotal()->getAmount(), 4);
+                    // discount_percent: saving relative to base_price_with_tax (the "was" price).
+                    // discountAmount here is in the discounted+tax context, so derive from
+                    // the difference between the "was" price and final price.
+                    $discountPercent = ($basePriceWithTax > 0 && $basePriceWithTax > $finalPrice)
+                        ? round((($basePriceWithTax - $finalPrice) / $basePriceWithTax) * 100, 2)
+                        : 0.00;
 
-					// base_price_with_tax = base price + the same tax rate applied
-					// to the discounted subtotal. Derived: base × (final / subtotal).
-					// Guard against zero subtotal (tax-exempt items).
-					$basePriceWithTax = $basePriceWithDiscounts > 0
-						? round($basePrice * ($finalPrice / $basePriceWithDiscounts), 4)
-						: $basePrice;
+                    $this->upsertRow(
+                        $itemId,
+                        $currencyId,
+                        $placeId,
+                        $usergroupId,
+                        $basePrice,
+                        $discountAmount,
+                        $basePriceWithDiscounts,
+                        $taxAmount,
+                        $basePriceWithTax,
+                        $finalPrice,
+                        $discountPercent,
+                    );
 
-					// discount_percent: saving relative to base_price_with_tax (the "was" price).
-					// discountAmount here is in the discounted+tax context, so derive from
-					// the difference between the "was" price and final price.
-					$discountPercent = ($basePriceWithTax > 0 && $basePriceWithTax > $finalPrice)
-						? round((($basePriceWithTax - $finalPrice) / $basePriceWithTax) * 100, 2)
-						: 0.00;
+                    $written++;
+                }
+            }
+        }
 
-					$this->upsertRow(
-						$itemId,
-						$currencyId,
-						$placeId,
-						$usergroupId,
-						$basePrice,
-						$discountAmount,
-						$basePriceWithDiscounts,
-						$taxAmount,
-						$basePriceWithTax,
-						$finalPrice,
-						$discountPercent
-					);
+        return $written;
+    }
 
-					$written++;
-				}
-			}
-		}
+    /**
+     * Upsert one row into #__alfa_items_price_index.
+     *
+     * INSERT … ON DUPLICATE KEY UPDATE is atomic and idempotent.
+     * updated_at is refreshed automatically by the column definition.
+     */
+    private function upsertRow(
+        int $itemId,
+        int $currencyId,
+        int $placeId,
+        int $usergroupId,
+        float $basePrice,
+        float $discountAmount,
+        float $basePriceWithDiscounts,
+        float $taxAmount,
+        float $basePriceWithTax,
+        float $finalPrice,
+        float $discountPercent,
+    ): void {
+        $db = $this->db;
+        $table = $db->quoteName('#__alfa_items_price_index');
+        $now = $db->quote(Factory::getDate()->toSql());
 
-		return $written;
-	}
-
-	/**
-	 * Upsert one row into #__alfa_items_price_index.
-	 *
-	 * INSERT … ON DUPLICATE KEY UPDATE is atomic and idempotent.
-	 * updated_at is refreshed automatically by the column definition.
-	 *
-	 * @param  int    $itemId
-	 * @param  int    $currencyId
-	 * @param  int    $placeId
-	 * @param  int    $usergroupId
-	 * @param  float  $basePrice
-	 * @param  float  $discountAmount
-	 * @param  float  $basePriceWithDiscounts
-	 * @param  float  $taxAmount
-	 * @param  float  $basePriceWithTax
-	 * @param  float  $finalPrice
-	 * @param  float  $discountPercent
-	 */
-	private function upsertRow(
-		int   $itemId,
-		int   $currencyId,
-		int   $placeId,
-		int   $usergroupId,
-		float $basePrice,
-		float $discountAmount,
-		float $basePriceWithDiscounts,
-		float $taxAmount,
-		float $basePriceWithTax,
-		float $finalPrice,
-		float $discountPercent
-	): void {
-		$db    = $this->db;
-		$table = $db->quoteName('#__alfa_items_price_index');
-		$now   = $db->quote(Factory::getDate()->toSql());
-
-		$sql = "INSERT INTO {$table}
+        $sql = "INSERT INTO {$table}
                     (item_id, currency_id, place_id, usergroup_id,
                      base_price, discount_amount, base_price_with_discounts,
                      tax_amount, base_price_with_tax, final_price,
@@ -487,236 +465,226 @@ class PriceIndexSyncService
                     discount_percent          = VALUES(discount_percent),
                     updated_at                = VALUES(updated_at)";
 
-		$db->setQuery($sql)->execute();
-	}
+        $db->setQuery($sql)->execute();
+    }
 
-	// =========================================================================
-	// Combination discovery
-	// =========================================================================
+    // =========================================================================
+    // Combination discovery
+    // =========================================================================
 
-	/**
-	 * Build all (currency × place × usergroup) combinations worth indexing.
-	 *
-	 * Only combinations that can produce different prices are included:
-	 *   Currencies — distinct currency_id from items_prices + sentinel 0
-	 *   Usergroups — distinct values from discount_usergroups,
-	 *                tax_usergroups, items_prices + sentinel 0
-	 *   Places     — distinct values from discount_places, tax_places,
-	 *                and country_id from items_prices + sentinel 0
-	 *
-	 * Sentinel 0 = "any / default" in every dimension, always included.
-	 *
-	 * @return array  Array of ['currency_id'=>N, 'place_id'=>N, 'usergroup_id'=>N]
-	 */
-	private function getActiveContextCombinations(): array
-	{
-		$currencies = $this->getDistinctCurrencyIds();
-		$usergroups = $this->getDistinctUsergroupIds();
-		$places     = $this->getDistinctPlaceIds();
+    /**
+     * Build all (currency × place × usergroup) combinations worth indexing.
+     *
+     * Only combinations that can produce different prices are included:
+     *   Currencies — distinct currency_id from items_prices + sentinel 0
+     *   Usergroups — distinct values from discount_usergroups,
+     *                tax_usergroups, items_prices + sentinel 0
+     *   Places     — distinct values from discount_places, tax_places,
+     *                and country_id from items_prices + sentinel 0
+     *
+     * Sentinel 0 = "any / default" in every dimension, always included.
+     *
+     * @return array Array of ['currency_id'=>N, 'place_id'=>N, 'usergroup_id'=>N]
+     */
+    private function getActiveContextCombinations(): array
+    {
+        $currencies = $this->getDistinctCurrencyIds();
+        $usergroups = $this->getDistinctUsergroupIds();
+        $places = $this->getDistinctPlaceIds();
 
-		$combinations = [];
-		foreach ($currencies as $cid) {
-			foreach ($places as $pid) {
-				foreach ($usergroups as $ugid) {
-					$combinations[] = [
-						'currency_id'  => $cid,
-						'place_id'     => $pid,
-						'usergroup_id' => $ugid,
-					];
-				}
-			}
-		}
+        $combinations = [];
+        foreach ($currencies as $cid) {
+            foreach ($places as $pid) {
+                foreach ($usergroups as $ugid) {
+                    $combinations[] = [
+                        'currency_id' => $cid,
+                        'place_id' => $pid,
+                        'usergroup_id' => $ugid,
+                    ];
+                }
+            }
+        }
 
-		return $combinations;
-	}
+        return $combinations;
+    }
 
-	/**
-	 * Distinct currency DB ids in items_prices, plus sentinel 0.
-	 *
-	 * @return int[]
-	 */
-	private function getDistinctCurrencyIds(): array
-	{
-		$query = $this->db->getQuery(true)
-			->select('DISTINCT ' . $this->db->quoteName('currency_id'))
-			->from($this->db->quoteName('#__alfa_items_prices'))
-			->where($this->db->quoteName('state') . ' = 1');
+    /**
+     * Distinct currency DB ids in items_prices, plus sentinel 0.
+     *
+     * @return int[]
+     */
+    private function getDistinctCurrencyIds(): array
+    {
+        $query = $this->db->getQuery(true)
+            ->select('DISTINCT ' . $this->db->quoteName('currency_id'))
+            ->from($this->db->quoteName('#__alfa_items_prices'))
+            ->where($this->db->quoteName('state') . ' = 1');
 
-		$this->db->setQuery($query);
-		return array_unique(array_merge([0], array_map('intval', $this->db->loadColumn())));
-	}
+        $this->db->setQuery($query);
+        return array_unique(array_merge([0], array_map('intval', $this->db->loadColumn())));
+    }
 
-	/**
-	 * Distinct usergroup ids from all pricing assignment tables, plus sentinel 0.
-	 *
-	 * @return int[]
-	 */
-	private function getDistinctUsergroupIds(): array
-	{
-		$db  = $this->db;
-		$sql = "SELECT DISTINCT usergroup_id FROM {$db->quoteName('#__alfa_discount_usergroups')}
+    /**
+     * Distinct usergroup ids from all pricing assignment tables, plus sentinel 0.
+     *
+     * @return int[]
+     */
+    private function getDistinctUsergroupIds(): array
+    {
+        $db = $this->db;
+        $sql = "SELECT DISTINCT usergroup_id FROM {$db->quoteName('#__alfa_discount_usergroups')}
                 UNION
                 SELECT DISTINCT usergroup_id FROM {$db->quoteName('#__alfa_tax_usergroups')}
                 UNION
                 SELECT DISTINCT usergroup_id
                 FROM {$db->quoteName('#__alfa_items_prices')}
-                WHERE " . $db->quoteName('state') . " = 1";
+                WHERE " . $db->quoteName('state') . ' = 1';
 
-		$db->setQuery($sql);
-		return array_unique(array_merge([0], array_map('intval', $db->loadColumn())));
-	}
+        $db->setQuery($sql);
+        return array_unique(array_merge([0], array_map('intval', $db->loadColumn())));
+    }
 
-	/**
-	 * Distinct place ids from all pricing assignment tables, plus sentinel 0.
-	 *
-	 * discount_places / tax_places use column 'place_id'.
-	 * items_prices uses 'country_id' (same semantic: a #__alfa_places id).
-	 *
-	 * @return int[]
-	 */
-	private function getDistinctPlaceIds(): array
-	{
-		$db  = $this->db;
-		$sql = "SELECT DISTINCT place_id FROM {$db->quoteName('#__alfa_discount_places')}
+    /**
+     * Distinct place ids from all pricing assignment tables, plus sentinel 0.
+     *
+     * discount_places / tax_places use column 'place_id'.
+     * items_prices uses 'country_id' (same semantic: a #__alfa_places id).
+     *
+     * @return int[]
+     */
+    private function getDistinctPlaceIds(): array
+    {
+        $db = $this->db;
+        $sql = "SELECT DISTINCT place_id FROM {$db->quoteName('#__alfa_discount_places')}
                 UNION
                 SELECT DISTINCT place_id FROM {$db->quoteName('#__alfa_tax_places')}
                 UNION
                 SELECT DISTINCT country_id AS place_id
                 FROM {$db->quoteName('#__alfa_items_prices')}
-                WHERE " . $db->quoteName('state') . " = 1 AND country_id > 0";
+                WHERE " . $db->quoteName('state') . ' = 1 AND country_id > 0';
 
-		$db->setQuery($sql);
-		return array_unique(array_merge([0], array_map('intval', $db->loadColumn())));
-	}
+        $db->setQuery($sql);
+        return array_unique(array_merge([0], array_map('intval', $db->loadColumn())));
+    }
 
-	// =========================================================================
-	// Item discovery
-	// =========================================================================
+    // =========================================================================
+    // Item discovery
+    // =========================================================================
 
-	/**
-	 * All published item ids.
-	 *
-	 * @return int[]
-	 */
-	private function getAllPublishedItemIds(): array
-	{
-		$query = $this->db->getQuery(true)
-			->select($this->db->quoteName('id'))
-			->from($this->db->quoteName('#__alfa_items'))
-			->where($this->db->quoteName('state') . ' = 1');
+    /**
+     * All published item ids.
+     *
+     * @return int[]
+     */
+    private function getAllPublishedItemIds(): array
+    {
+        $query = $this->db->getQuery(true)
+            ->select($this->db->quoteName('id'))
+            ->from($this->db->quoteName('#__alfa_items'))
+            ->where($this->db->quoteName('state') . ' = 1');
 
-		$this->db->setQuery($query);
-		return array_map('intval', $this->db->loadColumn());
-	}
+        $this->db->setQuery($query);
+        return array_map('intval', $this->db->loadColumn());
+    }
 
-	/**
-	 * Item ids belonging to any of the given category ids.
-	 *
-	 * @param  int[]  $categoryIds
-	 * @return int[]
-	 */
-	private function getItemIdsInCategories(array $categoryIds): array
-	{
-		if (empty($categoryIds)) {
-			return [];
-		}
+    /**
+     * Item ids belonging to any of the given category ids.
+     *
+     * @param int[] $categoryIds
+     * @return int[]
+     */
+    private function getItemIdsInCategories(array $categoryIds): array
+    {
+        if (empty($categoryIds)) {
+            return [];
+        }
 
-		$query = $this->db->getQuery(true)
-			->select('DISTINCT ' . $this->db->quoteName('item_id'))
-			->from($this->db->quoteName('#__alfa_items_categories'))
-			->whereIn($this->db->quoteName('category_id'), $categoryIds);
+        $query = $this->db->getQuery(true)
+            ->select('DISTINCT ' . $this->db->quoteName('item_id'))
+            ->from($this->db->quoteName('#__alfa_items_categories'))
+            ->whereIn($this->db->quoteName('category_id'), $categoryIds);
 
-		$this->db->setQuery($query);
-		return array_map('intval', $this->db->loadColumn());
-	}
+        $this->db->setQuery($query);
+        return array_map('intval', $this->db->loadColumn());
+    }
 
-	// =========================================================================
-	// Discount scope helpers
-	// =========================================================================
+    // =========================================================================
+    // Discount scope helpers
+    // =========================================================================
 
-	/**
-	 * True if the discount has category_id = 0 (applies to all items).
-	 *
-	 * @param  int  $discountId
-	 * @return bool
-	 */
-	private function discountAppliesGlobally(int $discountId): bool
-	{
-		$query = $this->db->getQuery(true)
-			->select('COUNT(*)')
-			->from($this->db->quoteName('#__alfa_discount_categories'))
-			->where($this->db->quoteName('discount_id') . ' = ' . (int) $discountId)
-			->where($this->db->quoteName('category_id') . ' = 0');
+    /**
+     * True if the discount has category_id = 0 (applies to all items).
+     */
+    private function discountAppliesGlobally(int $discountId): bool
+    {
+        $query = $this->db->getQuery(true)
+            ->select('COUNT(*)')
+            ->from($this->db->quoteName('#__alfa_discount_categories'))
+            ->where($this->db->quoteName('discount_id') . ' = ' . (int) $discountId)
+            ->where($this->db->quoteName('category_id') . ' = 0');
 
-		return (int) $this->db->setQuery($query)->loadResult() > 0;
-	}
+        return (int) $this->db->setQuery($query)->loadResult() > 0;
+    }
 
-	/**
-	 * Category ids assigned to a discount (excluding sentinel 0).
-	 *
-	 * @param  int  $discountId
-	 * @return int[]
-	 */
-	private function getDiscountCategoryIds(int $discountId): array
-	{
-		$query = $this->db->getQuery(true)
-			->select($this->db->quoteName('category_id'))
-			->from($this->db->quoteName('#__alfa_discount_categories'))
-			->where($this->db->quoteName('discount_id') . ' = ' . (int) $discountId)
-			->where($this->db->quoteName('category_id') . ' > 0');
+    /**
+     * Category ids assigned to a discount (excluding sentinel 0).
+     *
+     * @return int[]
+     */
+    private function getDiscountCategoryIds(int $discountId): array
+    {
+        $query = $this->db->getQuery(true)
+            ->select($this->db->quoteName('category_id'))
+            ->from($this->db->quoteName('#__alfa_discount_categories'))
+            ->where($this->db->quoteName('discount_id') . ' = ' . (int) $discountId)
+            ->where($this->db->quoteName('category_id') . ' > 0');
 
-		return array_map('intval', $this->db->setQuery($query)->loadColumn());
-	}
+        return array_map('intval', $this->db->setQuery($query)->loadColumn());
+    }
 
-	// =========================================================================
-	// Tax scope helpers
-	// =========================================================================
+    // =========================================================================
+    // Tax scope helpers
+    // =========================================================================
 
-	/**
-	 * True if the tax has category_id = 0 (applies to all items).
-	 *
-	 * @param  int  $taxId
-	 * @return bool
-	 */
-	private function taxAppliesGlobally(int $taxId): bool
-	{
-		$query = $this->db->getQuery(true)
-			->select('COUNT(*)')
-			->from($this->db->quoteName('#__alfa_tax_categories'))
-			->where($this->db->quoteName('tax_id') . ' = ' . (int) $taxId)
-			->where($this->db->quoteName('category_id') . ' = 0');
+    /**
+     * True if the tax has category_id = 0 (applies to all items).
+     */
+    private function taxAppliesGlobally(int $taxId): bool
+    {
+        $query = $this->db->getQuery(true)
+            ->select('COUNT(*)')
+            ->from($this->db->quoteName('#__alfa_tax_categories'))
+            ->where($this->db->quoteName('tax_id') . ' = ' . (int) $taxId)
+            ->where($this->db->quoteName('category_id') . ' = 0');
 
-		return (int) $this->db->setQuery($query)->loadResult() > 0;
-	}
+        return (int) $this->db->setQuery($query)->loadResult() > 0;
+    }
 
-	/**
-	 * Category ids assigned to a tax (excluding sentinel 0).
-	 *
-	 * @param  int  $taxId
-	 * @return int[]
-	 */
-	private function getTaxCategoryIds(int $taxId): array
-	{
-		$query = $this->db->getQuery(true)
-			->select($this->db->quoteName('category_id'))
-			->from($this->db->quoteName('#__alfa_tax_categories'))
-			->where($this->db->quoteName('tax_id') . ' = ' . (int) $taxId)
-			->where($this->db->quoteName('category_id') . ' > 0');
+    /**
+     * Category ids assigned to a tax (excluding sentinel 0).
+     *
+     * @return int[]
+     */
+    private function getTaxCategoryIds(int $taxId): array
+    {
+        $query = $this->db->getQuery(true)
+            ->select($this->db->quoteName('category_id'))
+            ->from($this->db->quoteName('#__alfa_tax_categories'))
+            ->where($this->db->quoteName('tax_id') . ' = ' . (int) $taxId)
+            ->where($this->db->quoteName('category_id') . ' > 0');
 
-		return array_map('intval', $this->db->setQuery($query)->loadColumn());
-	}
+        return array_map('intval', $this->db->setQuery($query)->loadColumn());
+    }
 
-	// =========================================================================
-	// Logging
-	// =========================================================================
+    // =========================================================================
+    // Logging
+    // =========================================================================
 
-	/**
-	 * Log a non-fatal warning to the Joomla 'com_alfa' log channel.
-	 *
-	 * @param  string  $message
-	 */
-	private function logWarning(string $message): void
-	{
-		Log::add('[PriceIndexSyncService] ' . $message, Log::WARNING, 'com_alfa');
-	}
+    /**
+     * Log a non-fatal warning to the Joomla 'com_alfa' log channel.
+     */
+    private function logWarning(string $message): void
+    {
+        Log::add('[PriceIndexSyncService] ' . $message, Log::WARNING, 'com_alfa');
+    }
 }

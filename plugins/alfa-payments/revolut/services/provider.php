@@ -12,16 +12,15 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
-use Joomla\Event\DispatcherInterface;
 use Joomla\Plugin\AlfaPayments\Revolut\Extension\Revolut;
 
 return new class () implements ServiceProviderInterface {
     /**
      * Registers the service provider with a DI container.
      *
-     * @param   Container  $container  The DI container.
+     * @param Container $container The DI container.
      *
-     * @return  void
+     * @return void
      *
      * @since   4.3.0
      */
@@ -30,13 +29,13 @@ return new class () implements ServiceProviderInterface {
         $container->set(
             PluginInterface::class,
             function (Container $container) {
-                $plugin     = new Revolut(
-                    (array) PluginHelper::getPlugin('alfa-payments', 'revolut')
+                $plugin = new Revolut(
+                    (array) PluginHelper::getPlugin('alfa-payments', 'revolut'),
                 );
                 $plugin->setApplication(Factory::getApplication());
 
                 return $plugin;
-            }
+            },
         );
     }
 };

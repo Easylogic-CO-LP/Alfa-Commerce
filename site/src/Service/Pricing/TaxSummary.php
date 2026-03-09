@@ -1,5 +1,7 @@
 <?php
+
 namespace Alfa\Component\Alfa\Site\Service\Pricing;
+
 /**
  * Tax Summary
  *
@@ -7,52 +9,52 @@ namespace Alfa\Component\Alfa\Site\Service\Pricing;
  */
 class TaxSummary
 {
-	private Money $total;
-	private float $effectiveRate;
-	private array $applied; // Array of AppliedTax
+    private Money $total;
+    private float $effectiveRate;
+    private array $applied; // Array of AppliedTax
 
-	public function __construct(Money $total, float $effectiveRate, array $applied = [])
-	{
-		$this->total = $total;
-		$this->effectiveRate = $effectiveRate;
-		$this->applied = $applied;
-	}
+    public function __construct(Money $total, float $effectiveRate, array $applied = [])
+    {
+        $this->total = $total;
+        $this->effectiveRate = $effectiveRate;
+        $this->applied = $applied;
+    }
 
-	public function getTotal(): Money
-	{
-		return $this->total;
-	}
+    public function getTotal(): Money
+    {
+        return $this->total;
+    }
 
-	public function getEffectiveRate(): float
-	{
-		return $this->effectiveRate;
-	}
+    public function getEffectiveRate(): float
+    {
+        return $this->effectiveRate;
+    }
 
-	public function getApplied(): array
-	{
-		return $this->applied;
-	}
+    public function getApplied(): array
+    {
+        return $this->applied;
+    }
 
-	public function hasTaxes(): bool
-	{
-		return $this->total->isPositive();
-	}
+    public function hasTaxes(): bool
+    {
+        return $this->total->isPositive();
+    }
 
-	public function getCount(): int
-	{
-		return count($this->applied);
-	}
+    public function getCount(): int
+    {
+        return count($this->applied);
+    }
 
-	public function toArray(): array
-	{
-		return [
-			'total' => [
-				'amount' => $this->total->getAmount(),
-				'formatted' => $this->total->format(),
-			],
-			'effective_rate' => $this->effectiveRate,
-			'count' => $this->getCount(),
-			'applied' => array_map(fn($t) => $t->toArray(), $this->applied),
-		];
-	}
+    public function toArray(): array
+    {
+        return [
+            'total' => [
+                'amount' => $this->total->getAmount(),
+                'formatted' => $this->total->format(),
+            ],
+            'effective_rate' => $this->effectiveRate,
+            'count' => $this->getCount(),
+            'applied' => array_map(fn ($t) => $t->toArray(), $this->applied),
+        ];
+    }
 }

@@ -11,6 +11,6 @@ class OrderAfterPlaceEvent extends PaymentsEvent
 
     public function setOrder($order)
     {
-        $this->setArgument("subject", $order);
+        $this->setArgument('subject', $order);
     }
 }

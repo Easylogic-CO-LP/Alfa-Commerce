@@ -1,12 +1,12 @@
 <?php
 // display data is what we passed to the filelayout on render
-$boxNowPostalCode = $displayData['selected_postal_code']??'';
-$boxNowAddress = $displayData['selected_address']??'';
-$boxNowLockerId = $displayData['selected_locker_id']??'';
+$boxNowPostalCode = $displayData['selected_postal_code'] ?? '';
+$boxNowAddress = $displayData['selected_address'] ?? '';
+$boxNowLockerId = $displayData['selected_locker_id'] ?? '';
 $buttonBackgroundColor = $displayData['button_background_color'] ?? '#000000';
-$buttonTextColor = $displayData['button_text_color']?? '#ffffff';
+$buttonTextColor = $displayData['button_text_color'] ?? '#ffffff';
 
-$inlineButtonStyle =  "
+$inlineButtonStyle = "
                     background-color:{$buttonBackgroundColor};
                     color:{$buttonTextColor};
                 ";

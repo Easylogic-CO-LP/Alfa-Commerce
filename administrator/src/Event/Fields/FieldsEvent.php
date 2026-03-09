@@ -9,7 +9,9 @@
 
 namespace Alfa\Component\Alfa\Administrator\Event\Fields;
 
+use BadMethodCallException;
 use Joomla\CMS\Event\AbstractImmutableEvent;
+
 // use Joomla\CMS\Event\ReshapeArgumentsAware;
 
 // phpcs:disable PSR1.Files.SideEffects
@@ -38,10 +40,10 @@ abstract class FieldsEvent extends AbstractImmutableEvent
     /**
      * Constructor.
      *
-     * @param   string  $name       The event name.
-     * @param   array   $arguments  The event arguments.
+     * @param string $name The event name.
+     * @param array $arguments The event arguments.
      *
-     * @throws  \BadMethodCallException
+     * @throws BadMethodCallException
      *
      * @since   5.0.0
      */
@@ -55,16 +57,15 @@ abstract class FieldsEvent extends AbstractImmutableEvent
         parent::__construct($name, $arguments);
 
         if (!\array_key_exists('subject', $this->arguments)) {
-            throw new \BadMethodCallException("Argument 'subject' of event {$name} is required but has not been provided");
+            throw new BadMethodCallException("Argument 'subject' of event {$name} is required but has not been provided");
         }
     }
 
     /**
      * Setter for the subject argument.
      *
-     * @param   object  $value  The value to set
+     * @param object $value The value to set
      *
-     * @return  object
      *
      * @since  5.0.0
      */
