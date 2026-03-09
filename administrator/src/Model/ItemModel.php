@@ -17,6 +17,7 @@ use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\OutputFilter;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\MVC\Model\AdminModel;
 use Joomla\CMS\Table\Table;
@@ -86,7 +87,7 @@ class ItemModel extends AdminModel
         $app = Factory::getApplication();
 
         if (sizeof($value) == 1 && $value[0] == '') {
-            $app->enqueueMessage('Users not changed', 'info');
+            $app->enqueueMessage(Text::_('COM_ALFA_USERS_NOT_CHANGED'), 'info');
 
             return true;
         }
@@ -96,7 +97,7 @@ class ItemModel extends AdminModel
             AlfaHelper::setAllowedUsers($id, $value, '#__alfa_items_users', 'item_id', 'user_id');
         }
 
-        $app->enqueueMessage('Users setted successfully', 'info');
+        $app->enqueueMessage(Text::_('COM_ALFA_USERS_SET_SUCCESSFULLY'), 'info');
 
         return true;
     }
@@ -106,7 +107,7 @@ class ItemModel extends AdminModel
         $app = Factory::getApplication();
 
         if (sizeof($value) == 1 && $value[0] == '') {
-            $app->enqueueMessage('Usergroup not changed', 'info');
+            $app->enqueueMessage(Text::_('COM_ALFA_USERGROUP_NOT_CHANGED'), 'info');
 
             return true;
         }
@@ -115,7 +116,7 @@ class ItemModel extends AdminModel
             AlfaHelper::setAllowedUserGroups($id, $value, '#__alfa_items_usergroups', 'item_id', 'usergroup_id');
         }
 
-        $app->enqueueMessage('Usergroup setted successfully', 'info');
+        $app->enqueueMessage(Text::_('COM_ALFA_USERGROUP_SET_SUCCESSFULLY'), 'info');
 
         return true;
     }
@@ -125,7 +126,7 @@ class ItemModel extends AdminModel
         $app = Factory::getApplication();
 
         if (sizeof($value) == 1 && $value[0] == '') {
-            $app->enqueueMessage('Manufacturers not changed', 'info');
+            $app->enqueueMessage(Text::_('COM_ALFA_MANUFACTURERS_NOT_CHANGED'), 'info');
 
             return true;
         }
@@ -134,7 +135,7 @@ class ItemModel extends AdminModel
             AlfaHelper::setAssocsToDb($id, $value, '#__alfa_items_manufacturers', 'item_id', 'manufacturer_id');
         }
 
-        $app->enqueueMessage('Manufacturers setted successfully', 'info');
+        $app->enqueueMessage(Text::_('COM_ALFA_MANUFACTURERS_SET_SUCCESSFULLY'), 'info');
 
         return true;
     }
@@ -144,7 +145,7 @@ class ItemModel extends AdminModel
         $app = Factory::getApplication();
 
         if (sizeof($value) == 1 && $value[0] == '') {
-            $app->enqueueMessage('Categories not changed', 'info');
+            $app->enqueueMessage(Text::_('COM_ALFA_CATEGORIES_NOT_CHANGED'), 'info');
 
             return true;
         }
@@ -153,7 +154,7 @@ class ItemModel extends AdminModel
             AlfaHelper::setAssocsToDb($id, $value, '#__alfa_items_categories', 'item_id', 'category_id');
         }
 
-        $app->enqueueMessage('Categories setted successfully', 'info');
+        $app->enqueueMessage(Text::_('COM_ALFA_CATEGORIES_SET_SUCCESSFULLY'), 'info');
 
         return true;
     }

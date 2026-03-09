@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
     <fieldset name="user_details">
-        <field name="user_email" label="Email" type="text" readonly="true" class="readonly" default=""/>
-        <field name="user_name" label="Name" type="text" readonly="true" class="readonly" default=""/>
+        <field name="user_email" label="COM_ALFA_FORM_LBL_EMAIL" type="text" readonly="true" class="readonly" default=""/>
+        <field name="user_name" label="COM_ALFA_FORM_LBL_NAME" type="text" readonly="true" class="readonly" default=""/>
         <field name="id_user_group" type="hidden" default="1"/>
     </fieldset>
 
@@ -21,7 +21,7 @@
                 query="SELECT `id`, `name` AS val FROM `#__alfa_orders_statuses`" key_field="id" value_field="val"
         />
 
-        <field name="id_currency" label="Currency Id" readonly="true" />
+        <field name="id_currency" label="COM_ALFA_FORM_LBL_CURRENCY_ID" readonly="true" />
 
         <field
                 name="created"

@@ -17,6 +17,7 @@ use JForm;
 use Joomla\CMS\Event\Model;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\OutputFilter;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Model\AdminModel;
 use Joomla\CMS\Table\Table;
 
@@ -148,7 +149,7 @@ class CurrencyModel extends AdminModel
         }
 
         if (!str_contains($data['format_pattern'], '{number}')) {
-            $app->enqueueMessage('Format pattern is required to contain \'{number}\'.', 'error');
+            $app->enqueueMessage(Text::_('COM_ALFA_ERROR_FORMAT_PATTERN'), 'error');
             return false;
         }
 

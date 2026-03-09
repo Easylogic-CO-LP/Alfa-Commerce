@@ -8,7 +8,7 @@
     <authorEmail>info@easylogic.gr</authorEmail>
     <authorUrl>http://easylogic.gr</authorUrl>
     <version>1.0.1</version>
-    <description>PLG_PRIVACY_COM_ALFA_XML_DESCRIPTION</description>
+    <description>PLG_WEBSERVICES_ALFA_XML_DESCRIPTION</description>
     <namespace path="src">Alfa\Plugin\WebServices\Alfa</namespace>
     <files>
         <folder plugin="alfa">services</folder>

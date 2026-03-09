@@ -32,7 +32,7 @@ $wa->useStyle('com_alfa.general')
 
 <div id="cart-outer" data-cart-outer>
 
-    <h2 class="text-center">Your Cart</h2>
+    <h2 class="text-center"><?php echo Text::_('COM_ALFA_CART_HEADING'); ?></h2>
 
     <section class="container mt-5">
 		<?php echo $this->loadTemplate('cart_items'); ?>

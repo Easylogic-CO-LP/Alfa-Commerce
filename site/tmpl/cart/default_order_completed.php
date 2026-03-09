@@ -1,6 +1,6 @@
 <div>
 
-    Ευχαριστουμε για την αγορα σου<br>
+    <?php echo \Joomla\CMS\Language\Text::_('COM_ALFA_ORDER_COMPLETED_MESSAGE'); ?><br>
 
 	<?php
 
@@ -19,6 +19,6 @@
 
 	?>
 
-    <a href="<?php echo \Joomla\CMS\Uri\Uri::root(); ?>">Πίσω στην αρχική</a>
+    <a href="<?php echo \Joomla\CMS\Uri\Uri::root(); ?>"><?php echo \Joomla\CMS\Language\Text::_('COM_ALFA_CART_EMPTY_CONTINUE'); ?></a>
 
 </div>

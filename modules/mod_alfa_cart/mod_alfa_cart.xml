@@ -34,10 +34,10 @@
                  <field name="animation" type="radio" class="btn-group" default="zoomIn"
                        label="MOD_ALFA_CART_OPEN_ANIMATION"
                        description="MOD_ALFA_CART_OPEN_ANIMATION_DESC">
-                    <option value="zoomIn">Zoom In</option>
-                    <option value="fromTop">From Top</option>
-                    <option value="fromLeft">From Left</option>
-                    <option value="fromRight">From Right</option>
+                    <option value="zoomIn">MOD_ALFA_CART_OPTION_ZOOM_IN</option>
+                    <option value="fromTop">MOD_ALFA_CART_OPTION_FROM_TOP</option>
+                    <option value="fromLeft">MOD_ALFA_CART_OPTION_FROM_LEFT</option>
+                    <option value="fromRight">MOD_ALFA_CART_OPTION_FROM_RIGHT</option>
                 </field>
 
                 <field
@@ -48,9 +48,9 @@
                 <field name="imageType" type="radio" class="btn-group" default="3"
                        label="MOD_ALFA_CART_IMAGE_TYPE_LBL"
                        description="MOD_ALFA_CART_IMAGE_TYPE_DESC">
-                    <option value="0">Image</option>
-                    <option value="1">Inline SVG</option>
-                    <option value="3">Default</option>
+                    <option value="0">MOD_ALFA_CART_OPTION_IMAGE</option>
+                    <option value="1">MOD_ALFA_CART_OPTION_INLINE_SVG</option>
+                    <option value="3">MOD_ALFA_CART_OPTION_DEFAULT</option>
                 </field>
 
                 <field
@@ -77,8 +77,8 @@
                 <field name="togglerCounterValue" type="radio" class="btn-group" default="0"
                        label="MOD_ALFA_CART_TOGGLER_VALUE_LBL"
                        description="MOD_ALFA_CART_TOGGLER_VALUE_DESC">
-                    <option value="0">Total Quantity</option>
-                    <option value="1">Total Items</option>
+                    <option value="0">MOD_ALFA_CART_OPTION_TOTAL_QUANTITY</option>
+                    <option value="1">MOD_ALFA_CART_OPTION_TOTAL_ITEMS</option>
                 </field>
 
                 <field name="togglerColor"

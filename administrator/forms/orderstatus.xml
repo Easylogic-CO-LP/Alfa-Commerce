@@ -19,7 +19,7 @@
                 format="rgba"
                 label="COM_ALFA_BACKGROUND_COLOR_LABEL" />
 
-        <field name="stock_operation" default="0" type="radio" label="Stock Operation" description="" class="btn-group">
+        <field name="stock_operation" default="0" type="radio" label="COM_ALFA_FORM_LBL_STOCK_OPERATION" description="" class="btn-group">
             <option value="0">Remove from stock</option>
             <option value="1">Keep in stock</option>
         </field>
