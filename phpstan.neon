@@ -13,10 +13,14 @@ parameters:
         - */layouts/*
         - */language/*
 
+    scanDirectories:
+        - vendor/joomla/joomla-cms-stubs
+
     ignoreErrors:
         # Joomla dynamic properties and magic methods
         - '#Access to an undefined property#'
-        - '#Call to an undefined method Joomla\\CMS#'
+        - '#Call to an undefined method.*\\\\HtmlView::#'
+        - '#Call to an undefined method.*\\\\BaseController::#'
 
     treatPhpDocTypesAsCertain: false
     reportUnmatchedIgnoredErrors: false

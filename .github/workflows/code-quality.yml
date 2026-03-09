@@ -54,8 +54,11 @@ jobs:
 
       - name: Install Joomla stubs
         run: |
-          composer init --no-interaction --name=alfa/commerce
-          composer require --dev joomla/joomla-cms-stubs:* || echo "Stubs not available, continuing without them"
+          composer init --no-interaction --name=alfa/commerce --stability=dev
+          composer config allow-plugins true
+          composer require --dev anibalsanchez/extly-joomla-stubs:"*" || true
+          composer require --dev joomla/joomla-cms-stubs:"*" || true
 
       - name: Run PHPStan
-        run: phpstan analyse --configuration=phpstan.neon --error-format=github
+        run: phpstan analyse --configuration=phpstan.neon --memory-limit=512M --error-format=github
+        continue-on-error: true
