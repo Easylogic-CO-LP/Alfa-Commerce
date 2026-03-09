@@ -17,9 +17,7 @@ if (!isset($cart)) {
 
 $priceSettings = ($priceSettings ?? null);
 
-$priceSettings = ($priceSettings ?? null);
-
-$data  = $cart->getData();
+$data = $cart->getData();
 $items = $data->items ?? [];
 $itemsCount = count($items);
 

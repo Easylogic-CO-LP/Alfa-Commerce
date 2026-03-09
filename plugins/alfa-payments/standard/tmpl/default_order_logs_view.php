@@ -43,7 +43,7 @@ $createHeadingLabel = function ($label, $type) {
     $field->label = Text::_($label);
     $field->type = $type;
 
-	return $field;
+    return $field;
 };
 
 $fieldLabels = [];

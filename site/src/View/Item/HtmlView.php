@@ -39,9 +39,7 @@ class HtmlView extends BaseHtmlView
 
     protected $params;
 
-	protected $payment_methods;
-
-	protected $category_id;
+    protected $payment_methods;
 
     protected $category_id;
 

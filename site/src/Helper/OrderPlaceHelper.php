@@ -1,41 +1,4 @@
 <?php
-/**
- * @package     Alfa.Component
- * @subpackage  Site.Helper
- * @version     3.0.0 - PRODUCTION READY
- * @author      Agamemnon Fakas <info@easylogic.gr>
- * @copyright   2026 Easylogic CO LP
- * @license     GNU General Public License version 2 or later
- *
- * COMPLETE V3 ORDER PLACEMENT HELPER - PRODUCTION GRADE
- * ========================================================
- *
- * Features:
- * - Saves to ALL 7 V3 tables in single atomic transaction
- * - Professional try/catch error handling everywhere
- * - Comprehensive logging for debugging
- * - V3 field names (date_add, product_id, payment_method_name, etc.)
- * - Backward compatible with V2 fields
- * - Self-contained architecture (no backend dependencies)
- *
- * Tables Created:
- * 1. #__alfa_orders               (main order with V3 fields)
- * 2. #__alfa_order_items          (line items with V3 fields)
- * 3. #__alfa_order_payments       (payment records)
- * 4. #__alfa_order_shipments      (shipment records)
- * 5. #__alfa_order_activity_log   (unified event log)
- * 6. #__alfa_order_detail_tax     (per-item tax breakdown)
- * 7. #__alfa_order_cart_rule      (applied discounts/coupons)
- * 8. #__alfa_user_info            (customer address)
- *
- * Usage:
- *   $helper = new OrderPlaceHelper();
- *   $success = $helper->placeOrder($userFormData);
- *   if ($success) {
- *       $order = $helper->getOrder();
- *       // Redirect to success page
- *   }
- */
 
 /**
  * @package     Alfa.Component

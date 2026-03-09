@@ -112,10 +112,7 @@ class Router extends RouterView
         $empties = new RouterViewConfiguration('empties');
         $this->registerView($empties);
 
-		// If noIDs setting is enabled, return only the alias
-		if ($this->noIDs)
-		{
-			list($void, $segment) = explode(':', $id, 2);
+        parent::__construct($app, $menu);
 
         // Attach routing rules
         $this->attachRule(new MenuRules($this));

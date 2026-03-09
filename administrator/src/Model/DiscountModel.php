@@ -363,13 +363,13 @@ class DiscountModel extends AdminModel
         $table->modified = Factory::getDate()->toSql();
         $table->modified_by = $this->getCurrentUser()->id;
 
-		if (empty($table->publish_up)) {
-			$table->publish_up = null;
-		}
+        if (empty($table->publish_up)) {
+            $table->publish_up = null;
+        }
 
-		if (empty($table->publish_down)) {
-			$table->publish_down = null;
-		}
+        if (empty($table->publish_down)) {
+            $table->publish_down = null;
+        }
 
         return parent::prepareTable($table);
     }

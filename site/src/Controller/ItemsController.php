@@ -26,11 +26,11 @@ class ItemsController extends FormController
         $viewType = $this->input->get('format', 'html');
         $view = $this->input->get('view', 'items');
 
-		$this->input->set('format', $viewType); // Force JSON format
-		parent::display($cachable, $urlparams);
+        $this->input->set('format', $viewType); // Force JSON format
+        parent::display($cachable, $urlparams);
 
-		return $this;
-	}
+        return $this;
+    }
 
     /**
      * Proxy for getModel.

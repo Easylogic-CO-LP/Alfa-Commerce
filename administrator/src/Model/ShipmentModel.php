@@ -128,14 +128,14 @@ class ShipmentModel extends AdminModel
         return $item;
     }
 
-	public function save($data)
-	{
-		$app = Factory::getApplication();
-		$db  = $this->getDatabase();
+    public function save($data)
+    {
+        $app = Factory::getApplication();
+        $db = $this->getDatabase();
 
-		$input = $app->getInput();
+        $input = $app->getInput();
 
-		$data['params'] = json_encode($data['shipmentsparams']);
+        $data['params'] = json_encode($data['shipmentsparams']);
 
         if (!parent::save($data)) {
             return false;

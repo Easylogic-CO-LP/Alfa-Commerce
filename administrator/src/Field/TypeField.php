@@ -49,10 +49,10 @@ class TypeField extends ListField
     {
         $return = parent::setup($element, $value, $group);
 
-		$this->onchange = 'Joomla.typeHasChanged(this);';
+        $this->onchange = 'Joomla.typeHasChanged(this);';
 
-		return $return;
-	}
+        return $return;
+    }
 
     /**
      * Method to get the field options.
@@ -92,19 +92,6 @@ class TypeField extends ListField
             ->useScript('com_alfa.admin-field-typehaschanged')
             ->useScript('webcomponent.core-loader');
 
-		// Sorting the fields based on the text which is displayed
-		usort(
-			$options,
-			function ($a, $b) {
-				return strcmp($a->text, $b->text);
-			}
-		);
-
-		// Load scripts
-		Factory::getApplication()->getDocument()->getWebAssetManager()
-			->useScript('com_alfa.admin-field-typehaschanged')
-			->useScript('webcomponent.core-loader');
-
-		return $options;
-	}
+        return $options;
+    }
 }

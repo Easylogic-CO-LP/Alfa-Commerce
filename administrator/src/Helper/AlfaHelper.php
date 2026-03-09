@@ -123,158 +123,62 @@ class AlfaHelper
         return $tree;
     }
 
-	// ========================================================================
-// DATA DIFFING
-// ========================================================================
+    public static function sort_items($object1, $object2, $property, $order = 'asc')
+    {
+        if (is_numeric($object1->$property) && is_numeric($object2->$property)) {
+            $result = ($object1->$property == $object2->$property) ? 0 : (($object1->$property > $object2->$property) ? 1 : -1);
+        } else {
+            $result = strcasecmp($object1->$property, $object2->$property);
+        }
+        return (strtolower($order) == 'asc') ? $result : -$result;
+    }
 
-	/**
-	 * Build a diff between two data snapshots (old vs new).
-	 *
-	 * Accepts any combination of objects and arrays for both $old and $new.
-	 * Compares only the specified $trackFields. Normalises numeric values
-	 * so database decimals ("0.000000") and form values ("0") don't
-	 * produce false-positive changes.
-	 *
-	 * This is the SINGLE source of truth for change detection across the
-	 * entire component. Used by:
-	 *   - OrderModel::saveOrderItem() / logOrderChanges()
-	 *   - OrderPaymentHelper::update()
-	 *   - OrderShipmentHelper::update()
-	 *   - Any future helper that needs before/after comparison
-	 *
-	 * Usage examples:
-	 *   // Object vs array (most common — DB row vs form data)
-	 *   $changes = AlfaHelper::buildDiff($dbRow, $formData, ['amount', 'status']);
-	 *
-	 *   // Array vs array
-	 *   $changes = AlfaHelper::buildDiff($oldArray, $newArray, ['name', 'qty']);
-	 *
-	 *   // Object vs object
-	 *   $changes = AlfaHelper::buildDiff($oldObj, $newObj, ['price']);
-	 *
-	 *   // Return as object instead of array
-	 *   $changes = AlfaHelper::buildDiff($old, $new, $fields, 'object');
-	 *
-	 * @param   object|array  $old          Old snapshot (DB row, previous state)
-	 * @param   object|array  $new          New snapshot (form data, updated state)
-	 * @param   array         $trackFields  Field names to compare
-	 * @param   string        $returnType   'array' (default) or 'object'
-	 *
-	 * @return  array|object  Changes: ['field' => ['from' => old, 'to' => new], ...]
-	 *                        Empty array/object when nothing changed.
-	 *
-	 * @since   3.5.0
-	 */
-	public static function buildDiff(
-		object|array $old,
-		object|array $new,
-		array $trackFields,
-		string $returnType = 'array'
-	): array|object {
-		// Normalise inputs — work with arrays internally
-		$oldData = is_object($old) ? get_object_vars($old) : $old;
-		$newData = is_object($new) ? get_object_vars($new) : $new;
+    public static function sort_nested_items(&$items, $property = 'name', $order = 'asc', $childrenField = 'children')
+    {
+        // Sort the current level of items
+        usort($items, function ($option1, $option2) use ($property, $order) {
+            return self::sort_items($option1, $option2, $property, $order);
+        });
 
-		$changes = [];
-
-		foreach ($trackFields as $field) {
-			$oldVal = $oldData[$field] ?? '';
-			$newVal = $newData[$field] ?? '';
-
-			// Numeric comparison — avoids "0.000000" vs "0" false diffs
-			if (is_numeric($oldVal) && is_numeric($newVal)) {
-				if ((float) $oldVal === (float) $newVal) {
-					continue;
-				}
-			} elseif ((string) $oldVal === (string) $newVal) {
-				// Non-numeric → string comparison
-				continue;
-			}
-
-			$changes[$field] = ['from' => $oldVal, 'to' => $newVal];
-		}
-
-		return ($returnType === 'object') ? (object) $changes : $changes;
-	}
-
-	/**
-	 * Build a nested array of anything with depth level ( should contain id and parent_id to work ).
-	 *
-	 * @param array $items E.g. The list of categories.
-	 * @param int $parentId The parent ID to start building from. ( Begins with zero, so we don't set it )
-	 * @param int $depth The current depth level ( Auto setted while recursing )
-	 * @return array The nested array of items with depth level ( e.g. the fixed categories with children and depth attached)
-	 */
-	public static function buildNestedArray($items, $childrenField = 'children', $parentId = 0, $depth = 0)
-	{
-		$tree = array();
-		foreach ($items as $item) {
-			if ($item->parent_id == $parentId) {
-				$id = $item->id;
-				$item->depth = $depth; // Assign the current depth level
-				$item->{$childrenField} = self::buildNestedArray($items, $id, $depth + 1);
-				$tree[$id] = $item;
-			}
-		}
-		return $tree;
-	}
-
-	public static function sort_items($object1, $object2, $property, $order = 'asc')
-	{
-		if (is_numeric($object1->$property) && is_numeric($object2->$property)) {
-			$result = ($object1->$property == $object2->$property) ? 0 : (($object1->$property > $object2->$property) ? 1 : -1);
-		} else {
-			$result = strcasecmp($object1->$property, $object2->$property);
-		}
-		return (strtolower($order) == 'asc') ? $result : -$result;
-	}
-
-	public static function sort_nested_items(&$items, $property = 'name', $order = 'asc', $childrenField = 'children')
-	{
-		// Sort the current level of items
-		usort($items, function ($option1, $option2) use ($property, $order) {
-			return self::sort_items($option1, $option2, $property, $order);
-		});
-
-		// Recursively sort the children
-		foreach ($items as &$item) {
-			if (isset($item->{$childrenField}) && is_array($item->{$childrenField})) {
-				self::sort_nested_items($item->{$childrenField}, $property, $order);
-			}
-		}
-	}
+        // Recursively sort the children
+        foreach ($items as &$item) {
+            if (isset($item->{$childrenField}) && is_array($item->{$childrenField})) {
+                self::sort_nested_items($item->{$childrenField}, $property, $order);
+            }
+        }
+    }
 
     public static function flatten_nested_items($items, $pathField = 'name', $pathSeparator = '/', $childrenField = 'children', $parentPath = '')
     {
         $flatArray = [];
 
-		foreach ($items as $item) {
-			// Clone the item to avoid modifying the original structure
-			$flattenedItem = clone $item;
+        foreach ($items as $item) {
+            // Clone the item to avoid modifying the original structure
+            $flattenedItem = clone $item;
 
-			// If pathField is provided, build the path
-			if ($pathField) {
-				// If parentPath is empty, avoid adding a leading separator
-				$currentPath = $parentPath ? $parentPath . $pathSeparator . $item->{$pathField} : $item->{$pathField};
+            // If pathField is provided, build the path
+            if ($pathField) {
+                // If parentPath is empty, avoid adding a leading separator
+                $currentPath = $parentPath ? $parentPath . $pathSeparator . $item->{$pathField} : $item->{$pathField};
 
-				// Add the current path to the flattened item
-				$flattenedItem->path = $currentPath;
-			}
+                // Add the current path to the flattened item
+                $flattenedItem->path = $currentPath;
+            }
 
-			// Remove the children property to avoid recursion issues
-			unset($flattenedItem->{$childrenField});
+            // Remove the children property to avoid recursion issues
+            unset($flattenedItem->{$childrenField});
 
-			// Add the item without children to the flat array
-			$flatArray[] = $flattenedItem;
+            // Add the item without children to the flat array
+            $flatArray[] = $flattenedItem;
 
-			// If the item has children, recursively flatten them, passing the current path as the parent path
-			if (isset($item->{$childrenField}) && is_array($item->{$childrenField})) {
-				$flatArray = array_merge($flatArray, self::flatten_nested_items($item->{$childrenField}, $pathField, $pathSeparator, $childrenField, $currentPath));
-			}
-		}
+            // If the item has children, recursively flatten them, passing the current path as the parent path
+            if (isset($item->{$childrenField}) && is_array($item->{$childrenField})) {
+                $flatArray = array_merge($flatArray, self::flatten_nested_items($item->{$childrenField}, $pathField, $pathSeparator, $childrenField, $currentPath));
+            }
+        }
 
-		return $flatArray;
-	}
+        return $flatArray;
+    }
 
     public static function addHierarchyData($items, $pathField = 'name', $pathSeparator = '/', $parentPath = '', $parentId = 0, $depth = 0)
     {
@@ -283,15 +187,15 @@ class AlfaHelper
             if ($item->parent_id == $parentId) {
                 $item->depth = $depth; // Assign the current depth level
 
-				if ($pathField && property_exists($item, $pathField)) {
-					// If parentPath is empty, avoid adding a leading separator
-					$currentPath = $parentPath ? $parentPath . $pathSeparator . $item->{$pathField} : $item->{$pathField};
-					// Add the current path to the flattened item
-					$item->path = $currentPath;
-				} else {
-					// Handle cases where the property does not exist or $pathField is invalid
-					$item->path = $parentPath; // or set some default value
-				}
+                if ($pathField && property_exists($item, $pathField)) {
+                    // If parentPath is empty, avoid adding a leading separator
+                    $currentPath = $parentPath ? $parentPath . $pathSeparator . $item->{$pathField} : $item->{$pathField};
+                    // Add the current path to the flattened item
+                    $item->path = $currentPath;
+                } else {
+                    // Handle cases where the property does not exist or $pathField is invalid
+                    $item->path = $parentPath; // or set some default value
+                }
 
                 $hierarchyData[] = $item; // Add the item to the array
                 // Recursively add next items to the array
@@ -319,9 +223,9 @@ class AlfaHelper
         $db->setQuery($query);
         $db->execute();
 
-		if (empty($data) && $assignZeroIdIfDataEmpty) {
-			$data[0] = 0;
-		}
+        if (empty($data) && $assignZeroIdIfDataEmpty) {
+            $data[0] = 0;
+        }
 
         if (is_array($data)) {
             foreach ($data as $curr) {
@@ -346,18 +250,18 @@ class AlfaHelper
             return [];
         }
 
-		// load selected categories for item
-		$db = Factory::getContainer()->get('DatabaseDriver');
-		$query = $db->getQuery(true);
-		$query
-			->select($db->quoteName($dataField))
-			->from($db->quoteName($table))
-			->where($db->quoteName($mainField) . ' = ' . intval($mainFieldId));
+        // load selected categories for item
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $query = $db->getQuery(true);
+        $query
+            ->select($db->quoteName($dataField))
+            ->from($db->quoteName($table))
+            ->where($db->quoteName($mainField) . ' = ' . intval($mainFieldId));
 
-		$db->setQuery($query);
+        $db->setQuery($query);
 
-		return $db->loadColumn();
-	}
+        return $db->loadColumn();
+    }
 
     // ========================================================================
     // LOOKUP TABLES — Cached Static Methods
@@ -487,26 +391,26 @@ class AlfaHelper
         return self::$shipmentMethodsCache;
     }
 
-	//    FUNCTION TO BE DELETED
-	/* public static function iterateNestedArray($tree, $callback, $fullPath = false, $parentNames = '')
-	   {
-		   foreach ($tree as $node) {
-			   // Build the full path or hierarchical representation of category names based on the format
-			   if ($fullPath) {
-				   $currentPath = empty($parentNames) ? $node->name : $parentNames . ' / ' . $node->name;
-			   } else {
-				   $currentPath = str_repeat('- ', $node->depth) . $node->name;
-			   }
+    //    FUNCTION TO BE DELETED
+    /* public static function iterateNestedArray($tree, $callback, $fullPath = false, $parentNames = '')
+       {
+           foreach ($tree as $node) {
+               // Build the full path or hierarchical representation of category names based on the format
+               if ($fullPath) {
+                   $currentPath = empty($parentNames) ? $node->name : $parentNames . ' / ' . $node->name;
+               } else {
+                   $currentPath = str_repeat('- ', $node->depth) . $node->name;
+               }
 
-			   // Apply the callback function to the current node with the full path or hierarchical representation
-			   $callback($node, $currentPath);
+               // Apply the callback function to the current node with the full path or hierarchical representation
+               $callback($node, $currentPath);
 
-			   // If the node has children, recursively iterate through them
-			   if (!empty($node->children)) {
-				   self::iterateNestedArray($node->children, $callback, $fullPath, $currentPath);
-			   }
-		   }
-	   }*/
+               // If the node has children, recursively iterate through them
+               if (!empty($node->children)) {
+                   self::iterateNestedArray($node->children, $callback, $fullPath, $currentPath);
+               }
+           }
+       }*/
 
     /**
      * Gets the files attached to an item
@@ -529,7 +433,7 @@ class AlfaHelper
             ->from($table)
             ->where('id = ' . (int) $pk);
 
-		$db->setQuery($query);
+        $db->setQuery($query);
 
         return explode(',', $db->loadResult());
     }
@@ -552,16 +456,7 @@ class AlfaHelper
 
         $pluginGroup = 'alfa-' . $type;
 
-		foreach ($plugins as $plugin) {// Process each shipment payment group plugin.
-			$plugin_types[] =
-				[
-					'id' => $plugin->id,
-					'name' => $plugin->name,
-					'params' => $plugin->params
-				];
-		}
-		return $plugin_types;
-	}
+        $plugins = PluginHelper::getPlugin($pluginGroup);// Get a list of all plugins in the specified group
 
         foreach ($plugins as $plugin) {// Process each shipment payment group plugin.
             $plugin_types[] =
@@ -634,9 +529,9 @@ class AlfaHelper
     //     $app = Factory::getApplication();
     //     $input = $app->input;
 
-	//     $response_error = false;
-	//     $response_data = null;
-	//     $response_message = '';
+    //     $response_error = false;
+    //     $response_data = null;
+    //     $response_message = '';
 
     //     try {
     //         // Get and validate required parameters
@@ -686,17 +581,11 @@ class AlfaHelper
     //         $app->enqueueMessage($e->getMessage(), 'error');
     //         $response_error = true;
 
-	//         // Check for empty required parameters
-	//         $missingParams = array_filter($requiredParams, function($value) {
-	//             return empty($value);
-	//         });
+    //     }
 
-	//         if (!empty($missingParams)) {
-	//             throw new \Exception(
-	//                 'Missing required parameters: ' . implode(', ', array_keys($missingParams)),
-	//                 400
-	//             );
-	//         }
+    //     $response = new \Joomla\CMS\Response\JsonResponse($response_data, $response_message, $response_error);
+    //     return $response;
+    // }
 
     /*
         public static function addXMLToForm($xmlPath, &$form, $fieldGroup, $fieldValues = null){

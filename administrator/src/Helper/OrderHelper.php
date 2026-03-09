@@ -1,29 +1,4 @@
 <?php
-/**
- * OrderHelper V3 - With Money Objects
- *
- * @version    3.3.0
- * @package    Com_Alfa
- * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  2026 Easylogic CO LP
- *
- * ALL ITEM PRICES ARE MONEY OBJECTS
- * - unit_price_tax_incl: Money
- * - unit_price_tax_excl: Money
- * - total_price_tax_incl: Money
- * - total_price_tax_excl: Money
- * - original_product_price: Money
- * - reduction_amount_tax_incl: Money
- * - reduction_amount_tax_excl: Money
- *
- * V3.3.0 FIXES:
- * - Form field name: reads 'price' (matching order_items.xml), not 'unit_price'
- * - Supports duplicate id_item (same product, different variation/price)
- * - Items indexed by row PK (id), not by id_item
- * - Stock aggregated per product across all lines
- * - Delete by row PK, not by id_item
- * - UPDATE preserves: added timestamp, refunds, tax, shipping, discounts
- */
 
 /**
  * OrderHelper V3 - With Money Objects

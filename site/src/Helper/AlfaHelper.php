@@ -28,13 +28,13 @@ class AlfaHelper
         // $cacheKey = "com_alfa_settings";
         // $cachedSettings = $cache->get($cacheKey);
 
-		// if(!empty($cachedSettings)) {
-		//     return $cachedSettings;
-		// }
+        // if(!empty($cachedSettings)) {
+        //     return $cachedSettings;
+        // }
 
-		$settings = ComponentHelper::getParams('com_alfa');
+        $settings = ComponentHelper::getParams('com_alfa');
 
-		// $cache->store($settings, $cacheKey);
+        // $cache->store($settings, $cacheKey);
 
         return $settings;
     }

@@ -272,9 +272,8 @@ class OrderModel extends AdminModel
             $data = $this->item;
         }
 
-		$db->setQuery($query);
-		return $db->loadObject();
-	}
+        return $data;
+    }
 
     // ========================================================================
     // GET ORDER DATA (WITH MONEY OBJECTS)

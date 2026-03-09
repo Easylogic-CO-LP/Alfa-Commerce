@@ -64,14 +64,14 @@ class CartController extends FormController implements UserFactoryAwareInterface
     // public function display($cachable = false, $urlparams = false)
     // {
 
-	//     $view = $this->input->getCmd('view', 'cart');
-	//     // $view = $view == "featured" ? 'coupons' : $view;
-	//     $this->input->set('view', $view);
-	//     $this->input->set('layout', $this->input->get('layout','default'));
+    //     $view = $this->input->getCmd('view', 'cart');
+    //     // $view = $view == "featured" ? 'coupons' : $view;
+    //     $this->input->set('view', $view);
+    //     $this->input->set('layout', $this->input->get('layout','default'));
 
-	//     parent::display($cachable, $urlparams);
-	//     return $this;
-	// }
+    //     parent::display($cachable, $urlparams);
+    //     return $this;
+    // }
 
     //     $app = Factory::getApplication();
 
@@ -82,17 +82,17 @@ class CartController extends FormController implements UserFactoryAwareInterface
     {
         $errorOccured = false;
 
-		$input = $this->app->input;
+        $input = $this->app->input;
 
-		$failMessage    = 'Recalculate failed';
-		$successMessage = 'Recalculate runned successfully';
+        $failMessage = 'Recalculate failed';
+        $successMessage = 'Recalculate runned successfully';
 
-		self::verifyTokenAndRespondJson('post', $failMessage);
+        self::verifyTokenAndRespondJson('post', $failMessage);
 
-		$quantity    = $input->getInt('quantity', 1);
-		$itemId      = $input->getInt('item_id', 0);
-		$userGroupId = 1;
-		$currencyId  = 1;
+        $quantity = $input->getInt('quantity', 1);
+        $itemId = $input->getInt('item_id', 0);
+        $userGroupId = 1;
+        $currencyId = 1;
 
         // TODO: somewhow cache the item here or inside the model but the quantity changes so we should take this in count
         // get all the item data
@@ -128,11 +128,11 @@ class CartController extends FormController implements UserFactoryAwareInterface
             'stock_info_layout' => $stockAvailabilityLayout,
         ];
 
-		$response = new JsonResponse($responseData, $errorOccured ? $failMessage : $successMessage, $errorOccured);
+        $response = new JsonResponse($responseData, $errorOccured ? $failMessage : $successMessage, $errorOccured);
 
-		echo $response;
-		$this->app->close();
-	}
+        echo $response;
+        $this->app->close();
+    }
 
     public function addToCart()
     {
@@ -141,12 +141,12 @@ class CartController extends FormController implements UserFactoryAwareInterface
         $failMessage = 'Item failed to be added';
         $successMessage = 'Item added successfully';
 
-		self::verifyTokenAndRespondJson('post', $failMessage);
+        self::verifyTokenAndRespondJson('post', $failMessage);
 
-		$input = $this->app->input;
+        $input = $this->app->input;
 
-		$quantity = $input->getInt('quantity', 1);
-		$itemId   = $input->getInt('item_id', 0);
+        $quantity = $input->getInt('quantity', 1);
+        $itemId = $input->getInt('item_id', 0);
 
         $userId = Factory::getApplication()->getIdentity()->id;
 
@@ -169,49 +169,47 @@ class CartController extends FormController implements UserFactoryAwareInterface
     {
         $errorOccured = false;
 
-		// try{
-		$errorOccured = !$cart->addToCart($itemId, $quantity);
-		// } catch (Exception $e) {
-		//     $this->app->enqueueMessage($e->getMessage(),'error');
-		//     $errorOccured = true;
-		// }
+        $input = $this->app->input;
 
-		$response = new JsonResponse($response_data, $errorOccured ? $failMessage : $successMessage, $errorOccured);
+        $quantity = $input->getInt('quantity', 1);
+        $itemId = $input->getInt('item_id', 0);
+        $userId = Factory::getApplication()->getIdentity()->id;
+        $response_data = [];
 
-		echo $response;
-		$this->app->close();
-	}
+        $cart = new CartHelper();
+        $clearOnlyItems = true;
+        $errorOccured = !$cart->clearCart($clearOnlyItems);
 
+        $layout = new FileLayout('default_cart_empty', JPATH_ROOT . '/components/com_alfa/tmpl/cart');
+        $result = $layout->render();
 
         $data = [
             'data' => $result,
         ];
 
-		$input = $this->app->input;
+        // json output
+        header('Content-Type: application/json');
+        $response = new JsonResponse($result, $errorOccured ? 'Cart Failed to be cleared!' : 'Cart cleared successfully!', $errorOccured);
+        echo $response;
 
-		$quantity      = $input->getInt('quantity', 1);
-		$itemId        = $input->getInt('item_id', 0);
-		$userId        = Factory::getApplication()->getIdentity()->id;
-		$response_data = [];
+        $this->app->close();
+    }
 
-		$cart           = new CartHelper();
-		$clearOnlyItems = true;
-		$errorOccured   = !$cart->clearCart($clearOnlyItems);
+    public function updateQuantity()
+    {
+        $input = $this->app->input;
 
-		$layout = new FileLayout('default_cart_empty', JPATH_ROOT . '/components/com_alfa/tmpl/cart');
-		$result = $layout->render();
+        $failMessage = 'Item Failed to be updated!';
+        $successMessage = 'Item successfully updated!';
 
-		$data = array(
-			'data' => $result,
-		);
+        self::verifyTokenAndRespondJson('post', $failMessage);
 
-		// json output
-		header('Content-Type: application/json');
-		$response = new JsonResponse($result, $errorOccured ? 'Cart Failed to be cleared!' : 'Cart cleared successfully!', $errorOccured);
-		echo $response;
+        $itemId = $input->getInt('id_item', 0);
+        $quantity = $input->getInt('quantity', 1);
+        $userId = Factory::getApplication()->getIdentity()->id;
 
-		$this->app->close();
-	}
+        $response_data = [];
+        $errorOccured = false;
 
         $cart = new CartHelper();
 
@@ -382,106 +380,22 @@ class CartController extends FormController implements UserFactoryAwareInterface
         //			$this->setRedirect(Route::_('index.php?option=com_alfa&view=cart'));
         //		}
 
-					// Clear cart-related session data
-					// TODO: CHECK THIS
-					$this->app->setUserState('com_alfa.cart.data', null);
-
-					// Success message
-//					$this->app->enqueueMessage(
-//						Text::sprintf('COM_ALFA_ORDER_PLACED_SUCCESSFULLY', $orderId),
-//						'success'
-//					);
-
-					// Redirect to success/processing page
-					$this->setRedirect(
-						Route::_('index.php?option=com_alfa&view=cart&layout=default_order_process', false)
-					);
-
-					return true;
-
-				} else {
-					// Order placed but couldn't retrieve it
-					$this->app->enqueueMessage(
-						Text::_('COM_ALFA_ORDER_PLACED_BUT_NOT_LOADED'),
-						'warning'
-					);
-
-					// Still redirect to success (order was created)
-					$this->setRedirect(
-						Route::_('index.php?option=com_alfa&view=cart&layout=default_order_process', false)
-					);
-
-					return true;
-				}
-
-			} else {
-				// 8. Handle failure
-				// Error messages already enqueued by OrderPlaceHelper
-
-				// Additional fallback message
-				$this->app->enqueueMessage(
-					Text::_('COM_ALFA_ORDER_PLACEMENT_FAILED'),
-					'error'
-				);
-
-				// Redirect back to cart
-				$this->setRedirect(Route::_('index.php?option=com_alfa&view=cart', false));
-
-				return false;
-			}
-
-		} catch (\Exception $e) {
-			// 9. Catch any unexpected errors
-			$this->app->enqueueMessage(
-				Text::sprintf('COM_ALFA_ORDER_ERROR', $e->getMessage()),
-				'error'
-			);
-
-			// Log the error
-			\Joomla\CMS\Log\Log::add(
-				'Order placement exception: ' . $e->getMessage(),
-				\Joomla\CMS\Log\Log::ERROR,
-				'com_alfa.orders'
-			);
-
-			// Redirect back to cart
-			$this->setRedirect(Route::_('index.php?option=com_alfa&view=cart', false));
-
-			return false;
-		}
-//		$order = new OrderPlaceHelper();
-
-//		$placeOrderError = !$order->placeOrder($data['com_alfa']);
-
-//		$orderId = $order->getOrder()->id;
-//
-//		$this->app->setUserState('com_alfa.order_id', $orderId);
-//
-//		if (!$placeOrderError)
-//		{
-//			$this->setRedirect(Route::_('index.php?option=com_alfa&view=cart&layout=default_order_process'));
-//		}
-//		else
-//		{
-//			$this->setRedirect(Route::_('index.php?option=com_alfa&view=cart'));
-//		}
-
-		return true;
-	}
+        return true;
+    }
 
     // Updates the cart's shipment id, re-renders the items layout, and returns it as an answer.
     public function updateShipment()
     {
         $input = $this->app->input;
 
-		$failMessage    = 'Shipment could not be updated.';
-		$successMessage = 'Shipment updated successfully!';
+        $failMessage = 'Shipment could not be updated.';
+        $successMessage = 'Shipment updated successfully!';
 
-		self::verifyTokenAndRespondJson('post', $failMessage);
+        self::verifyTokenAndRespondJson('post', $failMessage);
 
-		$shipmentID    = $input->getInt('id_shipment', 0);
-		$response_data = [];
-		$errorOccured  = false;
+        $shipmentID = $input->getInt('id_shipment', 0);
+        $response_data = [];
+        $errorOccured = false;
 
         $cart = new CartHelper();
         $errorOccurred = !$cart->updateShipment($shipmentID);
@@ -504,18 +418,17 @@ class CartController extends FormController implements UserFactoryAwareInterface
     {
         $input = $this->app->input;
 
-	public function updatePayment()
-	{
-		$input = $this->app->input;
+        $failMessage = 'Payment could not be updated.';
+        $successMessage = 'Payment updated successfully!';
 
-		$failMessage    = 'Payment could not be updated.';
-		$successMessage = 'Payment updated successfully!';
+        self::verifyTokenAndRespondJson('post', $failMessage);
 
-		self::verifyTokenAndRespondJson('post', $failMessage);
+        $paymentID = $input->getInt('id_payment', 0);
+        $response_data = [];
+        $errorOccured = false;
 
-		$paymentID     = $input->getInt('id_payment', 0);
-		$response_data = [];
-		$errorOccured  = false;
+        $cart = new CartHelper();
+        $errorOccurred = !$cart->updatePayment($paymentID);
 
         if (!$errorOccured) {
             $response_data['isEmpty'] = $cart->isEmpty();
@@ -549,10 +462,8 @@ class CartController extends FormController implements UserFactoryAwareInterface
             'isEmpty' => $isEmpty,
         ];
 
-		$layoutData = array(
-			'tmpl'    => $result,
-			'isEmpty' => $isEmpty
-		);
+        return $layoutData;
+    }
 
     protected function getPaymentsLayout($cart)
     {
@@ -572,10 +483,8 @@ class CartController extends FormController implements UserFactoryAwareInterface
             'isEmpty' => $isEmpty,
         ];
 
-			$cart->addEventsToPayments();// Load shipment methods.
-			$layout = new FileLayout('default_select_payment', JPATH_ROOT . '/components/com_alfa/tmpl/cart');
-			$result = $layout->render($cart);//shown in layout as $displayData
-		}
+        return $layoutData;
+    }
 
     protected function getShipmentsLayout($cart)
     {
@@ -595,25 +504,8 @@ class CartController extends FormController implements UserFactoryAwareInterface
             'isEmpty' => $isEmpty,
         ];
 
-		if ($isEmpty)
-		{
-			$tmpl = "";
-		}
-		else
-		{
-
-			$cart->addEventsToShipments();// Load shipment methods.
-			$layout = new FileLayout('default_select_shipment', JPATH_ROOT . '/components/com_alfa/tmpl/cart');
-			$result = $layout->render($cart);//shown in layout as $displayData
-		}
-
-		$layoutData = array(
-			'tmpl'    => $result,
-			'isEmpty' => $isEmpty
-		);
-
-		return $layoutData;
-	}
+        return $layoutData;
+    }
 
     //    public function updateUserInfo()
     //{

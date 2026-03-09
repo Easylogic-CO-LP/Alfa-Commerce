@@ -76,18 +76,8 @@ class CategoryModel extends AdminModel
             return false;
         }
 
-	/**
-	 * Method to get a single record.
-	 *
-	 * @param   integer  $pk  The id of the primary key.
-	 *
-	 * @return  mixed  Object on success, false on failure.
-	 *
-	 * @since   1.0.1
-	 */
-	public function getItem($pk = null)
-	{
-		$pk = (!empty($pk)) ? $pk : (int) $this->getState($this->getName() . '.id');
+        return $form;
+    }
 
     /**
      * Method to get the data that should be injected in the form.
@@ -104,21 +94,8 @@ class CategoryModel extends AdminModel
             $data = ($this->item === null ? $this->getItem() : $this->item);
         }
 
-	/**
-	 * Method to save the form data.
-	 *
-	 * @param   array  $data  The form data.
-	 *
-	 * @return  boolean  True on success, False on error.
-	 *
-	 * @since   1.0.1
-	 */
-	public function save($data)
-	{
-		$table = $this->getTable();
-		$pk = (int) ($data['id'] ?? $this->getState($this->getName() . '.id'));
-		$isNew = $pk <= 0;
-		$parentId = (int) ($data['parent_id'] ?? 0);
+        return $data;
+    }
 
     /**
      * Method to get a single record.
@@ -374,7 +351,9 @@ class CategoryModel extends AdminModel
     {
         $table->modified = Factory::getDate()->toSql();
 
-			$parentId = (int) $db->setQuery($query)->loadResult();
+        if (empty($table->publish_up)) {
+            $table->publish_up = null;
+        }
 
         if (empty($table->publish_down)) {
             $table->publish_down = null;
