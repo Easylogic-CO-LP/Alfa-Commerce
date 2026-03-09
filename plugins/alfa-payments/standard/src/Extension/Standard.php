@@ -383,14 +383,18 @@ final class Standard extends PaymentsPlugin
      * This is the CRITICAL hook for gateway plugins. The order and payment
      * record already exist in the database at this point.
      *
-     * For Standard (offline): show "Your order has been placed, please
-     *   transfer funds to bank account XXXX" message.
+     * For Standard (offline/cash/bank transfer): we skip the processing
+     * page entirely and let the HtmlView fallback redirect straight to
+     * default_order_completed. No external gateway interaction is needed.
      *
-     * For Stripe: redirect to Stripe Checkout Session URL.
-     * For PayPal: redirect to PayPal approval URL.
-     *
-     * To redirect:
-     *   $this->getApplication()->redirect($gatewayUrl);
+     * For external gateway plugins (Stripe, PayPal, etc.) you would:
+     *   - Redirect to the gateway:
+     *       $event->setRedirectUrl($gatewayCheckoutUrl);
+     *   - OR render a processing/waiting page:
+     *       $event->setLayout('default_order_process');
+     *       $event->setLayoutData([...]);
+     *     The component's default_order_process template will render the
+     *     plugin layout and show a retry button for failed payments.
      *
      * Available on $event:
      *   $event->getSubject()  → Order object (with ->id, ->payments, etc.)
@@ -401,11 +405,9 @@ final class Standard extends PaymentsPlugin
      */
     public function onOrderProcessView($event): void
     {
-        $event->setLayout('default_order_process');
-        $event->setLayoutData([
-            'order' => $event->getSubject(),
-            'method' => $event->getMethod(),
-        ]);
+        // Standard payment is offline — no processing step needed.
+        // By not setting a layout or redirect, the HtmlView will
+        // automatically redirect to default_order_completed.
     }
 
     /**
