@@ -60,7 +60,6 @@ jobs:
           php_version: "8.2"
           path: "administrator/src/ site/src/ api/src/ plugins/ modules/"
           level: 5
-        continue-on-error: true
 
   secret-scanning:
     runs-on: ubuntu-latest

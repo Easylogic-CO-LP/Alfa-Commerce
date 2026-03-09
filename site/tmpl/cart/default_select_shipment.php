@@ -22,10 +22,10 @@ $cart = !empty($displayData) ? $displayData : $this->cart;
             >
 
             <label for="shipment_method_<?php echo $shipment->id; ?>">
-				<?php echo $shipment->name; ?>
+				<?php echo htmlspecialchars($shipment->name, ENT_QUOTES, 'UTF-8'); ?>
             </label>
 
-            <p><?php echo $shipment->description; ?></p>
+            <p><?php echo htmlspecialchars($shipment->description, ENT_QUOTES, 'UTF-8'); ?></p>
 
 			<?php
 			// TODO: Error handling for missing template.

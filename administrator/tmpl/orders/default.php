@@ -243,8 +243,8 @@ $orderStatuses = $this->orderStatuses;
                                 <td class="text-center">
 									<?php if (!empty($item->payment_method_name)) : ?>
                                         <span class="method-badge"
-                                              style="color:<?php echo $item->payment_color ?? '#000'; ?>;
-                                                      background:<?php echo $item->payment_bg_color ?? '#d1ecf1'; ?>">
+                                              style="color:<?php echo $this->escape($item->payment_color ?? '#000'); ?>;
+                                                      background:<?php echo $this->escape($item->payment_bg_color ?? '#d1ecf1'); ?>">
                                             <?php echo $this->escape($item->payment_method_name); ?>
                                         </span>
 									<?php else : ?>

@@ -1,0 +1,67 @@
+name: Build & Minify Assets
+
+on:
+  push:
+    branches: [main, developer]
+    paths:
+      - 'media/css/**'
+      - 'media/js/**'
+  pull_request:
+    branches: [main, developer]
+    paths:
+      - 'media/css/**'
+      - 'media/js/**'
+
+jobs:
+  minify-assets:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install minification tools
+        run: |
+          npm install -g csso-cli terser
+
+      - name: Minify CSS files
+        run: |
+          for file in media/css/site/*.css media/css/admin/*.css; do
+            if [ -f "$file" ] && [[ ! "$file" == *.min.css ]]; then
+              minfile="${file%.css}.min.css"
+              csso "$file" --output "$minfile"
+              gzip -9 -k -f "$minfile"
+              echo "Minified: $file -> $minfile"
+            fi
+          done
+
+      - name: Minify JS files
+        run: |
+          find media/js/site media/js/admin -name '*.js' ! -name '*.min.js' | while read file; do
+            if [ -f "$file" ]; then
+              minfile="${file%.js}.min.js"
+              terser "$file" --compress --mangle --output "$minfile"
+              gzip -9 -k -f "$minfile"
+              echo "Minified: $file -> $minfile"
+            fi
+          done
+
+      - name: Commit minified assets
+        if: github.event_name == 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A media/css/**/*.min.css* media/js/**/*.min.js*
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "build: Minify CSS and JS assets [skip ci]"
+            git push
+          fi
