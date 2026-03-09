@@ -51,7 +51,7 @@ media/com_alfa/         CSS, JavaScript, images
 
 Alfa Commerce exposes a REST API for integration with external applications.
 
-[![Run in Postman](https://run.pstmn.io/button.svg)](https://null.postman.co/collection/40562641-db6c701d-6cee-4955-96b3-d357447b9bfe?source=rip_markdown)
+[![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/40562641-33ef70bd-e1ce-4aba-8119-c055ab328589?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D40562641-33ef70bd-e1ce-4aba-8119-c055ab328589%26entityType%3Dcollection%26workspaceId%3Db23f2240-19a2-4390-8194-519ced76ff26)
 
 ## Documentation
 
