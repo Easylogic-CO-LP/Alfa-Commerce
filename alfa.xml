@@ -95,7 +95,6 @@
             <folder>tmpl</folder>
             <folder>services</folder>
             <folder>layouts</folder>
-            <folder>presets</folder>
             <folder>sql</folder>
         </files>
         <languages folder="administrator/languages">
