@@ -47,6 +47,7 @@ use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Exception;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 use Joomla\CMS\MVC\Model\ListModel;
 
@@ -227,7 +228,7 @@ class OrdersModel extends ListModel
         $items = parent::getItems();
 
         if ($items === false) {
-            Factory::getApplication()->enqueueMessage('SQL Error loading orders', 'error');
+            Factory::getApplication()->enqueueMessage(Text::_('COM_ALFA_ERROR_SQL_LOADING_ORDERS'), 'error');
             return [];
         }
 
