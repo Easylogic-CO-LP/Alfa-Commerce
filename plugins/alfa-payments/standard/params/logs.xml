@@ -1,15 +1,56 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Standard Payment Plugin — Log Schema
+
+    Defines plugin-specific columns for #__alfa_payments_standard_logs.
+
+    Auto-created by Plugin.php (NOT declared here):
+      id                int AUTO_INCREMENT PRIMARY KEY
+      id_order          int NOT NULL
+      id_order_payment  int DEFAULT NULL  (from logIdentifierField)
+
+    These columns capture a complete audit trail per action:
+      WHO:   created_by (admin user ID)
+      WHEN:  created_on (UTC timestamp)
+      WHAT:  action (mark_paid, cancel, refund)
+      HOW:   transaction_status (status after action), transaction_id
+      VALUE: amount (specific amount for this action), currency
+      EXTRA: refund_type (full/partial), note (free text context)
+
+    Path: plugins/alfa-payments/standard/params/logs.xml
+-->
 <form>
 	<fields name="paymentslogs">
 		<fieldset name="paymentslogs">
-			<!--	always created:   `id` int(11) AUTO_INCREMENT PRIMARY KEY NOT NULL-->
-			<!--			<field name="order_id" mysql_type="int(11)" default="NULL"/>-->
-			<!--			<field name="status" mysql_type="char(1)" default="NULL"/>-->
 
+			<!-- Action performed: mark_paid, cancel, refund -->
+			<field name="action" mysql_type="varchar(50)" default="NULL"/>
+
+			<!-- Transaction status AFTER this action -->
+			<field name="transaction_status" mysql_type="varchar(20)" default="NULL"/>
+
+			<!-- Specific amount for this action -->
+			<field name="amount" mysql_type="decimal(20,6)" default="0.000000"/>
+
+			<!-- Order grand total at time of action -->
 			<field name="order_total" mysql_type="decimal(15,5)" default="0.00000"/>
+
+			<!-- Currency code -->
 			<field name="currency" mysql_type="char(3)" default="NULL"/>
+
+			<!-- Gateway transaction ID at time of action -->
+			<field name="transaction_id" mysql_type="varchar(254)" default="NULL"/>
+
+			<!-- Refund type: full or partial (NULL for non-refund actions) -->
+			<field name="refund_type" mysql_type="varchar(10)" default="NULL"/>
+
+			<!-- Free-text note for context -->
+			<field name="note" mysql_type="varchar(500)" default="NULL"/>
+
+			<!-- When and who -->
 			<field name="created_on" mysql_type="datetime" default="0000-00-00 00:00:00"/>
-			<field name="created_by"  mysql_type="int(11)" default="0"/>
+			<field name="created_by" mysql_type="int(11)" default="0"/>
+
 		</fieldset>
 	</fields>
 </form>

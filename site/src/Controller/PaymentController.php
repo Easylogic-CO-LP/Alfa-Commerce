@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -29,6 +29,7 @@ use \Joomla\CMS\Layout\FileLayout;
 
 use \Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use \Alfa\Component\Alfa\Site\Helper\PriceCalculator;
+
 // use \Alfa\Component\Alfa\Site\Helper\CartHelper;
 use \Alfa\Component\Alfa\Site\Helper\OrderPlaceHelper;
 
@@ -41,49 +42,53 @@ use \Alfa\Component\Alfa\Site\Helper\OrderPlaceHelper;
 class PaymentController extends BaseController
 {
 
-    public function response(){
-            $app = $this->app;
+	public function response()
+	{
+		$app = $this->app;
 //echo "aaa";
 
 //            exit;
-            
-            // echo '<pre>';
-            // print_r($app->input->server->get('REQUEST_URI', '', 'STRING'));
-            // echo '</pre>';
-            // exit;
+
+		// echo '<pre>';
+		// print_r($app->input->server->get('REQUEST_URI', '', 'STRING'));
+		// echo '</pre>';
+		// exit;
 //            $app->setUserState('com_alfa.order_id', 1);
-            $orderId = $app->getUserState('com_alfa.order_id');
+		$orderId = $app->getUserState('com_alfa.order_id');
 
 //            $orderId = 1;
 
-            if ($orderId == null) {
-                $app->enqueueMessage('Order ID is not set.', 'error');
-                $app->redirect(Route::_('/index.php'));//redirect to home page
-            }
+		if ($orderId == null)
+		{
+			$app->enqueueMessage('Order ID is not set.', 'error');
+			$app->redirect(Route::_('/index.php'));//redirect to home page
+		}
 
-            $ordersModel = Factory::getApplication()->bootComponent('com_alfa')
-                ->getMVCFactory()->createModel('Order', 'Administrator', ['ignore_request' => true]);
+		$ordersModel = Factory::getApplication()->bootComponent('com_alfa')
+			->getMVCFactory()->createModel('Order', 'Administrator', ['ignore_request' => true]);
 
-            
-            $orderData = $ordersModel->getItem($orderId);
 
-            if($orderData == null){
-                $app->enqueueMessage('Order with this order id:'.$orderId.' not found.', 'error');
-                $app->redirect(Route::_('/index.php')); //redirect to home page
-            }
-            
-            $onResponsePaymentEventName = 'onPaymentResponse';
-            $paymentEvent = new PaymentResponseEvent($onResponsePaymentEventName, [
-                'subject'   => $orderData,
-                'method'    => $orderData->selected_payment->type
-            ]);
+		$orderData = $ordersModel->getItem($orderId);
 
-            $app->bootPlugin($orderData->selected_payment->type, "alfa-payments")->{$onResponsePaymentEventName}($paymentEvent);
+		if ($orderData == null)
+		{
+			$app->enqueueMessage('Order with this order id:' . $orderId . ' not found.', 'error');
+			$app->redirect(Route::_('/index.php')); //redirect to home page
+		}
 
-            if($paymentEvent->hasRedirect()){
-                $app->redirect($paymentEvent->getRedirectUrl());
-            }
+		$onResponsePaymentEventName = 'onPaymentResponse';
+		$paymentEvent               = new PaymentResponseEvent($onResponsePaymentEventName, [
+			'subject' => $orderData,
+			'method'  => $orderData->selected_payment->type
+		]);
 
-    }
+		$app->bootPlugin($orderData->selected_payment->type, "alfa-payments")->{$onResponsePaymentEventName}($paymentEvent);
+
+		if ($paymentEvent->hasRedirect())
+		{
+			$app->redirect($paymentEvent->getRedirectUrl());
+		}
+
+	}
 
 }

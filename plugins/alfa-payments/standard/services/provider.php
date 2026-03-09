@@ -32,7 +32,6 @@ return new class () implements ServiceProviderInterface {
             PluginInterface::class,
             function (Container $container) {
                 $plugin     = new Standard(
-                    $container->get(DispatcherInterface::class),
                     (array) PluginHelper::getPlugin('alfa-payments', 'standard')
                 );
                 $plugin->setApplication(Factory::getApplication());

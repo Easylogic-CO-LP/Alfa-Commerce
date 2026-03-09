@@ -81,6 +81,14 @@
                     <option value="1">Total Items</option>
                 </field>
 
+                <field name="togglerColor"
+                       type="color"
+                       default="#FFFFFF"
+                       format="rgba"
+                       label="MOD_ALFA_CART_TOGGLER_COLOR_LBL"
+                       description="MOD_ALFA_CART_TOGGLER_COLOR_DESC"
+                />
+
                 <field name="togglerCounterColor"
                        type="color"
                        default="#FF0000"
@@ -88,6 +96,195 @@
                        label="MOD_ALFA_CART_TOGGLER_BACKGROUND_COLOR_LBL"
                        description="MOD_ALFA_CART_TOGGLER_BACKGROUND_COLOR_DESC"
                 />
+            </fieldset>
+
+            <!-- Price Display Settings -->
+            <fieldset name="price_display" label="MOD_ALFA_CART_PRICE_DISPLAY_SETTINGS">
+
+                <field
+                        type="note"
+                        label="MOD_ALFA_CART_PRICE_NOTE"
+                        description="MOD_ALFA_CART_PRICE_NOTE_DESC"
+                        class="alert alert-info"
+                />
+
+                <!-- Base Price -->
+                <fieldset name="base_price" label="MOD_ALFA_CART_BASE_PRICE_LABEL">
+                    <field
+                            name="base_price_show"
+                            type="radio"
+                            default="0"
+                            label="MOD_ALFA_CART_BASE_PRICE_SHOW_LABEL"
+                            description="MOD_ALFA_CART_BASE_PRICE_SHOW_DESC"
+                            class="btn-group"
+                    >
+                        <option value="1">JSHOW</option>
+                        <option value="0">JHIDE</option>
+                    </field>
+                    <field
+                            name="base_price_show_label"
+                            type="radio"
+                            default="1"
+                            label="MOD_ALFA_CART_SHOW_LABEL"
+                            description="MOD_ALFA_CART_BASE_PRICE_LABEL_DESC"
+                            class="btn-group"
+                            showon="base_price_show:1"
+                    >
+                        <option value="1">JSHOW</option>
+                        <option value="0">JHIDE</option>
+                    </field>
+                </fieldset>
+
+                <!-- Discount Amount -->
+                <fieldset name="discount_amount" label="MOD_ALFA_CART_DISCOUNT_LABEL">
+                    <field
+                            name="discount_amount_show"
+                            type="radio"
+                            default="0"
+                            label="MOD_ALFA_CART_DISCOUNT_SHOW_LABEL"
+                            description="MOD_ALFA_CART_DISCOUNT_SHOW_DESC"
+                            class="btn-group"
+                    >
+                        <option value="1">JSHOW</option>
+                        <option value="0">JHIDE</option>
+                    </field>
+                    <field
+                            name="discount_amount_show_label"
+                            type="radio"
+                            default="1"
+                            label="MOD_ALFA_CART_SHOW_LABEL"
+                            description="MOD_ALFA_CART_DISCOUNT_LABEL_DESC"
+                            class="btn-group"
+                            showon="discount_amount_show:1"
+                    >
+                        <option value="1">JSHOW</option>
+                        <option value="0">JHIDE</option>
+                    </field>
+                </fieldset>
+
+                <!-- Subtotal (After Discounts) -->
+                <fieldset name="base_price_with_discounts" label="MOD_ALFA_CART_SUBTOTAL_LABEL">
+                    <field
+                            name="base_price_with_discounts_show"
+                            type="radio"
+                            default="0"
+                            label="MOD_ALFA_CART_SUBTOTAL_SHOW_LABEL"
+                            description="MOD_ALFA_CART_SUBTOTAL_SHOW_DESC"
+                            class="btn-group"
+                    >
+                        <option value="1">JSHOW</option>
+                        <option value="0">JHIDE</option>
+                    </field>
+                    <field
+                            name="base_price_with_discounts_show_label"
+                            type="radio"
+                            default="1"
+                            label="MOD_ALFA_CART_SHOW_LABEL"
+                            description="MOD_ALFA_CART_SUBTOTAL_LABEL_DESC"
+                            class="btn-group"
+                            showon="base_price_with_discounts_show:1"
+                    >
+                        <option value="1">JSHOW</option>
+                        <option value="0">JHIDE</option>
+                    </field>
+                </fieldset>
+
+                <!-- Tax Amount -->
+                <fieldset name="tax_amount" label="MOD_ALFA_CART_TAX_LABEL">
+                    <field
+                            name="tax_amount_show"
+                            type="radio"
+                            default="0"
+                            label="MOD_ALFA_CART_TAX_SHOW_LABEL"
+                            description="MOD_ALFA_CART_TAX_SHOW_DESC"
+                            class="btn-group"
+                    >
+                        <option value="1">JSHOW</option>
+                        <option value="0">JHIDE</option>
+                    </field>
+                    <field
+                            name="tax_amount_show_label"
+                            type="radio"
+                            default="1"
+                            label="MOD_ALFA_CART_SHOW_LABEL"
+                            description="MOD_ALFA_CART_TAX_LABEL_DESC"
+                            class="btn-group"
+                            showon="tax_amount_show:1"
+                    >
+                        <option value="1">JSHOW</option>
+                        <option value="0">JHIDE</option>
+                    </field>
+                </fieldset>
+
+                <!-- Base Price with Tax -->
+                <fieldset name="base_price_with_tax" label="MOD_ALFA_CART_BASE_WITH_TAX_LABEL">
+                    <field
+                            name="base_price_with_tax_show"
+                            type="radio"
+                            default="0"
+                            label="MOD_ALFA_CART_BASE_WITH_TAX_SHOW_LABEL"
+                            description="MOD_ALFA_CART_BASE_WITH_TAX_SHOW_DESC"
+                            class="btn-group"
+                    >
+                        <option value="1">JSHOW</option>
+                        <option value="0">JHIDE</option>
+                    </field>
+                    <field
+                            name="base_price_with_tax_show_label"
+                            type="radio"
+                            default="1"
+                            label="MOD_ALFA_CART_SHOW_LABEL"
+                            description="MOD_ALFA_CART_BASE_WITH_TAX_LABEL_DESC"
+                            class="btn-group"
+                            showon="base_price_with_tax_show:1"
+                    >
+                        <option value="1">JSHOW</option>
+                        <option value="0">JHIDE</option>
+                    </field>
+                </fieldset>
+
+                <!-- Final Price -->
+                <fieldset name="final_price" label="MOD_ALFA_CART_FINAL_PRICE_LABEL">
+                    <field
+                            name="final_price_show"
+                            type="radio"
+                            default="1"
+                            label="MOD_ALFA_CART_FINAL_PRICE_SHOW_LABEL"
+                            description="MOD_ALFA_CART_FINAL_PRICE_SHOW_DESC"
+                            class="btn-group"
+                    >
+                        <option value="1">JSHOW</option>
+                        <option value="0">JHIDE</option>
+                    </field>
+                    <field
+                            name="final_price_show_label"
+                            type="radio"
+                            default="0"
+                            label="MOD_ALFA_CART_SHOW_LABEL"
+                            description="MOD_ALFA_CART_FINAL_PRICE_LABEL_DESC"
+                            class="btn-group"
+                            showon="final_price_show:1"
+                    >
+                        <option value="1">JSHOW</option>
+                        <option value="0">JHIDE</option>
+                    </field>
+                </fieldset>
+
+                <!-- Price Breakdown -->
+                <fieldset name="price_breakdown" label="MOD_ALFA_CART_BREAKDOWN_LABEL">
+                    <field
+                            name="price_breakdown_show"
+                            type="radio"
+                            default="0"
+                            label="MOD_ALFA_CART_BREAKDOWN_SHOW_LABEL"
+                            description="MOD_ALFA_CART_BREAKDOWN_SHOW_DESC"
+                            class="btn-group"
+                    >
+                        <option value="1">JSHOW</option>
+                        <option value="0">JHIDE</option>
+                    </field>
+                </fieldset>
+
             </fieldset>
         </fields>
     </config>

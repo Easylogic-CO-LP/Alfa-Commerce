@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -11,14 +11,11 @@ namespace Alfa\Component\Alfa\Administrator\View\Categories;
 // No direct access
 defined('_JEXEC') or die;
 
-use \Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
-use \Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
-use \Joomla\CMS\Toolbar\Toolbar;
-use \Joomla\CMS\Toolbar\ToolbarHelper;
-use \Joomla\CMS\Language\Text;
-use \Joomla\Component\Content\Administrator\Extension\ContentComponent;
-use \Joomla\CMS\Form\Form;
-use \Joomla\CMS\HTML\Helpers\Sidebar;
+use Alfa\Component\Alfa\Administrator\View\HtmlView as BaseHtmlView;
+use Joomla\CMS\Toolbar\ToolbarHelper;
+use Joomla\CMS\Language\Text;
+use Joomla\CMS\Helper\ContentHelper;
+use Alfa\Component\Alfa\Administrator\Extension\AlfaComponent;
 
 /**
  * View class for a list of Categories.
@@ -33,46 +30,34 @@ class HtmlView extends BaseHtmlView
 
     protected $state;
 
-    protected $sortedNames = array();
+    public $filterForm;
 
-    protected $nestedNames = array();
+    public $activeFilters;
 
     /**
      * Display the view
      *
-     * @param string $tpl Template name
+     * @param   string  $tpl  The name of the template file to parse; automatically searches through the template paths.
      *
-     * @return void
-     *
-     * @throws Exception
+     * @return  void
      */
     public function display($tpl = null)
     {
-        $this->state = $this->get('State');
-        $this->items = $this->get('Items');
-        $this->pagination = $this->get('Pagination');
-        $this->filterForm = $this->get('FilterForm');
-        $this->activeFilters = $this->get('ActiveFilters');
+        $model = $this->getModel();
 
-        // Check for errors.
-        if (count($errors = $this->get('Errors'))) {
-            throw new \Exception(implode("\n", $errors));
-        }
-
-//	    $listOrdering = $this->state['list.ordering'];
-//	    $listDirection = $this->state['list.direction'];
-//print_r($listOrdering);
-//exit;
-        // Create associative array
-//        $nestedCategories = AlfaHelper::buildNestedArray($this->items);
-//	    // Sprt array and its nested arrays
-//	    AlfaHelper::sort_nested_items($nestedCategories,'name','asc');
-//	    // Flatten the array
-//		$this->items = AlfaHelper::flatten_nested_items($nestedCategories);
+        $this->items         = $model->getItems();
+        $this->pagination    = $model->getPagination();
+        $this->state         = $model->getState();
+        $this->filterForm    = $model->getFilterForm();
+        $this->activeFilters = $model->getActiveFilters();
 
         $this->addToolbar();
 
-        $this->sidebar = Sidebar::render();
+        // Add form control fields
+        $this->filterForm
+            ->addControlField('task', '')
+            ->addControlField('boxchecked', '0');
+
         parent::display($tpl);
     }
 
@@ -85,20 +70,13 @@ class HtmlView extends BaseHtmlView
      */
     protected function addToolbar()
     {
-        $state = $this->get('State');
-        $canDo = AlfaHelper::getActions();
+        $canDo    = ContentHelper::getActions('com_alfa');
+        $toolbar  = $this->getDocument()->getToolbar();
 
         ToolbarHelper::title(Text::_('COM_ALFA_TITLE_CATEGORIES'), "generic");
 
-        $toolbar = Toolbar::getInstance('toolbar');
-
-        // Check if the form exists before showing the add/edit buttons
-        $formPath = JPATH_COMPONENT_ADMINISTRATOR . '/src/View/Categories';
-
-        if (file_exists($formPath)) {
-            if ($canDo->get('core.create')) {
-                $toolbar->addNew('category.add');
-            }
+        if ($canDo->get('core.create')) {
+            $toolbar->addNew('category.add');
         }
 
         if ($canDo->get('core.edit.state')) {
@@ -111,11 +89,15 @@ class HtmlView extends BaseHtmlView
 
             $childBar = $dropdown->getChildToolbar();
 
-            if (isset($this->items[0]->state)) {
-                $childBar->publish('categories.publish')->listCheck(true);
-                $childBar->unpublish('categories.unpublish')->listCheck(true);
-                $childBar->archive('categories.archive')->listCheck(true);
-            } elseif (isset($this->items[0])) {
+            $childBar->publish('categories.publish')->listCheck(true);
+            $childBar->unpublish('categories.unpublish')->listCheck(true);
+            $childBar->archive('categories.archive')->listCheck(true);
+
+            if ($this->state->get('filter.state') != AlfaComponent::CONDITION_TRASHED) {
+                $childBar->trash('categories.trash')->listCheck(true);
+            }
+
+            if ($this->state->get('filter.state') == AlfaComponent::CONDITION_TRASHED && $canDo->get('core.delete')) {
                 // If this component does not use state then show a direct delete button as we can not trash
                 $toolbar->delete('categories.delete')
                     ->text('JTOOLBAR_EMPTY_TRASH')
@@ -123,67 +105,21 @@ class HtmlView extends BaseHtmlView
                     ->listCheck(true);
             }
 
-            // $childBar->standardButton('duplicate')
-            //     ->text('JTOOLBAR_DUPLICATE')
-            //     ->icon('fas fa-copy')
-            //     ->task('categories.duplicate')
-            //     ->listCheck(true);
-
-            if (isset($this->items[0]->checked_out)) {
-                $childBar->checkin('categories.checkin')->listCheck(true);
-            }
-
-            if (isset($this->items[0]->state)) {
-                $childBar->trash('categories.trash')->listCheck(true);
-            }
-        }
+//			$childBar->standardButton('duplicate')
+//				->text('JTOOLBAR_DUPLICATE')
+//				->icon('fas fa-copy')
+//				->task('categories.duplicate')
+//				->listCheck(true);
 
 
-        // Show trash and delete for components that uses the state field
-        if (isset($this->items[0]->state)) {
+            $childBar->checkin('categories.checkin')->listCheck(true);
 
-            if ($this->state->get('filter.state') == ContentComponent::CONDITION_TRASHED && $canDo->get('core.delete')) {
-                $toolbar->delete('categories.delete')
-                    ->text('JTOOLBAR_EMPTY_TRASH')
-                    ->message('JGLOBAL_CONFIRM_DELETE')
-                    ->listCheck(true);
-            }
         }
 
         if ($canDo->get('core.admin')) {
             $toolbar->preferences('com_alfa');
         }
 
-        // Set sidebar action
-        Sidebar::setAction('index.php?option=com_alfa&view=categories');
     }
 
-    /**
-     * Method to order fields
-     *
-     * @return void
-     */
-    protected
-    function getSortFields()
-    {
-        return array(
-            'a.`ordering`' => Text::_('JGRID_HEADING_ORDERING'),
-            'a.`id`' => Text::_('JGRID_HEADING_ID'),
-            'a.`name`' => Text::_('COM_ALFA_CATEGORIES_NAME'),
-            'a.`state`' => Text::_('JSTATUS'),
-        );
-    }
-
-    /**
-     * Check if state is set
-     *
-     * @param mixed $state State
-     *
-     * @return bool
-     */
-    public
-    function getState($state)
-    {
-        return isset($this->state->{$state}) ? $this->state->{$state} : false;
-    }
 }

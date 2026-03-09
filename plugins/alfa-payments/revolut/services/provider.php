@@ -31,7 +31,6 @@ return new class () implements ServiceProviderInterface {
             PluginInterface::class,
             function (Container $container) {
                 $plugin     = new Revolut(
-                    $container->get(DispatcherInterface::class),
                     (array) PluginHelper::getPlugin('alfa-payments', 'revolut')
                 );
                 $plugin->setApplication(Factory::getApplication());

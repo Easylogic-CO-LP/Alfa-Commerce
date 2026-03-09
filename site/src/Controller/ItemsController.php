@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -28,16 +28,16 @@ use Joomla\Utilities\ArrayHelper;
 class ItemsController extends FormController
 {
 
-    public function display($cachable = false, $urlparams = array())
-    {
-        $viewType = $this->input->get('format', 'html');
-        $view = $this->input->get('view', 'items');
+	public function display($cachable = false, $urlparams = array())
+	{
+		$viewType = $this->input->get('format', 'html');
+		$view     = $this->input->get('view', 'items');
 
-        $this->input->set('format', $viewType); // Force JSON format
-        parent::display($cachable, $urlparams);
+		$this->input->set('format', $viewType); // Force JSON format
+		parent::display($cachable, $urlparams);
 
-        return $this;
-    }
+		return $this;
+	}
 
 	/**
 	 * Proxy for getModel.
@@ -46,12 +46,12 @@ class ItemsController extends FormController
 	 * @param   string  $prefix  The class prefix. Optional
 	 * @param   array   $config  Configuration array for model. Optional
 	 *
-	 * @return  object	The model
+	 * @return  object    The model
 	 *
 	 * @since   1.0.1
 	 */
-	public function getModel($name = 'Items', $prefix = 'Site', $config = array())
+	public function getModel($name = 'Items', $prefix = 'Site', $config = ['ignore_request' => true])
 	{
-		return parent::getModel($name, $prefix, array('ignore_request' => true));
+		return parent::getModel($name, $prefix, $config);
 	}
 }

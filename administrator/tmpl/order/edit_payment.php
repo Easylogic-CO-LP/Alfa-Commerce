@@ -1,90 +1,112 @@
 <?php
+/**
+ * @package     Alfa.Component
+ * @subpackage  Administrator.View.Order
+ * @version     3.0.0
+ * @author      Agamemnon Fakas <info@easylogic.gr>
+ * @copyright   2025 Easylogic CO LP
+ * @license     GNU General Public License version 2 or later
+ *
+ * Single payment edit form — rendered inside a modal iframe.
+ * Shows the form fields + plugin action buttons (for existing payments).
+ *
+ * Path: administrator/components/com_alfa/tmpl/order/edit_payment.php
+ *
+ * @since  3.0.0
+ */
 
 defined('_JEXEC') or die;
 
-use \Alfa\Component\Alfa\Administrator\Helper\PluginLayoutHelper;
-use \Joomla\CMS\HTML\HTMLHelper;
-use \Joomla\CMS\Language\Text;
-use \Joomla\CMS\Factory;
-use \Joomla\CMS\Router\Route;
+use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
+use Alfa\Component\Alfa\Administrator\Helper\PluginLayoutHelper;
+use Joomla\CMS\HTML\HTMLHelper;
+use Joomla\CMS\Language\Text;
+use Joomla\CMS\Router\Route;
 
 $wa = $this->document->getWebAssetManager();
 $wa->useScript('keepalive')
-    ->useScript('form.validate')
-    ->useStyle('com_alfa.admin');
+	->useScript('form.validate')
+	->useScript('com_alfa.admin')
+	->useScript('com_alfa.order-actions')
+	->useStyle('com_alfa.admin');
 
-HTMLHelper::_('bootstrap.tooltip');
+$isNew = empty($this->payment);
 
-$input = Factory::getApplication()->input;
+$paymentID = $isNew ? 0 : (int) $this->payment->id;
+$orderID   = (int) $this->order->id;
 
-$paymentID = $input->getInt("id");
-$orderID = $input->getInt("id_order", 0);
+// ── Get plugin actions (only for existing payments) ──────────
+$actions    = [];
+$pluginType = '';
+
+if (!$isNew && $this->payment) {
+	$actions    = ActionRegistry::getPaymentActions($this->payment, $this->order);
+	$pluginType = $this->payment->params->type ?? 'standard';
+}
 
 ?>
 
-<form
-    action="<?php echo Route::_("index.php?option=com_alfa&layout=order_payment&tmpl=component&id={$paymentID}&id_order={$orderID}"); ?>"
-    method="post" enctype="multipart/form-data" name="adminForm" id="order_payment-form"
-    class="form-validate form-horizontal">
+    <!-- Toolbar -->
+    <div class="subhead noshadow mb-3">
+		<?php echo $this->getDocument()->getToolbar('toolbar')->render(); ?>
+    </div>
 
-    <button type="button" class="btn btn-success"
-            onclick="Joomla.submitbutton('order.savePayment')">
-        <span class="icon-apply" aria-hidden="true"></span>
-        <?php echo Text::_("COM_ALFA_ORDER_PAYMENT_SAVE")?>
-    </button>
+    <div class="container-popup">
 
-    <?php if($paymentID > 0): // Display delete button on existing payments. ?>
-        <button type="button" class="btn btn-danger"
-            onclick="Joomla.submitbutton('order.deletePayment')">
-        <span class="icon-apply" aria-hidden="true"></span>
-        <?php echo Text::_("COM_ALFA_ORDER_PAYMENT_DELETE")?>
-        </button>
-    <?php endif;?>
+		<?php // ── Plugin action buttons (existing payments only) ──── ?>
+		<?php if (!empty($actions)): ?>
+            <div class="mb-3 p-2 bg-light border rounded d-flex align-items-center flex-wrap gap-2">
+			<span class="fw-semibold text-muted me-2">
+				<span class="icon-cogs" aria-hidden="true"></span>
+				<?php echo Text::_('Actions'); ?>:
+			</span>
+				<?php foreach ($actions as $action):
+					$buttonLayout = PluginLayoutHelper::pluginLayout(
+						'alfa-payments',
+						$pluginType,
+						$action->button_layout ?? 'action_button'
+					);
 
-    <?php echo $this->form->renderFieldset('payment'); ?>
+					echo $buttonLayout->render([
+						'action'  => $action,
+						'context' => 'payment',
+						'id'      => $paymentID,
+					]);
+				endforeach; ?>
+            </div>
+		<?php endif; ?>
 
-    <?php if ($this->payment): ?>
-        <div>
+        <form
+                action="<?php echo Route::_("index.php?option=com_alfa&layout=edit_payment&tmpl=component&id={$paymentID}&id_order={$orderID}"); ?>"
+                method="post"
+                enctype="multipart/form-data"
+                name="adminForm"
+                id="payment-form"
+                class="form-validate form-horizontal">
 
-            <?php
-            echo PluginLayoutHelper::pluginLayout(
-                $this->payment->onAdminOrderPaymentView->getLayoutPluginType(),
-                $this->payment->onAdminOrderPaymentView->getLayoutPluginName(),
-                $this->payment->onAdminOrderPaymentView->getLayout(),
-            )->render($this->payment->onAdminOrderPaymentView->getLayoutData());
+            <!-- Form Fields -->
+			<?php echo $this->form->renderFieldset('payment'); ?>
 
-            ?>
+            <!-- Hidden Fields -->
+			<?php echo HTMLHelper::_('form.token'); ?>
+            <input type="hidden" name="task" value="" />
+            <input type="hidden" name="id" value="<?php echo $paymentID; ?>" />
+            <input type="hidden" name="id_order" value="<?php echo $orderID; ?>" />
+        </form>
+    </div>
 
-            <?php
-            $logsContent = PluginLayoutHelper::pluginLayout(
-                $this->payment->onAdminOrderPaymentViewLogs->getLayoutPluginType(),
-                $this->payment->onAdminOrderPaymentViewLogs->getLayoutPluginName(),
-                $this->payment->onAdminOrderPaymentViewLogs->getLayout(),
-            )->render($this->payment->onAdminOrderPaymentViewLogs->getLayoutData());
-
-            echo HTMLHelper::_(
-                'bootstrap.renderModal',    //html helper type for bootstrap modals
-                'logsModal',     //the id of the modal
-                [
-                    'title'  => 'Payment Details',
-                    'footer' => '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>',
-                ],
-                $logsContent
-            );
-
-            ?>
-
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal"
-                    data-bs-target="#logsModal">
-                View Payment Logs
-            </button>
-
-        </div>
-    <?php endif; ?>
-
-    <?php echo HTMLHelper::_('form.token'); ?>
-    <input type="hidden" name="task" value="" />
-
-</form>
-
-
+<?php if (!$isNew): ?>
+    <script>
+        /**
+         * Iframe context flag for order-actions.js.
+         *
+         * When set, executeAction() will notify the parent window
+         * instead of reloading the iframe on refresh/redirect actions.
+         */
+        window.AlfaActionContext = {
+            iframe: true,
+            messageType: 'alfa:payment-action',
+            entityId: <?php echo $paymentID; ?>
+        };
+    </script>
+<?php endif; ?>

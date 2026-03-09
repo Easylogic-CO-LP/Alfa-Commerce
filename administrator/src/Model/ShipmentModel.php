@@ -1,6 +1,6 @@
 <?php
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -12,14 +12,9 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
-use \Joomla\CMS\Table\Table;
-use \Joomla\CMS\Factory;
-use \Joomla\CMS\Language\Text;
-use \Joomla\CMS\Plugin\PluginHelper;
-use \Joomla\CMS\MVC\Model\AdminModel;
-use \Joomla\CMS\Helper\TagsHelper;
-use \Joomla\CMS\Filter\OutputFilter;
-use \Joomla\CMS\Event\Model;
+use Joomla\CMS\Table\Table;
+use Joomla\CMS\Factory;
+use Joomla\CMS\MVC\Model\AdminModel;
 
 /**
  * Shipment model.
@@ -44,23 +39,6 @@ class ShipmentModel extends AdminModel
 	 */
 	protected $item = null;
 
-
-	/**
-	 * Returns a reference to the a Table object, always creating it.
-	 *
-	 * @param   string  $type    The table type to instantiate
-	 * @param   string  $prefix  A prefix for the table class name. Optional.
-	 * @param   array   $config  Configuration array for model. Optional.
-	 *
-	 * @return  Table    A database object
-	 *
-	 * @since   1.0.1
-	 */
-	public function getTable($type = 'Shipment', $prefix = 'Administrator', $config = array())
-	{
-		return parent::getTable($type, $prefix, $config);
-	}
-
 	/**
 	 * Method to get the record form.
 	 *
@@ -79,32 +57,32 @@ class ShipmentModel extends AdminModel
 
 		// Get the form.
 		$form = $this->loadForm(
-					'com_alfa.' . $this->formName, 
-					$this->formName,
-					array(
-						'control' => 'jform',
-						'load_data' => $loadData 
-					)
-				);
-        
+			'com_alfa.' . $this->formName,
+			$this->formName,
+			array(
+				'control'   => 'jform',
+				'load_data' => $loadData
+			)
+		);
+
 		// Get ID of the article from input
 		$idFromInput = $app->getInput()->getInt('id', 0);
 
 		// On edit order, we get ID of order from order.id state, but on save, we use data from input
-    	$id = (int)$this->getState($this->formName.'.id', $idFromInput);
+		$id = (int) $this->getState($this->formName . '.id', $idFromInput);
 
-		if (empty($form)){
+		if (empty($form))
+		{
 			return false;
 		}
 
 		$item = ($this->item === null ? $this->getItem() : $this->item);
-		
-		AlfaHelper::addPluginForm($form, $data, $item ,'shipments');
+
+		AlfaHelper::addPluginForm($form, $data, $item, 'shipments');
 
 		return $form;
 	}
 
-	
 
 	/**
 	 * Method to get the data that should be injected in the form.
@@ -122,7 +100,7 @@ class ShipmentModel extends AdminModel
 		{
 			$data = ($this->item === null ? $this->getItem() : $this->item);
 
-            $data->shipmentsparams = $data->params;
+			$data->shipmentsparams = $data->params;
 
 		}
 
@@ -140,52 +118,54 @@ class ShipmentModel extends AdminModel
 	 */
 	public function getItem($pk = null)
 	{
-		
-			if ($item = parent::getItem($pk))
-			{
-				// Do any processing on fields here if needed
-                $item->categories = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_shipment_categories', 'shipment_id','category_id');
-                $item->manufacturers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_shipment_manufacturers', 'shipment_id','manufacturer_id');
-                $item->places = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_shipment_places', 'shipment_id','place_id');
 
-                $item->users = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_shipment_users', 'shipment_id','user_id');
-                $item->usergroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_shipment_usergroups', 'shipment_id','usergroup_id');
-			}
+		if ($item = parent::getItem($pk))
+		{
+			// Do any processing on fields here if needed
+			$item->categories    = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_shipment_categories', 'shipment_id', 'category_id');
+			$item->manufacturers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_shipment_manufacturers', 'shipment_id', 'manufacturer_id');
+			$item->places        = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_shipment_places', 'shipment_id', 'place_id');
 
-			return $item;
+			$item->users      = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_shipment_users', 'shipment_id', 'user_id');
+			$item->usergroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_shipment_usergroups', 'shipment_id', 'usergroup_id');
+		}
+
+		return $item;
 	}
 
 
-    public function save($data)
-    {
-        $app = Factory::getApplication();
-        $db = $this->getDatabase();
+	public function save($data)
+	{
+		$app = Factory::getApplication();
+		$db  = $this->getDatabase();
 
-        $input = $app->getInput();
+		$input = $app->getInput();
 
-        $data['params'] = json_encode($data['shipmentsparams']);
+		$data['params'] = json_encode($data['shipmentsparams']);
 
-        if (!parent::save($data))return false;
+		if (!parent::save($data)) return false;
 
-        $currentId = 0;
-        if($data['id']>0){ //not a new
-            $currentId = intval($data['id']);
-        }else{ // is new
-            $currentId = intval($this->getState($this->getName().'.id'));//get the id from set joomla state.
-        }
+		$currentId = 0;
+		if ($data['id'] > 0)
+		{ //not a new
+			$currentId = intval($data['id']);
+		}
+		else
+		{ // is new
+			$currentId = intval($this->getState($this->getName() . '.id'));//get the id from set joomla state.
+		}
 
-        //Category/manufacturer etc associations
-        $assignZeroIdIfDataEmpty = true;
-        AlfaHelper::setAssocsToDb($currentId, $data['categories'], '#__alfa_shipment_categories', 'shipment_id','category_id',$assignZeroIdIfDataEmpty);
-        AlfaHelper::setAssocsToDb($currentId, $data['manufacturers'], '#__alfa_shipment_manufacturers', 'shipment_id','manufacturer_id',$assignZeroIdIfDataEmpty);
-        AlfaHelper::setAssocsToDb($currentId, $data['places'], '#__alfa_shipment_places', 'shipment_id','place_id',$assignZeroIdIfDataEmpty);
-        AlfaHelper::setAssocsToDb($currentId, $data['users'], '#__alfa_shipment_users', 'shipment_id','user_id',$assignZeroIdIfDataEmpty);
-        AlfaHelper::setAssocsToDb($currentId, $data['usergroups'], '#__alfa_shipment_usergroups','shipment_id', 'usergroup_id',$assignZeroIdIfDataEmpty);
+		//Category/manufacturer etc associations
+		$assignZeroIdIfDataEmpty = true;
+		AlfaHelper::setAssocsToDb($currentId, $data['categories'], '#__alfa_shipment_categories', 'shipment_id', 'category_id', $assignZeroIdIfDataEmpty);
+		AlfaHelper::setAssocsToDb($currentId, $data['manufacturers'], '#__alfa_shipment_manufacturers', 'shipment_id', 'manufacturer_id', $assignZeroIdIfDataEmpty);
+		AlfaHelper::setAssocsToDb($currentId, $data['places'], '#__alfa_shipment_places', 'shipment_id', 'place_id', $assignZeroIdIfDataEmpty);
+		AlfaHelper::setAssocsToDb($currentId, $data['users'], '#__alfa_shipment_users', 'shipment_id', 'user_id', $assignZeroIdIfDataEmpty);
+		AlfaHelper::setAssocsToDb($currentId, $data['usergroups'], '#__alfa_shipment_usergroups', 'shipment_id', 'usergroup_id', $assignZeroIdIfDataEmpty);
 
-        return true;
+		return true;
 
-    }
-
+	}
 
 
 	/**
@@ -197,22 +177,19 @@ class ShipmentModel extends AdminModel
 	 *
 	 * @since   1.0.1
 	 */
-    protected function prepareTable($table)
-    {
-	$user = $this->getCurrentUser();
-
-	if ($table->id == 0 && empty($table->created_by))
+	protected function prepareTable($table)
 	{
-	    $table->created_by = $user->id;
+		$user = $this->getCurrentUser();
+
+		if ($table->id == 0 && empty($table->created_by))
+		{
+			$table->created_by = $user->id;
+		}
+
+		$table->modified    = Factory::getDate()->toSql();
+		$table->modified_by = $user->id;
+
 	}
-
-    	$table->modified = Factory::getDate()->toSql();
-    	$table->modified_by = $user->id;
-
-        return parent::prepareTable($table);
-        
-    }
-
 
 
 }

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * @version    CVS: 1.0.1
+ * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  2024 Easylogic CO LP
@@ -12,7 +12,7 @@ namespace Alfa\Component\Alfa\Site\View\Empties;
 // No direct access
 defined('_JEXEC') or die;
 
-use \Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
+use Alfa\Component\Alfa\Site\View\HtmlView as BaseHtmlView;
 use \Joomla\CMS\Factory;
 use \Joomla\CMS\Language\Text;
 
@@ -38,15 +38,15 @@ class HtmlView extends BaseHtmlView
 	 *
 	 * @return void
 	 *
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	public function display($tpl = null)
 	{
 		$app = Factory::getApplication();
 
-		$this->state = $this->get('State');
+		$this->state  = $this->get('State');
 		$this->params = $app->getParams('com_alfa');
-		
+
 
 		// Check for errors.
 		if (count($errors = $this->get('Errors')))
@@ -63,7 +63,7 @@ class HtmlView extends BaseHtmlView
 	 *
 	 * @return void
 	 *
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	protected function _prepareDocument()
 	{
@@ -116,15 +116,16 @@ class HtmlView extends BaseHtmlView
 			$this->document->setMetadata('robots', $this->params->get('robots'));
 		}
 
-		
-            // Add Breadcrumbs
-            $pathway = $app->getPathway();
-                        $breadcrumbTitle = Text::_('COM_ALFA_TITLE_EMPTIES');
 
-                        if(!in_array($breadcrumbTitle, $pathway->getPathwayNames())) {
-                            $pathway->addItem($breadcrumbTitle);
-                        }
-                
+		// Add Breadcrumbs
+		$pathway         = $app->getPathway();
+		$breadcrumbTitle = Text::_('COM_ALFA_TITLE_EMPTIES');
+
+		if (!in_array($breadcrumbTitle, $pathway->getPathwayNames()))
+		{
+			$pathway->addItem($breadcrumbTitle);
+		}
+
 	}
 
 	/**

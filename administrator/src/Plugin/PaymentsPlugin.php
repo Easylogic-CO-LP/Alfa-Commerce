@@ -1,214 +1,293 @@
 <?php
+/**
+ * @package     Alfa.Component
+ * @subpackage  Administrator.Plugin
+ * @version     3.5.1
+ * @author      Agamemnon Fakas <info@easylogic.gr>
+ * @copyright   2026 Easylogic CO LP
+ * @license     GNU General Public License version 2 or later
+ *
+ * Base Payment Plugin
+ *
+ * All payment plugins extend this class.
+ * Provides fluent builder wrappers for payment operations
+ * and empty action hooks for the admin UI.
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ *  FLUENT BUILDER API (recommended for programmatic use):
+ *
+ *    CREATE:
+ *      $paymentId = $this->payment($order)->pending()->save();
+ *      $paymentId = $this->payment($order)->authorized()->transactionId('ch_3M..')->save();
+ *      $paymentId = $this->payment($order)->refund()->amount(50)->completed()->save();
+ *
+ *    UPDATE:
+ *      $this->paymentUpdate($paymentId)->completed()->save();
+ *      $this->paymentUpdate($paymentId)->cancelled()->note('Customer request')->save();
+ *      $this->paymentUpdate($paymentId)->refunded()->save();
+ *
+ *  READ / DELETE (no builder needed):
+ *    $payment  = $this->getPayment($paymentId);
+ *    $payments = $this->getPaymentsByOrder($orderId);
+ *    $this->deletePayment($paymentId, $orderId);
+ *
+ *  LOGGING (inherited from Plugin.php):
+ *    $logId = $this->log(['id_order' => $orderId, ...]);
+ *    $logs  = $this->loadLogs($orderId, $paymentId);
+ *    $xml   = $this->getLogsSchema();
+ *
+ *  ADMIN ACTIONS (Fluent API on event):
+ *    $event->add('mark_paid', 'Mark as Paid')
+ *        ->icon('checkmark')->css('btn-success')
+ *        ->confirm('Mark as paid?')->priority(200);
+ * ═══════════════════════════════════════════════════════════════════
+ *
+ * LOG IDENTIFIER: Sets logIdentifierField = 'id_order_payment'
+ *
+ * Path: administrator/components/com_alfa/src/Plugin/PaymentsPlugin.php
+ *
+ * @since  3.0.0
+ */
 
 namespace Alfa\Component\Alfa\Administrator\Plugin;
 
-use Joomla\CMS\Component\ComponentHelper;
-use Joomla\CMS\Factory;
-use Joomla\CMS\HTML\HTMLHelper;
+use Alfa\Component\Alfa\Administrator\Helper\OrderPaymentHelper;
 use Joomla\CMS\Plugin\CMSPlugin;
-use Joomla\Event\DispatcherInterface;
-use Joomla\CMS\Language\Text;
+use Joomla\Event\SubscriberInterface;
 
-// phpcs:disable PSR1.Files.SideEffects
-\defined('_JEXEC') or die;
-// phpcs:enable PSR1.Files.SideEffects
+defined('_JEXEC') or die;
 
-/**
- * Abstract Fields Plugin
- *
- * @since  3.7.0
- */
-abstract class PaymentsPlugin extends Plugin //implements SubscriberInterface
+abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
 {
-    
-    // Used to uniquely identify a payment log entry.
-    protected $logIdentifierField = "id_order_payment";
-
-	protected $mustHaveColumns = [
-        ['name'=>'id_order','mysql_type' => 'int(11)', 'default' => 'NULL'],
-        ['name'=>'id_order_payment','mysql_type' => 'int(11)', 'default' => 'NULL'],
-//        ['name'=>'status', 'mysql_type' => 'char(3)', 'default' => 'NULL'],//S ( success ) ,P ( pending ) , F ( failed ) ,R ( refunded )
-    ];
-
-    // public function productView($event){
-
-    //     $item = $event->getItem();
-    //     $method = $event->getMethod();
-
-    //     // if($method->type !== $this->_type){
-    //     //     return;
-    //     // }
-
-    //     $html = 
-    //         <<<HTML
-    //             <div>aaa
-    //                 <h5>{$method->name}</h5>
-    //                 <p>{$method->description}</p>
-    //             </div>
-    //         HTML;
-
-    //     return $html;
-    // }
+	/** @var string  Default completion page URL */
+	protected string $completePageUrl;
 
 	/**
-	 * Returns an array of events this subscriber will listen to.
+	 * Events this plugin subscribes to.
 	 *
 	 * @return  array
-	 *
-	 * @since   5.0.0
+	 * @since   3.0.0
 	 */
-	//	public static function getSubscribedEvents(): array
-	//	{
-	//		return [
-	//          'onAdminOrderView'  => 'adminOrderView',
-	//			'onCartView'     	=> 'cartView',
-	//			'onProcessPayment' 	=> 'processPayment',
-	//			'onCompleteOrder'   => 'completeOrder',
-	//		];
-	//	}
-
-	/**
-	 * Affects constructor behavior. If true, language files will be loaded automatically.
-	 *
-	 * @var    boolean
-	 * @since  3.7.0
-	 */
-//	protected $autoloadLanguage = true;
-
-	/**
-	 * Application object.
-	 *
-	 * @var    \Joomla\CMS\Application\CMSApplication
-	 * @since  4.0.0
-	 */
-//	protected $app;
-
-//	public function __construct(DispatcherInterface $dispatcher, array $config = [])
-//	{
-//		parent::__construct($dispatcher, $config);
-//		$this->database = Factory::getContainer()->get('DatabaseDriver');
-//		$this->layoutPath = JPATH_PLUGINS . '/' . $this->_type . '/' . $this->_name.'/tmpl';
-//
-//		// $this->emptyLogData = $this->createEmptyLog();
-//
-//	}
-
-
-    
-   
-    // $orderId = $this->app->getUserState('com_alfa.order_id');
-
-
-    protected function insertOrderPayment($data):int {
-
-    	// $this->app->getUserState('com_alfa.order_id')
-
-        // Function can only handle arrays.
-        if(is_object($data))
-            $data = (array)$data; //json_decode(json_encode($data), true); // for nested also
-
-//    	 $user  = $this->app->getIdentity();
-//    	 $userId = $user->id;
-//         if(empty($userId))
-//            $userId = $data['id_user'];
-
-
-		// use Joomla\CMS\Date\Date;//libraries > src > Date > Date.php
-		// $offset = Factory::getConfig()->get('offset');
-
-		// $now = new Date('now',$offset);
-
-         $component_params = ComponentHelper::getParams('com_alfa');
-         $currency_id = $component_params->get('default_currency', 47);//47 is euro with number 978
-
-         $paymentObject = new \stdClass();
-//         $paymentObject->id              = isset($data['id']) ? intval($data['id']) : 0;
-         $paymentObject->id_order        = isset($data['id_order']) ? $data['id_order'] : 0;
-         $paymentObject->id_currency     = isset($data['id_currency']) && $data['id_currency'] > 0 ? intval($data['id_currency']) : $currency_id;
-         $paymentObject->id_payment_method  = isset($data['id_payment_method']) ? intval($data['id_payment_method']) : 0;
-         $paymentObject->id_user         = isset($data['id_user']) ? $data['id_user'] : 0;
-         $paymentObject->amount          = isset($data['amount']) ? floatval($data['amount']) : 0.0;
-         $paymentObject->conversion_rate = isset($data['conversion_rate']) ? floatval($data['conversion_rate']) : 0.0;
-         $paymentObject->transaction_id  = isset($data['transaction_id']) ? $data['transaction_id'] : '';
-         $paymentObject->added        = !empty($data['added']) ? Factory::getDate($data['added'])->toSql() : NULL;
-
-        $errorMessage = "Insufficient data to insert a payment.";
-        if(!$paymentObject){
-            $this->app->enqueueMessage($errorMessage, "error");
-            return 0;
-        }
-
-        $db = self::getDatabase();
-        $db->insertObject('#__alfa_order_payments', $paymentObject, "id");
-
-        return $paymentObject->id;
-    }
-
-     public function createEmptyOrderPayment(){
-        $orderPaymentArray = [
-            'id_order' => null,
-            'id_currency' => null,
-            'id_payment_method' => null,
-            'id_user' => null,
-            'amount' => null,
-            'conversion_rate' => null,
-            'transaction_id' => null,
-            'date_add' => null,
-        ];
-
-        return $orderPaymentArray;
-
-     }
-
-	public function onAdminOrderPaymentPrepareForm($event)
+	public static function getSubscribedEvents(): array
 	{
-		$order = $event->getData();
-		$form = $event->getForm();
-
-		$event->setData($order);
-		$event->setForm($form);
+		return [
+			'onItemView'         => 'onItemView',
+			'onCartView'         => 'onCartView',
+			'onOrderProcessView' => 'onOrderProcessView',
+		];
 	}
 
-	public function onAdminOrderPaymentView($event) {
-		$order = $event->getOrder();
-		$event->setOrder($order);
+	/**
+	 * Constructor.
+	 *
+	 * Sets logIdentifierField so $this->loadLogs($orderId, $paymentId)
+	 * correctly filters by id_order_payment in the plugin's log table.
+	 *
+	 * @param   array  $config  Plugin configuration
+	 * @since   3.0.0
+	 */
+	public function __construct(array $config = [])
+	{
+		parent::__construct($config);
 
-		$event->setLayoutPluginName($this->_name);
-		$event->setLayoutPluginType($this->_type);
-		$event->setLayout('default_order_view');
-//	    $event->setLayoutData(
-//		    [
-//			    "logData" => $logData,
-//			    "xml" => $xml
-//		    ]
-//	    );
+		$this->completePageUrl    = 'index.php?option=com_alfa&view=cart&layout=default_order_completed';
+		$this->logIdentifierField = 'id_order_payment';
 	}
 
-    // ???
-	public function onAdminOrderPaymentViewLogs($event) {
-
-        $order = $event->getOrder();
-        $method = $event->getMethod();  // Represents the shipping order's shipment.
-
-		// load logs from xml
-		$formFile = JPATH_PLUGINS . '/' . $this->_type . '/' . $this->_name.'/params/logs.xml';
-		if (!file_exists($formFile)) return;
-
-		$xml = simplexml_load_file($formFile);
-
-		// Get logs data from db
-		$logData = self::loadLogData($order->id, $method->id);
-
-		$event->setLayoutPluginName($this->_name);
-		$event->setLayoutPluginType($this->_type);
-		$event->setLayout('default_order_logs_view');
-		$event->setLayoutData(
-			[
-				"logData" => $logData,
-				"xml" => $xml
-			]
-		);
-
+	/**
+	 * Get the order completion page URL.
+	 *
+	 * @return  string
+	 * @since   3.0.0
+	 */
+	public function getCompletePageUrl(): string
+	{
+		return $this->completePageUrl;
 	}
 
+	/**
+	 * Set the order completion page URL.
+	 *
+	 * @param   string  $url
+	 * @return  void
+	 * @since   3.0.0
+	 */
+	public function setCompletePageUrl(string $url): void
+	{
+		$this->completePageUrl = $url;
+	}
+
+	// ==========================================================
+	//  PAYMENT FLUENT BUILDER WRAPPERS
+	//
+	//  These return an OrderPaymentHelper builder instance.
+	//  The builder validates, auto-fills, and delegates to
+	//  static CRUD methods internally.
+	//
+	//  For direct CRUD access (batch ops, admin form saves),
+	//  use OrderPaymentHelper::create/update/delete() directly.
+	// ==========================================================
+
+	/**
+	 * Create a new payment (returns fluent builder in CREATE mode).
+	 *
+	 * Amount is auto-resolved from the best available source:
+	 *   Primary: $order->total_paid_tax_incl (always correct — Money object)
+	 *   Priority 2: OrderTotalHelper (items + shipping - discounts from DB)
+	 *   Priority 3: ->amount($x) manual override (always wins when called)
+	 *
+	 * Usage:
+	 *   $paymentId = $this->payment($order)->pending()->save();
+	 *   $paymentId = $this->payment($order)->authorized()->transactionId('ch_3M..')->save();
+	 *   $paymentId = $this->payment($order)->refund()->amount(50)->completed()->save();
+	 *
+	 * @param   object  $order  Full order object (->id, ->items, ->id_payment_method)
+	 *
+	 * @return  OrderPaymentHelper  Builder — chain setters, finish with ->save()
+	 *
+	 * @since   3.5.1
+	 */
+	protected function payment(object $order): OrderPaymentHelper
+	{
+		return OrderPaymentHelper::for($order);
+	}
+
+	/**
+	 * Update an existing payment (returns fluent builder in UPDATE mode).
+	 *
+	 * Only fields you explicitly set via setter methods are sent to the
+	 * database. If nothing is changed, save() is a no-op.
+	 *
+	 * Usage:
+	 *   $this->paymentUpdate($id)->completed()->save();
+	 *   $this->paymentUpdate($id)->cancelled()->note('Customer request')->save();
+	 *   $this->paymentUpdate($id)->refunded()->save();
+	 *
+	 * @param   int  $paymentId  Existing payment row PK
+	 *
+	 * @return  OrderPaymentHelper  Builder — chain setters, finish with ->save()
+	 *
+	 * @throws  \RuntimeException  If payment not found in DB
+	 *
+	 * @since   3.5.1
+	 */
+	protected function paymentUpdate(int $paymentId): OrderPaymentHelper
+	{
+		return OrderPaymentHelper::load($paymentId);
+	}
+
+	// ==========================================================
+	//  PAYMENT READ / DELETE (no builder needed)
+	// ==========================================================
+
+	/**
+	 * Delete an order payment record.
+	 *
+	 * @param   int  $id       Payment row PK
+	 * @param   int  $orderId  Order PK (for activity log)
+	 *
+	 * @return  bool  True on success
+	 *
+	 * @since   3.5.0
+	 */
+	protected function deletePayment(int $id, int $orderId): bool
+	{
+		return OrderPaymentHelper::delete($id, $orderId);
+	}
+
+	/**
+	 * Load a single payment with method params attached.
+	 *
+	 * @param   int  $id  Payment row PK
+	 *
+	 * @return  object|null  Payment record with ->params, or null
+	 *
+	 * @since   3.5.0
+	 */
+	protected function getPayment(int $id): ?object
+	{
+		return OrderPaymentHelper::get($id);
+	}
+
+	/**
+	 * Load all payments for an order (lightweight — no params).
+	 *
+	 * @param   int  $orderId  Order PK
+	 *
+	 * @return  array  Array of payment row objects
+	 *
+	 * @since   3.5.0
+	 */
+	protected function getPaymentsByOrder(int $orderId): array
+	{
+		return OrderPaymentHelper::getByOrder($orderId);
+	}
+
+	// ==========================================================
+	//  FRONTEND HOOKS (abstract — plugin MUST implement)
+	// ==========================================================
+
+	/**
+	 * Order process view — redirect to gateway or show processing page.
+	 *
+	 * @param   object  $event  OrderProcessViewEvent
+	 * @return  void
+	 * @since   3.0.0
+	 */
+	abstract public function onOrderProcessView($event): void;
+
+	/**
+	 * Order complete view — show thank-you page.
+	 *
+	 * @param   object  $event  OrderCompleteViewEvent
+	 * @return  void
+	 * @since   3.0.0
+	 */
+	abstract public function onOrderCompleteView($event): void;
+
+	// ==========================================================
+	//  ADMIN ACTION HOOKS (empty — plugin overrides as needed)
+	// ==========================================================
+
+	/**
+	 * Register available action buttons for a payment.
+	 *
+	 * Override this to add buttons using the fluent API:
+	 *
+	 *   $event->add('mark_paid', 'Mark as Paid')
+	 *       ->icon('checkmark')->css('btn-success')
+	 *       ->confirm('Mark as paid?');
+	 *
+	 * Default: no actions.
+	 *
+	 * @param   object  $event  GetPaymentActionsEvent
+	 * @return  void
+	 * @since   3.0.0
+	 */
+	public function onGetActions($event): void
+	{
+		// Empty — plugin overrides to register actions
+	}
+
+	/**
+	 * Handle an action button click for a payment.
+	 *
+	 * Override and use match() to route actions:
+	 *
+	 *   match ($event->getAction()) {
+	 *       'mark_paid'  => $this->handleMarkPaid($event),
+	 *       'view_logs'  => $this->handleViewLogs($event),
+	 *       default      => $event->setError('Unknown action'),
+	 *   };
+	 *
+	 * Default: sets error "Unknown action".
+	 *
+	 * @param   object  $event  ExecutePaymentActionEvent
+	 * @return  void
+	 * @since   3.0.0
+	 */
+	public function onExecuteAction($event): void
+	{
+		$event->setError('Unknown action: ' . $event->getAction());
+	}
 }
