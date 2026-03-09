@@ -14,12 +14,14 @@ namespace Alfa\Component\Alfa\Administrator\Plugin;
 // use Joomla\CMS\Event\CustomFields\PrepareDomEvent;
 // use Joomla\CMS\Event\CustomFields\PrepareFieldEvent;
 // use Joomla\CMS\Event\Model\PrepareFormEvent;
+use DOMElement;
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Plugin\CMSPlugin;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\Component\Fields\Administrator\Helper\FieldsHelper;
 use Joomla\Filesystem\Folder;
+use stdClass;
 
 // phpcs:disable PSR1.Files.SideEffects
 \defined('_JEXEC') or die;
@@ -35,7 +37,7 @@ abstract class FieldsPlugin extends CMSPlugin
     /**
      * Affects constructor behavior. If true, language files will be loaded automatically.
      *
-     * @var    boolean
+     * @var bool
      * @since  3.7.0
      */
     protected $autoloadLanguage = true;
@@ -43,7 +45,7 @@ abstract class FieldsPlugin extends CMSPlugin
     /**
      * Application object.
      *
-     * @var    \Joomla\CMS\Application\CMSApplication
+     * @var \Joomla\CMS\Application\CMSApplication
      * @since  4.0.0
      */
     protected $app;
@@ -51,7 +53,6 @@ abstract class FieldsPlugin extends CMSPlugin
     /**
      * Returns an array of events this subscriber will listen to.
      *
-     * @return  array
      *
      * @since   5.0.0
      */
@@ -60,23 +61,20 @@ abstract class FieldsPlugin extends CMSPlugin
         return [
             // 'onCustomFieldsGetTypes'     => 'getFieldTypes',
             // 'onCustomFieldsPrepareField' => 'prepareField',
-            'onAlfaFieldsPrepareDom'     => 'prepareDom',
+            'onAlfaFieldsPrepareDom' => 'prepareDom',
             // 'onContentPrepareForm'       => 'prepareForm',
         ];
     }
 
-    public function onFormFieldValidate($event){
+    public function onFormFieldValidate($event)
+    {
         $field = $event->setValid(true);
     }
-
-
-
-
 
     /**
      * Returns the custom fields types.
      *
-     * @return  void
+     * @return void
      *
      * @since   5.0.0
      */
@@ -92,7 +90,7 @@ abstract class FieldsPlugin extends CMSPlugin
     /**
      * Prepares the field value.
      *
-     * @return  void
+     * @return void
      *
      * @since   5.0.0
      */
@@ -109,7 +107,7 @@ abstract class FieldsPlugin extends CMSPlugin
      * The form event. Load additional parameters when available into the field form.
      * Only when the type of the form is of interest.
      *
-     * @return  void
+     * @return void
      *
      * @since   5.0.0
      */
@@ -121,7 +119,7 @@ abstract class FieldsPlugin extends CMSPlugin
     /**
      * Returns the custom fields types.
      *
-     * @return  string[][]
+     * @return string[][]
      *
      * @since   3.7.0
      */
@@ -193,11 +191,8 @@ abstract class FieldsPlugin extends CMSPlugin
     /**
      * Prepares the field value.
      *
-     * @param   string     $context  The context.
-     * @param   \stdclass  $item     The item.
-     * @param   \stdclass  $field    The field.
      *
-     * @return  ?string
+     * @return ?string
      *
      * @since   3.7.0
      */
@@ -224,85 +219,82 @@ abstract class FieldsPlugin extends CMSPlugin
     //     return $output;
     // }
 
-
     /**
      * Transforms the field into a DOM XML element and appends it as a child on the given parent.
      *
-     * @return  void
+     * @return void
      *
      * @since   5.0.0
      */
     public function prepareDom($event)
     {
-        $field  = $event->getField();
+        $field = $event->getField();
         $parent = $event->getFieldset();
-        $form   = $event->getForm();
+        $form = $event->getForm();
 
         // Check if the field should be processed by us
-//        if (!$this->isTypeSupported($field->type)) {
-//            return null;
-//        }
-//
-//        // Detect if the field is configured to be displayed on the form
-//        if (!FieldsHelper::displayFieldOnForm($field)) {
-//            return null;
-//        }
-
-
+        //        if (!$this->isTypeSupported($field->type)) {
+        //            return null;
+        //        }
+        //
+        //        // Detect if the field is configured to be displayed on the form
+        //        if (!FieldsHelper::displayFieldOnForm($field)) {
+        //            return null;
+        //        }
 
         // Create the node
-        $node = $parent->appendChild(new \DOMElement('field'));
+        $node = $parent->appendChild(new DOMElement('field'));
 
         // Set the attributes
         $node->setAttribute('name', $field->field_name);
         $node->setAttribute('type', $field->type);
         $node->setAttribute('label', $field->field_label);
-//        $node->setAttribute('labelclass', $field->params->get('label_class', ''));
+        //        $node->setAttribute('labelclass', $field->params->get('label_class', ''));
         $node->setAttribute('description', $field->field_description);
-//        $node->setAttribute('class', $field->params->get('class', ''));
-//        $node->setAttribute('hint', $field->params->get('hint', ''));
+        //        $node->setAttribute('class', $field->params->get('class', ''));
+        //        $node->setAttribute('hint', $field->params->get('hint', ''));
         $node->setAttribute('required', $field->required ? 'true' : 'false');
 
-//        $showon_attribute = $field->params->get('showon', '');
-//        if ($showon_attribute) {
-//            $node->setAttribute('showon', $showon_attribute);
-//        }
+        //        $showon_attribute = $field->params->get('showon', '');
+        //        if ($showon_attribute) {
+        //            $node->setAttribute('showon', $showon_attribute);
+        //        }
 
-//        if ($field->default_value !== '') {
-//            $defaultNode = $node->appendChild(new \DOMElement('default'));
-//            $defaultNode->appendChild(new \DOMCdataSection($field->default_value));
-//        }
+        //        if ($field->default_value !== '') {
+        //            $defaultNode = $node->appendChild(new \DOMElement('default'));
+        //            $defaultNode->appendChild(new \DOMCdataSection($field->default_value));
+        //        }
 
         // Combine the two params
-//        $params = clone $this->params;
-//        $params->merge($field->fieldparams);
+        //        $params = clone $this->params;
+        //        $params->merge($field->fieldparams);
 
-//        $layout = $field->params->get('form_layout', $this->params->get('form_layout', ''));
-//
-//        if ($layout) {
-//            $node->setAttribute('layout', $layout);
-//        }
+        //        $layout = $field->params->get('form_layout', $this->params->get('form_layout', ''));
+        //
+        //        if ($layout) {
+        //            $node->setAttribute('layout', $layout);
+        //        }
 
         // Set the specific field parameters
-//        foreach ($params->toArray() as $key => $param) {
-//            if (\is_array($param)) {
-//                // Multidimensional arrays (eg. list options) can't be transformed properly
-//                $param = \count($param) == \count($param, COUNT_RECURSIVE) ? implode(',', $param) : '';
-//            }
-//
-//            if ($param === '' || (!\is_string($param) && !is_numeric($param))) {
-//                continue;
-//            }
-//
-//            $node->setAttribute($key, $param);
-//        }
+        //        foreach ($params->toArray() as $key => $param) {
+        //            if (\is_array($param)) {
+        //                // Multidimensional arrays (eg. list options) can't be transformed properly
+        //                $param = \count($param) == \count($param, COUNT_RECURSIVE) ? implode(',', $param) : '';
+        //            }
+        //
+        //            if ($param === '' || (!\is_string($param) && !is_numeric($param))) {
+        //                continue;
+        //            }
+        //
+        //            $node->setAttribute($key, $param);
+        //        }
 
         // Check if it is allowed to edit the field
-//        if (!FieldsHelper::canEditFieldValue($field)) {
-//            $node->setAttribute('disabled', 'true');
-//        }
+        //        if (!FieldsHelper::canEditFieldValue($field)) {
+        //            $node->setAttribute('disabled', 'true');
+        //        }
 
-//        print_r($node);
+        //        print_r($node);
         // Return the node
         return $node;
     }
@@ -311,10 +303,10 @@ abstract class FieldsPlugin extends CMSPlugin
      * The form event. Load additional parameters when available into the field form.
      * Only when the type of the form is of interest.
      *
-     * @param   Form       $form  The form
-     * @param   \stdClass  $data  The data
+     * @param Form $form The form
+     * @param stdClass $data The data
      *
-     * @return  void
+     * @return void
      *
      * @since   3.7.0
      */
@@ -333,10 +325,10 @@ abstract class FieldsPlugin extends CMSPlugin
     /**
      * Returns the path of the XML definition file for the field parameters
      *
-     * @param   Form       $form  The form
-     * @param   \stdClass  $data  The data
+     * @param Form $form The form
+     * @param stdClass $data The data
      *
-     * @return  string
+     * @return string
      *
      * @since   4.0.0
      */
@@ -375,9 +367,9 @@ abstract class FieldsPlugin extends CMSPlugin
     /**
      * Returns true if the given type is supported by the plugin.
      *
-     * @param   string  $type  The type
+     * @param string $type The type
      *
-     * @return  boolean
+     * @return bool
      *
      * @since   3.7.0
      */

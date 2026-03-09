@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @package     Alfa.Component
  * @subpackage  Administrator.Event.Payments
@@ -37,321 +38,291 @@ defined('_JEXEC') or die;
 
 class ExecutePaymentActionEvent extends AbstractImmutableEvent
 {
-	// ═════════════════════════════════════════════════════════
-	//  INPUT — set by controller, read by plugin
-	// ═════════════════════════════════════════════════════════
+    // ═════════════════════════════════════════════════════════
+    //  INPUT — set by controller, read by plugin
+    // ═════════════════════════════════════════════════════════
 
-	/**
-	 * Get the action ID requested (e.g. 'mark_paid', 'view_details').
-	 *
-	 * @return  string
-	 *
-	 * @since   3.0.0
-	 */
-	public function getAction(): string
-	{
-		return $this->arguments['action'];
-	}
+    /**
+     * Get the action ID requested (e.g. 'mark_paid', 'view_details').
+     *
+     *
+     * @since   3.0.0
+     */
+    public function getAction(): string
+    {
+        return $this->arguments['action'];
+    }
 
-	/**
-	 * Get the payment record.
-	 *
-	 * @return  object
-	 *
-	 * @since   3.0.0
-	 */
-	public function getPayment(): object
-	{
-		return $this->arguments['payment'];
-	}
+    /**
+     * Get the payment record.
+     *
+     *
+     * @since   3.0.0
+     */
+    public function getPayment(): object
+    {
+        return $this->arguments['payment'];
+    }
 
-	/**
-	 * Get the order record.
-	 *
-	 * @return  object
-	 *
-	 * @since   3.0.0
-	 */
-	public function getOrder(): object
-	{
-		return $this->arguments['order'];
-	}
+    /**
+     * Get the order record.
+     *
+     *
+     * @since   3.0.0
+     */
+    public function getOrder(): object
+    {
+        return $this->arguments['order'];
+    }
 
-	/**
-	 * Get additional data sent from JS.
-	 *
-	 * @return  array
-	 *
-	 * @since   3.0.0
-	 */
-	public function getData(): array
-	{
-		return $this->arguments['data'] ?? [];
-	}
+    /**
+     * Get additional data sent from JS.
+     *
+     *
+     * @since   3.0.0
+     */
+    public function getData(): array
+    {
+        return $this->arguments['data'] ?? [];
+    }
 
-	// ═════════════════════════════════════════════════════════
-	//  OUTPUT — set by plugin, read by controller
-	// ═════════════════════════════════════════════════════════
+    // ═════════════════════════════════════════════════════════
+    //  OUTPUT — set by plugin, read by controller
+    // ═════════════════════════════════════════════════════════
 
-	// ── Success / Error ──────────────────────────────────────
+    // ── Success / Error ──────────────────────────────────────
 
-	/**
-	 * Set whether the action succeeded. Default is true.
-	 *
-	 * @param   bool  $success
-	 *
-	 * @return  void
-	 *
-	 * @since   3.0.0
-	 */
-	public function setSuccess(bool $success): void
-	{
-		$this->arguments['success'] = $success;
-	}
+    /**
+     * Set whether the action succeeded. Default is true.
+     *
+     *
+     *
+     * @since   3.0.0
+     */
+    public function setSuccess(bool $success): void
+    {
+        $this->arguments['success'] = $success;
+    }
 
-	/**
-	 * @return  bool
-	 * @since   3.0.0
-	 */
-	public function isSuccess(): bool
-	{
-		return $this->arguments['success'] ?? true;
-	}
+    /**
+     * @since   3.0.0
+     */
+    public function isSuccess(): bool
+    {
+        return $this->arguments['success'] ?? true;
+    }
 
-	/**
-	 * Set a message to display to the admin.
-	 *
-	 * @param   string  $message
-	 *
-	 * @return  void
-	 *
-	 * @since   3.0.0
-	 */
-	public function setMessage(string $message): void
-	{
-		$this->arguments['message'] = $message;
-	}
+    /**
+     * Set a message to display to the admin.
+     *
+     *
+     *
+     * @since   3.0.0
+     */
+    public function setMessage(string $message): void
+    {
+        $this->arguments['message'] = $message;
+    }
 
-	/**
-	 * @return  string
-	 * @since   3.0.0
-	 */
-	public function getMessage(): string
-	{
-		return $this->arguments['message'] ?? '';
-	}
+    /**
+     * @since   3.0.0
+     */
+    public function getMessage(): string
+    {
+        return $this->arguments['message'] ?? '';
+    }
 
-	/**
-	 * Shortcut: mark this event as a failed action.
-	 *
-	 * @param   string  $message  Error message
-	 *
-	 * @return  void
-	 *
-	 * @since   3.0.0
-	 */
-	public function setError(string $message): void
-	{
-		$this->arguments['success'] = false;
-		$this->arguments['message'] = $message;
-	}
+    /**
+     * Shortcut: mark this event as a failed action.
+     *
+     * @param string $message Error message
+     *
+     *
+     * @since   3.0.0
+     */
+    public function setError(string $message): void
+    {
+        $this->arguments['success'] = false;
+        $this->arguments['message'] = $message;
+    }
 
-	// ── Navigation ───────────────────────────────────────────
+    // ── Navigation ───────────────────────────────────────────
 
-	/**
-	 * Set whether to reload the page after the action.
-	 *
-	 * @param   bool  $refresh
-	 *
-	 * @return  void
-	 *
-	 * @since   3.0.0
-	 */
-	public function setRefresh(bool $refresh): void
-	{
-		$this->arguments['refresh'] = $refresh;
-	}
+    /**
+     * Set whether to reload the page after the action.
+     *
+     *
+     *
+     * @since   3.0.0
+     */
+    public function setRefresh(bool $refresh): void
+    {
+        $this->arguments['refresh'] = $refresh;
+    }
 
-	/**
-	 * @return  bool
-	 * @since   3.0.0
-	 */
-	public function getRefresh(): bool
-	{
-		return $this->arguments['refresh'] ?? false;
-	}
+    /**
+     * @since   3.0.0
+     */
+    public function getRefresh(): bool
+    {
+        return $this->arguments['refresh'] ?? false;
+    }
 
-	/**
-	 * Set a redirect URL. Overrides refresh.
-	 *
-	 * Matches GeneralEvent::setRedirectUrl()
-	 *
-	 * @param   string  $url
-	 *
-	 * @return  void
-	 *
-	 * @since   3.0.0
-	 */
-	public function setRedirectUrl(string $url): void
-	{
-		$this->arguments['redirect'] = $url;
-	}
+    /**
+     * Set a redirect URL. Overrides refresh.
+     *
+     * Matches GeneralEvent::setRedirectUrl()
+     *
+     *
+     *
+     * @since   3.0.0
+     */
+    public function setRedirectUrl(string $url): void
+    {
+        $this->arguments['redirect'] = $url;
+    }
 
-	/**
-	 * @return  string|null
-	 * @since   3.0.0
-	 */
-	public function getRedirectUrl(): ?string
-	{
-		return $this->arguments['redirect'] ?? null;
-	}
+    /**
+     * @since   3.0.0
+     */
+    public function getRedirectUrl(): ?string
+    {
+        return $this->arguments['redirect'] ?? null;
+    }
 
-	// ── Layout (same pattern as LayoutEvent) ─────────────────
+    // ── Layout (same pattern as LayoutEvent) ─────────────────
 
-	/**
-	 * Set the layout filename (without .php).
-	 *
-	 * Matches LayoutEvent::setLayout()
-	 *
-	 * The controller will render this layout via PluginLayoutHelper.
-	 *
-	 * @param   string  $layout  e.g. 'action_view_details'
-	 *
-	 * @return  void
-	 *
-	 * @since   3.0.0
-	 */
-	public function setLayout(string $layout): void
-	{
-		$this->arguments['layout'] = $layout;
-	}
+    /**
+     * Set the layout filename (without .php).
+     *
+     * Matches LayoutEvent::setLayout()
+     *
+     * The controller will render this layout via PluginLayoutHelper.
+     *
+     * @param string $layout e.g. 'action_view_details'
+     *
+     *
+     * @since   3.0.0
+     */
+    public function setLayout(string $layout): void
+    {
+        $this->arguments['layout'] = $layout;
+    }
 
-	/**
-	 * Matches LayoutEvent::getLayout()
-	 *
-	 * @return  string
-	 * @since   3.0.0
-	 */
-	public function getLayout(): string
-	{
-		return $this->arguments['layout'] ?? '';
-	}
+    /**
+     * Matches LayoutEvent::getLayout()
+     *
+     * @since   3.0.0
+     */
+    public function getLayout(): string
+    {
+        return $this->arguments['layout'] ?? '';
+    }
 
-	/**
-	 * Set the data passed to the layout's $displayData.
-	 *
-	 * Matches LayoutEvent::setLayoutData()
-	 *
-	 * @param   array  $data
-	 *
-	 * @return  void
-	 *
-	 * @since   3.0.0
-	 */
-	public function setLayoutData(array $data): void
-	{
-		$this->arguments['layoutData'] = $data;
-	}
+    /**
+     * Set the data passed to the layout's $displayData.
+     *
+     * Matches LayoutEvent::setLayoutData()
+     *
+     *
+     *
+     * @since   3.0.0
+     */
+    public function setLayoutData(array $data): void
+    {
+        $this->arguments['layoutData'] = $data;
+    }
 
-	/**
-	 * Matches LayoutEvent::getLayoutData()
-	 *
-	 * @return  array
-	 * @since   3.0.0
-	 */
-	public function getLayoutData(): array
-	{
-		return $this->arguments['layoutData'] ?? [];
-	}
+    /**
+     * Matches LayoutEvent::getLayoutData()
+     *
+     * @since   3.0.0
+     */
+    public function getLayoutData(): array
+    {
+        return $this->arguments['layoutData'] ?? [];
+    }
 
-	/**
-	 * Set the modal title for when the layout is shown in a popup.
-	 *
-	 * @param   string  $title
-	 *
-	 * @return  void
-	 *
-	 * @since   3.0.0
-	 */
-	public function setModalTitle(string $title): void
-	{
-		$this->arguments['modalTitle'] = $title;
-	}
+    /**
+     * Set the modal title for when the layout is shown in a popup.
+     *
+     *
+     *
+     * @since   3.0.0
+     */
+    public function setModalTitle(string $title): void
+    {
+        $this->arguments['modalTitle'] = $title;
+    }
 
-	/**
-	 * @return  string|null
-	 * @since   3.0.0
-	 */
-	public function getModalTitle(): ?string
-	{
-		return $this->arguments['modalTitle'] ?? null;
-	}
+    /**
+     * @since   3.0.0
+     */
+    public function getModalTitle(): ?string
+    {
+        return $this->arguments['modalTitle'] ?? null;
+    }
 
-	// ── HTML (set by controller after rendering layout) ──────
+    // ── HTML (set by controller after rendering layout) ──────
 
-	/**
-	 * Set rendered HTML. Used by the controller, not by plugins.
-	 * Plugins use setLayout() + setLayoutData().
-	 *
-	 * @param   string  $html
-	 *
-	 * @return  void
-	 *
-	 * @since   3.0.0
-	 */
-	public function setHtml(string $html): void
-	{
-		$this->arguments['html'] = $html;
-	}
+    /**
+     * Set rendered HTML. Used by the controller, not by plugins.
+     * Plugins use setLayout() + setLayoutData().
+     *
+     *
+     *
+     * @since   3.0.0
+     */
+    public function setHtml(string $html): void
+    {
+        $this->arguments['html'] = $html;
+    }
 
-	/**
-	 * @return  string|null
-	 * @since   3.0.0
-	 */
-	public function getHtml(): ?string
-	{
-		return $this->arguments['html'] ?? null;
-	}
+    /**
+     * @since   3.0.0
+     */
+    public function getHtml(): ?string
+    {
+        return $this->arguments['html'] ?? null;
+    }
 
-	// ═════════════════════════════════════════════════════════
-	//  SERIALIZATION (used by controller to build JSON response)
-	// ═════════════════════════════════════════════════════════
+    // ═════════════════════════════════════════════════════════
+    //  SERIALIZATION (used by controller to build JSON response)
+    // ═════════════════════════════════════════════════════════
 
-	/**
-	 * Serialize the response fields to an array.
-	 *
-	 * Only includes output fields — input fields (action, payment, etc.)
-	 * are not sent to the client.
-	 *
-	 * @return  array
-	 *
-	 * @since   3.0.0
-	 */
-	public function toResponseArray(): array
-	{
-		$result = [
-			'success'     => $this->isSuccess(),
-			'message'     => $this->getMessage(),
-			'refresh'     => $this->getRefresh(),
-			'html'        => $this->getHtml(),
-			'modal_title' => $this->getModalTitle(),
-			'redirect'    => $this->getRedirectUrl(),
-		];
+    /**
+     * Serialize the response fields to an array.
+     *
+     * Only includes output fields — input fields (action, payment, etc.)
+     * are not sent to the client.
+     *
+     *
+     * @since   3.0.0
+     */
+    public function toResponseArray(): array
+    {
+        $result = [
+            'success' => $this->isSuccess(),
+            'message' => $this->getMessage(),
+            'refresh' => $this->getRefresh(),
+            'html' => $this->getHtml(),
+            'modal_title' => $this->getModalTitle(),
+            'redirect' => $this->getRedirectUrl(),
+        ];
 
-		return array_filter($result, function ($v) {
-			return $v !== null && $v !== false && $v !== '';
-		});
-	}
+        return array_filter($result, function ($v) {
+            return $v !== null && $v !== false && $v !== '';
+        });
+    }
 
-	/**
-	 * Serialize the response to JSON.
-	 *
-	 * @return  string
-	 *
-	 * @since   3.0.0
-	 */
-	public function toResponseJson(): string
-	{
-		return json_encode($this->toResponseArray());
-	}
+    /**
+     * Serialize the response to JSON.
+     *
+     *
+     * @since   3.0.0
+     */
+    public function toResponseJson(): string
+    {
+        return json_encode($this->toResponseArray());
+    }
 }

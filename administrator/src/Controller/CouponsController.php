@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    1.0.1
  * @package    Com_Alfa
@@ -23,11 +24,11 @@ class CouponsController extends AdminController
     /**
      * Proxy for getModel.
      *
-     * @param   string  $name    Optional. Model name
-     * @param   string  $prefix  Optional. Class prefix
-     * @param   array   $config  Optional. Configuration array for model
+     * @param string $name Optional. Model name
+     * @param string $prefix Optional. Class prefix
+     * @param array $config Optional. Configuration array for model
      *
-     * @return  object	The Model
+     * @return object The Model
      *
      * @since   1.0.1
      */
@@ -35,7 +36,4 @@ class CouponsController extends AdminController
     {
         return parent::getModel($name, $prefix, $config);
     }
-
-
-
 }

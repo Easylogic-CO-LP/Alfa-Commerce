@@ -13,7 +13,7 @@ $basePath = Uri::base(true);
 $formAction = $basePath . '/index.php?option=com_alfa&view=items';
 $ajaxAction = $basePath . '/index.php?option=com_ajax&module=alfa_search&method=get&format=json';
 
-$min_characters = (int)$params->get('minCharacters', '2');
+$min_characters = (int) $params->get('minCharacters', '2');
 $loadingImageType = $params->get('loadingImageType', '3');
 $loadingImageFile = $params->get('loadingImageFile', '');
 $loadingImageInline = $params->get('loadingImageInline', '');
@@ -40,9 +40,9 @@ $loadingImageInline = $params->get('loadingImageInline', '');
             <div class="loading-img" id="search-container-loading-img">
                 <?php if ($loadingImageType == '0' && !empty($loadingImageFile)) {
                     echo HtmlHelper::image($loadingImageFile, 'loading-img');
-                } else if ($loadingImageInline == '1' && !empty($loadingImageInline)) {
+                } elseif ($loadingImageInline == '1' && !empty($loadingImageInline)) {
                     echo $loadingImageInline;
-                } else if ($loadingImageType == '3') { ?>
+                } elseif ($loadingImageType == '3') { ?>
                     <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
                          viewBox="0 0 100 100"
                          preserveAspectRatio="xMidYMid">

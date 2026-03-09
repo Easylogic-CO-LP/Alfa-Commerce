@@ -9,11 +9,6 @@
 
 namespace Alfa\Component\Alfa\Administrator\Event\Payments;
 
-use Joomla\CMS\Form\Form;
-use Joomla\CMS\Event\Result\ResultAware;
-use Joomla\CMS\Event\Result\ResultAwareInterface;
-use Joomla\CMS\Event\Result\ResultTypeStringAware;
-
 // phpcs:disable PSR1.Files.SideEffects
 \defined('_JEXEC') or die;
 // phpcs:enable PSR1.Files.SideEffects
@@ -44,6 +39,4 @@ class AdminOrderAfterSaveEvent extends PaymentsEvent
     {
         return $this->arguments['can_save'];
     }
-
 }
-

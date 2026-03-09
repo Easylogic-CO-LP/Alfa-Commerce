@@ -9,6 +9,7 @@
  */
 
 namespace Alfa\Component\Alfa\Administrator\View;
+
 // No direct access
 defined('_JEXEC') or die;
 
@@ -21,17 +22,14 @@ use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
  */
 class HtmlView extends BaseHtmlView
 {
+    public function display($tpl = null)
+    {
+        $viewName = strtolower($this->getName());
 
-	public function display($tpl = null)
-	{
+        echo '<div id="alfa-app" data-view="' . htmlspecialchars($viewName) . '">';
 
-		$viewName = strtolower($this->getName());
+        parent::display($tpl);
 
-		echo '<div id="alfa-app" data-view="' . htmlspecialchars($viewName) . '">';
-
-		parent::display($tpl);
-
-		echo '</div>';
-	}
-
+        echo '</div>';
+    }
 }

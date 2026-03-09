@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    1.0.1
  * @package    Com_Alfa
@@ -8,16 +9,15 @@
  */
 
 namespace Alfa\Component\Alfa\Administrator\View\Orders;
+
 // No direct access
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\View\HtmlView as BaseHtmlView;
-use Joomla\CMS\Toolbar\ToolbarHelper;
-use Joomla\CMS\Language\Text;
 use Joomla\CMS\Helper\ContentHelper;
-use Alfa\Component\Alfa\Administrator\Extension\AlfaComponent;
-
+use Joomla\CMS\Language\Text;
+use Joomla\CMS\Toolbar\ToolbarHelper;
 
 /**
  * View class for a list of Orders.
@@ -41,7 +41,7 @@ class HtmlView extends BaseHtmlView
      *
      * @param string $tpl The name of the template file to parse; automatically searches through the template paths.
      *
-     * @return  void
+     * @return void
      */
     public function display($tpl = null)
     {
@@ -52,7 +52,7 @@ class HtmlView extends BaseHtmlView
         $this->state = $model->getState();
         $this->filterForm = $model->getFilterForm();
         $this->activeFilters = $model->getActiveFilters();
-		$this->orderStatuses = AlfaHelper::getOrderStatuses();
+        $this->orderStatuses = AlfaHelper::getOrderStatuses();
 
         $this->addToolbar();
 
@@ -67,7 +67,7 @@ class HtmlView extends BaseHtmlView
     /**
      * Add the page title and toolbar.
      *
-     * @return  void
+     * @return void
      *
      * @since   1.0.1
      */
@@ -76,15 +76,13 @@ class HtmlView extends BaseHtmlView
         $canDo = ContentHelper::getActions('com_alfa');
         $toolbar = $this->getDocument()->getToolbar();
 
-        ToolbarHelper::title(Text::_('COM_ALFA_TITLE_ORDERS'), "generic");
+        ToolbarHelper::title(Text::_('COM_ALFA_TITLE_ORDERS'), 'generic');
 
-
-//        if ($canDo->get('core.create'))
-//        {
+        //        if ($canDo->get('core.create'))
+        //        {
         // TODO: be  able to create a new order from backend
-//            $toolbar->addNew('order.add');
-//        }
-
+        //            $toolbar->addNew('order.add');
+        //        }
 
         if ($canDo->get('core.edit.state')) {
             $dropdown = $toolbar->dropdownButton('status-group')
@@ -96,31 +94,25 @@ class HtmlView extends BaseHtmlView
 
             $childBar = $dropdown->getChildToolbar();
 
+            //            $childBar->publish('orders.publish')->listCheck(true);
+            //            $childBar->unpublish('orders.unpublish')->listCheck(true);
+            //            $childBar->archive('orders.archive')->listCheck(true);
+            //            $childBar->trash('orders.trash')->listCheck(true);
 
-//            $childBar->publish('orders.publish')->listCheck(true);
-//            $childBar->unpublish('orders.unpublish')->listCheck(true);
-//            $childBar->archive('orders.archive')->listCheck(true);
-//            $childBar->trash('orders.trash')->listCheck(true);
-
-
-//            if ($this->state->get('filter.published') == ContentComponent::CONDITION_TRASHED && $canDo->get('core.delete')) {
-//			{
+            //            if ($this->state->get('filter.published') == ContentComponent::CONDITION_TRASHED && $canDo->get('core.delete')) {
+            //			{
             // If this component does not use state then show a direct delete button as we can not trash
             $toolbar->delete('orders.delete')
                 ->text('JTOOLBAR_EMPTY_TRASH')
                 ->message('JGLOBAL_CONFIRM_DELETE')
                 ->listCheck(true);
-//			}
+            //			}
 
             $childBar->checkin('orders.checkin')->listCheck(true);
-
         }
 
         if ($canDo->get('core.admin')) {
             $toolbar->preferences('com_alfa');
         }
-
     }
-
-
 }

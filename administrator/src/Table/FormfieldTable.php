@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    1.0.1
  * @package    Com_Alfa
@@ -8,6 +9,7 @@
  */
 
 namespace Alfa\Component\Alfa\Administrator\Table;
+
 // No direct access
 defined('_JEXEC') or die;
 
@@ -21,11 +23,10 @@ use Joomla\Database\DatabaseDriver;
  */
 class FormfieldTable extends Table
 {
-
     /**
      * Indicates that columns fully support the NULL value in the database
      *
-     * @var    boolean
+     * @var bool
      * @since  4.0.0
      */
     protected $_supportNullValue = true;
@@ -33,7 +34,7 @@ class FormfieldTable extends Table
     /**
      * Constructor
      *
-     * @param   JDatabase  &$db  A database connector object
+     * @param JDatabase &$db A database connector object
      */
     public function __construct(DatabaseDriver $db)
     {
@@ -48,9 +49,9 @@ class FormfieldTable extends Table
      * If a primary key value is set the row with that primary key value will be updated with the instance property values.
      * If no primary key value is set a new row will be inserted into the database with the properties from the Table instance.
      *
-     * @param   boolean  $updateNulls  True to update fields even if they are null.
+     * @param bool $updateNulls True to update fields even if they are null.
      *
-     * @return  boolean  True on success.
+     * @return bool True on success.
      *
      * @since   1.0.1
      */
@@ -58,6 +59,4 @@ class FormfieldTable extends Table
     {
         return parent::store($updateNulls);
     }
-
-
 }

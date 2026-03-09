@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    1.0.1
  * @package    Com_Alfa
@@ -8,14 +9,15 @@
  */
 
 namespace Alfa\Component\Alfa\Administrator\View\Formfield;
+
 // No direct access
 defined('_JEXEC') or die;
 
+use Joomla\CMS\Factory;
 use Joomla\CMS\Helper\ContentHelper;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\View\FormView;
 use Joomla\CMS\Toolbar\ToolbarHelper;
-use Joomla\CMS\Factory;
-use Joomla\CMS\Language\Text;
 
 /**
  * View class for a single Category.
@@ -24,56 +26,53 @@ use Joomla\CMS\Language\Text;
  */
 class HtmlView extends FormView
 {
+    public function display($tpl = null)
+    {
+        parent::display($tpl);
+    }
 
-	public function display($tpl = null)
-	{
-		parent::display($tpl);
-	}
+    protected function initializeView()
+    {
+        parent::initializeView();
 
-	protected function initializeView()
-	{
-		parent::initializeView();
+        $this->canDo = ContentHelper::getActions('com_alfa');
 
-		$this->canDo = ContentHelper::getActions('com_alfa');
+        $input = Factory::getApplication()->getInput();
 
-		$input          = Factory::getApplication()->getInput();
+        // Add form control fields
+        $this->form
+            ->addControlField('task', '')
+            ->addControlField('return', $input->getBase64('return', ''));
+    }
 
-		// Add form control fields
-		$this->form
-			->addControlField('task', '')
-			->addControlField('return', $input->getBase64('return', ''));
-	}
+    protected function addToolbar()
+    {
+        Factory::getApplication()->getInput()->set('hidemainmenu', true);
 
-	protected function addToolbar()
-	{
-		Factory::getApplication()->getInput()->set('hidemainmenu', true);
+        $user = $this->getCurrentUser();
+        $userId = $user->id;
+        $isNew = ($this->item->id == 0);
+        $checkedOut = !(\is_null($this->item->checked_out) || $this->item->checked_out == $userId);
 
-		$user       = $this->getCurrentUser();
-		$userId     = $user->id;
-		$isNew      = ($this->item->id == 0);
-		$checkedOut = !(\is_null($this->item->checked_out) || $this->item->checked_out == $userId);
+        $canDo = $this->canDo;
 
-		$canDo = $this->canDo;
-
-        ToolbarHelper::title(Text::_('COM_ALFA_TITLE_FORM_FIELD'), "generic");
+        ToolbarHelper::title(Text::_('COM_ALFA_TITLE_FORM_FIELD'), 'generic');
 
         // If not checked out, can save the item.
-        if (!$checkedOut && ($canDo->get('core.edit') || ($canDo->get('core.create'))))
-        {
+        if (!$checkedOut && ($canDo->get('core.edit') || ($canDo->get('core.create')))) {
             ToolbarHelper::apply('formfield.apply', 'JTOOLBAR_APPLY');
             ToolbarHelper::save('formfield.save', 'JTOOLBAR_SAVE');
         }
 
-        if (!$checkedOut && ($canDo->get('core.create')))
-        {
+        if (!$checkedOut && ($canDo->get('core.create'))) {
             ToolbarHelper::custom('formfield.save2new', 'save-new.png', 'save-new_f2.png', 'JTOOLBAR_SAVE_AND_NEW', false);
         }
 
         // If an existing item, can save to a copy.
-//        if (!$isNew && $canDo->get('core.create'))
-//        {
-//            ToolbarHelper::custom('formfield.save2copy', 'save-copy.png', 'save-copy_f2.png', 'JTOOLBAR_SAVE_AS_COPY', false);
-//        }
+        //        if (!$isNew && $canDo->get('core.create'))
+        //        {
+        //            ToolbarHelper::custom('formfield.save2copy', 'save-copy.png', 'save-copy_f2.png', 'JTOOLBAR_SAVE_AS_COPY', false);
+        //        }
 
         // Button for version control
         if ($this->state->params->get('save_history', 1) && $user->authorise('core.edit')) {

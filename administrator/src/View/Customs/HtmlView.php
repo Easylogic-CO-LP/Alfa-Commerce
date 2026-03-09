@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    1.0.1
  * @package    Com_Alfa
@@ -8,15 +9,15 @@
  */
 
 namespace Alfa\Component\Alfa\Administrator\View\Customs;
+
 // No direct access
 defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\View\HtmlView as BaseHtmlView;
-use Joomla\CMS\Toolbar\ToolbarHelper;
-use Joomla\CMS\Language\Text;
-use Joomla\CMS\Helper\ContentHelper;
 use Alfa\Component\Alfa\Administrator\Extension\AlfaComponent;
-
+use Alfa\Component\Alfa\Administrator\View\HtmlView as BaseHtmlView;
+use Joomla\CMS\Helper\ContentHelper;
+use Joomla\CMS\Language\Text;
+use Joomla\CMS\Toolbar\ToolbarHelper;
 
 /**
  * View class for a list of Customs.
@@ -40,7 +41,7 @@ class HtmlView extends BaseHtmlView
      *
      * @param string $tpl The name of the template file to parse; automatically searches through the template paths.
      *
-     * @return  void
+     * @return void
      */
     public function display($tpl = null)
     {
@@ -65,7 +66,7 @@ class HtmlView extends BaseHtmlView
     /**
      * Add the page title and toolbar.
      *
-     * @return  void
+     * @return void
      *
      * @since   1.0.1
      */
@@ -74,7 +75,7 @@ class HtmlView extends BaseHtmlView
         $canDo = ContentHelper::getActions('com_alfa');
         $toolbar = $this->getDocument()->getToolbar();
 
-        ToolbarHelper::title(Text::_('COM_ALFA_TITLE_CUSTOMS'), "generic");
+        ToolbarHelper::title(Text::_('COM_ALFA_TITLE_CUSTOMS'), 'generic');
 
         if ($canDo->get('core.create')) {
             $toolbar->addNew('custom.add');
@@ -94,8 +95,6 @@ class HtmlView extends BaseHtmlView
             $childBar->unpublish('customs.unpublish')->listCheck(true);
             $childBar->archive('customs.archive')->listCheck(true);
 
-
-
             if ($this->state->get('filter.state') != AlfaComponent::CONDITION_TRASHED) {
                 $childBar->trash('customs.trash')->listCheck(true);
             }
@@ -109,13 +108,10 @@ class HtmlView extends BaseHtmlView
             }
 
             $childBar->checkin('customs.checkin')->listCheck(true);
-
         }
 
         if ($canDo->get('core.admin')) {
             $toolbar->preferences('com_alfa');
         }
-
     }
-
 }
