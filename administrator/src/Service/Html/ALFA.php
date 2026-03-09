@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    1.0.1
  * @package    Com_Alfa
@@ -19,6 +20,4 @@ defined('_JEXEC') or die;
  */
 class ALFA
 {
-
-
 }

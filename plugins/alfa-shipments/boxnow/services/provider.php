@@ -3,7 +3,6 @@
 /**
  * @package     Alfa.Plugin
  * @subpackage  AlfaPayments.Boxnow
- *
  */
 
 \defined('_JEXEC') or die;
@@ -20,9 +19,9 @@ return new class () implements ServiceProviderInterface {
     /**
      * Registers the service provider with a DI container.
      *
-     * @param   Container  $container  The DI container.
+     * @param Container $container The DI container.
      *
-     * @return  void
+     * @return void
      *
      * @since   4.3.0
      */
@@ -31,14 +30,14 @@ return new class () implements ServiceProviderInterface {
         $container->set(
             PluginInterface::class,
             function (Container $container) {
-                $plugin     = new Boxnow(
+                $plugin = new Boxnow(
                     $container->get(DispatcherInterface::class),
-                    (array) PluginHelper::getPlugin('alfa-shipments', 'boxnow')
+                    (array) PluginHelper::getPlugin('alfa-shipments', 'boxnow'),
                 );
                 $plugin->setApplication(Factory::getApplication());
 
                 return $plugin;
-            }
+            },
         );
     }
 };

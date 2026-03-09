@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    1.0.1
  * @package    Com_Alfa
@@ -8,13 +9,14 @@
  */
 
 namespace Alfa\Component\Alfa\Administrator\Model;
+
 // No direct access.
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
-use Joomla\CMS\Table\Table;
 use Joomla\CMS\Factory;
 use Joomla\CMS\MVC\Model\AdminModel;
+use Joomla\CMS\Table\Table;
 
 /**
  * Payment model.
@@ -23,193 +25,171 @@ use Joomla\CMS\MVC\Model\AdminModel;
  */
 class PaymentModel extends AdminModel
 {
+    /**
+     * @var string Alias to manage history control
+     */
+    public $typeAlias = 'com_alfa.payment';
 
-	/**
-	 * @var    string  Alias to manage history control
-	 *
-	 */
-	public $typeAlias = 'com_alfa.payment';
+    protected $formName = 'payment';
 
-	protected $formName = 'payment';
+    /**
+     * @var null Item data
+     *
+     * @since  1.0.0
+     */
+    protected $item = null;
 
-	/**
-	 * @var    null  Item data
-	 *
-	 * @since  1.0.0
-	 */
-	protected $item = null;
+    /**
+     * Method to get the record form.
+     *
+     * @param array $data Data for the form.
+     * @param bool $loadData True if the form is to load its own data (default case), false if not.
+     *
+     * @return Form|bool A Form object on success, false on failure
+     *
+     * @since   1.6
+     */
+    public function getForm($data = [], $loadData = true)
+    {
+        // Initialise variables.
+        $app = Factory::getApplication();
+        // Form::addFieldPath(JPATH_ADMINISTRATOR . '/components/com_users/models/fields');
 
-	/**
-	 * Method to get the record form.
-	 *
-	 * @param   array    $data      Data for the form.
-	 * @param   boolean  $loadData  True if the form is to load its own data (default case), false if not.
-	 *
-	 * @return  Form|boolean  A Form object on success, false on failure
-	 *
-	 * @since   1.6
-	 */
-	public function getForm($data = array(), $loadData = true)
-	{
+        // Get the form.
+        $form = $this->loadForm(
+            'com_alfa.' . $this->formName,
+            $this->formName,
+            [
+                'control' => 'jform',
+                'load_data' => $loadData,
+            ],
+        );
 
-		// Initialise variables.
-		$app = Factory::getApplication();
-		// Form::addFieldPath(JPATH_ADMINISTRATOR . '/components/com_users/models/fields');
+        // Get ID of the article from input
+        $idFromInput = $app->getInput()->getInt('id', 0);
 
-		// Get the form.
-		$form = $this->loadForm(
-			'com_alfa.' . $this->formName,
-			$this->formName,
-			array(
-				'control'   => 'jform',
-				'load_data' => $loadData
-			)
-		);
+        // On edit order, we get ID of order from order.id state, but on save, we use data from input
+        $id = (int) $this->getState($this->formName . '.id', $idFromInput);
 
+        if (empty($form)) {
+            return false;
+        }
 
-		// Get ID of the article from input
-		$idFromInput = $app->getInput()->getInt('id', 0);
+        $item = ($this->item === null ? $this->getItem() : $this->item);
 
-		// On edit order, we get ID of order from order.id state, but on save, we use data from input
-		$id = (int) $this->getState($this->formName . '.id', $idFromInput);
+        AlfaHelper::addPluginForm($form, $data, $item, 'payments');
 
-		if (empty($form))
-		{
-			return false;
-		}
+        return $form;
+    }
 
-		$item = ($this->item === null ? $this->getItem() : $this->item);
+    /**
+     * Method to get the data that should be injected in the form.
+     *
+     * @return mixed The data for the form.
+     *
+     * @since   1.0.1
+     */
+    protected function loadFormData()
+    {
+        //        exit;
+        // Check the session for previously entered form data.
+        $data = Factory::getApplication()->getUserState('com_alfa.edit.payment.data', []);
 
-		AlfaHelper::addPluginForm($form, $data, $item, 'payments');
+        if (empty($data)) {
+            $data = ($this->item === null ? $this->getItem() : $this->item);
 
-		return $form;
-	}
+            $data->paymentsparams = $data->params;
+        }
 
-	/**
-	 * Method to get the data that should be injected in the form.
-	 *
-	 * @return  mixed  The data for the form.
-	 *
-	 * @since   1.0.1
-	 */
-	protected function loadFormData()
-	{
+        return $data;
+    }
 
-		//        exit;
-		// Check the session for previously entered form data.
-		$data = Factory::getApplication()->getUserState('com_alfa.edit.payment.data', array());
+    /**
+     * Method to get a single record.
+     *
+     * @param int $pk The id of the primary key.
+     *
+     * @return mixed Object on success, false on failure.
+     *
+     * @since   1.0.1
+     */
 
-		if (empty($data))
-		{
-			$data = ($this->item === null ? $this->getItem() : $this->item);
+    public function getItem($pk = null)
+    {
+        $item = $this->item ?? ($this->item = parent::getItem($pk));
 
-			$data->paymentsparams = $data->params;
+        if ($item) {
+            $item->categories = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_categories', 'payment_id', 'category_id');
+            $item->manufacturers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_manufacturers', 'payment_id', 'manufacturer_id');
+            $item->places = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_places', 'payment_id', 'place_id');
 
-		}
+            $item->users = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_users', 'payment_id', 'user_id');
+            $item->usergroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_usergroups', 'payment_id', 'usergroup_id');
+        }
 
-		return $data;
-	}
+        return $item;
+    }
 
+    /**
+     * Method to save the form data.
+     *
+     * @param array $data The form data.
+     *
+     * @return bool True on success, False on error.
+     *
+     * @since   1.6
+     */
+    public function save($data)
+    {
+        $app = Factory::getApplication();
+        $db = $this->getDatabase();
 
-	/**
-	 * Method to get a single record.
-	 *
-	 * @param   integer  $pk  The id of the primary key.
-	 *
-	 * @return  mixed    Object on success, false on failure.
-	 *
-	 * @since   1.0.1
-	 */
+        $input = $app->getInput();
 
-	public function getItem($pk = null)
-	{
+        $data['params'] = json_encode($data['paymentsparams']);
 
-		$item = $this->item ?? ($this->item = parent::getItem($pk));
+        if (!parent::save($data)) {
+            return false;
+        }
 
-		if ($item)
-		{
+        $currentId = 0;
+        if ($data['id'] > 0) { //not a new
+            $currentId = intval($data['id']);
+        } else { // is new
+            $currentId = intval($this->getState($this->getName() . '.id'));//get the id from setted joomla state
+        }
 
-			$item->categories    = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_categories', 'payment_id', 'category_id');
-			$item->manufacturers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_manufacturers', 'payment_id', 'manufacturer_id');
-			$item->places        = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_places', 'payment_id', 'place_id');
+        //Category/manufacturer etc associations
+        $assignZeroIdIfDataEmpty = true;
+        AlfaHelper::setAssocsToDb($currentId, $data['categories'] ?? [], '#__alfa_payment_categories', 'payment_id', 'category_id', $assignZeroIdIfDataEmpty);
+        AlfaHelper::setAssocsToDb($currentId, $data['manufacturers'] ?? [], '#__alfa_payment_manufacturers', 'payment_id', 'manufacturer_id', $assignZeroIdIfDataEmpty);
+        AlfaHelper::setAssocsToDb($currentId, $data['places'] ?? [], '#__alfa_payment_places', 'payment_id', 'place_id', $assignZeroIdIfDataEmpty);
 
-			$item->users      = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_users', 'payment_id', 'user_id');
-			$item->usergroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_usergroups', 'payment_id', 'usergroup_id');
+        AlfaHelper::setAssocsToDb($currentId, $data['users'] ?? [], '#__alfa_payment_users', 'payment_id', 'user_id', $assignZeroIdIfDataEmpty);
+        AlfaHelper::setAssocsToDb($currentId, $data['usergroups'] ?? [], '#__alfa_payment_usergroups', 'payment_id', 'usergroup_id', $assignZeroIdIfDataEmpty);
 
-		}
+        return true;
+        // return parent::save($data);
+    }
 
-		return $item;
+    /**
+     * Prepare and sanitise the table prior to saving.
+     *
+     * @param Table $table Table Object
+     *
+     * @return void
+     *
+     * @since   1.0.1
+     */
+    protected function prepareTable($table)
+    {
+        $user = $this->getCurrentUser();
 
-	}
+        if ($table->id == 0 && empty($table->created_by)) {
+            $table->created_by = $user->id;
+        }
 
-
-	/**
-	 * Method to save the form data.
-	 *
-	 * @param   array  $data  The form data.
-	 *
-	 * @return  boolean  True on success, False on error.
-	 *
-	 * @since   1.6
-	 */
-	public function save($data)
-	{
-		$app = Factory::getApplication();
-		$db  = $this->getDatabase();
-
-		$input = $app->getInput();
-
-		$data['params'] = json_encode($data['paymentsparams']);
-
-		if (!parent::save($data)) return false;
-
-
-		$currentId = 0;
-		if ($data['id'] > 0)
-		{ //not a new
-			$currentId = intval($data['id']);
-		}
-		else
-		{ // is new
-			$currentId = intval($this->getState($this->getName() . '.id'));//get the id from setted joomla state
-		}
-
-		//Category/manufacturer etc associations
-		$assignZeroIdIfDataEmpty = true;
-		AlfaHelper::setAssocsToDb($currentId, $data['categories'] ?? [], '#__alfa_payment_categories', 'payment_id', 'category_id', $assignZeroIdIfDataEmpty);
-		AlfaHelper::setAssocsToDb($currentId, $data['manufacturers'] ?? [], '#__alfa_payment_manufacturers', 'payment_id', 'manufacturer_id', $assignZeroIdIfDataEmpty);
-		AlfaHelper::setAssocsToDb($currentId, $data['places'] ?? [], '#__alfa_payment_places', 'payment_id', 'place_id', $assignZeroIdIfDataEmpty);
-
-		AlfaHelper::setAssocsToDb($currentId, $data['users'] ?? [], '#__alfa_payment_users', 'payment_id', 'user_id', $assignZeroIdIfDataEmpty);
-		AlfaHelper::setAssocsToDb($currentId, $data['usergroups'] ?? [], '#__alfa_payment_usergroups', 'payment_id', 'usergroup_id', $assignZeroIdIfDataEmpty);
-
-		return true;
-		// return parent::save($data);
-	}
-
-
-	/**
-	 * Prepare and sanitise the table prior to saving.
-	 *
-	 * @param   Table  $table  Table Object
-	 *
-	 * @return  void
-	 *
-	 * @since   1.0.1
-	 */
-	protected function prepareTable($table)
-	{
-		$user = $this->getCurrentUser();
-
-		if ($table->id == 0 && empty($table->created_by))
-		{
-			$table->created_by = $user->id;
-		}
-
-		$table->modified    = Factory::getDate()->toSql();
-		$table->modified_by = $user->id;
-
-	}
-
-
+        $table->modified = Factory::getDate()->toSql();
+        $table->modified_by = $user->id;
+    }
 }

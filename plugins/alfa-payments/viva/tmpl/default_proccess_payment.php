@@ -1,7 +1,7 @@
 <?php
 
 //   print_r($displayData);
-   $url = $displayData['url'];
+$url = $displayData['url'];
 
 ?>
 <a href="<?php echo $url;?>">Pay Now</a>

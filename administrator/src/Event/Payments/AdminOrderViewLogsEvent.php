@@ -9,11 +9,6 @@
 
 namespace Alfa\Component\Alfa\Administrator\Event\Payments;
 
-use Joomla\CMS\Form\Form;
-use Joomla\CMS\Event\Result\ResultAware;
-use Joomla\CMS\Event\Result\ResultAwareInterface;
-use Joomla\CMS\Event\Result\ResultTypeStringAware;
-
 // phpcs:disable PSR1.Files.SideEffects
 \defined('_JEXEC') or die;
 // phpcs:enable PSR1.Files.SideEffects
@@ -39,18 +34,19 @@ class AdminOrderViewLogsEvent extends PaymentsLayoutEvent
      *  layout_type == base     // Base layout
      *  layout_type == derived  // Derived, layout provided by plugin.
      */
-    public function getLayoutType(){
+    public function getLayoutType()
+    {
         return $this->arguments['layout_type'];
     }
 
-    public function setLayoutType($type){
+    public function setLayoutType($type)
+    {
         // Excluding invalid values.
-        if(
-            $type == "base" ||
-            $type == "derived"
-        ){
+        if (
+            $type == 'base' ||
+            $type == 'derived'
+        ) {
             $this->setArgument('layout_type', $type);
         }
     }
-
 }

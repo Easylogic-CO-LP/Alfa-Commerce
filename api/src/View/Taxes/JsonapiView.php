@@ -16,7 +16,7 @@ class JsonApiView extends BaseApiView
     /**
      * The fields to render item in the documents
      *
-     * @var    array
+     * @var array
      * @since  1.0.1
      */
     protected $fieldsToRenderItem = [
@@ -24,13 +24,13 @@ class JsonApiView extends BaseApiView
         'state',
         'name',
         'desc',
-        'value'
+        'value',
     ];
 
     /**
      * The fields to render items in the documents
      *
-     * @var    array
+     * @var array
      * @since  1.0.1
      */
     protected $fieldsToRenderList = [
@@ -38,6 +38,6 @@ class JsonApiView extends BaseApiView
         'state',
         'name',
         'desc',
-        'value'
+        'value',
     ];
 }

@@ -13,27 +13,27 @@
 defined('_JEXEC') or die;
 
 $payment = $displayData['payment'] ?? null;
-$order   = $displayData['order'] ?? null;
+$order = $displayData['order'] ?? null;
 
 if (!$payment) {
-	return;
+    return;
 }
 
 $status = $payment->transaction_status ?? $payment->status ?? 'pending';
 
 $statusBadge = match ($status) {
-	'completed', 'paid' => 'bg-success',
-	'pending', ''       => 'bg-warning text-dark',
-	'cancelled'         => 'bg-danger',
-	'refunded'          => 'bg-secondary',
-	default             => 'bg-secondary',
+    'completed', 'paid' => 'bg-success',
+    'pending', '' => 'bg-warning text-dark',
+    'cancelled' => 'bg-danger',
+    'refunded' => 'bg-secondary',
+    default => 'bg-secondary',
 };
 
 // Handle Money object or raw float
 $amount = $payment->amount ?? 0;
 $amountDisplay = (is_object($amount) && method_exists($amount, 'format'))
-	? $amount->format()
-	: number_format((float) $amount, 2);
+    ? $amount->format()
+    : number_format((float) $amount, 2);
 ?>
 
 <div class="card">

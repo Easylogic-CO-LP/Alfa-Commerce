@@ -1,11 +1,11 @@
 <?php
-    $app = \Joomla\CMS\Factory::getApplication();
-    $doc = $app->getDocument();
-    $wa = $doc->getWebAssetManager();
+$app = \Joomla\CMS\Factory::getApplication();
+$doc = $app->getDocument();
+$wa = $doc->getWebAssetManager();
 
-    // load the map script file
-    // on locker select it calls saveCurrentCartBoxNowData
-    $wa->registerAndUseScript('box-now-map','media/plg_alfa-shipments_boxnow/js/site/map.js'); //['defer' => true]); 
+// load the map script file
+// on locker select it calls saveCurrentCartBoxNowData
+$wa->registerAndUseScript('box-now-map', 'media/plg_alfa-shipments_boxnow/js/site/map.js'); //['defer' => true]);
 ?>
 
 <div id="boxNowMapOuter">

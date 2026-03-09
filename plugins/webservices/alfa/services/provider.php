@@ -10,20 +10,19 @@
 
 \defined('_JEXEC') or die;
 
+use Alfa\Plugin\WebServices\Alfa\Extension\Alfa;
 use Joomla\CMS\Extension\PluginInterface;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
-use Alfa\Plugin\WebServices\Alfa\Extension\Alfa;
 
 return new class () implements ServiceProviderInterface {
     /**
      * Registers the service provider with a DI container.
      *
-     * @param   Container  $container  The DI container.
+     * @param Container $container The DI container.
      *
-     * @return  void
      *
      * @since   4.4.0
      */
@@ -32,13 +31,13 @@ return new class () implements ServiceProviderInterface {
         $container->set(
             PluginInterface::class,
             function (Container $container) {
-                $plugin     = new Alfa(
-                    (array) PluginHelper::getPlugin('webservices', 'alfa')
+                $plugin = new Alfa(
+                    (array) PluginHelper::getPlugin('webservices', 'alfa'),
                 );
                 $plugin->setApplication(Factory::getApplication());
 
                 return $plugin;
-            }
+            },
         );
     }
 };

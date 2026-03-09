@@ -9,11 +9,6 @@
 
 namespace Alfa\Component\Alfa\Administrator\Event\Shipments;
 
-use Joomla\CMS\Form\Form;
-use Joomla\CMS\Event\Result\ResultAware;
-use Joomla\CMS\Event\Result\ResultAwareInterface;
-use Joomla\CMS\Event\Result\ResultTypeStringAware;
-
 // phpcs:disable PSR1.Files.SideEffects
 \defined('_JEXEC') or die;
 // phpcs:enable PSR1.Files.SideEffects
@@ -30,8 +25,8 @@ class AdminOrderViewEvent extends ShipmentsLayoutEvent
         return $this->getSubject();
     }
 
-    public function setOrder($order){
-        $this->setArgument('subject',$order);
+    public function setOrder($order)
+    {
+        $this->setArgument('subject', $order);
     }
-
 }

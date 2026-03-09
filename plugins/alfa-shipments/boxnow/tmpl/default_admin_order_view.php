@@ -6,7 +6,6 @@ $app = \Joomla\CMS\Factory::getApplication();
 $doc = $app->getDocument();
 $wa = $doc->getWebAssetManager();
 
-
 $input = Factory::getApplication()->getInput();
 
 $order = $displayData['order'];
@@ -15,20 +14,18 @@ $fetchType = $displayData['plugin_type']; //alfa-payments
 $fetchName = $displayData['plugin_name']; //box-now
 $parcelData = $displayData['parcel_data'];
 $vouchersURL = $displayData['voucher_url'];
-$fetchMethodID = $input->getInt("id");  // ID of current shipment method.
+$fetchMethodID = $input->getInt('id');  // ID of current shipment method.
 $orderID = $order->id;
 $orderShipmentID = $method->id;
 
 //echo "FETCH METHOD ID: {$fetchMethodID}";
 //exit;
 
-
 // functions to call
-$fetchRequestDeliveryFunction = "requestDelivery";
-$fetchCreateLabelFunction = "fetchCreateLabels";
-$fetchCancelDeliveryFunction = "fetchCancelDelivery";
-$fetchCancelIndividualParcelFunction = "fetchCancelIndividualParcel";
-
+$fetchRequestDeliveryFunction = 'requestDelivery';
+$fetchCreateLabelFunction = 'fetchCreateLabels';
+$fetchCancelDeliveryFunction = 'fetchCancelDelivery';
+$fetchCancelIndividualParcelFunction = 'fetchCancelIndividualParcel';
 
 // Request delivery.
 $fetchRequestDeliveryURL = "index.php?option=com_alfa&task=plugin.trigger&name={$fetchName}&type={$fetchType}&func={$fetchRequestDeliveryFunction}&format=json"
@@ -48,15 +45,15 @@ $fetchCancelIndividualParcelFunctionURL = '/administrator/index.php?option=com_a
 
 // Inject BoxNow required script to the head
 $inlineScript = <<<JS
-    // pass php variables to be used from api-functions.js file
-    var fetchRequestDeliveryURL = "{$fetchRequestDeliveryURL}";
-    var fetchCreateLabelURL = "{$fetchCreateLabelURL}";
-    var fetchCancelDeliveryURL = "{$fetchCancelDeliveryURL}";
-    var fetchCancelIndividualParcelURL = "{$fetchCancelIndividualParcelFunctionURL}";
-    var rawParcelData = "{$parcelData}";
-    var vouchersURL = "{$vouchersURL}";
-    var orderId = "{$orderID}";
-JS;
+        // pass php variables to be used from api-functions.js file
+        var fetchRequestDeliveryURL = "{$fetchRequestDeliveryURL}";
+        var fetchCreateLabelURL = "{$fetchCreateLabelURL}";
+        var fetchCancelDeliveryURL = "{$fetchCancelDeliveryURL}";
+        var fetchCancelIndividualParcelURL = "{$fetchCancelIndividualParcelFunctionURL}";
+        var rawParcelData = "{$parcelData}";
+        var vouchersURL = "{$vouchersURL}";
+        var orderId = "{$orderID}";
+    JS;
 
 $wa->addInlineScript($inlineScript);
 

@@ -9,12 +9,6 @@
 
 namespace Alfa\Component\Alfa\Administrator\Event\FormFields;
 
-use Alfa\Component\Alfa\Administrator\Event\FormFields\FormFieldsEvent;
-use Joomla\CMS\Form\Form;
-use Joomla\CMS\Event\Result\ResultAware;
-use Joomla\CMS\Event\Result\ResultAwareInterface;
-use Joomla\CMS\Event\Result\ResultTypeStringAware;
-
 // phpcs:disable PSR1.Files.SideEffects
 \defined('_JEXEC') or die;
 // phpcs:enable PSR1.Files.SideEffects
@@ -31,22 +25,23 @@ class ValidateFieldEvent extends FormFieldsEvent
         return $this->getSubject();
     }
 
-
-    public function getField(){
-        return $this->arguments["field_"];
+    public function getField()
+    {
+        return $this->arguments['field_'];
     }
 
-    public function setField($field){
-        $this->setArgument("field_", $field);
+    public function setField($field)
+    {
+        $this->setArgument('field_', $field);
     }
 
-    public function getValid(){
-        return $this->arguments["valid_"];
+    public function getValid()
+    {
+        return $this->arguments['valid_'];
     }
 
-    public function setValid($valid){
-        $this->setArgument("valid_", $valid);
+    public function setValid($valid)
+    {
+        $this->setArgument('valid_', $valid);
     }
-
-
 }

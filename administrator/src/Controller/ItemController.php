@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    1.0.1
  * @package    Com_Alfa
@@ -12,8 +13,8 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 \defined('_JEXEC') or die;
 
 use Joomla\CMS\MVC\Controller\FormController;
-use Joomla\CMS\Versioning\VersionableControllerTrait;
 use Joomla\CMS\Router\Route;
+use Joomla\CMS\Versioning\VersionableControllerTrait;
 
 /**
  * Item controller class.
@@ -21,17 +22,17 @@ use Joomla\CMS\Router\Route;
  * @since  1.0.1
  */
 class ItemController extends FormController
-{	
-	use VersionableControllerTrait;
+{
+    use VersionableControllerTrait;
 
-	protected $view_list = 'items';
+    protected $view_list = 'items';
 
-	    /**
+    /**
      * Method to run batch operations.
      *
-     * @param   object  $model  The model.
+     * @param object $model The model.
      *
-     * @return  boolean   True if successful, false otherwise and internal error is set.
+     * @return bool True if successful, false otherwise and internal error is set.
      *
      * @since   1.6
      */
