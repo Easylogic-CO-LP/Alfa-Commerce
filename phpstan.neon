@@ -1,0 +1,22 @@
+parameters:
+    level: 5
+    paths:
+        - administrator/src
+        - site/src
+        - api/src
+        - plugins
+        - modules
+
+    excludePaths:
+        - */vendor/*
+        - */tmpl/*
+        - */layouts/*
+        - */language/*
+
+    ignoreErrors:
+        # Joomla dynamic properties and magic methods
+        - '#Access to an undefined property#'
+        - '#Call to an undefined method Joomla\\CMS#'
+
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: false
