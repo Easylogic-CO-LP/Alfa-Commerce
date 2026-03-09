@@ -2,10 +2,16 @@
 
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Uri\Uri;
 
 defined('_JEXEC') or die;
 
 // to keep the functionallity do not change the ids search-container-input , search-container-popup , search-container-loading-img
+
+$basePath = Uri::base(true);
+
+$formAction = $basePath . '/index.php?option=com_alfa&view=items';
+$ajaxAction = $basePath . '/index.php?option=com_ajax&module=alfa_search&method=get&format=json';
 
 $min_characters = (int)$params->get('minCharacters', '2');
 $loadingImageType = $params->get('loadingImageType', '3');
