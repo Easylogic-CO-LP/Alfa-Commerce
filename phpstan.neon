@@ -13,9 +13,6 @@ parameters:
         - */layouts/*
         - */language/*
 
-    scanDirectories:
-        - vendor/joomla/joomla-cms-stubs
-
     ignoreErrors:
         # Joomla dynamic properties and magic methods
         - '#Access to an undefined property#'
