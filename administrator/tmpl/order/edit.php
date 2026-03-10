@@ -1,4 +1,11 @@
 <?php
+
+/**
+ * @package    Alfa Commerce
+ * @author     Agamemnon Fakas <info@easylogic.gr>
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
+ */
 /**
  * Order Edit View
  *
@@ -10,11 +17,9 @@
  *   edit_order_items.php   → Order items table + modals
  *   edit_history.php       → Unified timeline (status + activity)
  *
- * @package    Com_Alfa
- * @subpackage Administrator
- * @version    3.4.0
+ * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  2026 Easylogic CO LP
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  */
 
 defined('_JEXEC') or die;

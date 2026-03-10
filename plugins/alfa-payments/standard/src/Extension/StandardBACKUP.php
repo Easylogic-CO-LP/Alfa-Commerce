@@ -1,12 +1,10 @@
 <?php
 
 /**
- * @package     Alfa.Plugin
- * @subpackage  AlfaPayments.Standard
- * @version     2.0.0
- * @author      Agamemnon Fakas <info@easylogic.gr>
- * @copyright   2025 Easylogic CO LP
- * @license     GNU General Public License version 2 or later
+ * @package    Alfa Commerce
+ * @author     Agamemnon Fakas <info@easylogic.gr>
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
 namespace Joomla\Plugin\AlfaPayments\Standard\Extension;

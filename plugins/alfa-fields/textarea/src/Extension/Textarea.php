@@ -1,11 +1,12 @@
 <?php
 
 /**
- * @package     Joomla.Plugin
- * @subpackage  Fields.textarea
+ * @package    Alfa Commerce
+ * @author     Agamemnon Fakas <info@easylogic.gr>
  *
  * @copyright   (C) 2017 Open Source Matters, Inc. <https://www.joomla.org>
- * @license     GNU General Public License version 2 or later; see LICENSE.txt
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
 namespace Joomla\Plugin\AlfaFields\Textarea\Extension;

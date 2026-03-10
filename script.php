@@ -1,10 +1,10 @@
 <?php
 
 /**
- * @package    Com_Alfa
+ * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  2024 Easylogic CO LP
- * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
 define('MODIFIED', 1);
@@ -20,8 +20,7 @@ use \Joomla\CMS\Installer\InstallerScript;
 /**
  * Updates the database structure of the component
  *
- * @version  Release: 0.2b
- * @author   Easylogic
+ * @author     Agamemnon Fakas <info@easylogic.gr>
  * @since    0.1b
  */
 class com_alfaInstallerScript extends InstallerScript

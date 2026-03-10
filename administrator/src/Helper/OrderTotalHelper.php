@@ -1,12 +1,10 @@
 <?php
 
 /**
- * @package     Alfa.Component
- * @subpackage  Administrator.Helper
- * @version     4.1.0
- * @author      Agamemnon Fakas <info@easylogic.gr>
- * @copyright   2026 Easylogic CO LP
- * @license     GNU General Public License version 2 or later
+ * @package    Alfa Commerce
+ * @author     Agamemnon Fakas <info@easylogic.gr>
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  *
  * Order Total Helper — Single Source of Truth for Order Totals
  *
