@@ -1,6 +1,7 @@
 name: Build & Minify Assets
 
 on:
+  workflow_dispatch:
   push:
     branches: [main, developer]
     paths:
