@@ -35,10 +35,6 @@ if ($saveOrder && !empty($this->items)) {
 }
 
 
-//echo "<pre>";
-//print_r($this->items);
-//echo "</pre>";
-
 ?>
 
 <form action="<?php echo Route::_('index.php?option=com_alfa&view=payments'); ?>" method="post"
@@ -47,13 +43,6 @@ if ($saveOrder && !empty($this->items)) {
 		<div class="col-md-12">
 			<div id="j-main-container" class="j-main-container">
 			<?php echo LayoutHelper::render('joomla.searchtools.default', array('view' => $this)); ?>
-
-<!--                --><?php //echo "<pre>";
-//                print_r($this->items);
-//                echo "</pre>";
-//
-//
-//                ?>
 
 				<div class="clearfix"></div>
 				<table class="table table-striped" id="paymentList">
@@ -166,36 +155,36 @@ if ($saveOrder && !empty($this->items)) {
 							</td>
 
                             <td>
-                                <?php echo $item->type;?>
+                                <?php echo $this->escape($item->type);?>
                             </td>
 
                             <td>
                                 <?php
-                                    echo $item->category_names;
+                                    echo $this->escape($item->category_names);
                                 ?>
                             </td>
 
                             <td>
                                 <?php
-                                    echo $item->manufacturer_names;
+                                    echo $this->escape($item->manufacturer_names);
                                 ?>
                             </td>
 
                             <td>
                                 <?php
-                                    echo $item->user_names;
+                                    echo $this->escape($item->user_names);
                                 ?>
                             </td>
 
                             <td>
                                 <?php
-                                    echo $item->place_names;
+                                    echo $this->escape($item->place_names);
                                 ?>
                             </td>
 
                             <td>
                                 <?php
-                                    echo $item->user_names;
+                                    echo $this->escape($item->user_names);
                                 ?>
                             </td>
 							

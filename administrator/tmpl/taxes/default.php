@@ -177,33 +177,33 @@ if ($saveOrder && !empty($this->items)) {
 
                             <td>
                                 <?php
-                                    echo $item->category_names;
+                                    echo $this->escape($item->category_names);
 
                                 ?>
                             </td>
 
                             <td>
                                 <?php
-                                    echo $item->manufacturer_names;
+                                    echo $this->escape($item->manufacturer_names);
                                 ?>
                             </td>
 
                             <td>
                                 <?php
-                                    echo $item->place_names;
+                                    echo $this->escape($item->place_names);
 
                                 ?>
                             </td>
 
                             <td>
                                 <?php
-                                    echo $item->usergroup_names;
+                                    echo $this->escape($item->usergroup_names);
                                 ?>
                             </td>
 
                             <td>
                                 <?php
-                                    echo $item->user_names;
+                                    echo $this->escape($item->user_names);
                                 ?>
                             </td>
 
