@@ -8,6 +8,183 @@
 --
 
 -- ============================================================
+-- FIX COLUMN TYPES: Add UNSIGNED to match PRIMARY KEY signedness
+-- for FK compatibility. Existing installs may have signed ints.
+-- ============================================================
+
+-- ------------------------------------------------------------
+-- PRIMARY KEY id columns (referenced by FKs)
+-- ------------------------------------------------------------
+
+ALTER TABLE `#__alfa_currencies` MODIFY COLUMN `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+ALTER TABLE `#__alfa_categories` MODIFY COLUMN `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+ALTER TABLE `#__alfa_usergroups` MODIFY COLUMN `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+ALTER TABLE `#__alfa_users` MODIFY COLUMN `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+ALTER TABLE `#__alfa_items` MODIFY COLUMN `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+ALTER TABLE `#__alfa_manufacturers` MODIFY COLUMN `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+ALTER TABLE `#__alfa_payments` MODIFY COLUMN `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+ALTER TABLE `#__alfa_shipments` MODIFY COLUMN `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+ALTER TABLE `#__alfa_taxes` MODIFY COLUMN `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+ALTER TABLE `#__alfa_discounts` MODIFY COLUMN `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+ALTER TABLE `#__alfa_coupons` MODIFY COLUMN `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+ALTER TABLE `#__alfa_form_fields` MODIFY COLUMN `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+ALTER TABLE `#__alfa_cart` MODIFY COLUMN `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+ALTER TABLE `#__alfa_orders` MODIFY COLUMN `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+ALTER TABLE `#__alfa_order_items` MODIFY COLUMN `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+ALTER TABLE `#__alfa_order_payments` MODIFY COLUMN `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+ALTER TABLE `#__alfa_orders_statuses` MODIFY COLUMN `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+ALTER TABLE `#__alfa_places` MODIFY COLUMN `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+ALTER TABLE `#__alfa_order_slip` MODIFY COLUMN `id_order_slip` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+-- ------------------------------------------------------------
+-- JUNCTION / PIVOT TABLE FK columns
+-- ------------------------------------------------------------
+
+-- Categories junctions
+ALTER TABLE `#__alfa_categories_usergroups` MODIFY COLUMN `category_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_categories_usergroups` MODIFY COLUMN `usergroup_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_categories_users` MODIFY COLUMN `category_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_categories_users` MODIFY COLUMN `user_id` int(11) UNSIGNED NOT NULL;
+
+-- Items junctions
+ALTER TABLE `#__alfa_items_categories` MODIFY COLUMN `item_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_items_categories` MODIFY COLUMN `category_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_items_manufacturers` MODIFY COLUMN `item_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_items_manufacturers` MODIFY COLUMN `manufacturer_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_items_usergroups` MODIFY COLUMN `item_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_items_usergroups` MODIFY COLUMN `usergroup_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_items_users` MODIFY COLUMN `item_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_items_users` MODIFY COLUMN `user_id` int(11) UNSIGNED NOT NULL;
+
+-- Payment junctions
+ALTER TABLE `#__alfa_payment_categories` MODIFY COLUMN `payment_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_payment_categories` MODIFY COLUMN `category_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_payment_manufacturers` MODIFY COLUMN `payment_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_payment_manufacturers` MODIFY COLUMN `manufacturer_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_payment_places` MODIFY COLUMN `payment_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_payment_places` MODIFY COLUMN `place_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_payment_usergroups` MODIFY COLUMN `payment_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_payment_usergroups` MODIFY COLUMN `usergroup_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_payment_users` MODIFY COLUMN `payment_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_payment_users` MODIFY COLUMN `user_id` int(11) UNSIGNED NOT NULL;
+
+-- Shipment junctions
+ALTER TABLE `#__alfa_shipment_categories` MODIFY COLUMN `shipment_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_shipment_categories` MODIFY COLUMN `category_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_shipment_manufacturers` MODIFY COLUMN `shipment_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_shipment_manufacturers` MODIFY COLUMN `manufacturer_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_shipment_places` MODIFY COLUMN `shipment_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_shipment_places` MODIFY COLUMN `place_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_shipment_usergroups` MODIFY COLUMN `shipment_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_shipment_usergroups` MODIFY COLUMN `usergroup_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_shipment_users` MODIFY COLUMN `shipment_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_shipment_users` MODIFY COLUMN `user_id` int(11) UNSIGNED NOT NULL;
+
+-- Tax junctions
+ALTER TABLE `#__alfa_tax_categories` MODIFY COLUMN `tax_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_tax_categories` MODIFY COLUMN `category_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_tax_manufacturers` MODIFY COLUMN `tax_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_tax_manufacturers` MODIFY COLUMN `manufacturer_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_tax_places` MODIFY COLUMN `tax_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_tax_places` MODIFY COLUMN `place_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_tax_usergroups` MODIFY COLUMN `tax_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_tax_usergroups` MODIFY COLUMN `usergroup_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_tax_users` MODIFY COLUMN `tax_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_tax_users` MODIFY COLUMN `user_id` int(11) UNSIGNED NOT NULL;
+
+-- Discount junctions
+ALTER TABLE `#__alfa_discount_categories` MODIFY COLUMN `discount_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_discount_categories` MODIFY COLUMN `category_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_discount_manufacturers` MODIFY COLUMN `discount_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_discount_manufacturers` MODIFY COLUMN `manufacturer_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_discount_places` MODIFY COLUMN `discount_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_discount_places` MODIFY COLUMN `place_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_discount_usergroups` MODIFY COLUMN `discount_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_discount_usergroups` MODIFY COLUMN `usergroup_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_discount_users` MODIFY COLUMN `discount_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_discount_users` MODIFY COLUMN `user_id` int(11) UNSIGNED NOT NULL;
+
+-- Coupons junctions
+ALTER TABLE `#__alfa_coupons_usergroups` MODIFY COLUMN `coupon_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_coupons_usergroups` MODIFY COLUMN `usergroup_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_coupons_users` MODIFY COLUMN `coupon_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_coupons_users` MODIFY COLUMN `user_id` int(11) UNSIGNED NOT NULL;
+
+-- Form Fields junctions
+ALTER TABLE `#__alfa_form_fields_usergroups` MODIFY COLUMN `form_field_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_form_fields_usergroups` MODIFY COLUMN `usergroup_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_form_fields_users` MODIFY COLUMN `form_field_id` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_form_fields_users` MODIFY COLUMN `user_id` int(11) UNSIGNED NOT NULL;
+
+-- ------------------------------------------------------------
+-- CART FK columns
+-- ------------------------------------------------------------
+
+ALTER TABLE `#__alfa_cart` MODIFY COLUMN `id_payment` int(11) UNSIGNED DEFAULT NULL;
+ALTER TABLE `#__alfa_cart` MODIFY COLUMN `id_shipment` int(11) UNSIGNED DEFAULT NULL;
+ALTER TABLE `#__alfa_cart` MODIFY COLUMN `id_currency` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_cart_items` MODIFY COLUMN `id_cart` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_cart_items` MODIFY COLUMN `id_item` int(11) UNSIGNED NOT NULL;
+
+-- ------------------------------------------------------------
+-- ORDER FK columns
+-- ------------------------------------------------------------
+
+ALTER TABLE `#__alfa_orders` MODIFY COLUMN `id_cart` int(11) UNSIGNED DEFAULT NULL;
+ALTER TABLE `#__alfa_orders` MODIFY COLUMN `id_currency` int(11) UNSIGNED DEFAULT NULL;
+ALTER TABLE `#__alfa_orders` MODIFY COLUMN `id_payment_method` int(11) UNSIGNED DEFAULT NULL;
+ALTER TABLE `#__alfa_orders` MODIFY COLUMN `id_shipment_method` int(11) UNSIGNED DEFAULT NULL;
+ALTER TABLE `#__alfa_orders` MODIFY COLUMN `id_order_status` int(11) UNSIGNED DEFAULT NULL;
+ALTER TABLE `#__alfa_orders` MODIFY COLUMN `id_coupon` int(11) UNSIGNED DEFAULT NULL;
+
+ALTER TABLE `#__alfa_order_items` MODIFY COLUMN `id_item` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_order_items` MODIFY COLUMN `id_order` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_order_items` MODIFY COLUMN `id_shipmentmethod` int(11) UNSIGNED NOT NULL;
+
+ALTER TABLE `#__alfa_order_payments` MODIFY COLUMN `id_order` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_order_payments` MODIFY COLUMN `id_currency` int(10) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_order_payments` MODIFY COLUMN `id_payment_method` int(11) UNSIGNED NOT NULL;
+
+ALTER TABLE `#__alfa_order_shipments` MODIFY COLUMN `id_order` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_order_shipments` MODIFY COLUMN `id_shipment_method` int(11) UNSIGNED NOT NULL;
+
+ALTER TABLE `#__alfa_order_activity_log` MODIFY COLUMN `id_order` int(11) UNSIGNED NOT NULL;
+
+ALTER TABLE `#__alfa_order_detail_tax` MODIFY COLUMN `id_order_detail` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_order_detail_tax` MODIFY COLUMN `id_tax` int(11) UNSIGNED NOT NULL;
+
+ALTER TABLE `#__alfa_order_slip` MODIFY COLUMN `id_order` int(10) UNSIGNED NOT NULL;
+
+ALTER TABLE `#__alfa_order_slip_detail` MODIFY COLUMN `id_order_slip` int(10) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_order_slip_detail` MODIFY COLUMN `id_order_detail` int(10) UNSIGNED NOT NULL;
+
+-- ------------------------------------------------------------
+-- PAYMENT LOG FK columns
+-- ------------------------------------------------------------
+
+ALTER TABLE `#__alfa_payments_standard_logs` MODIFY COLUMN `id_order` int(11) UNSIGNED NOT NULL;
+ALTER TABLE `#__alfa_payments_standard_logs` MODIFY COLUMN `id_order_payment` int(11) UNSIGNED DEFAULT NULL;
+
+-- ------------------------------------------------------------
+-- ITEMS PRICES FK column
+-- ------------------------------------------------------------
+
+ALTER TABLE `#__alfa_items_prices` MODIFY COLUMN `item_id` int(11) UNSIGNED NOT NULL;
+
+-- ------------------------------------------------------------
+-- USER INFO FK column
+-- ------------------------------------------------------------
+
+ALTER TABLE `#__alfa_user_info` MODIFY COLUMN `id_user` int(11) UNSIGNED NOT NULL DEFAULT 0;
+
+-- ------------------------------------------------------------
+-- CATEGORIES self-referential FK column
+-- ------------------------------------------------------------
+
+ALTER TABLE `#__alfa_categories` MODIFY COLUMN `parent_id` int(11) UNSIGNED DEFAULT 0;
+
+
+-- ============================================================
 -- JUNCTION / PIVOT TABLES (CASCADE on delete)
 -- ============================================================
 
