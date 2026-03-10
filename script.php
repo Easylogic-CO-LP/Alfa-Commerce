@@ -100,7 +100,7 @@ class com_alfaInstallerScript extends InstallerScript
 			$plugins = $parent->get('manifest')->plugins;
 		}
 
-		if (count($plugins->children()))
+		if (!empty($plugins) && count($plugins->children()))
 		{
 			$db    = Factory::getContainer()->get('DatabaseDriver');
 			$query = $db->getQuery(true);
@@ -281,7 +281,7 @@ class com_alfaInstallerScript extends InstallerScript
 			$plugins = $parent->get('manifest')->plugins;
 		}
 
-		if (count($plugins->children()))
+		if (!empty($plugins) && count($plugins->children()))
 		{
 			$db    = Factory::getContainer()->get('DatabaseDriver');
 			$query = $db->getQuery(true);

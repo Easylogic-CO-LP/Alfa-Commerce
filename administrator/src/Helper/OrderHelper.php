@@ -594,39 +594,27 @@ class OrderHelper
         $customerId = $order ? (int) $order->id_user : 0;
         $currencyId = $order ? (int) $order->id_currency : 0;
 
-        // Get customer's primary user group from Joomla
-        $customerGroupId = null;
+        // Get customer's usergroups from Joomla
+        $userGroups = [0]; // sentinel for "any group"
         if ($customerId > 0) {
             try {
                 $user = \Joomla\CMS\User\User::getInstance($customerId);
                 if ($user && !$user->guest) {
-                    $groups = $user->getAuthorisedGroups();
-                    $customerGroupId = !empty($groups) ? (int) $groups[0] : null;
+                    foreach ($user->getAuthorisedGroups() as $gid) {
+                        $userGroups[] = (int) $gid;
+                    }
                 }
             } catch (Exception $e) {
                 Log::add('Could not load customer groups for user ' . $customerId . ': ' . $e->getMessage(), Log::WARNING, 'com_alfa.orders');
             }
         }
 
-        // Resolve currency number from DB currency ID
-        $currencyNumber = 978; // Default EUR
-        if ($currencyId > 0) {
-            $cQuery = $db->getQuery(true)
-                ->select('number')
-                ->from('#__alfa_currencies')
-                ->where('id = ' . intval($currencyId));
-            $db->setQuery($cQuery);
-            $number = $db->loadResult();
-            if ($number) {
-                $currencyNumber = (int) $number;
-            }
-        }
-
-        return new \Alfa\Component\Alfa\Site\Service\Pricing\PriceContext([
-            'currency_id' => $currencyNumber,
-            'customer_id' => $customerId > 0 ? $customerId : null,
-            'customer_group_id' => $customerGroupId,
-        ]);
+        // Build context using the fluent API.
+        // currencyId is the DB primary key from #__alfa_currencies (not the ISO code).
+        // forIndex() creates an anonymous context; withUserId() attaches the customer.
+        return \Alfa\Component\Alfa\Site\Service\Pricing\PriceContext::forIndex($currencyId, 0, 0)
+            ->withUserGroups(array_unique($userGroups))
+            ->withUserId($customerId > 0 ? $customerId : null);
     }
 
     // ========================================================================
