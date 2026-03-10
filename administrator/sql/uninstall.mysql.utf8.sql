@@ -1,60 +1,73 @@
-DROP TABLE IF EXISTS `#__alfa_cart`;
-DROP TABLE IF EXISTS `#__alfa_cart_items`;
-DROP TABLE IF EXISTS `#__alfa_categories`;
-DROP TABLE IF EXISTS `#__alfa_categories_usergroups`;
-DROP TABLE IF EXISTS `#__alfa_categories_users`;
-DROP TABLE IF EXISTS `#__alfa_coupons`;
-DROP TABLE IF EXISTS `#__alfa_coupons_usergroups`;
-DROP TABLE IF EXISTS `#__alfa_coupons_users`;
-DROP TABLE IF EXISTS `#__alfa_currencies`;
-DROP TABLE IF EXISTS `#__alfa_customs`;
-DROP TABLE IF EXISTS `#__alfa_discounts`;
-DROP TABLE IF EXISTS `#__alfa_discount_categories`;
-DROP TABLE IF EXISTS `#__alfa_discount_manufacturers`;
-DROP TABLE IF EXISTS `#__alfa_discount_places`;
-DROP TABLE IF EXISTS `#__alfa_discount_usergroups`;
-DROP TABLE IF EXISTS `#__alfa_discount_users`;
-DROP TABLE IF EXISTS `#__alfa_form_fields`;
-DROP TABLE IF EXISTS `#__alfa_form_fields_usergroups`;
-DROP TABLE IF EXISTS `#__alfa_form_fields_users`;
-DROP TABLE IF EXISTS `#__alfa_items`;
-DROP TABLE IF EXISTS `#__alfa_items_categories`;
-DROP TABLE IF EXISTS `#__alfa_items_manufacturers`;
-DROP TABLE IF EXISTS `#__alfa_items_prices`;
-DROP TABLE IF EXISTS `#__alfa_items_price_index`;
-DROP TABLE IF EXISTS `#__alfa_items_usergroups`;
-DROP TABLE IF EXISTS `#__alfa_items_users`;
-DROP TABLE IF EXISTS `#__alfa_manufacturers`;
-DROP TABLE IF EXISTS `#__alfa_orders`;
-DROP TABLE IF EXISTS `#__alfa_orders_statuses`;
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- Order child tables
+DROP TABLE IF EXISTS `#__alfa_order_slip_detail`;
+DROP TABLE IF EXISTS `#__alfa_order_slip`;
+DROP TABLE IF EXISTS `#__alfa_order_detail_tax`;
+DROP TABLE IF EXISTS `#__alfa_order_shipments`;
+DROP TABLE IF EXISTS `#__alfa_order_payments`;
+DROP TABLE IF EXISTS `#__alfa_order_items`;
 DROP TABLE IF EXISTS `#__alfa_order_activity_log`;
 DROP TABLE IF EXISTS `#__alfa_order_cart_rule`;
-DROP TABLE IF EXISTS `#__alfa_order_detail_tax`;
-DROP TABLE IF EXISTS `#__alfa_order_items`;
-DROP TABLE IF EXISTS `#__alfa_order_payments`;
-DROP TABLE IF EXISTS `#__alfa_order_shipments`;
-DROP TABLE IF EXISTS `#__alfa_order_slip`;
-DROP TABLE IF EXISTS `#__alfa_order_slip_detail`;
-DROP TABLE IF EXISTS `#__alfa_payments`;
 DROP TABLE IF EXISTS `#__alfa_payments_standard_logs`;
+DROP TABLE IF EXISTS `#__alfa_orders`;
+DROP TABLE IF EXISTS `#__alfa_orders_statuses`;
+
+-- Cart
+DROP TABLE IF EXISTS `#__alfa_cart_items`;
+DROP TABLE IF EXISTS `#__alfa_cart`;
+
+-- Junction / pivot tables
+DROP TABLE IF EXISTS `#__alfa_categories_usergroups`;
+DROP TABLE IF EXISTS `#__alfa_categories_users`;
+DROP TABLE IF EXISTS `#__alfa_items_categories`;
+DROP TABLE IF EXISTS `#__alfa_items_manufacturers`;
+DROP TABLE IF EXISTS `#__alfa_items_usergroups`;
+DROP TABLE IF EXISTS `#__alfa_items_users`;
 DROP TABLE IF EXISTS `#__alfa_payment_categories`;
 DROP TABLE IF EXISTS `#__alfa_payment_manufacturers`;
 DROP TABLE IF EXISTS `#__alfa_payment_places`;
 DROP TABLE IF EXISTS `#__alfa_payment_usergroups`;
 DROP TABLE IF EXISTS `#__alfa_payment_users`;
-DROP TABLE IF EXISTS `#__alfa_places`;
-DROP TABLE IF EXISTS `#__alfa_shipments`;
 DROP TABLE IF EXISTS `#__alfa_shipment_categories`;
 DROP TABLE IF EXISTS `#__alfa_shipment_manufacturers`;
 DROP TABLE IF EXISTS `#__alfa_shipment_places`;
 DROP TABLE IF EXISTS `#__alfa_shipment_usergroups`;
 DROP TABLE IF EXISTS `#__alfa_shipment_users`;
-DROP TABLE IF EXISTS `#__alfa_taxes`;
 DROP TABLE IF EXISTS `#__alfa_tax_categories`;
 DROP TABLE IF EXISTS `#__alfa_tax_manufacturers`;
 DROP TABLE IF EXISTS `#__alfa_tax_places`;
 DROP TABLE IF EXISTS `#__alfa_tax_usergroups`;
 DROP TABLE IF EXISTS `#__alfa_tax_users`;
+DROP TABLE IF EXISTS `#__alfa_discount_categories`;
+DROP TABLE IF EXISTS `#__alfa_discount_manufacturers`;
+DROP TABLE IF EXISTS `#__alfa_discount_places`;
+DROP TABLE IF EXISTS `#__alfa_discount_usergroups`;
+DROP TABLE IF EXISTS `#__alfa_discount_users`;
+DROP TABLE IF EXISTS `#__alfa_coupons_usergroups`;
+DROP TABLE IF EXISTS `#__alfa_coupons_users`;
+DROP TABLE IF EXISTS `#__alfa_form_fields_usergroups`;
+DROP TABLE IF EXISTS `#__alfa_form_fields_users`;
+
+-- Items and prices
+DROP TABLE IF EXISTS `#__alfa_items_prices`;
+DROP TABLE IF EXISTS `#__alfa_items_price_index`;
+DROP TABLE IF EXISTS `#__alfa_items`;
+
+-- Parent / entity tables
+DROP TABLE IF EXISTS `#__alfa_categories`;
+DROP TABLE IF EXISTS `#__alfa_manufacturers`;
+DROP TABLE IF EXISTS `#__alfa_payments`;
+DROP TABLE IF EXISTS `#__alfa_shipments`;
+DROP TABLE IF EXISTS `#__alfa_taxes`;
+DROP TABLE IF EXISTS `#__alfa_discounts`;
+DROP TABLE IF EXISTS `#__alfa_coupons`;
+DROP TABLE IF EXISTS `#__alfa_currencies`;
+DROP TABLE IF EXISTS `#__alfa_customs`;
+DROP TABLE IF EXISTS `#__alfa_form_fields`;
+DROP TABLE IF EXISTS `#__alfa_places`;
+DROP TABLE IF EXISTS `#__alfa_user_info`;
 DROP TABLE IF EXISTS `#__alfa_usergroups`;
 DROP TABLE IF EXISTS `#__alfa_users`;
-DROP TABLE IF EXISTS `#__alfa_user_info`;
+
+SET FOREIGN_KEY_CHECKS = 1;
