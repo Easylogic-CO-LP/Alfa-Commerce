@@ -35,11 +35,11 @@ $wa->useStyle('com_alfa.manufacturer');
                 <img src="https://americanathleticshoe.com/cdn/shop/t/23/assets/placeholder_600x.png?v=113555733946226816651665571258">
             </div>
             <div class="manufacturer-name">
-                <h3><?php echo $this->item->name; ?></h3>
+                <h3><?php echo $this->escape($this->item->name); ?></h3>
             </div>
 
             <div class="manufacturer-description">
-				<?php echo $this->item->desc; ?>
+				<?php echo $this->escape($this->item->desc); ?>
             </div>
 
             <div class="manufacturer-products">

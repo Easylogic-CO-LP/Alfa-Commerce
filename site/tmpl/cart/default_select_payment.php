@@ -25,10 +25,10 @@ $cart = !empty($displayData) ? $displayData : $this->cart;
             >
 
             <label for="payment_method_<?php echo $payment->id; ?>">
-				<?php echo $payment->name; ?>
+				<?php echo htmlspecialchars($payment->name, ENT_QUOTES, 'UTF-8'); ?>
             </label>
 
-            <p><?php echo $payment->description; ?></p>
+            <p><?php echo htmlspecialchars($payment->description, ENT_QUOTES, 'UTF-8'); ?></p>
 
 			<?php
 			// TODO: Error handling for missing template.
