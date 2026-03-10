@@ -3,7 +3,7 @@
 /**
  * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  (C) 2024-2026 Easylogic CO LP and Agamemnon Fakas. All rights reserved.
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 /**
@@ -14,8 +14,7 @@
  *
  * Data: $this->activityLog (from OrderModel::getOrderActivityLog())
  *
- * @package    Com_Alfa
- * @subpackage Administrator
+ * @package    Alfa Commerce
  * @since      3.4.0
  */
 

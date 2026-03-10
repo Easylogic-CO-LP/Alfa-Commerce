@@ -3,7 +3,7 @@
 /**
  * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  (C) 2024-2026 Easylogic CO LP and Agamemnon Fakas. All rights reserved.
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
@@ -26,11 +26,9 @@
  *   Single source of truth — same method used by OrdersModel list view.
  *   No total columns stored on #__alfa_orders — always computed.
  *
- * @package    Com_Alfa
- * @subpackage Administrator
- * @version    4.1.0
+ * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  (C) 2026 Easylogic CO LP and Agamemnon Fakas. All rights reserved.
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  */
 
 namespace Alfa\Component\Alfa\Administrator\Model;

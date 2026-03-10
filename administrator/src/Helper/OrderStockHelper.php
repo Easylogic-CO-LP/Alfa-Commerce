@@ -1,12 +1,10 @@
 <?php
 
 /**
- * @package     Alfa.Component
- * @subpackage  Administrator.Helper
- * @version     3.5.1
- * @author      Agamemnon Fakas <info@easylogic.gr>
- * @copyright  (C) 2026 Easylogic CO LP and Agamemnon Fakas. All rights reserved.
- * @license     GNU General Public License version 3 or later; see LICENSE
+ * @package    Alfa Commerce
+ * @author     Agamemnon Fakas <info@easylogic.gr>
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  *
  * Centralized Stock Management Helper
  *

@@ -3,13 +3,12 @@
 /**
  * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  (C) 2024-2026 Easylogic CO LP and Agamemnon Fakas. All rights reserved.
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
 /**
- * @package     Alfa.Plugin
- * @subpackage  AlfaPayments.Boxnow
+ * @package    Alfa Commerce
  */
 
 namespace Joomla\Plugin\AlfaShipments\Boxnow\Extension;

@@ -1,12 +1,10 @@
 <?php
 
 /**
- * @package     Alfa.Component
- * @subpackage  Site.Helper
- * @version     3.0.0 - PRODUCTION READY
- * @author      Agamemnon Fakas <info@easylogic.gr>
- * @copyright  (C) 2026 Easylogic CO LP and Agamemnon Fakas. All rights reserved.
- * @license     GNU General Public License version 3 or later; see LICENSE
+ * @package    Alfa Commerce
+ * @author     Agamemnon Fakas <info@easylogic.gr>
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  *
  * COMPLETE V3 ORDER PLACEMENT HELPER - PRODUCTION GRADE
  * ========================================================

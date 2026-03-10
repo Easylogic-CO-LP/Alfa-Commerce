@@ -2,7 +2,7 @@
 <extension type="component" method="upgrade">
     <name>com_alfa</name>
     <creationDate>2024-05-10</creationDate>
-    <copyright>(C) 2024-2026 Easylogic CO LP and Agamemnon Fakas. All rights reserved.</copyright>
+    <copyright>(C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.</copyright>
     <license>GNU General Public License version 3 or later; see LICENSE</license>
     <author>Agamemnon Fakas</author>
     <authorEmail>info@easylogic.gr</authorEmail>

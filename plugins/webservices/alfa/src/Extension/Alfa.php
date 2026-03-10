@@ -1,11 +1,12 @@
 <?php
 
 /**
- * @package     Joomla.Plugin
- * @subpackage  Webservices.contact
+ * @package    Alfa Commerce
+ * @author     Agamemnon Fakas <info@easylogic.gr>
  *
  * @copyright   (C) 2019 Open Source Matters, Inc. <https://www.joomla.org>
- * @license     GNU General Public License version 3 or later; see LICENSE
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
 namespace Alfa\Plugin\WebServices\Alfa\Extension;

@@ -95,7 +95,7 @@ git push origin feature/my-feature
 
 ## License
 
-Copyright (C) 2024-2026 Easylogic CO LP and Agamemnon Fakas. All rights reserved.
+Copyright (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
 
 Licensed under the [GNU General Public License v3.0](LICENSE).
 

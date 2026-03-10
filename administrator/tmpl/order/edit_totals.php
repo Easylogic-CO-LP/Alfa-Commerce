@@ -19,11 +19,9 @@
  *
  * Path: administrator/components/com_alfa/tmpl/order/edit_totals.php
  *
- * @package    Com_Alfa
- * @subpackage Administrator.View.Order
- * @version    4.0.0
+ * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  (C) 2026 Easylogic CO LP and Agamemnon Fakas. All rights reserved.
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
  *
  * @since  3.0.0

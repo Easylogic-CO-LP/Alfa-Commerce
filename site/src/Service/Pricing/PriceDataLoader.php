@@ -3,13 +3,12 @@
 /**
  * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  (C) 2024-2026 Easylogic CO LP and Agamemnon Fakas. All rights reserved.
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
 /**
- * @package    Com_Alfa
- * @subpackage Site.Service.Pricing
+ * @package    Alfa Commerce
  * @since      1.0.0
  */
 
@@ -57,7 +56,7 @@ use Joomla\CMS\Factory;
  * Using the item-access table for this filter is a common mistake that causes
  * discounts to never apply (or to apply to the wrong items).
  *
- * @package Alfa\Component\Alfa\Site\Service\Pricing
+ * @package    Alfa Commerce
  * @since   1.0.0
  */
 class PriceDataLoader

@@ -10,11 +10,9 @@
  * Receives per-row data via:
  *   $this->currentItem — order object (reads _items[])
  *
- * @package    Com_Alfa
- * @subpackage Administrator.View.Orders
- * @version    8.0.0
+ * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  (C) 2026 Easylogic CO LP and Agamemnon Fakas. All rights reserved.
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
