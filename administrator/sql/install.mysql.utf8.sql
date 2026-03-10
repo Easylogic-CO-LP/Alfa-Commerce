@@ -3,14 +3,14 @@
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_cart` (
-  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `id_shop_group` int(11) NOT NULL,
-  `id_payment` int(11) UNSIGNED DEFAULT NULL,
-  `id_shipment` int(11) UNSIGNED DEFAULT NULL,
+  `id_payment` int(11) DEFAULT NULL,
+  `id_shipment` int(11) DEFAULT NULL,
   `id_lang` int(11) NOT NULL,
   `id_user_info_delivery` int(11) NOT NULL,
   `id_user_info_invoice` int(11) NOT NULL,
-  `id_currency` int(11) UNSIGNED NOT NULL,
+  `id_currency` int(11) NOT NULL,
   `id_customer` int(11) NOT NULL,
   `added` datetime NOT NULL,
   `updated` datetime NOT NULL,
@@ -25,8 +25,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_cart` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_cart_items` (
-  `id_cart` int(11) UNSIGNED NOT NULL,
-  `id_item` int(11) UNSIGNED NOT NULL,
+  `id_cart` int(11) NOT NULL,
+  `id_item` int(11) NOT NULL,
   `quantity` float NOT NULL,
   `added` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_cart_items` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_categories` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `parent_id` int(11) UNSIGNED DEFAULT 0,
+  `parent_id` int(11) DEFAULT 0,
   `name` varchar(400) NOT NULL,
   `desc` text DEFAULT NULL,
   `alias` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_bin DEFAULT NULL,
@@ -70,8 +70,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_categories` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_categories_usergroups` (
-  `category_id` int(11) UNSIGNED NOT NULL,
-  `usergroup_id` int(11) UNSIGNED NOT NULL,
+  `category_id` int(11) NOT NULL,
+  `usergroup_id` int(11) NOT NULL,
   KEY `category_id` (`category_id`,`usergroup_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -82,8 +82,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_categories_usergroups` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_categories_users` (
-  `category_id` int(11) UNSIGNED NOT NULL,
-  `user_id` int(11) UNSIGNED NOT NULL,
+  `category_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
   KEY `category_id` (`category_id`,`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -126,8 +126,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_coupons` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_coupons_usergroups` (
-  `coupon_id` int(11) UNSIGNED NOT NULL,
-  `usergroup_id` int(11) UNSIGNED NOT NULL,
+  `coupon_id` int(11) NOT NULL,
+  `usergroup_id` int(11) NOT NULL,
   KEY `coupon_id` (`coupon_id`,`usergroup_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -138,8 +138,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_coupons_usergroups` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_coupons_users` (
-  `coupon_id` int(11) UNSIGNED NOT NULL,
-  `user_id` int(11) UNSIGNED NOT NULL,
+  `coupon_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
   KEY `coupon_id` (`coupon_id`,`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -150,7 +150,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_coupons_users` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_currencies` (
-  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `id` int(1) UNSIGNED NOT NULL AUTO_INCREMENT,
   `name` varchar(64) DEFAULT NULL,
   `code` char(3) DEFAULT NULL,
   `number` int(4) DEFAULT NULL,
@@ -411,8 +411,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_discounts` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_discount_categories` (
-  `discount_id` int(11) UNSIGNED NOT NULL,
-  `category_id` int(11) UNSIGNED NOT NULL
+  `discount_id` int(11) NOT NULL,
+  `category_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -422,8 +422,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_discount_categories` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_discount_manufacturers` (
-  `discount_id` int(11) UNSIGNED NOT NULL,
-  `manufacturer_id` int(11) UNSIGNED NOT NULL
+  `discount_id` int(11) NOT NULL,
+  `manufacturer_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -433,8 +433,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_discount_manufacturers` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_discount_places` (
-  `discount_id` int(11) UNSIGNED NOT NULL,
-  `place_id` int(11) UNSIGNED NOT NULL
+  `discount_id` int(11) NOT NULL,
+  `place_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -444,8 +444,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_discount_places` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_discount_usergroups` (
-  `discount_id` int(11) UNSIGNED NOT NULL,
-  `usergroup_id` int(11) UNSIGNED NOT NULL
+  `discount_id` int(11) NOT NULL,
+  `usergroup_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -455,8 +455,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_discount_usergroups` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_discount_users` (
-  `discount_id` int(11) UNSIGNED NOT NULL,
-  `user_id` int(11) UNSIGNED NOT NULL
+  `discount_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -466,7 +466,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_discount_users` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_form_fields` (
-  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `type` text DEFAULT NULL,
   `params` text DEFAULT NULL,
   `name` text NOT NULL,
@@ -493,8 +493,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_form_fields` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_form_fields_usergroups` (
-  `field_id` int(11) UNSIGNED NOT NULL,
-  `usergroup_id` int(11) UNSIGNED NOT NULL
+  `field_id` int(11) NOT NULL,
+  `usergroup_id` int(11) NOT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -504,8 +504,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_form_fields_usergroups` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_form_fields_users` (
-  `field_id` int(11) UNSIGNED NOT NULL,
-  `user_id` int(11) UNSIGNED NOT NULL
+  `field_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -516,7 +516,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_form_fields_users` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_items` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `id_category_default` int(11) UNSIGNED NOT NULL,
+  `id_category_default` int(11) NOT NULL,
   `name` varchar(255) NOT NULL,
   `short_desc` text DEFAULT NULL,
   `full_desc` text DEFAULT NULL,
@@ -563,8 +563,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_items_categories` (
-  `item_id` int(11) UNSIGNED NOT NULL,
-  `category_id` int(11) UNSIGNED NOT NULL,
+  `item_id` int(11) NOT NULL,
+  `category_id` int(11) NOT NULL,
   KEY `idx_item_id` (`item_id`),
   KEY `idx_category_id` (`category_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -576,8 +576,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_categories` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_items_manufacturers` (
-  `item_id` int(11) UNSIGNED NOT NULL,
-  `manufacturer_id` int(11) UNSIGNED NOT NULL,
+  `item_id` int(11) NOT NULL,
+  `manufacturer_id` int(11) NOT NULL,
   KEY `idx_item_id` (`item_id`),
   KEY `idx_manufacturer_id` (`manufacturer_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -649,8 +649,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_price_index` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_items_usergroups` (
-  `item_id` int(11) UNSIGNED NOT NULL,
-  `usergroup_id` int(11) UNSIGNED NOT NULL,
+  `item_id` int(11) NOT NULL,
+  `usergroup_id` int(11) NOT NULL,
   KEY `item_id` (`item_id`,`usergroup_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -661,8 +661,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_usergroups` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_items_users` (
-  `item_id` int(11) UNSIGNED NOT NULL,
-  `user_id` int(11) UNSIGNED NOT NULL,
+  `item_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
   KEY `item_id` (`item_id`,`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -701,26 +701,26 @@ CREATE TABLE IF NOT EXISTS `#__alfa_manufacturers` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
-  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `reference` varchar(20) DEFAULT NULL COMMENT 'Human-readable order code (optional - can use ID instead)',
   `id_user` int(11) DEFAULT NULL,
-  `id_cart` int(11) UNSIGNED DEFAULT NULL,
-  `id_currency` int(11) UNSIGNED DEFAULT NULL,
+  `id_cart` int(11) DEFAULT NULL,
+  `id_currency` int(11) DEFAULT NULL,
   `conversion_rate` decimal(13,6) NOT NULL DEFAULT 1.000000 COMMENT 'Currency conversion rate at order time',
   `invoice_number` int(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Sequential invoice number',
   `invoice_date` datetime DEFAULT NULL COMMENT 'When invoice was generated',
   `delivery_date` datetime DEFAULT NULL COMMENT 'When order was delivered',
   `id_address_delivery` int(11) DEFAULT NULL,
   `id_address_invoice` int(11) DEFAULT NULL,
-  `id_payment_method` int(11) UNSIGNED DEFAULT NULL,
-  `id_shipment_method` int(11) UNSIGNED DEFAULT NULL,
+  `id_payment_method` int(11) DEFAULT NULL,
+  `id_shipment_method` int(11) DEFAULT NULL,
   `id_order_status` int(11) DEFAULT NULL,
   `secure_key` varchar(32) NOT NULL DEFAULT '' COMMENT 'Security key for guest order tracking',
   `payment_method_name` varchar(255) NOT NULL DEFAULT '' COMMENT 'Payment method name snapshot (fallback if id_payment_method deleted)',
   `shipment_method_name` varchar(255) NOT NULL DEFAULT '' COMMENT 'Shipment method name snapshot (fallback if id_shipment_method deleted)',
   `id_payment_currency` int(11) DEFAULT NULL,
   `id_language` int(11) DEFAULT NULL,
-  `id_coupon` int(11) UNSIGNED DEFAULT NULL,
+  `id_coupon` int(11) DEFAULT NULL,
   `code_coupon` int(11) DEFAULT NULL,
   `ip_address` varchar(255) DEFAULT NULL,
   `customer_note` text DEFAULT NULL,
@@ -828,8 +828,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_cart_rule` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_order_detail_tax` (
-  `id_order_detail` int(11) UNSIGNED NOT NULL,
-  `id_tax` int(11) UNSIGNED NOT NULL,
+  `id_order_detail` int(11) NOT NULL,
+  `id_tax` int(11) NOT NULL,
   `unit_amount` decimal(16,6) NOT NULL DEFAULT 0.000000,
   `total_amount` decimal(16,6) NOT NULL DEFAULT 0.000000,
   KEY `idx_id_order_detail` (`id_order_detail`),
@@ -843,14 +843,14 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_detail_tax` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_order_items` (
-  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `id_item` int(11) UNSIGNED NOT NULL,
-  `id_order` int(11) UNSIGNED NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_item` int(11) NOT NULL,
+  `id_order` int(11) NOT NULL,
   `id_order_invoice` int(11) UNSIGNED DEFAULT NULL COMMENT 'Invoice ID (for multi-invoice orders)',
   `id_warehouse` int(10) UNSIGNED DEFAULT 0 COMMENT 'Warehouse item shipped from',
   `id_product_attribute` int(10) UNSIGNED DEFAULT NULL COMMENT 'Product variation/combination ID',
   `id_customization` int(10) UNSIGNED DEFAULT 0 COMMENT 'Customization ID',
-  `id_shipmentmethod` int(11) UNSIGNED NOT NULL,
+  `id_shipmentmethod` int(11) NOT NULL,
   `id_order_shipment` int(10) UNSIGNED DEFAULT NULL,
   `name` varchar(255) NOT NULL,
   `reference` varchar(64) DEFAULT NULL COMMENT 'Product SKU/reference',
@@ -905,12 +905,12 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_items` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_order_payments` (
-  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `order_reference` varchar(20) DEFAULT NULL COMMENT 'Order reference (if using references)',
-  `id_order` int(11) UNSIGNED NOT NULL,
+  `id_order` int(11) NOT NULL,
   `id_currency` int(10) UNSIGNED NOT NULL,
   `amount` decimal(20,6) NOT NULL COMMENT 'Payment amount (negative for refunds)',
-  `id_payment_method` int(11) UNSIGNED NOT NULL COMMENT 'Payment method ID',
+  `id_payment_method` int(11) NOT NULL COMMENT 'Payment method ID',
   `payment_method` varchar(255) NOT NULL COMMENT 'Payment method name snapshot (fallback if method deleted)',
   `id_refunded_payment` int(11) DEFAULT NULL COMMENT 'If refund, links to original payment',
   `payment_type` enum('payment','refund','authorization') NOT NULL DEFAULT 'payment' COMMENT 'payment=normal, refund=money back, authorization=held funds',
@@ -1043,8 +1043,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_payments` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_payments_standard_logs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `id_order` int(11) UNSIGNED NOT NULL,
-  `id_order_payment` int(11) UNSIGNED DEFAULT NULL,
+  `id_order` int(11) NOT NULL,
+  `id_order_payment` int(11) DEFAULT NULL,
   `action` varchar(50) DEFAULT NULL,
   `transaction_status` varchar(20) DEFAULT NULL,
   `amount` decimal(20,6) NOT NULL DEFAULT 0.000000,
@@ -1067,8 +1067,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_payments_standard_logs` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_payment_categories` (
-  `payment_id` int(11) UNSIGNED NOT NULL,
-  `category_id` int(11) UNSIGNED NOT NULL
+  `payment_id` int(11) NOT NULL,
+  `category_id` int(11) NOT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -1078,8 +1078,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_payment_categories` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_payment_manufacturers` (
-  `payment_id` int(11) UNSIGNED NOT NULL,
-  `manufacturer_id` int(11) UNSIGNED NOT NULL
+  `payment_id` int(11) NOT NULL,
+  `manufacturer_id` int(11) NOT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -1089,8 +1089,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_payment_manufacturers` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_payment_places` (
-  `payment_id` int(11) UNSIGNED NOT NULL,
-  `place_id` int(11) UNSIGNED NOT NULL
+  `payment_id` int(11) NOT NULL,
+  `place_id` int(11) NOT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -1100,8 +1100,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_payment_places` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_payment_usergroups` (
-  `payment_id` int(11) UNSIGNED NOT NULL,
-  `usergroup_id` int(11) UNSIGNED NOT NULL
+  `payment_id` int(11) NOT NULL,
+  `usergroup_id` int(11) NOT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -1111,8 +1111,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_payment_usergroups` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_payment_users` (
-  `payment_id` int(11) UNSIGNED NOT NULL,
-  `user_id` int(11) UNSIGNED NOT NULL
+  `payment_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -1430,8 +1430,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_shipments` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_shipment_categories` (
-  `shipment_id` int(11) UNSIGNED NOT NULL,
-  `category_id` int(11) UNSIGNED NOT NULL
+  `shipment_id` int(11) NOT NULL,
+  `category_id` int(11) NOT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -1441,8 +1441,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_shipment_categories` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_shipment_manufacturers` (
-  `shipment_id` int(11) UNSIGNED NOT NULL,
-  `manufacturer_id` int(11) UNSIGNED NOT NULL
+  `shipment_id` int(11) NOT NULL,
+  `manufacturer_id` int(11) NOT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -1452,8 +1452,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_shipment_manufacturers` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_shipment_places` (
-  `shipment_id` int(11) UNSIGNED NOT NULL,
-  `place_id` int(11) UNSIGNED NOT NULL
+  `shipment_id` int(11) NOT NULL,
+  `place_id` int(11) NOT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -1463,8 +1463,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_shipment_places` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_shipment_usergroups` (
-  `shipment_id` int(11) UNSIGNED NOT NULL,
-  `usergroup_id` int(11) UNSIGNED NOT NULL
+  `shipment_id` int(11) NOT NULL,
+  `usergroup_id` int(11) NOT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -1474,8 +1474,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_shipment_usergroups` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_shipment_users` (
-  `shipment_id` int(11) UNSIGNED NOT NULL,
-  `user_id` int(11) UNSIGNED NOT NULL
+  `shipment_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -1513,8 +1513,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_taxes` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_tax_categories` (
-  `tax_id` int(11) UNSIGNED NOT NULL,
-  `category_id` int(11) UNSIGNED NOT NULL
+  `tax_id` int(11) NOT NULL,
+  `category_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -1524,8 +1524,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_tax_categories` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_tax_manufacturers` (
-  `tax_id` int(11) UNSIGNED NOT NULL,
-  `manufacturer_id` int(11) UNSIGNED NOT NULL
+  `tax_id` int(11) NOT NULL,
+  `manufacturer_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -1535,8 +1535,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_tax_manufacturers` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_tax_places` (
-  `tax_id` int(11) UNSIGNED NOT NULL,
-  `place_id` int(11) UNSIGNED NOT NULL
+  `tax_id` int(11) NOT NULL,
+  `place_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -1546,8 +1546,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_tax_places` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_tax_usergroups` (
-  `tax_id` int(11) UNSIGNED NOT NULL,
-  `usergroup_id` int(11) UNSIGNED NOT NULL
+  `tax_id` int(11) NOT NULL,
+  `usergroup_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -1557,8 +1557,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_tax_usergroups` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_tax_users` (
-  `tax_id` int(11) UNSIGNED NOT NULL,
-  `user_id` int(11) UNSIGNED NOT NULL
+  `tax_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -1614,7 +1614,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_users` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_user_info` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `id_user` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `id_user` int(11) NOT NULL DEFAULT 0,
   `test` text DEFAULT NULL,
   `bka-bla` decimal(15,5) DEFAULT NULL,
   `aaa` int(11) DEFAULT NULL,
@@ -1630,233 +1630,3 @@ CREATE TABLE IF NOT EXISTS `#__alfa_user_info` (
 --
 ALTER TABLE `#__alfa_items_price_index`
   ADD CONSTRAINT `fk_priceidx_item` FOREIGN KEY (`item_id`) REFERENCES `#__alfa_items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- ============================================================
--- JUNCTION / PIVOT TABLES (CASCADE on delete)
--- ============================================================
-
--- Categories <-> Usergroups
-ALTER TABLE `#__alfa_categories_usergroups`
-    ADD CONSTRAINT `fk_catug_category` FOREIGN KEY (`category_id`) REFERENCES `#__alfa_categories` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_catug_usergroup` FOREIGN KEY (`usergroup_id`) REFERENCES `#__alfa_usergroups` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Categories <-> Users
-ALTER TABLE `#__alfa_categories_users`
-    ADD CONSTRAINT `fk_catu_category` FOREIGN KEY (`category_id`) REFERENCES `#__alfa_categories` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_catu_user` FOREIGN KEY (`user_id`) REFERENCES `#__alfa_users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Items <-> Categories
-ALTER TABLE `#__alfa_items_categories`
-    ADD CONSTRAINT `fk_itemcat_item` FOREIGN KEY (`item_id`) REFERENCES `#__alfa_items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_itemcat_category` FOREIGN KEY (`category_id`) REFERENCES `#__alfa_categories` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Items <-> Manufacturers
-ALTER TABLE `#__alfa_items_manufacturers`
-    ADD CONSTRAINT `fk_itemmfr_item` FOREIGN KEY (`item_id`) REFERENCES `#__alfa_items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_itemmfr_manufacturer` FOREIGN KEY (`manufacturer_id`) REFERENCES `#__alfa_manufacturers` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Items <-> Usergroups
-ALTER TABLE `#__alfa_items_usergroups`
-    ADD CONSTRAINT `fk_itemug_item` FOREIGN KEY (`item_id`) REFERENCES `#__alfa_items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_itemug_usergroup` FOREIGN KEY (`usergroup_id`) REFERENCES `#__alfa_usergroups` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Items <-> Users
-ALTER TABLE `#__alfa_items_users`
-    ADD CONSTRAINT `fk_itemu_item` FOREIGN KEY (`item_id`) REFERENCES `#__alfa_items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_itemu_user` FOREIGN KEY (`user_id`) REFERENCES `#__alfa_users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Payment <-> Categories
-ALTER TABLE `#__alfa_payment_categories`
-    ADD CONSTRAINT `fk_paycat_payment` FOREIGN KEY (`payment_id`) REFERENCES `#__alfa_payments` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_paycat_category` FOREIGN KEY (`category_id`) REFERENCES `#__alfa_categories` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Payment <-> Manufacturers
-ALTER TABLE `#__alfa_payment_manufacturers`
-    ADD CONSTRAINT `fk_paymfr_payment` FOREIGN KEY (`payment_id`) REFERENCES `#__alfa_payments` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_paymfr_manufacturer` FOREIGN KEY (`manufacturer_id`) REFERENCES `#__alfa_manufacturers` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Payment <-> Places
-ALTER TABLE `#__alfa_payment_places`
-    ADD CONSTRAINT `fk_payplc_payment` FOREIGN KEY (`payment_id`) REFERENCES `#__alfa_payments` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_payplc_place` FOREIGN KEY (`place_id`) REFERENCES `#__alfa_places` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Payment <-> Usergroups
-ALTER TABLE `#__alfa_payment_usergroups`
-    ADD CONSTRAINT `fk_payug_payment` FOREIGN KEY (`payment_id`) REFERENCES `#__alfa_payments` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_payug_usergroup` FOREIGN KEY (`usergroup_id`) REFERENCES `#__alfa_usergroups` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Payment <-> Users
-ALTER TABLE `#__alfa_payment_users`
-    ADD CONSTRAINT `fk_payu_payment` FOREIGN KEY (`payment_id`) REFERENCES `#__alfa_payments` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_payu_user` FOREIGN KEY (`user_id`) REFERENCES `#__alfa_users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Shipment <-> Categories
-ALTER TABLE `#__alfa_shipment_categories`
-    ADD CONSTRAINT `fk_shipcat_shipment` FOREIGN KEY (`shipment_id`) REFERENCES `#__alfa_shipments` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_shipcat_category` FOREIGN KEY (`category_id`) REFERENCES `#__alfa_categories` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Shipment <-> Manufacturers
-ALTER TABLE `#__alfa_shipment_manufacturers`
-    ADD CONSTRAINT `fk_shipmfr_shipment` FOREIGN KEY (`shipment_id`) REFERENCES `#__alfa_shipments` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_shipmfr_manufacturer` FOREIGN KEY (`manufacturer_id`) REFERENCES `#__alfa_manufacturers` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Shipment <-> Places
-ALTER TABLE `#__alfa_shipment_places`
-    ADD CONSTRAINT `fk_shipplc_shipment` FOREIGN KEY (`shipment_id`) REFERENCES `#__alfa_shipments` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_shipplc_place` FOREIGN KEY (`place_id`) REFERENCES `#__alfa_places` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Shipment <-> Usergroups
-ALTER TABLE `#__alfa_shipment_usergroups`
-    ADD CONSTRAINT `fk_shipug_shipment` FOREIGN KEY (`shipment_id`) REFERENCES `#__alfa_shipments` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_shipug_usergroup` FOREIGN KEY (`usergroup_id`) REFERENCES `#__alfa_usergroups` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Shipment <-> Users
-ALTER TABLE `#__alfa_shipment_users`
-    ADD CONSTRAINT `fk_shipu_shipment` FOREIGN KEY (`shipment_id`) REFERENCES `#__alfa_shipments` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_shipu_user` FOREIGN KEY (`user_id`) REFERENCES `#__alfa_users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Tax <-> Categories
-ALTER TABLE `#__alfa_tax_categories`
-    ADD CONSTRAINT `fk_taxcat_tax` FOREIGN KEY (`tax_id`) REFERENCES `#__alfa_taxes` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_taxcat_category` FOREIGN KEY (`category_id`) REFERENCES `#__alfa_categories` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Tax <-> Manufacturers
-ALTER TABLE `#__alfa_tax_manufacturers`
-    ADD CONSTRAINT `fk_taxmfr_tax` FOREIGN KEY (`tax_id`) REFERENCES `#__alfa_taxes` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_taxmfr_manufacturer` FOREIGN KEY (`manufacturer_id`) REFERENCES `#__alfa_manufacturers` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Tax <-> Places
-ALTER TABLE `#__alfa_tax_places`
-    ADD CONSTRAINT `fk_taxplc_tax` FOREIGN KEY (`tax_id`) REFERENCES `#__alfa_taxes` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_taxplc_place` FOREIGN KEY (`place_id`) REFERENCES `#__alfa_places` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Tax <-> Usergroups
-ALTER TABLE `#__alfa_tax_usergroups`
-    ADD CONSTRAINT `fk_taxug_tax` FOREIGN KEY (`tax_id`) REFERENCES `#__alfa_taxes` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_taxug_usergroup` FOREIGN KEY (`usergroup_id`) REFERENCES `#__alfa_usergroups` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Tax <-> Users
-ALTER TABLE `#__alfa_tax_users`
-    ADD CONSTRAINT `fk_taxu_tax` FOREIGN KEY (`tax_id`) REFERENCES `#__alfa_taxes` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_taxu_user` FOREIGN KEY (`user_id`) REFERENCES `#__alfa_users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Discount <-> Categories
-ALTER TABLE `#__alfa_discount_categories`
-    ADD CONSTRAINT `fk_disccat_discount` FOREIGN KEY (`discount_id`) REFERENCES `#__alfa_discounts` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_disccat_category` FOREIGN KEY (`category_id`) REFERENCES `#__alfa_categories` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Discount <-> Manufacturers
-ALTER TABLE `#__alfa_discount_manufacturers`
-    ADD CONSTRAINT `fk_discmfr_discount` FOREIGN KEY (`discount_id`) REFERENCES `#__alfa_discounts` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_discmfr_manufacturer` FOREIGN KEY (`manufacturer_id`) REFERENCES `#__alfa_manufacturers` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Discount <-> Places
-ALTER TABLE `#__alfa_discount_places`
-    ADD CONSTRAINT `fk_discplc_discount` FOREIGN KEY (`discount_id`) REFERENCES `#__alfa_discounts` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_discplc_place` FOREIGN KEY (`place_id`) REFERENCES `#__alfa_places` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Discount <-> Usergroups
-ALTER TABLE `#__alfa_discount_usergroups`
-    ADD CONSTRAINT `fk_discug_discount` FOREIGN KEY (`discount_id`) REFERENCES `#__alfa_discounts` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_discug_usergroup` FOREIGN KEY (`usergroup_id`) REFERENCES `#__alfa_usergroups` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Discount <-> Users
-ALTER TABLE `#__alfa_discount_users`
-    ADD CONSTRAINT `fk_discu_discount` FOREIGN KEY (`discount_id`) REFERENCES `#__alfa_discounts` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_discu_user` FOREIGN KEY (`user_id`) REFERENCES `#__alfa_users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Coupons <-> Usergroups
-ALTER TABLE `#__alfa_coupons_usergroups`
-    ADD CONSTRAINT `fk_coupug_coupon` FOREIGN KEY (`coupon_id`) REFERENCES `#__alfa_coupons` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_coupug_usergroup` FOREIGN KEY (`usergroup_id`) REFERENCES `#__alfa_usergroups` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Coupons <-> Users
-ALTER TABLE `#__alfa_coupons_users`
-    ADD CONSTRAINT `fk_coupu_coupon` FOREIGN KEY (`coupon_id`) REFERENCES `#__alfa_coupons` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_coupu_user` FOREIGN KEY (`user_id`) REFERENCES `#__alfa_users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Form Fields <-> Usergroups
-ALTER TABLE `#__alfa_form_fields_usergroups`
-    ADD CONSTRAINT `fk_ffug_formfield` FOREIGN KEY (`form_field_id`) REFERENCES `#__alfa_form_fields` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_ffug_usergroup` FOREIGN KEY (`usergroup_id`) REFERENCES `#__alfa_usergroups` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Form Fields <-> Users
-ALTER TABLE `#__alfa_form_fields_users`
-    ADD CONSTRAINT `fk_ffu_formfield` FOREIGN KEY (`form_field_id`) REFERENCES `#__alfa_form_fields` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_ffu_user` FOREIGN KEY (`user_id`) REFERENCES `#__alfa_users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- ============================================================
--- CART REFERENCES (SET NULL - keep cart if method is deleted)
--- ============================================================
-
-ALTER TABLE `#__alfa_cart`
-    ADD CONSTRAINT `fk_cart_payment` FOREIGN KEY (`id_payment`) REFERENCES `#__alfa_payments` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_cart_shipment` FOREIGN KEY (`id_shipment`) REFERENCES `#__alfa_shipments` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_cart_currency` FOREIGN KEY (`id_currency`) REFERENCES `#__alfa_currencies` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- Cart Items
-ALTER TABLE `#__alfa_cart_items`
-    ADD CONSTRAINT `fk_cartitem_cart` FOREIGN KEY (`id_cart`) REFERENCES `#__alfa_cart` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_cartitem_item` FOREIGN KEY (`id_item`) REFERENCES `#__alfa_items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- ============================================================
--- ORDER REFERENCES (RESTRICT - prevent deleting referenced data)
--- ============================================================
-
-ALTER TABLE `#__alfa_orders`
-    ADD CONSTRAINT `fk_order_currency` FOREIGN KEY (`id_currency`) REFERENCES `#__alfa_currencies` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_order_status` FOREIGN KEY (`id_order_status`) REFERENCES `#__alfa_orders_statuses` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_order_payment_method` FOREIGN KEY (`id_payment_method`) REFERENCES `#__alfa_payments` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_order_shipment_method` FOREIGN KEY (`id_shipment_method`) REFERENCES `#__alfa_shipments` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_order_coupon` FOREIGN KEY (`id_coupon`) REFERENCES `#__alfa_coupons` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
-
--- Order Items
-ALTER TABLE `#__alfa_order_items`
-    ADD CONSTRAINT `fk_orderitem_order` FOREIGN KEY (`id_order`) REFERENCES `#__alfa_orders` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_orderitem_item` FOREIGN KEY (`id_item`) REFERENCES `#__alfa_items` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- Order Payments
-ALTER TABLE `#__alfa_order_payments`
-    ADD CONSTRAINT `fk_orderpay_order` FOREIGN KEY (`id_order`) REFERENCES `#__alfa_orders` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_orderpay_currency` FOREIGN KEY (`id_currency`) REFERENCES `#__alfa_currencies` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_orderpay_method` FOREIGN KEY (`id_payment_method`) REFERENCES `#__alfa_payments` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- Order Shipments
-ALTER TABLE `#__alfa_order_shipments`
-    ADD CONSTRAINT `fk_ordership_order` FOREIGN KEY (`id_order`) REFERENCES `#__alfa_orders` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_ordership_method` FOREIGN KEY (`id_shipment_method`) REFERENCES `#__alfa_shipments` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- Order Activity Log
-ALTER TABLE `#__alfa_order_activity_log`
-    ADD CONSTRAINT `fk_orderlog_order` FOREIGN KEY (`id_order`) REFERENCES `#__alfa_orders` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Order Detail Tax
-ALTER TABLE `#__alfa_order_detail_tax`
-    ADD CONSTRAINT `fk_ordertax_detail` FOREIGN KEY (`id_order_detail`) REFERENCES `#__alfa_order_items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_ordertax_tax` FOREIGN KEY (`id_tax`) REFERENCES `#__alfa_taxes` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- Order Slip (Returns/Refunds)
-ALTER TABLE `#__alfa_order_slip`
-    ADD CONSTRAINT `fk_orderslip_order` FOREIGN KEY (`id_order`) REFERENCES `#__alfa_orders` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Order Slip Detail
-ALTER TABLE `#__alfa_order_slip_detail`
-    ADD CONSTRAINT `fk_orderslipdet_slip` FOREIGN KEY (`id_order_slip`) REFERENCES `#__alfa_order_slip` (`id_order_slip`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_orderslipdet_detail` FOREIGN KEY (`id_order_detail`) REFERENCES `#__alfa_order_items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Payment Standard Logs
-ALTER TABLE `#__alfa_payments_standard_logs`
-    ADD CONSTRAINT `fk_paylog_order` FOREIGN KEY (`id_order`) REFERENCES `#__alfa_orders` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `fk_paylog_orderpay` FOREIGN KEY (`id_order_payment`) REFERENCES `#__alfa_order_payments` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Items Prices
-ALTER TABLE `#__alfa_items_prices`
-    ADD CONSTRAINT `fk_itemprice_item` FOREIGN KEY (`item_id`) REFERENCES `#__alfa_items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- User Info
-ALTER TABLE `#__alfa_user_info`
-    ADD CONSTRAINT `fk_userinfo_user` FOREIGN KEY (`id_user`) REFERENCES `#__alfa_users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Categories self-referential (parent)
-ALTER TABLE `#__alfa_categories`
-    ADD CONSTRAINT `fk_cat_parent` FOREIGN KEY (`parent_id`) REFERENCES `#__alfa_categories` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
