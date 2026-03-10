@@ -1,4 +1,5 @@
-<?php 
+<?php
+
 /**
  * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
