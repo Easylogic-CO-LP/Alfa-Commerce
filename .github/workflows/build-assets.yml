@@ -34,42 +34,32 @@ jobs:
         run: |
           npm install -g csso-cli terser
 
-      - name: Minify CSS and create gzip variants
+      - name: Minify and gzip CSS
         run: |
           find media/css/site media/css/admin -name '*.css' ! -name '*.min.css' | while read file; do
             if [ -f "$file" ]; then
-              minfile="${file%.css}.min.css"
-              # Minified version (Joomla loads this in production)
-              csso "$file" --output "$minfile"
-              # Gzip of minified (htaccess serves this in production)
-              gzip -9 -k -f "$minfile"
-              # Gzip of original (htaccess serves this in debug mode)
-              gzip -9 -k -f "$file"
-              echo "Built: $minfile, $minfile.gz, $file.gz"
+              # Minify then gzip directly to file.css.gz
+              csso "$file" | gzip -9 > "$file.gz"
+              echo "Built: $file.gz"
             fi
           done
 
-      - name: Minify JS and create gzip variants
+      - name: Minify and gzip JS
         run: |
           find media/js/site media/js/admin -name '*.js' ! -name '*.min.js' | while read file; do
             if [ -f "$file" ]; then
-              minfile="${file%.js}.min.js"
-              # Minified version (Joomla loads this in production)
-              terser "$file" --compress --mangle --output "$minfile"
-              # Gzip of minified (htaccess serves this in production)
-              gzip -9 -k -f "$minfile"
-              # Gzip of original (htaccess serves this in debug mode)
-              gzip -9 -k -f "$file"
-              echo "Built: $minfile, $minfile.gz, $file.gz"
+              # Minify then gzip directly to file.js.gz
+              terser "$file" --compress --mangle | gzip -9 > "$file.gz"
+              echo "Built: $file.gz"
             fi
           done
 
-      - name: Commit built assets
+      - name: Commit gzipped assets
         if: github.event_name == 'push'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A media/css/**/*.min.css media/css/**/*.gz media/js/**/*.min.js media/js/**/*.gz
+          git add -A media/css/**/*.gz media/js/**/*.gz
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
