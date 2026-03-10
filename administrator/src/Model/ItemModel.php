@@ -15,6 +15,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
+use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\OutputFilter;
 use Joomla\CMS\Language\Text;
@@ -150,8 +151,19 @@ class ItemModel extends AdminModel
             return true;
         }
 
+        $affectedCategories = [];
         foreach ($pks as $id) {
+            $oldCats = AlfaHelper::getAssocsFromDb($id, '#__alfa_items_categories', 'item_id', 'category_id');
+            $affectedCategories = array_merge($affectedCategories, array_map('intval', $oldCats));
             AlfaHelper::setAssocsToDb($id, $value, '#__alfa_items_categories', 'item_id', 'category_id');
+        }
+
+        // Clear cache for all affected categories (old + new)
+        $affectedCategories = array_unique(array_merge($affectedCategories, array_map('intval', $value)));
+        foreach ($affectedCategories as $catId) {
+            if ($catId > 0) {
+                CategoryHelper::clearCache($catId);
+            }
         }
 
         $app->enqueueMessage(Text::_('COM_ALFA_CATEGORIES_SET_SUCCESSFULLY'), 'info');
@@ -338,8 +350,23 @@ class ItemModel extends AdminModel
         $this->setPrices($currentId, $data['prices']);
 
         // Step 3: save all associations
-        AlfaHelper::setAssocsToDb($currentId, $data['categories'] ?? [], '#__alfa_items_categories', 'item_id', 'category_id');
+        // Get old categories BEFORE overwriting so we can clear their cache too
+        $oldCategories = AlfaHelper::getAssocsFromDb($currentId, '#__alfa_items_categories', 'item_id', 'category_id');
+        $newCategories = $data['categories'] ?? [];
+
+        AlfaHelper::setAssocsToDb($currentId, $newCategories, '#__alfa_items_categories', 'item_id', 'category_id');
         AlfaHelper::setAssocsToDb($currentId, $data['manufacturers'] ?? [], '#__alfa_items_manufacturers', 'item_id', 'manufacturer_id');
+
+        // Clear category cache for all affected categories (old + new)
+        $affectedCategories = array_unique(array_merge(
+            array_map('intval', $oldCategories),
+            array_map('intval', $newCategories),
+        ));
+        foreach ($affectedCategories as $catId) {
+            if ($catId > 0) {
+                CategoryHelper::clearCache($catId);
+            }
+        }
 
         AlfaHelper::setAssocsToDb($currentId, $data['allowedUsers'] ?? [], '#__alfa_items_users', 'item_id', 'user_id');
         AlfaHelper::setAssocsToDb($currentId, $data['allowedUserGroups'] ?? [], '#__alfa_items_usergroups', 'item_id', 'usergroup_id');
