@@ -27,12 +27,10 @@
  *   The formula (items + shipping - discounts) and the discount tax
  *   approximation are defined ONCE in the helper. No duplication.
  *
- * @package    Com_Alfa
- * @subpackage Administrator.Model
- * @version    4.1.0
+ * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  2026 Easylogic CO LP
- * @license    GNU General Public License version 2 or later
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  *
  * @since  3.0.0
  */

@@ -1,6 +1,13 @@
 <?php
 
 /**
+ * @package    Alfa Commerce
+ * @author     Agamemnon Fakas <info@easylogic.gr>
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
+ */
+
+/**
  * OrderItemsField — Configurable multi-select of order items
  *
  * A reusable field that shows order items filtered by a nullable FK column.
@@ -38,8 +45,7 @@
  *          multiple="true"
  *          label="COM_ALFA_INVOICE_ITEMS" />
  *
- * @package    Com_Alfa
- * @subpackage Administrator
+ * @package    Alfa Commerce
  */
 
 namespace Alfa\Component\Alfa\Administrator\Field;

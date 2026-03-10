@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extension type="plugin" group="alfa-shipments" method="upgrade">
 	<name>PLG_ALFA_SHIPMENTS_BOXNOW</name>
-	<copyright>2024 Easylogic CO LP</copyright>
-	<license>GNU General Public License version 2 or later; see LICENSE.txt</license>
+	<copyright>(C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.</copyright>
+	<license>GNU General Public License version 3 or later; see LICENSE</license>
 	<author>Agamemnon Fakas</author>
 	<contributor>Athanasios Marios Voukias</contributor>
 	<creationDate>2025-03</creationDate>
 	<copyright>(C) 2016 Open Source Matters, Inc.</copyright>
-	<license>GNU General Public License version 2 or later; see LICENSE.txt</license>
+	<license>GNU General Public License version 3 or later; see LICENSE</license>
 	<authorEmail>info@easylogic.gr</authorEmail>
 	<authorUrl>http://easylogic.gr</authorUrl>
 	<version>1.0.2</version>

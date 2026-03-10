@@ -1,8 +1,14 @@
 <?php
 
 /**
- * @package     Alfa.Plugin
- * @subpackage  AlfaPayments.Revolut
+ * @package    Alfa Commerce
+ * @author     Agamemnon Fakas <info@easylogic.gr>
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
+ */
+
+/**
+ * @package    Alfa Commerce
  */
 
 namespace Joomla\Plugin\AlfaPayments\Revolut\Extension;

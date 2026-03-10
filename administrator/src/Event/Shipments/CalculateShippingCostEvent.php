@@ -24,12 +24,10 @@
  *       $event->setShippingCostTaxExcl($costExcl);
  *   }
  *
- * @package    Com_Alfa
- * @subpackage Administrator.Event.Shipments
- * @version    3.5.1
+ * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  2026 Easylogic CO LP
- * @license    GNU General Public License version 2 or later
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\Shipments;

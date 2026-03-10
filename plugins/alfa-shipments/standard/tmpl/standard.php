@@ -1,11 +1,12 @@
 <?php
 
 /**
- * @package     Alfa.Plugin
- * @subpackage  AlfaShipments.Standard
+ * @package    Alfa Commerce
+ * @author     Agamemnon Fakas <info@easylogic.gr>
  *
  * @copyright   (C) 2016 Open Source Matters, Inc. <https://www.joomla.org>
- * @license     GNU General Public License version 2 or later; see LICENSE.txt
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
 defined('_JEXEC') or die;

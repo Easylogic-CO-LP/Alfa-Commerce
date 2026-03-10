@@ -14,12 +14,10 @@
  *   - context  (string)        'payment' or 'shipment'
  *   - id       (int)           Entity PK (payment or shipment ID)
  *
- * @package     Alfa.Component
- * @subpackage  Administrator.Layout
- * @version     3.0.0
- * @author      Agamemnon Fakas <info@easylogic.gr>
- * @copyright   2025 Easylogic CO LP
- * @license     GNU General Public License version 2 or later
+ * @package    Alfa Commerce
+ * @author     Agamemnon Fakas <info@easylogic.gr>
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  *
  * @since  3.0.0
  */
