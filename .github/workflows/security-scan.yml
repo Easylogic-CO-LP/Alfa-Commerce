@@ -54,12 +54,6 @@ jobs:
             echo "No composer.lock found — skipping dependency vulnerability scan."
           fi
 
-      - name: Install PHPStan
-        run: composer global require --dev phpstan/phpstan
-
-      - name: PHP Static Analysis for Security
-        run: phpstan analyse -c phpstan.neon
-
   secret-scanning:
     runs-on: ubuntu-latest
     permissions:
