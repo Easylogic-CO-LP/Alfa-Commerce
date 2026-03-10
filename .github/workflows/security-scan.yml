@@ -18,13 +18,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: javascript-typescript
           queries: security-extended
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:javascript-typescript"
 
@@ -54,12 +54,11 @@ jobs:
             echo "No composer.lock found — skipping dependency vulnerability scan."
           fi
 
+      - name: Install PHPStan
+        run: composer global require --dev phpstan/phpstan
+
       - name: PHP Static Analysis for Security
-        uses: php-actions/phpstan@v3
-        with:
-          php_version: "8.2"
-          path: "administrator/src/ site/src/ api/src/ plugins/ modules/"
-          level: 5
+        run: phpstan analyse -c phpstan.neon
 
   secret-scanning:
     runs-on: ubuntu-latest
