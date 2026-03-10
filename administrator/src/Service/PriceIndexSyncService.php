@@ -393,12 +393,10 @@ class PriceIndexSyncService
                         ? round($basePrice * ($finalPrice / $basePriceWithDiscounts), 4)
                         : $basePrice;
 
-                    // discount_percent: saving relative to base_price_with_tax (the "was" price).
-                    // discountAmount here is in the discounted+tax context, so derive from
-                    // the difference between the "was" price and final price.
-                    $discountPercent = ($basePriceWithTax > 0 && $basePriceWithTax > $finalPrice)
-                        ? round((($basePriceWithTax - $finalPrice) / $basePriceWithTax) * 100, 2)
-                        : 0.00;
+                    // discount_percent: use PriceResult's authoritative calculation
+                    // which correctly handles both before-tax and after-tax discounts
+                    // via DiscountSummary. This matches what the frontend price layout displays.
+                    $discountPercent = $result->getSavingsPercent();
 
                     $this->upsertRow(
                         $itemId,
