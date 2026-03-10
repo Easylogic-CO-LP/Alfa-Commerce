@@ -386,19 +386,14 @@ class PriceIndexSyncService
                     $taxAmount = round($result->getTaxTotal()->getAmount(), 4);
                     $finalPrice = round($result->getTotal()->getAmount(), 4);
 
-                    // base_price_with_tax = base price + the same tax rate applied
-                    // to the discounted subtotal. Derived: base × (final / subtotal).
-                    // Guard against zero subtotal (tax-exempt items).
-                    $basePriceWithTax = $basePriceWithDiscounts > 0
-                        ? round($basePrice * ($finalPrice / $basePriceWithDiscounts), 4)
-                        : $basePrice;
+                    // base_price_with_tax: base + tax using Money objects,
+                    // same as the frontend price layout ($baseAmount->add($taxAmount)).
+                    $basePriceWithTax = round($result->getBaseTotal()->add($result->getTaxTotal())->getAmount(), 4);
 
-                    // discount_percent: saving relative to base_price_with_tax (the "was" price).
-                    // discountAmount here is in the discounted+tax context, so derive from
-                    // the difference between the "was" price and final price.
-                    $discountPercent = ($basePriceWithTax > 0 && $basePriceWithTax > $finalPrice)
-                        ? round((($basePriceWithTax - $finalPrice) / $basePriceWithTax) * 100, 2)
-                        : 0.00;
+                    // discount_percent: use PriceResult's authoritative calculation
+                    // which correctly handles both before-tax and after-tax discounts
+                    // via DiscountSummary. This matches what the frontend price layout displays.
+                    $discountPercent = $result->getSavingsPercent();
 
                     $this->upsertRow(
                         $itemId,
