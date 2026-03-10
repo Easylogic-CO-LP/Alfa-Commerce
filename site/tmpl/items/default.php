@@ -79,12 +79,12 @@ $priceSettings = $this->priceSettings;
 
             <article class="list-item" data-item-id="<?php echo $item->id; ?>">
                 <div>
-                    <a href="<?= $item->link ?>">
-                        <img src="<?= Uri::root() . '/media/com_alfa/images/placeholder_600x.webp' ?>" alt="<?= $item->name ?>" />
+                    <a href="<?= htmlspecialchars($item->link, ENT_QUOTES, 'UTF-8') ?>">
+                        <img src="<?= Uri::root() . '/media/com_alfa/images/placeholder_600x.webp' ?>" alt="<?= htmlspecialchars($item->name, ENT_QUOTES, 'UTF-8') ?>" />
                     </a>
                 </div>
                 <div class="item-title">
-                    <a href="<?= $item->link ?>">
+                    <a href="<?= htmlspecialchars($item->link, ENT_QUOTES, 'UTF-8') ?>">
 						<?php echo $this->escape($item->name); ?></a>
                 </div>
 

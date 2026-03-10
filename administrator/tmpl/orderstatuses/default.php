@@ -129,8 +129,8 @@ if ($saveOrder && !empty($this->items)) {
                                 <a 
                                     style="padding:5px 10px;
                                         border-radius:5px;
-                                        background-color: <?php echo $item->bg_color; ?>;
-                                        color: <?php echo $item->color; ?> !important;
+                                        background-color: <?php echo $this->escape($item->bg_color); ?>;
+                                        color: <?php echo $this->escape($item->color); ?> !important;
                                         text-decoration: none;"
 
                                     href="<?php echo Route::_('index.php?option=com_alfa&task=orderstatus.edit&id='.(int) $item->id); ?>">
