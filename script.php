@@ -31,7 +31,7 @@ class com_alfaInstallerScript extends InstallerScript
 	 *
 	 * @var string
 	 */
-	protected $extension = 'Alfa Commerce';
+	protected $extension = 'Alfa Commerce 2';
 
 	/**
 	 * The minimum Joomla! version required to install this extension
