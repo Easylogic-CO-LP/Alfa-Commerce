@@ -41,12 +41,12 @@ $priceSettings = $this->priceSettings;
     <div class="item-info">
         <div>
             <h1 class="item-name">
-                <?php echo $this->item->name; ?>
+                <?php echo $this->escape($this->item->name); ?>
             </h1>
         </div>
         <?php if (!empty($this->item->short_desc)): ?>
             <div class="item-short-description">
-                <?php echo $this->item->short_desc; ?>
+                <?php echo $this->escape($this->item->short_desc); ?>
             </div>
         <?php endif; ?>
 
@@ -100,20 +100,20 @@ $priceSettings = $this->priceSettings;
         <?php echo LayoutHelper::render('add_to_cart', $this->item); ?>
 
         <div class="item-full-description">
-            <?php echo nl2br($this->item->full_desc); ?>
+            <?php echo nl2br($this->escape($this->item->full_desc)); ?>
         </div>
 
         <div class="item-manufacturers">
             <h2><?php echo Text::_('Categories'); ?></h2>
             <?php foreach ($this->item->categories as $id => $name) : ?>
-                <a href="<?php echo Route::_('index.php?option=com_alfa&view=items&category_id=' . (int) $id); ?>"><?php echo $name; ?></a>
+                <a href="<?php echo Route::_('index.php?option=com_alfa&view=items&category_id=' . (int) $id); ?>"><?php echo $this->escape($name); ?></a>
             <?php endforeach; ?>
         </div>
 
         <div class="item-manufacturers">
             <h2><?php echo Text::_('Manufacturers'); ?></h2>
             <?php foreach ($this->item->manufacturers as $id => $name) : ?>
-                <a href="<?php echo Route::_('index.php?option=com_alfa&view=manufacturer&id=' . (int) $id); ?>"><?php echo $name; ?></a>
+                <a href="<?php echo Route::_('index.php?option=com_alfa&view=manufacturer&id=' . (int) $id); ?>"><?php echo $this->escape($name); ?></a>
             <?php endforeach; ?>
         </div>
 

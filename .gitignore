@@ -3,6 +3,34 @@
 composer.lock
 .php-cs-fixer.cache
 /.htaccess
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*.bak
+*~
+
+# Build artifacts
+*.zip
+*.tar.gz
+node_modules/
+
+# Environment and secrets
+.env
+.env.*
+
+# Logs
+*.log
+
+# OS files
+Thumbs.db
+Desktop.ini
+
+# Test cache
+.phpunit.result.cache
+.phpunit.cache/
 /administrator/cache/*
 /administrator/components/com_actionlogs/*
 /administrator/components/com_admin/*

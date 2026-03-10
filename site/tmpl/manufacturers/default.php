@@ -63,11 +63,11 @@ $wa->useStyle('com_alfa.list');
                     </a>
                 </div>
                 <div class="manufacturer-title">
-                    <h3><?php echo $item->name; ?></h3>
+                    <h3><?php echo $this->escape($item->name); ?></h3>
                 </div>
 
                 <div class="manufacturer-description">
-					<?php echo($item->desc); ?>
+					<?php echo $this->escape($item->desc); ?>
                 </div>
                 <div class="manufacturer-products">
                     <a href="<?php echo Route::_('index.php?option=com_alfa&view=items'); ?>">

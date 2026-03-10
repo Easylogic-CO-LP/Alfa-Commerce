@@ -81,7 +81,7 @@ $wa->useStyle('com_alfa.list');
 						<?php echo $item->id; ?>
                     </td>
                     <td>
-						<?php echo $item->name; ?>
+						<?php echo $this->escape($item->name); ?>
                     </td>
                     <td>
 						<?php $class = ($canChange) ? 'active' : 'disabled'; ?>
