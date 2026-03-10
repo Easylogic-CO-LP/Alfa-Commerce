@@ -1,6 +1,13 @@
 <?php
 
 /**
+ * @package    Alfa Commerce
+ * @author     Agamemnon Fakas <info@easylogic.gr>
+ * @copyright  (C) 2024-2026 Easylogic CO LP and Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
+ */
+
+/**
  * Order Logs View Layout - v3.5.0
  *
  * Shared layout for all plugins to render log entries in a modal.

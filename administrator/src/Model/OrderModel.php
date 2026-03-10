@@ -1,6 +1,13 @@
 <?php
 
 /**
+ * @package    Alfa Commerce
+ * @author     Agamemnon Fakas <info@easylogic.gr>
+ * @copyright  (C) 2024-2026 Easylogic CO LP and Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
+ */
+
+/**
  * Order Model — Admin CRUD for orders and related entities
  *
  * Handles orders, payments, shipments, and order items through
@@ -23,7 +30,7 @@
  * @subpackage Administrator
  * @version    4.1.0
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  2026 Easylogic CO LP
+ * @copyright  (C) 2026 Easylogic CO LP and Agamemnon Fakas. All rights reserved.
  */
 
 namespace Alfa\Component\Alfa\Administrator\Model;

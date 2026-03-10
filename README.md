@@ -95,4 +95,8 @@ git push origin feature/my-feature
 
 ## License
 
-Developed by the Easylogic Team.
+Copyright (C) 2024-2026 Easylogic CO LP and Agamemnon Fakas. All rights reserved.
+
+Licensed under the [GNU General Public License v3.0](LICENSE).
+
+You are free to use, modify, and distribute this software under the terms of the GPL v3. Any derivative work must also be distributed under the same license. See the [LICENSE](LICENSE) file for the full license text.

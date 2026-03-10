@@ -5,8 +5,8 @@
  * @subpackage  Administrator.Event.Shipments
  * @version     3.5.0
  * @author      Agamemnon Fakas <info@easylogic.gr>
- * @copyright   2026 Easylogic CO LP
- * @license     GNU General Public License version 2 or later
+ * @copyright  (C) 2026 Easylogic CO LP and Agamemnon Fakas. All rights reserved.
+ * @license     GNU General Public License version 3 or later; see LICENSE
  *
  * Get Shipment Actions Event
  *

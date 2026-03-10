@@ -1,3 +1,12 @@
+<?php
+/**
+ * @package    Alfa Commerce
+ * @author     Agamemnon Fakas <info@easylogic.gr>
+ * @copyright  (C) 2024-2026 Easylogic CO LP and Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
+ */
+defined('_JEXEC') or die;
+?>
 <form action="<?php echo \Joomla\CMS\Router\Route::_('index.php?option=com_alfa&task=cart.placeOrder'); ?>"
       method="POST">
 

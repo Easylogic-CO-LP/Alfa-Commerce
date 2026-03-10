@@ -4,8 +4,8 @@
  * @version    1.0.1
  * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  2025 Easylogic CO LP
- * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ * @copyright  (C) 2025-2026 Easylogic CO LP and Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
 namespace Alfa\Component\Alfa\Administrator\Controller;

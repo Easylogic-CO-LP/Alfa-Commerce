@@ -1,4 +1,11 @@
 <?php
+
+/**
+ * @package    Alfa Commerce
+ * @author     Agamemnon Fakas <info@easylogic.gr>
+ * @copyright  (C) 2024-2026 Easylogic CO LP and Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
+ */
 /**
  * Order Edit View
  *
@@ -14,7 +21,7 @@
  * @subpackage Administrator
  * @version    3.4.0
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  2026 Easylogic CO LP
+ * @copyright  (C) 2026 Easylogic CO LP and Agamemnon Fakas. All rights reserved.
  */
 
 defined('_JEXEC') or die;
