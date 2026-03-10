@@ -14,6 +14,8 @@ parameters:
         - */language/*
 
     ignoreErrors:
+        # Joomla framework classes are not available in CI (no stubs package exists)
+        - identifier: class.notFound
         # Joomla dynamic properties and magic methods
         - '#Access to an undefined property#'
         - '#Call to an undefined method.*\\\\HtmlView::#'

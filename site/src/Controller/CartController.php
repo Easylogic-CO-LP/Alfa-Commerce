@@ -80,7 +80,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
     // $keyword = $input->getString('query', '');
     public function recalculate()
     {
-        $errorOccured = false;
+        $errorOccurred = false;
 
         $input = $this->app->input;
 
@@ -128,7 +128,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
             'stock_info_layout' => $stockAvailabilityLayout,
         ];
 
-        $response = new JsonResponse($responseData, $errorOccured ? $failMessage : $successMessage, $errorOccured);
+        $response = new JsonResponse($responseData, $errorOccurred ? $failMessage : $successMessage, $errorOccurred);
 
         echo $response;
         $this->app->close();
@@ -136,7 +136,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
 
     public function addToCart()
     {
-        $errorOccured = true;
+        $errorOccurred = true;
         $response_data = [];
         $failMessage = 'Item failed to be added';
         $successMessage = 'Item added successfully';
@@ -152,14 +152,14 @@ class CartController extends FormController implements UserFactoryAwareInterface
 
         $cart = new CartHelper();
 
-        // try{
-        $errorOccured = !$cart->addToCart($itemId, $quantity);
-        // } catch (Exception $e) {
-        //     $this->app->enqueueMessage($e->getMessage(),'error');
-        //     $errorOccured = true;
-        // }
+        try {
+            $errorOccurred = !$cart->addToCart($itemId, $quantity);
+        } catch (Exception $e) {
+            $this->app->enqueueMessage($e->getMessage(), 'error');
+            $errorOccurred = true;
+        }
 
-        $response = new JsonResponse($response_data, $errorOccured ? $failMessage : $successMessage, $errorOccured);
+        $response = new JsonResponse($response_data, $errorOccurred ? $failMessage : $successMessage, $errorOccurred);
 
         echo $response;
         $this->app->close();
@@ -167,7 +167,11 @@ class CartController extends FormController implements UserFactoryAwareInterface
 
     public function clearCart()
     {
-        $errorOccured = false;
+        $errorOccurred = false;
+
+        $failMessage = 'Cart Failed to be cleared!';
+
+        self::verifyTokenAndRespondJson('post', $failMessage);
 
         $input = $this->app->input;
 
@@ -178,7 +182,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
 
         $cart = new CartHelper();
         $clearOnlyItems = true;
-        $errorOccured = !$cart->clearCart($clearOnlyItems);
+        $errorOccurred = !$cart->clearCart($clearOnlyItems);
 
         $layout = new FileLayout('default_cart_empty', JPATH_ROOT . '/components/com_alfa/tmpl/cart');
         $result = $layout->render();
@@ -189,7 +193,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
 
         // json output
         header('Content-Type: application/json');
-        $response = new JsonResponse($result, $errorOccured ? 'Cart Failed to be cleared!' : 'Cart cleared successfully!', $errorOccured);
+        $response = new JsonResponse($result, $errorOccurred ? $failMessage : 'Cart cleared successfully!', $errorOccurred);
         echo $response;
 
         $this->app->close();
@@ -209,21 +213,21 @@ class CartController extends FormController implements UserFactoryAwareInterface
         $userId = Factory::getApplication()->getIdentity()->id;
 
         $response_data = [];
-        $errorOccured = false;
+        $errorOccurred = false;
 
         $cart = new CartHelper();
 
         // $cart->getData()->id_shipment = $this->app->input->getInt('shipment_id');
-        $errorOccured = !$cart->addToCart($itemId, $quantity);
+        $errorOccurred = !$cart->addToCart($itemId, $quantity);
 
         $result = '';
 
-        if (!$errorOccured) {
+        if (!$errorOccurred) {
             $response_data = $this->getItemsLayout($cart);
         }
 
         header('Content-Type: application/json');
-        $response = new JsonResponse($response_data, $errorOccured ? $failMessage : $successMessage, $errorOccured);
+        $response = new JsonResponse($response_data, $errorOccurred ? $failMessage : $successMessage, $errorOccurred);
         echo $response;
         $this->app->close();
     }
@@ -395,13 +399,13 @@ class CartController extends FormController implements UserFactoryAwareInterface
 
         $shipmentID = $input->getInt('id_shipment', 0);
         $response_data = [];
-        $errorOccured = false;
+        $errorOccurred = false;
 
         $cart = new CartHelper();
         $errorOccurred = !$cart->updateShipment($shipmentID);
         $errorMessage = $errorOccurred ? 'Shipment ID could not be updated.' : '';
 
-        if (!$errorOccured) {
+        if (!$errorOccurred) {
             $response_data['isEmpty'] = $cart->isEmpty();
             $response_data['items'] = $this->getItemsLayout($cart);
             $response_data['payments'] = $this->getPaymentsLayout($cart);
@@ -409,7 +413,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
         }
 
         header('Content-Type: application/json');
-        $response = new JsonResponse($response_data, $errorOccured ? $failMessage : $successMessage, $errorOccured);
+        $response = new JsonResponse($response_data, $errorOccurred ? $failMessage : $successMessage, $errorOccurred);
         echo $response;
         $this->app->close();
     }
@@ -425,12 +429,12 @@ class CartController extends FormController implements UserFactoryAwareInterface
 
         $paymentID = $input->getInt('id_payment', 0);
         $response_data = [];
-        $errorOccured = false;
+        $errorOccurred = false;
 
         $cart = new CartHelper();
         $errorOccurred = !$cart->updatePayment($paymentID);
 
-        if (!$errorOccured) {
+        if (!$errorOccurred) {
             $response_data['isEmpty'] = $cart->isEmpty();
             $response_data['items'] = $this->getItemsLayout($cart);
             $response_data['payments'] = $this->getPaymentsLayout($cart);
@@ -438,7 +442,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
         }
 
         header('Content-Type: application/json');
-        $response = new JsonResponse($response_data, $errorOccured ? $failMessage : $successMessage, $errorOccured);
+        $response = new JsonResponse($response_data, $errorOccurred ? $failMessage : $successMessage, $errorOccurred);
         echo $response;
         $this->app->close();
     }
