@@ -26,20 +26,20 @@ class MediaZoneField extends FormField
     private const MIME_EXTENSION_MAP = [
         // Images
         'image/jpeg' => ['images', ['jpg', 'jpeg']],
-        'image/gif'  => ['images', ['gif']],
-        'image/png'  => ['images', ['png']],
-        'image/bmp'  => ['images', ['bmp']],
+        'image/gif' => ['images', ['gif']],
+        'image/png' => ['images', ['png']],
+        'image/bmp' => ['images', ['bmp']],
         'image/webp' => ['images', ['webp']],
         'image/avif' => ['images', ['avif']],
         // Audios
         'audio/mpeg' => ['audios', ['mp3']],
-        'audio/ogg'  => ['audios', ['ogg']],
-        'audio/wav'  => ['audios', ['wav']],
+        'audio/ogg' => ['audios', ['ogg']],
+        'audio/wav' => ['audios', ['wav']],
         'audio/flac' => ['audios', ['flac']],
         // Videos
-        'video/mp4'  => ['videos', ['mp4']],
+        'video/mp4' => ['videos', ['mp4']],
         'video/webm' => ['videos', ['webm']],
-        'video/ogg'  => ['videos', ['ogv']],
+        'video/ogg' => ['videos', ['ogv']],
         // Documents
         'application/pdf' => ['documents', ['pdf']],
     ];
