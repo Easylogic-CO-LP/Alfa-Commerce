@@ -130,6 +130,14 @@ $input = Factory::getApplication()->getInput();
         </div>
 	</div>
     <?php echo HTMLHelper::_('uitab.endTab'); ?>
+
+    <?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'dropzone', 'Media Drop Zone'); ?>
+    <div class="row">
+        <fieldset>
+            <?php echo $this->form->renderFieldset('medias'); ?>
+        </fieldset>
+    </div>
+    <?php echo HTMLHelper::_('uitab.endTab'); ?>
 	
 	<?php echo HTMLHelper::_('uitab.endTabSet'); ?>
 

@@ -29,13 +29,15 @@ $wa->useScript('com_alfa.item')
 	->useScript('com_alfa.item.addtocart');
 
 $priceSettings = $this->priceSettings;
+$medias = $this->item->medias;
 ?>
 
-
 <div class="item-container" data-item-id="<?php echo $this->item->id; ?>">
-    <div class="item-images-wrapper">
-        <?php echo $this->loadTemplate('images'); ?>
-    </div>
+    <?php if (!empty($medias)): ?>
+        <div class="item-images-wrapper">
+            <?php echo $this->loadTemplate('images'); ?>
+        </div>
+    <?php endif; ?>
 
     <div class="item-info">
         <div>
@@ -102,20 +104,8 @@ $priceSettings = $this->priceSettings;
             <?php echo nl2br($this->escape($this->item->full_desc)); ?>
         </div>
 
-        <div class="item-manufacturers">
-            <h2><?php echo Text::_('Categories'); ?></h2>
-            <?php foreach ($this->item->categories as $id => $name) : ?>
-                <a href="<?php echo Route::_('index.php?option=com_alfa&view=items&category_id=' . (int) $id); ?>"><?php echo $this->escape($name); ?></a>
-            <?php endforeach; ?>
-        </div>
-
-        <div class="item-manufacturers">
-            <h2><?php echo Text::_('Manufacturers'); ?></h2>
-            <?php foreach ($this->item->manufacturers as $id => $name) : ?>
-                <a href="<?php echo Route::_('index.php?option=com_alfa&view=manufacturer&id=' . (int) $id); ?>"><?php echo $this->escape($name); ?></a>
-            <?php endforeach; ?>
-        </div>
+        <?php echo $this->loadTemplate('manufacturer'); ?>
+        <?php echo $this->loadTemplate('category'); ?>
 
     </div>
-
 </div>

@@ -276,4 +276,15 @@
             <option value="noindex, nofollow">COM_ALFA_ROBOTS_NOINDEX_NOFOLLOW</option>
         </field>
     </fieldset>
+
+    <fieldset name="medias">
+        <field
+                name="medias"
+                type="MediaZone"
+                label="Insert Media: "
+                multiple="true"
+                hiddenLabel="true"
+                types="media,url"
+        />
+    </fieldset>
 </form>

@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Joomla\CMS\Factory;
@@ -257,6 +258,12 @@ class ItemModel extends AdminModel
 
             $item->allowedUsers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_users', 'item_id', 'user_id');
             $item->allowedUserGroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_usergroups', 'item_id', 'usergroup_id');
+
+            // get media origin (cat, man, item...)
+            $item->medias = MediaHelper::getMediaData(
+                origin: $this->name,
+                itemIDs: $item->id
+            );
         }
 
         $this->item[$pk] = $item;
@@ -285,8 +292,8 @@ class ItemModel extends AdminModel
      */
     public function save($data)
     {
-        //		$app = Factory::getApplication();
-        //		$input = $app->input;
+        $app = Factory::getApplication();
+        $input = $app->getInput();
         //		$user = $app->getIdentity();
         //		$db = $this->getDatabase();
         $table = $this->getTable();
@@ -322,6 +329,19 @@ class ItemModel extends AdminModel
         $data['meta_data'] = json_encode(
             ['robots' => $data['robots']],
         );
+
+        $data = $input->post->get('jform', [], 'array');
+        $newDropped = $input->files->get('jform')['uploads'] ?? [];
+
+        if (!empty($data['media'])) {
+            MediaHelper::saveMedia(
+                mediaData:      $data['media'],
+                droppedMedia:   $newDropped,
+                itemId:         $data['id'],
+                mediaOrigin:    $this->name,
+                customFileName: $data['alias']
+            );
+        }
 
         // Step 1: save the main item row
         if (!parent::save($data)) {

@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use JForm;
 use Joomla\CMS\Event\Model;
 use Joomla\CMS\Factory;
@@ -93,6 +94,8 @@ class ManufacturerModel extends AdminModel
     public function save($data)
     {
         $app = Factory::getApplication();
+        $input = $app->getInput();
+
         if ($data['alias'] == null) {
             if ($app->get('unicodeslugs') == 1) {
                 $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['title']);
@@ -106,6 +109,20 @@ class ManufacturerModel extends AdminModel
                 $data['alias'] = OutputFilter::stringURLSafe($data['alias']);
             }
         }
+
+        $data = $input->post->get('jform', [], 'array');
+        $newDropped = $input->files->get('jform')['uploads'] ?? [];
+
+        if (!empty($data['media'])) {
+            MediaHelper::saveMedia(
+                mediaData:      $data['media'],
+                droppedMedia:   $newDropped,
+                itemId:         $data['id'],
+                mediaOrigin:    $this->name,
+                customFileName: $data['alias']
+            );
+        }
+
         return parent::save($data);
     }
 
@@ -148,6 +165,10 @@ class ManufacturerModel extends AdminModel
                 $item->params = json_encode($item->params);
             }
 
+            $item->medias = MediaHelper::getMediaData(
+                origin: $this->name,
+                itemIDs: $item->id
+            );
             // Do any procesing on fields here if needed
         }
 
