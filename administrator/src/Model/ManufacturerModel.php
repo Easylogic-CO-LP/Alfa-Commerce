@@ -119,7 +119,7 @@ class ManufacturerModel extends AdminModel
                 droppedMedia:   $newDropped,
                 itemId:         $data['id'],
                 mediaOrigin:    $this->name,
-                customFileName: $data['alias']
+                customFileName: $data['alias'],
             );
         }
 
@@ -167,7 +167,7 @@ class ManufacturerModel extends AdminModel
 
             $item->medias = MediaHelper::getMediaData(
                 origin: $this->name,
-                itemIDs: $item->id
+                itemIDs: $item->id,
             );
             // Do any procesing on fields here if needed
         }

@@ -112,7 +112,7 @@ class ItemModel extends BaseItemModel
             }
 
             // Get categories
-            $categories       = $this->getItemCategories($pk);
+            $categories = $this->getItemCategories($pk);
             $categoryIDs = array_column($categories, 'id');
             $categoryMedia = !empty($categoryIDs)
                 ? MediaHelper::getMediaData(origin: 'category', itemIDs: $categoryIDs)
@@ -122,13 +122,13 @@ class ItemModel extends BaseItemModel
 
             foreach ($categories as $category) {
                 $data->categories[$category['id']] = [
-                    'name'  => $category['name'],
+                    'name' => $category['name'],
                     'media' => $categoryMedia[$category['id']] ?? [],
                 ];
             }
 
             // Get manufacturers
-            $manufacturers       = $this->getItemManufacturers($pk);
+            $manufacturers = $this->getItemManufacturers($pk);
             $manufacturerIDs = array_column($manufacturers, 'id');
             $manufacturerMedia = !empty($manufacturerIDs)
                 ? MediaHelper::getMediaData(origin: 'manufacturer', itemIDs: $manufacturerIDs)
@@ -136,10 +136,9 @@ class ItemModel extends BaseItemModel
 
             $data->manufacturers = [];
 
-            foreach ($manufacturers as $manufacturer)
-            {
+            foreach ($manufacturers as $manufacturer) {
                 $data->manufacturers[$manufacturer['id']] = [
-                    'name'  => $manufacturer['name'],
+                    'name' => $manufacturer['name'],
                     'media' => $manufacturerMedia[$manufacturer['id']] ?? [],
                 ];
             }
@@ -178,7 +177,7 @@ class ItemModel extends BaseItemModel
 
             $data->medias = MediaHelper::getMediaData(
                 origin: 'item',
-                itemIDs: $data->id
+                itemIDs: $data->id,
             );
 
             $this->_item[$pk] = $data;

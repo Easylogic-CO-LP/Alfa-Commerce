@@ -1,12 +1,13 @@
 <?php
+
 namespace Alfa\Component\Alfa\Administrator\Field;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Controller\MediaController;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Form\FormField;
 use Joomla\CMS\Layout\LayoutHelper;
-use Alfa\Component\Alfa\Administrator\Controller\MediaController;
 
 /**
  * Drop Media Field
@@ -25,7 +26,7 @@ class MediaZoneField extends FormField
     /**
      * Get the field input markup
      *
-     * @return  string
+     * @return string
      * @since   1.0.0
      */
     protected function getInput()
@@ -53,9 +54,9 @@ class MediaZoneField extends FormField
      * Prepare media objects from database records
      * Transforms raw DB data into display-ready objects
      *
-     * @param   mixed  $value  Field value (array of DB records or null)
+     * @param mixed $value Field value (array of DB records or null)
      *
-     * @return  array  Array of prepared media objects
+     * @return array Array of prepared media objects
      * @since   1.0.0
      */
     protected function prepareMediaObjects($value)
@@ -77,4 +78,3 @@ class MediaZoneField extends FormField
         return $preparedMedias;
     }
 }
-

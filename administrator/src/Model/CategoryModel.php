@@ -124,7 +124,7 @@ class CategoryModel extends AdminModel
             // get media origin (cat, man, item...)
             $item->medias = MediaHelper::getMediaData(
                 origin: $this->name,
-                itemIDs: $item->id
+                itemIDs: $item->id,
             );
         }
 
@@ -184,7 +184,7 @@ class CategoryModel extends AdminModel
                 droppedMedia:   $newDropped,
                 itemId:         $data['id'],
                 mediaOrigin:    $this->name,
-                customFileName: $data['alias']
+                customFileName: $data['alias'],
             );
         }
 

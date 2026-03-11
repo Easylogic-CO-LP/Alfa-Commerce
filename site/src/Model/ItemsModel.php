@@ -498,7 +498,7 @@ class ItemsModel extends UrlListModel
             $item->medias = MediaHelper::getMediaData(
                 origin: 'item',
                 itemIDs: $item->id,
-                usePlaceHolder : true
+                usePlaceHolder : true,
             );
 
             $urlCategoryId = $this->categoryId ?: ($item->id_category_default ?? 0);
