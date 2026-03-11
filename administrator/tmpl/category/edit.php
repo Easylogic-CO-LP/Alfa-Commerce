@@ -14,9 +14,9 @@ use \Joomla\CMS\Factory;
 use Joomla\CMS\Layout\LayoutHelper;
 use \Joomla\CMS\Router\Route;
 use \Joomla\CMS\Language\Text;
-
-$wa = $this->getDocument()->getWebAssetManager();
-$wa->useScript('keepalive')
+$wa = $this->document->getWebAssetManager();
+$wa->useStyle('com_alfa.admin')
+	->useScript('keepalive')
 	->useScript('form.validate');
 
 ?>

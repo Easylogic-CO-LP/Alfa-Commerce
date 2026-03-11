@@ -29,17 +29,25 @@ $medias   = $data ?? [];
 $mimes = $params->get('media_mime');
 $allowedTypes = explode(',', $allowedTypes[0]);
 
-// Pass MIME array to JS
+// Pass options to JS
 $document->addScriptOptions('com_alfa.mimes', $mimes);
 $document->addScriptOptions('com_alfa.multiple', $multiple);
 $document->addScriptOptions('com_alfa.types', $allowedTypes);
+
+// Set media-picker options required by joomla-field-media web component
+$document->addScriptOptions('media-picker', $supportedExtensions);
+$document->addScriptOptions('media-picker-api', [
+    'apiBaseUrl' => Uri::base(true) . '/index.php?option=com_media&format=json',
+]);
+
 // Load required assets
 $wa = $document->getWebAssetManager();
 
 $wa->useStyle('com_alfa.mediazone')
     ->useScript('com_alfa.mediazone')
     ->useScript('com_alfa.sortable')
-    ->useScript('webcomponent.field-media');
+    ->useScript('webcomponent.field-media')
+    ->useScript('webcomponent.media-select');
 
 // ── Translatable strings ──
 $dropdownText          = Text::_('COM_ALFA_MEDIA_ACTIONS');
@@ -113,8 +121,6 @@ $mediaPickerUrl = $app->isClient('administrator')
     ? '/administrator/index.php?option=com_media&view=media&tmpl=component&mediatypes=0&asset=com_alfa&author=' . $user->id . '&path=local-images:/'
     : '/index.php?option=com_media&view=media&tmpl=component&mediatypes=0';
 
-$supportedExtensions = '{"images":["gif","jpg","png","jpeg","webp"]}';
-
 $pickerAttrs = [
     'style'                => 'border-radius: 15px',
     'class'                => 'field-media-wrapper',
@@ -127,7 +133,7 @@ $pickerAttrs = [
     'button-clear'         => '.button-clear',
     'preview'              => 'static',
     'preview-container'    => '.field-media-preview',
-    'supported-extensions' => $supportedExtensions,
+    'supported-extensions' => json_encode($supportedExtensions),
 ];
 
 $pickerAttrString = '';

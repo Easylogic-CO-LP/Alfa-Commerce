@@ -23,6 +23,29 @@ class MediaZoneField extends FormField
      */
     protected $type = 'MediaZone';
 
+    private const MIME_EXTENSION_MAP = [
+        // Images
+        'image/jpeg' => ['images', ['jpg', 'jpeg']],
+        'image/gif'  => ['images', ['gif']],
+        'image/png'  => ['images', ['png']],
+        'image/bmp'  => ['images', ['bmp']],
+        'image/webp' => ['images', ['webp']],
+        'image/avif' => ['images', ['avif']],
+        // Audios
+        'audio/mpeg' => ['audios', ['mp3']],
+        'audio/ogg'  => ['audios', ['ogg']],
+        'audio/wav'  => ['audios', ['wav']],
+        'audio/flac' => ['audios', ['flac']],
+        // Videos
+        'video/mp4'  => ['videos', ['mp4']],
+        'video/webm' => ['videos', ['webm']],
+        'video/ogg'  => ['videos', ['ogv']],
+        // Documents
+        'application/pdf' => ['documents', ['pdf']],
+    ];
+
+    private const DEFAULT_IMAGE_EXTENSIONS = [];
+
     /**
      * Get the field input markup
      *
@@ -38,16 +61,46 @@ class MediaZoneField extends FormField
         $medias = $this->prepareMediaObjects($this->value);
 
         $allowedMimes = $params->get('media_mime');
+        $supportedExtensions = $this->getSupportedExtensions($allowedMimes);
 
         // Pass prepared data to layout
         return LayoutHelper::render('mediazone.dropmedias', [
             'data' => $medias,
             'mimes' => $allowedMimes,
+            'supportedExtensions' => $supportedExtensions,
             'fieldId' => $this->id,
             'fieldName' => $this->name,
             'multiple' => $multiple,
             'allowedTypes' => $allowedMediaTypes,
         ]);
+    }
+
+    /**
+     * Get supported file extensions grouped by media type
+     *
+     * @param mixed $mimes Allowed MIME types from component config
+     *
+     * @return array{images: string[], audios: string[], videos: string[], documents: string[]}
+     * @since   1.0.0
+     */
+    private function getSupportedExtensions($mimes): array
+    {
+        $result = ['images' => [], 'audios' => [], 'videos' => [], 'documents' => []];
+
+        if (!empty($mimes) && is_array($mimes)) {
+            foreach ($mimes as $mime) {
+                if (isset(self::MIME_EXTENSION_MAP[$mime])) {
+                    [$type, $extensions] = self::MIME_EXTENSION_MAP[$mime];
+                    array_push($result[$type], ...$extensions);
+                }
+            }
+        }
+
+        if (empty($result['images'])) {
+            $result['images'] = self::DEFAULT_IMAGE_EXTENSIONS;
+        }
+
+        return $result;
     }
 
     /**

@@ -399,9 +399,62 @@ class com_alfaInstallerScript extends InstallerScript
 	 */
 	public function postflight($type, $parent)
 	{
-
+		if ($type === 'install') {
+			$this->setDefaultConfig([
+				'media_mime' => [
+					'image/jpeg',
+					'image/gif',
+					'image/png',
+					'image/bmp',
+					'image/webp',
+					'image/avif',
+				],
+			]);
+		}
 
 		return true;
+	}
+
+	/**
+	 * Set default component config values on fresh install.
+	 * Only sets values that are not already configured.
+	 *
+	 * @param array $defaults Key-value pairs of config defaults
+	 *
+	 * @return void
+	 * @since  1.0.0
+	 */
+	private function setDefaultConfig(array $defaults): void
+	{
+		$db = Factory::getContainer()->get('DatabaseDriver');
+
+		$query = $db->getQuery(true)
+			->select($db->quoteName('params'))
+			->from($db->quoteName('#__extensions'))
+			->where($db->quoteName('element') . ' = ' . $db->quote('com_alfa'))
+			->where($db->quoteName('type') . ' = ' . $db->quote('component'));
+
+		$paramsJson = $db->setQuery($query)->loadResult();
+		$params = json_decode($paramsJson ?: '{}', true);
+
+		$updated = false;
+
+		foreach ($defaults as $key => $value) {
+			if (empty($params[$key])) {
+				$params[$key] = $value;
+				$updated = true;
+			}
+		}
+
+		if ($updated) {
+			$query = $db->getQuery(true)
+				->update($db->quoteName('#__extensions'))
+				->set($db->quoteName('params') . ' = ' . $db->quote(json_encode($params)))
+				->where($db->quoteName('element') . ' = ' . $db->quote('com_alfa'))
+				->where($db->quoteName('type') . ' = ' . $db->quote('component'));
+
+			$db->setQuery($query)->execute();
+		}
 	}
 
 }
