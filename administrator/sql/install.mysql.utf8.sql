@@ -1,10 +1,10 @@
 --
--- Table structure for table `#__alfa_items_medias`
+-- Table structure for table `#__alfa_media`
 --
 
 
-CREATE TABLE IF NOT EXISTS `#__alfa_items_media` (
-  `id` int(11) NOT NULL,
+CREATE TABLE IF NOT EXISTS `#__alfa_media` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `item_id` int(11) NOT NULL,
   `type` varchar(20) DEFAULT NULL,
   `path` varchar(250) NOT NULL,
@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_media` (
   `color` varchar(50) DEFAULT NULL,
   `alt` varchar(75) DEFAULT NULL,
   `ordering` int(11) NOT NULL DEFAULT 0,
-  `origin` varchar(30) NOT NULL
+  `origin` varchar(30) NOT NULL,
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 
