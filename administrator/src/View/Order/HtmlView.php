@@ -133,6 +133,11 @@ class HtmlView extends BaseHtmlView
             $this->order = $model->getItem();
             $this->form = $model->getForm();
 
+            // Check out the order (lock for editing), same as FormView does
+            if ($this->order->id) {
+                $model->checkout($this->order->id);
+            }
+
             // Load activity log for History tab (unified — includes status changes)
             if ($this->order && $this->order->id) {
                 $this->activityLog = $model->getOrderActivityLog((int) $this->order->id);
@@ -234,7 +239,7 @@ class HtmlView extends BaseHtmlView
         $user = $this->getCurrentUser();
         $userId = $user->id;
         $isNew = ($this->order->id == 0);
-        $checkedOut = !(\is_null($this->order->checked_out) || $this->order->checked_out == $userId);
+        $checkedOut = !(empty($this->order->checked_out) || $this->order->checked_out == $userId);
 
         $canDo = $this->canDo;
 
