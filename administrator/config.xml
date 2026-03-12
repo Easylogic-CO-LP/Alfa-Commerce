@@ -250,7 +250,7 @@
         <field
                 name="media_file_format"
                 type="list"
-                label="Convert Images to:"
+                label="COM_ALFA_MEDIA_CONFIG_CONVERT_LABEL"
                 description=""
         >
             <option value="">Don't Convert</option>
@@ -263,7 +263,7 @@
         <field
                 name="media_image_quality"
                 type="number"
-                label="Select Images Quality:"
+                label="COM_ALFA_MEDIA_CONFIG_QUALITY_LABEL"
                 min="1"
                 default="80"
                 max="100"
@@ -273,7 +273,7 @@
         <field
                 name="media_image_width"
                 type="int"
-                label="Select Images Maximum Width:"
+                label="COM_ALFA_MEDIA_CONFIG_WIDTH_LABEL"
                 min="1"
                 default="1920"
                 max="5000"
@@ -283,7 +283,7 @@
         <field
                 name="media_image_height"
                 type="int"
-                label="Select Images Maximum Height:"
+                label="COM_ALFA_MEDIA_CONFIG_HEIGHT_LABEL"
                 min="1"
                 default="1080"
                 max="5000"
@@ -295,8 +295,8 @@
                 type="text"
                 default="/images/media-zone"
                 hint="/images/example-folder"
-                label="Media save location:"
-                description="Insert your preferred folder path for your media to be saved in. The default destination is &lt;code&gt;/images/media-zone&lt;/code&gt;"
+                label="COM_ALFA_MEDIA_CONFIG_SAVE_LABEL"
+                description="COM_ALFA_MEDIA_CONFIG_SAVE_DESC"
                 size="150"
         />
 
@@ -305,7 +305,7 @@
                 type="list"
                 multiple="true"
                 layout="joomla.form.field.list-fancy-select"
-                label="Allowed image types:"
+                label="COM_ALFA_MEDIA_CONFIG_TYPES_LABEL"
                 default=""
         >
             <option value="image/jpeg">Jpeg</option>
@@ -321,8 +321,8 @@
                 type="text"
                 default=""
                 hint="media/com_alfa/images/placeholder_600x.webp"
-                label="Media placeholder image:"
-                description="Insert the path/location (e.g. for default placeholder use &lt;code&gt;media/com_alfa/images/placeholder_600x.webp&lt;/code&gt; or put a custom url) of the image you want to be used as a placeholder when media fails to load."
+                label="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_LABEL"
+                description="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_DESC"
                 size="150"
         />
 
@@ -331,15 +331,15 @@
                 type="text"
                 default="images/url_thumbnail.jpg"
                 hint="images/url_thumbnail.jpg"
-                label="URL thumbnail:"
-                description="Insert the path/location (e.g. &lt;code&gt;images/url_thumbnail.jpg&lt;/code&gt; or put a custom url) of the image you want to be used as a URL preview thumbnail."
+                label="COM_ALFA_MEDIA_CONFIG_URL_THUMBNAIL_LABEL"
+                description="COM_ALFA_MEDIA_CONFIG_URL_THUMBNAIL_DESC"
                 size="150"
         />
 
         <field
                 name="media_thumbnail_width"
                 type="int"
-                label="Thumbnail Maximum Width (px):"
+                label="COM_ALFA_MEDIA_CONFIG_THUMBNAIL_WIDTH_LABEL"
                 min="50"
                 default="200"
                 max="500"
@@ -349,7 +349,7 @@
         <field
                 name="media_thumbnail_height"
                 type="int"
-                label="Thumbnail Maximum Height (px):"
+                label="COM_ALFA_MEDIA_CONFIG_THUMBNAIL_HEIGHT_LABEL"
                 min="50"
                 default="200"
                 max="500"
@@ -360,8 +360,8 @@
                 name="media_full_deletion"
                 type="radio"
                 default="0"
-                label="Complete media deletion:"
-                description="When enabled, deleting media removes the database record as well as the actual file from your Joomla folder."
+                label="COM_ALFA_MEDIA_CONFIG_FULL_DELETE_LABEL"
+                description="COM_ALFA_MEDIA_CONFIG_FULL_DELETE_DESC"
                 layout="joomla.form.field.radio.switcher"
         >
             <option value="0">JNO</option>
@@ -372,8 +372,8 @@
                 name="media_name_from_alias"
                 type="radio"
                 default="0"
-                label="Use media alias as file name:"
-                description="When enabled, saved media files use their alias as a name. (e.g '123456-test.png' -> 'smartphone.png')"
+                label="COM_ALFA_MEDIA_CONFIG_ALIAS_NAME_LABEL"
+                description="COM_ALFA_MEDIA_CONFIG_ALIAS_NAME_DESC"
                 layout="joomla.form.field.radio.switcher"
         >
             <option value="0">JNO</option>

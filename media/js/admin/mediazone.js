@@ -250,7 +250,7 @@
         },
 
         validateFile(file) {
-            if (!this.config.allowedMimes.includes(file.type)) {
+            if (this.config.allowedMimes === null || !this.config.allowedMimes.includes(file.type)) {
                 alert(`MIME ${file.type} is not supported!`);
                 return false;
             }
@@ -382,10 +382,13 @@
                 if (!selectedCard) return;
 
                 const newValue = sharedInput.value;
+
+                const safeUrlValue = encodeURI(newValue);
                 const img   = selectedCard.querySelector(this.config.thumbnailImageSelector);
                 const input = selectedCard.querySelector(this.config.thumbnailInputSelector);
 
-                if (img)   img.src     = '/' + newValue;
+                if (img)   img.src     = '/' + safeUrlValue;
+
                 if (input) input.value = newValue;
 
                 sharedInput.value = '';

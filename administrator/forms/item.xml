@@ -277,7 +277,7 @@
         </field>
     </fieldset>
 
-    <fieldset name="medias">
+    <fieldset name="Images">
         <field
                 name="medias"
                 type="MediaZone"

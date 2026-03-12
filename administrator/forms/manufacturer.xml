@@ -78,7 +78,7 @@
         />
   </fieldset>
 
-    <fieldset name="medias">
+    <fieldset name="Image">
         <field
                 name="medias"
                 type="MediaZone"
