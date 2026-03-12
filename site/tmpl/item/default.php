@@ -45,7 +45,7 @@ $priceSettings = $this->priceSettings;
         </div>
         <?php if (!empty($this->item->short_desc)): ?>
             <div class="item-short-description">
-                <?php echo $this->escape($this->item->short_desc); ?>
+                <?php echo $this->item->short_desc; ?>
             </div>
         <?php endif; ?>
 
@@ -99,7 +99,7 @@ $priceSettings = $this->priceSettings;
         <?php echo LayoutHelper::render('add_to_cart', $this->item); ?>
 
         <div class="item-full-description">
-            <?php echo nl2br($this->escape($this->item->full_desc)); ?>
+            <?php echo $this->item->full_desc; ?>
         </div>
 
         <div class="item-manufacturers">

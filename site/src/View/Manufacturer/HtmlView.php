@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Site\View\Manufacturer;
 // No direct access
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\View\HtmlView as BaseHtmlView;
 use Exception;
 use Joomla\CMS\Factory;
@@ -117,6 +118,13 @@ class HtmlView extends BaseHtmlView
 
         if (!empty($this->item->meta_desc)) {
             $metaDescription = $this->item->meta_desc;
+        } elseif (!empty($this->item->desc)) {
+            $metaDescription = AlfaHelper::cleanContent(
+                html: $this->item->desc,
+                removeTags: true,
+                removeScripts: true,
+                removeIsolatedPunctuation: false,
+            );
         }
 
         if (!empty($metaDescription)) {

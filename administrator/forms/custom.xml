@@ -21,7 +21,7 @@
       <option value="color">COM_ALFA_CUSTOMS_TYPE_OPTION_COLOR</option>
     </field>
     <field name="name" size="400" filter="safehtml" type="text" required="true" translateLabel="true" label="COM_ALFA_FORM_LBL_CUSTOM_NAME" description="COM_ALFA_FORM_DESC_CUSTOM_NAME" hint="COM_ALFA_FORM_LBL_CUSTOM_NAME"/>
-    <field name="desc" cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText" type="editor" label="COM_ALFA_FORM_LBL_CUSTOM_DESC" description="COM_ALFA_FORM_DESC_CUSTOM_DESC" hint="COM_ALFA_FORM_LBL_CUSTOM_DESC"/>
+    <field name="desc" cols="30" rows="3" editor="|" buttons="true" filter="ComponentHelper::filterText" type="editor" label="COM_ALFA_FORM_LBL_CUSTOM_DESC" description="COM_ALFA_FORM_DESC_CUSTOM_DESC" hint="COM_ALFA_FORM_LBL_CUSTOM_DESC"/>
     <field name="required" type="list" label="COM_ALFA_FORM_LBL_CUSTOM_REQUIRED" description="COM_ALFA_FORM_DESC_CUSTOM_REQUIRED" hint="COM_ALFA_FORM_LBL_CUSTOM_REQUIRED">
       <option value="0">COM_ALFA_CUSTOMS_REQUIRED_OPTION_0</option>
       <option value="1">COM_ALFA_CUSTOMS_REQUIRED_OPTION_1</option>

@@ -118,11 +118,11 @@
             <option value="1">JYES</option>
         </field>
 
-        <field name="short_desc" cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText"
+        <field name="short_desc" cols="30" rows="3" editor="|" buttons="true" filter="ComponentHelper::filterText"
                type="editor" label="COM_ALFA_FORM_LBL_ITEM_SHORT_DESC"
                description="COM_ALFA_FORM_DESC_ITEM_SHORT_DESC"/>
 
-        <field name="full_desc" cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText"
+        <field name="full_desc" cols="30" rows="3" editor="|" buttons="true" filter="ComponentHelper::filterText"
                type="editor" label="COM_ALFA_FORM_LBL_ITEM_FULL_DESC" description="COM_ALFA_FORM_DESC_ITEM_FULL_DESC"/>
 
     </fieldset>
