@@ -541,9 +541,9 @@ class ItemsModel extends UrlListModel
         $result = $this->getDatabase()->setQuery($query)->loadObject();
 
         return [
-		    'min' => $result && $result->price_min !== null ? floor((float) $result->price_min) : null,
-		    'max' => $result && $result->price_max !== null ? ceil((float) $result->price_max) : null,
-	    ];
+            'min' => $result && $result->price_min !== null ? floor((float) $result->price_min) : null,
+            'max' => $result && $result->price_max !== null ? ceil((float) $result->price_max) : null,
+        ];
     }
 
     /**
