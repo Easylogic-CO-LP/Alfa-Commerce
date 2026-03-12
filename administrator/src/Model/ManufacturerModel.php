@@ -128,7 +128,7 @@ class ManufacturerModel extends AdminModel
                 droppedMedia:   $newDropped,
                 itemId:         $currentId,
                 mediaOrigin:    $this->name,
-                customFileName: $data['alias']
+                customFileName: $data['alias'],
             );
         }
 
