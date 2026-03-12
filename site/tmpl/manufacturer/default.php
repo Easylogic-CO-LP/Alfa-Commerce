@@ -38,7 +38,7 @@ $wa->useStyle('com_alfa.manufacturer');
             </div>
 
             <div class="manufacturer-description">
-				<?php echo $this->escape($this->item->desc); ?>
+				<?php echo $this->item->desc; ?>
             </div>
 
             <div class="manufacturer-products">

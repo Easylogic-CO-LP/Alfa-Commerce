@@ -30,7 +30,6 @@
             this.endpoint = options.endpoint || 'index.php?option=com_alfa&task=seo.getPreview&format=json';
             this.debug = options.debug || false;
 
-            console.log(options);
             // Get field selectors from config and find elements
             const fieldSelectors = options.fields || {};
             this.fields = {
@@ -155,18 +154,40 @@
          */
         initContentField() {
             if (!this.fields.content || !this.fieldIds.content) return;
+            this.waitForEditor(this.fieldIds.content);
+        }
 
-            const fieldId = this.fieldIds.content;
+        /**
+         * Initialize additional content fields tracking
+         */
+        initAdditionalContentFields() {
+            Object.keys(this.additionalContentFieldIds).forEach(key => {
+                this.waitForEditor(this.additionalContentFieldIds[key]);
+            });
+        }
+
+        /**
+         * Wait for an editor to initialize on a field, then attach listeners.
+         * If the field has no editor (joomla-editor-none), attaches textarea listeners immediately.
+         */
+        waitForEditor(fieldId) {
+            const textarea = document.getElementById(fieldId);
+
+            // No editor wrapper — plain textarea, attach immediately
+            if (!textarea || textarea.closest('joomla-editor-none')) {
+                this.attachEditorListener(fieldId);
+                return;
+            }
 
             const checkEditor = () => {
                 if (window.tinyMCE && window.tinyMCE.get(fieldId)) {
-                    if (this.debug) console.log('SEO Preview: TinyMCE editor found for content');
+                    if (this.debug) console.log(`SEO Preview: TinyMCE editor found for ${fieldId}`);
                     this.attachEditorListener(fieldId);
                     return;
                 }
 
                 if (window.JoomlaEditor && window.JoomlaEditor.get(fieldId)) {
-                    if (this.debug) console.log('SEO Preview: JoomlaEditor instance found for content');
+                    if (this.debug) console.log(`SEO Preview: JoomlaEditor instance found for ${fieldId}`);
                     this.attachEditorListener(fieldId);
                     return;
                 }
@@ -175,33 +196,6 @@
             };
 
             checkEditor();
-        }
-
-        /**
-         * Initialize additional content fields tracking
-         */
-        initAdditionalContentFields() {
-            Object.keys(this.additionalContentFieldIds).forEach(key => {
-                const fieldId = this.additionalContentFieldIds[key];
-
-                const checkEditor = () => {
-                    if (window.tinyMCE && window.tinyMCE.get(fieldId)) {
-                        if (this.debug) console.log(`SEO Preview: TinyMCE editor found for ${key}`);
-                        this.attachEditorListener(fieldId);
-                        return;
-                    }
-
-                    if (window.JoomlaEditor && window.JoomlaEditor.get(fieldId)) {
-                        if (this.debug) console.log(`SEO Preview: JoomlaEditor instance found for ${key}`);
-                        this.attachEditorListener(fieldId);
-                        return;
-                    }
-
-                    setTimeout(checkEditor, 500);
-                };
-
-                checkEditor();
-            });
         }
 
         /**

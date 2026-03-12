@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Site\View\Manufacturer;
 // No direct access
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\View\HtmlView as BaseHtmlView;
 use Exception;
 use Joomla\CMS\Factory;
@@ -106,18 +107,47 @@ class HtmlView extends BaseHtmlView
             $title = Text::sprintf('JPAGETITLE', $title, $app->get('sitename'));
         }
 
+        if (!empty($this->item->meta_title)) {
+            $title = $this->item->meta_title;
+        }
+
         $this->document->setTitle($title);
 
-        if ($this->params->get('menu-meta_description')) {
-            $this->document->setDescription($this->params->get('menu-meta_description'));
+        // Meta Description: item-level overrides menu-level
+        $metaDescription = $this->params->get('menu-meta_description', '');
+
+        if (!empty($this->item->meta_desc)) {
+            $metaDescription = $this->item->meta_desc;
+        } elseif (!empty($this->item->desc)) {
+            $metaDescription = AlfaHelper::cleanContent(
+                html: $this->item->desc,
+                removeTags: true,
+                removeScripts: true,
+                removeIsolatedPunctuation: false,
+            );
+        }
+
+        if (!empty($metaDescription)) {
+            $this->document->setDescription($metaDescription);
         }
 
         if ($this->params->get('menu-meta_keywords')) {
             $this->document->setMetadata('keywords', $this->params->get('menu-meta_keywords'));
         }
 
-        if ($this->params->get('robots')) {
-            $this->document->setMetadata('robots', $this->params->get('robots'));
+        // Robots: item-level meta_data overrides menu-level
+        $metaRobots = $this->params->get('robots', '');
+
+        if (!empty($this->item->meta_data)) {
+            $otherMetaData = json_decode($this->item->meta_data, true) ?: [];
+
+            if (!empty($otherMetaData['robots'])) {
+                $metaRobots = $otherMetaData['robots'];
+            }
+        }
+
+        if (!empty($metaRobots)) {
+            $this->document->setMetadata('robots', $metaRobots);
         }
 
         // Add Breadcrumbs

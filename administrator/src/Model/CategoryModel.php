@@ -163,7 +163,7 @@ class CategoryModel extends AdminModel
             ($oldAlias !== $data['alias']) ||
             ($oldName !== $data['name']);
 
-        $data['meta_data'] = json_encode(['robots' => $data['robots']]);
+        $data['meta_data'] = json_encode(['robots' => $data['robots'] ?? '']);
 
         if (!parent::save($data)) {
             return false;
