@@ -7,7 +7,7 @@
     <author>Agamemnon Fakas</author>
     <authorEmail>info@easylogic.gr</authorEmail>
     <authorUrl>https://easylogic.gr</authorUrl>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
     <description>The smartest,fastest and easiest ecommerce solution for companies developed with love by Easylogic.</description>
     <namespace path="src">Alfa\Component\Alfa</namespace>
 

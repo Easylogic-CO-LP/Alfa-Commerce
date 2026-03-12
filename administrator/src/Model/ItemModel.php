@@ -320,7 +320,7 @@ class ItemModel extends AdminModel
         }
 
         $data['meta_data'] = json_encode(
-            ['robots' => $data['robots']],
+            ['robots' => $data['robots'] ?? ''],
         );
 
         // Step 1: save the main item row
