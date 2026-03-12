@@ -16,6 +16,7 @@ namespace Alfa\Component\Alfa\Site\Model;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceCalculator;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
@@ -493,6 +494,12 @@ class ItemsModel extends UrlListModel
             }
             $item->stock_low_message = $item->stock_low_message ?: $settings->get('stock_low_message');
             $item->stock_zero_message = $item->stock_zero_message ?: $settings->get('stock_zero_message');
+
+            $item->medias = MediaHelper::getMediaData(
+                origin: 'item',
+                itemIDs: $item->id,
+                usePlaceHolder : true,
+            );
 
             $urlCategoryId = $this->categoryId ?: ($item->id_category_default ?? 0);
             $item->link = Route::_(

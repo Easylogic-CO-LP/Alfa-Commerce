@@ -79,6 +79,14 @@ $input = Factory::getApplication()->getInput();
 	</div>
 	<?php echo HTMLHelper::_('uitab.endTab'); ?>
 
+    <?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'dropzone', 'COM_ALFA_MEDIA_TAB_ITEM_LABEL'); ?>
+    <div class="row">
+        <fieldset>
+            <?php echo $this->form->renderFieldset('Images'); ?>
+        </fieldset>
+    </div>
+    <?php echo HTMLHelper::_('uitab.endTab'); ?>
+
 	<?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'publishing', Text::_('COM_ALFA_FIELDSET_PUBLISHING_SEO')); ?>
 	<div class="row">
 		<div class="col-12 col-lg-6">

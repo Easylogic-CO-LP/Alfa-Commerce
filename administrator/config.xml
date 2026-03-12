@@ -246,6 +246,141 @@
         />
     </fieldset>
 
+    <fieldset name="mediazone" label="COM_ALFA_CONFIGURATION">
+        <field
+                name="media_file_format"
+                type="list"
+                label="COM_ALFA_MEDIA_CONFIG_CONVERT_LABEL"
+                description=""
+        >
+            <option value="">Don't Convert</option>
+            <option value="jpg">JPG</option>
+            <option value="png">PNG</option>
+            <option value="webp">WEBP</option>
+            <option value="gif">GIF</option>
+        </field>
+
+        <field
+                name="media_image_quality"
+                type="number"
+                label="COM_ALFA_MEDIA_CONFIG_QUALITY_LABEL"
+                min="1"
+                default="80"
+                max="100"
+                description=""
+        />
+
+        <field
+                name="media_image_width"
+                type="int"
+                label="COM_ALFA_MEDIA_CONFIG_WIDTH_LABEL"
+                min="1"
+                default="1920"
+                max="5000"
+                description=""
+        />
+
+        <field
+                name="media_image_height"
+                type="int"
+                label="COM_ALFA_MEDIA_CONFIG_HEIGHT_LABEL"
+                min="1"
+                default="1080"
+                max="5000"
+                description=""
+        />
+
+        <field
+                name="media_save_location"
+                type="text"
+                default="/images/media-zone"
+                hint="/images/example-folder"
+                label="COM_ALFA_MEDIA_CONFIG_SAVE_LABEL"
+                description="COM_ALFA_MEDIA_CONFIG_SAVE_DESC"
+                size="150"
+        />
+
+        <field
+                name="media_mime"
+                type="list"
+                multiple="true"
+                layout="joomla.form.field.list-fancy-select"
+                label="COM_ALFA_MEDIA_CONFIG_TYPES_LABEL"
+                default=""
+        >
+            <option value="image/jpeg">Jpeg</option>
+            <option value="image/gif">Gif</option>
+            <option value="image/png">Png</option>
+            <option value="image/bmp">Bmp</option>
+            <option value="image/webp">WebP</option>
+            <option value="image/avif">Avif</option>
+        </field>
+
+        <field
+                name="media_placeholder"
+                type="text"
+                default=""
+                hint="media/com_alfa/images/placeholder_600x.webp"
+                label="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_LABEL"
+                description="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_DESC"
+                size="150"
+        />
+
+        <field
+                name="media_url_thumbnail"
+                type="text"
+                default="images/url_thumbnail.jpg"
+                hint="images/url_thumbnail.jpg"
+                label="COM_ALFA_MEDIA_CONFIG_URL_THUMBNAIL_LABEL"
+                description="COM_ALFA_MEDIA_CONFIG_URL_THUMBNAIL_DESC"
+                size="150"
+        />
+
+        <field
+                name="media_thumbnail_width"
+                type="int"
+                label="COM_ALFA_MEDIA_CONFIG_THUMBNAIL_WIDTH_LABEL"
+                min="50"
+                default="200"
+                max="500"
+                description=""
+        />
+
+        <field
+                name="media_thumbnail_height"
+                type="int"
+                label="COM_ALFA_MEDIA_CONFIG_THUMBNAIL_HEIGHT_LABEL"
+                min="50"
+                default="200"
+                max="500"
+                description=""
+        />
+
+        <field
+                name="media_full_deletion"
+                type="radio"
+                default="0"
+                label="COM_ALFA_MEDIA_CONFIG_FULL_DELETE_LABEL"
+                description="COM_ALFA_MEDIA_CONFIG_FULL_DELETE_DESC"
+                layout="joomla.form.field.radio.switcher"
+        >
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <field
+                name="media_name_from_alias"
+                type="radio"
+                default="0"
+                label="COM_ALFA_MEDIA_CONFIG_ALIAS_NAME_LABEL"
+                description="COM_ALFA_MEDIA_CONFIG_ALIAS_NAME_DESC"
+                layout="joomla.form.field.radio.switcher"
+        >
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+    </fieldset>
+
     <fieldset name="component">
         <field
                 name="save_history"

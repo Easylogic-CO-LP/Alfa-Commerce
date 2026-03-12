@@ -193,6 +193,16 @@
 
     </fieldset>
 
+    <fieldset name="Images">
+        <field
+                name="medias"
+                type="MediaZone"
+                label="COM_ALFA_MEDIA_INSERT_LABEL"
+                multiple="true"
+                hiddenLabel="true"
+                types="media,url"
+        />
+    </fieldset>
 
     <fieldset name="publish">
         <field name="publish_up" type="calendar" showtime="true" format="%Y-%m-%d %H:%M" filter="USER_UTC"

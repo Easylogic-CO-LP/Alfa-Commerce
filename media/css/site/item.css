@@ -66,6 +66,8 @@
 }
 
 .main-images .item-image {
+    display: flex;
+    align-items: center;
     min-width: 100%;
     max-width: 100%;
     flex-shrink: 0;
@@ -82,7 +84,8 @@
 }
 
 .thumbnail-images .item-image{
-    height: auto;
+    height: 85px;
+    width: 85px;
 }
 
 .thumbnail-images .active {
@@ -141,3 +144,48 @@
     color: #388e3c;
 }
 
+/* MANUFACTURERS CATEGORIES */
+.item-group-inner {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1.5rem;
+    margin: 1rem 0;
+}
+
+.group-item {
+    border: 1px solid lightgrey;
+    border-radius: 6px;
+    padding: 1.25rem;
+    background-color: #fff;
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+.group-item a {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    text-decoration: none !important;
+    color: inherit;
+}
+
+.group-name {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #333;
+}
+
+.group-media {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 1rem;
+    width: 100%;
+    align-items: center;
+}
+
+.group-media img {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+}
+/* MANUFACTURERS CATEGORIES END */

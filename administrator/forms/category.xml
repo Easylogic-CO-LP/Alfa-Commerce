@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
 
-    <fieldset>
-
+    <fieldset name="general">
         <field name="parent_id"
                type="categories"
                model="categories"
@@ -154,4 +153,14 @@
 
     </fieldset>
 
+    <fieldset name="Image">
+        <field
+                name="medias"
+                type="MediaZone"
+                label="COM_ALFA_MEDIA_INSERT_LABEL"
+                multiple="false"
+                hiddenLabel="true"
+                types="media"
+        />
+    </fieldset>
 </form>

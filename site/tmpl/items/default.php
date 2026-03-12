@@ -8,8 +8,12 @@
 
 defined('_JEXEC') or die;
 
+use Joomla\CMS\Factory;
 use Joomla\CMS\Uri\Uri;
 use Joomla\CMS\Layout\LayoutHelper;
+
+$app = Factory::getApplication();
+$params = $app->getParams();
 
 $wa = $this->document->getWebAssetManager();
 $wa->useStyle('com_alfa.list')
@@ -65,6 +69,7 @@ $priceSettings = $this->priceSettings;
 // Example 9: Hide base price and tax
 // $priceSettings = PriceSettings::except('base', 'tax');
 // ============================================================================
+$media_placeholder = $params->get('media_placeholder', '');
 ?>
 
 <?php echo $this->loadTemplate('categories'); ?>
@@ -77,11 +82,15 @@ $priceSettings = $this->priceSettings;
 		<?php foreach ($this->items as $item) : ?>
 
             <article class="list-item" data-item-id="<?php echo $item->id; ?>">
-                <div>
-                    <a href="<?= htmlspecialchars($item->link, ENT_QUOTES, 'UTF-8') ?>">
-                        <img src="<?= Uri::root() . '/media/com_alfa/images/placeholder_600x.webp' ?>" alt="<?= htmlspecialchars($item->name, ENT_QUOTES, 'UTF-8') ?>" />
-                    </a>
-                </div>
+
+                <?php if (!empty($item->medias[0]->thumbnail)): ?>
+                    <div class="item-image">
+                        <a href="<?= $item->link ?>">
+                            <img src="<?= $item->medias[0]->thumbnail ?>" alt="<?= $item->name ?>" />
+                        </a>
+                    </div>
+                <?php endif; ?>
+
                 <div class="item-title">
                     <a href="<?= htmlspecialchars($item->link, ENT_QUOTES, 'UTF-8') ?>">
 						<?php echo $this->escape($item->name); ?></a>

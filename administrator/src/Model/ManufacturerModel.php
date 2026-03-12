@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use JForm;
 use Joomla\CMS\Event\Model;
 use Joomla\CMS\Factory;
@@ -93,7 +94,12 @@ class ManufacturerModel extends AdminModel
     public function save($data)
     {
         $app = Factory::getApplication();
-        if ($data['alias'] == null) {
+        $input = $app->getInput();
+
+        $pk = (int) ($data['id'] ?? $this->getState($this->getName() . '.id'));
+        $isNew = $pk <= 0;
+
+        if (empty($data['alias'])) {
             if ($app->get('unicodeslugs') == 1) {
                 $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['title']);
             } else {
@@ -106,7 +112,27 @@ class ManufacturerModel extends AdminModel
                 $data['alias'] = OutputFilter::stringURLSafe($data['alias']);
             }
         }
-        return parent::save($data);
+
+        $data = $input->post->get('jform', [], 'array');
+        $newDropped = $input->files->get('jform')['uploads'] ?? [];
+
+        if (!parent::save($data)) {
+            return false;
+        }
+
+        $currentId = $isNew ? (int) $this->getState($this->getName() . '.id') : $pk;
+
+        if (!empty($data['media'])) {
+            MediaHelper::saveMedia(
+                mediaData:      $data['media'],
+                droppedMedia:   $newDropped,
+                itemId:         $currentId,
+                mediaOrigin:    $this->name,
+                customFileName: $data['alias'],
+            );
+        }
+
+        return true;
     }
 
     /**
@@ -148,6 +174,10 @@ class ManufacturerModel extends AdminModel
                 $item->params = json_encode($item->params);
             }
 
+            $item->medias = MediaHelper::getMediaData(
+                origin: $this->name,
+                itemIDs: $item->id,
+            );
             // Do any procesing on fields here if needed
         }
 

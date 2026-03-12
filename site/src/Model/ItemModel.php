@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Site\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Service\Pricing;
 use Exception;
@@ -112,18 +113,34 @@ class ItemModel extends BaseItemModel
 
             // Get categories
             $categories = $this->getItemCategories($pk);
+            $categoryIDs = array_column($categories, 'id');
+            $categoryMedia = !empty($categoryIDs)
+                ? MediaHelper::getMediaData(origin: 'category', itemIDs: $categoryIDs)
+                : [];
+
             $data->categories = [];
 
             foreach ($categories as $category) {
-                $data->categories[$category['id']] = $category['name'];
+                $data->categories[$category['id']] = [
+                    'name' => $category['name'],
+                    'media' => $categoryMedia[$category['id']] ?? [],
+                ];
             }
 
             // Get manufacturers
             $manufacturers = $this->getItemManufacturers($pk);
+            $manufacturerIDs = array_column($manufacturers, 'id');
+            $manufacturerMedia = !empty($manufacturerIDs)
+                ? MediaHelper::getMediaData(origin: 'manufacturer', itemIDs: $manufacturerIDs)
+                : [];
+
             $data->manufacturers = [];
 
             foreach ($manufacturers as $manufacturer) {
-                $data->manufacturers[$manufacturer['id']] = $manufacturer['name'];
+                $data->manufacturers[$manufacturer['id']] = [
+                    'name' => $manufacturer['name'],
+                    'media' => $manufacturerMedia[$manufacturer['id']] ?? [],
+                ];
             }
 
             // Calculate the dynamic price
@@ -156,6 +173,11 @@ class ItemModel extends BaseItemModel
                 $user->groups,
                 $user->id,
                 'shipment',
+            );
+
+            $data->medias = MediaHelper::getMediaData(
+                origin: 'item',
+                itemIDs: $data->id,
             );
 
             $this->_item[$pk] = $data;

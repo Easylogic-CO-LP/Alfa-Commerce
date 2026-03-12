@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use JForm;
 use Joomla\CMS\Factory;
@@ -119,6 +120,12 @@ class CategoryModel extends AdminModel
 
             $item->allowedUsers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_categories_users', 'category_id', 'user_id');
             $item->allowedUserGroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_categories_usergroups', 'category_id', 'usergroup_id');
+
+            // get media origin (cat, man, item...)
+            $item->medias = MediaHelper::getMediaData(
+                origin: $this->name,
+                itemIDs: $item->id,
+            );
         }
 
         $this->item[$pk] = $item;
@@ -137,6 +144,9 @@ class CategoryModel extends AdminModel
      */
     public function save($data)
     {
+        $app = Factory::getApplication();
+        $input = $app->getInput();
+
         $table = $this->getTable();
         $pk = (int) ($data['id'] ?? $this->getState($this->getName() . '.id'));
         $isNew = $pk <= 0;
@@ -165,11 +175,24 @@ class CategoryModel extends AdminModel
 
         $data['meta_data'] = json_encode(['robots' => $data['robots']]);
 
+        $data = $input->post->get('jform', [], 'array');
+        $newDropped = $input->files->get('jform')['uploads'] ?? [];
+
         if (!parent::save($data)) {
             return false;
         }
 
         $currentId = $isNew ? (int) $this->getState($this->getName() . '.id') : $pk;
+
+        if (!empty($data['media'])) {
+            MediaHelper::saveMedia(
+                mediaData:      $data['media'],
+                droppedMedia:   $newDropped,
+                itemId:         $currentId,
+                mediaOrigin:    $this->name,
+                customFileName: $data['alias'],
+            );
+        }
 
         // VALIDATION: Check for circular references AFTER save
         if ($this->hasCircularReference($currentId)) {

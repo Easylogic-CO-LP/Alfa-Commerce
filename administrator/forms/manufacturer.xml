@@ -2,7 +2,7 @@
 <form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
   <fieldset>
     <field name="name" size="400" filter="safehtml" type="text" required="true" translateLabel="true" label="COM_ALFA_FORM_LBL_MANUFACTURER_NAME" description="COM_ALFA_FORM_DESC_MANUFACTURER_NAME" hint="COM_ALFA_FORM_LBL_MANUFACTURER_NAME"/>
-   
+
     <field name="id" type="text" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
 
     <field name="alias" type="text" class="inputbox" generator="name" label="JFIELD_ALIAS_LABEL" description="COM_ALFA_FORM_DESC_MANUFACTURER_ALIAS" hint="COM_ALFA_FORM_LBL_MANUFACTURER_ALIAS"/>
@@ -29,7 +29,7 @@
             <option value="2">JARCHIVED</option>
             <option value="-2">JTRASHED</option>
         </field>
-        
+
         <field
             name="created_by"
             type="user"
@@ -70,15 +70,22 @@
             filter="unset"
         />
 
-        
-
         <field
                 name="version_note"
                 type="text"
                 label="JGLOBAL_FIELD_VERSION_NOTE_LABEL"
                 maxlength="255"
         />
-
-
   </fieldset>
+
+    <fieldset name="Image">
+        <field
+                name="medias"
+                type="MediaZone"
+                label="COM_ALFA_MEDIA_INSERT_LABEL"
+                multiple="false"
+                hiddenLabel="true"
+                types="media"
+        />
+    </fieldset>
 </form>

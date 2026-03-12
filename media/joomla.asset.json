@@ -169,6 +169,24 @@
         "com_alfa.admin.notifications#style",
         "com_alfa.admin.notifications#script"
       ]
+    },
+    {
+      "name": "com_alfa.mediazone",
+      "type": "style",
+      "uri": "com_alfa/admin/mediazone.css"
+    },
+    {
+      "name": "com_alfa.mediazone",
+      "type": "script",
+      "uri": "com_alfa/admin/mediazone.js",
+      "dependencies": [
+        "core"
+      ]
+    },
+    {
+      "name": "com_alfa.sortable",
+      "type": "script",
+      "uri": "com_alfa/admin/sortable.min.js"
     }
   ]
 }
