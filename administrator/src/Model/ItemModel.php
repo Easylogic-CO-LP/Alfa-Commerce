@@ -333,22 +333,22 @@ class ItemModel extends AdminModel
         $data = $input->post->get('jform', [], 'array');
         $newDropped = $input->files->get('jform')['uploads'] ?? [];
 
-        if (!empty($data['media'])) {
-            MediaHelper::saveMedia(
-                mediaData:      $data['media'],
-                droppedMedia:   $newDropped,
-                itemId:         $data['id'],
-                mediaOrigin:    $this->name,
-                customFileName: $data['alias'],
-            );
-        }
-
         // Step 1: save the main item row
         if (!parent::save($data)) {
             return false;
         }
 
         $currentId = $pk > 0 ? $pk : (int) $this->getState($this->getName() . '.id'); //get the id from joomla state
+
+        if (!empty($data['media'])) {
+            MediaHelper::saveMedia(
+                mediaData:      $data['media'],
+                droppedMedia:   $newDropped,
+                itemId:         $currentId,
+                mediaOrigin:    $this->name,
+                customFileName: $data['alias'],
+            );
+        }
 
         // AUTO SET DEFAULT CATEGORY ID AND CATEGORIES ARRAY
         // Check if $categoryIdDefault is set, if not set it to the first category

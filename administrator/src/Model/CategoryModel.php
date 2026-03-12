@@ -178,21 +178,21 @@ class CategoryModel extends AdminModel
         $data = $input->post->get('jform', [], 'array');
         $newDropped = $input->files->get('jform')['uploads'] ?? [];
 
-        if (!empty($data['media'])) {
-            MediaHelper::saveMedia(
-                mediaData:      $data['media'],
-                droppedMedia:   $newDropped,
-                itemId:         $data['id'],
-                mediaOrigin:    $this->name,
-                customFileName: $data['alias'],
-            );
-        }
-
         if (!parent::save($data)) {
             return false;
         }
 
         $currentId = $isNew ? (int) $this->getState($this->getName() . '.id') : $pk;
+
+        if (!empty($data['media'])) {
+            MediaHelper::saveMedia(
+                mediaData:      $data['media'],
+                droppedMedia:   $newDropped,
+                itemId:         $currentId,
+                mediaOrigin:    $this->name,
+                customFileName: $data['alias'],
+            );
+        }
 
         // VALIDATION: Check for circular references AFTER save
         if ($this->hasCircularReference($currentId)) {

@@ -193,6 +193,16 @@
 
     </fieldset>
 
+    <fieldset name="Images">
+        <field
+                name="medias"
+                type="MediaZone"
+                label="COM_ALFA_MEDIA_INSERT_LABEL"
+                multiple="true"
+                hiddenLabel="true"
+                types="media,url"
+        />
+    </fieldset>
 
     <fieldset name="publish">
         <field name="publish_up" type="calendar" showtime="true" format="%Y-%m-%d %H:%M" filter="USER_UTC"
@@ -275,16 +285,5 @@
             <option value="index, nofollow">COM_ALFA_ROBOTS_INDEX_NOFOLLOW</option>
             <option value="noindex, nofollow">COM_ALFA_ROBOTS_NOINDEX_NOFOLLOW</option>
         </field>
-    </fieldset>
-
-    <fieldset name="Images">
-        <field
-                name="medias"
-                type="MediaZone"
-                label="Insert Media: "
-                multiple="true"
-                hiddenLabel="true"
-                types="media,url"
-        />
     </fieldset>
 </form>

@@ -96,7 +96,10 @@ class ManufacturerModel extends AdminModel
         $app = Factory::getApplication();
         $input = $app->getInput();
 
-        if ($data['alias'] == null) {
+        $pk = (int) ($data['id'] ?? $this->getState($this->getName() . '.id'));
+        $isNew = $pk <= 0;
+
+        if (empty($data['alias'])) {
             if ($app->get('unicodeslugs') == 1) {
                 $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['title']);
             } else {
@@ -113,17 +116,23 @@ class ManufacturerModel extends AdminModel
         $data = $input->post->get('jform', [], 'array');
         $newDropped = $input->files->get('jform')['uploads'] ?? [];
 
+        if (!parent::save($data)) {
+            return false;
+        }
+
+        $currentId = $isNew ? (int) $this->getState($this->getName() . '.id') : $pk;
+
         if (!empty($data['media'])) {
             MediaHelper::saveMedia(
                 mediaData:      $data['media'],
                 droppedMedia:   $newDropped,
-                itemId:         $data['id'],
+                itemId:         $currentId,
                 mediaOrigin:    $this->name,
-                customFileName: $data['alias'],
+                customFileName: $data['alias']
             );
         }
 
-        return parent::save($data);
+        return true;
     }
 
     /**

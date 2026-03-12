@@ -62,6 +62,14 @@
     </div>
     <?php echo HTMLHelper::_('uitab.endTab'); ?>
 
+    <?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'dropzone', 'COM_ALFA_MEDIA_TAB_LABEL'); ?>
+    <div class="row">
+        <fieldset>
+            <?php echo $this->form->renderFieldset('Image'); ?>
+        </fieldset>
+    </div>
+    <?php echo HTMLHelper::_('uitab.endTab'); ?>
+
     <?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'publishing', Text::_('COM_ALFA_FIELDSET_PUBLISHING_SEO')); ?>
     <div class="row">
         <div class="col-12 col-lg-6">
@@ -106,14 +114,6 @@
                 </div>
             </fieldset>
         </div>
-    </div>
-    <?php echo HTMLHelper::_('uitab.endTab'); ?>
-
-    <?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'dropzone', 'Media Drop Zone'); ?>
-    <div class="row">
-        <fieldset>
-            <?php echo $this->form->renderFieldset('Image'); ?>
-        </fieldset>
     </div>
     <?php echo HTMLHelper::_('uitab.endTab'); ?>
 

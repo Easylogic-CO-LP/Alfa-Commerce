@@ -421,9 +421,11 @@
                 thumbBtn.addEventListener('click', () => pickerOpenBtn.click());
 
                 pickerInput.addEventListener('change', () => {
+                    const safePath = encodeURI(pickerInput.value);
+
                     thumbPreview.width  = 100;
                     thumbPreview.height = 100;
-                    thumbPreview.src    = '/' + pickerInput.value;
+                    thumbPreview.src    = '/' + safePath;
                     thumbBtn.insertAdjacentElement('afterend', thumbPreview);
                 });
             }
@@ -537,7 +539,7 @@
             const placeholder = container.querySelector(this.config.placeholderSelector);
             if (placeholder) placeholder.remove();
 
-            container.insertAdjacentHTML('afterbegin', html);
+            container.insertAdjacentHTML('beforeend', html);
         },
 
         updateFileInputOrder() {

@@ -82,7 +82,7 @@
         <field
                 name="medias"
                 type="MediaZone"
-                label="Insert Media: "
+                label="COM_ALFA_MEDIA_INSERT_LABEL"
                 multiple="false"
                 hiddenLabel="true"
                 types="media"

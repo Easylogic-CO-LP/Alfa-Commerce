@@ -83,7 +83,7 @@ class MediaController extends FormController
         $params = ComponentHelper::getParams('com_alfa');
 
         // default url thumbnail
-        $urlDefaultThumbnail = trim($params->get('url_thumbnail', ''));
+        $urlDefaultThumbnail = trim($params->get('media_url_thumbnail', ''));
 
         $media = new stdClass();
 

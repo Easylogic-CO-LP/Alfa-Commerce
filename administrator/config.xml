@@ -246,7 +246,7 @@
         />
     </fieldset>
 
-    <fieldset name="mediazone">
+    <fieldset name="mediazone" label="COM_ALFA_CONFIGURATION">
         <field
                 name="media_file_format"
                 type="list"
