@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use JForm;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\OutputFilter;
@@ -90,7 +91,11 @@ class ManufacturerModel extends AdminModel
      */
     public function save($data)
     {
+        $app = Factory::getApplication();
+        $input = $app->getInput();
+
         $pk = $data['id'] ?? (int) $this->getState($this->getName() . '.id');
+        $isNew = $pk <= 0;
 
         $data['alias'] = $data['alias'] ?: $data['name'];
         $data['alias'] = $this->sanitizeAlias($data['alias']);
@@ -98,7 +103,26 @@ class ManufacturerModel extends AdminModel
 
         $data['meta_data'] = json_encode(['robots' => $data['robots'] ?? '']);
 
-        return parent::save($data);
+        $data = $input->post->get('jform', [], 'array');
+        $newDropped = $input->files->get('jform')['uploads'] ?? [];
+
+        if (!parent::save($data)) {
+            return false;
+        }
+
+        $currentId = $isNew ? (int) $this->getState($this->getName() . '.id') : $pk;
+
+        if (!empty($data['media'])) {
+            MediaHelper::saveMedia(
+                mediaData:      $data['media'],
+                droppedMedia:   $newDropped,
+                itemId:         $currentId,
+                mediaOrigin:    $this->name,
+                customFileName: $data['alias']
+            );
+        }
+
+        return true;
     }
 
     /**

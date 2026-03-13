@@ -28,7 +28,7 @@
     width: 50px;
     text-align: center;
     border: 1px solid lightgray;
-    appearance: textfield; /* Hides the default spinner buttons in the input */
+    appearance: textfield;
 }
 
 .item-quantity::-webkit-outer-spin-button,
@@ -41,7 +41,7 @@
     border: none;
     width: 30px;
     font-size: 1.5rem;
-    color: black;    
+    color: black;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -66,6 +66,9 @@
 }
 
 .main-images .item-image {
+    display: flex;
+    align-items: center;
+
     min-width: 100%;
     max-width: 100%;
     flex-shrink: 0;
@@ -82,7 +85,8 @@
 }
 
 .thumbnail-images .item-image{
-    height: auto;
+    height: 85px;
+    width: 85px;
 }
 
 .thumbnail-images .active {
@@ -141,3 +145,48 @@
     color: #388e3c;
 }
 
+/* MANUFACTURERS CATEGORIES */
+.item-list-inner {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1.5rem;
+    margin: 1rem 0;
+}
+
+.item-list-entry {
+    border: 1px solid lightgrey;
+    border-radius: 6px;
+    padding: 1.25rem;
+    background-color: #fff;
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+.item-list-entry a {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    text-decoration: none !important;
+    color: inherit;
+}
+
+.item-list-entry-name {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #333;
+}
+
+.item-list-entry-image {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 1rem;
+    width: 100%;
+    align-items: center;
+}
+
+.item-list-entry-image img {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+}
+/* MANUFACTURERS CATEGORIES END */
