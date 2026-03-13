@@ -120,6 +120,12 @@ class CategoryModel extends AdminModel
 
             $item->allowedUsers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_categories_users', 'category_id', 'user_id');
             $item->allowedUserGroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_categories_usergroups', 'category_id', 'usergroup_id');
+
+            // get media origin (cat, man, item...)
+            $item->medias = MediaHelper::getMediaData(
+                origin: $this->name,
+                itemIDs: $item->id,
+            );
         }
 
         $this->item[$pk] = $item;

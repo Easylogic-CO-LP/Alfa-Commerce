@@ -258,6 +258,12 @@ class ItemModel extends AdminModel
 
             $item->allowedUsers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_users', 'item_id', 'user_id');
             $item->allowedUserGroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_usergroups', 'item_id', 'usergroup_id');
+
+            // get media origin (cat, man, item...)
+            $item->medias = MediaHelper::getMediaData(
+                origin: $this->name,
+                itemIDs: $item->id,
+            );
         }
 
         $this->item[$pk] = $item;
