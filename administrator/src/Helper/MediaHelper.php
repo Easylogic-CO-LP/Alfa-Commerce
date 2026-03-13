@@ -149,11 +149,6 @@
                     // PREPARE OBJECT FOR INSERT ON MEDIA TABLE
                     $insertObject = null;
                     if($isUrl){ // URL HANDLER
-                        if (!file_exists(JPATH_ROOT . '/' . $urlDefaultThumbnail)) {
-                            Factory::getApplication()->enqueueMessage("The selected URL thumbnail placeholder file (" . $urlDefaultThumbnail . ") does not exist. Please select a new one.", 'error');
-                            continue;
-                        }
-
                         $insertObject = (object)[
                             'item_id'   =>  $itemId,
                             'path'      =>  $media['source'],
