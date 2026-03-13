@@ -145,14 +145,14 @@
 }
 
 /* MANUFACTURERS CATEGORIES */
-.item-group-inner {
+.item-list-inner {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 1.5rem;
     margin: 1rem 0;
 }
 
-.group-item {
+.item-list-entry {
     border: 1px solid lightgrey;
     border-radius: 6px;
     padding: 1.25rem;
@@ -161,7 +161,7 @@
     scrollbar-width: thin;
 }
 
-.group-item a {
+.item-list-entry a {
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -169,13 +169,13 @@
     color: inherit;
 }
 
-.group-name {
+.item-list-entry-name {
     font-weight: bold;
     font-size: 1.1rem;
     color: #333;
 }
 
-.group-media {
+.item-list-entry-image {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
     gap: 1rem;
@@ -183,7 +183,7 @@
     align-items: center;
 }
 
-.group-media img {
+.item-list-entry-image img {
     width: 100%;
     height: auto;
     object-fit: cover;

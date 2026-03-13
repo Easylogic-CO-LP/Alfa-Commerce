@@ -104,8 +104,8 @@ $medias = $this->item->medias;
             <?php echo nl2br($this->escape($this->item->full_desc)); ?>
         </div>
 
-        <?php echo $this->loadTemplate('manufacturer'); ?>
-        <?php echo $this->loadTemplate('category'); ?>
+        <?php echo $this->loadTemplate('manufacturers'); ?>
+        <?php echo $this->loadTemplate('categories'); ?>
 
     </div>
 </div>

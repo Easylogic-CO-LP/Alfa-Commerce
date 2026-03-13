@@ -128,6 +128,7 @@
             this.setupDeleteHandlers();
             this.setupUrlModal();
             this.setupThumbnailPicker();
+            this.blockSaveButton();
 
             this.updateFileInputOrder();
 
@@ -387,7 +388,13 @@
                 const img   = selectedCard.querySelector(this.config.thumbnailImageSelector);
                 const input = selectedCard.querySelector(this.config.thumbnailInputSelector);
 
-                if (img)   img.src     = '/' + safeUrlValue;
+                if (img) {
+                    img.src = '/' + safeUrlValue;
+
+                    img.style.display = '';
+                    const btn = img.closest(this.config.thumbnailButtonSelector);
+                    if (btn) btn.style.backgroundColor = '';
+                }
 
                 if (input) input.value = newValue;
 
@@ -467,6 +474,38 @@
             });
         },
 
+        urlThumbnailHandler() {
+            const thumbnails = document.querySelectorAll('.media-thumbnail-img');
+
+            thumbnails.forEach(thumbnail => {
+                const src = thumbnail.getAttribute('src');
+                const thumbnailButton = thumbnail.closest('.media-thumbnail-btn');
+
+                if (!src || src.trim() === "") {
+                    if (thumbnailButton) thumbnailButton.style.backgroundColor = '#FF0000';
+                    thumbnail.style.display = 'none';
+                } else {
+                    if (thumbnailButton) thumbnailButton.style.backgroundColor = '';
+                    thumbnail.style.display = '';
+                }
+            });
+        },
+
+        blockSaveButton() {
+            const form = document.getElementById('adminForm') || document.querySelector('form');
+
+            form.addEventListener('submit', (e) => {
+                const emptyThumbnails = document.querySelectorAll('.media-thumbnail-img:not([src]), .media-thumbnail-img[src=""]');
+
+                if (emptyThumbnails.length > 0) {
+                    e.preventDefault();
+
+                    alert("The default URL thumbnail could not be found. Please verify that the file exists and that the file name is spelled correctly.");
+                    this.urlThumbnailHandler();
+                }
+            });
+        },
+
         // =====================================================================
         //  MEDIA UPLOAD LIMITER
         // =====================================================================
@@ -540,6 +579,8 @@
             if (placeholder) placeholder.remove();
 
             container.insertAdjacentHTML('beforeend', html);
+
+            this.urlThumbnailHandler();
         },
 
         updateFileInputOrder() {
