@@ -292,7 +292,7 @@
          */
         private static function processThumbnail(string $rawThumbnail, string $defaultThumbPath, string $absolutePath, string $saveFolder, object $params, string $customFileName): string
         {
-            $outputFormat    = $params->get('media_file_format', 'jpg');
+            $outputFormat    = $params->get('media_file_format', '');
             $thumbnailWidth  = $params->get('media_thumbnail_width', 200);
             $thumbnailHeight = $params->get('media_thumbnail_height', 200);
             $quality         = $params->get('media_image_quality', 80);
@@ -317,6 +317,16 @@
 
             $sourcePath = JPATH_ROOT . '/' . $cleanThumb;
             $baseName   = pathinfo($cleanThumb, PATHINFO_FILENAME); // Handle cases where there's no extension (e.g., "README")
+
+            // If "Don't convert" is enabled from config, keep the original file extension
+            if (empty($outputFormat)) {
+                $outputFormat = pathinfo($cleanThumb, PATHINFO_EXTENSION);
+                // Fallback to jpg if output format is empty
+                if (empty($outputFormat)) {
+                    $outputFormat = 'jpg';
+                }
+            }
+
             $name       = $nameFromAlias && !empty($customFileName) ? $customFileName : $baseName;
 
             $uniqueName = self::getUniqueFilename(
