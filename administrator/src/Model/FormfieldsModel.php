@@ -1,10 +1,10 @@
 <?php
 
 /**
- * @package    Alfa Commerce
- * @author     Agamemnon Fakas <info@easylogic.gr>
+ * @package        Alfa Commerce
+ * @author         Agamemnon Fakas <info@easylogic.gr>
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
- * @license    GNU General Public License version 3 or later; see LICENSE
+ * @license        GNU General Public License version 3 or later; see LICENSE
  */
 
 namespace Alfa\Component\Alfa\Administrator\Model;
@@ -138,11 +138,9 @@ class FormFieldsModel extends ListModel
 
         if (is_numeric($published)) {
             $query->where('a.state = ' . (int) $published);
+        } elseif (empty($published)) {
+            $query->where('(a.state IN (0, 1))');
         }
-        //        elseif (empty($published))
-        //        {
-        //            $query->where('(a.state IN (0, 1))');
-        //        }
 
         // Filter by search in title
         $search = $this->getState('filter.search');
@@ -201,6 +199,7 @@ class FormFieldsModel extends ListModel
 
     /**
      * @param $columnName string the name of the column to delete.
+     *
      * @return void
      */
     protected function deleteUserInfoTableColumn($columnName)

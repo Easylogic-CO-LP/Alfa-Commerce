@@ -529,10 +529,10 @@ class FieldsHelper
 
 ///**
 // * @package    Alfa Commerce
- * @author     Agamemnon Fakas <info@easylogic.gr>
+// * @author     Agamemnon Fakas <info@easylogic.gr>
 // *
 // * @copyright   (C) 2018 Open Source Matters, Inc. <https://www.joomla.org>
- * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+// * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
 // * @license    GNU General Public License version 3 or later; see LICENSE
 // */
 //
