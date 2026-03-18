@@ -13,13 +13,11 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use JForm;
-use Joomla\CMS\Event\Model;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\OutputFilter;
-use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Model\AdminModel;
-use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Table\Table;
+use Joomla\String\StringHelper;
 
 /**
  * Manufacturer model.
@@ -82,30 +80,24 @@ class ManufacturerModel extends AdminModel
     }
 
     /**
-    * Method to save the form data.
-    *
+     * Method to save the form data.
+     *
      * @param array $data The form data.
-    *
+     *
      * @return bool True on success, False on error.
-    *
-    * @since   1.6
-    */
+     *
+     * @since   1.0.1
+     */
     public function save($data)
     {
-        $app = Factory::getApplication();
-        if ($data['alias'] == null) {
-            if ($app->get('unicodeslugs') == 1) {
-                $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['title']);
-            } else {
-                $data['alias'] = OutputFilter::stringURLSafe($data['title']);
-            }
-        } else {
-            if ($app->get('unicodeslugs') == 1) {
-                $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
-            } else {
-                $data['alias'] = OutputFilter::stringURLSafe($data['alias']);
-            }
-        }
+        $pk = $data['id'] ?? (int) $this->getState($this->getName() . '.id');
+
+        $data['alias'] = $data['alias'] ?: $data['name'];
+        $data['alias'] = $this->sanitizeAlias($data['alias']);
+        $data['alias'] = $this->getUniqueAlias($data['alias'], $pk);
+
+        $data['meta_data'] = json_encode(['robots' => $data['robots'] ?? '']);
+
         return parent::save($data);
     }
 
@@ -148,90 +140,12 @@ class ManufacturerModel extends AdminModel
                 $item->params = json_encode($item->params);
             }
 
-            // Do any procesing on fields here if needed
+            $meta_data = json_decode($item->meta_data ?? '{}');
+            $item->robots = $meta_data->robots ?? '';
         }
 
         return $item;
     }
-
-    /**
-     * Method to duplicate an Manufacturer
-     *
-     * @param array &$pks An array of primary key IDs.
-     *
-     * @return bool True if successful.
-     *
-     * @throws Exception
-     */
-    public function duplicate(&$pks)
-    {
-        $app = Factory::getApplication();
-        $user = $app->getIdentity();
-        $dispatcher = $this->getDispatcher();
-
-        // Access checks.
-        if (!$user->authorise('core.create', 'com_alfa')) {
-            throw new \Exception(Text::_('JERROR_CORE_CREATE_NOT_PERMITTED'));
-        }
-
-        $context = $this->option . '.' . $this->name;
-
-        // Include the plugins for the save events.
-        PluginHelper::importPlugin($this->events_map['save']);
-
-        $table = $this->getTable();
-
-        foreach ($pks as $pk) {
-            if ($table->load($pk, true)) {
-                // Reset the id to create a new record.
-                $table->id = 0;
-
-                if (!$table->check()) {
-                    throw new \Exception($table->getError());
-                }
-
-                // Trigger the before save event.
-                $beforeSaveEvent = new Model\BeforeSaveEvent($this->event_before_save, [
-                    'context' => $context,
-                    'subject' => $table,
-                    'isNew' => true,
-                    'data' => $table,
-                ]);
-
-                // Trigger the before save event.
-                $result = $dispatcher->dispatch($this->event_before_save, $beforeSaveEvent)->getArgument('result', []);
-
-                if (in_array(false, $result, true) || !$table->store()) {
-                    throw new \Exception($table->getError());
-                }
-
-                // Trigger the after save event.
-                $dispatcher->dispatch($this->event_after_save, new Model\AfterSaveEvent($this->event_after_save, [
-                    'context' => $context,
-                    'subject' => $table,
-                    'isNew' => true,
-                    'data' => $table,
-                ]));
-            } else {
-                throw new \Exception($table->getError());
-            }
-        }
-
-        // Clean cache
-        $this->cleanCache();
-
-        return true;
-    }
-
-    /**
-     * Prepare and sanitise the table prior to saving.
-     *
-     * @param Table $table Table Object
-     *
-     * @return void
-     *
-     * @since   1.0.1
-     */
 
     /**
      * Prepare and sanitise the table prior to saving.
@@ -244,23 +158,7 @@ class ManufacturerModel extends AdminModel
      */
     protected function prepareTable($table)
     {
-        //		if (empty($table->id))
-        //		{
-        //			// Set ordering to the last item if not set
-        //			if (@$table->ordering === '')
-        //			{
-        //				$db = $this->getDbo();
-        //				$db->setQuery('SELECT MAX(ordering) FROM #__alfa_categories');
-        //				$max             = $db->loadResult();
-        //				$table->ordering = $max + 1;
-        //			}
-        //		}
-
         $table->modified = Factory::getDate()->toSql();
-
-        // if (empty($table->modified)) {
-
-        // }
 
         if (empty($table->publish_up)) {
             $table->publish_up = null;
@@ -272,20 +170,65 @@ class ManufacturerModel extends AdminModel
 
         return parent::prepareTable($table);
     }
-    // protected function prepareTable($table)
-    // {
-    // 	jimport('joomla.filter.output');
 
-    // 	if (empty($table->id))
-    // 	{
-    // 		// Set ordering to the last item if not set
-    // 		if (@$table->ordering === '')
-    // 		{
-    // 			$db = $this->getDbo();
-    // 			$db->setQuery('SELECT MAX(ordering) FROM #__alfa_manufacturers');
-    // 			$max             = $db->loadResult();
-    // 			$table->ordering = $max + 1;
-    // 		}
-    // 	}
-    // }
+    /**
+     * Method to sanitize the alias.
+     *
+     * @param string $alias The alias to sanitize.
+     *
+     * @return string The sanitized alias.
+     *
+     * @since   1.0.1
+     */
+    protected function sanitizeAlias($alias)
+    {
+        $app = Factory::getApplication();
+
+        if ($app->get('unicodeslugs') == 1) {
+            return OutputFilter::stringUrlUnicodeSlug($alias);
+        }
+
+        return OutputFilter::stringURLSafe($alias);
+    }
+
+    /**
+     * Method to ensure alias is unique.
+     *
+     * @param string $alias The desired alias.
+     * @param int $id The item id (0 for new items).
+     *
+     * @return string The unique alias.
+     *
+     * @since   1.0.1
+     */
+    protected function getUniqueAlias($alias, $id = 0)
+    {
+        $db = $this->getDatabase();
+        $maxAttempts = 100;
+        $attempts = 0;
+
+        while ($attempts < $maxAttempts) {
+            $attempts++;
+
+            $query = $db->getQuery(true)
+                ->select($db->quoteName('id'))
+                ->from($db->quoteName('#__alfa_manufacturers'))
+                ->where($db->quoteName('alias') . ' = ' . $db->quote($alias));
+
+            if ($id > 0) {
+                $query->where($db->quoteName('id') . ' != ' . (int) $id);
+            }
+
+            $db->setQuery($query);
+
+            if (!$db->loadResult()) {
+                return $alias;
+            }
+
+            $alias = StringHelper::increment($alias, 'dash');
+        }
+
+        // Fallback if max attempts reached
+        return $alias . '-' . time();
+    }
 }

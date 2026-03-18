@@ -38,12 +38,6 @@ $wa->useScript('keepalive')
 				<?php echo $this->form->renderField('required'); ?>
 				<?php echo $this->form->renderField('categories'); ?>
 				<?php echo $this->form->renderField('items'); ?>
-				<?php if ($this->state->params->get('save_history', 1)) : ?>
-					<div class="control-group">
-						<div class="control-label"><?php echo $this->form->getLabel('version_note'); ?></div>
-						<div class="controls"><?php echo $this->form->getInput('version_note'); ?></div>
-					</div>
-				<?php endif; ?>
 			</fieldset>
 		</div>
 	</div>

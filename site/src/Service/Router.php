@@ -14,7 +14,6 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Joomla\CMS\Application\SiteApplication;
-use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Component\Router\RouterView;
 use Joomla\CMS\Component\Router\RouterViewConfiguration;
 use Joomla\CMS\Component\Router\Rules\MenuRules;
@@ -40,13 +39,6 @@ class Router extends RouterView
      * @since  1.0.0
      */
     private $db;
-
-    /**
-     * Whether to hide IDs in SEF URLs
-     *
-     * @since  1.0.0
-     */
-    private bool $noIDs;
 
     /**
      * Cache for complete category paths
@@ -84,8 +76,6 @@ class Router extends RouterView
     {
         // Initialize database object
         $this->db = Factory::getContainer()->get(DatabaseInterface::class);
-        $params = ComponentHelper::getParams('com_alfa');
-        $this->noIDs = (bool) $params->get('sef_ids');
 
         //		$this->app->getInput()->set('category_id',0);
         // Register manufacturers view
@@ -320,15 +310,10 @@ class Router extends RouterView
             $id .= ':' . $alias;
         }
 
-        // If noIDs setting is enabled, return only the alias
-        if ($this->noIDs) {
-            [$void, $segment] = explode(':', $id, 2);
+        // Return only the alias for clean SEF URLs
+        [$void, $segment] = explode(':', $id, 2);
 
-            return [$void => $segment];
-        }
-
-        // Return id:alias format
-        return [(int) $id => $id];
+        return [$void => $segment];
     }
 
     /**
@@ -345,29 +330,23 @@ class Router extends RouterView
      */
     public function getItemId($segment, $query)
     {
-        if ($this->noIDs) {
-            // Lookup by alias
-            $dbquery = $this->db->getQuery(true)
-                ->select('i.id')
-                ->from($this->db->quoteName('#__alfa_items', 'i'))
-                ->where('i.alias = ' . $this->db->quote($segment));
+        $dbquery = $this->db->getQuery(true)
+            ->select('i.id')
+            ->from($this->db->quoteName('#__alfa_items', 'i'))
+            ->where('i.alias = ' . $this->db->quote($segment));
 
-            if (!empty($query['category_id'])) {
-                // explicity set the id cause it may not always exist e.g. on sef urls
-                $this->app->getInput()->set('category_id', $query['category_id']);
+        if (!empty($query['category_id'])) {
+            // explicitly set the id cause it may not always exist e.g. on sef urls
+            $this->app->getInput()->set('category_id', $query['category_id']);
 
-                $dbquery->join('INNER', $this->db->quoteName('#__alfa_items_categories', 'ic') . ' ON ic.item_id = i.id')
-                    ->where('ic.category_id = ' . (int) $query['category_id']);
-            }
-
-            $this->db->setQuery($dbquery);
-            $result = $this->db->loadResult();
-
-            return $result ? (int) $result : null;
+            $dbquery->join('INNER', $this->db->quoteName('#__alfa_items_categories', 'ic') . ' ON ic.item_id = i.id')
+                ->where('ic.category_id = ' . (int) $query['category_id']);
         }
 
-        // Extract and return the numeric ID
-        return (int) $segment;
+        $this->db->setQuery($dbquery);
+        $result = $this->db->loadResult();
+
+        return $result ? (int) $result : null;
     }
 
     /**
@@ -402,15 +381,10 @@ class Router extends RouterView
             $id .= ':' . $alias;
         }
 
-        // If noIDs setting is enabled, return only the alias
-        if ($this->noIDs) {
-            [$void, $segment] = explode(':', $id, 2);
+        // Return only the alias for clean SEF URLs
+        [$void, $segment] = explode(':', $id, 2);
 
-            return [$void => $segment];
-        }
-
-        // Return id:alias format
-        return [(int) $id => $id];
+        return [$void => $segment];
     }
 
     /**
@@ -427,18 +401,13 @@ class Router extends RouterView
      */
     public function getManufacturerId($segment, $query)
     {
-        if ($this->noIDs) {
-            $dbquery = $this->db->getQuery(true)
-                ->select($this->db->quoteName('id'))
-                ->from($this->db->quoteName('#__alfa_manufacturers'))
-                ->where($this->db->quoteName('alias') . ' = ' . $this->db->quote($segment));
-            $this->db->setQuery($dbquery);
-            $result = $this->db->loadResult();
+        $dbquery = $this->db->getQuery(true)
+            ->select($this->db->quoteName('id'))
+            ->from($this->db->quoteName('#__alfa_manufacturers'))
+            ->where($this->db->quoteName('alias') . ' = ' . $this->db->quote($segment));
+        $this->db->setQuery($dbquery);
+        $result = $this->db->loadResult();
 
-            return $result ? (int) $result : null;
-        }
-
-        // Extract and return the numeric ID
-        return (int) $segment;
+        return $result ? (int) $result : null;
     }
 }
