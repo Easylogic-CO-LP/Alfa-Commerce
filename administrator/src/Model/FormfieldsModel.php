@@ -1,10 +1,10 @@
 <?php
 
 /**
- * @package    Alfa Commerce
- * @author     Agamemnon Fakas <info@easylogic.gr>
+ * @package        Alfa Commerce
+ * @author         Agamemnon Fakas <info@easylogic.gr>
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
- * @license    GNU General Public License version 3 or later; see LICENSE
+ * @license        GNU General Public License version 3 or later; see LICENSE
  */
 
 namespace Alfa\Component\Alfa\Administrator\Model;
@@ -29,14 +29,15 @@ class FormFieldsModel extends ListModel
     /**
      * Constructor.
      *
-     * @param array $config An optional associative array of configuration settings.
+     * @param   array  $config  An optional associative array of configuration settings.
      *
      * @see        JController
      * @since      1.6
      */
     public function __construct($config = [], ?MVCFactoryInterface $factory = null)
     {
-        if (empty($config['filter_fields'])) {
+        if (empty($config['filter_fields']))
+        {
             $config['filter_fields'] = [
                 'id', 'a.id',
                 'ordering', 'a.ordering',
@@ -56,8 +57,8 @@ class FormFieldsModel extends ListModel
      *
      * Note. Calling getState in this method will result in recursion.
      *
-     * @param string $ordering Elements order
-     * @param string $direction Order direction
+     * @param   string  $ordering   Elements order
+     * @param   string  $direction  Order direction
      *
      * @return void
      *
@@ -75,7 +76,7 @@ class FormFieldsModel extends ListModel
      * different modules that might need different sets of data or different
      * ordering requirements.
      *
-     * @param string $id A prefix for the store id.
+     * @param   string  $id  A prefix for the store id.
      *
      * @return string A store id.
      *
@@ -100,7 +101,7 @@ class FormFieldsModel extends ListModel
     protected function getListQuery()
     {
         // Create a new query object.
-        $db = $this->getDatabase();
+        $db    = $this->getDatabase();
         $query = $db->getQuery(true);
 
         $query->select(
@@ -136,31 +137,37 @@ class FormFieldsModel extends ListModel
         // Filter by published state
         $published = $this->getState('filter.state');
 
-        if (is_numeric($published)) {
+        if (is_numeric($published))
+        {
             $query->where('a.state = ' . (int) $published);
         }
-        //        elseif (empty($published))
-        //        {
-        //            $query->where('(a.state IN (0, 1))');
-        //        }
+        elseif (empty($published))
+        {
+            $query->where('(a.state IN (0, 1))');
+        }
 
         // Filter by search in title
         $search = $this->getState('filter.search');
 
-        if (!empty($search)) {
-            if (stripos($search, 'id:') === 0) {
+        if (!empty($search))
+        {
+            if (stripos($search, 'id:') === 0)
+            {
                 $query->where('a.id = ' . (int) substr($search, 3));
-            } else {
+            }
+            else
+            {
                 $search = $db->Quote('%' . $db->escape($search, true) . '%');
                 $query->where('( a.name LIKE ' . $search . ' )');
             }
         }
 
         // Add the list ordering clause.
-        $orderCol = $this->state->get('list.ordering', 'id');
+        $orderCol  = $this->state->get('list.ordering', 'id');
         $orderDirn = $this->state->get('list.direction', 'DESC');
 
-        if ($orderCol && $orderDirn) {
+        if ($orderCol && $orderDirn)
+        {
             $query->order($db->escape($orderCol . ' ' . $orderDirn));
         }
 
@@ -181,8 +188,8 @@ class FormFieldsModel extends ListModel
 
     public function delete(&$pks)
     {
-        $app = Factory::getApplication();
-        $db = self::getDatabase();
+        $app   = Factory::getApplication();
+        $db    = self::getDatabase();
         $query = $db->getQuery(true);
 
         $fieldNames = self::getFieldNames($pks);
@@ -192,15 +199,19 @@ class FormFieldsModel extends ListModel
             ->whereIn($db->qn('id'), $pks);
 
         $db->setQuery($query);
-        if ($db->execute()) {
+        if ($db->execute())
+        {
             $app->enqueueMessage(Text::_('COM_ALFA_ENTRY_DELETED_SUCCESSFULLY'), 'success');
-        } else {
+        }
+        else
+        {
             $app->enqueueMessage(Text::_('COM_ALFA_ENTRY_COULD_NOT_BE_DELETED'), 'error');
         }
     }
 
     /**
      * @param $columnName string the name of the column to delete.
+     *
      * @return void
      */
     protected function deleteUserInfoTableColumn($columnName)
@@ -209,8 +220,9 @@ class FormFieldsModel extends ListModel
             ->getMVCFactory()->createModel('Formfield', 'Admin', ['ignore_request' => true]);
 
         // Delete column if it exists.
-        if ($formFieldModel->getTableColumn($this->orderUserInfoTableName, $columnName) != null) {
-            $db = self::getDatabase();
+        if ($formFieldModel->getTableColumn($this->orderUserInfoTableName, $columnName) != null)
+        {
+            $db    = self::getDatabase();
             $query = $db->getQuery(true);
             $query = 'ALTER TABLE ' . $db->quoteName($this->orderUserInfoTableName) . ' DROP COLUMN ' . $db->qn($columnName);
 
@@ -221,7 +233,7 @@ class FormFieldsModel extends ListModel
 
     protected function getFieldNames($pks)
     {
-        $db = self::getDatabase();
+        $db    = self::getDatabase();
         $query = $db->getQuery(true);
 
         $query
