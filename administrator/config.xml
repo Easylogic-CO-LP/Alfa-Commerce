@@ -329,8 +329,8 @@
         <field
                 name="media_url_thumbnail"
                 type="text"
-                default="images/url_thumbnail.jpg"
-                hint="images/url_thumbnail.jpg"
+                default="media/com_alfa/images/url_thumbnail.jpg"
+                hint="media/com_alfa/images/url_thumbnail"
                 label="COM_ALFA_MEDIA_CONFIG_URL_THUMBNAIL_LABEL"
                 description="COM_ALFA_MEDIA_CONFIG_URL_THUMBNAIL_DESC"
                 size="150"

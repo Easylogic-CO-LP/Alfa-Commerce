@@ -87,8 +87,11 @@
     padding: 1.5rem;
     gap: 1rem;
     box-shadow: rgba(50, 50, 93, 0.25) 0px 30px 60px -12px inset,
-                rgba(0, 0, 0, 0.3) 0px 18px 36px -18px inset;
+    rgba(0, 0, 0, 0.3) 0px 18px 36px -18px inset;
     border-radius: 15px;
+
+    position: relative;
+    overflow: hidden;
 }
 
 /* -- Card header (type tag + actions) -- */
@@ -110,7 +113,7 @@
     border-radius: 15px;
     font-size: 0.8rem;
     box-shadow: rgba(0, 0, 0, 0.16) 0px 3px 6px,
-                rgba(0, 0, 0, 0.23) 0px 3px 6px;
+    rgba(0, 0, 0, 0.23) 0px 3px 6px;
     cursor: default;
 }
 
@@ -129,7 +132,7 @@
     padding: 0.25rem;
     border-radius: 3px;
     box-shadow: rgba(50, 50, 93, 0.25) 0px 30px 60px -12px inset,
-                rgba(0, 0, 0, 0.3) 0px 18px 36px -18px inset;
+    rgba(0, 0, 0, 0.3) 0px 18px 36px -18px inset;
 }
 
 /* -- Shared action button base -- */
@@ -219,7 +222,7 @@
     border-radius: 4px;
     background-color: #fff;
     box-shadow: rgba(50, 50, 93, 0.25) 0px 30px 60px -12px inset,
-                rgba(0, 0, 0, 0.3) 0px 18px 36px -18px inset;
+    rgba(0, 0, 0, 0.3) 0px 18px 36px -18px inset;
     transform: scale(1);
     opacity: 1;
     transition: all ease-in-out 0.15s;
@@ -353,6 +356,65 @@
 
 .url-thumbnail-icon {
     width: 18px;
+}
+
+.media-card.is-deleted {
+    display: none;
+}
+
+/* ==========================================================================
+   MEDIA ERROR STYLING
+   ========================================================================== */
+
+.errors-container {
+    display: none;
+
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    width: 100%;
+    height: auto;
+
+    text-align: center;
+    font-size: 13px;
+
+    background: red;
+    color: black;
+
+    border-radius: 10px;
+}
+
+.media-card.has-thumbnail-error .errors-container {
+    display: block;
+}
+
+.media-card.has-thumbnail-error,
+.media-card.has-thumbnail-error .media-thumbnail-btn
+{
+    border: 2px solid red;
+}
+
+.media-card.has-thumbnail-error .media-thumbnail-img {
+    display: none;
+}
+
+.media-thumbnail-btn .select-thumbnail-btn-msg {
+    display: none;
+}
+
+.media-card.has-thumbnail-error .media-thumbnail-btn .select-thumbnail-btn-msg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    height: 100%;
+    width: 100%;
+
+    color: red;
+
+    font-weight: bold;
+    font-size: 10px;
 }
 
 /* ==========================================================================

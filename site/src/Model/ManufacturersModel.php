@@ -12,9 +12,11 @@ namespace Alfa\Component\Alfa\Site\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Model\ListModel;
+use Joomla\CMS\Router\Route;
 use Joomla\Component\Fields\Administrator\Helper\FieldsHelper;
 
 /**
@@ -53,58 +55,23 @@ class ManufacturersModel extends ListModel
         parent::__construct($config);
     }
 
-    /**
-     * Method to auto-populate the model state.
-     *
-     * Note. Calling getState in this method will result in recursion.
-     *
-     * @param string $ordering Elements order
-     * @param string $direction Order direction
-     *
-     * @return void
-     *
-     * @throws Exception
-     *
-     * @since   1.0.1
-     */
-    protected function populateState($ordering = null, $direction = null)
-    {
-        // List state information.
-        parent::populateState('a.name', 'ASC');
-
-        $app = Factory::getApplication();
-        $list = $app->getUserState($this->context . '.list');
-
-        $value = $app->getUserState($this->context . '.list.limit', $app->get('list_limit', 25));
-        $list['limit'] = $value;
-
-        $this->setState('list.limit', $value);
-
-        $value = $app->input->get('limitstart', 0, 'uint');
-        $this->setState('list.start', $value);
-
-        $ordering = $this->getUserStateFromRequest($this->context . '.filter_order', 'filter_order', 'a.name');
-        $direction = strtoupper($this->getUserStateFromRequest($this->context . '.filter_order_Dir', 'filter_order_Dir', 'ASC'));
-
-        if (!empty($ordering) || !empty($direction)) {
-            $list['fullordering'] = $ordering . ' ' . $direction;
-        }
-
-        $app->setUserState($this->context . '.list', $list);
-
-        $context = $this->getUserStateFromRequest($this->context . '.filter.search', 'filter_search');
-        $this->setState('filter.search', $context);
-
-        // Split context into component and optional section
-        if (!empty($context)) {
-            $parts = FieldsHelper::extract($context);
-
-            if ($parts) {
-                $this->setState('filter.component', $parts[0]);
-                $this->setState('filter.section', $parts[1]);
-            }
-        }
-    }
+	/**
+	 * Method to auto-populate the model state.
+	 *
+	 * Note. Calling getState in this method will result in recursion.
+	 *
+	 * @param string $ordering Elements order
+	 * @param string $direction Order direction
+	 *
+	 * @return void
+	 *
+	 * @throws Exception
+	 *
+	 */
+	protected function populateState($ordering = 'a.id', $direction = 'ASC')
+	{
+		parent::populateState($ordering, $direction);
+	}
 
     /**
      * Build an SQL query to load the list data.
@@ -177,47 +144,20 @@ class ManufacturersModel extends ListModel
     {
         $items = parent::getItems();
 
+	    if (!empty($items)) {
+		    foreach ($items as $manufacturer) {
+			    $manufacturer->medias = MediaHelper::getMediaData(
+				    origin: 'manufacturer',
+				    itemIDs: $manufacturer->id,
+				    usePlaceHolder : true
+			    );
+
+			    // Generate links for manufacturers
+			    $manufacturer->details_link = Route::_('index.php?option=com_alfa&view=manufacturer&id=' . (int) $manufacturer->id);
+			    $manufacturer->link = Route::_('index.php?option=com_alfa&view=items&filter[manufacturer]=' . (int) $manufacturer->id);
+		    }
+	    }
+
         return $items;
-    }
-
-    /**
-     * Overrides the default function to check Date fields format, identified by
-     * "_dateformat" suffix, and erases the field if it's not correct.
-     *
-     * @return void
-     */
-    protected function loadFormData()
-    {
-        $app = Factory::getApplication();
-        $filters = $app->getUserState($this->context . '.filter', []);
-        $error_dateformat = false;
-
-        foreach ($filters as $key => $value) {
-            if (strpos($key, '_dateformat') && !empty($value) && $this->isValidDate($value) == null) {
-                $filters[$key] = '';
-                $error_dateformat = true;
-            }
-        }
-
-        if ($error_dateformat) {
-            $app->enqueueMessage(Text::_('COM_ALFA_SEARCH_FILTER_DATE_FORMAT'), 'warning');
-            $app->setUserState($this->context . '.filter', $filters);
-        }
-
-        return parent::loadFormData();
-    }
-
-    /**
-     * Checks if a given date is valid and in a specified format (YYYY-MM-DD)
-     *
-     * @param string $date Date to be checked
-     *
-     * @return bool
-     */
-    private function isValidDate($date)
-    {
-        $date = str_replace('/', '-', $date);
-
-        return (date_create($date)) ? Factory::getDate($date)->format('Y-m-d') : null;
     }
 }

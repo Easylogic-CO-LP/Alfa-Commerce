@@ -1,58 +1,60 @@
 <?php
-    /**
-     * @package     Alfa.Administrator
-     * @subpackage  com_alfa
-     *
-     * Media Item Template
-     * Displays a single media card with preview and edit controls
-     *
-     * @var object $media Media object with:
-     *                    - id: Unique identifier
-     *                    - isNew: Boolean
-     *                    - path: Full URL or blob for display
-     *                    - source: File identifier (fileId or relative path)
-     *                    - thumbnail: Thumbnail path
-     *                    - alt: Alt text
-     *                    - type: Media type (image|url)
-     */
+	/**
+	 * @package     Alfa.Administrator
+	 * @subpackage  com_alfa
+	 *
+	 * Media Item Template
+	 * Displays a single media card with preview and edit controls
+	 *
+	 * @var object $media Media object with:
+	 *                    - id: Unique identifier
+	 *                    - isNew: Boolean
+	 *                    - path: Full URL or blob for display
+	 *                    - source: File identifier (fileId or relative path)
+	 *                    - thumbnail: Thumbnail path
+	 *                    - alt: Alt text
+	 *                    - type: Media type (image|url)
+	 */
 
-    \defined('_JEXEC') or die;
+	\defined('_JEXEC') or die;
 
-    extract($displayData);
+	extract($displayData);
 
-    use Joomla\CMS\Component\ComponentHelper;
-    use Joomla\CMS\Language\Text;
-    use Joomla\CMS\HTML\HTMLHelper;
+	use Joomla\CMS\Component\ComponentHelper;
+	use Joomla\CMS\Language\Text;
+	use Joomla\CMS\HTML\HTMLHelper;
 
-    $params = ComponentHelper::getParams('com_alfa');
+	$params = ComponentHelper::getParams('com_alfa');
 
-    // Sanitize all output
-    $mediaId   = htmlspecialchars($media->id, ENT_QUOTES, 'UTF-8');
-    $path      = htmlspecialchars($media->path, ENT_QUOTES, 'UTF-8');
-    $source    = htmlspecialchars($media->source, ENT_QUOTES, 'UTF-8');
-    $thumbnail = htmlspecialchars($media->thumbnail ?? '', ENT_QUOTES, 'UTF-8');
-    $altText   = htmlspecialchars($media->alt ?? '', ENT_QUOTES, 'UTF-8');
-    $isNew     = $media->isNew ? '1' : '0';
-    $type      = htmlspecialchars($media->type ?? '', ENT_QUOTES, 'UTF-8');
+	// Sanitize all output
+	$mediaId   = htmlspecialchars($media->id, ENT_QUOTES, 'UTF-8');
+	$path      = htmlspecialchars($media->path, ENT_QUOTES, 'UTF-8');
+	$source    = htmlspecialchars($media->source, ENT_QUOTES, 'UTF-8');
+	$thumbnail = htmlspecialchars($media->thumbnail ?? '', ENT_QUOTES, 'UTF-8');
+	$altText   = htmlspecialchars($media->alt ?? '', ENT_QUOTES, 'UTF-8');
+	$isNew     = $media->isNew ? '1' : '0';
+	$type      = htmlspecialchars($media->type ?? '', ENT_QUOTES, 'UTF-8');
 
-//    $thumbnailExists = file_exists(JPATH_ROOT . '/' . $thumbnail);
+	// Compute preview HTML
+	if ($type === 'url') {
+		$previewHtml = '<a href="' . $path . '" target="_blank">' . $path . '</a>';
+	} else {
+		$outputMode  = str_starts_with($path, 'blob:') ? -1 : 0;
+		$previewHtml = HTMLHelper::_('image', $path, $altText, ['loading' => 'lazy', 'class' => 'media-preview-img'], false, $outputMode);
+	}
 
-    // Compute preview HTML
-    if ($type === 'url') {
-        $previewHtml = '<a href="' . $path . '" target="_blank">' . $path . '</a>';
-    } else {
-        $outputMode  = str_starts_with($path, 'blob:') ? -1 : 0;
-        $previewHtml = HTMLHelper::_('image', $path, $altText, ['loading' => 'lazy', 'class' => 'media-preview-img'], false, $outputMode);
-    }
-
-    // Compute thumbnail preview
-    $thumbOutputMode = str_starts_with($thumbnail, 'blob:') ? -1 : 0;
-    $thumbnailHtml   = HTMLHelper::_('image', $thumbnail, $altText, ['loading' => 'lazy', 'class' => 'media-thumbnail-img'], false, $thumbOutputMode);
+	// Compute thumbnail preview
+	$thumbOutputMode = str_starts_with($thumbnail, 'blob:') ? -1 : 0;
+	$thumbnailHtml   = HTMLHelper::_('image', $thumbnail, $altText, ['loading' => 'lazy', 'class' => 'media-thumbnail-img'], false, $thumbOutputMode);
 ?>
 
 <div class="media-card"
      data-media-id="<?= $mediaId; ?>"
      data-is-new="<?= $isNew; ?>">
+
+    <div class="errors-container">
+        <span class="thumbnail-error-msg"><?= Text::_('COM_ALFA_MEDIA_THUMBNAIL_ERROR') ?></span>
+    </div>
 
     <!-- Header: type tag + action buttons -->
     <div class="media-header">
@@ -83,7 +85,7 @@
 
     <!-- Preview: main image/url + thumbnail -->
     <div class="media-preview">
-        <?= $previewHtml; ?>
+		<?= $previewHtml; ?>
 
         <div class="media-thumbnail">
             <input type="hidden"
@@ -92,7 +94,8 @@
                    value="<?= $thumbnail; ?>">
 
             <button type="button" class="media-thumbnail-btn">
-                <?= $thumbnailHtml; ?>
+				<?= $thumbnailHtml; ?>
+                <span class="select-thumbnail-btn-msg"><?= Text::_('COM_ALFA_MEDIA_SELECT_THUMBNAIL_BUTTON_ERROR_TEXT') ?></span>
             </button>
         </div>
     </div>
@@ -101,7 +104,7 @@
     <div class="media-fields">
         <div class="media-field media-field-alt">
             <label for="media-alt-<?= $mediaId; ?>">
-                <?= Text::_('COM_ALFA_MEDIA_DESCRIPTION_LABEL'); ?>
+				<?= Text::_('COM_ALFA_MEDIA_DESCRIPTION_LABEL'); ?>
             </label>
             <input type="text"
                    id="media-alt-<?= $mediaId; ?>"
@@ -113,7 +116,7 @@
 
         <div class="media-field media-field-path">
             <label for="media-path-<?= $mediaId; ?>">
-                <?= Text::_('COM_ALFA_MEDIA_PATH_LABEL'); ?>
+				<?= Text::_('COM_ALFA_MEDIA_PATH_LABEL'); ?>
             </label>
             <input type="text"
                    id="media-path-<?= $mediaId; ?>"
@@ -121,7 +124,7 @@
                    value="<?= $source; ?>"
                    class="form-control media-source-input"
                    placeholder="<?= Text::_('COM_ALFA_MEDIA_PATH_INPUT_PLACEHOLDER'); ?>"
-                   <?= $type !== 'url' ? 'readonly' : ''; ?>>
+				<?= $type !== 'url' ? 'readonly' : ''; ?>>
         </div>
     </div>
 

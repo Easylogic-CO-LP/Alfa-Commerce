@@ -15,7 +15,9 @@ namespace Alfa\Component\Alfa\Site\Model;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Exception;
+use Joomla\CMS\Factory;
 use Joomla\CMS\MVC\Model\ItemModel as BaseItemModel;
 use Joomla\CMS\Router\Route;
 use Joomla\Database\ParameterType;
@@ -30,6 +32,26 @@ class CategoryModel extends BaseItemModel
     public $_item;
     protected $_context = 'com_alfa.category';
 
+	/**
+	 * Method to auto-populate the model state.
+	 *
+	 * Note. Calling getState in this method will result in recursion.
+	 *
+	 * @return void
+	 *
+	 * @throws \Exception
+	 * @since  1.0.1
+	 */
+	protected function populateState(): void
+	{
+		$app = Factory::getApplication();
+
+		$id = $app->input->getInt('id', 0);
+		$this->setState('category.id', $id);
+
+		parent::populateState();
+	}
+
     /**
      * Get category item
      *
@@ -39,6 +61,8 @@ class CategoryModel extends BaseItemModel
      */
     public function getItem($pk = null)
     {
+	    $pk = (!empty($pk)) ? $pk : (int) $this->getState('category.id');
+
         // Return cached
         if (isset($this->_item[$pk])) {
             return $this->_item[$pk];
@@ -60,8 +84,14 @@ class CategoryModel extends BaseItemModel
                 return false;
             }
 
-            // Add link
-            $data->link = Route::_('index.php?option=com_alfa&view=items&category_id=' . (int) $data->id);
+	        // Add links
+	        $data->link = Route::_('index.php?option=com_alfa&view=items&category_id' . (int) $data->id);
+
+	        // Get category media
+	        $data->medias = MediaHelper::getMediaData(
+		        origin: 'category',
+		        itemIDs: (int) $data->id
+	        );
 
             $this->_item[$pk] = $data;
 

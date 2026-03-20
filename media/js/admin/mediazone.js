@@ -26,6 +26,7 @@
             deleteButtonSelector:       '.media-btn-delete',
             deleteFlagSelector:         '.media-delete-flag',
             sourceInputSelector:        '.media-source-input',
+            cardErrorContainerSelector:    '.errors-container',
 
             // ── Thumbnail ──
             thumbnailInputSelector:     '.media-thumbnail-input',
@@ -78,13 +79,18 @@
                 dragClass:   'sortable-drag',
             },
 
+            // ── Deleted Card CSS class ──
+            deletedCardClass: 'is-deleted',
+
             // ── Messages ──
             messages: {
-                deleteConfirm:    'COM_ALFA_MEDIA_DELETE_CONFIRM',
-                noValidFiles:     'COM_ALFA_MEDIA_NO_VALID_FILES',
-                someInvalid:      'COM_ALFA_MEDIA_SOME_INVALID',
-                loadPreviewError: 'COM_ALFA_MEDIA_LOAD_PREVIEW_ERROR',
-                placeholderText:  'COM_ALFA_MEDIA_NO_ITEMS',
+                deleteConfirm:          'COM_ALFA_MEDIA_DELETE_CONFIRM',
+                noValidFiles:           'COM_ALFA_MEDIA_NO_VALID_FILES',
+                someInvalid:            'COM_ALFA_MEDIA_SOME_INVALID',
+                limitReached:           'COM_ALFA_MEDIA_LIMIT_REACHED_ERROR',
+                loadPreviewError:       'COM_ALFA_MEDIA_LOAD_PREVIEW_ERROR',
+                placeholderText:        'COM_ALFA_MEDIA_NO_ITEMS',
+                thumbnailErrorAlert:    'COM_ALFA_MEDIA_THUMBNAIL_ERROR_ALERT'
             },
         },
 
@@ -129,6 +135,7 @@
             this.setupUrlModal();
             this.setupThumbnailPicker();
             this.blockSaveButton();
+            this.mediaErrorHandler();
 
             this.updateFileInputOrder();
 
@@ -164,8 +171,8 @@
         },
 
         getText(key, defaultText) {
-            if (typeof Joomla !== 'undefined' && Joomla.JText) {
-                return Joomla.JText._(key, defaultText);
+            if (typeof Joomla !== 'undefined' && Joomla.Text) {
+                return Joomla.Text._(key, defaultText);
             }
             return defaultText;
         },
@@ -242,7 +249,7 @@
 
             if (validFiles.length > availableSlots) {
                 validFiles = validFiles.slice(0, availableSlots);
-                this.showWarning(`Limit reached. Only ${availableSlots} file(s) were added.`);
+                this.showWarning(this.getText(this.config.messages.limitReached) + `${availableSlots}`);
             } else if (validFiles.length < files.length) {
                 this.showWarning(this.getText(this.config.messages.someInvalid, 'Some files were skipped'));
             }
@@ -290,7 +297,7 @@
                         this.addMediaFromPicker(selectedPath);
                         pickerInput.value = '';
                     }
-                });
+                }, {once: true});
             });
         },
 
@@ -351,7 +358,7 @@
                     const deleteFlag = card.querySelector(this.config.deleteFlagSelector);
                     if (deleteFlag) {
                         deleteFlag.checked = true;
-                        card.style.display = 'none';
+                        card.classList.add(this.config.deletedCardClass);
                     }
                 }
             });
@@ -390,10 +397,9 @@
 
                 if (img) {
                     img.src = '/' + safeUrlValue;
-
                     img.style.display = '';
-                    const btn = img.closest(this.config.thumbnailButtonSelector);
-                    if (btn) btn.style.backgroundColor = '';
+
+                    this.mediaErrorHandler();
                 }
 
                 if (input) input.value = newValue;
@@ -474,34 +480,56 @@
             });
         },
 
-        urlThumbnailHandler() {
-            const thumbnails = document.querySelectorAll('.media-thumbnail-img');
+        // =====================================================================
+        //  MEDIA ERROR HANDLING
+        // =====================================================================
 
-            thumbnails.forEach(thumbnail => {
-                const src = thumbnail.getAttribute('src');
-                const thumbnailButton = thumbnail.closest('.media-thumbnail-btn');
+        mediaErrorHandler() {
+            const mediaThumbnails = document.querySelectorAll(this.config.thumbnailImageSelector);
 
-                if (!src || src.trim() === "") {
-                    if (thumbnailButton) thumbnailButton.style.backgroundColor = '#FF0000';
-                    thumbnail.style.display = 'none';
+            mediaThumbnails.forEach(thumb => {
+                const mediaCard = thumb.closest(this.config.cardSelector);
+
+                if (!mediaCard) return;
+
+                const errorContainer = mediaCard.querySelector(this.config.cardErrorContainerSelector);
+                const src = thumb.getAttribute('src');
+
+                if (!src || src.trim() === '') {
+                    mediaCard.classList.add('has-thumbnail-error');
                 } else {
-                    if (thumbnailButton) thumbnailButton.style.backgroundColor = '';
-                    thumbnail.style.display = '';
+                    mediaCard.classList.remove('has-thumbnail-error');
+
+                    if (errorContainer) {
+                        errorContainer.innerHTML = '';
+                    }
+
+                    thumb.style.display = '';
                 }
             });
         },
 
         blockSaveButton() {
             const form = document.getElementById('adminForm') || document.querySelector('form');
+            if (!form) return;
 
             form.addEventListener('submit', (e) => {
-                const emptyThumbnails = document.querySelectorAll('.media-thumbnail-img:not([src]), .media-thumbnail-img[src=""]');
+                const task = form.task.value;
+                const errorCards = Array.from(document.querySelectorAll('.has-thumbnail-error'));
+                const mediaThumbnailErrorMsg = this.getText(this.config.messages.thumbnailErrorAlert);
 
-                if (emptyThumbnails.length > 0) {
+                const actualErrors = errorCards.filter(card => {
+                    const deleteFlag = card.querySelector(this.config.deleteFlagSelector);
+
+                    return !(deleteFlag && deleteFlag.checked);
+                });
+
+                if (actualErrors.length > 0) {
+                    if (task.endsWith('.cancel')) return;
+
                     e.preventDefault();
-
-                    alert("The default URL thumbnail could not be found. Please verify that the file exists and that the file name is spelled correctly or choose a different thumbnail from the media picker.");
-                    this.urlThumbnailHandler();
+                    alert(mediaThumbnailErrorMsg);
+                    actualErrors[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             });
         },
@@ -510,7 +538,7 @@
         //  MEDIA UPLOAD LIMITER
         // =====================================================================
 
-        mediaLimiter(limit) {
+        mediaLimiter() {
             const inputs = document.querySelectorAll('input[name^="jform[media]"][name$="[type]"]');
 
             const uniqueMediaIds = new Set();
@@ -580,7 +608,7 @@
 
             container.insertAdjacentHTML('beforeend', html);
 
-            this.urlThumbnailHandler();
+            this.mediaErrorHandler();
         },
 
         updateFileInputOrder() {
@@ -593,7 +621,7 @@
             const cards = container.querySelectorAll(this.config.cardSelector);
 
             cards.forEach(card => {
-                if (card.style.display === 'none') return;
+                if (card.classList.contains(this.config.deletedCardClass)) return;
 
                 const sourceInput = card.querySelector(this.config.sourceInputSelector);
                 if (!sourceInput) return;
@@ -617,9 +645,7 @@
             const container = document.querySelector(this.config.gridSelector);
             if (!container) return;
 
-            const visibleCards = container.querySelectorAll(
-                this.config.cardSelector + ':not([style*="display: none"])'
-            );
+            const visibleCards = container.querySelectorAll( `${this.config.cardSelector}:not(.${this.config.deletedCardClass})` );
             const placeholder = container.querySelector(this.config.placeholderSelector);
 
             if (visibleCards.length === 0 && !placeholder) {

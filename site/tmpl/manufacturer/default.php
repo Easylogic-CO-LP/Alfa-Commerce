@@ -20,15 +20,18 @@
     // Import CSS
     $wa = $this->document->getWebAssetManager();
     $wa->useStyle('com_alfa.manufacturer');
+
+	$manufacturerMedia = !empty($this->item->medias[0]) ? $this->item->medias[0] : null;
 ?>
 
 <section>
-    <div class="manufacturer_fields">
-
+    <div class="manufacturer-container">
         <article>
-            <div class="manufacturer-img">
-                <img src="https://americanathleticshoe.com/cdn/shop/t/23/assets/placeholder_600x.png?v=113555733946226816651665571258">
-            </div>
+	        <?php if (!empty($manufacturerMedia)): ?>
+                <div class="manufacturer-image-wrapper">
+                    <img src="<?= $manufacturerMedia->path ?>">
+                </div>
+            <?php endif; ?>
             <div class="manufacturer-name">
                 <h3><?php echo $this->item->name; ?></h3>
             </div>
@@ -36,13 +39,10 @@
             <div class="manufacturer-description">
                 <?php echo $this->item->desc; ?>
             </div>
-
             <div class="manufacturer-products">
                 <a href="<?php echo Route::_('index.php?option=com_alfa&view=items'); ?>">
                     <?php echo Text::_('COM_ALFA_MANUFACTURER_SHOW_ALL_PRODUCTS'); ?> </a>
             </div>
-
         </article>
-
     </div>
 </section>
