@@ -1,12 +1,13 @@
 <?php
+
 namespace Alfa\Component\Alfa\Administrator\Field;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Controller\MediaController;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Form\FormField;
 use Joomla\CMS\Layout\LayoutHelper;
-use Alfa\Component\Alfa\Administrator\Controller\MediaController;
 
 /**
  * Drop Media Field
@@ -25,7 +26,7 @@ class MediaZoneField extends FormField
     /**
      * Get the field input markup
      *
-     * @return  string
+     * @return string
      * @since   1.0.0
      */
     private const MIME_EXTENSION_MAP = [
@@ -136,4 +137,3 @@ class MediaZoneField extends FormField
         return $preparedMedias;
     }
 }
-

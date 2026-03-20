@@ -16,10 +16,8 @@ use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Exception;
-use Joomla\CMS\Factory;
 use Joomla\CMS\MVC\Model\ListModel;
 use Joomla\CMS\Router\Route;
-use Joomla\Component\Fields\Administrator\Helper\FieldsHelper;
 
 /**
  * Methods supporting a list of Alfa records.
@@ -67,7 +65,6 @@ class CategoriesModel extends ListModel
      * @return void
      *
      * @throws Exception
-     *
      */
     protected function populateState($ordering = 'a.id', $direction = 'ASC')
     {
@@ -161,18 +158,18 @@ class CategoriesModel extends ListModel
     {
         $items = parent::getItems();
 
-	    if (!empty($items)) {
-		    foreach ($items as $category) {
-			    $category->medias = MediaHelper::getMediaData(
-				    origin: 'category',
-				    itemIDs: $category->id,
-				    usePlaceHolder : true
-			    );
+        if (!empty($items)) {
+            foreach ($items as $category) {
+                $category->medias = MediaHelper::getMediaData(
+                    origin: 'category',
+                    itemIDs: $category->id,
+                    usePlaceHolder : true,
+                );
 
-			    // Generate links for categories
-			    $category->link = Route::_('index.php?option=com_alfa&view=items&category_id' . (int) $category->id);
-		    }
-	    }
+                // Generate links for categories
+                $category->link = Route::_('index.php?option=com_alfa&view=items&category_id' . (int) $category->id);
+            }
+        }
 
         return $items;
     }

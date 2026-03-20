@@ -14,10 +14,8 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Joomla\CMS\Factory;
-use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Model\ListModel;
 use Joomla\CMS\Router\Route;
-use Joomla\Component\Fields\Administrator\Helper\FieldsHelper;
 
 /**
  * Methods supporting a list of Alfa records.
@@ -55,23 +53,22 @@ class ManufacturersModel extends ListModel
         parent::__construct($config);
     }
 
-	/**
-	 * Method to auto-populate the model state.
-	 *
-	 * Note. Calling getState in this method will result in recursion.
-	 *
-	 * @param string $ordering Elements order
-	 * @param string $direction Order direction
-	 *
-	 * @return void
-	 *
-	 * @throws Exception
-	 *
-	 */
-	protected function populateState($ordering = 'a.id', $direction = 'ASC')
-	{
-		parent::populateState($ordering, $direction);
-	}
+    /**
+     * Method to auto-populate the model state.
+     *
+     * Note. Calling getState in this method will result in recursion.
+     *
+     * @param string $ordering Elements order
+     * @param string $direction Order direction
+     *
+     * @return void
+     *
+     * @throws Exception
+     */
+    protected function populateState($ordering = 'a.id', $direction = 'ASC')
+    {
+        parent::populateState($ordering, $direction);
+    }
 
     /**
      * Build an SQL query to load the list data.
@@ -144,19 +141,19 @@ class ManufacturersModel extends ListModel
     {
         $items = parent::getItems();
 
-	    if (!empty($items)) {
-		    foreach ($items as $manufacturer) {
-			    $manufacturer->medias = MediaHelper::getMediaData(
-				    origin: 'manufacturer',
-				    itemIDs: $manufacturer->id,
-				    usePlaceHolder : true
-			    );
+        if (!empty($items)) {
+            foreach ($items as $manufacturer) {
+                $manufacturer->medias = MediaHelper::getMediaData(
+                    origin: 'manufacturer',
+                    itemIDs: $manufacturer->id,
+                    usePlaceHolder : true,
+                );
 
-			    // Generate links for manufacturers
-			    $manufacturer->details_link = Route::_('index.php?option=com_alfa&view=manufacturer&id=' . (int) $manufacturer->id);
-			    $manufacturer->link = Route::_('index.php?option=com_alfa&view=items&filter[manufacturer]=' . (int) $manufacturer->id);
-		    }
-	    }
+                // Generate links for manufacturers
+                $manufacturer->details_link = Route::_('index.php?option=com_alfa&view=manufacturer&id=' . (int) $manufacturer->id);
+                $manufacturer->link = Route::_('index.php?option=com_alfa&view=items&filter[manufacturer]=' . (int) $manufacturer->id);
+            }
+        }
 
         return $items;
     }

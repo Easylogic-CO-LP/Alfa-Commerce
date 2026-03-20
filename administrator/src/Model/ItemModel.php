@@ -333,9 +333,11 @@ class ItemModel extends AdminModel
         $data = $input->post->get('jform', [], 'array');
         $newDropped = $input->files->get('jform')['uploads'] ?? [];
 
-        if (!parent::save($data)) return false;
+        if (!parent::save($data)) {
+            return false;
+        }
 
-        $currentId = $pk > 0 ? $pk : (int)$this->getState($this->getName() . '.id'); //get the id from joomla state
+        $currentId = $pk > 0 ? $pk : (int) $this->getState($this->getName() . '.id'); //get the id from joomla state
 
         if (!empty($data['media'])) {
             MediaHelper::saveMedia(
@@ -343,7 +345,7 @@ class ItemModel extends AdminModel
                 droppedMedia:   $newDropped,
                 itemId:         $currentId,
                 mediaOrigin:    $this->name,
-                customFileName: $data['alias']
+                customFileName: $data['alias'],
             );
         }
 

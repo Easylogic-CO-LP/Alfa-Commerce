@@ -32,25 +32,24 @@ class CategoryModel extends BaseItemModel
     public $_item;
     protected $_context = 'com_alfa.category';
 
-	/**
-	 * Method to auto-populate the model state.
-	 *
-	 * Note. Calling getState in this method will result in recursion.
-	 *
-	 * @return void
-	 *
-	 * @throws \Exception
-	 * @since  1.0.1
-	 */
-	protected function populateState(): void
-	{
-		$app = Factory::getApplication();
+    /**
+     * Method to auto-populate the model state.
+     *
+     * Note. Calling getState in this method will result in recursion.
+     *
+     *
+     * @throws Exception
+     * @since  1.0.1
+     */
+    protected function populateState(): void
+    {
+        $app = Factory::getApplication();
 
-		$id = $app->input->getInt('id', 0);
-		$this->setState('category.id', $id);
+        $id = $app->input->getInt('id', 0);
+        $this->setState('category.id', $id);
 
-		parent::populateState();
-	}
+        parent::populateState();
+    }
 
     /**
      * Get category item
@@ -61,7 +60,7 @@ class CategoryModel extends BaseItemModel
      */
     public function getItem($pk = null)
     {
-	    $pk = (!empty($pk)) ? $pk : (int) $this->getState('category.id');
+        $pk = (!empty($pk)) ? $pk : (int) $this->getState('category.id');
 
         // Return cached
         if (isset($this->_item[$pk])) {
@@ -84,14 +83,14 @@ class CategoryModel extends BaseItemModel
                 return false;
             }
 
-	        // Add links
-	        $data->link = Route::_('index.php?option=com_alfa&view=items&category_id' . (int) $data->id);
+            // Add links
+            $data->link = Route::_('index.php?option=com_alfa&view=items&category_id' . (int) $data->id);
 
-	        // Get category media
-	        $data->medias = MediaHelper::getMediaData(
-		        origin: 'category',
-		        itemIDs: (int) $data->id
-	        );
+            // Get category media
+            $data->medias = MediaHelper::getMediaData(
+                origin: 'category',
+                itemIDs: (int) $data->id,
+            );
 
             $this->_item[$pk] = $data;
 

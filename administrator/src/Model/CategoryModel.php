@@ -178,8 +178,7 @@ class CategoryModel extends AdminModel
         $data = $input->post->get('jform', [], 'array');
         $newDropped = $input->files->get('jform')['uploads'] ?? [];
 
-        if (!parent::save($data))
-        {
+        if (!parent::save($data)) {
             return false;
         }
 
@@ -191,7 +190,7 @@ class CategoryModel extends AdminModel
                 droppedMedia:   $newDropped,
                 itemId:         $currentId,
                 mediaOrigin:    $this->name,
-                customFileName: $data['alias']
+                customFileName: $data['alias'],
             );
         }
 
