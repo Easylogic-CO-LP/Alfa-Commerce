@@ -1,10 +1,11 @@
 <?php
 
 /**
- * @package    Alfa Commerce
+ * @version    1.0.1
+ * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
- * @license    GNU General Public License version 3 or later; see LICENSE
+ * @copyright  2024 Easylogic CO LP
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
  */
 
 namespace Alfa\Component\Alfa\Administrator\View\Item;
@@ -70,6 +71,11 @@ class HtmlView extends FormView
         // If an existing item, can save to a copy.
         if (!$isNew && $canDo->get('core.create')) {
             ToolbarHelper::custom('item.save2copy', 'save-copy.png', 'save-copy_f2.png', 'JTOOLBAR_SAVE_AS_COPY', false);
+        }
+
+        // Button for version control
+        if ($this->state->params->get('save_history', 1) && $user->authorise('core.edit')) {
+            ToolbarHelper::versions('com_alfa.item', $this->item->id);
         }
 
         ToolbarHelper::cancel('item.cancel', 'JTOOLBAR_CLOSE');

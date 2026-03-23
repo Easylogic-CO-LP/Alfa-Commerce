@@ -1,10 +1,11 @@
 <?php
 
 /**
- * @package    Alfa Commerce
+ * @version    1.0.1
+ * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
- * @license    GNU General Public License version 3 or later; see LICENSE
+ * @copyright  2024 Easylogic CO LP
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
  */
 
 namespace Alfa\Component\Alfa\Administrator\View\Categories;
@@ -13,9 +14,9 @@ namespace Alfa\Component\Alfa\Administrator\View\Categories;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Extension\AlfaComponent;
-use Alfa\Component\Alfa\Administrator\View\HtmlView as BaseHtmlView;
 use Joomla\CMS\Helper\ContentHelper;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 
 /**

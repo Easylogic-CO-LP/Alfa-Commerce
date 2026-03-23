@@ -1,10 +1,11 @@
 <?php
 
 /**
- * @package    Alfa Commerce
+ * @version    1.0.1
+ * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
- * @license    GNU General Public License version 3 or later; see LICENSE
+ * @copyright  2024 Easylogic CO LP
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
  */
 
 namespace Alfa\Component\Alfa\Administrator\View\Manufacturers;
@@ -13,9 +14,9 @@ namespace Alfa\Component\Alfa\Administrator\View\Manufacturers;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Extension\AlfaComponent;
-use Alfa\Component\Alfa\Administrator\View\HtmlView as BaseHtmlView;
 use Joomla\CMS\Helper\ContentHelper;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 
 /**
@@ -101,9 +102,9 @@ class HtmlView extends BaseHtmlView
             if ($this->state->get('filter.state') == AlfaComponent::CONDITION_TRASHED && $canDo->get('core.delete')) {
                 // If this component does not use state then show a direct delete button as we can not trash
                 $toolbar->delete('manufacturers.delete')
-                ->text('JTOOLBAR_EMPTY_TRASH')
-                ->message('JGLOBAL_CONFIRM_DELETE')
-                ->listCheck(true);
+                    ->text('JTOOLBAR_EMPTY_TRASH')
+                    ->message('JGLOBAL_CONFIRM_DELETE')
+                    ->listCheck(true);
             }
 
             $childBar->checkin('manufacturers.checkin')->listCheck(true);

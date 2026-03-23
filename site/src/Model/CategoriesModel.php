@@ -12,13 +12,12 @@ namespace Alfa\Component\Alfa\Site\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Exception;
-use Joomla\CMS\Factory;
 use Joomla\CMS\MVC\Model\ListModel;
 use Joomla\CMS\Router\Route;
-use Joomla\Component\Fields\Administrator\Helper\FieldsHelper;
 
 /**
  * Methods supporting a list of Alfa records.
@@ -66,46 +65,10 @@ class CategoriesModel extends ListModel
      * @return void
      *
      * @throws Exception
-     *
-     * @since   1.0.1
      */
-    protected function populateState($ordering = null, $direction = null)
+    protected function populateState($ordering = 'a.id', $direction = 'ASC')
     {
-        // List state information.
-        parent::populateState('a.name', 'ASC');
-
-        $app = Factory::getApplication();
-        $list = $app->getUserState($this->context . '.list');
-
-        $value = $app->getUserState($this->context . '.list.limit', $app->get('list_limit', 25));
-        $list['limit'] = $value;
-
-        $this->setState('list.limit', $value);
-
-        $value = $app->input->get('limitstart', 0, 'uint');
-        $this->setState('list.start', $value);
-
-        $ordering = $this->getUserStateFromRequest($this->context . '.filter_order', 'filter_order', 'a.name');
-        $direction = strtoupper($this->getUserStateFromRequest($this->context . '.filter_order_Dir', 'filter_order_Dir', 'ASC'));
-
-        if (!empty($ordering) || !empty($direction)) {
-            $list['fullordering'] = $ordering . ' ' . $direction;
-        }
-
-        $app->setUserState($this->context . '.list', $list);
-
-        $context = $this->getUserStateFromRequest($this->context . '.filter.search', 'filter_search');
-        $this->setState('filter.search', $context);
-
-        // Split context into component and optional section
-        if (!empty($context)) {
-            $parts = FieldsHelper::extract($context);
-
-            if ($parts) {
-                $this->setState('filter.component', $parts[0]);
-                $this->setState('filter.section', $parts[1]);
-            }
-        }
+        parent::populateState($ordering, $direction);
     }
 
     /**
@@ -195,10 +158,16 @@ class CategoriesModel extends ListModel
     {
         $items = parent::getItems();
 
-        // Generate links for categories
         if (!empty($items)) {
             foreach ($items as $category) {
-                $category->link = Route::_('index.php?option=com_alfa&view=items&category_id=' . (int) $category->id);
+                $category->medias = MediaHelper::getMediaData(
+                    origin: 'category',
+                    itemIDs: $category->id,
+                    usePlaceHolder : true,
+                );
+
+                // Generate links for categories
+                $category->link = Route::_('index.php?option=com_alfa&view=items&category_id' . (int) $category->id);
             }
         }
 

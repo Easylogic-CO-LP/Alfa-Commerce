@@ -1,0 +1,442 @@
+/* ==========================================================================
+   TOOLBAR
+   ========================================================================== */
+
+.toggle-options-button.dropdown-toggle {
+    border-radius: 10px;
+}
+
+/* ==========================================================================
+   DROPZONE
+   ========================================================================== */
+
+.media-dropzone {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: whitesmoke;
+    border-radius: 15px;
+    padding: 1.5rem;
+}
+
+.media-dropzone-inner {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    width: 100%;
+    padding: 1.7rem;
+    border: 2px dashed black;
+    border-radius: 15px;
+}
+
+.media-dropzone-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.media-dropzone-icon > span {
+    font-size: 4rem;
+    color: #1c3d5c;
+}
+
+/* -- Dropzone overlay (drag hover) -- */
+
+.media-dropzone-overlay {
+    position: absolute;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    visibility: hidden;
+    background-color: rgba(235, 235, 235, 0.8);
+    opacity: 0;
+    pointer-events: none;
+    border-radius: 15px;
+    transition: all 0.25s ease-in-out;
+}
+
+.media-dropzone-overlay.hovered {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* ==========================================================================
+   MEDIA GRID
+   ========================================================================== */
+
+.media-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-gap: 1rem;
+    width: 100%;
+}
+
+/* ==========================================================================
+   MEDIA CARD
+   ========================================================================== */
+
+.media-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem;
+    gap: 1rem;
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 30px 60px -12px inset,
+    rgba(0, 0, 0, 0.3) 0px 18px 36px -18px inset;
+    border-radius: 15px;
+
+    position: relative;
+    overflow: hidden;
+}
+
+/* -- Card header (type tag + actions) -- */
+
+.media-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+/* -- Type tag -- */
+
+.media-type-tag > span {
+    display: inline-block;
+    background: #0a53be;
+    color: white;
+    padding: 0.4rem 0.9rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    box-shadow: rgba(0, 0, 0, 0.16) 0px 3px 6px,
+    rgba(0, 0, 0, 0.23) 0px 3px 6px;
+    cursor: default;
+}
+
+.media-type-tag.url > span {
+    background: #dc3545;
+}
+
+/* ==========================================================================
+   MEDIA ACTIONS (delete, drag, etc.)
+   ========================================================================== */
+
+.media-actions {
+    display: flex;
+    flex-direction: row;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    border-radius: 3px;
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 30px 60px -12px inset,
+    rgba(0, 0, 0, 0.3) 0px 18px 36px -18px inset;
+}
+
+/* -- Shared action button base -- */
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 0.2rem;
+    color: #fff;
+    font-size: 1rem;
+    transition: opacity 0.15s ease-in-out;
+}
+
+.action-btn:hover {
+    opacity: 0.7;
+}
+
+/* -- Delete -- */
+
+.action-btn.delete {
+    background: #dc3545;
+    cursor: pointer;
+}
+
+/* -- Drag handle -- */
+
+.action-btn.drag-handle {
+    background: #0a53be;
+    cursor: grab;
+}
+
+.action-btn.drag-handle:active {
+    cursor: grabbing;
+}
+
+/* ==========================================================================
+   MEDIA PREVIEW
+   ========================================================================== */
+
+.media-preview {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 115px;
+}
+
+/* -- Image preview -- */
+
+.media-preview-img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 15px;
+}
+
+/* -- URL preview -- */
+
+.media-preview > a {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+/* ==========================================================================
+   MEDIA THUMBNAIL
+   ========================================================================== */
+
+.media-thumbnail {
+    position: absolute;
+    bottom: -30px;
+    right: 0;
+}
+
+.media-thumbnail-btn {
+    width: 60px;
+    height: 60px;
+    padding: 5px;
+    border: none;
+    border-radius: 4px;
+    background-color: #fff;
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 30px 60px -12px inset,
+    rgba(0, 0, 0, 0.3) 0px 18px 36px -18px inset;
+    transform: scale(1);
+    opacity: 1;
+    transition: all ease-in-out 0.15s;
+}
+
+.media-thumbnail-btn:hover {
+    transform: scale(1.05);
+    opacity: 0.8;
+}
+
+.media-thumbnail-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+#thumbnail-container {
+    display: flex;
+    flex-direction: row;
+    gap: 0.6rem;
+}
+
+/* ==========================================================================
+   MEDIA FIELDS (alt, path)
+   ========================================================================== */
+
+.media-fields {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    width: 100%;
+    gap: 0.6rem;
+}
+
+.media-field > label {
+    color: #c46210;
+}
+
+/* ==========================================================================
+   MEDIA PICKER BUTTON (floating)
+   ========================================================================== */
+
+#media-picker-thumbnail {
+    position: absolute;
+    bottom: -30px;
+    right: 0;
+    width: fit-content;
+}
+
+#media-picker-open-btn {
+    height: 70px;
+    width: 70px;
+    padding: 0 !important;
+    border: none;
+    border-radius: 1rem !important;
+    background: #dc3545;
+    transform: scale(1);
+    transition: transform 0.15s ease-in-out;
+}
+
+#media-picker-open-btn:hover {
+    transform: scale(1.05);
+}
+
+/* ==========================================================================
+   URL ERROR
+   ========================================================================== */
+
+#media-url-error {
+    display: none;
+}
+
+#media-url-error.visible {
+    display: inline-block;
+    background-color: red;
+    padding: 0.16rem 0.6rem;
+    margin-top: 0.5rem;
+    border-radius: 4px;
+    opacity: 0.8;
+}
+
+/* ==========================================================================
+   PLACEHOLDER
+   ========================================================================== */
+
+.media-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    grid-column: 1 / -1; /* span full grid width */
+}
+
+.media-placeholder-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.05);
+    margin-bottom: 1rem;
+}
+
+.media-placeholder-icon > span {
+    font-size: 2rem;
+    color: #adb5bd;
+}
+
+.media-placeholder > p {
+    margin: 0;
+    text-align: center;
+}
+
+.media-placeholder > p:first-of-type {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.media-placeholder > p.text-muted {
+    font-size: 0.85rem;
+    margin-top: 0.3rem;
+}
+
+/* ==========================================================================
+   MISC
+   ========================================================================== */
+
+.url-thumbnail-icon {
+    width: 18px;
+}
+
+.media-card.is-deleted {
+    display: none;
+}
+
+/* ==========================================================================
+   MEDIA ERROR STYLING
+   ========================================================================== */
+
+.errors-container {
+    display: none;
+
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    width: 100%;
+    height: auto;
+
+    text-align: center;
+    font-size: 13px;
+
+    background: red;
+    color: black;
+
+    border-radius: 10px;
+}
+
+.media-card.has-thumbnail-error .errors-container {
+    display: block;
+}
+
+.media-card.has-thumbnail-error,
+.media-card.has-thumbnail-error .media-thumbnail-btn
+{
+    border: 2px solid red;
+}
+
+.media-card.has-thumbnail-error .media-thumbnail-img {
+    display: none;
+}
+
+.media-thumbnail-btn .select-thumbnail-btn-msg {
+    display: none;
+}
+
+.media-card.has-thumbnail-error .media-thumbnail-btn .select-thumbnail-btn-msg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    height: 100%;
+    width: 100%;
+
+    color: red;
+
+    font-weight: bold;
+    font-size: 10px;
+}
+
+/* ==========================================================================
+   RESPONSIVE
+   ========================================================================== */
+
+@media only screen and (max-width: 992px) {
+    .media-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+
+    .media-dropzone-inner {
+        padding: 1rem;
+    }
+
+    .media-dropzone {
+        padding: 0.5rem;
+    }
+}
+
+@media only screen and (max-width: 511px) {
+    .media-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
+}

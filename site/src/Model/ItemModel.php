@@ -1,10 +1,11 @@
 <?php
 
 /**
- * @package    Alfa Commerce
+ * @version    1.0.1
+ * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
- * @license    GNU General Public License version 3 or later; see LICENSE
+ * @copyright  2024 Easylogic CO LP
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
  */
 
 namespace Alfa\Component\Alfa\Site\Model;
@@ -12,12 +13,13 @@ namespace Alfa\Component\Alfa\Site\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Service\Pricing;
 use Exception;
 use Joomla\CMS\Factory;
-use Joomla\CMS\Language\Text;
 //use Alfa\Component\Alfa\Site\Helper\PriceCalculator;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Model\ItemModel as BaseItemModel;
 use Joomla\Database\ParameterType;
 
@@ -112,26 +114,42 @@ class ItemModel extends BaseItemModel
 
             // Get categories
             $categories = $this->getItemCategories($pk);
+            $categoryIDs = array_column($categories, 'id');
+            $categoryMedia = !empty($categoryIDs)
+                ? MediaHelper::getMediaData(origin: 'category', itemIDs: $categoryIDs)
+                : [];
+
             $data->categories = [];
 
             foreach ($categories as $category) {
-                $data->categories[$category['id']] = $category['name'];
+                $data->categories[$category['id']] = [
+                    'name' => $category['name'],
+                    'media' => $categoryMedia[$category['id']] ?? [],
+                ];
             }
 
             // Get manufacturers
             $manufacturers = $this->getItemManufacturers($pk);
+            $manufacturerIDs = array_column($manufacturers, 'id');
+            $manufacturerMedia = !empty($manufacturerIDs)
+                ? MediaHelper::getMediaData(origin: 'manufacturer', itemIDs: $manufacturerIDs)
+                : [];
+
             $data->manufacturers = [];
 
             foreach ($manufacturers as $manufacturer) {
-                $data->manufacturers[$manufacturer['id']] = $manufacturer['name'];
+                $data->manufacturers[$manufacturer['id']] = [
+                    'name' => $manufacturer['name'],
+                    'media' => $manufacturerMedia[$manufacturer['id']] ?? [],
+                ];
             }
 
             // Calculate the dynamic price
             $quantity = (int) $this->getState('quantity', 1);
             $userGroupId = 0;
             $currencyId = 0;
-            //			$priceCalculator = new PriceCalculator($pk, $quantity, $userGroupId, $currencyId);
-            //			$data->price     = $priceCalculator->calculatePrice();
+            //          $priceCalculator = new PriceCalculator($pk, $quantity, $userGroupId, $currencyId);
+            //          $data->price     = $priceCalculator->calculatePrice();
 
             $calculator = new Pricing\PriceCalculator();
             $context = Pricing\PriceContext::fromSession();
@@ -156,6 +174,11 @@ class ItemModel extends BaseItemModel
                 $user->groups,
                 $user->id,
                 'shipment',
+            );
+
+            $data->medias = MediaHelper::getMediaData(
+                origin: 'item',
+                itemIDs: $data->id,
             );
 
             $this->_item[$pk] = $data;
