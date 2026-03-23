@@ -11,7 +11,6 @@
     defined('_JEXEC') or die;
 
     use \Joomla\CMS\Factory;
-    use \Joomla\CMS\Router\Route;
     use \Joomla\CMS\Language\Text;
 
     $user   = Factory::getApplication()->getIdentity();
@@ -21,13 +20,13 @@
     $wa = $this->document->getWebAssetManager();
     $wa->useStyle('com_alfa.manufacturer');
 
-	$manufacturerMedia = !empty($this->item->medias[0]) ? $this->item->medias[0] : null;
+    $manufacturerMedia = !empty($this->item->medias[0]) ? $this->item->medias[0] : null;
 ?>
 
 <section>
     <div class="manufacturer-container">
         <article>
-	        <?php if (!empty($manufacturerMedia)): ?>
+            <?php if (!empty($manufacturerMedia)): ?>
                 <div class="manufacturer-image-wrapper">
                     <img src="<?= $manufacturerMedia->path ?>">
                 </div>
@@ -40,7 +39,7 @@
                 <?php echo $this->item->desc; ?>
             </div>
             <div class="manufacturer-products">
-                <a href="<?php echo Route::_('index.php?option=com_alfa&view=items'); ?>">
+                <a href="<?php echo $this->item->link; ?>">
                     <?php echo Text::_('COM_ALFA_MANUFACTURER_SHOW_ALL_PRODUCTS'); ?> </a>
             </div>
         </article>
