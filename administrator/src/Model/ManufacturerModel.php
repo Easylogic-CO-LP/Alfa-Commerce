@@ -164,10 +164,10 @@ class ManufacturerModel extends AdminModel
                 $item->params = json_encode($item->params);
             }
 
-	        $item->medias = MediaHelper::getMediaData(
-		        origin: $this->name,
-		        itemIDs: $item->id
-	        );
+            $item->medias = MediaHelper::getMediaData(
+                origin: $this->name,
+                itemIDs: $item->id,
+            );
 
             $meta_data = json_decode($item->meta_data ?? '{}');
             $item->robots = $meta_data->robots ?? '';
