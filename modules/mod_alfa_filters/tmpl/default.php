@@ -1,8 +1,8 @@
 <?php
+use Joomla\CMS\Helper\ModuleHelper;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\Uri\Uri;
 use Joomla\CMS\Router\Route;
-use \Joomla\CMS\Helper\ModuleHelper;
+use Joomla\CMS\Uri\Uri;
 
 $animation = $params->get('animation', 'zoomIn');
 $imageType = $params->get('imageType', 'default');
@@ -14,7 +14,7 @@ $histogram_options = $params->get('histogram_options', 'tower');
 $minimum_price = $getMinMax['min'];
 $maximum_price = $getMinMax['max'];
 
-$getPriceHistogram = $getPriceHistogram ?? [];
+$getPriceHistogram ??= [];
 
 $loadingImg = $params->get('loadingImg', 'default');
 $loadingImageFile = $params->get('loadingImageFile', null);
@@ -29,7 +29,7 @@ $updateFiltersAction = $basePath . 'index.php?option=com_ajax&module=alfa_filter
 $moduleId = $module->id;
 
 ?>
-<div class="mod-alfa-filters-wrapper mod-alfa-filters-<?= $moduleId ?> <?= $fixed ? 'alfa-filters-fixed '.$fixed_pos :
+<div class="mod-alfa-filters-wrapper mod-alfa-filters-<?= $moduleId ?> <?= $fixed ? 'alfa-filters-fixed ' . $fixed_pos :
  '' ?>" data-module-id="<?= $moduleId ?>">
     <button class="alfa-filters-offcanvas-toggler"
             aria-controls="alfa-filters-offcanvas-<?=$moduleId?>"
@@ -41,16 +41,16 @@ $moduleId = $module->id;
          id="alfa-filters-offcanvas-<?=$moduleId?>">
         <div class="alfa-filters-wrapper-inner">
             <div class="alfa-filters-header">
-                <?php if($headerTxt !== null) : ?>
+                <?php if ($headerTxt !== null) : ?>
                     <h2 class="alfa-filters-header-title"><?= $headerTxt ?></h2>
                 <?php endif; ?>
                 <button type="button" class="af-reset-all">
                     <?= Text::_('MOD_ALFAFILTERS_FILTER_RESET_ALL_BTN') ?>
                 </button>
                 <button type="button" class="alfa-filters-close-btn" aria-label="Close">
-					<?php if($imageType === 'image'):?>
+					<?php if ($imageType === 'image'):?>
                         <img src="<?=htmlspecialchars($imageFile, ENT_QUOTES, 'UTF-8')?>" alt="Filter Menu Close Button">
-					<?php elseif($imageType === 'svg' && !empty($svg_close_button)):?>
+					<?php elseif ($imageType === 'svg' && !empty($svg_close_button)):?>
 						<?= $svg_close_button ?>
 					<?php else:?>
                         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g stroke-width="0"></g><g stroke-linecap="round" stroke-linejoin="round"></g><g><path fill-rule="evenodd" clip-rule="evenodd" d="M19.207 6.207a1 1 0 0 0-1.414-1.414L12 10.586 6.207 4.793a1 1 0 0 0-1.414 1.414L10.586 12l-5.793 5.793a1 1 0 1 0 1.414 1.414L12 13.414l5.793 5.793a1 1 0 0 0 1.414-1.414L13.414 12l5.793-5.793z" fill="#000000"></path></g>

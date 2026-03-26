@@ -1,20 +1,21 @@
 <?php
 
-use Joomla\CMS\Language\Text;
 use Joomla\CMS\Helper\ModuleHelper;
-use Joomla\CMS\Component\ComponentHelper;
+use Joomla\CMS\Language\Text;
 
 // Support both require (parent scope) and FileLayout::render ($displayData)
-if (isset($displayData)) extract($displayData);
+if (isset($displayData)) {
+    extract($displayData);
+}
 
-$alfa_filters = $alfa_filters ?? null;
-$alfa_active_filters = $alfa_active_filters ?? [];
-$moduleId = $moduleId ?? 0;
-$minimum_price = $minimum_price ?? 0;
-$maximum_price = $maximum_price ?? 0;
-$getPriceHistogram = $getPriceHistogram ?? [];
-$form_fields = $form_fields ?? [];
-$dynamic_filtering = $dynamic_filtering ?? false;
+$alfa_filters ??= null;
+$alfa_active_filters ??= [];
+$moduleId ??= 0;
+$minimum_price ??= 0;
+$maximum_price ??= 0;
+$getPriceHistogram ??= [];
+$form_fields ??= [];
+$dynamic_filtering ??= false;
 
 // Arrow SVG from overridable template
 ob_start();
@@ -45,36 +46,36 @@ $arrowSvg = ob_get_clean();
                           style="height: <?= $heightPercent ?>%;"
                           title="<?= (int) $bucket['count'] ?> products"></span>
                 <?php endforeach;
-                endif; ?>
+            endif; ?>
 
 
 	        <?php if ($histogram_options === 'slope' && !empty($getPriceHistogram)) :
-		        $maxCount = max(array_column($getPriceHistogram, 'count')) ?: 1;
-		        $width = 100;
-		        $svgHeight = 100;
-		        $count = count($getPriceHistogram);
+	            $maxCount = max(array_column($getPriceHistogram, 'count')) ?: 1;
+	            $width = 100;
+	            $svgHeight = 100;
+	            $count = count($getPriceHistogram);
 
-		        $points = [];
-		        foreach ($getPriceHistogram as $i => $bucket) {
-			        $x = $count > 1 ? ($i / ($count - 1)) * $width : 0;
-			        $y = $svgHeight - ($bucket['count'] / $maxCount) * $svgHeight;
-			        $points[] = ['x' => $x, 'y' => $y];
-		        }
+	            $points = [];
+	            foreach ($getPriceHistogram as $i => $bucket) {
+	                $x = $count > 1 ? ($i / ($count - 1)) * $width : 0;
+	                $y = $svgHeight - ($bucket['count'] / $maxCount) * $svgHeight;
+	                $points[] = ['x' => $x, 'y' => $y];
+	            }
 
-		        $path = "M 0 {$svgHeight}";
-		        $path .= " L {$points[0]['x']} {$points[0]['y']}";
+	            $path = "M 0 {$svgHeight}";
+	            $path .= " L {$points[0]['x']} {$points[0]['y']}";
 
-		        for ($i = 0; $i < count($points) - 1; $i++) {
-			        $curr = $points[$i];
-			        $next = $points[$i + 1];
-			        $cpx = ($curr['x'] + $next['x']) / 2;
+	            for ($i = 0; $i < count($points) - 1; $i++) {
+	                $curr = $points[$i];
+	                $next = $points[$i + 1];
+	                $cpx = ($curr['x'] + $next['x']) / 2;
 
-			        $path .= " C {$cpx} {$curr['y']}, {$cpx} {$next['y']}, {$next['x']} {$next['y']}";
-		        }
+	                $path .= " C {$cpx} {$curr['y']}, {$cpx} {$next['y']}, {$next['x']} {$next['y']}";
+	            }
 
-		        $path .= " L {$width} {$svgHeight}";
-		        $path .= " Z";
-		        ?>
+	            $path .= " L {$width} {$svgHeight}";
+	            $path .= ' Z';
+	            ?>
                 <svg viewBox="0 0 <?= $width ?> <?= $svgHeight ?>" preserveAspectRatio="none" class="af-histogram-svg">
 
                     <defs>
@@ -126,7 +127,7 @@ $arrowSvg = ob_get_clean();
                            step="0.01">
                 </div>
 
-                <?php if($dynamic_filtering) : ?>
+                <?php if ($dynamic_filtering) : ?>
                     <button type="button" class="af-price-apply"
                            aria-label="<?= Text::_('MOD_ALFAFILTERS_FILTER_APPLY_PRICE_BTN') ?>">
                         <?= $arrowSvg ?>
@@ -162,7 +163,7 @@ $arrowSvg = ob_get_clean();
     </label>
     <div class="af-discount-amount-inner">
         <?= $form_fields['discount_amount_min']; ?>
-        <?php if($dynamic_filtering) : ?>
+        <?php if ($dynamic_filtering) : ?>
             <button type="button" class="af-discount-amount-btn">
                 <?=$arrowSvg?>
             </button>
@@ -176,7 +177,7 @@ $arrowSvg = ob_get_clean();
     </label>
     <div class="af-discount-percent-inner">
         <?= $form_fields['discount_percent_min']; ?>
-        <?php if($dynamic_filtering) : ?>
+        <?php if ($dynamic_filtering) : ?>
             <button type="button" class="af-discount-percent-btn">
                 <?=$arrowSvg?>
             </button>

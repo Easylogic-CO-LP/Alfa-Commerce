@@ -16,13 +16,13 @@ use Joomla\CMS\Extension\Service\Provider\ModuleDispatcherFactory;
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
 
-return new class implements ServiceProviderInterface {
+return new class () implements ServiceProviderInterface {
     /**
      * Registers the service provider with a DI container.
      *
      * @param Container $container The DI container.
      *
-     * @return  void
+     * @return void
      */
     public function register(Container $container)
     {
@@ -31,4 +31,3 @@ return new class implements ServiceProviderInterface {
         $container->registerServiceProvider(new Module());
     }
 };
-
