@@ -1,0 +1,490 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="module" client="site" method="upgrade">
+    <name>MOD_ALFA_FILTERS</name>
+    <author>Nikos Ntanos</author>
+    <creationDate>2026-01</creationDate>
+    <copyright>Copyright (C) 2026</copyright>
+    <license>GNU General Public License version 2</license>
+    <authorEmail>nikoss.ntanos@gmail.com</authorEmail>
+    <version>1.0.0</version>
+    <description>MOD_ALFAFILTERS_DESC</description>
+
+    <namespace path="src">Alfa\Module\AlfaFilters</namespace>
+
+    <files>
+        <folder module="mod_alfa_filters">services</folder>
+        <folder>src</folder>
+        <folder>tmpl</folder>
+    </files>
+
+    <languages folder="language">
+        <language tag="en-GB">en-GB/mod_alfa_filters.ini</language>
+        <language tag="en-GB">en-GB/mod_alfa_filters.sys.ini</language>
+        <language tag="el-GR">el-GR/mod_alfa_filters.ini</language>
+        <language tag="el-GR">el-GR/mod_alfa_filters.sys.ini</language>
+    </languages>
+
+    <media folder="media" destination="mod_alfa_filters">
+        <folder>css</folder>
+        <folder>js</folder>
+        <filename>joomla.asset.json</filename>
+    </media>
+
+    <config>
+        <fields name="params">
+            <fieldset name="basic">
+                <field type="note" name="general_note"
+                       label="MOD_ALFAFILTERS_GENERAL_NOTE"
+                       class="alert alert-info" />
+                <field
+                        name="dynamic_filtering"
+                        type="radio"
+                        label="MOD_ALFAFILTERS_DYNAMIC_FILTERING_LABEL"
+                        description="MOD_ALFAFILTERS_DYNAMIC_FILTERING_DESC"
+                        layout="joomla.form.field.radio.switcher"
+                        default="0"
+                        filter="boolean"
+                >
+                    <option value="0">MOD_ALFAFILTERS_NO_OPTION</option>
+                    <option value="1">MOD_ALFAFILTERS_YES_OPTION</option>
+                </field>
+
+                <field
+                        name="item_page_loading"
+                        type="radio"
+                        label="MOD_ALFAFILTERS_ITEM_PAGE_LOADING_LABEL"
+                        description="MOD_ALFAFILTERS_ITEM_PAGE_LOADING_DESC"
+                        layout="joomla.form.field.radio.switcher"
+                        default="0"
+                        filter="boolean"
+                >
+                    <option value="0">MOD_ALFAFILTERS_NO_OPTION</option>
+                    <option value="1">MOD_ALFAFILTERS_YES_OPTION</option>
+                </field>
+
+                <field name="responsiveChange"
+                       type="number"
+                       label="MOD_ALFAFILTERS_RESPONSIVE_CHANGE_LABEL"
+                       description="MOD_ALFAFILTERS_RESPONSIVE_CHANGE_DESC"
+                       default="800"
+                />
+
+                <field name="animation" type="radio" class="btn-group" default="fromLeft"
+                       label="MOD_ALFAFILTERS_ANIMATION_LABEL"
+                       description="MOD_ALFAFILTERS_ANIMATION_DESC"
+                >
+                    <option value="zoomIn">MOD_ALFAFILTERS_ANIMATION_ZOOMIN_OPTION</option>
+                    <option value="fromTop">MOD_ALFAFILTERS_ANIMATION_FROMTOP_OPTION</option>
+                    <option value="fromLeft">MOD_ALFAFILTERS_ANIMATION_FROMLEFT_OPTION</option>
+                    <option value="fromRight">MOD_ALFAFILTERS_ANIMATION_FROMRIGHT_OPTION</option>
+                </field>
+
+                <field
+                        name="headerTxt"
+                        type="text"
+                        label="MOD_ALFAFILTERS_HEADER_TXT_LABEL"
+                        description="MOD_ALFAFILTERS_HEADER_TXT_DESC"
+                        default=""
+                        size="40"
+                        maxlength="255"
+                        class="form-control"
+                        required="false"
+                        hint="MOD_ALFAFILTERS_PLACEHOLDER_TXT"
+                />
+
+                <field type="note" name="close_btn_note"
+                       label="MOD_ALFAFILTERS_CLOSE_BTN_NOTE"
+                       class="alert alert-info" />
+
+                <field name="imageType" type="radio" class="btn-group" default="default"
+                       label="MOD_ALFAFILTERS_BTN_IMAGE_LABEL"
+                       description="MOD_ALFAFILTERS_BTN_IMAGE_DESC"
+                >
+                    <option value="image">MOD_ALFAFILTERS_BTN_IMAGE_IMAGE_OPTION</option>
+                    <option value="svg">MOD_ALFAFILTERS_BTN_IMAGE_INLINESVG_OPTION</option>
+                    <option value="default">MOD_ALFAFILTERS_BTN_IMAGE_DEFAULT_OPTION</option>
+                </field>
+
+                <field
+                        name="imageFile"
+                        type="media"
+                        label="MOD_ALFAFILTERS_BTN_IMAGE_IMAGE_SUBFIELD_LABEL"
+                        description="MOD_ALFAFILTERS_BTN_IMAGE_IMAGE_SUBFIELD_DESC"
+                        default=""
+                        required="false"
+                        showon="imageType:image"
+                />
+
+                <field
+                        name="imageInline"
+                        type="textarea"
+                        label="MOD_ALFAFILTERS_BTN_IMAGE_INLINESVG_SUBFIELD_LABEL"
+                        description="MOD_ALFAFILTERS_BTN_IMAGE_INLINESVG_SUBFIELD_DESC"
+                        filter="raw"
+                        showon="imageType:svg"
+                        rows="5"
+                        cols="30"
+                />
+
+                <field type="note" name="fixed_pos_note"
+                       label="MOD_ALFAFILTERS_FIXED_POS_NOTE"
+                       class="alert alert-info" />
+
+                <field
+                        name="fixed_btn"
+                        type="radio"
+                        label="MOD_ALFAFILTERS_FIXED_BTN_LABEL"
+                        description="MOD_ALFAFILTERS_FIXED_BTN_DESC"
+                        layout="joomla.form.field.radio.switcher"
+                        default="0"
+                        filter="boolean"
+                >
+                    <option value="0">MOD_ALFAFILTERS_NO_OPTION</option>
+                    <option value="1">MOD_ALFAFILTERS_YES_OPTION</option>
+                </field>
+
+                <field
+                        name="fixed_pos"
+                        type="radio"
+                        class="btn-group"
+                        label="MOD_ALFAFILTERS_FIXED_POS_LABEL"
+                        description="MOD_ALFAFILTERS_FIXED_POS_DESC"
+                        default="bottom-right"
+                        showon="fixed_btn:1"
+                >
+                    <option value="top-left">MOD_ALFAFILTERS_FIXED_POS_TOP_LEFT</option>
+                    <option value="top-right">MOD_ALFAFILTERS_FIXED_POS_TOP_RIGHT</option>
+                    <option value="bottom-left">MOD_ALFAFILTERS_FIXED_POS_BOTTOM_LEFT</option>
+                    <option value="bottom-right">MOD_ALFAFILTERS_FIXED_POS_BOTTOM_RIGHT</option>
+                </field>
+
+                <!-- Vertical Offset Value -->
+                <field
+                        name="offset_vertical"
+                        type="number"
+                        label="MOD_ALFAFILTERS_FIXED_POS_OFFSET_VERTICAL_LABEL"
+                        description="MOD_ALFAFILTERS_FIXED_POS_OFFSET_VERTICAL_DESC"
+                        default="10"
+                        min="0"
+                        max="500"
+                        step="0.1"
+                        showon="fixed_btn:1"
+                />
+
+                <!-- Vertical Offset Unit -->
+                <field
+                        name="offset_vertical_unit"
+                        type="radio"
+                        class="btn-group"
+                        label="MOD_ALFAFILTERS_FIXED_POS_OFFSET_VERTICAL_UNIT_LABEL"
+                        default="px"
+                        showon="fixed_btn:1"
+                >
+                    <option value="px">MOD_ALFAFILTERS_PX_UNIT</option>
+                    <option value="%">MOD_ALFAFILTERS_PERCENTAGE_UNIT</option>
+                </field>
+
+                <!-- Horizontal Offset Value -->
+                <field
+                        name="offset_horizontal"
+                        type="number"
+                        label="MOD_ALFAFILTERS_FIXED_POS_OFFSET_HORIZONTAL_LABEL"
+                        description="MOD_ALFAFILTERS_FIXED_POS_OFFSET_HORIZONTAL_DESC"
+                        default="10"
+                        min="0"
+                        max="500"
+                        step="0.1"
+                        showon="fixed_btn:1"
+                />
+
+                <!-- Horizontal Offset Unit -->
+                <field
+                        name="offset_horizontal_unit"
+                        type="radio"
+                        class="btn-group"
+                        label="MOD_ALFAFILTERS_FIXED_POS_OFFSET_HORIZONTAL_UNIT_LABEL"
+                        default="px"
+                        showon="fixed_btn:1"
+                >
+                    <option value="px">MOD_ALFAFILTERS_PX_UNIT</option>
+                    <option value="%">MOD_ALFAFILTERS_PERCENTAGE_UNIT</option>
+                </field>
+
+                <field type="note" name="sub_count_note"
+                       label="MOD_ALFAFILTERS_SUBCATEGORY_PRODCOUNT_NOTE"
+                       class="alert alert-info" />
+
+                <field
+                        name="subcatecory_depth"
+                        type="number"
+                        label="MOD_ALFAFILTERS_SUBCATEGORY_DEPTH_LABEL"
+                        description="MOD_ALFAFILTERS_SUBCATEGORY_DEPTH_DESC"
+                        default="2"
+                        min="1"
+                        step="1"
+                />
+
+                <field
+                        name="product_count"
+                        type="radio"
+                        label="MOD_ALFAFILTERS_PRODUCT_COUNT_LABEL"
+                        description="MOD_ALFAFILTERS_PRODUCT_COUNT_DESC"
+                        layout="joomla.form.field.radio.switcher"
+                        default="1"
+                        filter="boolean"
+                >
+                    <option value="0">MOD_ALFAFILTERS_NO_OPTION</option>
+                    <option value="1">MOD_ALFAFILTERS_YES_OPTION</option>
+                </field>
+
+                <field type="note" name="loading_note"
+                       label="MOD_ALFAFILTERS_LOADING_NOTE"
+                       class="alert alert-info" />
+
+                <field name="loadingImg" type="radio" class="btn-group" default="default"
+                       label="MOD_ALFAFILTERS_LOADING_LABEL"
+                       description="MOD_ALFAFILTERS_LOADING_DESC"
+                >
+                    <option value="image">MOD_ALFAFILTERS_BTN_IMAGE_IMAGE_OPTION</option>
+                    <option value="svg">MOD_ALFAFILTERS_BTN_IMAGE_INLINESVG_OPTION</option>
+                    <option value="default">MOD_ALFAFILTERS_BTN_IMAGE_DEFAULT_OPTION</option>
+                </field>
+
+                <field
+                        name="loadingImageFile"
+                        type="media"
+                        label="MOD_ALFAFILTERS_LOADING_IMAGE_SUBFIELD_LABEL"
+                        description="MOD_ALFAFILTERS_LOADING_IMAGE_SUBFIELD_DESC"
+                        default=""
+                        required="false"
+                        showon="loadingImg:image"
+                />
+
+                <field
+                        name="loadingImageInline"
+                        type="textarea"
+                        label="MOD_ALFAFILTERS_LOADING_INLINESVG_SUBFIELD_LABEL"
+                        description="MOD_ALFAFILTERS_LOADING_INLINESVG_SUBFIELD_DESC"
+                        filter="raw"
+                        showon="loadingImg:svg"
+                        rows="5"
+                        cols="30"
+                />
+
+                <field name="loadingAnimation" type="radio" class="btn-group" default="spinner"
+                       label="MOD_ALFAFILTERS_LOADING_ANIMATION_LABEL"
+                       description="MOD_ALFAFILTERS_LOADING_ANIMATION_DESC"
+                       showon="loadingImg:svg[OR]loadingImg:image"
+                >
+                    <option value="spinner">MOD_ALFAFILTERS_LOADING_ANIM_SPINNER</option>
+                    <option value="pulsate">MOD_ALFAFILTERS_LOADING_ANIM_PULSE</option>
+                    <option value="none">MOD_ALFAFILTERS_LOADING_ANIM_NONE</option>
+                </field>
+
+                <field type="note" name="histogram_note"
+                       label="MOD_ALFAFILTERS_HISTOGRAM_NOTE"
+                       class="alert alert-info" />
+
+
+                <field
+                    name="histogram_options"
+                    type="radio"
+                    class="btn-group"
+                    label="MOD_ALFAFILTERS_HISTOGRAM_OPTIONS_LABEL"
+                    description="MOD_ALFAFITLERS_HISTOGRAM_OPTIONS_DESC"
+                    default="tower"
+                >
+                    <option value="tower">MOD_ALFAFILTERS_TOWER_HISTOGRAM</option>
+                    <option value="slope">MOD_ALFAFILTERS_SLOPE_HISTOGRAM</option>
+                    <option value="none">MOD_ALFAFILTERS_NONE_HISTOGRAM</option>
+                </field>
+
+                <field
+                        name="histogram_slope_style"
+                        type="radio"
+                        class="btn-group"
+                        label="MOD_ALFAFILTERS_HISTOGRAM_SLOPE_STYLE_LABEL"
+                        description=""
+                        default="solid"
+                        showon="histogram_options:slope"
+                >
+                    <option value="solid">MOD_ALFAFILTERS_SOLID_SLOPE_HISTOGRAM</option>
+                    <option value="fade">MOD_ALFAFILTERS_FADE_SLOPE_HISTOGRAM</option>
+                </field>
+
+            </fieldset>
+
+            <fieldset name="styling" label="MOD_ALFAFILTERS_STYLING_LABEL">
+
+                <field type="note" name="checkbox_styling_note"
+                       label="MOD_ALFAFILTERS_CHECKBOX_STYLING_NOTE"
+                       class="alert alert-info" />
+
+                <field
+                        name="checkbox_color"
+                        type="color"
+                        label="MOD_ALFAFILTERS_CHECKBOX_COLOR_LABEL"
+                        description="MOD_ALFAFILTERS_CHECKBOX_COLOR_DESC"
+                        default="#007bff"
+                />
+
+                <field
+                        name="checkbox_color_before"
+                        type="color"
+                        label="MOD_ALFAFILTERS_CHECKBOX_COLOR_BEFORE_LABEL"
+                        description="MOD_ALFAFILTERS_CHECKBOX_COLOR_BEFORE_DESC"
+                        default="#0056b3"
+                />
+
+                <field
+                        name="checkbox_color_disabled"
+                        type="color"
+                        label="MOD_ALFAFILTERS_CHECKBOX_COLOR_DISABLED_LABEL"
+                        description="MOD_ALFAFILTERS_CHECKBOX_COLOR_DISABLED_DESC"
+                        default="#cccccc"
+                />
+
+                <field type="note" name="submit_styling_note"
+                       label="MOD_ALFAFILTERS_SUBMIT_STYLING_NOTE"
+                       class="alert alert-info" />
+
+                <field
+                        name="submit_color"
+                        type="color"
+                        label="MOD_ALFAFILTERS_SUBMIT_COLOR_LABEL"
+                        description="MOD_ALFAFILTERS_SUBMIT_COLOR_DESC"
+                        default="#007bff"
+                />
+
+                <field
+                        name="submit_color_hover"
+                        type="color"
+                        label="MOD_ALFAFILTERS_SUBMIT_COLOR_HOVER_LABEL"
+                        description="MOD_ALFAFILTERS_SUBMIT_COLOR_HOVER_DESC"
+                        default="#0056b3"
+                />
+
+                <field
+                        name="submit_color_text"
+                        type="color"
+                        label="MOD_ALFAFILTERS_SUBMIT_COLOR_TEXT_LABEL"
+                        description="MOD_ALFAFILTERS_SUBMIT_COLOR_TEXT_DESC"
+                        default="#FFFFFF"
+                />
+
+                <field type="note" name="filterBtn_styling_note"
+                       label="MOD_ALFAFILTERS_FILTERBTN_STYLING_NOTE"
+                       class="alert alert-info" />
+
+                <field
+                    name="filter_btn_color"
+                    type="color"
+                    label="MOD_ALFAFILTERS_FILTER_BTN_COLOR_LABEL"
+                    description="MOD_ALFAFILTERS_FILTER_BTN_COLOR_DESC"
+                    default="#0056b3"
+                />
+
+                <field type="note" name="subcategory_toggle_styling_note"
+                       label="MOD_ALFAFILTERS_SUBCATEGORY_TOGGLE_STYLING_NOTE"
+                       class="alert alert-info" />
+
+                <field
+                        name="subcategory_toggle_color"
+                        type="color"
+                        label="MOD_ALFAFILTERS_SUBCATEGORY_TOGGLE_COLOR_LABEL"
+                        description="MOD_ALFAFILTERS_SUBCATEGORY_TOGGLE_COLOR_DESC"
+                        default="#0056b3"
+                />
+
+                <field
+                        name="subcategory_hover_toggle_color"
+                        type="color"
+                        label="MOD_ALFAFILTERS_SUBCATEGORY_HOVER_TOGGLE_COLOR_LABEL"
+                        description="MOD_ALFAFILTERS_SUBCATEGORY_HOVER_TOGGLE_COLOR_DESC"
+                        default="#0056b3"
+                />
+
+                <field type="note" name="filter_text_styling_note"
+                       label="MOD_ALFAFILTERS_FILTER_TEXT_STYLING_NOTE"
+                       class="alert alert-info" />
+
+                <field
+                        name="filter_text_color"
+                        type="color"
+                        label="MOD_ALFAFILTERS_FILTER_TEXT_COLOR_LABEL"
+                        description="MOD_ALFAFILTERS_FILTER_TEXT_COLOR_DESC"
+                        default="#000000"
+                />
+
+                <field
+                        name="filter_text_color_hover"
+                        type="color"
+                        label="MOD_ALFAFILTERS_FILTER_TEXT_COLOR_HOVER_LABEL"
+                        description="MOD_ALFAFILTERS_FILTER_TEXT_COLOR_HOVER_DESC"
+                        default="#000000"
+                />
+
+                <field type="note" name="histogram_styling_note"
+                       label="MOD_ALFAFILTERS_HISTOGRAM_STYLING_NOTE"
+                       class="alert alert-info" />
+
+                <field
+                        name="histogram_color"
+                        type="color"
+                        label="MOD_ALFAFILTERS_HISTOGRAM_COLOR_LABEL"
+                        description="MOD_ALFAFILTERS_HISTOGRAM_COLOR_DESC"
+                        default="#e0e0e0"
+                />
+
+                <field type="note" name="slider_styling_note"
+                       label="MOD_ALFAFILTERS_SLIDER_STYLING_NOTE"
+                       class="alert alert-info" />
+
+                <field
+                        name="slider_color"
+                        type="color"
+                        label="MOD_ALFAFILTERS_SLIDER_COLOR_LABEL"
+                        description="MOD_ALFAFILTERS_SLIDER_COLOR_DESC"
+                        default="#1a1a1a"
+                />
+
+            </fieldset>
+
+            <fieldset name="advanced">
+                <field
+                        name="layout"
+                        type="modulelayout"
+                        label="JFIELD_ALT_LAYOUT_LABEL"
+                        description="JFIELD_ALT_MODULE_LAYOUT_DESC"
+                />
+
+                <field
+                        name="moduleclass_sfx"
+                        type="textarea"
+                        label="COM_MODULES_FIELD_MODULECLASS_SFX_LABEL"
+                        description="COM_MODULES_FIELD_MODULECLASS_SFX_DESC"
+                        rows="3"
+                />
+
+                <field
+                        name="cache"
+                        type="list"
+                        label="COM_MODULES_FIELD_CACHING_LABEL"
+                        description="COM_MODULES_FIELD_CACHING_DESC"
+                        default="1"
+                >
+                    <option value="1">JGLOBAL_USE_GLOBAL</option>
+                    <option value="0">COM_MODULES_FIELD_VALUE_NOCACHING</option>
+                </field>
+
+                <field
+                        name="cache_time"
+                        type="number"
+                        label="COM_MODULES_FIELD_CACHE_TIME_LABEL"
+                        description="COM_MODULES_FIELD_CACHE_TIME_DESC"
+                        default="900"
+                />
+            </fieldset>
+        </fields>
+    </config>
+</extension>

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://developer.joomla.org/schemas/json-schema/web_assets.json",
+  "description": "",
+  "name": "mod_alfa_filters",
+  "version": "1.0.0",
+  "assets": [
+    {
+      "name": "mod_alfa_filters",
+      "type": "style",
+      "uri": "mod_alfa_filters/filters.css"
+    },
+    {
+      "name": "mod_alfa_filters",
+      "type": "script",
+      "uri": "mod_alfa_filters/filters.js",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "mod_alfa_filters_preset",
+      "type": "preset",
+      "dependencies": [
+        "mod_alfa_filters#style",
+        "mod_alfa_filters#script"
+      ]
+    }
+  ]
+}

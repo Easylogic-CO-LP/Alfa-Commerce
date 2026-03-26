@@ -554,6 +554,107 @@ class ItemsModel extends UrlListModel
     }
 
     /**
+	 * Return a price histogram for the current non-price filters.
+	 *
+	 * Used by the frontend price slider to show approximate product density
+	 * across the available price range. All price-related filter states are
+	 * excluded so the histogram reflects the full visible price distribution
+	 * under the other active filters (category, search, manufacturer, etc.).
+	 *
+	 * @param int $buckets Number of histogram buckets
+	 *
+	 * @return array<int, array{from: float, to: float, count: int}>
+	 */
+	public function getAvailablePriceHistogram(int $buckets = 20, ?float $min = null, ?float $max = null): array
+	{
+		$model = $this->createFilterSubModel([
+			'filter.price_min',
+			'filter.price_max',
+			'filter.on_sale',
+			'filter.discount_amount_min',
+			'filter.discount_percent_min',
+		]);
+
+        if ($min === null || $max === null) {
+            $range = $model->getAvailablePriceRange();
+
+            if ($range['min'] === null || $range['max'] === null) {
+                return [];
+            }
+
+            $min = (float)($min ?? $range['min']);
+            $max = (float)($max ?? $range['max']);
+        }
+
+		if ($buckets < 1) {
+			$buckets = 20;
+		}
+
+		// If all products share the same price, return one bucket
+		if ($max <= $min) {
+			$query = $model->getListQuery();
+			$query->clear('select')
+				->clear('order')
+				->clear('group')
+				->select('COUNT(*) AS bucket_count')
+				->where('pf.final_price IS NOT NULL')
+				->where('pf.final_price > 0');
+
+			$count = (int) $this->getDatabase()->setQuery($query)->loadResult();
+
+			return [[
+				'from' => $min,
+				'to' => $max,
+				'count' => $count,
+			]];
+		}
+
+		$bucketSize = ($max - $min) / $buckets;
+
+		$query = $model->getListQuery();
+		$query->clear('select')
+			->clear('order')
+			->clear('group')
+			->select([
+				'CASE 
+                    WHEN FLOOR((pf.final_price - ' . $min . ') / ' . $bucketSize . ') >= ' . $buckets . '
+                    THEN ' . ($buckets - 1) . '
+                    ELSE FLOOR((pf.final_price - ' . $min . ') / ' . $bucketSize . ')
+                END AS bucket_index',
+				'COUNT(*) AS bucket_count',
+			])
+			->where('pf.final_price IS NOT NULL')
+			->where('pf.final_price > 0')
+			->group('bucket_index')
+			->order('bucket_index ASC');
+
+		$rows = $this->getDatabase()->setQuery($query)->loadObjectList();
+
+		$countsByBucket = [];
+
+		foreach ($rows as $row) {
+			$countsByBucket[(int) $row->bucket_index] = (int) $row->bucket_count;
+		}
+
+		$histogram = [];
+
+		for ($i = 0; $i < $buckets; $i++) {
+			$from = $min + ($i * $bucketSize);
+			$to = $i === ($buckets - 1)
+				? $max
+				: $from + $bucketSize;
+
+			$histogram[] = [
+				'from' => $from,
+				'to' => $to,
+				'count' => $countsByBucket[$i] ?? 0,
+			];
+		}
+
+		return $histogram;
+	}
+
+    /**
      * Return available manufacturers for the current non-manufacturer filters.
      *
      * @return array Keyed by id: [1 => ['id' => 1, 'name' => 'Nike'], ...]
