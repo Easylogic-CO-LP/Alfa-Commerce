@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    PAYPAL Payment Plugin — Log Schema
+
+    Defines plugin-specific columns for #__alfa_payments_PAYPAL_logs.
+
+    Auto-created by Plugin.php (NOT declared here):
+      id                int AUTO_INCREMENT PRIMARY KEY
+      id_order          int NOT NULL
+      id_order_payment  int DEFAULT NULL
+
+    PAYPAL-specific columns:
+      PAYPAL_session_id  — KP session ID (from createSession)
+      PAYPAL_order_id    — PAYPAL OM order ID (from createOrderFromAuthorizationToken)
+      hpp_session_id     — HPP session ID (from createHppSession / $_GET['sid'])
+      PAYPAL_event       — internal event label for filtering logs
+      action             — admin or system action performed
+      transaction_status — payment status after action
+      amount             — amount involved in this action
+      currency           — ISO 4217 currency code
+      note               — free-text context
+      created_on         — UTC datetime
+      created_by         — admin user ID (0 = system/customer)
+-->
+<form>
+	<fields name="paymentslogs">
+		<fieldset name="paymentslogs">
+
+			<field name="action"             mysql_type="varchar(60)"   default="NULL"                label="PLG_ALFA_PAYMENTS_PAYPAL_LOG_ACTION"/>
+			<field name="transaction_status" mysql_type="varchar(20)"   default="NULL"                label="PLG_ALFA_PAYMENTS_PAYPAL_LOG_STATUS"/>
+			<field name="paypal_session_id"  mysql_type="varchar(254)"  default="NULL"                label="PLG_ALFA_PAYMENTS_PAYPAL_LOG_KP_SESSION"/>
+			<field name="paypal_order_id"    mysql_type="varchar(254)"  default="NULL"                label="PLG_ALFA_PAYMENTS_PAYPAL_LOG_ORDER_ID"/>
+			<field name="hpp_session_id"     mysql_type="varchar(254)"  default="NULL"                label="PLG_ALFA_PAYMENTS_PAYPAL_LOG_HPP_SESSION"/>
+			<field name="amount"             mysql_type="decimal(20,6)" default="0.000000"            label="PLG_ALFA_PAYMENTS_PAYPAL_LOG_AMOUNT"/>
+			<field name="currency"           mysql_type="char(3)"       default="NULL"                label="PLG_ALFA_PAYMENTS_PAYPAL_LOG_CURRENCY"/>
+			<field name="PAYPAL_event"       mysql_type="varchar(100)"  default="NULL"                label="PLG_ALFA_PAYMENTS_PAYPAL_LOG_EVENT"/>
+			<field name="note"               mysql_type="varchar(500)"  default="NULL"                label="PLG_ALFA_PAYMENTS_PAYPAL_LOG_NOTE"/>
+			<field name="created_on"         mysql_type="datetime"      default="0000-00-00 00:00:00" label="PLG_ALFA_PAYMENTS_PAYPAL_LOG_CREATED_ON"/>
+			<field name="created_by"         mysql_type="int(11)"       default="0"                   label="PLG_ALFA_PAYMENTS_PAYPAL_LOG_CREATED_BY"/>
+
+		</fieldset>
+	</fields>
+</form>

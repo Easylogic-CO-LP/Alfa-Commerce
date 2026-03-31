@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension type="plugin" group="alfa-payments" method="upgrade">
+	<name>PLG_ALFA_PAYMENTS_KLARNA</name>
+	<copyright>(C) 2024-2026 Alfa. All rights reserved.</copyright>
+	<license>GNU General Public License version 3 or later; see LICENSE</license>
+	<author>Alfa</author>
+	<creationDate>2025</creationDate>
+	<authorUrl>https://alfa.gr</authorUrl>
+	<version>1.0.0</version>
+	<description>PLG_ALFA_PAYMENTS_KLARNA_XML_DESCRIPTION</description>
+
+	<!--
+		Plugin namespace: Alfa\Plugin\AlfaPayments\Klarna  (maps to src/)
+		SDK namespace:    Alfa\PhpKlarna                   (maps to libraries/klarna/src/)
+		The SDK is registered manually via JLoader in services/provider.php —
+		no autoload.php needed, Joomla's own loader handles it.
+	-->
+	<namespace path="src">Alfa\Plugin\AlfaPayments\Klarna</namespace>
+
+	<files>
+		<folder plugin="klarna">services</folder>
+		<folder>src</folder>
+		<folder>tmpl</folder>
+		<folder>params</folder>
+		<folder>libraries</folder>
+	</files>
+
+	<languages folder="language">
+		<language tag="en-GB">en-GB/plg_alfa-payments_klarna.ini</language>
+		<language tag="en-GB">en-GB/plg_alfa-payments_klarna.sys.ini</language>
+	</languages>
+
+	<config>
+		<fields name="params">
+			<fieldset name="basic" label="PLG_ALFA_PAYMENTS_KLARNA_FIELDSET_API">
+			</fieldset>
+		</fields>
+	</config>
+</extension>

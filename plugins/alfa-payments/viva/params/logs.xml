@@ -2,22 +2,16 @@
 <form>
 	<fields name="paymentslogs">
 		<fieldset name="paymentslogs">
-			<!--	always created:   `id` int(11) AUTO_INCREMENT PRIMARY KEY NOT NULL-->
-			<!--			<field name="order_id" mysql_type="int(11)" default="NULL"/>-->
-			<!--			<field name="status" mysql_type="char(1)" default="NULL"/>-->
-
-			<field name="order_code" mysql_type="varchar(255)" default="NULL"/>
-			<field name="transaction_id" mysql_type="varchar(255)" default="NULL"/>
-			<field name="order_total" mysql_type="decimal(15,5)" default="0.00000"/>
-			<field name="currency" mysql_type="char(3)" default="NULL"/>
-			<field name="custom" mysql_type="varchar(255)" default="NULL"/>
-			<field name="error_code" mysql_type="varchar(255)" default="NULL"/>
-			<field name="error_text" mysql_type="varchar(255)" default="NULL"/>
-			<field name="ref" mysql_type="varchar(255)" default="NULL"/>
-			<field name="installments" mysql_type="varchar(5)" default="NULL"/>
-			<field name="response_raw" default="NULL" mysql_type="varchar(512)"/>
-			<field name="created_on" mysql_type="datetime" default="0000-00-00 00:00:00"/>
-			<field name="created_by"  mysql_type="int(11)" default="0"/>
+			<field name="action"              mysql_type="varchar(60)"   default="NULL"                label="PLG_ALFA_PAYMENTS_VIVA_LOG_ACTION"/>
+			<field name="transaction_status"  mysql_type="varchar(20)"   default="NULL"                label="PLG_ALFA_PAYMENTS_VIVA_LOG_STATUS"/>
+			<field name="viva_order_code"     mysql_type="varchar(40)"   default="NULL"                label="PLG_ALFA_PAYMENTS_VIVA_LOG_ORDER_CODE"/>
+			<field name="viva_transaction_id" mysql_type="varchar(254)"  default="NULL"                label="PLG_ALFA_PAYMENTS_VIVA_LOG_TRANSACTION_ID"/>
+			<field name="intent"              mysql_type="varchar(20)"   default="NULL"                label="PLG_ALFA_PAYMENTS_VIVA_LOG_INTENT"/>
+			<field name="amount"              mysql_type="decimal(20,6)" default="0.000000"            label="PLG_ALFA_PAYMENTS_VIVA_LOG_AMOUNT"/>
+			<field name="currency"            mysql_type="char(3)"       default="NULL"                label="PLG_ALFA_PAYMENTS_VIVA_LOG_CURRENCY"/>
+			<field name="note"                mysql_type="varchar(500)"  default="NULL"                label="PLG_ALFA_PAYMENTS_VIVA_LOG_NOTE"/>
+			<field name="created_on"          mysql_type="datetime"      default="0000-00-00 00:00:00" label="PLG_ALFA_PAYMENTS_VIVA_LOG_CREATED_ON"/>
+			<field name="created_by"          mysql_type="int(11)"       default="0"                   label="PLG_ALFA_PAYMENTS_VIVA_LOG_CREATED_BY"/>
 		</fieldset>
 	</fields>
 </form>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+	<fields name="paymentsparams">
+		<fieldset name="paymentsparams">
+			<!-- Paypal-specific per-method params go here if needed -->
+			<field
+					name="api_username"
+					type="text"
+					label="PLG_ALFA_PAYMENTS_PAYPAL_API_USERNAME_LABEL"
+					description="PLG_ALFA_PAYMENTS_PAYPAL_API_USERNAME_DESC"
+					required="true"
+					size="60"
+			/>
+
+			<!-- Paypal merchant shared secret / API password -->
+			<field
+					name="api_password"
+					type="password"
+					label="PLG_ALFA_PAYMENTS_PAYPAL_API_PASSWORD_LABEL"
+					description="PLG_ALFA_PAYMENTS_PAYPAL_API_PASSWORD_DESC"
+					required="true"
+					size="60"
+			/>
+
+			<!-- Mode: live or sandbox -->
+ 			<field
+					name="mode"
+					type="list"
+					label="PLG_ALFA_PAYMENTS_PAYPAL_MODE_LABEL"
+					description="PLG_ALFA_PAYMENTS_PAYPAL_MODE_DESC"
+					default="sandbox"
+			>
+				<option value="live">Live</option>
+				<option value="sandbox">Sandbox</option>
+			</field>
+		</fieldset>
+	</fields>
+</form>

@@ -1,48 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extension type="plugin" group="alfa-payments" method="upgrade">
-	<name>PLG_ALFA_PAYMENTS_VIVA</name>
-	<copyright>(C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.</copyright>
+	<n>PLG_ALFA_PAYMENTS_VIVA</n>
+	<copyright>(C) 2024-2026 Alfa. All rights reserved.</copyright>
 	<license>GNU General Public License version 3 or later; see LICENSE</license>
-	<author>Agamemnon Fakas</author>
-	<contributor>Athanasios Marios Voukias</contributor>
-	<creationDate>2016-03</creationDate>
-	<copyright>(C) 2016 Open Source Matters, Inc.</copyright>
-	<license>GNU General Public License version 3 or later; see LICENSE</license>
-	<authorEmail>info@easylogic.gr</authorEmail>
-	<authorUrl>http://easylogic.gr</authorUrl>
-	<version>1.0.2</version>
+	<author>Alfa</author>
+	<creationDate>2025</creationDate>
+	<authorUrl>https://alfa.gr</authorUrl>
+	<version>1.0.0</version>
 	<description>PLG_ALFA_PAYMENTS_VIVA_XML_DESCRIPTION</description>
-	<namespace path="src">Joomla\Plugin\AlfaPayments\Viva</namespace>
+	<namespace path="src">Alfa\Plugin\AlfaPayments\Viva</namespace>
 	<files>
-		<folder>params</folder>
 		<folder plugin="viva">services</folder>
 		<folder>src</folder>
 		<folder>tmpl</folder>
+		<folder>params</folder>
+		<folder>libraries</folder>
 	</files>
-
 	<languages folder="language">
 		<language tag="en-GB">en-GB/plg_alfa-payments_viva.ini</language>
 		<language tag="en-GB">en-GB/plg_alfa-payments_viva.sys.ini</language>
 	</languages>
 	<config>
 		<fields name="params">
-			<fieldset name="basic">
-				<!-- <field
-					name="test"
-					type="list"
-					label="Test field"
-					>
-					<option value="0">JNO</option>
-					<option value="1">JYES</option>
-					<option value="2">TEST</option>
-				</field>
-
-				<field
-					name="maxlength"
-					type="number"
-					label="Test number field"
-					filter="integer"
-				/> -->
+			<fieldset name="basic" label="PLG_ALFA_PAYMENTS_VIVA_FIELDSET_API">
 			</fieldset>
 		</fields>
 	</config>
