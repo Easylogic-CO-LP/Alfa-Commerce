@@ -22,7 +22,7 @@ abstract class CoreApiResponse
      * @var array|null
      */
     private $headers;
-    private $result;
+    public $result;
     private $body;
 
     public function __construct($request, ?int $statusCode, ?string $reasonPhrase, ?array $headers, $result, $body)

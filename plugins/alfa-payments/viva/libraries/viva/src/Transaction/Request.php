@@ -12,20 +12,30 @@ abstract class Request implements \JsonSerializable
     const URI    = '/nativecheckout/v2/transactions';
     const METHOD = '';
 
-    private ?string $sourceCode   = null;
-    private ?int    $amount       = null;
-    private ?string $accessToken  = null;
-    private array   $extraHeaders = [];
-    private array   $expectedResult = ['transactionId' => 'Transaction id'];
+    private ?string $sourceCode      = null;
+    private ?int    $amount          = null;
+    private ?string $accessToken     = null;
+    private array   $extraHeaders    = [];
+    private array   $expectedResult  = ['transactionId' => 'Transaction id'];
 
-    public function setSourceCode(string|int $code): static { $this->sourceCode = (string) $code; return $this; }
-    public function getSourceCode(): ?string { return $this->sourceCode; }
-    public function setAmount(int $amount): static { $this->amount = $amount; return $this; }
-    public function getAmount(): ?int { return $this->amount; }
-    public function setHeaders(array $h): static { $this->extraHeaders = $h; return $this; }
-    public function getHeaders(): array { return $this->extraHeaders; }
-    public function setExpectedResult(array $r): static { $this->expectedResult = $r; return $this; }
-    public function getExpectedResult(): array { return $this->expectedResult; }
+    // Classic API credentials — used as fallback when OAuth2 call returns 403
+    private ?string $merchantId      = null;
+    private ?string $apiKey          = null;
+
+    public function setSourceCode(string|int $code): static  { $this->sourceCode = (string) $code; return $this; }
+    public function getSourceCode(): ?string                  { return $this->sourceCode; }
+    public function setAmount(int $amount): static            { $this->amount = $amount; return $this; }
+    public function getAmount(): ?int                         { return $this->amount; }
+    public function setHeaders(array $h): static              { $this->extraHeaders = $h; return $this; }
+    public function getHeaders(): array                       { return $this->extraHeaders; }
+    public function setExpectedResult(array $r): static       { $this->expectedResult = $r; return $this; }
+    public function getExpectedResult(): array                { return $this->expectedResult; }
+
+    // Classic API credentials (optional — enables fallback on 403)
+    public function setMerchantId(string $id): static         { $this->merchantId = $id; return $this; }
+    public function getMerchantId(): ?string                   { return $this->merchantId; }
+    public function setApiKey(string $key): static            { $this->apiKey = $key; return $this; }
+    public function getApiKey(): ?string                       { return $this->apiKey; }
 
     public function getAccessToken(): ?string
     {

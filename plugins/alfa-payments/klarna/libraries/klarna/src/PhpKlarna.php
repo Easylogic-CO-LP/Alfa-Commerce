@@ -53,26 +53,22 @@ class PhpKlarna
      *
      * @throws ValidationException on invalid region or mode.
      */
-	public function __construct(
-		string $username,
-		string $password,
-		string $region = 'EU',
-		string $mode   = 'test'
-	) {
-		$this->baseUri        = $this->getBaseUri($region, $mode);
+    public function __construct(
+        string $username,
+        string $password,
+        string $region = 'EU',
+        string $mode   = 'live'
+    ) {
+        $this->baseUri        = $this->getBaseUri($region, $mode);
+        $this->defaultHeaders = [
+            'Authorization' => 'Basic ' . base64_encode($username . ':' . $password),
+            'Accept'        => 'application/json',
+            'Content-Type'  => 'application/json',
+        ];
 
-		// Defensively trim invisible spaces before encoding!
-		$this->defaultHeaders = [
-			'Authorization' => 'Basic ' . base64_encode(trim($username) . ':' . trim($password)),
-			'Accept'        => 'application/json',
-			'Content-Type'  => 'application/json',
-		];
-
-		$this->client = HttpFactory::getHttp();
-
-		// Temporarily log the Base URI so we can definitively prove which environment is active
-		\Joomla\CMS\Log\Log::add('Klarna dialing out to: ' . $this->baseUri, \Joomla\CMS\Log\Log::DEBUG, 'com_alfa.payments');
-	}
+        // (new HttpFactory())->getHttp() picks cURL or stream — ships with every Joomla install.
+        $this->client = (new HttpFactory())->getHttp();
+    }
 
     /** Replace the HTTP client (e.g. a mock for unit tests). */
     public function setClient(Http $client): static

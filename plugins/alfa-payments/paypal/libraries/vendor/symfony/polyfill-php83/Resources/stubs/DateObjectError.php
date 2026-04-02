@@ -9,8 +9,8 @@
  * file that was distributed with this source code.
  */
 
-namespace Symfony\Component\HttpFoundation\Exception;
-
-interface ExceptionInterface extends \Throwable
-{
+if (\PHP_VERSION_ID < 80300) {
+    class DateObjectError extends DateError
+    {
+    }
 }

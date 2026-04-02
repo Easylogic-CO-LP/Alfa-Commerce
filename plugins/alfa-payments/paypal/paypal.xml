@@ -9,14 +9,24 @@
 	<version>1.0.0</version>
 	<description>PLG_ALFA_PAYMENTS_PAYPAL_XML_DESCRIPTION</description>
 
-	<namespace path="src">Alfa\Plugin\AlfaPayments\Paypal</namespace>
+	<!--
+		Plugin namespace: Alfa\Plugin\AlfaPayments\PayPal → src/
+		PayPal SDK:       PaypalServerSdkLib\*            → libraries/vendor/ (Composer)
+
+		HOW TO INSTALL THE PAYPAL SDK VENDOR DIRECTORY:
+		  cd plugins/alfa-payments/paypal/libraries
+		  composer install - -no-dev - -optimize-autoloader
+		  Then commit the vendor/ folder and ship it inside the plugin zip.
+		  The production server does NOT need Composer.
+	-->
+	<namespace path="src">Alfa\Plugin\AlfaPayments\PayPal</namespace>
 
 	<files>
-	    <folder plugin="paypal">services</folder>
-	    <folder>src</folder>
-	    <folder>tmpl</folder>
-	    <folder>params</folder>
-	    <folder>libraries</folder>
+		<folder plugin="paypal">services</folder>
+		<folder>src</folder>
+		<folder>tmpl</folder>
+		<folder>params</folder>
+		<folder>libraries</folder>
 	</files>
 
 	<languages folder="language">
@@ -27,6 +37,47 @@
 	<config>
 		<fields name="params">
 			<fieldset name="basic" label="PLG_ALFA_PAYMENTS_PAYPAL_FIELDSET_API">
+
+				<field
+					name="client_id"
+					type="text"
+					label="PLG_ALFA_PAYMENTS_PAYPAL_CLIENT_ID_LABEL"
+					description="PLG_ALFA_PAYMENTS_PAYPAL_CLIENT_ID_DESC"
+					required="true"
+					size="80"
+				/>
+
+				<field
+					name="client_secret"
+					type="password"
+					label="PLG_ALFA_PAYMENTS_PAYPAL_CLIENT_SECRET_LABEL"
+					description="PLG_ALFA_PAYMENTS_PAYPAL_CLIENT_SECRET_DESC"
+					required="true"
+					size="80"
+				/>
+
+				<field
+					name="mode"
+					type="list"
+					label="PLG_ALFA_PAYMENTS_PAYPAL_MODE_LABEL"
+					description="PLG_ALFA_PAYMENTS_PAYPAL_MODE_DESC"
+					default="sandbox"
+				>
+					<option value="live">Live (Production)</option>
+					<option value="sandbox">Sandbox (Testing)</option>
+				</field>
+
+				<field
+					name="intent"
+					type="list"
+					label="PLG_ALFA_PAYMENTS_PAYPAL_INTENT_LABEL"
+					description="PLG_ALFA_PAYMENTS_PAYPAL_INTENT_DESC"
+					default="CAPTURE"
+				>
+					<option value="CAPTURE">Capture (charge immediately on approval)</option>
+					<option value="AUTHORIZE">Authorize (capture manually later)</option>
+				</field>
+
 			</fieldset>
 		</fields>
 	</config>

@@ -1,0 +1,17 @@
+{
+    "name": "alfa/paypal-plugin-dependencies",
+    "description": "PayPal Server SDK dependencies for the Alfa Commerce PayPal plugin.",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": "^8.1",
+        "paypal/paypal-server-sdk": "2.2.0"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true,
+        "platform": {
+            "php": "8.1"
+        }
+    }
+}

@@ -1,4 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Klarna Payment Plugin — Log Schema
+
+    Defines plugin-specific columns for #__alfa_payments_klarna_logs.
+
+    Auto-created by Plugin.php (NOT declared here):
+      id                int AUTO_INCREMENT PRIMARY KEY
+      id_order          int NOT NULL
+      id_order_payment  int DEFAULT NULL
+
+    Klarna-specific columns:
+      klarna_session_id  — KP session ID (from createSession)
+      klarna_order_id    — Klarna OM order ID (from createOrderFromAuthorizationToken)
+      hpp_session_id     — HPP session ID (from createHppSession / $_GET['sid'])
+      klarna_event       — internal event label for filtering logs
+      action             — admin or system action performed
+      transaction_status — payment status after action
+      amount             — amount involved in this action
+      currency           — ISO 4217 currency code
+      note               — free-text context
+      created_on         — UTC datetime
+      created_by         — admin user ID (0 = system/customer)
+-->
 <form>
 	<fields name="paymentslogs">
 		<fieldset name="paymentslogs">

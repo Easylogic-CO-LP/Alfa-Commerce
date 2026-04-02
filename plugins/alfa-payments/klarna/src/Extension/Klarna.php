@@ -75,6 +75,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\OrderPaymentHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PaymentsPlugin;
+use Alfa\PhpKlarna\Exceptions\FailedActionException;
 use Alfa\PhpKlarna\Exceptions\NotFoundException;
 use Alfa\PhpKlarna\Exceptions\ValidationException;
 use Alfa\PhpKlarna\PhpKlarna;
@@ -90,9 +91,12 @@ final class Klarna extends PaymentsPlugin
     //  SDK FACTORY
     // =========================================================================
 
-	/**
-	 * Build and return a configured PhpKlarna client using the Alfa Commerce payment params.
-	 */
+    /**
+     * Build and return a configured PhpKlarna client from plugin params.
+     *
+     * Uses Joomla\CMS\Http\HttpFactory (no Guzzle) and
+     * Joomla\CMS\Date\Date (no Carbon) — both ship with every Joomla install.
+     */
 	private function klarna(object $order): PhpKlarna
 	{
 		$params = $order->selected_payment->params;
@@ -145,20 +149,13 @@ final class Klarna extends PaymentsPlugin
      * Klarna automatically appends &sid={hpp_session_id} to our success URL.
      * No setState/getState needed — everything is in the URL.
      */
+    /**
+     * Visit 1 only — create Klarna HPP session and redirect.
+     * The return is handled by onPaymentResponse() via task=payment.response.
+     */
     public function onOrderProcessView($event): void
     {
-        $order  = $event->getSubject();
-        $input  = Factory::getApplication()->getInput();
-        $sid    = $input->getString('sid', '');
-
-        // ── VISIT 2: Customer returning from Klarna ───────────────────────────
-        if (!empty($sid)) {
-            $this->handleKlarnaReturn($event, $order, $sid);
-            return;
-        }
-
-        // ── VISIT 1: First arrival — redirect customer to Klarna HPP ─────────
-        $this->redirectToKlarna($event, $order);
+        $this->redirectToKlarna($event, $event->getSubject());
     }
 
     /**
@@ -166,6 +163,7 @@ final class Klarna extends PaymentsPlugin
      */
     public function onOrderCompleteView($event): void
     {
+        // Cart is cleared by HtmlView when default_order_completed loads — see HtmlView patch.
         $event->setLayout('default_order_completed');
         $event->setLayoutData([
             'order'  => $event->getSubject(),
@@ -187,6 +185,11 @@ final class Klarna extends PaymentsPlugin
      *
      * Payment record: PENDING + transactionId = Klarna KP session_id
      * The HPP session itself is created later in onOrderProcessView (visit 1).
+     *
+     * Success URL    (set automatically): /index.php?option=com_alfa&task=payment.response
+     * Cancel URL     (set automatically): /index.php?option=com_alfa&task=payment.response&klarna_result=cancel
+     * Failure URL    (set automatically): /index.php?option=com_alfa&task=payment.response&klarna_result=failure
+     * Notification URL (set automatically): /index.php?option=com_alfa&task=plugin.trigger&type=alfa-payments&name=klarna&func=notify&order_id={id}
      */
     public function onOrderAfterPlace($event): void
     {
@@ -199,8 +202,8 @@ final class Klarna extends PaymentsPlugin
         $now = Factory::getDate('now', 'UTC')->toSql();
 
         try {
-	        $klarna = $this->klarna($order);
-	        $session = $this->klarna($order)->createSession($this->buildSessionData($order));
+            $klarna  = $this->klarna($order);
+            $session = $klarna->createSession($this->buildSessionData($order));
 
             // Store KP session_id as the transaction_id on the payment record.
             // The HPP session_id will be stored in the plugin log when created.
@@ -221,14 +224,14 @@ final class Klarna extends PaymentsPlugin
 
             $this->log([
                 'id_order'           => (int) $order->id,
-                'id_order_payment'   => (int) $paymentId,
+                'id_order_payment'   => $paymentId,
                 'action'             => 'session_created',
                 'transaction_status' => OrderPaymentHelper::STATUS_PENDING,
                 'klarna_session_id'  => $session->sessionId,
                 'klarna_order_id'    => null,
                 'hpp_session_id'     => null,
-                'amount'             => $this->resolveAmount($order),
-                'currency'           => $order->id_currency ?? '',
+                'amount'             => $order->total_paid_tax_incl->getAmount(),
+                'currency'           => $order->currency->getCode(),
                 'klarna_event'       => 'kp_session_created',
                 'note'               => 'Klarna Payments session created on order placement.',
                 'created_on'         => $now,
@@ -261,39 +264,22 @@ final class Klarna extends PaymentsPlugin
      * We re-acknowledge the order here — acknowledgeOrder() is idempotent,
      * calling it twice is safe and ensures the order is never auto-cancelled.
      *
-     * Your notification URL (set in createHppSession) should look like:
-     *   https://yourshop.gr/index.php?option=com_alfa&task=payment.notify
-     *      &plugin=klarna&order_id={ORDER_ID}&sid={session.id}
+     * Webhooks: use notify() via task=plugin.trigger&func=notify if needed later.
      */
-	public function onPaymentResponse($event): void
-	{
-		// 1. Grab the order directly from the event
-		$order = $event->getSubject();
+    public function onPaymentResponse($event): void
+    {
+        $input = Factory::getApplication()->getInput();
+        $sid   = $input->getString('sid', '');
+        $order = $event->getOrder();
 
-		if (!$order || empty($order->id)) {
-			return;
-		}
+        if (empty($sid)) {
+            $event->setLayout('default_order_process_cancelled');
+            $event->setLayoutData(['order' => $order]);
+            return;
+        }
 
-		try {
-			$payments = $this->getPaymentsByOrder((int) $order->id);
-
-			foreach ($payments as $payment) {
-				if (!empty($payment->gateway_order_id)) {
-					// 2. Pass the $order here so it can authenticate!
-					$this->klarna($order)->acknowledgeOrder($payment->gateway_order_id);
-				}
-			}
-		} catch (\Exception $e) {
-			Log::add(
-				'Klarna: Push webhook acknowledge failed for order #' . $order->id . ': ' . $e->getMessage(),
-				Log::ERROR,
-				'com_alfa.payments'
-			);
-		}
-
-		// Always respond 200 OK to Klarna's push
-		Factory::getApplication()->setHeader('status', '200 OK', true);
-	}
+        $this->handleKlarnaReturn($event, $order, $sid);
+    }
 
     // =========================================================================
     //  ADMIN ACTIONS
@@ -375,83 +361,74 @@ final class Klarna extends PaymentsPlugin
      * We use the current request URL as the base for success/cancel/etc.,
      * and Klarna appends &sid={session.id} automatically.
      */
-    private function redirectToKlarna($event, object $order): void
-    {
-        try {
-	        $klarna = $this->klarna($order);
+	private function redirectToKlarna($event, object $order): void
+	{
+		try {
+			$klarna  = $this->klarna($order);
 
-            // Retrieve the pending payment to get the stored KP session_id
-            $payment   = $this->getLatestPendingPayment($order->id);
-            $kpSession = $payment->transaction_id ?? '';
+			$payment   = $this->getLatestPendingPayment($order->id);
+			$kpSession = $payment->transaction_id ?? '';
 
-            // If no stored session (edge case), create a fresh one
-            if (empty($kpSession)) {
-                $session   = $klarna->createSession($this->buildSessionData($order));
-                $kpSession = $session->sessionId;
-            }
+			if (empty($kpSession)) {
+				$session   = $klarna->createSession($this->buildSessionData($order));
+				$kpSession = $session->sessionId;
+			}
 
-	        $baseUrl     = Uri::current();
-	        $currentVars = Uri::getInstance()->getQuery(true);
-	        unset($currentVars['sid'], $currentVars['token']);
+			$returnUrl = Route::_(
+				'index.php?option=com_alfa&task=payment.response',
+				false, Route::TLS_FORCE, true
+			);
 
-	        $processUrl = $baseUrl . '?' . http_build_query($currentVars);
+			$hpp = $klarna->createHppSession(
+				paymentSessionId: $kpSession,
+				urls: [
+					'success'      => $returnUrl . '&klarna_result=success&authorization_token={{authorization_token}}&sid={{session_id}}',
+					'cancel'       => $returnUrl . '&klarna_result=cancel&sid={{session_id}}',
+					'failure'      => $returnUrl . '&klarna_result=failure&authorization_token={{authorization_token}}&sid={{session_id}}',
+					'back'         => $returnUrl . '&klarna_result=back&sid={{session_id}}',
 
-	        $successUrl = $processUrl . '&sid={{session_id}}&token={{authorization_token}}';
+					'notification' => Route::_(
+						'index.php?option=com_alfa&task=payment.notify&plugin=klarna'
+						. '&order_id=' . $order->id
+						. '&sid={{session_id}}',
+						false,
+						Route::TLS_FORCE,
+						true
+					),
+				]
+			);
 
-	        $cancelUrl  = $processUrl . '&klarna_result=cancel&sid={{session_id}}';
-	        $failureUrl = $processUrl . '&klarna_result=failure&sid={{session_id}}';
-	        $backUrl    = $processUrl . '&klarna_result=back&sid={{session_id}}';
+			// Log the HPP session creation
+			$now = Factory::getDate('now', 'UTC')->toSql();
+			$this->log([
+				'id_order'           => (int) $order->id,
+				'id_order_payment'   => (int) ($payment->id ?? 0),
+				'action'             => 'hpp_session_created',
+				'transaction_status' => OrderPaymentHelper::STATUS_PENDING,
+				'klarna_session_id'  => $kpSession,
+				'klarna_order_id'    => null,
+				'hpp_session_id'     => $hpp->sessionId,
+				'amount'             => $order->total_paid_tax_incl->getAmount(),
+				'currency'           => $order->id_currency ?? '',
+				'klarna_event'       => 'hpp_redirect',
+				'note'               => 'Customer redirected to Klarna HPP.',
+				'created_on'         => $now,
+				'created_by'         => (int) Factory::getApplication()->getIdentity()->id,
+			]);
 
-	        $hpp = $klarna->createHppSession(
-		        paymentSessionId: $kpSession,
-		        urls: [
-			        'success'      => $successUrl,
-			        'cancel'       => $cancelUrl,
-			        'failure'      => $failureUrl,
-			        'back'         => $backUrl,
-			        // Keep your notification URL as you had it!
-			        'notification' => Route::_(
-				        'index.php?option=com_alfa&task=payment.notify&plugin=klarna'
-				        . '&order_id=' . $order->id
-				        . '&sid={{session_id}}',
-				        false,
-				        Route::TLS_FORCE,
-				        true
-			        ),
-		        ]
-	        );
+			$event->setRedirectUrl($hpp->redirectUrl);
 
-            // Log the HPP session creation
-            $now = Factory::getDate('now', 'UTC')->toSql();
-            $this->log([
-                'id_order'           => (int) $order->id,
-                'id_order_payment'   => (int) ($payment->id ?? 0),
-                'action'             => 'hpp_session_created',
-                'transaction_status' => OrderPaymentHelper::STATUS_PENDING,
-                'klarna_session_id'  => $kpSession,
-                'klarna_order_id'    => null,
-                'hpp_session_id'     => $hpp->sessionId,
-                'amount'             => $this->resolveAmount($order),
-                'currency'           => $order->id_currency ?? '',
-                'klarna_event'       => 'hpp_redirect',
-                'note'               => 'Customer redirected to Klarna HPP.',
-                'created_on'         => $now,
-                'created_by'         => (int) Factory::getApplication()->getIdentity()->id,
-            ]);
+		} catch (ValidationException $e) {
+			Log::add('Klarna HPP: Validation failed: ' . print_r($e->getErrors(), true), Log::ERROR, 'com_alfa.payments');
+			$event->setLayout('default_order_process_error');
+			$event->setLayoutData(['error' => Text::_('PLG_ALFA_PAYMENTS_KLARNA_ERROR_SESSION'), 'order' => $order]);
 
-            $event->setRedirectUrl($hpp->redirectUrl);
-
-        } catch (ValidationException $e) {
-            Log::add('Klarna HPP: Validation failed: ' . print_r($e->getErrors(), true), Log::ERROR, 'com_alfa.payments');
-            $event->setLayout('default_order_process_error');
-            $event->setLayoutData(['error' => Text::_('PLG_ALFA_PAYMENTS_KLARNA_ERROR_SESSION'), 'order' => $order]);
-
-        } catch (\Exception $e) {
-            Log::add('Klarna HPP: Redirect failed: ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
-            $event->setLayout('default_order_process_error');
-            $event->setLayoutData(['error' => $e->getMessage(), 'order' => $order]);
-        }
-    }
+		} catch (\Exception $e) {
+			Log::add('Klarna HPP: Redirect failed: ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
+			$event->setLayout('default_order_process_error');
+			$event->setLayoutData(['error' => $e->getMessage(), 'order' => $order]);
+		}
+	}
 
     /**
      * VISIT 2: Customer has returned from Klarna's page with ?sid=.
@@ -488,7 +465,7 @@ final class Klarna extends PaymentsPlugin
         }
 
         try {
-	        $klarna = $this->klarna($order);
+            $klarna  = $this->klarna($order);
             $payment = $this->getLatestPendingPayment($order->id);
 
             // 1. Verify the HPP session is actually completed
@@ -531,8 +508,8 @@ final class Klarna extends PaymentsPlugin
                 'klarna_session_id'  => $payment->transaction_id ?? '',
                 'klarna_order_id'    => $klarnaOrder->orderId,
                 'hpp_session_id'     => $sid,
-                'amount'             => $this->resolveAmount($order),
-                'currency'           => $order->id_currency ?? '',
+                'amount'             => $order->total_paid_tax_incl->getAmount(),
+                'currency'           => $order->currency->getCode(),
                 'klarna_event'       => 'order_created_acknowledged',
                 'note'               => 'Klarna order created and acknowledged. Fraud: ' . $klarnaOrder->fraudStatus,
                 'created_on'         => $now,
@@ -540,11 +517,10 @@ final class Klarna extends PaymentsPlugin
             ]);
 
             // 6. Redirect to Alfa Commerce order completion page
-	        $completedUrl = Route::_(
-		        'index.php?option=com_alfa&view=cart&layout=default_order_completed&order_id=' . $order->id,
-		        false, Route::TLS_FORCE, true
-	        );
-            $event->setRedirectUrl($completedUrl);
+            $event->setRedirectUrl(Route::_(
+                'index.php?option=com_alfa&view=cart&layout=default_order_completed',
+                false, Route::TLS_FORCE, true
+            ));
 
         } catch (NotFoundException $e) {
             $event->setLayout('default_order_process_error');
@@ -568,56 +544,56 @@ final class Klarna extends PaymentsPlugin
      * Calls Klarna Order Management API createCapture().
      * Only call this when goods are physically shipped.
      */
-    private function handleCapture($event): void
-    {
-        $payment = $event->getPayment();
-        $order   = $event->getOrder();
-        $amount  = $this->getPaymentAmount($payment);
-        $now     = Factory::getDate('now', 'UTC')->toSql();
+	private function handleCapture($event): void
+	{
+		$payment = $event->getPayment();
+		$order   = $event->getOrder();
+		$amount  = $payment->amount->getAmount();
+		$now     = Factory::getDate('now', 'UTC')->toSql();
 
-        $klarnaOrderId = $payment->transaction_id ?? '';
+		$klarnaOrderId = $payment->transaction_id ?? '';
 
-        if (empty($klarnaOrderId)) {
-            $event->setError(Text::_('PLG_ALFA_PAYMENTS_KLARNA_ERROR_NO_ORDER_ID'));
+		if (empty($klarnaOrderId)) {
+			$event->setError(Text::_('PLG_ALFA_PAYMENTS_KLARNA_ERROR_NO_ORDER_ID'));
 
-            return;
-        }
+			return;
+		}
 
-        try {
-	        $this->klarna($order)->createCapture($klarnaOrderId, [
-                'captured_amount' => $this->amountToMinorUnit($amount, $order->id_currency ?? 'EUR'),
-                'description'     => 'Capture for Alfa Commerce order #' . $order->id,
-                'order_lines'     => $this->buildOrderLines($order),
-            ]);
+		try {
+			$this->klarna($order)->createCapture($klarnaOrderId, [
+				'captured_amount' => $payment->amount->getMinorUnits(),
+				'description'     => 'Capture for Alfa Commerce order #' . $order->id,
+				'order_lines'     => $this->buildOrderLines($order),
+			]);
 
-            $this->paymentUpdate((int) $payment->id)
-                ->completed()
-                ->processedAt($now)
-                ->save();
+			$this->paymentUpdate((int) $payment->id)
+				->completed()
+				->processedAt($now)
+				->save();
 
-            $this->log([
-                'id_order'           => (int) $order->id,
-                'id_order_payment'   => (int) $payment->id,
-                'action'             => 'capture',
-                'transaction_status' => OrderPaymentHelper::STATUS_COMPLETED,
-                'klarna_session_id'  => null,
-                'klarna_order_id'    => $klarnaOrderId,
-                'hpp_session_id'     => null,
-                'amount'             => $amount,
-                'currency'           => $order->id_currency ?? '',
-                'klarna_event'       => 'capture_created',
-                'note'               => 'Payment captured by admin.',
-                'created_on'         => $now,
-                'created_by'         => (int) Factory::getApplication()->getIdentity()->id,
-            ]);
+			$this->log([
+				'id_order'           => (int) $order->id,
+				'id_order_payment'   => (int) $payment->id,
+				'action'             => 'capture',
+				'transaction_status' => OrderPaymentHelper::STATUS_COMPLETED,
+				'klarna_session_id'  => null,
+				'klarna_order_id'    => $klarnaOrderId,
+				'hpp_session_id'     => null,
+				'amount'             => $amount,
+				'currency'           => $order->id_currency ?? '',
+				'klarna_event'       => 'capture_created',
+				'note'               => 'Payment captured by admin.',
+				'created_on'         => $now,
+				'created_by'         => (int) Factory::getApplication()->getIdentity()->id,
+			]);
 
-            $event->setMessage(Text::sprintf('PLG_ALFA_PAYMENTS_KLARNA_MSG_CAPTURED', $payment->id));
-            $event->setRefresh(true);
+			$event->setMessage(Text::sprintf('PLG_ALFA_PAYMENTS_KLARNA_MSG_CAPTURED', $payment->id));
+			$event->setRefresh(true);
 
-        } catch (\Exception $e) {
-            $event->setError(Text::sprintf('PLG_ALFA_PAYMENTS_KLARNA_ERROR_CAPTURE', $e->getMessage()));
-        }
-    }
+		} catch (\Exception $e) {
+			$event->setError(Text::sprintf('PLG_ALFA_PAYMENTS_KLARNA_ERROR_CAPTURE', $e->getMessage()));
+		}
+	}
 
     /**
      * Void — cancel an authorized (not yet captured) Klarna order.
@@ -629,7 +605,7 @@ final class Klarna extends PaymentsPlugin
     {
         $payment       = $event->getPayment();
         $order         = $event->getOrder();
-        $amount        = $this->getPaymentAmount($payment);
+        $amount        = $payment->amount->getAmount();
         $now           = Factory::getDate('now', 'UTC')->toSql();
         $klarnaOrderId = $payment->transaction_id ?? '';
 
@@ -640,7 +616,7 @@ final class Klarna extends PaymentsPlugin
         }
 
         try {
-	        $this->klarna($order)->cancelOrder($klarnaOrderId);
+            $this->klarna($order)->cancelOrder($klarnaOrderId);
 
             $this->paymentUpdate((int) $payment->id)
                 ->cancelled()
@@ -655,7 +631,7 @@ final class Klarna extends PaymentsPlugin
                 'klarna_order_id'    => $klarnaOrderId,
                 'hpp_session_id'     => null,
                 'amount'             => $amount,
-                'currency'           => $order->id_currency ?? '',
+                'currency'           => $order->currency->getCode(),
                 'klarna_event'       => 'order_cancelled',
                 'note'               => 'Order voided by admin before capture.',
                 'created_on'         => $now,
@@ -682,7 +658,7 @@ final class Klarna extends PaymentsPlugin
     {
         $payment       = $event->getPayment();
         $order         = $event->getOrder();
-        $amount        = $this->getPaymentAmount($payment);
+        $amount        = $payment->amount->getAmount();
         $now           = Factory::getDate('now', 'UTC')->toSql();
         $klarnaOrderId = $payment->transaction_id ?? '';
 
@@ -694,8 +670,8 @@ final class Klarna extends PaymentsPlugin
 
         try {
             // Step 1: Call Klarna refund API
-	        $this->klarna($order)->createRefund($klarnaOrderId, [
-                'refunded_amount' => $this->amountToMinorUnit($amount, $order->id_currency ?? 'EUR'),
+            $this->klarna($order)->createRefund($klarnaOrderId, [
+                'refunded_amount' => $payment->amount->getMinorUnits(),
                 'description'     => 'Refund for Alfa Commerce order #' . $order->id,
                 'order_lines'     => $this->buildOrderLines($order),
             ]);
@@ -725,7 +701,7 @@ final class Klarna extends PaymentsPlugin
                 'klarna_order_id'    => $klarnaOrderId,
                 'hpp_session_id'     => null,
                 'amount'             => $amount,
-                'currency'           => $order->id_currency ?? '',
+                'currency'           => $order->currency->getCode(),
                 'klarna_event'       => 'refund_created',
                 'note'               => Text::sprintf('PLG_ALFA_PAYMENTS_KLARNA_LOG_REFUNDED', $payment->id),
                 'created_on'         => $now,
@@ -772,19 +748,17 @@ final class Klarna extends PaymentsPlugin
      * Build the Klarna Payments session payload from an Alfa Commerce order.
      * Adjust field mapping to match your Alfa Commerce order object structure.
      */
-	private function buildSessionData(object $order): array
-	{
-		$currencyCode = 'EUR';
-
-		return [
-			'purchase_country'  => $order->billing_country_code ?? 'GR',
-			'purchase_currency' => $currencyCode,
-			'locale'            => $order->language ?? 'el-GR',
-			'order_amount'      => $this->amountToMinorUnit($this->resolveAmount($order), $currencyCode),
-			'order_tax_amount'  => $this->amountToMinorUnit($this->resolveTaxAmount($order), $currencyCode),
-			'order_lines'       => $this->buildOrderLines($order),
-		];
-	}
+    private function buildSessionData(object $order): array
+    {
+        return [
+            'purchase_country'  => $order->billing_country_code ?? 'GR',
+            'purchase_currency' => $order->currency->getCode(),
+            'locale'            => $order->language ?? 'el-GR',
+            'order_amount'      => $order->total_paid_tax_incl->getMinorUnits(),
+            'order_tax_amount'  => ($order->total_tax instanceof \Alfa\Component\Alfa\Site\Service\Pricing\Money ? $order->total_tax->getMinorUnits() : 0),
+            'order_lines'       => $this->buildOrderLines($order),
+        ];
+    }
 
     /**
      * Build the Klarna order creation payload (used in createOrderFromAuthorizationToken).
@@ -795,12 +769,12 @@ final class Klarna extends PaymentsPlugin
         return array_merge($this->buildSessionData($order), [
             'merchant_reference1' => (string) $order->id,
             'merchant_urls'       => [
-	            'confirmation' => Route::_(
-		            'index.php?option=com_alfa&view=cart&layout=default_order_completed&order_id=' . $order->id,
-		            false, Route::TLS_FORCE, true
-	            ),
+                'confirmation' => Route::_(
+                    'index.php?option=com_alfa&view=cart&layout=default_order_completed',
+                    false, Route::TLS_FORCE, true
+                ),
                 'notification' => Route::_(
-                    'index.php?option=com_alfa&task=payment.notify&plugin=klarna&order_id=' . $order->id,
+                    'index.php?option=com_alfa&task=plugin.trigger&type=alfa-payments&name=klarna&func=notify&order_id=' . $order->id,
                     false, Route::TLS_FORCE, true
                 ),
             ],
@@ -811,46 +785,61 @@ final class Klarna extends PaymentsPlugin
      * Build Klarna order_lines array from Alfa Commerce order items.
      * Adjust field names to match your actual order item object.
      */
-    private function buildOrderLines(object $order): array
-    {
-        $lines = [];
+	private function buildOrderLines(object $order): array
+	{
+		$lines = [];
 
-        foreach ($order->items ?? [] as $item) {
-	        $rawUnitPrice = $item->unit_price_tax_incl ? (float) $item->unit_price_tax_incl->getAmount() : 0.0;
-	        $unitPrice = $this->amountToMinorUnit($rawUnitPrice, $order->id_currency ?? 'EUR');
-            $totalPrice = $this->amountToMinorUnit((float) ($item->total_price_tax_incl->getAmount() ?? 0), $order->id_currency ?? 'EUR');
-            $taxAmount  = $this->amountToMinorUnit((float) ($item->tax_amount ?? 0), $order->id_currency ?? 'EUR');
-            $taxRate    = (int) (((float) ($item->tax_rate ?? 0)) * 100); // e.g. 0.24 → 2400
+		foreach ($order->items ?? [] as $item) {
+			$rawUnitPrice  = $item->unit_price_tax_incl ?? 0;
+			$rawTotalPrice = $item->total_price_tax_incl ?? 0;
+			$rawTaxAmount  = $item->tax_amount ?? 0;
 
-            $lines[] = [
-                'type'             => 'physical',
-                'reference'        => (string) ($item->product_reference ?? $item->id_product ?? ''),
-                'name'             => (string) ($item->product_name ?? $item->name ?? 'Item'),
-                'quantity'         => (int) ($item->product_quantity ?? 1),
-                'unit_price'       => $unitPrice,
-                'tax_rate'         => $taxRate,
-                'total_amount'     => $totalPrice,
-                'total_tax_amount' => $taxAmount,
-            ];
-        }
+			$unitPrice = ($rawUnitPrice instanceof \Alfa\Component\Alfa\Site\Service\Pricing\Money)
+				? $rawUnitPrice->getMinorUnits()
+				: (int) round((float) $rawUnitPrice * 100);
 
-        // Add shipping as a line if present
-        if (!empty($order->total_shipping_tax_incl->getAmount()) && (float) $order->total_shipping_tax_incl->getAmount() > 0) {
-            $shippingAmount = $this->amountToMinorUnit((float) $order->total_shipping_tax_incl, $order->id_currency ?? 'EUR');
+			$totalPrice = ($rawTotalPrice instanceof \Alfa\Component\Alfa\Site\Service\Pricing\Money)
+				? $rawTotalPrice->getMinorUnits()
+				: (int) round((float) $rawTotalPrice * 100);
 
-            $lines[] = [
-                'type'             => 'shipping_fee',
-                'name'             => 'Shipping',
-                'quantity'         => 1,
-                'unit_price'       => $shippingAmount,
-                'tax_rate'         => 2400, // adjust to your shipping tax rate
-                'total_amount'     => $shippingAmount,
-                'total_tax_amount' => 0,
-            ];
-        }
+			$taxAmount = ($rawTaxAmount instanceof \Alfa\Component\Alfa\Site\Service\Pricing\Money)
+				? $rawTaxAmount->getMinorUnits()
+				: (int) round((float) $rawTaxAmount * 100);
 
-        return $lines;
-    }
+			$taxRate = (int) (((float) ($item->tax_rate ?? 0)) * 100); // π.χ. 24.00 -> 2400
+
+			$lines[] = [
+				'type'             => 'physical',
+				'reference'        => (string) ($item->product_reference ?? $item->id_product ?? ''),
+				'name'             => (string) ($item->product_name ?? $item->name ?? 'Item'),
+				'quantity'         => (int) ($item->product_quantity ?? 1),
+				'unit_price'       => $unitPrice,
+				'tax_rate'         => $taxRate,
+				'total_amount'     => $totalPrice,
+				'total_tax_amount' => $taxAmount,
+			];
+		}
+
+		$rawShipping = $order->total_shipping_tax_incl ?? 0;
+
+		$shippingAmount = ($rawShipping instanceof \Alfa\Component\Alfa\Site\Service\Pricing\Money)
+			? $rawShipping->getMinorUnits()
+			: (int) round((float) $rawShipping * 100);
+
+		if ($shippingAmount > 0) {
+			$lines[] = [
+				'type'             => 'shipping_fee',
+				'name'             => 'Shipping',
+				'quantity'         => 1,
+				'unit_price'       => $shippingAmount,
+				'tax_rate'         => 2400,
+				'total_amount'     => $shippingAmount,
+				'total_tax_amount' => 0,
+			];
+		}
+
+		return $lines;
+	}
 
     // =========================================================================
     //  PRIVATE — UTILITIES
@@ -860,53 +849,14 @@ final class Klarna extends PaymentsPlugin
      * Convert a decimal amount to Klarna's minor unit (integer cents).
      * €99.00 → 9900,  $1.50 → 150
      */
-    private function amountToMinorUnit(float $amount, string $currency = 'EUR'): int
-    {
-        // Zero-decimal currencies (JPY, KRW, etc.) — no multiplication needed
-        $zeroDecimal = ['JPY', 'KRW', 'VND', 'BIF', 'GNF', 'MGA', 'PYG', 'RWF', 'UGX', 'XAF', 'XOF'];
-
-        if (in_array(strtoupper($currency), $zeroDecimal, true)) {
-            return (int) round($amount);
-        }
-
-        return (int) round($amount * 100);
-    }
-
-    /** Extract payment amount as a plain float (handles Money objects). */
-    private function getPaymentAmount(object $payment): float
-    {
-        $amount = $payment->amount ?? 0;
-
-        if (is_object($amount) && method_exists($amount, 'getAmount')) {
-            return (float) $amount->getAmount();
-        }
-
-        return (float) $amount;
-    }
-
-    /** Get the order total as a float (with Money object support). */
-    private function resolveAmount(object $order): float
-    {
-        $total = $order->total_paid_tax_incl ?? $order->total_amount ?? 0;
-
-        if (is_object($total) && method_exists($total, 'getAmount')) {
-            return (float) $total->getAmount();
-        }
-
-        return (float) $total;
-    }
-
-    /** Get the order tax total as a float. */
-    private function resolveTaxAmount(object $order): float
-    {
-        $tax = $order->total_tax ?? 0;
-
-        if (is_object($tax) && method_exists($tax, 'getAmount')) {
-            return (float) $tax->getAmount();
-        }
-
-        return (float) $tax;
-    }
+    // Amount helpers removed — Money objects used directly:
+    //   $order->total_paid_tax_incl->getMinorUnits()   → int (minor units, currency-aware via Currency::getDecimalPlaces())
+    //   $order->total_paid_tax_incl->getAmount()        → float (major units)
+    //   $order->total_products_tax_excl->getAmount()    → float (tax excl)
+    //   $order->total_tax->getAmount()                  → float (tax amount)
+    //   $order->currency->getCode()                     → string ISO code
+    //   $payment->amount->getMinorUnits()               → int
+    //   $payment->amount->getAmount()                   → float
 
     /**
      * Get the most recent pending payment for an order.

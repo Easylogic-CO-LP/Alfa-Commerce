@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extension type="plugin" group="alfa-payments" method="upgrade">
-	<n>PLG_ALFA_PAYMENTS_VIVA</n>
+	<name>PLG_ALFA_PAYMENTS_VIVA</name>
 	<copyright>(C) 2024-2026 Alfa. All rights reserved.</copyright>
 	<license>GNU General Public License version 3 or later; see LICENSE</license>
 	<author>Alfa</author>
