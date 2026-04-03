@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @package     Alfa\PhpKlarna
  * @copyright   Copyright (C) Alfa. All rights reserved.

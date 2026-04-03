@@ -1,4 +1,5 @@
 <?php
+
 namespace Alfa\PhpViva\Transaction;
 
 defined('_JEXEC') or die;
@@ -22,24 +23,44 @@ class ClassicCancel
 {
     use \Alfa\PhpViva\Request;
 
-    const LIVE_URL = 'https://www.vivapayments.com';
-    const TEST_URL = 'https://demo.vivapayments.com';
+    public const LIVE_URL = 'https://www.vivapayments.com';
+    public const TEST_URL = 'https://demo.vivapayments.com';
 
-    private string  $merchantId    = '';
-    private string  $apiKey        = '';
+    private string $merchantId = '';
+    private string $apiKey = '';
     private ?string $transactionId = null;
-    private ?string $sourceCode    = null;
-    private ?int    $amount        = null;
+    private ?string $sourceCode = null;
+    private ?int $amount = null;
 
-    public function setMerchantId(string $id): static       { $this->merchantId    = $id;   return $this; }
-    public function setApiKey(string $key): static          { $this->apiKey        = $key;  return $this; }
-    public function setTransactionId(string $id): static    { $this->transactionId = $id;   return $this; }
-    public function setSourceCode(string $code): static     { $this->sourceCode    = $code; return $this; }
-    public function setAmount(int $amount): static          { $this->amount        = $amount; return $this; }
+    public function setMerchantId(string $id): static
+    {
+        $this->merchantId = $id;
+        return $this;
+    }
+    public function setApiKey(string $key): static
+    {
+        $this->apiKey = $key;
+        return $this;
+    }
+    public function setTransactionId(string $id): static
+    {
+        $this->transactionId = $id;
+        return $this;
+    }
+    public function setSourceCode(string $code): static
+    {
+        $this->sourceCode = $code;
+        return $this;
+    }
+    public function setAmount(int $amount): static
+    {
+        $this->amount = $amount;
+        return $this;
+    }
 
     public function send(): ?object
     {
-        $base   = $this->testMode ? self::TEST_URL : self::LIVE_URL;
+        $base = $this->testMode ? self::TEST_URL : self::LIVE_URL;
         $params = [];
 
         if ($this->amount !== null) {
@@ -56,7 +77,7 @@ class ClassicCancel
 
         $headers = [
             'Authorization' => 'Basic ' . base64_encode($this->merchantId . ':' . $this->apiKey),
-            'Accept'        => 'application/json',
+            'Accept' => 'application/json',
         ];
 
         $result = $this->httpRequest('DELETE', $url, '', $headers);

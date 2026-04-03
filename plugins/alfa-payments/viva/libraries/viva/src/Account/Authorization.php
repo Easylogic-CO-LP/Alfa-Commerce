@@ -1,4 +1,5 @@
 <?php
+
 namespace Alfa\PhpViva\Account;
 
 defined('_JEXEC') or die;
@@ -11,18 +12,18 @@ class Authorization
 {
     use \Alfa\PhpViva\Request;
 
-    const URI    = '/connect/token';
-    const METHOD = 'POST';
+    public const URI = '/connect/token';
+    public const METHOD = 'POST';
 
     public function getAccessToken(): ?string
     {
         $headers = [
             'Authorization' => 'Basic ' . base64_encode($this->getClientId() . ':' . $this->getClientSecret()),
-            'Accept'        => 'application/json',
-            'Content-Type'  => 'application/x-www-form-urlencoded',
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/x-www-form-urlencoded',
         ];
 
-        $body   = http_build_query(['grant_type' => 'client_credentials']);
+        $body = http_build_query(['grant_type' => 'client_credentials']);
         $result = $this->httpRequest(static::METHOD, Url::getUrl($this->getTestMode()) . static::URI, $body, $headers);
 
         if (!empty($this->getError())) {

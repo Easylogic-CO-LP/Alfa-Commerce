@@ -1,4 +1,5 @@
 <?php
+
 namespace Alfa\Plugin\AlfaPayments\PayPal;
 
 defined('_JEXEC') or die;

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @package     Alfa\PhpKlarna
  * @copyright   Copyright (C) Alfa. All rights reserved.
@@ -10,6 +11,7 @@ namespace Alfa\PhpKlarna\Resources;
 defined('_JEXEC') or die;
 
 use Alfa\PhpKlarna\PhpKlarna;
+use AllowDynamicProperties;
 use ReflectionObject;
 use ReflectionProperty;
 
@@ -24,7 +26,7 @@ use ReflectionProperty;
  * #[AllowDynamicProperties] handles PHP 8.2+ strict mode when Klarna returns
  * fields not declared as typed properties on the subclass.
  */
-#[\AllowDynamicProperties]
+#[AllowDynamicProperties]
 class ApiResource
 {
     /** Raw response array exactly as returned by the Klarna API. */
@@ -33,10 +35,10 @@ class ApiResource
     /** Back-reference to the client. Protected so credentials are never exposed. */
     protected ?PhpKlarna $klarna;
 
-    public function __construct(array $attributes, PhpKlarna $klarna = null)
+    public function __construct(array $attributes, ?PhpKlarna $klarna = null)
     {
         $this->attributes = $attributes;
-        $this->klarna     = $klarna;
+        $this->klarna = $klarna;
         $this->fill();
     }
 
@@ -66,8 +68,8 @@ class ApiResource
     public function __sleep(): array
     {
         $names = array_map(
-            static fn(ReflectionProperty $p) => $p->getName(),
-            (new ReflectionObject($this))->getProperties(ReflectionProperty::IS_PUBLIC)
+            static fn (ReflectionProperty $p) => $p->getName(),
+            (new ReflectionObject($this))->getProperties(ReflectionProperty::IS_PUBLIC),
         );
 
         return array_values(array_diff($names, ['klarna', 'attributes']));

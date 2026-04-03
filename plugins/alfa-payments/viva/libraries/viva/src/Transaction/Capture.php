@@ -1,5 +1,7 @@
 <?php
+
 namespace Alfa\PhpViva\Transaction;
+
 defined('_JEXEC') or die;
 
 /**
@@ -8,12 +10,19 @@ defined('_JEXEC') or die;
  */
 class Capture extends Request
 {
-    const METHOD = 'POST';
+    public const METHOD = 'POST';
 
     private ?string $transactionId = null;
 
-    public function setTransactionId(string $id): static { $this->transactionId = $id; return $this; }
-    public function getTransactionId(): ?string           { return $this->transactionId; }
+    public function setTransactionId(string $id): static
+    {
+        $this->transactionId = $id;
+        return $this;
+    }
+    public function getTransactionId(): ?string
+    {
+        return $this->transactionId;
+    }
 
     protected function getApiUrl(): string
     {

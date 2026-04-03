@@ -14,7 +14,7 @@ use Joomla\CMS\Router\Route;
 extract($displayData);
 
 $error = htmlspecialchars($error ?? Text::_('PLG_ALFA_PAYMENTS_KLARNA_PAYMENT_FAILED'));
-$order = $order ?? null;
+$order ??= null;
 ?>
 <div class="klarna-error text-center py-4">
     <span class="icon-cancel-circle text-danger" style="font-size:3rem" aria-hidden="true"></span>

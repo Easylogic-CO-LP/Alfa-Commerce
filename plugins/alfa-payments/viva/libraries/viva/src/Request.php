@@ -1,4 +1,5 @@
 <?php
+
 namespace Alfa\PhpViva;
 
 defined('_JEXEC') or die;
@@ -14,20 +15,47 @@ use Joomla\CMS\Http\HttpFactory;
  */
 trait Request
 {
-    private string  $clientId;
-    private string  $clientSecret;
-    private bool    $testMode    = false;
-    private ?string $error       = null;
-    private int     $lastHttpCode = 0; // last raw HTTP status code from httpRequest()
+    private string $clientId;
+    private string $clientSecret;
+    private bool $testMode = false;
+    private ?string $error = null;
+    private int $lastHttpCode = 0; // last raw HTTP status code from httpRequest()
 
-    public function setClientId(string $clientId): static       { $this->clientId = $clientId; return $this; }
-    public function getClientId(): string                        { return $this->clientId ?? ''; }
-    public function setClientSecret(string $s): static          { $this->clientSecret = $s; return $this; }
-    public function getClientSecret(): string                    { return $this->clientSecret ?? ''; }
-    public function setTestMode(bool $testMode): static         { $this->testMode = $testMode; return $this; }
-    public function getTestMode(): bool                          { return $this->testMode; }
-    public function getError(): ?string                          { return $this->error; }
-    public function getLastHttpCode(): int                       { return $this->lastHttpCode; }
+    public function setClientId(string $clientId): static
+    {
+        $this->clientId = $clientId;
+        return $this;
+    }
+    public function getClientId(): string
+    {
+        return $this->clientId ?? '';
+    }
+    public function setClientSecret(string $s): static
+    {
+        $this->clientSecret = $s;
+        return $this;
+    }
+    public function getClientSecret(): string
+    {
+        return $this->clientSecret ?? '';
+    }
+    public function setTestMode(bool $testMode): static
+    {
+        $this->testMode = $testMode;
+        return $this;
+    }
+    public function getTestMode(): bool
+    {
+        return $this->testMode;
+    }
+    public function getError(): ?string
+    {
+        return $this->error;
+    }
+    public function getLastHttpCode(): int
+    {
+        return $this->lastHttpCode;
+    }
 
     protected function setError(?string $error): static
     {
@@ -41,12 +69,12 @@ trait Request
      */
     protected function httpRequest(string $method, string $url, string $body, array $headers): ?object
     {
-        $http     = (new HttpFactory())->getHttp();
+        $http = (new HttpFactory())->getHttp();
         $response = match (strtoupper($method)) {
-            'GET'    => $http->get($url, $headers),
-            'POST'   => $http->post($url, $body ?: null, $headers),
+            'GET' => $http->get($url, $headers),
+            'POST' => $http->post($url, $body ?: null, $headers),
             'DELETE' => $http->delete($url, $headers),
-            default  => $http->post($url, $body ?: null, $headers),
+            default => $http->post($url, $body ?: null, $headers),
         };
 
         // Joomla 5: $response->code / $response->body
@@ -54,7 +82,7 @@ trait Request
         $code = method_exists($response, 'getStatusCode')
             ? (int) $response->getStatusCode()
             : (int) ($response->code ?? 0);
-        $raw  = method_exists($response, 'getBody')
+        $raw = method_exists($response, 'getBody')
             ? (string) $response->getBody()
             : (string) ($response->body ?? '');
 
@@ -63,10 +91,16 @@ trait Request
 
         if ($code < 200 || $code >= 300) {
             $this->setError($raw);
-            if (!empty($result->error))        $this->setError($result->error);
-            elseif (!empty($result->message))  $this->setError($result->message);
-            elseif (!empty($result->ErrorText)) $this->setError($result->ErrorText);
-            if (empty($this->getError()))      $this->setError('HTTP error ' . $code);
+            if (!empty($result->error)) {
+                $this->setError($result->error);
+            } elseif (!empty($result->message)) {
+                $this->setError($result->message);
+            } elseif (!empty($result->ErrorText)) {
+                $this->setError($result->ErrorText);
+            }
+            if (empty($this->getError())) {
+                $this->setError('HTTP error ' . $code);
+            }
             return null;
         }
 

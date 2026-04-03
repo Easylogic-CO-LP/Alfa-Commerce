@@ -1,4 +1,5 @@
 <?php
+
 namespace Alfa\Plugin\AlfaPayments\Klarna;
 
 defined('_JEXEC') or die;

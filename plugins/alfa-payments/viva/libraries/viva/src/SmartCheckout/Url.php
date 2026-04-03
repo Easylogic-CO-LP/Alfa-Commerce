@@ -1,4 +1,5 @@
 <?php
+
 namespace Alfa\PhpViva\SmartCheckout;
 
 defined('_JEXEC') or die;
@@ -15,19 +16,17 @@ use Alfa\PhpViva\Url as BaseUrl;
 class Url extends BaseUrl
 {
     // API base — used for creating orders and verifying transactions
-    const LIVE_URL = 'https://api.vivapayments.com';
-    const TEST_URL = 'https://demo-api.vivapayments.com';
+    public const LIVE_URL = 'https://api.vivapayments.com';
+    public const TEST_URL = 'https://demo-api.vivapayments.com';
 
     // Customer-facing hosted checkout page — append ?ref={orderCode}
-    const LIVE_CHECKOUT = 'https://www.vivapayments.com/web/checkout';
-    const TEST_CHECKOUT = 'https://demo.vivapayments.com/web/checkout';
+    public const LIVE_CHECKOUT = 'https://www.vivapayments.com/web/checkout';
+    public const TEST_CHECKOUT = 'https://demo.vivapayments.com/web/checkout';
 
     /**
      * Build the full redirect URL for the customer.
      *
-     * @param int|string $orderCode  The orderCode returned by createOrder()
-     * @param bool       $testMode
-     * @return string
+     * @param int|string $orderCode The orderCode returned by createOrder()
      */
     public static function checkoutUrl(int|string $orderCode, bool $testMode = false): string
     {

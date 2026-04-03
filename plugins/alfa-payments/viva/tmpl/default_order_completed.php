@@ -2,7 +2,11 @@
 defined('_JEXEC') or die;
 use Alfa\Plugin\AlfaPayments\Viva\Assets;
 use Joomla\CMS\Language\Text;
-extract($displayData); if (!isset($order)) return;
+
+extract($displayData);
+if (!isset($order)) {
+    return;
+}
 ?>
 <div class="viva-order-complete text-center py-4">
     <div class="mb-3"><?php echo Assets::LOGO_SVG; ?></div>

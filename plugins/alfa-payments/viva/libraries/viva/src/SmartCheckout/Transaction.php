@@ -1,4 +1,5 @@
 <?php
+
 namespace Alfa\PhpViva\SmartCheckout;
 
 defined('_JEXEC') or die;
@@ -18,7 +19,7 @@ defined('_JEXEC') or die;
  */
 class Transaction extends Request
 {
-    const METHOD = 'GET';
+    public const METHOD = 'GET';
 
     private string $transactionId;
 

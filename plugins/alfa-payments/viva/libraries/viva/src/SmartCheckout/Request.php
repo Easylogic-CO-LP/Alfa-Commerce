@@ -1,20 +1,22 @@
 <?php
+
 namespace Alfa\PhpViva\SmartCheckout;
 
 defined('_JEXEC') or die;
 
 use Alfa\PhpViva\Account\Authorization as AccountAuthorization;
+use JsonSerializable;
 
 /**
  * Abstract base for all Smart Checkout API calls.
  * Handles OAuth2 token acquisition and JSON request dispatch.
  */
-abstract class Request implements \JsonSerializable
+abstract class Request implements JsonSerializable
 {
     use \Alfa\PhpViva\Request;
 
-    const URI    = '';
-    const METHOD = 'GET';
+    public const URI = '';
+    public const METHOD = 'GET';
 
     private ?string $accessToken = null;
 
@@ -24,7 +26,7 @@ abstract class Request implements \JsonSerializable
     public function getAccessToken(): ?string
     {
         if (empty($this->accessToken)) {
-            $auth  = (new AccountAuthorization())
+            $auth = (new AccountAuthorization())
                 ->setClientId($this->getClientId())
                 ->setClientSecret($this->getClientSecret())
                 ->setTestMode($this->getTestMode());
@@ -51,7 +53,7 @@ abstract class Request implements \JsonSerializable
     /**
      * Send the request to the Viva Smart Checkout API.
      *
-     * @return object|null  Decoded JSON response, or null on error.
+     * @return object|null Decoded JSON response, or null on error.
      */
     public function send(): ?object
     {
@@ -63,7 +65,7 @@ abstract class Request implements \JsonSerializable
 
         $headers = [
             'Authorization' => 'Bearer ' . $token,
-            'Accept'        => 'application/json',
+            'Accept' => 'application/json',
         ];
 
         $body = '';

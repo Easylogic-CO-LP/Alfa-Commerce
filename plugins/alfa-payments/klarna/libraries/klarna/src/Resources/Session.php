@@ -1,5 +1,7 @@
 <?php
+
 namespace Alfa\PhpKlarna\Resources;
+
 defined('_JEXEC') or die;
 
 /**
@@ -10,9 +12,9 @@ defined('_JEXEC') or die;
  */
 class Session extends ApiResource
 {
-    public string $sessionId   = '';
+    public string $sessionId = '';
     public string $clientToken = '';
-    public array  $paymentMethodCategories = [];
+    public array $paymentMethodCategories = [];
 
     public function __construct(array $attributes, $klarna = null)
     {

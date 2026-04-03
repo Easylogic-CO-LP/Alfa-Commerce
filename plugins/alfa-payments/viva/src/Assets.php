@@ -1,4 +1,5 @@
 <?php
+
 namespace Alfa\Plugin\AlfaPayments\Viva;
 
 defined('_JEXEC') or die;

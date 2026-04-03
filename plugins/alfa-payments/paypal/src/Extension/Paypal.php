@@ -40,12 +40,12 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\OrderPaymentHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PaymentsPlugin;
+use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
-use Joomla\CMS\Router\Route;
-
 // PayPal SDK — loaded by services/provider.php via Composer autoloader
+use Joomla\CMS\Router\Route;
 use Joomla\Registry\Registry;
 use PaypalServerSdkLib\Authentication\ClientCredentialsAuthCredentialsBuilder;
 use PaypalServerSdkLib\Environment;
@@ -62,6 +62,8 @@ use PaypalServerSdkLib\Models\OrderApplicationContextShippingPreference;
 use PaypalServerSdkLib\Models\OrderApplicationContextUserAction;
 use PaypalServerSdkLib\PaypalServerSdkClient;
 use PaypalServerSdkLib\PaypalServerSdkClientBuilder;
+use RuntimeException;
+use stdClass;
 
 final class PayPal extends PaymentsPlugin
 {
@@ -73,25 +75,25 @@ final class PayPal extends PaymentsPlugin
      * Build a configured PayPal SDK client from plugin params.
      * The SDK handles OAuth2 token acquisition and refresh automatically.
      */
-	private function paypal(object $order): PaypalServerSdkClient
-	{
-		$rawParams = $order->selected_payment->params ?? '{}';
-		$params = new Registry($rawParams);
+    private function paypal(object $order): PaypalServerSdkClient
+    {
+        $rawParams = $order->selected_payment->params ?? '{}';
+        $params = new Registry($rawParams);
 
-		return PaypalServerSdkClientBuilder::init()
-			->clientCredentialsAuthCredentials(
-				ClientCredentialsAuthCredentialsBuilder::init(
-					$params->get('api_username', ''),
-					$params->get('api_password', '')
-				)
-			)
-			->environment(
-				$params->get('mode', 'sandbox') === 'live'
-					? Environment::PRODUCTION
-					: Environment::SANDBOX
-			)
-			->build();
-	}
+        return PaypalServerSdkClientBuilder::init()
+            ->clientCredentialsAuthCredentials(
+                ClientCredentialsAuthCredentialsBuilder::init(
+                    $params->get('api_username', ''),
+                    $params->get('api_password', ''),
+                ),
+            )
+            ->environment(
+                $params->get('mode', 'sandbox') === 'live'
+                    ? Environment::PRODUCTION
+                    : Environment::SANDBOX,
+            )
+            ->build();
+    }
 
     // =========================================================================
     //  FRONTEND HOOKS
@@ -128,28 +130,28 @@ final class PayPal extends PaymentsPlugin
      * Visit 1 only — redirect customer to PayPal's approval page.
      * The return (and cancellation) is handled by onPaymentResponse() via task=payment.response.
      */
-	public function onOrderProcessView($event): void
-	{
-		$input  = Factory::getApplication()->getInput();
-		$result = $input->getString('paypal_result', '');
+    public function onOrderProcessView($event): void
+    {
+        $input = Factory::getApplication()->getInput();
+        $result = $input->getString('paypal_result', '');
 
-		if ($result === 'cancelled') {
-			$event->setLayout('default_order_process_cancelled');
-			$event->setLayoutData(['order' => $event->getSubject()]);
-			return;
-		}
+        if ($result === 'cancelled') {
+            $event->setLayout('default_order_process_cancelled');
+            $event->setLayoutData(['order' => $event->getSubject()]);
+            return;
+        }
 
-		if ($result === 'error') {
-			$event->setLayout('default_order_process_error');
-			$event->setLayoutData([
-				'error' => $input->getString('paypal_result_msg', ''),
-				'order' => $event->getSubject(),
-			]);
-			return;
-		}
+        if ($result === 'error') {
+            $event->setLayout('default_order_process_error');
+            $event->setLayoutData([
+                'error' => $input->getString('paypal_result_msg', ''),
+                'order' => $event->getSubject(),
+            ]);
+            return;
+        }
 
-		$this->redirectToPayPal($event, $event->getSubject());
-	}
+        $this->redirectToPayPal($event, $event->getSubject());
+    }
 
     public function onOrderCompleteView($event): void
     {
@@ -166,89 +168,88 @@ final class PayPal extends PaymentsPlugin
      * Create the initial PayPal order immediately after Alfa Commerce order is saved.
      * Stores the PayPal order_id as transaction_id so it survives abandoned checkouts.
      */
-	public function onOrderAfterPlace($event): void
-	{
-		$order = $event->getOrder();
+    public function onOrderAfterPlace($event): void
+    {
+        $order = $event->getOrder();
 
-		if (!$order || empty($order->id)) {
-			return;
-		}
+        if (!$order || empty($order->id)) {
+            return;
+        }
 
-		$now      = Factory::getDate('now', 'UTC')->toSql();
-		$intent   = strtoupper($this->params->get('intent', 'CAPTURE'));
-		$currency = $order->currency->getCode();
-		$amount   = (float) $order->total_paid_tax_incl->getAmount();
+        $now = Factory::getDate('now', 'UTC')->toSql();
+        $intent = strtoupper($this->params->get('intent', 'CAPTURE'));
+        $currency = $order->currency->getCode();
+        $amount = (float) $order->total_paid_tax_incl->getAmount();
 
-		try {
-			$orderRequest = OrderRequestBuilder::init(
-				$intent === 'AUTHORIZE'
-					? CheckoutPaymentIntent::AUTHORIZE
-					: CheckoutPaymentIntent::CAPTURE,
-				[
-					PurchaseUnitRequestBuilder::init(
-						AmountWithBreakdownBuilder::init(
-							$currency,
-							number_format($amount, 2, '.', '')
-						)->build()
-					)
-						->referenceId((string) $order->id)
-						->description('Order #' . $order->id)
-						->customId((string) $order->id)
-						->build(),
-				]
-			)
-				->applicationContext(
-					OrderApplicationContextBuilder::init()
-						->locale('el-GR')
-						->landingPage(OrderApplicationContextLandingPage::LOGIN)
-						->shippingPreference(OrderApplicationContextShippingPreference::NO_SHIPPING)
-						->userAction(OrderApplicationContextUserAction::PAY_NOW)
-						->returnUrl($this->buildReturnUrl($order->id))
-						->cancelUrl($this->buildCancelUrl($order->id))
-						->build()
-				)
-				->build();
+        try {
+            $orderRequest = OrderRequestBuilder::init(
+                $intent === 'AUTHORIZE'
+                    ? CheckoutPaymentIntent::AUTHORIZE
+                    : CheckoutPaymentIntent::CAPTURE,
+                [
+                    PurchaseUnitRequestBuilder::init(
+                        AmountWithBreakdownBuilder::init(
+                            $currency,
+                            number_format($amount, 2, '.', ''),
+                        )->build(),
+                    )
+                        ->referenceId((string) $order->id)
+                        ->description('Order #' . $order->id)
+                        ->customId((string) $order->id)
+                        ->build(),
+                ],
+            )
+                ->applicationContext(
+                    OrderApplicationContextBuilder::init()
+                        ->locale('el-GR')
+                        ->landingPage(OrderApplicationContextLandingPage::LOGIN)
+                        ->shippingPreference(OrderApplicationContextShippingPreference::NO_SHIPPING)
+                        ->userAction(OrderApplicationContextUserAction::PAY_NOW)
+                        ->returnUrl($this->buildReturnUrl($order->id))
+                        ->cancelUrl($this->buildCancelUrl($order->id))
+                        ->build(),
+                )
+                ->build();
 
-			$response    = $this->paypal($order)->getOrdersController()->createOrder(['body' => $orderRequest]);
-			$paypalOrder = $response->getResult();
-			$paypalId    = $paypalOrder->getId();
+            $response = $this->paypal($order)->getOrdersController()->createOrder(['body' => $orderRequest]);
+            $paypalOrder = $response->getResult();
+            $paypalId = $paypalOrder->getId();
 
-			if (empty($paypalId)) {
-				throw new \RuntimeException('PayPal API returned an empty order ID.');
-			}
+            if (empty($paypalId)) {
+                throw new RuntimeException('PayPal API returned an empty order ID.');
+            }
 
-			$paymentId = $this->payment($order)
-				->pending()
-				->transactionId($paypalId)
-				->save();
+            $paymentId = $this->payment($order)
+                ->pending()
+                ->transactionId($paypalId)
+                ->save();
 
-			if (!$paymentId) {
-				Log::add('PayPal: Failed to save payment record for order #' . $order->id, Log::ERROR, 'com_alfa.payments');
-				return;
-			}
+            if (!$paymentId) {
+                Log::add('PayPal: Failed to save payment record for order #' . $order->id, Log::ERROR, 'com_alfa.payments');
+                return;
+            }
 
-			$this->log([
-				'id_order'           => (int) $order->id,
-				'id_order_payment'   => (int) $paymentId,
-				'action'             => 'order_created',
-				'transaction_status' => OrderPaymentHelper::STATUS_PENDING,
-				'paypal_order_id'    => $paypalId,
-				'paypal_capture_id'  => null,
-				'intent'             => $intent,
-				'amount'             => $amount,
-				'currency'           => substr(trim((string) $currency), 0, 3),
-				'paypal_status'      => 'CREATED',
-				'note'               => 'PayPal order created on checkout.',
-				'created_on'         => $now,
-				'created_by'         => 0,
-			]);
-
-		} catch (ApiException $e) {
-			Log::add('PayPal createOrder API error for order #' . $order->id . ': ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
-		} catch (\Exception $e) {
-			Log::add('PayPal createOrder failed for order #' . $order->id . ': ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
-		}
-	}
+            $this->log([
+                'id_order' => (int) $order->id,
+                'id_order_payment' => (int) $paymentId,
+                'action' => 'order_created',
+                'transaction_status' => OrderPaymentHelper::STATUS_PENDING,
+                'paypal_order_id' => $paypalId,
+                'paypal_capture_id' => null,
+                'intent' => $intent,
+                'amount' => $amount,
+                'currency' => substr(trim((string) $currency), 0, 3),
+                'paypal_status' => 'CREATED',
+                'note' => 'PayPal order created on checkout.',
+                'created_on' => $now,
+                'created_by' => 0,
+            ]);
+        } catch (ApiException $e) {
+            Log::add('PayPal createOrder API error for order #' . $order->id . ': ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
+        } catch (Exception $e) {
+            Log::add('PayPal createOrder failed for order #' . $order->id . ': ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
+        }
+    }
 
     // =========================================================================
     //  WEBHOOK HOOK
@@ -269,21 +270,20 @@ final class PayPal extends PaymentsPlugin
      *
      * Webhooks: use notify() via task=plugin.trigger&func=notify if needed later.
      */
-	public function onPaymentResponse($event): void
-	{
-		$input = Factory::getApplication()->getInput();
-		$token = $input->getString('token', '');
-		$order = $event->getOrder();
+    public function onPaymentResponse($event): void
+    {
+        $input = Factory::getApplication()->getInput();
+        $token = $input->getString('token', '');
+        $order = $event->getOrder();
 
-		if ($input->getString('paypal_result', '') === 'cancel' || empty($token)) {
-			$event->setRedirectUrl(
-				Route::_($this->getProcessPageUrl() . '&paypal_result=cancelled', false, Route::TLS_FORCE, true)
-			);
-			return;
-		}
-		$this->handlePayPalReturn($event, $order, $token);
-	}
-
+        if ($input->getString('paypal_result', '') === 'cancel' || empty($token)) {
+            $event->setRedirectUrl(
+                Route::_($this->getProcessPageUrl() . '&paypal_result=cancelled', false, Route::TLS_FORCE, true),
+            );
+            return;
+        }
+        $this->handlePayPalReturn($event, $order, $token);
+    }
 
     // =========================================================================
     //  ADMIN ACTIONS
@@ -292,7 +292,7 @@ final class PayPal extends PaymentsPlugin
     public function onGetActions($event): void
     {
         $payment = $event->getPayment();
-        $status  = $payment->transaction_status ?? 'pending';
+        $status = $payment->transaction_status ?? 'pending';
 
         $event->add('view_details', Text::_('COM_ALFA_VIEW_DETAILS'))
             ->icon('eye')->css('btn-outline-secondary')
@@ -327,13 +327,13 @@ final class PayPal extends PaymentsPlugin
     public function onExecuteAction($event): void
     {
         match ($event->getAction()) {
-            'capture'      => $this->handleCapture($event),
-            'void'         => $this->handleVoid($event),
-            'refund'       => $this->handleRefund($event),
+            'capture' => $this->handleCapture($event),
+            'void' => $this->handleVoid($event),
+            'refund' => $this->handleRefund($event),
             'view_details' => $this->handleViewDetails($event),
-            'view_logs'    => $this->handleViewLogs($event),
-            default        => $event->setError(
-                Text::sprintf('PLG_ALFA_PAYMENTS_PAYPAL_ERROR_UNKNOWN_ACTION', $event->getAction())
+            'view_logs' => $this->handleViewLogs($event),
+            default => $event->setError(
+                Text::sprintf('PLG_ALFA_PAYMENTS_PAYPAL_ERROR_UNKNOWN_ACTION', $event->getAction()),
             ),
         };
     }
@@ -348,17 +348,17 @@ final class PayPal extends PaymentsPlugin
     private function redirectToPayPal($event, object $order): void
     {
         try {
-            $payment  = $this->getLatestPendingPayment($order->id);
+            $payment = $this->getLatestPendingPayment($order->id);
             $paypalId = $payment->transaction_id ?? '';
 
             if (empty($paypalId)) {
-                throw new \RuntimeException('No PayPal order ID found for order #' . $order->id . '. The order may not have been created.');
+                throw new RuntimeException('No PayPal order ID found for order #' . $order->id . '. The order may not have been created.');
             }
 
-            $client      = $this->paypal($order);
-            $response    = $client->getOrdersController()->getOrder(['id' => $paypalId]);
+            $client = $this->paypal($order);
+            $response = $client->getOrdersController()->getOrder(['id' => $paypalId]);
             $paypalOrder = $response->getResult();
-            $approveUrl  = null;
+            $approveUrl = null;
 
             foreach ($paypalOrder->getLinks() ?? [] as $link) {
                 if ($link->getRel() === 'approve') {
@@ -367,34 +367,33 @@ final class PayPal extends PaymentsPlugin
                 }
             }
 
-	        if (empty($approveUrl)) {
-		        throw new \RuntimeException('No approve URL in PayPal order ' . $paypalId . '. Status: ' . $paypalOrder->getStatus());
-	        }
+            if (empty($approveUrl)) {
+                throw new RuntimeException('No approve URL in PayPal order ' . $paypalId . '. Status: ' . $paypalOrder->getStatus());
+            }
 
             $now = Factory::getDate('now', 'UTC')->toSql();
             $this->log([
-                'id_order'           => (int) $order->id,
-                'id_order_payment'   => (int) ($payment->id ?? 0),
-                'action'             => 'redirect',
+                'id_order' => (int) $order->id,
+                'id_order_payment' => (int) ($payment->id ?? 0),
+                'action' => 'redirect',
                 'transaction_status' => OrderPaymentHelper::STATUS_PENDING,
-                'paypal_order_id'    => $paypalId,
-                'paypal_capture_id'  => null,
-                'intent'             => strtoupper($this->params->get('intent', 'CAPTURE')),
-                'amount'             => $order->total_paid_tax_incl->getAmount(),
-                'currency'           => $order->currency->getCode(),
-                'paypal_status'      => $paypalOrder->getStatus() ?? 'CREATED',
-                'note'               => 'Customer redirected to PayPal.',
-                'created_on'         => $now,
-                'created_by'         => (int) Factory::getApplication()->getIdentity()->id,
+                'paypal_order_id' => $paypalId,
+                'paypal_capture_id' => null,
+                'intent' => strtoupper($this->params->get('intent', 'CAPTURE')),
+                'amount' => $order->total_paid_tax_incl->getAmount(),
+                'currency' => $order->currency->getCode(),
+                'paypal_status' => $paypalOrder->getStatus() ?? 'CREATED',
+                'note' => 'Customer redirected to PayPal.',
+                'created_on' => $now,
+                'created_by' => (int) Factory::getApplication()->getIdentity()->id,
             ]);
 
             $event->setRedirectUrl($approveUrl);
-
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::add('PayPal redirect failed for order #' . $order->id . ': ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
-	        $event->setRedirectUrl(
-				Route::_($this->getProcessPageUrl() . '&paypal_result=error', false, Route::TLS_FORCE, true)
-	        );
+            $event->setRedirectUrl(
+                Route::_($this->getProcessPageUrl() . '&paypal_result=error', false, Route::TLS_FORCE, true),
+            );
         }
     }
 
@@ -404,7 +403,7 @@ final class PayPal extends PaymentsPlugin
      */
     private function handlePayPalReturn($event, object $order, string $token): void
     {
-        $now    = Factory::getDate('now', 'UTC')->toSql();
+        $now = Factory::getDate('now', 'UTC')->toSql();
         $intent = strtoupper($this->params->get('intent', 'CAPTURE'));
         $client = $this->paypal($order);
 
@@ -413,8 +412,8 @@ final class PayPal extends PaymentsPlugin
 
             if ($intent === 'AUTHORIZE') {
                 // Reserve funds — admin will capture manually when shipping
-                $response    = $client->getOrdersController()->authorizeOrder(['id' => $token, 'body' => null]);
-                $authResult  = $response->getResult();
+                $response = $client->getOrdersController()->authorizeOrder(['id' => $token, 'body' => null]);
+                $authResult = $response->getResult();
 
                 // Authorization ID is nested: purchaseUnits[0].payments.authorizations[0].getId()
                 $authId = $authResult
@@ -430,33 +429,32 @@ final class PayPal extends PaymentsPlugin
                     ->save();
 
                 $this->log([
-                    'id_order'           => (int) $order->id,
-                    'id_order_payment'   => (int) $payment->id,
-                    'action'             => 'authorized',
+                    'id_order' => (int) $order->id,
+                    'id_order_payment' => (int) $payment->id,
+                    'action' => 'authorized',
                     'transaction_status' => OrderPaymentHelper::STATUS_AUTHORIZED,
-                    'paypal_order_id'    => $token,
-                    'paypal_capture_id'  => null,
-                    'intent'             => $intent,
-                    'amount'             => $order->total_paid_tax_incl->getAmount(),
-                    'currency'           => $order->currency->getCode(),
-                    'paypal_status'      => $authResult->getStatus() ?? 'APPROVED',
-                    'note'               => 'PayPal payment authorized. Use Capture admin action when shipping.',
-                    'created_on'         => $now,
-                    'created_by'         => 0,
+                    'paypal_order_id' => $token,
+                    'paypal_capture_id' => null,
+                    'intent' => $intent,
+                    'amount' => $order->total_paid_tax_incl->getAmount(),
+                    'currency' => $order->currency->getCode(),
+                    'paypal_status' => $authResult->getStatus() ?? 'APPROVED',
+                    'note' => 'PayPal payment authorized. Use Capture admin action when shipping.',
+                    'created_on' => $now,
+                    'created_by' => 0,
                 ]);
-
             } else {
                 // CAPTURE — collect funds immediately on return
-                $response    = $client->getOrdersController()->captureOrder(['id' => $token, 'body' => null]);
+                $response = $client->getOrdersController()->captureOrder(['id' => $token, 'body' => null]);
                 $captureResult = $response->getResult();
 
                 // Capture ID is nested: purchaseUnits[0].payments.captures[0].getId()
-                $capture   = $captureResult->getPurchaseUnits()[0]?->getPayments()?->getCaptures()[0] ?? null;
+                $capture = $captureResult->getPurchaseUnits()[0]?->getPayments()?->getCaptures()[0] ?? null;
                 $captureId = $capture?->getId() ?? $token;
                 $capStatus = $capture?->getStatus() ?? $captureResult->getStatus() ?? 'COMPLETED';
 
                 if (!in_array($capStatus, ['COMPLETED', 'PENDING'], true)) {
-                    throw new \RuntimeException('Unexpected PayPal capture status: ' . $capStatus);
+                    throw new RuntimeException('Unexpected PayPal capture status: ' . $capStatus);
                 }
 
                 $this->paymentUpdate((int) $payment->id)
@@ -466,36 +464,35 @@ final class PayPal extends PaymentsPlugin
                     ->save();
 
                 $this->log([
-                    'id_order'           => (int) $order->id,
-                    'id_order_payment'   => (int) $payment->id,
-                    'action'             => 'captured',
+                    'id_order' => (int) $order->id,
+                    'id_order_payment' => (int) $payment->id,
+                    'action' => 'captured',
                     'transaction_status' => OrderPaymentHelper::STATUS_COMPLETED,
-                    'paypal_order_id'    => $token,
-                    'paypal_capture_id'  => $captureId,
-                    'intent'             => $intent,
-                    'amount'             => $order->total_paid_tax_incl->getAmount(),
-                    'currency'           => $order->currency->getCode(),
-                    'paypal_status'      => $capStatus,
-                    'note'               => 'PayPal payment captured. Status: ' . $capStatus,
-                    'created_on'         => $now,
-                    'created_by'         => 0,
+                    'paypal_order_id' => $token,
+                    'paypal_capture_id' => $captureId,
+                    'intent' => $intent,
+                    'amount' => $order->total_paid_tax_incl->getAmount(),
+                    'currency' => $order->currency->getCode(),
+                    'paypal_status' => $capStatus,
+                    'note' => 'PayPal payment captured. Status: ' . $capStatus,
+                    'created_on' => $now,
+                    'created_by' => 0,
                 ]);
             }
 
-	        $event->setRedirectUrl(
-		        Route::_($this->getCompletePageUrl(), false, Route::TLS_FORCE, true)
-	        );
-
+            $event->setRedirectUrl(
+                Route::_($this->getCompletePageUrl(), false, Route::TLS_FORCE, true),
+            );
         } catch (ApiException $e) {
             Log::add('PayPal return API error for order #' . $order->id . ': ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
-	        $event->setRedirectUrl(
-		        Route::_($this->getProcessPageUrl() . '&paypal_result=error', false, Route::TLS_FORCE, true)
-	        );
-        } catch (\Exception $e) {
+            $event->setRedirectUrl(
+                Route::_($this->getProcessPageUrl() . '&paypal_result=error', false, Route::TLS_FORCE, true),
+            );
+        } catch (Exception $e) {
             Log::add('PayPal return error for order #' . $order->id . ': ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
-	        $event->setRedirectUrl(
-		        Route::_($this->getProcessPageUrl() . '&paypal_result=error', false, Route::TLS_FORCE, true)
-	        );
+            $event->setRedirectUrl(
+                Route::_($this->getProcessPageUrl() . '&paypal_result=error', false, Route::TLS_FORCE, true),
+            );
         }
     }
 
@@ -511,10 +508,10 @@ final class PayPal extends PaymentsPlugin
     private function handleCapture($event): void
     {
         $payment = $event->getPayment();
-        $order   = $event->getOrder();
-        $amount  = $payment->amount->getAmount();
-        $now     = Factory::getDate('now', 'UTC')->toSql();
-        $authId  = $payment->transaction_id ?? '';
+        $order = $event->getOrder();
+        $amount = $payment->amount->getAmount();
+        $now = Factory::getDate('now', 'UTC')->toSql();
+        $authId = $payment->transaction_id ?? '';
 
         if (empty($authId)) {
             $event->setError(Text::_('PLG_ALFA_PAYMENTS_PAYPAL_ERROR_NO_TRANSACTION_ID'));
@@ -522,11 +519,11 @@ final class PayPal extends PaymentsPlugin
         }
 
         try {
-            $response  = $this->paypal($order)->getPaymentsController()->captureAuthorizedPayment([
+            $response = $this->paypal($order)->getPaymentsController()->captureAuthorizedPayment([
                 'authorizationId' => $authId,
-                'body'            => null, // full amount
+                'body' => null, // full amount
             ]);
-            $capture   = $response->getResult();
+            $capture = $response->getResult();
             $captureId = $capture->getId();
 
             $this->paymentUpdate((int) $payment->id)
@@ -536,25 +533,24 @@ final class PayPal extends PaymentsPlugin
                 ->save();
 
             $this->log([
-                'id_order'           => (int) $order->id,
-                'id_order_payment'   => (int) $payment->id,
-                'action'             => 'admin_capture',
+                'id_order' => (int) $order->id,
+                'id_order_payment' => (int) $payment->id,
+                'action' => 'admin_capture',
                 'transaction_status' => OrderPaymentHelper::STATUS_COMPLETED,
-                'paypal_order_id'    => null,
-                'paypal_capture_id'  => $captureId,
-                'intent'             => 'AUTHORIZE',
-                'amount'             => $amount,
-                'currency'           => $order->currency->getCode(),
-                'paypal_status'      => $capture->getStatus() ?? 'COMPLETED',
-                'note'               => 'Captured by admin.',
-                'created_on'         => $now,
-                'created_by'         => (int) Factory::getApplication()->getIdentity()->id,
+                'paypal_order_id' => null,
+                'paypal_capture_id' => $captureId,
+                'intent' => 'AUTHORIZE',
+                'amount' => $amount,
+                'currency' => $order->currency->getCode(),
+                'paypal_status' => $capture->getStatus() ?? 'COMPLETED',
+                'note' => 'Captured by admin.',
+                'created_on' => $now,
+                'created_by' => (int) Factory::getApplication()->getIdentity()->id,
             ]);
 
             $event->setMessage(Text::sprintf('PLG_ALFA_PAYMENTS_PAYPAL_MSG_CAPTURED', $payment->id));
             $event->setRefresh(true);
-
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $event->setError(Text::sprintf('PLG_ALFA_PAYMENTS_PAYPAL_ERROR_CAPTURE', $e->getMessage()));
         }
     }
@@ -567,10 +563,10 @@ final class PayPal extends PaymentsPlugin
     private function handleVoid($event): void
     {
         $payment = $event->getPayment();
-        $order   = $event->getOrder();
-        $amount  = $payment->amount->getAmount();
-        $now     = Factory::getDate('now', 'UTC')->toSql();
-        $authId  = $payment->transaction_id ?? '';
+        $order = $event->getOrder();
+        $amount = $payment->amount->getAmount();
+        $now = Factory::getDate('now', 'UTC')->toSql();
+        $authId = $payment->transaction_id ?? '';
 
         if (empty($authId)) {
             $event->setError(Text::_('PLG_ALFA_PAYMENTS_PAYPAL_ERROR_NO_TRANSACTION_ID'));
@@ -588,25 +584,24 @@ final class PayPal extends PaymentsPlugin
                 ->save();
 
             $this->log([
-                'id_order'           => (int) $order->id,
-                'id_order_payment'   => (int) $payment->id,
-                'action'             => 'void',
+                'id_order' => (int) $order->id,
+                'id_order_payment' => (int) $payment->id,
+                'action' => 'void',
                 'transaction_status' => OrderPaymentHelper::STATUS_CANCELLED,
-                'paypal_order_id'    => null,
-                'paypal_capture_id'  => null,
-                'intent'             => 'AUTHORIZE',
-                'amount'             => $amount,
-                'currency'           => $order->currency->getCode(),
-                'paypal_status'      => 'VOIDED',
-                'note'               => 'Authorization voided by admin.',
-                'created_on'         => $now,
-                'created_by'         => (int) Factory::getApplication()->getIdentity()->id,
+                'paypal_order_id' => null,
+                'paypal_capture_id' => null,
+                'intent' => 'AUTHORIZE',
+                'amount' => $amount,
+                'currency' => $order->currency->getCode(),
+                'paypal_status' => 'VOIDED',
+                'note' => 'Authorization voided by admin.',
+                'created_on' => $now,
+                'created_by' => (int) Factory::getApplication()->getIdentity()->id,
             ]);
 
             $event->setMessage(Text::sprintf('PLG_ALFA_PAYMENTS_PAYPAL_MSG_VOIDED', $payment->id));
             $event->setRefresh(true);
-
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $event->setError(Text::sprintf('PLG_ALFA_PAYMENTS_PAYPAL_ERROR_VOID', $e->getMessage()));
         }
     }
@@ -618,10 +613,10 @@ final class PayPal extends PaymentsPlugin
      */
     private function handleRefund($event): void
     {
-        $payment   = $event->getPayment();
-        $order     = $event->getOrder();
-        $amount    = $payment->amount->getAmount();
-        $now       = Factory::getDate('now', 'UTC')->toSql();
+        $payment = $event->getPayment();
+        $order = $event->getOrder();
+        $amount = $payment->amount->getAmount();
+        $now = Factory::getDate('now', 'UTC')->toSql();
         $captureId = $payment->transaction_id ?? '';
 
         if (empty($captureId)) {
@@ -632,9 +627,9 @@ final class PayPal extends PaymentsPlugin
         try {
             $response = $this->paypal($order)->getPaymentsController()->refundCapturedPayment([
                 'captureId' => $captureId,
-                'body'      => null, // full refund
+                'body' => null, // full refund
             ]);
-            $refund   = $response->getResult();
+            $refund = $response->getResult();
             $refundId = $refund->getId();
 
             // Step 1: Flip original payment to refunded
@@ -652,25 +647,24 @@ final class PayPal extends PaymentsPlugin
                 ->save();
 
             $this->log([
-                'id_order'           => (int) $order->id,
-                'id_order_payment'   => (int) $payment->id,
-                'action'             => 'refund',
+                'id_order' => (int) $order->id,
+                'id_order_payment' => (int) $payment->id,
+                'action' => 'refund',
                 'transaction_status' => OrderPaymentHelper::STATUS_REFUNDED,
-                'paypal_order_id'    => null,
-                'paypal_capture_id'  => $captureId,
-                'intent'             => 'CAPTURE',
-                'amount'             => $amount,
-                'currency'           => $order->currency->getCode(),
-                'paypal_status'      => $refund->getStatus() ?? 'COMPLETED',
-                'note'               => Text::sprintf('PLG_ALFA_PAYMENTS_PAYPAL_LOG_REFUNDED', $payment->id),
-                'created_on'         => $now,
-                'created_by'         => (int) Factory::getApplication()->getIdentity()->id,
+                'paypal_order_id' => null,
+                'paypal_capture_id' => $captureId,
+                'intent' => 'CAPTURE',
+                'amount' => $amount,
+                'currency' => $order->currency->getCode(),
+                'paypal_status' => $refund->getStatus() ?? 'COMPLETED',
+                'note' => Text::sprintf('PLG_ALFA_PAYMENTS_PAYPAL_LOG_REFUNDED', $payment->id),
+                'created_on' => $now,
+                'created_by' => (int) Factory::getApplication()->getIdentity()->id,
             ]);
 
             $event->setMessage(Text::sprintf('PLG_ALFA_PAYMENTS_PAYPAL_MSG_REFUNDED', $payment->id));
             $event->setRefresh(true);
-
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $event->setError(Text::sprintf('PLG_ALFA_PAYMENTS_PAYPAL_ERROR_REFUND', $e->getMessage()));
         }
     }
@@ -686,7 +680,7 @@ final class PayPal extends PaymentsPlugin
     private function handleViewLogs($event): void
     {
         $payment = $event->getPayment();
-        $order   = $event->getOrder();
+        $order = $event->getOrder();
         $logData = $this->loadLogs((int) $order->id, (int) $payment->id);
         $event->setLayout('default_order_logs_view');
         $event->setLayoutData(['logData' => $logData ?? [], 'xml' => $this->getLogsSchema()]);
@@ -727,7 +721,9 @@ final class PayPal extends PaymentsPlugin
     {
         return Route::_(
             'index.php?option=com_alfa&task=payment.response',
-            false, Route::TLS_FORCE, true
+            false,
+            Route::TLS_FORCE,
+            true,
         );
     }
 
@@ -735,7 +731,9 @@ final class PayPal extends PaymentsPlugin
     {
         return Route::_(
             'index.php?option=com_alfa&task=payment.response' . '&paypal_result=cancel',
-            false, Route::TLS_FORCE, true
+            false,
+            Route::TLS_FORCE,
+            true,
         );
     }
 
@@ -750,15 +748,15 @@ final class PayPal extends PaymentsPlugin
      */
     private function buildPayPalItems(object $order): array
     {
-        $items    = [];
+        $items = [];
         $currency = $order->currency->getCode();
 
         foreach ($order->items ?? [] as $item) {
             $unitPrice = (float) ($item->unit_price_tax_excl ?? $item->unit_price ?? 0);
-            $items[]   = ItemBuilder::init(
+            $items[] = ItemBuilder::init(
                 (string) ($item->product_name ?? $item->name ?? 'Item'),
                 MoneyBuilder::init($currency, number_format($unitPrice, 2, '.', ''))->build(),
-                (string) ((int) ($item->product_quantity ?? 1))
+                (string) ((int) ($item->product_quantity ?? 1)),
             )
             ->description((string) ($item->product_reference ?? ''))
             ->sku((string) ($item->product_reference ?? ''))
@@ -791,6 +789,6 @@ final class PayPal extends PaymentsPlugin
             }
         }
 
-        return new \stdClass();
+        return new stdClass();
     }
 }

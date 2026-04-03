@@ -2,8 +2,9 @@
 defined('_JEXEC') or die;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
+
 extract($displayData);
-$order = $order ?? null;
+$order ??= null;
 ?>
 <div class="paypal-cancelled text-center py-4">
     <span class="icon-info-circle text-warning" style="font-size:3rem" aria-hidden="true"></span>

@@ -44,13 +44,14 @@ if (!\file_exists($vendorAutoload)) {
         'PayPal plugin: vendor/autoload.php not found. '
         . 'Run: cd ' . \dirname(__DIR__) . '/libraries && composer install --no-dev --optimize-autoloader',
         \Joomla\CMS\Log\Log::CRITICAL,
-        'com_alfa.payments'
+        'com_alfa.payments',
     );
 
     // Return a no-op service provider so Joomla doesn't fatal
-    return new class () implements ServiceProviderInterface
-    {
-        public function register(Container $container): void {}
+    return new class () implements ServiceProviderInterface {
+        public function register(Container $container): void
+        {
+        }
     };
 }
 
@@ -60,8 +61,7 @@ require_once $vendorAutoload;
 //  Register the plugin in Joomla's DI container.
 //  Identical pattern to the Standard plugin — static closure, no $this capture.
 // ─────────────────────────────────────────────────────────────────────────────
-return new class () implements ServiceProviderInterface
-{
+return new class () implements ServiceProviderInterface {
     public function register(Container $container): void
     {
         $container->set(
@@ -73,7 +73,7 @@ return new class () implements ServiceProviderInterface
                 $plugin->setApplication(Factory::getApplication());
 
                 return $plugin;
-            }
+            },
         );
     }
 };

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @package     Alfa\PhpKlarna
  * @copyright   Copyright (C) Alfa. All rights reserved.
@@ -68,29 +69,29 @@ trait ManageHostedPaymentPage
      *
      * Returns an HppSession. Use $hpp->redirectUrl for your header() redirect.
      *
-     * @param string $paymentSessionId  The sessionId returned by createSession().
-     * @param array  $urls {
-     *     @type string $success       URL Klarna redirects customer to on success.
-     *                                 Use {session.id} placeholder — Klarna fills it in.
-     *                                 Example: 'https://yourshop.gr/success?sid={session.id}'
-     *     @type string $cancel        URL on customer cancellation.
-     *     @type string $failure       URL on payment failure / rejection.
-     *     @type string $back          URL when customer clicks "go back".
-     *     @type string $notification  Webhook URL Klarna POSTs to as a push confirmation.
-     *                                 Example: 'https://yourshop.gr/api/klarna/push?sid={session.id}'
-     * }
-     * @param array  $options  Optional overrides (payment_method_category, locale, etc.).
+     * @param string $paymentSessionId The sessionId returned by createSession().
+     * @param array $urls {
+     * @type string $success       URL Klarna redirects customer to on success.
+     *              Use {session.id} placeholder — Klarna fills it in.
+     *              Example: 'https://yourshop.gr/success?sid={session.id}'
+     * @type string $cancel        URL on customer cancellation.
+     * @type string $failure       URL on payment failure / rejection.
+     * @type string $back          URL when customer clicks "go back".
+     * @type string $notification  Webhook URL Klarna POSTs to as a push confirmation.
+     *              Example: 'https://yourshop.gr/api/klarna/push?sid={session.id}'
+     *              }
+     * @param array $options Optional overrides (payment_method_category, locale, etc.).
      *
      * @see https://docs.klarna.com/payments/web-payments/integrate-with-klarna-payments/integrate-via-hpp/api-documentation/
      */
     public function createHppSession(
         string $paymentSessionId,
-        array  $urls,
-        array  $options = []
+        array $urls,
+        array $options = [],
     ): HppSession {
         $payload = array_merge([
             'payment_session_url' => $this->baseUri . 'payments/v1/sessions/' . $paymentSessionId,
-            'merchant_urls'       => $urls,
+            'merchant_urls' => $urls,
         ], $options);
 
         return new HppSession($this->post('hpp/v1/sessions', $payload), $this);
@@ -109,7 +110,7 @@ trait ManageHostedPaymentPage
      *   FAILED    — payment rejected (fraud / insufficient funds / etc.)
      *   DISABLED  — session expired (48h KP session lifetime exceeded)
      *
-     * @param string $sessionId  The HPP session ID — from $_GET['sid'] on your success URL.
+     * @param string $sessionId The HPP session ID — from $_GET['sid'] on your success URL.
      */
     public function getHppSession(string $sessionId): HppSession
     {

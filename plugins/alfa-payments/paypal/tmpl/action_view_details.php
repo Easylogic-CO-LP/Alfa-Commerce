@@ -1,16 +1,18 @@
 <?php
 defined('_JEXEC') or die;
 $payment = $displayData['payment'] ?? null;
-$order   = $displayData['order']   ?? null;
-if (!$payment) return;
+$order = $displayData['order'] ?? null;
+if (!$payment) {
+    return;
+}
 
 $status = $payment->transaction_status ?? 'pending';
-$badge  = match ($status) {
+$badge = match ($status) {
     'completed', 'authorized' => 'bg-success',
-    'pending'                 => 'bg-warning text-dark',
-    'cancelled'               => 'bg-danger',
-    'refunded'                => 'bg-secondary',
-    default                   => 'bg-secondary',
+    'pending' => 'bg-warning text-dark',
+    'cancelled' => 'bg-danger',
+    'refunded' => 'bg-secondary',
+    default => 'bg-secondary',
 };
 
 $amount = $payment->amount ?? 0;

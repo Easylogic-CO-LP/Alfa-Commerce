@@ -1,12 +1,13 @@
 <?php
+
 namespace Alfa\PhpViva;
 
 defined('_JEXEC') or die;
 
 abstract class Url
 {
-    const LIVE_URL = '';
-    const TEST_URL = '';
+    public const LIVE_URL = '';
+    public const TEST_URL = '';
 
     public static function getUrl(bool $testMode = false): string
     {

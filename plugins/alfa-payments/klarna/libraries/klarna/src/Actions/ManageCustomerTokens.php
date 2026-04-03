@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @package     Alfa\PhpKlarna
  * @copyright   Copyright (C) Alfa. All rights reserved.
@@ -45,7 +46,7 @@ trait ManageCustomerTokens
     {
         return new Order(
             $this->post('customer-token/v1/tokens/' . $customerToken . '/order', $data),
-            $this
+            $this,
         );
     }
 }

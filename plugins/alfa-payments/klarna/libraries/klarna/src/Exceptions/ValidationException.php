@@ -1,5 +1,7 @@
 <?php
+
 namespace Alfa\PhpKlarna\Exceptions;
+
 defined('_JEXEC') or die;
 use Exception;
 

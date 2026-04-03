@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @package     Alfa\PhpKlarna
  * @copyright   Copyright (C) Alfa. All rights reserved.
@@ -9,10 +10,10 @@ namespace Alfa\PhpKlarna;
 
 defined('_JEXEC') or die;
 
-use Exception;
 use Alfa\PhpKlarna\Exceptions\FailedActionException;
 use Alfa\PhpKlarna\Exceptions\NotFoundException;
 use Alfa\PhpKlarna\Exceptions\ValidationException;
+use Exception;
 
 /**
  * MakesHttpRequests
@@ -54,27 +55,27 @@ trait MakesHttpRequests
     /**
      * Dispatch a request through the Joomla Http transport.
      *
-     * @return array|string  Decoded JSON array, or raw body string if not JSON.
+     * @return array|string Decoded JSON array, or raw body string if not JSON.
      *
-     * @throws ValidationException    HTTP 422
-     * @throws NotFoundException      HTTP 404
-     * @throws FailedActionException  HTTP 400 / 401 / 403
-     * @throws Exception              Any other non-2xx
+     * @throws ValidationException HTTP 422
+     * @throws NotFoundException HTTP 404
+     * @throws FailedActionException HTTP 400 / 401 / 403
+     * @throws Exception Any other non-2xx
      */
     protected function request(string $verb, string $uri, array $payload = []): mixed
     {
-        $url  = $this->baseUri . ltrim($uri, '/');
+        $url = $this->baseUri . ltrim($uri, '/');
         $body = empty($payload)
             ? null
             : json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
 
         $response = match (strtoupper($verb)) {
-            'GET'    => $this->client->get($url, $this->defaultHeaders),
-            'POST'   => $this->client->post($url, $body, $this->defaultHeaders),
-            'PUT'    => $this->client->put($url, $body, $this->defaultHeaders),
-            'PATCH'  => $this->client->patch($url, $body, $this->defaultHeaders),
+            'GET' => $this->client->get($url, $this->defaultHeaders),
+            'POST' => $this->client->post($url, $body, $this->defaultHeaders),
+            'PUT' => $this->client->put($url, $body, $this->defaultHeaders),
+            'PATCH' => $this->client->patch($url, $body, $this->defaultHeaders),
             'DELETE' => $this->client->delete($url, $this->defaultHeaders),
-            default  => $this->client->post($url, $body, $this->defaultHeaders),
+            default => $this->client->post($url, $body, $this->defaultHeaders),
         };
 
         if (!$this->isSuccessful($response)) {
@@ -98,11 +99,11 @@ trait MakesHttpRequests
         $body = $this->responseBody($response);
 
         match ($code) {
-            422     => throw new ValidationException(json_decode($body, true) ?? ['error' => $body]),
-            404     => throw new NotFoundException(),
-            400     => throw new FailedActionException($body),
-            401     => throw new FailedActionException('Unauthorized – check your Klarna API credentials.'),
-            403     => throw new FailedActionException('Forbidden – your account may not have access to this resource.'),
+            422 => throw new ValidationException(json_decode($body, true) ?? ['error' => $body]),
+            404 => throw new NotFoundException(),
+            400 => throw new FailedActionException($body),
+            401 => throw new FailedActionException('Unauthorized – check your Klarna API credentials.'),
+            403 => throw new FailedActionException('Forbidden – your account may not have access to this resource.'),
             default => throw new Exception('Klarna API error (HTTP ' . $code . '): ' . $body),
         };
     }

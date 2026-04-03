@@ -1,5 +1,7 @@
 <?php
+
 namespace Alfa\PhpKlarna\Resources;
+
 defined('_JEXEC') or die;
 
 /**

@@ -2,9 +2,10 @@
 defined('_JEXEC') or die;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
+
 extract($displayData);
 $error = htmlspecialchars($error ?? Text::_('PLG_ALFA_PAYMENTS_PAYPAL_PAYMENT_FAILED'));
-$order = $order ?? null;
+$order ??= null;
 ?>
 <div class="paypal-error text-center py-4">
     <span class="icon-cancel-circle text-danger" style="font-size:3rem" aria-hidden="true"></span>

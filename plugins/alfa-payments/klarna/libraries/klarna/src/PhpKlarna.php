@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @package     Alfa\PhpKlarna
  * @copyright   Copyright (C) Alfa. All rights reserved.
@@ -17,15 +18,15 @@ namespace Alfa\PhpKlarna;
 
 defined('_JEXEC') or die;
 
-use Joomla\CMS\Date\Date;
-use Joomla\CMS\Http\Http;
-use Joomla\CMS\Http\HttpFactory;
 use Alfa\PhpKlarna\Actions\ManageCheckouts;
 use Alfa\PhpKlarna\Actions\ManageCustomerTokens;
 use Alfa\PhpKlarna\Actions\ManageHostedPaymentPage;
 use Alfa\PhpKlarna\Actions\ManageOrders;
 use Alfa\PhpKlarna\Actions\ManagePayments;
 use Alfa\PhpKlarna\Exceptions\ValidationException;
+use Joomla\CMS\Date\Date;
+use Joomla\CMS\Http\Http;
+use Joomla\CMS\Http\HttpFactory;
 
 class PhpKlarna
 {
@@ -46,10 +47,10 @@ class PhpKlarna
     protected array $defaultHeaders = [];
 
     /**
-     * @param string $username  Klarna merchant API username (e.g. PK12345_abc...).
-     * @param string $password  Klarna shared secret / API password.
-     * @param string $region    EU | NA | OC  (default: EU)
-     * @param string $mode      live | test    (default: live)
+     * @param string $username Klarna merchant API username (e.g. PK12345_abc...).
+     * @param string $password Klarna shared secret / API password.
+     * @param string $region EU | NA | OC  (default: EU)
+     * @param string $mode live | test    (default: live)
      *
      * @throws ValidationException on invalid region or mode.
      */
@@ -57,13 +58,13 @@ class PhpKlarna
         string $username,
         string $password,
         string $region = 'EU',
-        string $mode   = 'live'
+        string $mode = 'live',
     ) {
-        $this->baseUri        = $this->getBaseUri($region, $mode);
+        $this->baseUri = $this->getBaseUri($region, $mode);
         $this->defaultHeaders = [
             'Authorization' => 'Basic ' . base64_encode($username . ':' . $password),
-            'Accept'        => 'application/json',
-            'Content-Type'  => 'application/json',
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/json',
         ];
 
         // (new HttpFactory())->getHttp() picks cURL or stream — ships with every Joomla install.
@@ -134,6 +135,6 @@ class PhpKlarna
     /** @internal Used by Action traits to transform raw arrays into typed Resource collections. */
     protected function transformCollection(array $collection, string $class): array
     {
-        return array_map(fn(array $attrs) => new $class($attrs, $this), $collection);
+        return array_map(fn (array $attrs) => new $class($attrs, $this), $collection);
     }
 }

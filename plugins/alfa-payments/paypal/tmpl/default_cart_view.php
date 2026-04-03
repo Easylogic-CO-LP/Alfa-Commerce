@@ -1,6 +1,10 @@
 <?php defined('_JEXEC') or die;
 use Alfa\Plugin\AlfaPayments\PayPal\Assets;
-extract($displayData); if (!isset($method)) return; ?>
+
+extract($displayData);
+if (!isset($method)) {
+    return;
+} ?>
 <div class="paypal-cart-info d-flex align-items-start gap-3 p-3 border rounded">
     <div class="flex-shrink-0"><?php echo Assets::LOGO_SVG; ?></div>
     <div>

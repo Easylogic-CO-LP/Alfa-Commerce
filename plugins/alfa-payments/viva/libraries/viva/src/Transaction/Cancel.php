@@ -1,5 +1,8 @@
 <?php
+
 namespace Alfa\PhpViva\Transaction;
+
+use stdClass;
 
 defined('_JEXEC') or die;
 
@@ -30,20 +33,31 @@ defined('_JEXEC') or die;
  */
 class Cancel extends Request
 {
-    const METHOD = 'DELETE';
+    public const METHOD = 'DELETE';
 
     private ?string $transactionId = null;
 
-    public function setTransactionId(string $id): static { $this->transactionId = $id; return $this; }
-    public function getTransactionId(): ?string           { return $this->transactionId; }
+    public function setTransactionId(string $id): static
+    {
+        $this->transactionId = $id;
+        return $this;
+    }
+    public function getTransactionId(): ?string
+    {
+        return $this->transactionId;
+    }
 
     protected function getApiUrl(): string
     {
-        $url    = parent::getApiUrl() . '/' . $this->getTransactionId();
+        $url = parent::getApiUrl() . '/' . $this->getTransactionId();
         $params = [];
 
-        if (!empty($this->getAmount()))     $params[] = 'amount='     . $this->getAmount();
-        if (!empty($this->getSourceCode())) $params[] = 'sourceCode=' . $this->getSourceCode();
+        if (!empty($this->getAmount())) {
+            $params[] = 'amount=' . $this->getAmount();
+        }
+        if (!empty($this->getSourceCode())) {
+            $params[] = 'sourceCode=' . $this->getSourceCode();
+        }
 
         return empty($params) ? $url : $url . '?' . implode('&', $params);
     }
@@ -63,8 +77,7 @@ class Cancel extends Request
         // Fallback: if 403 and Classic credentials are configured, try Classic API
         if ($this->getLastHttpCode() === 403
             && !empty($this->getMerchantId())
-            && !empty($this->getApiKey()))
-        {
+            && !empty($this->getApiKey())) {
             return $this->sendClassic();
         }
 
@@ -78,11 +91,15 @@ class Cancel extends Request
      */
     private function sendClassic(): ?object
     {
-        $host   = $this->getTestMode() ? 'demo.vivapayments.com' : 'www.vivapayments.com';
+        $host = $this->getTestMode() ? 'demo.vivapayments.com' : 'www.vivapayments.com';
         $params = [];
 
-        if (!empty($this->getAmount()))     $params['amount']     = $this->getAmount();
-        if (!empty($this->getSourceCode())) $params['sourceCode'] = $this->getSourceCode();
+        if (!empty($this->getAmount())) {
+            $params['amount'] = $this->getAmount();
+        }
+        if (!empty($this->getSourceCode())) {
+            $params['sourceCode'] = $this->getSourceCode();
+        }
 
         $url = 'https://' . $host . '/api/transactions/' . urlencode((string) $this->getTransactionId());
         if (!empty($params)) {
@@ -90,9 +107,9 @@ class Cancel extends Request
         }
 
         $credentials = base64_encode($this->getMerchantId() . ':' . $this->getApiKey());
-        $headers     = [
+        $headers = [
             'Authorization' => 'Basic ' . $credentials,
-            'Accept'        => 'application/json',
+            'Accept' => 'application/json',
         ];
 
         $result = $this->httpRequest('DELETE', $url, '', $headers);
@@ -102,12 +119,12 @@ class Cancel extends Request
         }
 
         // Classic API returns capital-case fields — normalize to match v2 format
-        $normalized = new \stdClass();
+        $normalized = new stdClass();
         $normalized->transactionId = $result->TransactionId ?? $result->transactionId ?? null;
-        $normalized->statusId      = $result->StatusId      ?? $result->statusId      ?? null;
-        $normalized->amount        = $result->Amount        ?? $result->amount        ?? null;
-        $normalized->errorCode     = $result->ErrorCode     ?? $result->errorCode     ?? 0;
-        $normalized->errorText     = $result->ErrorText     ?? $result->errorText     ?? null;
+        $normalized->statusId = $result->StatusId ?? $result->statusId ?? null;
+        $normalized->amount = $result->Amount ?? $result->amount ?? null;
+        $normalized->errorCode = $result->ErrorCode ?? $result->errorCode ?? 0;
+        $normalized->errorText = $result->ErrorText ?? $result->errorText ?? null;
 
         if (!empty($normalized->errorCode)) {
             $this->setError($normalized->errorText ?? ('Classic API error code: ' . $normalized->errorCode));

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @package     Alfa\PhpKlarna
  * @copyright   Copyright (C) Alfa. All rights reserved.
@@ -53,7 +54,7 @@ trait ManagePayments
     {
         return new OrderCreated(
             $this->post('payments/v1/authorizations/' . $authorizationToken . '/order', $data),
-            $this
+            $this,
         );
     }
 
@@ -67,7 +68,7 @@ trait ManagePayments
     {
         return new CustomerTokenFromAuthorization(
             $this->post('payments/v1/authorizations/' . $authorizationToken . '/customer-token', $data),
-            $this
+            $this,
         );
     }
 
@@ -80,7 +81,7 @@ trait ManagePayments
     {
         return new RespondSuccess(
             $this->delete('payments/v1/authorizations/' . $authorizationToken),
-            $this
+            $this,
         );
     }
 }

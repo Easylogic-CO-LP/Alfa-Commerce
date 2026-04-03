@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @package     Alfa\PhpKlarna
  * @copyright   Copyright (C) Alfa. All rights reserved.
@@ -82,7 +83,7 @@ trait ManageOrders
     public function extendAuthorizationTime(string $orderId): RespondSuccess
     {
         return new RespondSuccess(
-            $this->post('ordermanagement/v1/orders/' . $orderId . '/extend-authorization-time')
+            $this->post('ordermanagement/v1/orders/' . $orderId . '/extend-authorization-time'),
         );
     }
 
@@ -94,7 +95,7 @@ trait ManageOrders
     public function updateMerchantReferences(string $orderId, array $data): RespondSuccess
     {
         return new RespondSuccess(
-            $this->patch('ordermanagement/v1/orders/' . $orderId . '/merchant-references', $data)
+            $this->patch('ordermanagement/v1/orders/' . $orderId . '/merchant-references', $data),
         );
     }
 
@@ -106,7 +107,7 @@ trait ManageOrders
     public function updateCustomerDetails(string $orderId, array $data): RespondSuccess
     {
         return new RespondSuccess(
-            $this->patch('ordermanagement/v1/orders/' . $orderId . '/customer-details', $data)
+            $this->patch('ordermanagement/v1/orders/' . $orderId . '/customer-details', $data),
         );
     }
 
@@ -118,7 +119,7 @@ trait ManageOrders
     public function releaseRemainingAuthorization(string $orderId): RespondSuccess
     {
         return new RespondSuccess(
-            $this->post('ordermanagement/v1/orders/' . $orderId . '/release-remaining-authorization')
+            $this->post('ordermanagement/v1/orders/' . $orderId . '/release-remaining-authorization'),
         );
     }
 }

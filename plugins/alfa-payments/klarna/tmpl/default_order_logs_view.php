@@ -30,9 +30,9 @@ if (empty($logData)) {
 }
 
 $createHeadingLabel = function ($label, $type) {
-    $field        = new \stdClass();
+    $field = new \stdClass();
     $field->label = Text::_($label);
-    $field->type  = $type;
+    $field->type = $type;
     return $field;
 };
 
@@ -43,7 +43,7 @@ foreach ($xml->fields->fieldset->field as $field) {
 }
 
 $firstRow = reset($logData);
-$headers  = is_array($firstRow) ? array_keys($firstRow) : array_keys(get_object_vars($firstRow));
+$headers = is_array($firstRow) ? array_keys($firstRow) : array_keys(get_object_vars($firstRow));
 
 $tableHeadings = '';
 
@@ -61,14 +61,14 @@ foreach ($logData as $log) {
 
     foreach ($headers as $header) {
         $label = $fieldLabels[$header]->label;
-        $type  = $fieldLabels[$header]->type;
+        $type = $fieldLabels[$header]->type;
         $value = is_array($log)
             ? htmlspecialchars($log[$header] ?? '')
             : htmlspecialchars($log->$header ?? '');
 
         if (($type === 'datetime' || $type === 'date') && !empty($value) && $value !== '0000-00-00 00:00:00') {
             $displayDate = HTMLHelper::_('date', $value, Text::_('DATE_FORMAT_LC6'));
-            $tableBody  .= '<td style="text-wrap: wrap;" data-th="' . $label . '">' . $displayDate . '</td>';
+            $tableBody .= '<td style="text-wrap: wrap;" data-th="' . $label . '">' . $displayDate . '</td>';
         } else {
             $tableBody .= '<td style="text-wrap: wrap;" data-th="' . $label . '">' . $value . '</td>';
         }

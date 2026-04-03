@@ -12,7 +12,7 @@ use Joomla\CMS\Router\Route;
 
 extract($displayData);
 
-$order = $order ?? null;
+$order ??= null;
 ?>
 <div class="klarna-cancelled text-center py-4">
     <span class="icon-info-circle text-warning" style="font-size:3rem" aria-hidden="true"></span>
