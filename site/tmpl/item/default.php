@@ -58,24 +58,27 @@
 
 
         <div class="item-payment-methods">
-            Payment Methods :
+            <span class="item-payment-method-title">Payment Methods:</span>
 
-            <?php
-                if (!empty($this->item->payment_methods))
-                {
-                    foreach ($this->item->payment_methods as $payment_method): ?>
-                        <div class="item-payment-method">
-                            <?php
-                                echo PluginLayoutHelper::pluginLayout(
-                                    $payment_method->events->onItemView->getLayoutPluginType(),
-                                    $payment_method->events->onItemView->getLayoutPluginName(),
-                                    $payment_method->events->onItemView->getLayout(),
-                                )->render($payment_method->events->onItemView->getLayoutData());
-                            ?>
-                        </div>
-                    <?php endforeach; ?>
-                <?php } ?>
-
+            <div class="item-payment-method-inner">
+			    <?php
+				    if (!empty($this->item->payment_methods))
+				    {
+					    foreach ($this->item->payment_methods as $payment_method): ?>
+                            <div class="item-payment-method-entry">
+                                <div>
+								    <?php
+									    echo PluginLayoutHelper::pluginLayout(
+										    $payment_method->events->onItemView->getLayoutPluginType(),
+										    $payment_method->events->onItemView->getLayoutPluginName(),
+										    $payment_method->events->onItemView->getLayout(),
+									    )->render($payment_method->events->onItemView->getLayoutData());
+								    ?>
+                                </div>
+                            </div>
+					    <?php endforeach; ?>
+				    <?php } ?>
+            </div>
         </div>
 
         <div class="item-shipment-methods">

@@ -1,47 +1,48 @@
 <?php
 
-/**
- * @package    Alfa Commerce
- * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
- * @license    GNU General Public License version 3 or later; see LICENSE
- */
+defined('_JEXEC') or die;
 
-/**
- * @package    Alfa Commerce
- */
-
-\defined('_JEXEC') or die;
-
+use Alfa\Plugin\AlfaPayments\Viva\Extension\Viva;
 use Joomla\CMS\Extension\PluginInterface;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
-use Joomla\Event\DispatcherInterface;
-use Joomla\Plugin\AlfaPayments\Viva\Extension\Viva;
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Register the Alfa\PhpViva SDK namespace.
+//  Pure PSR-4 via spl_autoload_register — no Composer, no external dependencies.
+//
+//  Covers all sub-namespaces:
+//    Alfa\PhpViva\Account\*        → Account/
+//    Alfa\PhpViva\SmartCheckout\*  → SmartCheckout/
+//    Alfa\PhpViva\Transaction\*    → Transaction/
+// ─────────────────────────────────────────────────────────────────────────────
+spl_autoload_register(static function (string $class): void {
+    if (!str_starts_with($class, 'Alfa\\PhpViva\\')) {
+        return;
+    }
+
+    $file = \dirname(__DIR__)
+        . '/libraries/viva/src/'
+        . str_replace('\\', \DIRECTORY_SEPARATOR, substr($class, \strlen('Alfa\\PhpViva\\')))
+        . '.php';
+
+    if (is_file($file)) {
+        require_once $file;
+    }
+});
 
 return new class () implements ServiceProviderInterface {
-    /**
-     * Registers the service provider with a DI container.
-     *
-     * @param Container $container The DI container.
-     *
-     * @return void
-     *
-     * @since   4.3.0
-     */
-    public function register(Container $container)
+    public function register(Container $container): void
     {
         $container->set(
             PluginInterface::class,
-            function (Container $container) {
+            static function (Container $container): Viva {
                 $plugin = new Viva(
-                    $container->get(DispatcherInterface::class),
                     (array) PluginHelper::getPlugin('alfa-payments', 'viva'),
                 );
                 $plugin->setApplication(Factory::getApplication());
-
                 return $plugin;
             },
         );

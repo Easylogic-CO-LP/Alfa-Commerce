@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension type="plugin" group="alfa-payments" method="upgrade">
+	<name>PLG_ALFA_PAYMENTS_PAYPAL</name>
+	<copyright>(C) 2024-2026 Alfa. All rights reserved.</copyright>
+	<license>GNU General Public License version 3 or later; see LICENSE</license>
+	<author>Alfa</author>
+	<creationDate>2025</creationDate>
+	<authorUrl>https://alfa.gr</authorUrl>
+	<version>1.0.0</version>
+	<description>PLG_ALFA_PAYMENTS_PAYPAL_XML_DESCRIPTION</description>
+
+	<!--
+		Plugin namespace: Alfa\Plugin\AlfaPayments\PayPal → src/
+		PayPal SDK:       PaypalServerSdkLib\*            → libraries/vendor/ (Composer)
+
+		HOW TO INSTALL THE PAYPAL SDK VENDOR DIRECTORY:
+		  cd plugins/alfa-payments/paypal/libraries
+		  composer install - -no-dev - -optimize-autoloader
+		  Then commit the vendor/ folder and ship it inside the plugin zip.
+		  The production server does NOT need Composer.
+	-->
+	<namespace path="src">Alfa\Plugin\AlfaPayments\PayPal</namespace>
+
+	<files>
+		<folder plugin="paypal">services</folder>
+		<folder>src</folder>
+		<folder>tmpl</folder>
+		<folder>params</folder>
+		<folder>libraries</folder>
+	</files>
+
+	<languages folder="language">
+		<language tag="en-GB">en-GB/plg_alfa-payments_paypal.ini</language>
+		<language tag="en-GB">en-GB/plg_alfa-payments_paypal.sys.ini</language>
+	</languages>
+
+	<config>
+		<fields name="params">
+			<fieldset name="basic" label="PLG_ALFA_PAYMENTS_PAYPAL_FIELDSET_API">
+			</fieldset>
+		</fields>
+	</config>
+</extension>
