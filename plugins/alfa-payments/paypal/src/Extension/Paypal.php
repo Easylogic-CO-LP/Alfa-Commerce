@@ -76,20 +76,20 @@ final class PayPal extends PaymentsPlugin
 	private function paypal(object $order): PaypalServerSdkClient
 	{
 		$rawParams = $order->selected_payment->params ?? '{}';
-
 		$params = new Registry($rawParams);
-
-		$clientId = $params->get('api_username', '');
-		$secret = $params->get('api_password', '');
-		$mode = $params->get('mode', 'sandbox');
-
-		$environment = ($mode === 'live') ? Environment::PRODUCTION : Environment::SANDBOX;
 
 		return PaypalServerSdkClientBuilder::init()
 			->clientCredentialsAuthCredentials(
-				ClientCredentialsAuthCredentialsBuilder::init($clientId, $secret)
+				ClientCredentialsAuthCredentialsBuilder::init(
+					$params->get('api_username', ''),
+					$params->get('api_password', '')
+				)
 			)
-			->environment($environment)
+			->environment(
+				$params->get('mode', 'sandbox') === 'live'
+					? Environment::PRODUCTION
+					: Environment::SANDBOX
+			)
 			->build();
 	}
 
@@ -128,15 +128,28 @@ final class PayPal extends PaymentsPlugin
      * Visit 1 only — redirect customer to PayPal's approval page.
      * The return (and cancellation) is handled by onPaymentResponse() via task=payment.response.
      */
-    public function onOrderProcessView($event): void
-    {
-//		echo '<pre>';
-//		print_r($event->getSubject());
-//		echo '</pre>';
-//		exit();
+	public function onOrderProcessView($event): void
+	{
+		$input  = Factory::getApplication()->getInput();
+		$result = $input->getString('paypal_result', '');
 
-        $this->redirectToPayPal($event, $event->getSubject());
-    }
+		if ($result === 'cancelled') {
+			$event->setLayout('default_order_process_cancelled');
+			$event->setLayoutData(['order' => $event->getSubject()]);
+			return;
+		}
+
+		if ($result === 'error') {
+			$event->setLayout('default_order_process_error');
+			$event->setLayoutData([
+				'error' => $input->getString('paypal_result_msg', ''),
+				'order' => $event->getSubject(),
+			]);
+			return;
+		}
+
+		$this->redirectToPayPal($event, $event->getSubject());
+	}
 
     public function onOrderCompleteView($event): void
     {
@@ -210,7 +223,8 @@ final class PayPal extends PaymentsPlugin
 				->save();
 
 			if (!$paymentId) {
-				throw new \RuntimeException('Failed to save PayPal payment record for order #' . $order->id);
+				Log::add('PayPal: Failed to save payment record for order #' . $order->id, Log::ERROR, 'com_alfa.payments');
+				return;
 			}
 
 			$this->log([
@@ -255,20 +269,21 @@ final class PayPal extends PaymentsPlugin
      *
      * Webhooks: use notify() via task=plugin.trigger&func=notify if needed later.
      */
-    public function onPaymentResponse($event): void
-    {
-        $input = Factory::getApplication()->getInput();
-        $token = $input->getString('token', '');
-        $order = $event->getOrder();
+	public function onPaymentResponse($event): void
+	{
+		$input = Factory::getApplication()->getInput();
+		$token = $input->getString('token', '');
+		$order = $event->getOrder();
 
-        if ($input->getString('paypal_result', '') === 'cancel' || empty($token)) {
-            $event->setLayout('default_order_process_cancelled');
-            $event->setLayoutData(['order' => $order]);
-            return;
-        }
+		if ($input->getString('paypal_result', '') === 'cancel' || empty($token)) {
+			$event->setRedirectUrl(
+				Route::_($this->getProcessPageUrl() . '&paypal_result=cancelled', false, Route::TLS_FORCE, true)
+			);
+			return;
+		}
+		$this->handlePayPalReturn($event, $order, $token);
+	}
 
-        $this->handlePayPalReturn($event, $order, $token);
-    }
 
     // =========================================================================
     //  ADMIN ACTIONS
@@ -336,8 +351,6 @@ final class PayPal extends PaymentsPlugin
             $payment  = $this->getLatestPendingPayment($order->id);
             $paypalId = $payment->transaction_id ?? '';
 
-			print_r($paypalId);
-
             if (empty($paypalId)) {
                 throw new \RuntimeException('No PayPal order ID found for order #' . $order->id . '. The order may not have been created.');
             }
@@ -354,9 +367,9 @@ final class PayPal extends PaymentsPlugin
                 }
             }
 
-            if (empty($approveUrl)) {
-                throw new \RuntimeException('No approve URL in PayPal order ' . $paypalId . '. Status: ' . $paypalOrder->getStatus());
-            }
+	        if (empty($approveUrl)) {
+		        throw new \RuntimeException('No approve URL in PayPal order ' . $paypalId . '. Status: ' . $paypalOrder->getStatus());
+	        }
 
             $now = Factory::getDate('now', 'UTC')->toSql();
             $this->log([
@@ -379,8 +392,9 @@ final class PayPal extends PaymentsPlugin
 
         } catch (\Exception $e) {
             Log::add('PayPal redirect failed for order #' . $order->id . ': ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
-            $event->setLayout('default_order_process_error');
-            $event->setLayoutData(['error' => $e->getMessage(), 'order' => $order]);
+	        $event->setRedirectUrl(
+				Route::_($this->getProcessPageUrl() . '&paypal_result=error', false, Route::TLS_FORCE, true)
+	        );
         }
     }
 
@@ -468,18 +482,20 @@ final class PayPal extends PaymentsPlugin
                 ]);
             }
 
-            $event->setRedirectUrl(
-                Route::_('index.php?option=com_alfa&view=cart&layout=default_order_completed', false, Route::TLS_FORCE, true)
-            );
+	        $event->setRedirectUrl(
+		        Route::_($this->getCompletePageUrl(), false, Route::TLS_FORCE, true)
+	        );
 
         } catch (ApiException $e) {
             Log::add('PayPal return API error for order #' . $order->id . ': ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
-            $event->setLayout('default_order_process_error');
-            $event->setLayoutData(['error' => $e->getMessage(), 'order' => $order]);
+	        $event->setRedirectUrl(
+		        Route::_($this->getProcessPageUrl() . '&paypal_result=error', false, Route::TLS_FORCE, true)
+	        );
         } catch (\Exception $e) {
             Log::add('PayPal return error for order #' . $order->id . ': ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
-            $event->setLayout('default_order_process_error');
-            $event->setLayoutData(['error' => $e->getMessage(), 'order' => $order]);
+	        $event->setRedirectUrl(
+		        Route::_($this->getProcessPageUrl() . '&paypal_result=error', false, Route::TLS_FORCE, true)
+	        );
         }
     }
 
