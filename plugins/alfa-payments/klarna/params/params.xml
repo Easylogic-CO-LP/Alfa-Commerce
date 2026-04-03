@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+    <fields name="paymentsparams">
+        <fieldset name="paymentsparams">
+
+            <field
+                name="urls_info"
+                type="note"
+                label=" "
+                description="&lt;div class='alert alert-info mb-3'&gt;&lt;h5 class='alert-heading'&gt;URLs — all set automatically, no manual dashboard config needed&lt;/h5&gt;&lt;table class='table table-sm table-bordered mb-0'&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Purpose&lt;/th&gt;&lt;th&gt;Path (prefix with your site URL)&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;Success URL&lt;/td&gt;&lt;td&gt;&lt;code&gt;/index.php?option=com_alfa&amp;amp;task=payment.response&lt;/code&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Cancel / Failure / Back&lt;/td&gt;&lt;td&gt;&lt;code&gt;/index.php?option=com_alfa&amp;amp;task=payment.response&amp;amp;klarna_result={cancel|failure|back}&lt;/code&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Notification (webhook)&lt;/td&gt;&lt;td&gt;&lt;code&gt;/index.php?option=com_alfa&amp;amp;task=plugin.trigger&amp;amp;type=alfa-payments&amp;amp;name=klarna&amp;amp;func=notify&amp;amp;order_id={id}&lt;/code&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;"
+            />
+
+            <field
+                name="api_username"
+                type="text"
+                label="PLG_ALFA_PAYMENTS_KLARNA_API_USERNAME_LABEL"
+                description="PLG_ALFA_PAYMENTS_KLARNA_API_USERNAME_DESC"
+                required="true"
+                size="60"
+            />
+            <field
+                name="api_password"
+                type="password"
+                label="PLG_ALFA_PAYMENTS_KLARNA_API_PASSWORD_LABEL"
+                description="PLG_ALFA_PAYMENTS_KLARNA_API_PASSWORD_DESC"
+                required="true"
+                size="60"
+            />
+            <field
+                name="region"
+                type="list"
+                label="PLG_ALFA_PAYMENTS_KLARNA_REGION_LABEL"
+                description="PLG_ALFA_PAYMENTS_KLARNA_REGION_DESC"
+                default="EU"
+            >
+                <option value="EU">Europe (EU)</option>
+                <option value="NA">North America (NA)</option>
+                <option value="OC">Oceania (OC)</option>
+            </field>
+            <field
+                name="mode"
+                type="list"
+                label="PLG_ALFA_PAYMENTS_KLARNA_MODE_LABEL"
+                description="PLG_ALFA_PAYMENTS_KLARNA_MODE_DESC"
+                default="test"
+            >
+                <option value="live">Live</option>
+                <option value="test">Test (Playground)</option>
+            </field>
+
+        </fieldset>
+    </fields>
+</form>

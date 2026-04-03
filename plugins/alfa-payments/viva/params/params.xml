@@ -1,41 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <form>
-	<fields name="paymentsparams">
-		<fieldset name="paymentsparams">
-			<field name="vivapayment_business" type="text"
-				default=""
-	            label="PLG_DPPAYMENT_VIVA_VIVAPAYMENT_BUSINESS"
-	            description="PLG_DPPAYMENT_VIVA_VIVAPAYMENT_BUSINESS_DESC" 
-	            filter="raw"
-	            required="false"
-	            mysql_type="varchar(255)" />
+    <fields name="paymentsparams">
+        <fieldset name="paymentsparams">
 
-	        <field name="vivapayment_apikey" type="text"
-	            label="PLG_DPPAYMENT_VIVA_VIVAPAYMENT_APIKEY"
-	            description="PLG_DPPAYMENT_VIVA_VIVAPAYMENT_APIKEY_DESC" 
-	            default=""
-	            filter="raw"
-	            required="false"
-	            mysql_type="varchar(255)" />
+            <field name="setup_info"     type="note" label=" " description="PLG_ALFA_PAYMENTS_VIVA_SETUP_INFO"/>
+            <field name="urls_info"      type="note" label=" " description="PLG_ALFA_PAYMENTS_VIVA_URLS_INFO"/>
+            <field name="oauth2_heading" type="note" label=" " description="PLG_ALFA_PAYMENTS_VIVA_OAUTH2_HEADING"/>
 
-	        <field name="vivapayment_sourcecode" type="text"  
-	            label="PLG_DPPAYMENT_VIVA_VIVAPAYMENT_SOURCECODE"
-	            description="PLG_DPPAYMENT_VIVA_VIVAPAYMENT_SOURCECODE_DESC" 
-	            default=""
-	            filter="raw"
-	            required="false"
-	            mysql_type="varchar(255)" />
+            <field name="client_id"      type="text"     label="PLG_ALFA_PAYMENTS_VIVA_CLIENT_ID_LABEL"     description="PLG_ALFA_PAYMENTS_VIVA_CLIENT_ID_DESC"     required="true"  size="60"/>
+            <field name="client_secret"  type="password" label="PLG_ALFA_PAYMENTS_VIVA_CLIENT_SECRET_LABEL" description="PLG_ALFA_PAYMENTS_VIVA_CLIENT_SECRET_DESC" required="true"  size="60"/>
+            <field name="source_code"    type="text"     label="PLG_ALFA_PAYMENTS_VIVA_SOURCE_CODE_LABEL"   description="PLG_ALFA_PAYMENTS_VIVA_SOURCE_CODE_DESC"   required="true"  size="20"/>
 
-	       <field name="vivapayment_sandbox_mode" type="radio"
-	            layout="joomla.form.field.radio.switcher"
-	            label="PLG_DPPAYMENT_VIVA_VIVAPAYMENT_SANDBOX_MODE"
-	            description="PLG_DPPAYMENT_VIVA_VIVAPAYMENT_SANDBOX_MODE_DESC" 
-	            default="0"
-	            required="false"
-	            mysql_type="varchar(255)">
-	               <option value="0">JNO</option>
-	               <option value="1">JYES</option>
-	        </field>
-		</fieldset>
-	</fields>
+            <field name="classic_heading" type="note" label=" " description="PLG_ALFA_PAYMENTS_VIVA_CLASSIC_HEADING"/>
+
+            <field name="merchant_id"    type="text"     label="PLG_ALFA_PAYMENTS_VIVA_MERCHANT_ID_LABEL"   description="PLG_ALFA_PAYMENTS_VIVA_MERCHANT_ID_DESC"   required="false" size="60"/>
+            <field name="api_key"        type="password" label="PLG_ALFA_PAYMENTS_VIVA_API_KEY_LABEL"       description="PLG_ALFA_PAYMENTS_VIVA_API_KEY_DESC"       required="false" size="60"/>
+
+            <field name="mode"           type="list"     label="PLG_ALFA_PAYMENTS_VIVA_MODE_LABEL"          description="PLG_ALFA_PAYMENTS_VIVA_MODE_DESC"          default="test">
+                <option value="live">PLG_ALFA_PAYMENTS_VIVA_MODE_LIVE</option>
+                <option value="test">PLG_ALFA_PAYMENTS_VIVA_MODE_TEST</option>
+            </field>
+
+            <field name="intent"         type="list"     label="PLG_ALFA_PAYMENTS_VIVA_INTENT_LABEL"        description="PLG_ALFA_PAYMENTS_VIVA_INTENT_DESC"        default="charge">
+                <option value="charge">PLG_ALFA_PAYMENTS_VIVA_INTENT_CHARGE</option>
+                <option value="authorize">PLG_ALFA_PAYMENTS_VIVA_INTENT_AUTHORIZE</option>
+            </field>
+
+            <field name="max_installments" type="number" label="PLG_ALFA_PAYMENTS_VIVA_INSTALLMENTS_LABEL" description="PLG_ALFA_PAYMENTS_VIVA_INSTALLMENTS_DESC"  default="0" min="0" max="36" filter="integer"/>
+
+        </fieldset>
+    </fields>
 </form>

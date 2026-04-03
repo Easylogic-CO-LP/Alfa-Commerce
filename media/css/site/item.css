@@ -190,3 +190,10 @@
     object-fit: cover;
 }
 /* MANUFACTURERS CATEGORIES END */
+
+/* PAYMENT METHOD */
+.item-payment-method-inner {
+    display: flex;
+    flex-direction: column;
+}
+/* PAYMENT METHOD END */

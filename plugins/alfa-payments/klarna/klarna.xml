@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension type="plugin" group="alfa-payments" method="upgrade">
+	<name>PLG_ALFA_PAYMENTS_KLARNA</name>
+	<copyright>(C) 2024-2026 Alfa. All rights reserved.</copyright>
+	<license>GNU General Public License version 3 or later; see LICENSE</license>
+	<author>Alfa</author>
+	<creationDate>2025</creationDate>
+	<authorUrl>https://alfa.gr</authorUrl>
+	<version>1.0.0</version>
+	<description>PLG_ALFA_PAYMENTS_KLARNA_XML_DESCRIPTION</description>
+
+	<!--
+		Plugin namespace: Alfa\Plugin\AlfaPayments\Klarna  (maps to src/)
+		SDK namespace:    Alfa\PhpKlarna                   (maps to libraries/klarna/src/)
+		The SDK is registered manually via JLoader in services/provider.php —
+		no autoload.php needed, Joomla's own loader handles it.
+	-->
+	<namespace path="src">Alfa\Plugin\AlfaPayments\Klarna</namespace>
+
+	<files>
+		<folder plugin="klarna">services</folder>
+		<folder>src</folder>
+		<folder>tmpl</folder>
+		<folder>params</folder>
+		<folder>libraries</folder>
+	</files>
+
+	<languages folder="language">
+		<language tag="en-GB">en-GB/plg_alfa-payments_klarna.ini</language>
+		<language tag="en-GB">en-GB/plg_alfa-payments_klarna.sys.ini</language>
+	</languages>
+
+	<config>
+		<fields name="params">
+			<fieldset name="basic" label="PLG_ALFA_PAYMENTS_KLARNA_FIELDSET_API">
+
+				<!-- Klarna merchant API username (UID_xxxxx) -->
+				<field
+					name="api_username"
+					type="text"
+					label="PLG_ALFA_PAYMENTS_KLARNA_API_USERNAME_LABEL"
+					description="PLG_ALFA_PAYMENTS_KLARNA_API_USERNAME_DESC"
+					required="true"
+					size="60"
+				/>
+
+				<!-- Klarna merchant shared secret / API password -->
+				<field
+					name="api_password"
+					type="password"
+					label="PLG_ALFA_PAYMENTS_KLARNA_API_PASSWORD_LABEL"
+					description="PLG_ALFA_PAYMENTS_KLARNA_API_PASSWORD_DESC"
+					required="true"
+					size="60"
+				/>
+
+				<!-- Region: EU, NA, OC -->
+				<field
+					name="region"
+					type="list"
+					label="PLG_ALFA_PAYMENTS_KLARNA_REGION_LABEL"
+					description="PLG_ALFA_PAYMENTS_KLARNA_REGION_DESC"
+					default="EU"
+				>
+					<option value="EU">Europe (EU)</option>
+					<option value="NA">North America (NA)</option>
+					<option value="OC">Oceania (OC)</option>
+				</field>
+
+				<!-- Mode: live or test (playground) -->
+				<field
+					name="mode"
+					type="list"
+					label="PLG_ALFA_PAYMENTS_KLARNA_MODE_LABEL"
+					description="PLG_ALFA_PAYMENTS_KLARNA_MODE_DESC"
+					default="test"
+				>
+					<option value="live">Live</option>
+					<option value="test">Test (Playground)</option>
+				</field>
+
+			</fieldset>
+		</fields>
+	</config>
+</extension>
