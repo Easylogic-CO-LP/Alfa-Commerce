@@ -1,0 +1,1119 @@
+/*******************************
+ *
+ * DESIGN TOKENS
+ * Override any of these in your template CSS to retheme the entire module.
+ * Example: .mod-alfa-filters-wrapper { --af-accent: #e63946; }
+ *
+ ******************************/
+
+.mod-alfa-filters-wrapper {
+
+    /* ---- Spacing scale (4px base) ---- */
+    --af-space-xs: 0.25em;    /* 4px  */
+    --af-space-sm: 0.5em;     /* 8px  */
+    --af-space-md: 0.75em;    /* 12px */
+    --af-space-lg: 1em;       /* 16px */
+    --af-space-xl: 1.5em;     /* 24px */
+    --af-space-2xl: 2em;      /* 32px */
+
+    /* ---- Typography ---- */
+    --af-text-xs: 0.8em;
+    --af-text-sm: 0.875em;
+    --af-text-base: 1em;
+    --af-text-lg: 1.125em;
+    --af-text-xl: 1.25em;
+    --af-weight-normal: 400;
+    --af-weight-medium: 500;
+    --af-weight-semibold: 600;
+    --af-legend-transform: none;
+
+    /* ---- Colors ---- */
+    --af-accent: #1a1a1a;
+    --af-accent-hover: #000;
+    --af-text-secondary: #717171;
+    --af-text-muted: #999;
+    --af-border: #e0e0e0;
+    --af-border-hover: #bbb;
+    --af-border-focus: var(--af-accent);
+    --af-surface: #fff;
+    --af-surface-hover: #f7f7f7;
+    --af-surface-active: #f0f0f0;
+    --af-overlay: rgba(0, 0, 0, 0.35);
+
+    /* ---- Radius ---- */
+    --af-radius-sm: 4px;
+    --af-radius-md: 6px;
+    --af-radius-lg: 8px;
+    --af-radius-full: 50%;
+    --af-icon-btn-radius: var(--af-radius-sm);  /* shared by toggle, price-apply, discount btns */
+
+    /* ---- Transitions ---- */
+    --af-duration-fast: 120ms;
+    --af-duration: 200ms;
+    --af-duration-slow: 350ms;
+    --af-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+
+    /* ---- Checkbox / Radio ---- */
+    --af-check-size: 1.125rem;    /* 18px */
+    --af-check-radius: 3px;
+    --af-check-border-width: 1.5px;
+
+    /* ---- Price slider ---- */
+    --af-track-height: 4px;
+    --af-track-color: var(--af-border);
+
+    /* ---- Histogram ---- */
+    --af-histogram-height: 48px;
+
+    /* ---- Subcategory indent ---- */
+    --af-indent: var(--af-space-lg);
+
+    /* ---- Panel width (offcanvas) ---- */
+    --af-panel-width: 320px;
+
+    font-size: inherit;
+    color: var(--af-text);
+}
+
+/*******************************
+ *
+ * Offcanvas Toggler
+ *
+ ******************************/
+
+.alfa-filters-offcanvas-toggler {
+    display: block;
+    background-color: var(--mod-alfa-filters-toggler-color, var(--af-accent));
+    color: var(--af-surface);
+    border: none;
+    padding: var(--af-space-sm) var(--af-space-lg);
+    font-size: var(--af-text-sm);
+    font-weight: var(--af-weight-medium);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-radius: var(--af-radius-md);
+    cursor: pointer;
+    transition: background-color var(--af-duration) var(--af-ease),
+                opacity var(--af-duration) var(--af-ease);
+    height: 100%;
+    width: 100%;
+}
+
+.alfa-filters-offcanvas-toggler:hover {
+    opacity: 0.85;
+}
+
+/*******************************
+ *
+ * Fixed Position
+ *
+ ******************************/
+
+.mod-alfa-filters-wrapper.alfa-filters-fixed.top-left .alfa-filters-offcanvas-toggler{
+    position: fixed;
+    width: clamp(180px, 10vw, 220px);
+    height: clamp(45px, 5vw, 55px);
+    top: calc(0% + var(--mod-alfa-filters-vertical-offset));
+    left: calc(0% + var(--mod-alfa-filters-horizontal-offset));
+    z-index: 1000;
+}
+
+.mod-alfa-filters-wrapper.alfa-filters-fixed.top-right .alfa-filters-offcanvas-toggler{
+    position: fixed;
+    width: clamp(180px, 10vw, 220px);
+    height: clamp(45px, 5vw, 55px);
+    top: calc(0% + var(--mod-alfa-filters-vertical-offset));
+    left: calc(100% - var(--mod-alfa-filters-horizontal-offset));
+    transform: translateX(-100%);
+    z-index: 1000;
+}
+
+.mod-alfa-filters-wrapper.alfa-filters-fixed.bottom-left .alfa-filters-offcanvas-toggler{
+    position: fixed;
+    width: clamp(180px, 10vw, 220px);
+    height: clamp(45px, 5vw, 55px);
+    top: calc(100% - var(--mod-alfa-filters-vertical-offset));
+    left: calc(0% + var(--mod-alfa-filters-horizontal-offset));
+    transform: translateY(-100%);
+    z-index: 1000;
+}
+
+.mod-alfa-filters-wrapper.alfa-filters-fixed.bottom-right .alfa-filters-offcanvas-toggler{
+    position: fixed;
+    width: clamp(180px, 10vw, 220px);
+    height: clamp(45px, 5vw, 55px);
+    top: calc(100% - var(--mod-alfa-filters-vertical-offset));
+    left: calc(100% - var(--mod-alfa-filters-horizontal-offset));
+    transform: translateY(-100%) translateX(-100%);
+    z-index: 1000;
+}
+
+/*******************************
+ *
+ * Overlay
+ *
+ ******************************/
+
+.alfa-filters-offcanvas {
+    position: fixed;
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1001;
+    display: flex;
+}
+
+.alfa-filters-offcanvas.alfa-filters-offcanvas--visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.alfa-filters-offcanvas::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--af-overlay);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.alfa-filters-offcanvas.alfa-filters-offcanvas--visible-inner::after {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.alfa-filters-offcanvas.alfa-filters-offcanvas--animatable::after {
+    transition: opacity 0.4s var(--af-ease);
+}
+
+/*******************************
+ *
+ * Header
+ *
+ ******************************/
+
+.alfa-filters-offcanvas .alfa-filters-header {
+    display: flex;
+    align-items: center;
+    padding: var(--af-space-sm) var(--af-space-md);
+    border-bottom: 1px solid var(--af-border);
+    min-height: 3rem;
+}
+
+.alfa-filters-header-title {
+    margin: 0;
+    font-size: var(--af-text-lg);
+    font-weight: var(--af-weight-semibold);
+    letter-spacing: -0.01em;
+}
+
+.af-reset-all {
+    display: none;
+    margin-left: var(--af-space-sm);
+    background: none;
+    border: none;
+    color: var(--af-text-muted);
+    font-size: var(--af-text-xs);
+    cursor: pointer;
+    padding: var(--af-space-xs) 0;
+    transition: color var(--af-duration-fast);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.af-reset-all.is-visible {
+    display: inline-block;
+}
+
+.af-reset-all:hover {
+    color: var(--af-text);
+}
+
+/*******************************
+ *
+ * Close Button
+ *
+ ******************************/
+
+.alfa-filters-offcanvas .alfa-filters-close-btn {
+    --af-close-size: 2.5rem;
+    width: var(--af-close-size);
+    height: var(--af-close-size);
+    padding: 0;
+    background: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    cursor: pointer;
+}
+
+/*******************************
+ *
+ * Scroll Disable
+ *
+ ******************************/
+
+html.alfa-filters-noscroll {
+    overflow: hidden;
+}
+
+/*******************************
+ *
+ * Animatable Transition
+ *
+ ******************************/
+
+.alfa-filters-offcanvas.alfa-filters-offcanvas--animatable.zoomIn .alfa-filters-wrapper-inner,
+.alfa-filters-offcanvas.alfa-filters-offcanvas--animatable.fromRight .alfa-filters-wrapper-inner,
+.alfa-filters-offcanvas.alfa-filters-offcanvas--animatable.fromLeft .alfa-filters-wrapper-inner,
+.alfa-filters-offcanvas.alfa-filters-offcanvas--animatable.fromTop .alfa-filters-wrapper-inner {
+    transition: transform 0.4s var(--af-ease), opacity 0.4s var(--af-ease);
+}
+
+/*******************************
+ *
+ * Animations
+ *
+ ******************************/
+
+.alfa-filters-wrapper-inner{
+    transition: width 0.25s ease;
+}
+
+.alfa-filters-offcanvas.fromLeft .alfa-filters-wrapper-inner {
+    width: var(--af-panel-width);
+    height: 100%;
+    background: var(--af-surface);
+    transform: translate3d(-100%, 0, 0);
+    will-change: transform, opacity;
+    contain: layout paint;
+    opacity: 0;
+    z-index: 1002;
+}
+
+.alfa-filters-offcanvas.alfa-filters-offcanvas--visible-inner.fromLeft .alfa-filters-wrapper-inner {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+}
+
+.alfa-filters-offcanvas.zoomIn .alfa-filters-wrapper-inner {
+    max-width: 800px;
+    width: 80%;
+    height: clamp(200px, 80%, 400px);
+    background: var(--af-surface);
+    transform: scale(0.95);
+    will-change: transform, opacity;
+    contain: layout paint;
+    align-self: center;
+    margin-left: auto;
+    margin-right: auto;
+    opacity: 0;
+    z-index: 1002;
+    border-radius: var(--af-radius-lg);
+}
+
+.alfa-filters-offcanvas.alfa-filters-offcanvas--visible-inner.zoomIn .alfa-filters-wrapper-inner {
+    transform: scale(1);
+    opacity: 1;
+}
+
+.alfa-filters-offcanvas.fromRight .alfa-filters-wrapper-inner {
+    width: var(--af-panel-width);
+    height: 100%;
+    background: var(--af-surface);
+    transform: translate3d(100%, 0, 0);
+    will-change: transform, opacity;
+    contain: layout paint;
+    margin-left: auto;
+    opacity: 0;
+    z-index: 1002;
+}
+
+.alfa-filters-offcanvas.alfa-filters-offcanvas--visible-inner.fromRight .alfa-filters-wrapper-inner {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+}
+
+.alfa-filters-offcanvas.fromTop .alfa-filters-wrapper-inner {
+    width: 100%;
+    height: 440px;
+    background: var(--af-surface);
+    transform: translate3d(0, -100%, 0);
+    will-change: transform, opacity;
+    contain: layout paint;
+    transition: width 0.4s ease, height 0.4s ease;
+    margin-left: auto;
+    margin-right: auto;
+    align-self: flex-start;
+    opacity: 0;
+    z-index: 1002;
+}
+
+.alfa-filters-offcanvas.alfa-filters-offcanvas--visible-inner.fromTop .alfa-filters-wrapper-inner {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+}
+
+/*******************************
+ *
+ * Form
+ *
+ ******************************/
+
+.mod-alfa-filters {
+    padding: var(--af-space-lg) var(--af-space-lg) var(--af-space-2xl);
+    overflow-y: auto;
+    overflow-x: hidden;
+    font-size: var(--af-text-base);  /* base size for all filter content — scales with parent */
+    height: var(--mod-alfa-filters-form-height);
+    display: flex;
+    flex-direction: column;
+    gap: var(--af-space-xl);
+}
+
+.mod-alfa-filters fieldset {
+    margin: 0;
+    padding: 0;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--af-space-xs);
+}
+
+/* ---- Section headings (legends / labels) ---- */
+
+.mod-alfa-filters legend,
+.af-ordering label,
+.af-limit label,
+.af-discount-amount label,
+.af-discount-percent label,
+.af-onsale span,
+.af-price-header span {
+    --af-section-font-size: var(--af-text-sm);
+    --af-section-font-weight: var(--af-weight-semibold);
+    --af-section-color: var(--af-text);
+    --af-section-transform: var(--af-legend-transform);
+    --af-section-spacing: 0.03em;
+    --af-section-padding-bottom: var(--af-space-xs);
+    font-size: var(--af-section-font-size);
+    font-weight: var(--af-section-font-weight);
+    color: var(--af-section-color);
+    text-transform: var(--af-section-transform);
+    letter-spacing: var(--af-section-spacing);
+    padding: 0 0 var(--af-section-padding-bottom) 0;
+}
+
+/* ---- Filter fieldset sections (category, manufacturer, etc.) ---- */
+
+.mod-alfa-filters .af-fieldset {
+    padding-top: var(--af-space-md);
+}
+
+.mod-alfa-filters .af-fieldset:first-child {
+    padding-top: 0;
+}
+
+.af-fieldset-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.af-fieldset-header legend {
+    float: none;
+    width: auto;
+}
+
+.af-fieldset-header .af-reset {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--af-text-muted);
+    font-size: var(--af-text-xs);
+    cursor: pointer;
+    padding: var(--af-space-xs) 0;
+    transition: color var(--af-duration-fast);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.af-fieldset-header .af-reset.is-visible {
+    display: inline-block;
+}
+
+.af-fieldset-header .af-reset:hover {
+    color: var(--af-text);
+}
+
+.mod-alfa-filters button[type="submit"] {
+    display: block;
+    width: 100%;
+    background-color: var(--mod-alfa-filters-submit-color, var(--af-accent));
+    color: var(--af-surface);
+    border: none;
+    padding: var(--af-space-md) var(--af-space-lg);
+    font-size: var(--af-text-sm);
+    font-weight: var(--af-weight-medium);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-radius: var(--af-radius-md);
+    cursor: pointer;
+    transition: background-color var(--af-duration) var(--af-ease);
+    margin-top: var(--af-space-md);
+}
+
+.mod-alfa-filters button[type="submit"]:hover {
+    background-color: var(--mod-alfa-filters-submit-color-hover, var(--af-accent-hover));
+}
+
+.mod-alfa-filters button[type="submit"]:disabled {
+    background-color: var(--af-border);
+    color: var(--af-text-muted);
+    cursor: not-allowed;
+}
+
+/*******************************
+ *
+ * Filter List (Categories & Manufacturers)
+ *
+ ******************************/
+
+.mod-alfa-filters .af-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.mod-alfa-filters .af-option {
+    display: flex;
+    gap: var(--af-space-sm);
+    padding: var(--af-space-xs) 0;
+    align-items: center;
+}
+
+.mod-alfa-filters .af-label {
+    cursor: pointer;
+    font-size: var(--af-text-base);
+    font-weight: var(--af-weight-normal);
+    color: var(--af-text);
+    transition: color var(--af-duration-fast);
+}
+
+.mod-alfa-filters .af-label:hover {
+    color: var(--mod-alfa-filters-filter-text-color-hover);
+}
+
+.mod-alfa-filters .af-count {
+    --af-count-font-size: var(--af-text-xs);
+    --af-count-color: var(--af-text-muted);
+    cursor: pointer;
+    font-size: var(--af-count-font-size);
+    color: var(--af-count-color);
+    font-variant-numeric: tabular-nums;
+}
+
+/*******************************
+ *
+ * Categories - Subcategories
+ *
+ ******************************/
+
+.mod-alfa-filters-wrapper .af-children {
+    display: none;
+}
+
+.mod-alfa-filters-wrapper .af-children .af-list {
+    margin-left: var(--af-indent);
+    padding-top: var(--af-space-xs);
+}
+
+/*******************************
+ *
+ * Checkbox & Radio
+ *
+ ******************************/
+
+.mod-alfa-filters input[type="checkbox"],
+.mod-alfa-filters input[type="radio"] {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+    flex-shrink: 0;
+    width: var(--af-check-size) !important;
+    height: var(--af-check-size) !important;
+    border: var(--af-check-border-width) solid var(--mod-alfa-filters-checkbox-color-before, var(--af-border));
+    background: var(--af-surface);
+    display: grid;
+    place-content: center;
+    cursor: pointer;
+    transition: border-color var(--af-duration-fast),
+                background-color var(--af-duration-fast),
+                box-shadow var(--af-duration-fast);
+}
+
+.mod-alfa-filters input[type="checkbox"] {
+    border-radius: var(--af-check-radius);
+}
+
+.mod-alfa-filters input[type="radio"] {
+    border-radius: var(--af-radius-full);
+}
+
+.mod-alfa-filters input[type="checkbox"]:hover,
+.mod-alfa-filters input[type="radio"]:hover {
+    border-color: var(--mod-alfa-filters-checkbox-color, var(--af-accent));
+}
+
+.mod-alfa-filters input[type="checkbox"]::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+    transform: scale(0);
+    transform-origin: center;
+    transition: transform var(--af-duration-fast) ease-in-out;
+    box-shadow: inset 1em 1em #fff;
+    background-color: CanvasText;
+}
+
+.mod-alfa-filters input[type="radio"]::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: var(--af-radius-full);
+    transform: scale(0);
+    transition: transform var(--af-duration-fast) ease-in-out;
+    box-shadow: inset 1em 1em #fff;
+    background-color: CanvasText;
+}
+
+.mod-alfa-filters input[type="checkbox"]:checked,
+.mod-alfa-filters input[type="radio"]:checked {
+    border-color: var(--mod-alfa-filters-checkbox-color, var(--af-accent));
+    background-color: var(--mod-alfa-filters-checkbox-color, var(--af-accent));
+}
+
+.mod-alfa-filters input[type="checkbox"]:checked::before,
+.mod-alfa-filters input[type="radio"]:checked::before {
+    transform: scale(1);
+}
+
+.mod-alfa-filters input[type="checkbox"]:disabled {
+    border-color: var(--af-border);
+    background: var(--af-surface-hover);
+    cursor: not-allowed;
+}
+
+/* Safari 9+, < 13.1 fallback */
+@supports (-webkit-marquee-repetition:infinite) and (object-fit:fill) {
+    .mod-alfa-filters input[type="checkbox"]:before { display: none; }
+    .mod-alfa-filters input[type="checkbox"]:checked {
+        border-color: var(--mod-alfa-filters-checkbox-color, var(--af-accent));
+        background-color: var(--mod-alfa-filters-checkbox-color, var(--af-accent));
+        accent-color: var(--mod-alfa-filters-checkbox-color, var(--af-accent));
+    }
+    .mod-alfa-filters input[type="checkbox"] {
+        -webkit-appearance: checkbox;
+        appearance: checkbox;
+    }
+}
+
+/*******************************
+ *
+ * Subcategory Toggle
+ *
+ ******************************/
+
+.af-toggle {
+    --af-toggle-size: 1.75rem;
+    --af-toggle-bg: var(--af-surface-hover);
+    --af-toggle-bg-hover: var(--af-surface-active);
+    --af-toggle-color: var(--mod-alfa-filters-subcategory-toggle-color, var(--af-text-secondary));
+    --af-toggle-radius: var(--af-icon-btn-radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--af-toggle-size);
+    height: var(--af-toggle-size);
+    flex-shrink: 0;
+    padding: 0;
+    background-color: var(--af-toggle-bg);
+    border: none;
+    cursor: pointer;
+    border-radius: var(--af-toggle-radius);
+    transition: background-color var(--af-duration) var(--af-ease),
+                color var(--af-duration) var(--af-ease);
+    font: inherit;
+    color: var(--af-toggle-color);
+    margin-left: auto;
+}
+
+.af-toggle:hover {
+    background-color: var(--af-toggle-bg-hover);
+    color: var(--af-toggle-color-hover);
+}
+
+.af-toggle svg {
+    width: 1rem;
+    height: 1rem;
+    transition: transform var(--af-duration-slow) var(--af-ease);
+}
+
+.af-toggle[aria-expanded="true"] svg {
+    transform: rotate(90deg);
+}
+
+/*******************************
+ *
+ * Price Slider
+ *
+ ******************************/
+
+.af-price-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.af-price-header .af-price-reset {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--af-text-muted);
+    font-size: var(--af-text-xs);
+    cursor: pointer;
+    padding: var(--af-space-xs) 0;
+    transition: color var(--af-duration-fast);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.af-price-header .af-price-reset.is-visible {
+    display: inline-block;
+}
+
+.af-price-header .af-price-reset:hover {
+    color: var(--af-text);
+}
+
+.mod-alfa-filters-wrapper .af-price-fieldset .af-range {
+    position: relative;
+    width: 100%;
+    height: 2.5rem;
+}
+
+.mod-alfa-filters-wrapper .af-price-fieldset .af-range-track {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+    height: var(--af-track-height);
+    background: var(--af-track-color);
+    border-radius: calc(var(--af-track-height) / 2);
+}
+
+.mod-alfa-filters-wrapper .af-price-fieldset .af-range-highlight {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    height: var(--af-track-height);
+    background: var(--af-track-active-color);
+    border-radius: calc(var(--af-track-height) / 2);
+}
+
+.mod-alfa-filters-wrapper .af-price-fieldset .af-range input[type="range"] {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+    margin: 0;
+    pointer-events: none;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+}
+
+.mod-alfa-filters-wrapper .af-price-fieldset .af-range input[type="range"]::-webkit-slider-runnable-track {
+    height: var(--af-track-height);
+    background: transparent;
+}
+
+.mod-alfa-filters-wrapper .af-price-fieldset .af-range input[type="range"]::-webkit-slider-thumb {
+    pointer-events: auto;
+    -webkit-appearance: none;
+    appearance: none;
+    box-sizing: content-box;
+    width: var(--alfa-thumb-size, 20px);
+    height: var(--alfa-thumb-size, 20px);
+    background: var(--af-surface);
+    border-radius: var(--af-radius-full);
+    cursor: pointer;
+    border: 2px solid var(--af-accent);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    margin-top: calc((var(--af-track-height) - var(--alfa-thumb-size, 20px)) / 2 - 2px);
+    transition: box-shadow var(--af-duration-fast), transform var(--af-duration-fast);
+}
+
+.mod-alfa-filters-wrapper .af-price-fieldset .af-range input[type="range"]::-webkit-slider-thumb:hover {
+    box-shadow: 0 0 0 4px rgba(26, 26, 26, 0.08), 0 1px 3px rgba(0, 0, 0, 0.12);
+    transform: scale(1.05);
+}
+
+.mod-alfa-filters-wrapper .af-price-fieldset .af-range input[type="range"]::-moz-range-thumb {
+    pointer-events: auto;
+    box-sizing: content-box;
+    width: var(--alfa-thumb-size, 20px);
+    height: var(--alfa-thumb-size, 20px);
+    background: var(--af-surface);
+    border-radius: var(--af-radius-full);
+    cursor: pointer;
+    border: 2px solid var(--af-accent);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    transition: box-shadow var(--af-duration-fast), transform var(--af-duration-fast);
+}
+
+.mod-alfa-filters-wrapper .af-price-fieldset .af-range input[type="range"]::-moz-range-thumb:hover {
+    box-shadow: 0 0 0 4px rgba(26, 26, 26, 0.08), 0 1px 3px rgba(0, 0, 0, 0.12);
+    transform: scale(1.05);
+}
+
+.mod-alfa-filters-wrapper .af-price-fieldset .af-price-values {
+    display: flex;
+    justify-content: space-between;
+}
+
+.mod-alfa-filters-wrapper .af-price-fieldset .af-price-box {
+    font-weight: var(--af-weight-medium);
+    color: var(--af-text);
+    font-size: var(--af-text-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 2.5rem;
+    flex: 1;
+}
+
+.af-price-fieldset .af-price-box input {
+    height: 100%;
+    width: 100%;
+    text-align: center;
+    border-radius: var(--af-radius-md);
+    border: 1px solid var(--af-border);
+    font-size: var(--af-text-base);
+    font-weight: var(--af-weight-medium);
+    font-variant-numeric: tabular-nums;
+    color: var(--af-text);
+    background: var(--af-surface);
+    transition: border-color var(--af-duration-fast);
+}
+
+.af-price-fieldset .af-price-box input:focus {
+    outline: none;
+    border-color: var(--af-border-focus);
+    box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.06);
+}
+
+.mod-alfa-filters-wrapper .af-price-fieldset .af-price-label {
+    color: var(--af-text-muted);
+    font-weight: var(--af-weight-normal);
+    font-size: var(--af-text-xs);
+    margin-bottom: 2px;
+    display: none;
+}
+
+.mod-alfa-filters-wrapper .af-price-search {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    gap: var(--af-space-sm);
+    align-items: center;
+}
+
+.af-price-search input::-webkit-outer-spin-button,
+.af-price-search input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.af-price-search input[type=number] {
+    -moz-appearance: textfield;
+}
+
+/*******************************
+ *
+ * Arrow Buttons (Price / Discount apply)
+ *
+ ******************************/
+
+.mod-alfa-filters-wrapper .af-price-search button[type='button'],
+.af-discount-amount button,
+.af-discount-percent button {
+    flex-shrink: 0;
+    aspect-ratio: 1;
+    width: 2.5rem;
+    border-radius: var(--af-icon-btn-radius);
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid var(--af-border);
+    cursor: pointer;
+    color: var(--af-text-secondary);
+    transition: border-color var(--af-duration-fast),
+                color var(--af-duration-fast),
+                background-color var(--af-duration-fast);
+}
+
+.mod-alfa-filters-wrapper .af-price-search button[type='button']:hover,
+.af-discount-amount-inner button[type='button']:hover,
+.af-discount-percent-inner button[type='button']:hover {
+    border-color: var(--af-accent);
+    color: var(--af-accent);
+    background-color: var(--af-surface-hover);
+}
+
+.af-price-search .af-arrow-icon,
+.af-discount-amount .af-arrow-icon,
+.af-discount-percent .af-arrow-icon {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* Arrow SVG line transforms */
+.af-price-search .af-arrow-icon .line-bottom, .af-price-search .af-arrow-icon .line-top,
+.af-discount-amount .af-arrow-icon .line-bottom, .af-discount-amount .af-arrow-icon .line-top,
+.af-discount-percent .af-arrow-icon .line-bottom, .af-discount-percent .af-arrow-icon .line-top,
+.af-toggle .line-top, .af-toggle .line-bottom {
+    transform-origin: 150px 100px;
+}
+
+.af-price-search .af-arrow-icon .line-bottom,
+.af-discount-amount .af-arrow-icon .line-bottom,
+.af-discount-percent .af-arrow-icon .line-bottom,
+.af-toggle .line-bottom {
+    transform: rotate(35deg);
+}
+
+.af-price-search .af-arrow-icon .line-top,
+.af-discount-amount .af-arrow-icon .line-top,
+.af-discount-percent .af-arrow-icon .line-top,
+.af-toggle .line-top {
+    transform: rotate(-35deg);
+}
+
+/*******************************
+ *
+ * Histogram
+ *
+ ******************************/
+
+.af-price-histogram.af-tower {
+    display: flex;
+    align-items: flex-end;
+    gap: 1px;
+    height: var(--af-histogram-height);
+    width: 100%;
+    padding: 0 calc(var(--alfa-thumb-size, 20px) / 2);
+    box-sizing: border-box;
+}
+
+.af-price-histogram.af-slope {
+    height: 48px;
+    width: 100%;
+    padding: 0 calc(var(--alfa-thumb-size, 20px) / 2);
+}
+
+.af-price-histogram.af-none {
+    display: none;
+}
+
+.af-histogram-svg{
+    width: 100%;
+    height: 100%;
+}
+
+.af-price-bar {
+    flex: 1;
+    display: block;
+    background: var(--af-histogram-color);
+    border-radius: var(--af-radius-sm) var(--af-radius-sm) 0 0;
+    min-height: 1px;
+    transition: background-color var(--af-duration-fast);
+}
+
+.af-svg-stop-0{
+    stop-color: var(--af-histogram-color);
+    stop-opacity: 1;
+}
+
+.af-svg-stop-100{
+    stop-color: var(--af-histogram-color);
+    stop-opacity: var(--af-slope-style);
+}
+
+/*******************************
+ *
+ * Section Separators
+ * Consistent top-border pattern for all filter sections.
+ *
+ ******************************/
+
+.af-price,
+.af-ordering,
+.af-limit,
+.af-onsale,
+.af-discount-amount,
+.af-discount-percent {
+    padding-top: var(--af-space-md);
+}
+
+/*******************************
+ *
+ * Extra Filters (Onsale, Discounts)
+ *
+ ******************************/
+
+.af-onsale .btn-group.radio,
+.af-onsale legend,
+.af-onsale fieldset {
+    margin: 0;
+}
+
+.af-discount-amount-inner,
+.af-discount-percent-inner {
+    display: flex;
+    flex-direction: row;
+    gap: var(--af-space-sm);
+    align-items: center;
+}
+
+.af-discount-amount,
+.af-discount-percent {
+    display: flex;
+    flex-direction: column;
+    gap: var(--af-space-xs);
+}
+
+/*******************************
+ *
+ * Ordering & Limit selects
+ *
+ ******************************/
+
+.af-ordering select,
+.af-limit select,
+.af-onsale label,
+.af-discount-amount input,
+.af-discount-percent input {
+    font-size: var(--af-text-base);
+    font-family: var(--af-font);
+}
+
+.af-ordering select,
+.af-limit select {
+    width: 100%;
+    padding: var(--af-space-sm) var(--af-space-md);
+    border: 1px solid var(--af-border);
+    border-radius: var(--af-radius-md);
+    background: var(--af-surface);
+    color: var(--af-text);
+    font-weight: var(--af-weight-normal);
+    cursor: pointer;
+    transition: border-color var(--af-duration-fast);
+}
+
+.af-ordering select:focus,
+.af-limit select:focus {
+    outline: none;
+    border-color: var(--af-border-focus);
+    box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.06);
+}
+
+.af-discount-amount input,
+.af-discount-percent input {
+    padding: var(--af-space-sm) var(--af-space-md);
+    border: 1px solid var(--af-border);
+    border-radius: var(--af-radius-md);
+    color: var(--af-text);
+    background: var(--af-surface);
+    transition: border-color var(--af-duration-fast);
+}
+
+.af-discount-amount input:focus,
+.af-discount-percent input:focus {
+    outline: none;
+    border-color: var(--af-border-focus);
+    box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.06);
+}
+
+/*******************************
+ *
+ * Loading Animation
+ *
+ ******************************/
+
+.alfa-filters-loading-overlay {
+    position: fixed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    z-index: 1002;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--af-duration) var(--af-ease),
+                visibility var(--af-duration) var(--af-ease);
+}
+
+.alfa-filters-loading-overlay.is-active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.alfa-filters-loading-overlay svg,
+.alfa-filters-loading-overlay img {
+    --loading-size: clamp(80px, 12vw, 120px);
+    width: var(--loading-size);
+    height: auto;
+    object-fit: contain;
+}
+
+.af-loading-anim {
+    animation: var(--mod-alfa-filters-loading-animation);
+}
+
+@keyframes alfa-filters-spinner {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes alfa-filters-pulsate {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.6; }
+}
+
+/*******************************
+ *
+ * Mobile Breakpoint
+ *
+ ******************************/
+
+@media (max-width: 440px) {
+    .alfa-filters-offcanvas.alfa-filters-offcanvas--visible-inner .alfa-filters-wrapper-inner {
+        width: 100%;
+        transition: width 0.25s ease;
+    }
+}
+
+@media (max-height: 600px) {
+    .alfa-filters-offcanvas.alfa-filters-offcanvas--visible-inner.fromTop .alfa-filters-wrapper-inner {
+        height: 100%;
+        transition: height 0.25s ease;
+    }
+}

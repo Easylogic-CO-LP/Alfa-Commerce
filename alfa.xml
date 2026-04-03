@@ -128,6 +128,7 @@
     <modules>
         <module module="mod_alfa_cart" />
 		<module module="mod_alfa_search" />
+        <module module="mod_alfa_filters" />
 	</modules>
 
     <updateservers>
