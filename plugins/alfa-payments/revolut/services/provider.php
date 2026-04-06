@@ -1,47 +1,44 @@
 <?php
 
-/**
- * @package    Alfa Commerce
- * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
- * @license    GNU General Public License version 3 or later; see LICENSE
- */
+defined('_JEXEC') or die;
 
-/**
- * @package    Alfa Commerce
- */
-
-\defined('_JEXEC') or die;
-
+use Alfa\Plugin\AlfaPayments\Revolut\Extension\Revolut;
 use Joomla\CMS\Extension\PluginInterface;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
-use Joomla\Plugin\AlfaPayments\Revolut\Extension\Revolut;
 
-return new class () implements ServiceProviderInterface {
-    /**
-     * Registers the service provider with a DI container.
-     *
-     * @param Container $container The DI container.
-     *
-     * @return void
-     *
-     * @since   4.3.0
-     */
-    public function register(Container $container)
+// Register Alfa\PhpRevolut namespace via spl_autoload_register.
+// Zero external dependencies — HTTP transport is Joomla\CMS\Http\HttpFactory.
+spl_autoload_register(static function (string $class): void {
+    if (!str_starts_with($class, 'Alfa\\PhpRevolut\\')) {
+        return;
+    }
+
+    $file = \dirname(__DIR__)
+        . '/libraries/revolut/src/'
+        . str_replace('\\', \DIRECTORY_SEPARATOR, substr($class, \strlen('Alfa\\PhpRevolut\\')))
+        . '.php';
+
+    if (is_file($file)) {
+        require_once $file;
+    }
+});
+
+return new class () implements ServiceProviderInterface
+{
+    public function register(Container $container): void
     {
         $container->set(
             PluginInterface::class,
-            function (Container $container) {
+            static function (Container $container): Revolut {
                 $plugin = new Revolut(
                     (array) PluginHelper::getPlugin('alfa-payments', 'revolut'),
                 );
                 $plugin->setApplication(Factory::getApplication());
-
                 return $plugin;
-            },
+            }
         );
     }
 };

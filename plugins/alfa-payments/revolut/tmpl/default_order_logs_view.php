@@ -1,97 +1,13 @@
 <?php
-
-/**
- * @package    Alfa Commerce
- * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
- * @license    GNU General Public License version 3 or later; see LICENSE
- */
-
+defined('_JEXEC') or die;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
-
 extract($displayData);
-
-// echo "<pre>";
-// print_r($displayData);
-// echo "</pre>";
-
-// exit;
-
-if (empty($logData) || empty($xml)) {
-    return;
-}
-
-$createHeadingLabel = function ($label, $type) {
-    $field = new \stdClass();
-    $field->label = Text::_($label);
-    $field->type = $type;
-
-    return $field;
-};
-
-// Get the labels from xml file
-$fieldLabels = [];
-foreach ($xml->fields->fieldset->field as $field) {
-    $fieldLabels[(string) $field['name']] = $createHeadingLabel($field['label'], $field['mysql_type']);
-}
-
-// Get table headings dynamically
-if (is_array($logData)) {
-    $headers = array_keys($logData[0]); // Get keys from the first object of logs data from db.
-} else {
-    $headers = array_keys(get_object_vars(reset($logData))); // Get keys from the first object of logs data from db.
-}
-
-$tableHeadings = $tableBody = '';
-
-foreach ($headers as $header) {
-    // If the field from db does not have a label set, then we will create one.
-    if (!isset($fieldLabels[$header]) || empty($fieldLabels[$header]->label)) {
-        $generatedLabel = ucfirst(str_replace('_', ' ', $header));      // generate label from db column name
-        $fieldLabels[$header] = $createHeadingLabel($generatedLabel, '');         // assign to the fieldLabel array of objects
-    }
-
-    $label = $fieldLabels[$header]->label;
-
-    // Generate table headings dynamically
-    $tableHeadings .= '<th>' . Text::_($label) . '</th>'; // Format heading
-}
-
-// Generate table body rows dynamically
-foreach ($logData as $log) {
-    $tableBody .= '<tr>';
-    foreach ($headers as $i => $header) {
-        $label = $fieldLabels[$header]->label;
-        //        $value = htmlspecialchars($log->header ?? '');
-        $value = htmlspecialchars($log[$header] ?? '');
-        // TODO: check if the type is date or datetime and show the current date value with htmlHelper.
-        $type = $fieldLabels[$header]->type;
-
-        // Dates need to be shown on local time.
-        if ($type == 'datetime' || $type == 'date') {
-            $displayDate = HTMLHelper::_('date', $value, Text::_('DATE_FORMAT_LC6'));
-            $tableBody .= "<td style='text-wrap: wrap;' data-th='" . $label . "'>" . $displayDate . '</td>';
-        } else {
-            $tableBody .= "<td style='text-wrap: wrap;' data-th='" . $label . "'>" . $value . '</td>';
-        }
-    }
-    $tableBody .= '</tr>';
-}
-
-$html = <<<HTML
-    <div class='table-responsive table-mobile-responsive'>
-        <table class='table table-striped table-bordered'>
-            <thead>
-                <tr>
-                    $tableHeadings
-                </tr>
-            </thead>
-            <tbody>
-                $tableBody
-            </tbody>
-        </table>
-    </div>
-    HTML;
-
-echo $html;
+if(empty($xml)){echo '<div class="alert alert-warning">'.Text::_('COM_ALFA_LOGS_NO_SCHEMA').'</div>';return;}
+if(empty($logData)){echo '<div class="alert alert-info">'.Text::_('COM_ALFA_LOGS_NO_ENTRIES').'</div>';return;}
+$mk=fn($l,$t)=>(object)['label'=>Text::_($l),'type'=>$t];
+$fl=[];foreach($xml->fields->fieldset->field as $f)$fl[(string)$f['name']]=$mk((string)$f['label'],(string)$f['mysql_type']);
+$first=reset($logData);$hdrs=is_array($first)?array_keys($first):array_keys(get_object_vars($first));
+$th='';foreach($hdrs as $h){if(!isset($fl[$h]))$fl[$h]=$mk(ucfirst(str_replace('_',' ',$h)),'');$th.='<th>'.$fl[$h]->label.'</th>';}
+$tb='';foreach($logData as $log){$tb.='<tr>';foreach($hdrs as $h){$v=is_array($log)?htmlspecialchars($log[$h]??''):htmlspecialchars($log->$h??'');$t=$fl[$h]->type??'';$tb.=(($t==='datetime'||$t==='date')&&!empty($v)&&$v!=='0000-00-00 00:00:00')?'<td>'.HTMLHelper::_('date',$v,Text::_('DATE_FORMAT_LC6')).'</td>':'<td>'.$v.'</td>';}$tb.='</tr>';}
+echo '<div class="table-responsive"><table class="table table-striped table-bordered"><thead><tr>'.$th.'</tr></thead><tbody>'.$tb.'</tbody></table></div>';
