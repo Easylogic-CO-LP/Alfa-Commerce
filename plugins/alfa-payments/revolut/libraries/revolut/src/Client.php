@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Alfa\PhpRevolut — Revolut Merchant API client.
  *
@@ -20,21 +19,21 @@ use Joomla\Http\HttpFactory;
 
 class Client
 {
-    public const SANDBOX_URL = 'https://sandbox-merchant.revolut.com';
-    public const PRODUCTION_URL = 'https://merchant.revolut.com';
-    public const API_ENDPOINT = '/api';
-    public const API_VERSION = '2024-09-01'; // Sent as Revolut-Api-Version header
+    const SANDBOX_URL    = 'https://sandbox-merchant.revolut.com';
+    const PRODUCTION_URL = 'https://merchant.revolut.com';
+    const API_ENDPOINT   = '/api';
+    const API_VERSION    = '2024-09-01'; // Sent as Revolut-Api-Version header
 
     private string $apiKey;
-    private bool $sandbox;
+    private bool   $sandbox;
 
     public OrderResource $order;
 
     public function __construct(string $apiKey, bool $sandbox = false)
     {
-        $this->apiKey = $apiKey;
+        $this->apiKey  = $apiKey;
         $this->sandbox = $sandbox;
-        $this->order = new OrderResource($this);
+        $this->order   = new OrderResource($this);
     }
 
     public function baseUri(): string
@@ -96,8 +95,8 @@ class Client
         $url = str_starts_with($endpoint, 'http') ? $endpoint : $this->baseUri() . $endpoint;
 
         $headers = [
-            'Authorization' => 'Bearer ' . $this->apiKey,
-            'Accept' => 'application/json',
+            'Authorization'       => 'Bearer ' . $this->apiKey,
+            'Accept'              => 'application/json',
             'Revolut-Api-Version' => self::API_VERSION,
         ];
 
@@ -112,17 +111,17 @@ class Client
         // Joomla HTTP has no generic request() — use the specific method.
         // Timeout (15s) passed as third argument per Joomla HTTP API.
         $response = match (strtoupper($method)) {
-            'GET' => $http->get($url, $headers, 15),
-            'POST' => $http->post($url, $body, $headers, 15),
-            'PUT' => $http->put($url, $body, $headers, 15),
-            'PATCH' => $http->patch($url, $body, $headers, 15),
+            'GET'    => $http->get($url, $headers, 15),
+            'POST'   => $http->post($url, $body, $headers, 15),
+            'PUT'    => $http->put($url, $body, $headers, 15),
+            'PATCH'  => $http->patch($url, $body, $headers, 15),
             'DELETE' => $http->delete($url, $headers, 15),
-            default => throw new MerchantException('Unsupported HTTP method: ' . $method),
+            default  => throw new MerchantException('Unsupported HTTP method: ' . $method),
         };
 
         // PSR-7: getStatusCode() and (string) getBody()
-        $code = (int) $response->getStatusCode();
-        $raw = (string) $response->getBody();
+        $code   = (int) $response->getStatusCode();
+        $raw    = (string) $response->getBody();
         $result = @json_decode($raw, true);
 
         if ($code < 200 || $code >= 300) {
