@@ -1,26 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <form>
-	<fields name="paymentsparams">
-		<fieldset name="paymentsparams">
+    <fields name="paymentsparams">
+        <fieldset name="paymentsparams">
 
-			<field name="revolut_secret_key" type="text"
-				   label="PLG_DPPAYMENT_REVOLUT_REVOLUTPAYMENT_SECRET_KEY"
-				   description="PLG_DPPAYMENT_REVOLUT_REVOLUTPAYMENT_SECRET_KEY_DESC"
-				   default=""
-				   required="false"
-				   mysql_type="varchar(255)">
-			</field>
+            <field
+                name="urls_info"
+                type="note"
+                label=" "
+                description="&lt;div class='alert alert-info mb-3'&gt;&lt;h5 class='alert-heading'&gt;URLs — Revolut Dashboard &amp;rarr; Developers &amp;rarr; Webhooks&lt;/h5&gt;&lt;table class='table table-sm table-bordered mb-0'&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Purpose&lt;/th&gt;&lt;th&gt;Path (prefix with your site URL)&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;Return URL (automatic)&lt;/td&gt;&lt;td&gt;&lt;code&gt;/index.php?option=com_alfa&amp;amp;task=payment.response&lt;/code&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;strong&gt;Webhook URL (configure manually)&lt;/strong&gt;&lt;/td&gt;&lt;td&gt;&lt;code&gt;/index.php?option=com_alfa&amp;amp;task=plugin.trigger&amp;amp;type=alfa-payments&amp;amp;name=revolut&amp;amp;func=notify&lt;/code&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;"
+            />
 
-	       <field name="revolut_sandbox_mode" type="radio"
-	            layout="joomla.form.field.radio.switcher"
-	            label="PLG_DPPAYMENT_REVOLUT_REVOLUTPAYMENT_SANDBOX_MODE"
-	            description="PLG_DPPAYMENT_REVOLUT_REVOLUTPAYMENT_SANDBOX_MODE_DESC"
-	            default="0"
-	            required="false"
-	            mysql_type="varchar(255)">
-	               <option value="0">JNO</option>
-	               <option value="1">JYES</option>
-	        </field>
-		</fieldset>
-	</fields>
+            <field
+                name="secret_key"
+                type="password"
+                label="PLG_ALFA_PAYMENTS_REVOLUT_SECRET_KEY_LABEL"
+                description="PLG_ALFA_PAYMENTS_REVOLUT_SECRET_KEY_DESC"
+                required="true"
+                size="60"
+            />
+            <field
+                name="webhook_secret"
+                type="password"
+                label="PLG_ALFA_PAYMENTS_REVOLUT_WEBHOOK_SECRET_LABEL"
+                description="PLG_ALFA_PAYMENTS_REVOLUT_WEBHOOK_SECRET_DESC"
+                required="false"
+                size="60"
+            />
+            <field
+                name="sandbox_mode"
+                type="radio"
+                label="PLG_ALFA_PAYMENTS_REVOLUT_SANDBOX_LABEL"
+                description="PLG_ALFA_PAYMENTS_REVOLUT_SANDBOX_DESC"
+                default="1"
+                class="btn-group"
+            >
+                <option value="1">Test (Sandbox)</option>
+                <option value="0">Live</option>
+            </field>
+
+        </fieldset>
+    </fields>
 </form>

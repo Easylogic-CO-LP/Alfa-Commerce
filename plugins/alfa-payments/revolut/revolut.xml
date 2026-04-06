@@ -1,48 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extension type="plugin" group="alfa-payments" method="upgrade">
-	<name>PLG_ALFA_PAYMENTS_REVOLUT</name>
-	<copyright>(C) 2025-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.</copyright>
+	<n>PLG_ALFA_PAYMENTS_REVOLUT</n>
+	<copyright>(C) 2024-2026 Alfa. All rights reserved.</copyright>
 	<license>GNU General Public License version 3 or later; see LICENSE</license>
-	<author>Agamemnon Fakas</author>
-	<contributor>Athanasios Marios Voukias</contributor>
-	<creationDate>2025-02</creationDate>
-	<copyright>(C) 2016 Open Source Matters, Inc.</copyright>
-	<license>GNU General Public License version 3 or later; see LICENSE</license>
-	<authorEmail>info@easylogic.gr</authorEmail>
-	<authorUrl>http://easylogic.gr</authorUrl>
-	<version>1.0.2</version>
+	<author>Alfa</author>
+	<creationDate>2025</creationDate>
+	<authorUrl>https://alfa.gr</authorUrl>
+	<version>1.0.0</version>
 	<description>PLG_ALFA_PAYMENTS_REVOLUT_XML_DESCRIPTION</description>
-	<namespace path="src">Joomla\Plugin\AlfaPayments\Revolut</namespace>
+	<namespace path="src">Alfa\Plugin\AlfaPayments\Revolut</namespace>
 	<files>
-		<folder>params</folder>
 		<folder plugin="revolut">services</folder>
 		<folder>src</folder>
 		<folder>tmpl</folder>
+		<folder>params</folder>
+		<folder>libraries</folder>
 	</files>
-
 	<languages folder="language">
 		<language tag="en-GB">en-GB/plg_alfa-payments_revolut.ini</language>
 		<language tag="en-GB">en-GB/plg_alfa-payments_revolut.sys.ini</language>
 	</languages>
 	<config>
 		<fields name="params">
-			<fieldset name="basic">
-				<!-- <field
-					name="test"
-					type="list"
-					label="Test field"
-					>
-					<option value="0">JNO</option>
-					<option value="1">JYES</option>
-					<option value="2">TEST</option>
+			<fieldset name="basic" label="PLG_ALFA_PAYMENTS_REVOLUT_FIELDSET_API">
+				<field name="secret_key" type="password" label="PLG_ALFA_PAYMENTS_REVOLUT_SECRET_KEY_LABEL" description="PLG_ALFA_PAYMENTS_REVOLUT_SECRET_KEY_DESC" required="true" size="80"/>
+				<field name="sandbox_mode" type="radio" label="PLG_ALFA_PAYMENTS_REVOLUT_SANDBOX_LABEL" description="PLG_ALFA_PAYMENTS_REVOLUT_SANDBOX_DESC" default="1" class="switcher">
+					<option value="0">JDISABLED</option>
+					<option value="1">JENABLED</option>
 				</field>
-
-				<field
-					name="maxlength"
-					type="number"
-					label="Test number field"
-					filter="integer"
-				/> -->
 			</fieldset>
 		</fields>
 	</config>
