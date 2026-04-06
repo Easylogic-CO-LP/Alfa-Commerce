@@ -1,5 +1,7 @@
 <?php
+
 namespace Alfa\PhpRevolut\Responses;
+
 defined('_JEXEC') or die;
 
 /**
@@ -21,11 +23,11 @@ defined('_JEXEC') or die;
  */
 final class Order
 {
-    public string  $id;
-    public string  $state;
-    public string  $type;
-    public string  $created_at;
-    public string  $updated_at;
+    public string $id;
+    public string $state;
+    public string $type;
+    public string $created_at;
+    public string $updated_at;
     public ?string $checkout_url;   // redirect the customer here
     public ?string $public_id;      // used to build checkout_url if not directly returned
     public ?string $description;
@@ -34,24 +36,24 @@ final class Order
     public ?string $completed_at;
     public ?string $customer_id;
     public ?string $email;
-    public array   $payments = [];
+    public array $payments = [];
 
     public static function fromArray(array $data): self
     {
         $order = new self();
-        $order->id                     = $data['id'] ?? '';
-        $order->state                  = $data['state'] ?? '';
-        $order->type                   = $data['type'] ?? '';
-        $order->created_at             = $data['created_at'] ?? '';
-        $order->updated_at             = $data['updated_at'] ?? '';
-        $order->description            = $data['description'] ?? null;
-        $order->capture_mode           = $data['capture_mode'] ?? null;
+        $order->id = $data['id'] ?? '';
+        $order->state = $data['state'] ?? '';
+        $order->type = $data['type'] ?? '';
+        $order->created_at = $data['created_at'] ?? '';
+        $order->updated_at = $data['updated_at'] ?? '';
+        $order->description = $data['description'] ?? null;
+        $order->capture_mode = $data['capture_mode'] ?? null;
         $order->merchant_order_ext_ref = $data['merchant_order_ext_ref'] ?? null;
-        $order->completed_at           = $data['completed_at'] ?? null;
-        $order->customer_id            = $data['customer_id'] ?? null;
-        $order->email                  = $data['email'] ?? null;
-        $order->payments               = $data['payments'] ?? [];
-        $order->public_id              = $data['public_id'] ?? null;
+        $order->completed_at = $data['completed_at'] ?? null;
+        $order->customer_id = $data['customer_id'] ?? null;
+        $order->email = $data['email'] ?? null;
+        $order->payments = $data['payments'] ?? [];
+        $order->public_id = $data['public_id'] ?? null;
 
         // checkout_url may be returned directly by the API.
         // Fall back to constructing it from public_id if absent.

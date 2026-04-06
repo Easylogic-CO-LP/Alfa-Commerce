@@ -2,7 +2,10 @@
 use Alfa\Plugin\AlfaPayments\Revolut\Assets;
 use Joomla\CMS\Language\Text;
 
-extract($displayData); if (!isset($method)) return;
+extract($displayData);
+if (!isset($method)) {
+    return;
+}
 ?>
 <div class="revolut-item-badge d-flex flex-column align-items-start gap-1 mt-2 mb-2">
 	<?php echo Assets::LOGO_SVG; ?>

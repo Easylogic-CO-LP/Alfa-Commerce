@@ -1,5 +1,7 @@
 <?php
+
 namespace Alfa\Plugin\AlfaPayments\Revolut;
+
 defined('_JEXEC') or die;
 
 final class Assets
