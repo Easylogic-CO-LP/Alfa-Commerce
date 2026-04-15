@@ -5,9 +5,7 @@ use Alfa\Plugin\AlfaPayments\Revolut\Assets;
 use Joomla\CMS\Language\Text;
 
 extract($displayData);
-if (!isset($method)) {
-    return;
-}
+if (!isset($method)) return;
 
 ?>
 <div class="revolut-cart-info d-flex flex-column align-items-start gap-3 p-3 border rounded">

@@ -26,7 +26,8 @@ spl_autoload_register(static function (string $class): void {
     }
 });
 
-return new class () implements ServiceProviderInterface {
+return new class () implements ServiceProviderInterface
+{
     public function register(Container $container): void
     {
         $container->set(
@@ -37,7 +38,7 @@ return new class () implements ServiceProviderInterface {
                 );
                 $plugin->setApplication(Factory::getApplication());
                 return $plugin;
-            },
+            }
         );
     }
 };
