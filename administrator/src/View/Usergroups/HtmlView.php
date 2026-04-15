@@ -1,10 +1,11 @@
 <?php
 
 /**
- * @package    Alfa Commerce
+ * @version    1.0.1
+ * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
- * @license    GNU General Public License version 3 or later; see LICENSE
+ * @copyright  2024 Easylogic CO LP
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
  */
 
 namespace Alfa\Component\Alfa\Administrator\View\Usergroups;
@@ -17,6 +18,7 @@ use Alfa\Component\Alfa\Administrator\View\HtmlView as BaseHtmlView;
 use Joomla\CMS\Helper\ContentHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Toolbar\ToolbarHelper;
+use Joomla\CMS\Uri\Uri;
 
 /**
  * View class for a list of Usergroups.
@@ -74,40 +76,54 @@ class HtmlView extends BaseHtmlView
         $canDo = ContentHelper::getActions('com_alfa');
         $toolbar = $this->getDocument()->getToolbar();
 
-        ToolbarHelper::title(Text::_('COM_ALFA_TITLE_USERGROUPS'), 'generic');
+        ToolbarHelper::title(Text::_('COM_ALFA_TITLE_USERGROUPS'), 'users');
 
-        if ($canDo->get('core.create')) {
-            $toolbar->addNew('usergroup.add');
-        }
+		//Add New Usergroup
+//        if ($canDo->get('core.create')) {
+//            $toolbar->addNew('usergroup.add');
+//        }
 
-        if ($canDo->get('core.edit.state')) {
-            $dropdown = $toolbar->dropdownButton('status-group')
-                ->text('JTOOLBAR_CHANGE_STATUS')
-                ->toggleSplit(false)
-                ->icon('fas fa-ellipsis-h')
-                ->buttonClass('btn btn-action')
-                ->listCheck(true);
+//	    $toolbar->delete('usergroups.delete')
+//		    ->text('JTOOLBAR_EMPTY_TRASH')
+//		    ->message('JGLOBAL_CONFIRM_DELETE')
+//		    ->listCheck(true);
 
-            $childBar = $dropdown->getChildToolbar();
-
-            $childBar->publish('usergroups.publish')->listCheck(true);
-            $childBar->unpublish('usergroups.unpublish')->listCheck(true);
-            $childBar->archive('usergroups.archive')->listCheck(true);
-
-            if ($this->state->get('filter.state') != AlfaComponent::CONDITION_TRASHED) {
-                $childBar->trash('usergroups.trash')->listCheck(true);
-            }
-
-            if ($this->state->get('filter.state') == AlfaComponent::CONDITION_TRASHED && $canDo->get('core.delete')) {
-                // If this component does not use state then show a direct delete button as we can not trash
-                $toolbar->delete('usergroups.delete')
-                ->text('JTOOLBAR_EMPTY_TRASH')
-                ->message('JGLOBAL_CONFIRM_DELETE')
-                ->listCheck(true);
-            }
-
-            $childBar->checkin('usergroups.checkin')->listCheck(true);
-        }
+//	    $toolbar->popupButton('new')
+//		    ->text('New')
+//		    ->icon('icon-plus')
+//		    ->url(Uri::root().'/administrator/index.php?option=com_users&view=group&layout=edit')
+//		    ->iframeWidth(800)
+//		    ->iframeHeight(500)
+//		    ->onclose('window.location.reload();');
+//
+//        if ($canDo->get('core.edit.state')) {
+//            $dropdown = $toolbar->dropdownButton('status-group')
+//                ->text('JTOOLBAR_CHANGE_STATUS')
+//                ->toggleSplit(false)
+//                ->icon('fas fa-ellipsis-h')
+//                ->buttonClass('btn btn-action')
+//                ->listCheck(false);
+//
+//            $childBar = $dropdown->getChildToolbar();
+//
+//            $childBar->publish('usergroups.publish')->listCheck(true);
+//            $childBar->unpublish('usergroups.unpublish')->listCheck(true);
+//            $childBar->archive('usergroups.archive')->listCheck(true);
+//
+//            if ($this->state->get('filter.state') != AlfaComponent::CONDITION_TRASHED) {
+//                $childBar->trash('usergroups.trash')->listCheck(true);
+//            }
+//
+//            if ($this->state->get('filter.state') == AlfaComponent::CONDITION_TRASHED && $canDo->get('core.delete')) {
+//                // If this component does not use state then show a direct delete button as we can not trash
+//                $toolbar->delete('usergroups.delete')
+//                ->text('JTOOLBAR_EMPTY_TRASH')
+//                ->message('JGLOBAL_CONFIRM_DELETE')
+//                ->listCheck(true);
+//            }
+//
+//            $childBar->checkin('usergroups.checkin')->listCheck(true);
+//        }
 
         if ($canDo->get('core.admin')) {
             $toolbar->preferences('com_alfa');

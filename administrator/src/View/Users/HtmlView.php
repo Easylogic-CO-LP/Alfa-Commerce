@@ -1,10 +1,11 @@
 <?php
 
 /**
- * @package    Alfa Commerce
+ * @version    1.0.1
+ * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
- * @license    GNU General Public License version 3 or later; see LICENSE
+ * @copyright  2024 Easylogic CO LP
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
  */
 
 namespace Alfa\Component\Alfa\Administrator\View\Users;
@@ -74,39 +75,13 @@ class HtmlView extends BaseHtmlView
         $canDo = ContentHelper::getActions('com_alfa');
         $toolbar = $this->getDocument()->getToolbar();
 
-        ToolbarHelper::title(Text::_('COM_ALFA_TITLE_USERS'), 'generic');
+        ToolbarHelper::title(Text::_('COM_ALFA_TITLE_USERS'), 'person');
 
-        if ($canDo->get('core.create')) {
-            $toolbar->addNew('user.add');
-        }
 
-        if ($canDo->get('core.edit.state')) {
-            $dropdown = $toolbar->dropdownButton('status-group')
-                ->text('JTOOLBAR_CHANGE_STATUS')
-                ->toggleSplit(false)
-                ->icon('fas fa-ellipsis-h')
-                ->buttonClass('btn btn-action')
-                ->listCheck(true);
-
-            $childBar = $dropdown->getChildToolbar();
-
-            $childBar->publish('users.publish')->listCheck(true);
-            $childBar->unpublish('users.unpublish')->listCheck(true);
-            $childBar->archive('users.archive')->listCheck(true);
-
-            if ($this->state->get('filter.state') != AlfaComponent::CONDITION_TRASHED) {
-                $childBar->trash('users.trash')->listCheck(true);
-            }
-
-            if ($this->state->get('filter.state') == AlfaComponent::CONDITION_TRASHED && $canDo->get('core.delete')) {
-                $toolbar->delete('users.delete')
-                ->text('JTOOLBAR_EMPTY_TRASH')
-                ->message('JGLOBAL_CONFIRM_DELETE')
-                ->listCheck(true);
-            }
-
-            $childBar->checkin('users.checkin')->listCheck(true);
-        }
+		//Add new User Button
+		//        if ($canDo->get('core.create')) {
+		//            $toolbar->addNew('user.add');
+		//        }
 
         if ($canDo->get('core.admin')) {
             $toolbar->preferences('com_alfa');
