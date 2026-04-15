@@ -12,8 +12,10 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 
 defined('_JEXEC') or die;
 
+use Exception;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\Database\DatabaseInterface;
+use stdClass;
 
 /**
  * SyncHelper — single source of truth for all Alfa ↔ Joomla sync operations.
@@ -98,29 +100,26 @@ final class SyncHelper
      *     via ComponentHelper so the component configuration panel is the live
      *     control for these defaults.
      *
-     * @param   array|null  $sourceParams  Explicit key→value map, or null to
-     *                                     read from ComponentHelper at runtime.
+     * @param array|null $sourceParams Explicit key→value map, or null to
+     *                                 read from ComponentHelper at runtime.
      *
-     * @return  string  JSON-encoded prices_display value.
+     * @return string JSON-encoded prices_display value.
      */
     public static function buildDefaultPricesDisplay(?array $sourceParams = null): string
     {
-        if ($sourceParams === null)
-        {
+        if ($sourceParams === null) {
             // Runtime path: read from component params (seeded by installer).
             $componentParams = ComponentHelper::getParams('com_alfa');
-            $sourceParams    = [];
+            $sourceParams = [];
 
-            foreach (self::PRICES_DISPLAY_KEYS as $key)
-            {
+            foreach (self::PRICES_DISPLAY_KEYS as $key) {
                 $sourceParams[$key] = $componentParams->get($key, '0');
             }
         }
 
         $display = [];
 
-        foreach (self::PRICES_DISPLAY_KEYS as $key)
-        {
+        foreach (self::PRICES_DISPLAY_KEYS as $key) {
             // String cast matches how Joomla stores boolean-like integers.
             $display[$key] = (string) ($sourceParams[$key] ?? '0');
         }
@@ -134,11 +133,6 @@ final class SyncHelper
 
     /**
      * Returns true if a row for $userId already exists in #__alfa_users.
-     *
-     * @param   DatabaseInterface  $db
-     * @param   int                $userId
-     *
-     * @return  bool
      */
     public static function alfaUserExists(DatabaseInterface $db, int $userId): bool
     {
@@ -152,11 +146,6 @@ final class SyncHelper
 
     /**
      * Returns true if a row for $groupId already exists in #__alfa_usergroups.
-     *
-     * @param   DatabaseInterface  $db
-     * @param   int                $groupId
-     *
-     * @return  bool
      */
     public static function alfaUsergroupExists(DatabaseInterface $db, int $groupId): bool
     {
@@ -178,31 +167,24 @@ final class SyncHelper
      * Used by the plugin's onUserAfterSave handler where only one user is
      * being added at a time, so chunking is unnecessary.
      *
-     * @param   DatabaseInterface  $db
-     * @param   int                $userId
      *
-     * @return  bool  True if a row was inserted, false if it already existed.
+     * @return bool True if a row was inserted, false if it already existed.
      */
     public static function insertAlfaUser(DatabaseInterface $db, int $userId): bool
     {
-        if (self::alfaUserExists($db, $userId))
-        {
+        if (self::alfaUserExists($db, $userId)) {
             return false;
         }
 
-        $row          = new \stdClass();
+        $row = new stdClass();
         $row->id_user = $userId;
-        $row->note    = '';
+        $row->note = '';
 
-        try
-        {
+        try {
             $db->insertObject('#__alfa_users', $row);
-        }
-        catch (\Exception $e)
-        {
+        } catch (Exception $e) {
             // Silently drop duplicate-key races (concurrent registrations).
-            if (stripos($e->getMessage(), 'Duplicate') === false)
-            {
+            if (stripos($e->getMessage(), 'Duplicate') === false) {
                 throw $e;
             }
 
@@ -216,37 +198,29 @@ final class SyncHelper
      * Inserts a single usergroup row into #__alfa_usergroups if it does not
      * already exist.
      *
-     * @param   DatabaseInterface  $db
-     * @param   int                $groupId
-     * @param   string|null        $pricesDisplay  JSON string; pass null to
-     *                                             build from component params.
+     * @param string|null $pricesDisplay JSON string; pass null to
+     *                                   build from component params.
      *
-     * @return  bool  True if a row was inserted, false if it already existed.
+     * @return bool True if a row was inserted, false if it already existed.
      */
     public static function insertAlfaUsergroup(
         DatabaseInterface $db,
         int $groupId,
-        ?string $pricesDisplay = null
-    ): bool
-    {
-        if (self::alfaUsergroupExists($db, $groupId))
-        {
+        ?string $pricesDisplay = null,
+    ): bool {
+        if (self::alfaUsergroupExists($db, $groupId)) {
             return false;
         }
 
-        $row                 = new \stdClass();
-        $row->usergroup_id   = $groupId;
-        $row->prices_enable  = 0;
+        $row = new stdClass();
+        $row->usergroup_id = $groupId;
+        $row->prices_enable = 0;
         $row->prices_display = $pricesDisplay ?? self::buildDefaultPricesDisplay();
 
-        try
-        {
+        try {
             $db->insertObject('#__alfa_usergroups', $row);
-        }
-        catch (\Exception $e)
-        {
-            if (stripos($e->getMessage(), 'Duplicate') === false)
-            {
+        } catch (Exception $e) {
+            if (stripos($e->getMessage(), 'Duplicate') === false) {
                 throw $e;
             }
 
@@ -266,23 +240,20 @@ final class SyncHelper
      * Uses a single multi-row INSERT per chunk instead of one query per row.
      * For 2 000 missing users this means ~4 DB round-trips instead of 2 000.
      *
-     * @param   DatabaseInterface  $db
      *
-     * @return  int  Total number of rows inserted.
+     * @return int Total number of rows inserted.
      */
     public static function bulkSyncUsers(DatabaseInterface $db): int
     {
         $missing = self::getMissingUserIds($db);
 
-        if (empty($missing))
-        {
+        if (empty($missing)) {
             return 0;
         }
 
         $inserted = 0;
 
-        foreach (array_chunk($missing, self::INSERT_CHUNK_SIZE) as $chunk)
-        {
+        foreach (array_chunk($missing, self::INSERT_CHUNK_SIZE) as $chunk) {
             $query = $db->getQuery(true)
                 ->insert($db->quoteName('#__alfa_users'))
                 ->columns([
@@ -290,18 +261,14 @@ final class SyncHelper
                     $db->quoteName('note'),
                 ]);
 
-            foreach ($chunk as $userId)
-            {
+            foreach ($chunk as $userId) {
                 $query->values((int) $userId . ', ' . $db->quote(''));
             }
 
-            try
-            {
+            try {
                 $db->setQuery($query)->execute();
                 $inserted += count($chunk);
-            }
-            catch (\Exception $e)
-            {
+            } catch (Exception $e) {
                 // If the chunk fails (e.g. partial duplicate after a crash),
                 // fall back to row-by-row so the rest of the chunk still lands.
                 $inserted += self::insertUsersOneByOne($db, $chunk);
@@ -319,20 +286,17 @@ final class SyncHelper
      * (pass $this->defaultParams from script.php) or from the live component
      * params when $sourceParams is null (runtime / plugin use).
      *
-     * @param   DatabaseInterface  $db
-     * @param   array|null         $sourceParams  See buildDefaultPricesDisplay().
+     * @param array|null $sourceParams See buildDefaultPricesDisplay().
      *
-     * @return  int  Total number of rows inserted.
+     * @return int Total number of rows inserted.
      */
     public static function bulkSyncUsergroups(
         DatabaseInterface $db,
-        ?array $sourceParams = null
-    ): int
-    {
+        ?array $sourceParams = null,
+    ): int {
         $missing = self::getMissingGroupIds($db);
 
-        if (empty($missing))
-        {
+        if (empty($missing)) {
             return 0;
         }
 
@@ -341,8 +305,7 @@ final class SyncHelper
 
         $inserted = 0;
 
-        foreach (array_chunk($missing, self::INSERT_CHUNK_SIZE) as $chunk)
-        {
+        foreach (array_chunk($missing, self::INSERT_CHUNK_SIZE) as $chunk) {
             $query = $db->getQuery(true)
                 ->insert($db->quoteName('#__alfa_usergroups'))
                 ->columns([
@@ -351,22 +314,18 @@ final class SyncHelper
                     $db->quoteName('prices_display'),
                 ]);
 
-            foreach ($chunk as $groupId)
-            {
+            foreach ($chunk as $groupId) {
                 $query->values(
                     (int) $groupId
                     . ', 0'
-                    . ', ' . $db->quote($pricesDisplay)
+                    . ', ' . $db->quote($pricesDisplay),
                 );
             }
 
-            try
-            {
+            try {
                 $db->setQuery($query)->execute();
                 $inserted += count($chunk);
-            }
-            catch (\Exception $e)
-            {
+            } catch (Exception $e) {
                 $inserted += self::insertGroupsOneByOne($db, $chunk, $pricesDisplay);
             }
         }
@@ -381,9 +340,8 @@ final class SyncHelper
     /**
      * Returns the IDs of all #__users rows that have no matching #__alfa_users row.
      *
-     * @param   DatabaseInterface  $db
      *
-     * @return  int[]
+     * @return int[]
      */
     public static function getMissingUserIds(DatabaseInterface $db): array
     {
@@ -393,7 +351,7 @@ final class SyncHelper
             ->join(
                 'LEFT',
                 $db->quoteName('#__alfa_users', 'a')
-                . ' ON ' . $db->quoteName('u.id') . ' = ' . $db->quoteName('a.id_user')
+                . ' ON ' . $db->quoteName('u.id') . ' = ' . $db->quoteName('a.id_user'),
             )
             ->where($db->quoteName('a.id_user') . ' IS NULL');
 
@@ -404,9 +362,8 @@ final class SyncHelper
      * Returns the IDs of all #__usergroups rows that have no matching
      * #__alfa_usergroups row.
      *
-     * @param   DatabaseInterface  $db
      *
-     * @return  int[]
+     * @return int[]
      */
     public static function getMissingGroupIds(DatabaseInterface $db): array
     {
@@ -416,7 +373,7 @@ final class SyncHelper
             ->join(
                 'LEFT',
                 $db->quoteName('#__alfa_usergroups', 'ag')
-                . ' ON ' . $db->quoteName('g.id') . ' = ' . $db->quoteName('ag.usergroup_id')
+                . ' ON ' . $db->quoteName('g.id') . ' = ' . $db->quoteName('ag.usergroup_id'),
             )
             ->where($db->quoteName('ag.usergroup_id') . ' IS NULL');
 
@@ -431,19 +388,16 @@ final class SyncHelper
      * Inserts user IDs one-by-one, silently skipping duplicates.
      * Only called as a fallback when a chunk INSERT fails.
      *
-     * @param   DatabaseInterface  $db
-     * @param   int[]              $userIds
+     * @param int[] $userIds
      *
-     * @return  int  Number of rows successfully inserted.
+     * @return int Number of rows successfully inserted.
      */
     private static function insertUsersOneByOne(DatabaseInterface $db, array $userIds): int
     {
         $inserted = 0;
 
-        foreach ($userIds as $userId)
-        {
-            if (self::insertAlfaUser($db, (int) $userId))
-            {
+        foreach ($userIds as $userId) {
+            if (self::insertAlfaUser($db, (int) $userId)) {
                 $inserted++;
             }
         }
@@ -455,24 +409,17 @@ final class SyncHelper
      * Inserts usergroup IDs one-by-one, silently skipping duplicates.
      * Only called as a fallback when a chunk INSERT fails.
      *
-     * @param   DatabaseInterface  $db
-     * @param   int[]              $groupIds
-     * @param   string             $pricesDisplay
-     *
-     * @return  int
+     * @param int[] $groupIds
      */
     private static function insertGroupsOneByOne(
         DatabaseInterface $db,
         array $groupIds,
-        string $pricesDisplay
-    ): int
-    {
+        string $pricesDisplay,
+    ): int {
         $inserted = 0;
 
-        foreach ($groupIds as $groupId)
-        {
-            if (self::insertAlfaUsergroup($db, (int) $groupId, $pricesDisplay))
-            {
+        foreach ($groupIds as $groupId) {
+            if (self::insertAlfaUsergroup($db, (int) $groupId, $pricesDisplay)) {
                 $inserted++;
             }
         }
