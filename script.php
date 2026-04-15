@@ -197,7 +197,7 @@ class com_alfaInstallerScript extends InstallerScript
                 sprintf('Users synced successfully (%d new records).', $count)
             );
         }
-        catch (\Exception $e)
+        catch (\Throwable $e)
         {
             $app->enqueueMessage('Failed to sync users: ' . $e->getMessage(), 'error');
         }
@@ -212,7 +212,7 @@ class com_alfaInstallerScript extends InstallerScript
                 sprintf('Usergroups synced successfully (%d new records).', $count)
             );
         }
-        catch (\Exception $e)
+        catch (\Throwable $e)
         {
             $app->enqueueMessage('Failed to sync usergroups: ' . $e->getMessage(), 'error');
         }
