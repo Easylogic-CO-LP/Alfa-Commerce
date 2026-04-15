@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    1.0.1
  * @package    Com_Alfa
@@ -28,8 +29,8 @@ class UsersModel extends ListModel
     /**
      * Constructor.
      *
-     * @param   array                     $config   Optional configuration array.
-     * @param   MVCFactoryInterface|null  $factory  MVC factory.
+     * @param array $config Optional configuration array.
+     * @param MVCFactoryInterface|null $factory MVC factory.
      *
      * @since   1.0.1
      */
@@ -56,10 +57,10 @@ class UsersModel extends ListModel
      *
      * Note: calling getState() inside this method will cause recursion.
      *
-     * @param   string  $ordering   Default ordering column.
-     * @param   string  $direction  Default ordering direction.
+     * @param string $ordering Default ordering column.
+     * @param string $direction Default ordering direction.
      *
-     * @return  void
+     * @return void
      *
      * @since   1.0.1
      */
@@ -74,9 +75,9 @@ class UsersModel extends ListModel
      * Ensures different filter/search combinations each get their own cache
      * entry so paginated lists stay consistent.
      *
-     * @param   string  $id  A prefix for the store ID.
+     * @param string $id A prefix for the store ID.
      *
-     * @return  string
+     * @return string
      *
      * @since   1.0.1
      */
@@ -95,60 +96,59 @@ class UsersModel extends ListModel
      * for display (username, email, lastvisitDate). The INNER JOIN ensures
      * rows whose linked Joomla user has been hard-deleted are excluded.
      *
-     * @return  \Joomla\Database\DatabaseQuery
+     * @return \Joomla\Database\DatabaseQuery
      *
      * @since   1.0.1
      */
     protected function getListQuery()
-{
-    $db    = $this->getDatabase();
-    $query = $db->getQuery(true);
+    {
+        $db = $this->getDatabase();
+        $query = $db->getQuery(true);
 
-    $query->select(
-        $this->getState(
-            'list.select',
-            'a.*, u.name AS joomla_name, u.username, u.email, u.lastvisitDate'  // no DISTINCT
-        )
-    );
+        $query->select(
+            $this->getState(
+                'list.select',
+                'a.*, u.name AS joomla_name, u.username, u.email, u.lastvisitDate',  // no DISTINCT
+            ),
+        );
 
-    $query->from($db->quoteName('#__alfa_users', 'a'));
+        $query->from($db->quoteName('#__alfa_users', 'a'));
 
-    $query->join(
-        'INNER',
-        $db->quoteName('#__users', 'u') . ' ON u.id = a.id_user'
-    );
+        $query->join(
+            'INNER',
+            $db->quoteName('#__users', 'u') . ' ON u.id = a.id_user',
+        );
 
-    $search = $this->getState('filter.search');
+        $search = $this->getState('filter.search');
 
-    if (!empty($search)) {
-        if (stripos($search, 'id:') === 0) {
-            $query->where('a.id = ' . (int) substr($search, 3));
-        } else {
-            $search = $db->quote('%' . $db->escape($search, true) . '%');
-            $query->where(
-                '(' .
-                    'u.username LIKE ' . $search .
-                    ' OR u.email LIKE ' . $search .
-                    ' OR a.note LIKE '  . $search .
-                ')'
-            );
+        if (!empty($search)) {
+            if (stripos($search, 'id:') === 0) {
+                $query->where('a.id = ' . (int) substr($search, 3));
+            } else {
+                $search = $db->quote('%' . $db->escape($search, true) . '%');
+                $query->where(
+                    '(' .
+                        'u.username LIKE ' . $search .
+                        ' OR u.email LIKE ' . $search .
+                        ' OR a.note LIKE ' . $search .
+                    ')',
+                );
+            }
         }
+
+        $orderCol = $this->getState('list.ordering', 'a.id');
+        $orderDirn = $this->getState('list.direction', 'ASC');
+        $query->order($db->escape($orderCol . ' ' . $orderDirn));
+
+        // print_r($db->replacePrefix((string) $query));
+        // exit;
+        return $query;
     }
-
-    $orderCol  = $this->getState('list.ordering', 'a.id');
-    $orderDirn = $this->getState('list.direction', 'ASC');
-    $query->order($db->escape($orderCol . ' ' . $orderDirn));
-
-
-// print_r($db->replacePrefix((string) $query));
-// exit;
-    return $query;
-}
 
     /**
      * Returns the list of items, with any post-processing applied.
      *
-     * @return  array|false
+     * @return array|false
      *
      * @since   1.0.1
      */

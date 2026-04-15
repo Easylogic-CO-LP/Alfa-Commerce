@@ -13,7 +13,6 @@ namespace Alfa\Component\Alfa\Administrator\View\Users;
 // No direct access
 defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\Extension\AlfaComponent;
 use Alfa\Component\Alfa\Administrator\View\HtmlView as BaseHtmlView;
 use Joomla\CMS\Helper\ContentHelper;
 use Joomla\CMS\Language\Text;
@@ -77,11 +76,10 @@ class HtmlView extends BaseHtmlView
 
         ToolbarHelper::title(Text::_('COM_ALFA_TITLE_USERS'), 'person');
 
-
-		//Add new User Button
-		//        if ($canDo->get('core.create')) {
-		//            $toolbar->addNew('user.add');
-		//        }
+        //Add new User Button
+        //        if ($canDo->get('core.create')) {
+        //            $toolbar->addNew('user.add');
+        //        }
 
         if ($canDo->get('core.admin')) {
             $toolbar->preferences('com_alfa');

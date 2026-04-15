@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    1.0.1
  * @package    Com_Alfa
@@ -14,7 +15,7 @@ defined('_JEXEC') or die;
 
 use Joomla\CMS\Factory;
 use Joomla\CMS\MVC\Model\AdminModel;
-use Joomla\CMS\Component\ComponentHelper;
+use SimpleXMLElement;
 
 /**
  * Usergroup model.
@@ -24,19 +25,19 @@ use Joomla\CMS\Component\ComponentHelper;
 class UsergroupModel extends AdminModel
 {
     /**
-     * @var    string  The prefix to use with controller messages.
+     * @var string The prefix to use with controller messages.
      * @since  1.0.1
      */
     protected $text_prefix = 'COM_ALFA';
 
     /**
-     * @var    string  Alias to manage history control.
+     * @var string Alias to manage history control.
      * @since  1.0.1
      */
     public $typeAlias = 'com_alfa.usergroup';
 
     /**
-     * @var    object|null  Cached item data.
+     * @var object|null Cached item data.
      * @since  1.0.1
      */
     protected $item = null;
@@ -47,7 +48,7 @@ class UsergroupModel extends AdminModel
      * To expose a new fieldset from config.xml at the usergroup level,
      * simply add an entry here — no other changes required.
      *
-     * @var    array<string, string>
+     * @var array<string, string>
      * @since  1.0.1
      */
     private const OVERRIDE_FIELDSETS = [
@@ -58,7 +59,7 @@ class UsergroupModel extends AdminModel
     /**
      * Field types that are purely cosmetic / UI-only and carry no storable value.
      *
-     * @var    string[]
+     * @var string[]
      * @since  1.0.1
      */
     private const SKIP_FIELD_TYPES = ['note'];
@@ -73,10 +74,10 @@ class UsergroupModel extends AdminModel
      * Loads the base usergroup form, then dynamically injects all fieldsets
      * defined in OVERRIDE_FIELDSETS from config.xml and re-binds their data.
      *
-     * @param   array  $data      An optional array of data for the form to interrogate.
-     * @param   bool   $loadData  True if the form is to load its own data (default case), false if not.
+     * @param array $data An optional array of data for the form to interrogate.
+     * @param bool $loadData True if the form is to load its own data (default case), false if not.
      *
-     * @return  \Joomla\CMS\Form\Form|bool  A Form object on success, false on failure.
+     * @return \Joomla\CMS\Form\Form|bool A Form object on success, false on failure.
      * @since   1.0.1
      */
     public function getForm($data = [], $loadData = true)
@@ -84,11 +85,10 @@ class UsergroupModel extends AdminModel
         $form = $this->loadForm(
             'com_alfa.usergroup',
             'usergroup',
-            ['control' => 'jform', 'load_data' => $loadData]
+            ['control' => 'jform', 'load_data' => $loadData],
         );
 
-        if (empty($form))
-        {
+        if (empty($form)) {
             return false;
         }
 
@@ -98,18 +98,15 @@ class UsergroupModel extends AdminModel
         // Re-bind stored group values to the newly injected fields.
         // This is necessary because loadForm() calls bind() before our
         // fields are added, so they would otherwise render empty.
-        if ($loadData)
-        {
+        if ($loadData) {
             $data = $this->loadFormData();
 
-            foreach (self::OVERRIDE_FIELDSETS as $groupName)
-            {
+            foreach (self::OVERRIDE_FIELDSETS as $groupName) {
                 $values = is_object($data)
                     ? ($data->$groupName ?? [])
                     : ($data[$groupName] ?? []);
 
-                if (!empty($values) && is_array($values))
-                {
+                if (!empty($values) && is_array($values)) {
                     $form->bind([$groupName => $values]);
                 }
             }
@@ -123,38 +120,32 @@ class UsergroupModel extends AdminModel
      * flatten their nested sub-fieldsets, strip incompatible attributes (showon),
      * and inject the result into the form under the mapped field group name.
      *
-     * @param   \Joomla\CMS\Form\Form  $form
      *
-     * @return  void
      * @since   1.0.1
      */
     protected function injectConfigFieldsets(\Joomla\CMS\Form\Form $form): void
     {
         $configPath = JPATH_ADMINISTRATOR . '/components/com_alfa/config.xml';
 
-        if (!file_exists($configPath))
-        {
+        if (!file_exists($configPath)) {
             return;
         }
 
         $configXml = simplexml_load_file($configPath);
 
-        if (!$configXml)
-        {
+        if (!$configXml) {
             return;
         }
 
-        foreach (self::OVERRIDE_FIELDSETS as $fieldsetName => $groupName)
-        {
+        foreach (self::OVERRIDE_FIELDSETS as $fieldsetName => $groupName) {
             $matched = $configXml->xpath("//fieldset[@name='{$fieldsetName}']");
 
-            if (empty($matched))
-            {
+            if (empty($matched)) {
                 continue;
             }
 
             $sourceFieldset = $matched[0];
-            $fieldsetLabel  = (string) ($sourceFieldset['label'] ?? strtoupper($fieldsetName));
+            $fieldsetLabel = (string) ($sourceFieldset['label'] ?? strtoupper($fieldsetName));
 
             // Build a self-contained form XML fragment.
             // Fields are flattened into a single fieldset regardless of how
@@ -167,13 +158,11 @@ class UsergroupModel extends AdminModel
                 . '>';
 
             // .//field catches direct children AND fields inside nested sub-fieldsets.
-            foreach ($sourceFieldset->xpath('.//field') as $field)
-            {
+            foreach ($sourceFieldset->xpath('.//field') as $field) {
                 $type = strtolower((string) $field['type']);
                 $name = (string) $field['name'];
 
-	            if (($type !== 'spacer' && empty($name)) || in_array($type, self::SKIP_FIELD_TYPES, true))
-                {
+                if (($type !== 'spacer' && empty($name)) || in_array($type, self::SKIP_FIELD_TYPES, true)) {
                     continue;
                 }
 
@@ -196,12 +185,11 @@ class UsergroupModel extends AdminModel
      *   showon conditions would silently fail to resolve.
      * - Preserves <option> children for list/radio fields.
      *
-     * @param   \SimpleXMLElement  $field
      *
-     * @return  string  Valid XML fragment for a single <field>.
+     * @return string Valid XML fragment for a single <field>.
      * @since   1.0.1
      */
-    protected function buildFieldXml(\SimpleXMLElement $field): string
+    protected function buildFieldXml(SimpleXMLElement $field): string
     {
         /** Attributes that must be removed when re-using a config field in a sub-form context. */
         // $stripAttributes = ['showon'];
@@ -209,10 +197,8 @@ class UsergroupModel extends AdminModel
 
         $xml = '<field';
 
-        foreach ($field->attributes() as $attrName => $attrValue)
-        {
-            if (in_array((string) $attrName, $stripAttributes, true))
-            {
+        foreach ($field->attributes() as $attrName => $attrValue) {
+            if (in_array((string) $attrName, $stripAttributes, true)) {
                 continue;
             }
 
@@ -220,21 +206,17 @@ class UsergroupModel extends AdminModel
         }
 
         // Rebuild child <option> elements if present (list / radio fields).
-        if (count($field->option) > 0)
-        {
+        if (count($field->option) > 0) {
             $xml .= '>';
 
-            foreach ($field->option as $option)
-            {
+            foreach ($field->option as $option) {
                 $xml .= '<option value="' . $this->esc((string) $option['value']) . '">'
                     . $this->esc((string) $option)
                     . '</option>';
             }
 
             $xml .= '</field>';
-        }
-        else
-        {
+        } else {
             $xml .= ' />';
         }
 
@@ -244,9 +226,7 @@ class UsergroupModel extends AdminModel
     /**
      * Escape a string for safe embedding inside an XML attribute value.
      *
-     * @param   string  $value
      *
-     * @return  string
      * @since   1.0.1
      */
     private function esc(string $value): string
@@ -263,30 +243,26 @@ class UsergroupModel extends AdminModel
      *
      * Guards against stale session data belonging to a different record.
      *
-     * @return  mixed  The data for the form.
+     * @return mixed The data for the form.
      * @since   1.0.1
      */
     protected function loadFormData()
     {
-        $app  = Factory::getApplication();
+        $app = Factory::getApplication();
         $data = $app->getUserState('com_alfa.edit.usergroup.data', []);
 
-        if (!empty($data))
-        {
+        if (!empty($data)) {
             $sessionId = is_array($data) ? ($data['id'] ?? 0) : ($data->id ?? 0);
             $requestId = (int) $app->getInput()->getInt('id', 0);
 
             // Discard session data if it belongs to a different record.
-            if ($requestId > 0 && (int) $sessionId !== $requestId)
-            {
+            if ($requestId > 0 && (int) $sessionId !== $requestId) {
                 $data = [];
             }
         }
 
-        if (empty($data))
-        {
-            if ($this->item === null)
-            {
+        if (empty($data)) {
+            if ($this->item === null) {
                 $this->item = $this->getItem();
             }
 
@@ -302,37 +278,31 @@ class UsergroupModel extends AdminModel
      * Decodes each JSON group column into an associative array so the form
      * can bind the values to the correct fields.
      *
-     * @param   int|null  $pk  The id of the primary key.
+     * @param int|null $pk The id of the primary key.
      *
-     * @return  object|bool  Object on success, false on failure.
+     * @return object|bool Object on success, false on failure.
      * @since   1.0.1
      */
     public function getItem($pk = null)
     {
         $item = parent::getItem($pk);
 
-        if (!$item)
-        {
+        if (!$item) {
             return false;
         }
 
         // Decode each overridable group column from JSON → array for form binding.
-        foreach (self::OVERRIDE_FIELDSETS as $fieldsetName => $groupName)
-        {
-            if (!empty($item->$groupName) && is_string($item->$groupName))
-            {
+        foreach (self::OVERRIDE_FIELDSETS as $fieldsetName => $groupName) {
+            if (!empty($item->$groupName) && is_string($item->$groupName)) {
                 $item->$groupName = json_decode($item->$groupName, true) ?: [];
-            }
-            else
-            {
+            } else {
                 $item->$groupName = [];
             }
         }
 
         // Populate the read-only name field from the Joomla usergroup title.
-        if (!empty($item->usergroup_id))
-        {
-            $db    = $this->getDatabase();
+        if (!empty($item->usergroup_id)) {
+            $db = $this->getDatabase();
             $query = $db->getQuery(true)
                 ->select($db->quoteName('title'))
                 ->from($db->quoteName('#__usergroups'))
@@ -351,29 +321,24 @@ class UsergroupModel extends AdminModel
      * Empty values are stripped so that null is stored instead of an empty object,
      * allowing downstream code to cleanly fall back to global component settings.
      *
-     * @param   array  $data  The form data.
+     * @param array $data The form data.
      *
-     * @return  bool  True on success, false on failure.
+     * @return bool True on success, false on failure.
      * @since   1.0.1
      */
     public function save($data)
     {
-
-        foreach (self::OVERRIDE_FIELDSETS as $fieldsetName => $groupName)
-        {
-            if (!empty($data[$groupName]) && is_array($data[$groupName]))
-            {
+        foreach (self::OVERRIDE_FIELDSETS as $fieldsetName => $groupName) {
+            if (!empty($data[$groupName]) && is_array($data[$groupName])) {
                 $filtered = array_filter(
                     $data[$groupName],
-                    static fn($value) => $value !== '' && $value !== null
+                    static fn ($value) => $value !== '' && $value !== null,
                 );
 
                 $data[$groupName] = !empty($filtered)
                     ? json_encode($filtered, JSON_UNESCAPED_UNICODE)
                     : null;
-            }
-            else
-            {
+            } else {
                 $data[$groupName] = null;
             }
         }

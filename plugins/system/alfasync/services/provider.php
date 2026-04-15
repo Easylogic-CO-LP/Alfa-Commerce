@@ -2,34 +2,32 @@
 
 defined('_JEXEC') or die;
 
+use Alfa\Plugin\System\Alfasync\Extension\Alfasync;
 use Joomla\CMS\Extension\PluginInterface;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
 use Joomla\Event\DispatcherInterface;
-use Alfa\Plugin\System\Alfasync\Extension\Alfasync;
 
-return new class() implements ServiceProviderInterface
-{
-	public function register(Container $container)
-	{
-		$container->set(
-			PluginInterface::class,
-			function (Container $container) {
+return new class () implements ServiceProviderInterface {
+    public function register(Container $container)
+    {
+        $container->set(
+            PluginInterface::class,
+            function (Container $container) {
+                $config = (array) PluginHelper::getPlugin('system', 'alfasync');
 
-				$config = (array) PluginHelper::getPlugin('system', 'alfasync');
+                $subject = $container->get(DispatcherInterface::class);
 
-				$subject = $container->get(DispatcherInterface::class);
+                $app = Factory::getApplication();
 
-				$app = Factory::getApplication();
+                $plugin = new Alfasync($subject, $config);
 
-				$plugin = new Alfasync($subject, $config);
-				
-				$plugin->setApplication($app);
+                $plugin->setApplication($app);
 
-				return $plugin;
-			}
-		);
-	}
+                return $plugin;
+            },
+        );
+    }
 };

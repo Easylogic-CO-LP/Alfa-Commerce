@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @version    1.0.1
  * @package    Com_Alfa
@@ -13,7 +14,6 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Joomla\CMS\Factory;
-use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Model\AdminModel;
 use Joomla\CMS\User\UserFactoryInterface;
 
@@ -27,13 +27,13 @@ use Joomla\CMS\User\UserFactoryInterface;
  */
 class UserModel extends AdminModel
 {
-    /** @var string  @since 1.0.1 */
+    /** @var string @since 1.0.1 */
     protected $text_prefix = 'COM_ALFA';
 
-    /** @var string  @since 1.0.1 */
+    /** @var string @since 1.0.1 */
     public $typeAlias = 'com_alfa.user';
 
-    /** @var object|null  @since 1.0.1 */
+    /** @var object|null @since 1.0.1 */
     protected $item = null;
 
     /**
@@ -54,7 +54,7 @@ class UserModel extends AdminModel
         $form = $this->loadForm(
             'com_alfa.user',
             'user',
-            ['control' => 'jform', 'load_data' => $loadData]
+            ['control' => 'jform', 'load_data' => $loadData],
         );
 
         return $form ?: false;
@@ -69,8 +69,8 @@ class UserModel extends AdminModel
         $data = Factory::getApplication()->getUserState('com_alfa.edit.user.data', []);
 
         if (empty($data)) {
-            $this->item = $this->item ?? $this->getItem();
-            $data       = $this->item;
+            $this->item ??= $this->getItem();
+            $data = $this->item;
         }
 
         return $data;
@@ -83,9 +83,9 @@ class UserModel extends AdminModel
      * The edit URL uses tmpl=component so the iframe only loads the edit form
      * without the full admin chrome around it.
      *
-     * @param   int|null  $pk  Primary key.
+     * @param int|null $pk Primary key.
      *
-     * @return  object|false
+     * @return object|false
      *
      * @since   1.0.1
      */
@@ -110,8 +110,8 @@ class UserModel extends AdminModel
                 ->get(UserFactoryInterface::class)
                 ->loadUserById((int) $item->id_user);
 
-            $item->joomla_name     = $user->name;
-            $item->joomla_email    = $user->email;
+            $item->joomla_name = $user->name;
+            $item->joomla_email = $user->email;
             $item->joomla_username = $user->username;
 
             // tmpl=component strips admin chrome — only the edit form renders

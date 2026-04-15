@@ -78,52 +78,52 @@ class HtmlView extends BaseHtmlView
 
         ToolbarHelper::title(Text::_('COM_ALFA_TITLE_USERGROUPS'), 'users');
 
-		//Add New Usergroup
-//        if ($canDo->get('core.create')) {
-//            $toolbar->addNew('usergroup.add');
-//        }
+        //Add New Usergroup
+        //        if ($canDo->get('core.create')) {
+        //            $toolbar->addNew('usergroup.add');
+        //        }
 
-//	    $toolbar->delete('usergroups.delete')
-//		    ->text('JTOOLBAR_EMPTY_TRASH')
-//		    ->message('JGLOBAL_CONFIRM_DELETE')
-//		    ->listCheck(true);
+        //	    $toolbar->delete('usergroups.delete')
+        //		    ->text('JTOOLBAR_EMPTY_TRASH')
+        //		    ->message('JGLOBAL_CONFIRM_DELETE')
+        //		    ->listCheck(true);
 
-//	    $toolbar->popupButton('new')
-//		    ->text('New')
-//		    ->icon('icon-plus')
-//		    ->url(Uri::root().'/administrator/index.php?option=com_users&view=group&layout=edit')
-//		    ->iframeWidth(800)
-//		    ->iframeHeight(500)
-//		    ->onclose('window.location.reload();');
-//
-//        if ($canDo->get('core.edit.state')) {
-//            $dropdown = $toolbar->dropdownButton('status-group')
-//                ->text('JTOOLBAR_CHANGE_STATUS')
-//                ->toggleSplit(false)
-//                ->icon('fas fa-ellipsis-h')
-//                ->buttonClass('btn btn-action')
-//                ->listCheck(false);
-//
-//            $childBar = $dropdown->getChildToolbar();
-//
-//            $childBar->publish('usergroups.publish')->listCheck(true);
-//            $childBar->unpublish('usergroups.unpublish')->listCheck(true);
-//            $childBar->archive('usergroups.archive')->listCheck(true);
-//
-//            if ($this->state->get('filter.state') != AlfaComponent::CONDITION_TRASHED) {
-//                $childBar->trash('usergroups.trash')->listCheck(true);
-//            }
-//
-//            if ($this->state->get('filter.state') == AlfaComponent::CONDITION_TRASHED && $canDo->get('core.delete')) {
-//                // If this component does not use state then show a direct delete button as we can not trash
-//                $toolbar->delete('usergroups.delete')
-//                ->text('JTOOLBAR_EMPTY_TRASH')
-//                ->message('JGLOBAL_CONFIRM_DELETE')
-//                ->listCheck(true);
-//            }
-//
-//            $childBar->checkin('usergroups.checkin')->listCheck(true);
-//        }
+        //	    $toolbar->popupButton('new')
+        //		    ->text('New')
+        //		    ->icon('icon-plus')
+        //		    ->url(Uri::root().'/administrator/index.php?option=com_users&view=group&layout=edit')
+        //		    ->iframeWidth(800)
+        //		    ->iframeHeight(500)
+        //		    ->onclose('window.location.reload();');
+        //
+        //        if ($canDo->get('core.edit.state')) {
+        //            $dropdown = $toolbar->dropdownButton('status-group')
+        //                ->text('JTOOLBAR_CHANGE_STATUS')
+        //                ->toggleSplit(false)
+        //                ->icon('fas fa-ellipsis-h')
+        //                ->buttonClass('btn btn-action')
+        //                ->listCheck(false);
+        //
+        //            $childBar = $dropdown->getChildToolbar();
+        //
+        //            $childBar->publish('usergroups.publish')->listCheck(true);
+        //            $childBar->unpublish('usergroups.unpublish')->listCheck(true);
+        //            $childBar->archive('usergroups.archive')->listCheck(true);
+        //
+        //            if ($this->state->get('filter.state') != AlfaComponent::CONDITION_TRASHED) {
+        //                $childBar->trash('usergroups.trash')->listCheck(true);
+        //            }
+        //
+        //            if ($this->state->get('filter.state') == AlfaComponent::CONDITION_TRASHED && $canDo->get('core.delete')) {
+        //                // If this component does not use state then show a direct delete button as we can not trash
+        //                $toolbar->delete('usergroups.delete')
+        //                ->text('JTOOLBAR_EMPTY_TRASH')
+        //                ->message('JGLOBAL_CONFIRM_DELETE')
+        //                ->listCheck(true);
+        //            }
+        //
+        //            $childBar->checkin('usergroups.checkin')->listCheck(true);
+        //        }
 
         if ($canDo->get('core.admin')) {
             $toolbar->preferences('com_alfa');

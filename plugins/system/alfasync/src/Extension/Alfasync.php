@@ -45,6 +45,7 @@ namespace Alfa\Plugin\System\Alfasync\Extension;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
+use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Plugin\CMSPlugin;
@@ -72,9 +73,9 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     {
         return [
             // User events — always active
-            'onUserAfterSave'      => 'onUserAfterSave',
+            'onUserAfterSave' => 'onUserAfterSave',
             'onUserAfterSaveGroup' => 'onUserAfterSaveGroup',
-            'onUserAfterDelete'    => 'onUserAfterDelete',
+            'onUserAfterDelete' => 'onUserAfterDelete',
 
             // Content events — uncomment to activate
             // 'onContentAfterSave'   => 'onContentAfterSave',
@@ -98,36 +99,26 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      *   id, name, username, email, password, block, sendEmail,
      *   registerDate, lastvisitDate, activation, params, groups, …
      *
-     * @param   Event|array  $event
-     * @param   bool|null    $isNew
-     * @param   bool|null    $success
-     *
-     * @return  void
+     * @param Event|array $event
      */
     public function onUserAfterSave($event, ?bool $isNew = null, ?bool $success = null): void
     {
-
         [$data, $isNew, $success] = $this->extractUserArgs($event, $isNew, $success);
 
-        if (!$success || empty($data['id']))
-        {
+        if (!$success || empty($data['id'])) {
             return;
         }
 
-        if (!(bool) $this->params->get('sync_users', 1))
-        {
+        if (!(bool) $this->params->get('sync_users', 1)) {
             return;
         }
 
         $userId = (int) $data['id'];
 
-        try
-        {
+        try {
             $inserted = SyncHelper::insertAlfaUser($this->getDatabase(), $userId);
             $this->logDebug('onUserAfterSave', ($inserted ? 'Inserted' : 'Already exists') . ' — user #' . $userId);
-        }
-        catch (\Exception $e)
-        {
+        } catch (Exception $e) {
             $this->logError('onUserAfterSave', $e->getMessage(), ['user_id' => $userId]);
         }
     }
@@ -137,37 +128,28 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      *
      * Available in $group: id, title, parent_id.
      *
-     * @param   Event|array  $event
-     * @param   bool|null    $isNew
-     *
-     * @return  void
+     * @param Event|array $event
      */
     public function onUserAfterSaveGroup($event, ?bool $isNew = null): void
     {
-
         [$group, $isNew] = $this->extractGroupArgs($event, $isNew);
 
-        if (empty($group['id']))
-        {
+        if (empty($group['id'])) {
             return;
         }
 
-        if (!(bool) $this->params->get('sync_usergroups', 1))
-        {
+        if (!(bool) $this->params->get('sync_usergroups', 1)) {
             return;
         }
 
         $groupId = (int) $group['id'];
 
-        try
-        {
+        try {
             // Pass null → SyncHelper reads prices_display defaults from
             // the seeded com_alfa component params via ComponentHelper.
             $inserted = SyncHelper::insertAlfaUsergroup($this->getDatabase(), $groupId);
             $this->logDebug('onUserAfterSaveGroup', ($inserted ? 'Inserted' : 'Already exists') . ' — group #' . $groupId);
-        }
-        catch (\Exception $e)
-        {
+        } catch (Exception $e) {
             $this->logError('onUserAfterSaveGroup', $e->getMessage(), ['group_id' => $groupId]);
         }
     }
@@ -175,48 +157,37 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     /**
      * Called after a Joomla user is deleted.
      *
-     * @param   Event|array  $event
-     * @param   bool|null    $success
-     *
-     * @return  void
+     * @param Event|array $event
      */
     public function onUserAfterDelete($event, ?bool $success = null): void
     {
-        if ($event instanceof Event)
-        {
-            $user    = (array) ($event->getArgument('subject') ?? $event->getArgument('0') ?? []);
+        if ($event instanceof Event) {
+            $user = (array) ($event->getArgument('subject') ?? $event->getArgument('0') ?? []);
             $success = (bool) ($event->getArgument('1') ?? $event->getArgument('success') ?? true);
-        }
-        else
-        {
-            $user    = (array) $event;
+        } else {
+            $user = (array) $event;
             $success = (bool) $success;
         }
 
-        if (!$success || empty($user['id']))
-        {
+        if (!$success || empty($user['id'])) {
             return;
         }
 
-        if (!(bool) $this->params->get('delete_users', 1))
-        {
+        if (!(bool) $this->params->get('delete_users', 1)) {
             return;
         }
 
         $userId = (int) $user['id'];
 
-        try
-        {
-            $db    = $this->getDatabase();
+        try {
+            $db = $this->getDatabase();
             $query = $db->getQuery(true)
                 ->delete($db->quoteName('#__alfa_users'))
                 ->where($db->quoteName('id_user') . ' = ' . $userId);
 
             $db->setQuery($query)->execute();
             $this->logDebug('onUserAfterDelete', 'Deleted alfa user #' . $userId);
-        }
-        catch (\Exception $e)
-        {
+        } catch (Exception $e) {
             $this->logError('onUserAfterDelete', $e->getMessage(), ['user_id' => $userId]);
         }
     }
@@ -232,9 +203,9 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      *   'com_content.article'     – standard article
      *   'com_categories.category' – category
      *
-     * @param   Event  $event
+     * @param Event $event
      *
-     * @return  void
+     * @return void
      */
     // public function onContentAfterSave(Event $event): void
     // {
@@ -276,16 +247,13 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      */
     private function extractUserArgs($event, ?bool $isNew, ?bool $success): array
     {
-        if ($event instanceof Event)
-        {
-            $data    = (array) ($event->getArgument('subject') ?? $event->getArgument('0') ?? []);
-            $isNew   = (bool) ($event->getArgument('1') ?? $event->getArgument('isNew')   ?? false);
+        if ($event instanceof Event) {
+            $data = (array) ($event->getArgument('subject') ?? $event->getArgument('0') ?? []);
+            $isNew = (bool) ($event->getArgument('1') ?? $event->getArgument('isNew') ?? false);
             $success = (bool) ($event->getArgument('2') ?? $event->getArgument('success') ?? true);
-        }
-        else
-        {
-            $data    = (array) $event;
-            $isNew   = (bool) $isNew;
+        } else {
+            $data = (array) $event;
+            $isNew = (bool) $isNew;
             $success = (bool) $success;
         }
 
@@ -299,13 +267,10 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      */
     private function extractGroupArgs($event, ?bool $isNew): array
     {
-        if ($event instanceof Event)
-        {
+        if ($event instanceof Event) {
             $group = (array) ($event->getArgument('subject') ?? $event->getArgument('0') ?? []);
             $isNew = (bool) ($event->getArgument('1') ?? $event->getArgument('isNew') ?? false);
-        }
-        else
-        {
+        } else {
             $group = (array) $event;
             $isNew = (bool) $isNew;
         }
@@ -324,8 +289,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      */
     private function getDatabase()
     {
-        if (isset($this->db) && $this->db !== null)
-        {
+        if (isset($this->db) && $this->db !== null) {
             return $this->db;
         }
 
@@ -343,8 +307,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
     private function logDebug(string $caller, string $message): void
     {
-        if (!(bool) $this->params->get('debug_log', 0))
-        {
+        if (!(bool) $this->params->get('debug_log', 0)) {
             return;
         }
 
@@ -355,7 +318,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     {
         Log::addLogger(['text_file' => 'alfa_sync.php'], Log::ALL, ['alfa_sync']);
 
-        $ctx  = empty($context) ? '' : ' | ' . json_encode($context);
+        $ctx = empty($context) ? '' : ' | ' . json_encode($context);
         Log::add('[' . $caller . '] ' . $message . $ctx, $level, 'alfa_sync');
     }
 }
