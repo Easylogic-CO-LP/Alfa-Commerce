@@ -75,6 +75,7 @@ use Alfa\PhpRevolut\Exceptions\MerchantException;
 use Alfa\PhpRevolut\Requests\OrderCapture;
 use Alfa\PhpRevolut\Requests\OrderCreate;
 use Alfa\PhpRevolut\Requests\OrderRefund;
+use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
@@ -83,39 +84,37 @@ use Joomla\CMS\Uri\Uri;
 
 final class Revolut extends PaymentsPlugin
 {
+    public function __construct($subject, $config = [])
+    {
+        parent::__construct($subject, $config);
 
-	public function __construct($subject, $config = [])
-	{
-	    parent::__construct($subject, $config);
+        Log::addLogger(
+            [
+                'text_file' => 'alfa_payments_revolut.php',
+                'text_file_no_php' => false,
+            ],
+            Log::ALL,
+            ['com_alfa.payments'],
+        );
+    }
 
-	    Log::addLogger(
-	        [
-	            'text_file'        => 'alfa_payments_revolut.php',
-	            'text_file_no_php' => false,
-	        ],
-	        Log::ALL,
-	        ['com_alfa.payments']
-	    );
-	}
-
-
-	// =========================================================================
-	//  GET PARAMS
-	// =========================================================================
-	private function getParams($order)
-	{
-		return $order->selected_payment->params;
-	}
+    // =========================================================================
+    //  GET PARAMS
+    // =========================================================================
+    private function getParams($order)
+    {
+        return $order->selected_payment->params;
+    }
 
     // =========================================================================
     //  SDK CLIENT
     // =========================================================================
     private function revolut($params): RevolutClient
     {
-	    return new RevolutClient(
-		    trim($params['secret_key']),
-		    (bool) $params['sandbox_mode']
-	    );
+        return new RevolutClient(
+            trim($params['secret_key']),
+            (bool) $params['sandbox_mode'],
+        );
     }
 
     // =========================================================================
@@ -141,23 +140,23 @@ final class Revolut extends PaymentsPlugin
      * The customer pays on Revolut's hosted page and returns via
      * task=payment.response (onPaymentResponse), not back here.
      */
-	public function onOrderProcessView($event): void
-	{
-		$input  = Factory::getApplication()->getInput();
-		$result = $input->getString('revolut_result', '');
-		$error = $input->getString('revolut_error_msg', '');
+    public function onOrderProcessView($event): void
+    {
+        $input = Factory::getApplication()->getInput();
+        $result = $input->getString('revolut_result', '');
+        $error = $input->getString('revolut_error_msg', '');
 
-		if ($result === 'error') {
-			$event->setLayout('default_order_process_error');
-			$event->setLayoutData([
-				'error' => $error ?? Text::_('PLG_ALFA_PAYMENTS_REVOLUT_PAYMENT_FAILED'),
-				'order' => $event->getSubject(),
-			]);
-			return;
-		}
+        if ($result === 'error') {
+            $event->setLayout('default_order_process_error');
+            $event->setLayoutData([
+                'error' => $error ?? Text::_('PLG_ALFA_PAYMENTS_REVOLUT_PAYMENT_FAILED'),
+                'order' => $event->getSubject(),
+            ]);
+            return;
+        }
 
-		$this->redirectToRevolut($event, $event->getSubject());
-	}
+        $this->redirectToRevolut($event, $event->getSubject());
+    }
 
     public function onOrderCompleteView($event): void
     {
@@ -183,112 +182,111 @@ final class Revolut extends PaymentsPlugin
      *                  → task=plugin.trigger&type=alfa-payments&name=revolut&func=notify
      *                  OR configure manually in Revolut dashboard.
      */
-	public function onOrderAfterPlace($event): void
-	{
-		// 1. Check if event fires at all
-		Log::add('Revolut: onOrderAfterPlace FIRED', Log::DEBUG, 'com_alfa.payments');
+    public function onOrderAfterPlace($event): void
+    {
+        // 1. Check if event fires at all
+        Log::add('Revolut: onOrderAfterPlace FIRED', Log::DEBUG, 'com_alfa.payments');
 
-		// 2. Inspect the event object
-		$order = $event->getOrder();
-		Log::add('Revolut: order object type = ' . get_class($order), Log::DEBUG, 'com_alfa.payments');
-		Log::add('Revolut: order id = ' . ($order->id ?? 'NULL'), Log::DEBUG, 'com_alfa.payments');
+        // 2. Inspect the event object
+        $order = $event->getOrder();
+        Log::add('Revolut: order object type = ' . get_class($order), Log::DEBUG, 'com_alfa.payments');
+        Log::add('Revolut: order id = ' . ($order->id ?? 'NULL'), Log::DEBUG, 'com_alfa.payments');
 
-		// 3. Check selected_payment
-		if (!isset($order->selected_payment)) {
-			Log::add('Revolut: selected_payment is NOT SET', Log::ERROR, 'com_alfa.payments');
-			return;
-		}
-		Log::add('Revolut: selected_payment = ' . print_r($order->selected_payment, true), Log::DEBUG, 'com_alfa.payments');
+        // 3. Check selected_payment
+        if (!isset($order->selected_payment)) {
+            Log::add('Revolut: selected_payment is NOT SET', Log::ERROR, 'com_alfa.payments');
+            return;
+        }
+        Log::add('Revolut: selected_payment = ' . print_r($order->selected_payment, true), Log::DEBUG, 'com_alfa.payments');
 
-		$params = $order->selected_payment->params;
-		Log::add('Revolut: params = ' . print_r($params, true), Log::DEBUG, 'com_alfa.payments');
+        $params = $order->selected_payment->params;
+        Log::add('Revolut: params = ' . print_r($params, true), Log::DEBUG, 'com_alfa.payments');
 
-		if (!$order || empty($order->id)) {
-			Log::add('Revolut: order is empty/null — bailing out', Log::WARNING, 'com_alfa.payments');
-			return;
-		}
+        if (!$order || empty($order->id)) {
+            Log::add('Revolut: order is empty/null — bailing out', Log::WARNING, 'com_alfa.payments');
+            return;
+        }
 
-		// 4. Inspect currency and amount
-		$now      = Factory::getDate('now', 'UTC')->toSql();
-		$currency = $order->currency->getCode();
-		$amount   = $order->total_paid_tax_incl->getMinorUnits();
+        // 4. Inspect currency and amount
+        $now = Factory::getDate('now', 'UTC')->toSql();
+        $currency = $order->currency->getCode();
+        $amount = $order->total_paid_tax_incl->getMinorUnits();
 
-		Log::add("Revolut: currency={$currency}, amount(minor)={$amount}, now={$now}", Log::DEBUG, 'com_alfa.payments');
+        Log::add("Revolut: currency={$currency}, amount(minor)={$amount}, now={$now}", Log::DEBUG, 'com_alfa.payments');
 
-		// 5. Inspect redirect URL
-		$redirectUrl = $this->buildReturnUrl();
-		Log::add('Revolut: redirect_url = ' . $redirectUrl, Log::DEBUG, 'com_alfa.payments');
+        // 5. Inspect redirect URL
+        $redirectUrl = $this->buildReturnUrl();
+        Log::add('Revolut: redirect_url = ' . $redirectUrl, Log::DEBUG, 'com_alfa.payments');
 
-		try {
-			// 6. Log what we're about to send
-			$payload = [
-				'amount'                 => $amount,
-				'currency'               => $currency,
-				'redirect_url'           => $redirectUrl,
-				'merchant_order_ext_ref' => (string) $order->id,
-				'description'            => 'Order #' . $order->id,
-			];
-			Log::add('Revolut: API payload = ' . json_encode($payload), Log::DEBUG, 'com_alfa.payments');
+        try {
+            // 6. Log what we're about to send
+            $payload = [
+                'amount' => $amount,
+                'currency' => $currency,
+                'redirect_url' => $redirectUrl,
+                'merchant_order_ext_ref' => (string) $order->id,
+                'description' => 'Order #' . $order->id,
+            ];
+            Log::add('Revolut: API payload = ' . json_encode($payload), Log::DEBUG, 'com_alfa.payments');
 
-			// 7. Check the client itself
-			$client = $this->revolut($params);
-			Log::add('Revolut: client type = ' . get_class($client), Log::DEBUG, 'com_alfa.payments');
+            // 7. Check the client itself
+            $client = $this->revolut($params);
+            Log::add('Revolut: client type = ' . get_class($client), Log::DEBUG, 'com_alfa.payments');
 
-			$result = $client->order->create(new OrderCreate(
-				amount:                 $amount,
-				currency:               $currency,
-				redirect_url:           $redirectUrl,
-				merchant_order_ext_ref: (string) $order->id,
-				description:            'Order #' . $order->id,
-			));
+            $result = $client->order->create(new OrderCreate(
+                amount:                 $amount,
+                currency:               $currency,
+                redirect_url:           $redirectUrl,
+                merchant_order_ext_ref: (string) $order->id,
+                description:            'Order #' . $order->id,
+            ));
 
-			// 8. Full API response
-			Log::add('Revolut: API response = ' . json_encode($result), Log::DEBUG, 'com_alfa.payments');
+            // 8. Full API response
+            Log::add('Revolut: API response = ' . json_encode($result), Log::DEBUG, 'com_alfa.payments');
 
-			$revolutOrderId = $result->id ?? '';
+            $revolutOrderId = $result->id ?? '';
 
-			if (empty($revolutOrderId)) {
-				throw new MerchantException('Revolut order ID absent in response');
-			}
+            if (empty($revolutOrderId)) {
+                throw new MerchantException('Revolut order ID absent in response');
+            }
 
-			Log::add("Revolut: revolutOrderId = {$revolutOrderId}", Log::DEBUG, 'com_alfa.payments');
+            Log::add("Revolut: revolutOrderId = {$revolutOrderId}", Log::DEBUG, 'com_alfa.payments');
 
-			// 9. Debug payment save
-			$paymentBuilder = $this->payment($order)->pending()->transactionId($revolutOrderId);
-			// Log::add('Revolut: payment builder state = ' . print_r($paymentBuilder, true), Log::DEBUG, 'com_alfa.payments');
+            // 9. Debug payment save
+            $paymentBuilder = $this->payment($order)->pending()->transactionId($revolutOrderId);
+            // Log::add('Revolut: payment builder state = ' . print_r($paymentBuilder, true), Log::DEBUG, 'com_alfa.payments');
 
-			$paymentId = $paymentBuilder->save();
-			Log::add("Revolut: paymentId = " . var_export($paymentId, true), Log::DEBUG, 'com_alfa.payments');
+            $paymentId = $paymentBuilder->save();
+            Log::add('Revolut: paymentId = ' . var_export($paymentId, true), Log::DEBUG, 'com_alfa.payments');
 
-			if (!$paymentId) {
-				Log::add('Revolut: failed to save payment record for order #' . $order->id, Log::ERROR, 'com_alfa.payments');
-				return;
-			}
+            if (!$paymentId) {
+                Log::add('Revolut: failed to save payment record for order #' . $order->id, Log::ERROR, 'com_alfa.payments');
+                return;
+            }
 
-			$this->log([
-				'id_order'           => (int) $order->id,
-				'id_order_payment'   => (int) $paymentId,
-				'action'             => 'order_created',
-				'transaction_status' => OrderPaymentHelper::STATUS_PENDING,
-				'revolut_order_id'   => $revolutOrderId,
-				'revolut_state'      => 'PENDING',
-				'amount'             => $order->total_paid_tax_incl->getAmount(),
-				'currency'           => $currency,
-				'note'               => 'Revolut order created. redirect_url=' . $redirectUrl,
-				'created_on'         => $now,
-				'created_by'         => 0,
-			]);
+            $this->log([
+                'id_order' => (int) $order->id,
+                'id_order_payment' => (int) $paymentId,
+                'action' => 'order_created',
+                'transaction_status' => OrderPaymentHelper::STATUS_PENDING,
+                'revolut_order_id' => $revolutOrderId,
+                'revolut_state' => 'PENDING',
+                'amount' => $order->total_paid_tax_incl->getAmount(),
+                'currency' => $currency,
+                'note' => 'Revolut order created. redirect_url=' . $redirectUrl,
+                'created_on' => $now,
+                'created_by' => 0,
+            ]);
 
-			Log::add('Revolut: onOrderAfterPlace completed successfully for order #' . $order->id, Log::DEBUG, 'com_alfa.payments');
-
-		} catch (MerchantException $e) {
-			Log::add('Revolut createOrder API error for order #' . $order->id . ': ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
-			Log::add('Revolut: stack trace = ' . $e->getTraceAsString(), Log::DEBUG, 'com_alfa.payments');
-		} catch (\Exception $e) {
-			Log::add('Revolut createOrder failed for order #' . $order->id . ': ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
-			Log::add('Revolut: stack trace = ' . $e->getTraceAsString(), Log::DEBUG, 'com_alfa.payments');
-		}
-	}
+            Log::add('Revolut: onOrderAfterPlace completed successfully for order #' . $order->id, Log::DEBUG, 'com_alfa.payments');
+        } catch (MerchantException $e) {
+            Log::add('Revolut createOrder API error for order #' . $order->id . ': ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
+            Log::add('Revolut: stack trace = ' . $e->getTraceAsString(), Log::DEBUG, 'com_alfa.payments');
+        } catch (Exception $e) {
+            Log::add('Revolut createOrder failed for order #' . $order->id . ': ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
+            Log::add('Revolut: stack trace = ' . $e->getTraceAsString(), Log::DEBUG, 'com_alfa.payments');
+        }
+    }
 
     // =========================================================================
     //  CUSTOMER RETURN HOOK  (task=payment.response — has session)
@@ -304,90 +302,89 @@ final class Revolut extends PaymentsPlugin
      * This hook ONLY handles the customer browser return.
      * Server webhooks go to notify() via the frontend PluginController.
      */
-	public function onPaymentResponse($event): void
-	{
+    public function onPaymentResponse($event): void
+    {
         $app = Factory::getApplication();
 
-        $order          = $event->getOrder();
-		$params         = $this->getParams($order);
-		$now            = Factory::getDate('now', 'UTC')->toSql();
+        $order = $event->getOrder();
+        $params = $this->getParams($order);
+        $now = Factory::getDate('now', 'UTC')->toSql();
 
-		$payment = $this->getLatestPendingPayment((int) $order->id);
+        $payment = $this->getLatestPendingPayment((int) $order->id);
 
-		if ($payment === null) {
-			$app->enqueueMessage('No valid pending payment found!', 'warning');
-			$event->setRedirectUrl(Route::_('/index.php'));
-			return;
-		}
+        if ($payment === null) {
+            $app->enqueueMessage('No valid pending payment found!', 'warning');
+            $event->setRedirectUrl(Route::_('/index.php'));
+            return;
+        }
 
-		$revolutOrderId = $payment->transaction_id ?? '';
+        $revolutOrderId = $payment->transaction_id ?? '';
 
-		if (empty($revolutOrderId)) {
-			$event->setRedirectUrl($this->getProcessPageUrl().'&revolut_result=error');
-		}
+        if (empty($revolutOrderId)) {
+            $event->setRedirectUrl($this->getProcessPageUrl() . '&revolut_result=error');
+        }
 
-		try {
-			$result  = $this->revolut($params)->order->get($revolutOrderId);
+        try {
+            $result = $this->revolut($params)->order->get($revolutOrderId);
 
-			$state   = strtoupper($result->state ?? '');
+            $state = strtoupper($result->state ?? '');
 
-			if ($state === 'CANCELLED') {
-				$this->paymentUpdate((int) $payment->id)->cancelled()->save();
+            if ($state === 'CANCELLED') {
+                $this->paymentUpdate((int) $payment->id)->cancelled()->save();
 
-				$this->log([
-					'id_order'           => (int) $order->id,
-					'id_order_payment'   => (int) $payment->id,
-					'action'             => 'cancelled',
-					'transaction_status' => OrderPaymentHelper::STATUS_CANCELLED,
-					'revolut_order_id'   => $revolutOrderId,
-					'revolut_state'      => 'CANCELLED',
-					'amount'             => $order->total_paid_tax_incl->getAmount(),
-					'currency'           => $order->currency->getCode(),
-					'note'               => 'Payment cancelled by customer.',
-					'created_on'         => $now,
-					'created_by'         => 0,
-				]);
+                $this->log([
+                    'id_order' => (int) $order->id,
+                    'id_order_payment' => (int) $payment->id,
+                    'action' => 'cancelled',
+                    'transaction_status' => OrderPaymentHelper::STATUS_CANCELLED,
+                    'revolut_order_id' => $revolutOrderId,
+                    'revolut_state' => 'CANCELLED',
+                    'amount' => $order->total_paid_tax_incl->getAmount(),
+                    'currency' => $order->currency->getCode(),
+                    'note' => 'Payment cancelled by customer.',
+                    'created_on' => $now,
+                    'created_by' => 0,
+                ]);
 
-				$event->setLayout('default_order_process_cancelled');
-				$event->setLayoutData(['order' => $order]);
-				return;
-			}
+                $event->setLayout('default_order_process_cancelled');
+                $event->setLayoutData(['order' => $order]);
+                return;
+            }
 
-			if (!in_array($state, ['COMPLETED', 'AUTHORISED'], true)) {
-				throw new MerchantException('Unexpected Revolut state on return: ' . $state);
-			}
+            if (!in_array($state, ['COMPLETED', 'AUTHORISED'], true)) {
+                throw new MerchantException('Unexpected Revolut state on return: ' . $state);
+            }
 
-			$isAuthorised = ($state === 'AUTHORISED');
-			$alfaStatus   = $isAuthorised ? OrderPaymentHelper::STATUS_AUTHORIZED : OrderPaymentHelper::STATUS_COMPLETED;
-			$update       = $this->paymentUpdate((int) $payment->id)->transactionId($revolutOrderId)->processedAt($now);
+            $isAuthorised = ($state === 'AUTHORISED');
+            $alfaStatus = $isAuthorised ? OrderPaymentHelper::STATUS_AUTHORIZED : OrderPaymentHelper::STATUS_COMPLETED;
+            $update = $this->paymentUpdate((int) $payment->id)->transactionId($revolutOrderId)->processedAt($now);
 
-			$isAuthorised ? $update->authorized()->save() : $update->completed()->save();
+            $isAuthorised ? $update->authorized()->save() : $update->completed()->save();
 
-			$this->log([
-				'id_order'           => (int) $order->id,
-				'id_order_payment'   => (int) $payment->id,
-				'action'             => strtolower($state),
-				'transaction_status' => $alfaStatus,
-				'revolut_order_id'   => $revolutOrderId,
-				'revolut_state'      => $state,
-				'amount'             => $order->total_paid_tax_incl->getAmount(),
-				'currency'           => $order->currency->getCode(),
-				'note'               => 'Revolut ' . $state . ' — customer return.',
-				'created_on'         => $now,
-				'created_by'         => 0,
-			]);
+            $this->log([
+                'id_order' => (int) $order->id,
+                'id_order_payment' => (int) $payment->id,
+                'action' => strtolower($state),
+                'transaction_status' => $alfaStatus,
+                'revolut_order_id' => $revolutOrderId,
+                'revolut_state' => $state,
+                'amount' => $order->total_paid_tax_incl->getAmount(),
+                'currency' => $order->currency->getCode(),
+                'note' => 'Revolut ' . $state . ' — customer return.',
+                'created_on' => $now,
+                'created_by' => 0,
+            ]);
 
-			$event->setRedirectUrl($this->getCompletePageUrl());
+            $event->setRedirectUrl($this->getCompletePageUrl());
+        } catch (Exception $e) {
+            Log::add('Revolut return error for order #' . ($order->id ?? '?') . ': ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
+            $redirectUrl = $this->getProcessPageUrl();
+            $redirectUrl .= '&revolut_result=error';
+            $redirectUrl .= '&revolut_error_msg=' . urlencode($e->getMessage());
 
-		} catch (\Exception $e) {
-			Log::add('Revolut return error for order #' . ($order->id ?? '?') . ': ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
-			$redirectUrl = $this->getProcessPageUrl();
-			$redirectUrl .= '&revolut_result=error';
-			$redirectUrl .= '&revolut_error_msg=' . urlencode($e->getMessage());
-
-			$event->setRedirectUrl($redirectUrl);
-		}
-	}
+            $event->setRedirectUrl($redirectUrl);
+        }
+    }
 
     // =========================================================================
     //  WEBHOOK HOOK — server-to-server POST from Revolut
@@ -408,37 +405,37 @@ final class Revolut extends PaymentsPlugin
      * ATTENTION - Webhook is incomplete and may have bugs.
      */
 
-   /* public function notify(): mixed
-    {
-        $payload   = (string) file_get_contents('php://input');
-        $data      = json_decode($payload, true) ?? [];
-        $eventType = $data['event'] ?? '';
-        $orderId   = $data['order_id'] ?? '';
+    /* public function notify(): mixed
+     {
+         $payload   = (string) file_get_contents('php://input');
+         $data      = json_decode($payload, true) ?? [];
+         $eventType = $data['event'] ?? '';
+         $orderId   = $data['order_id'] ?? '';
 
-        if (empty($eventType) || empty($orderId)) {
-            return ['ok' => false, 'error' => 'Missing event or order_id'];
-        }
+         if (empty($eventType) || empty($orderId)) {
+             return ['ok' => false, 'error' => 'Missing event or order_id'];
+         }
 
-        try {
-            // Always verify via API — never trust the webhook payload alone
-            $result = $this->revolut()->order->get($orderId);
-            $state  = strtoupper($result->state ?? '');
+         try {
+             // Always verify via API — never trust the webhook payload alone
+             $result = $this->revolut()->order->get($orderId);
+             $state  = strtoupper($result->state ?? '');
 
-            match ($eventType) {
-                'ORDER_COMPLETED'      => Log::add('Revolut webhook COMPLETED order=' . $orderId . ' state=' . $state, Log::INFO, 'com_alfa.payments'),
-                'ORDER_AUTHORISED'     => Log::add('Revolut webhook AUTHORISED order=' . $orderId, Log::INFO, 'com_alfa.payments'),
-                'ORDER_CANCELLED'      => Log::add('Revolut webhook CANCELLED order=' . $orderId, Log::INFO, 'com_alfa.payments'),
-                'ORDER_PAYMENT_FAILED' => Log::add('Revolut webhook PAYMENT_FAILED order=' . $orderId, Log::WARNING, 'com_alfa.payments'),
-                default                => Log::add('Revolut webhook unknown event=' . $eventType, Log::DEBUG, 'com_alfa.payments'),
-            };
+             match ($eventType) {
+                 'ORDER_COMPLETED'      => Log::add('Revolut webhook COMPLETED order=' . $orderId . ' state=' . $state, Log::INFO, 'com_alfa.payments'),
+                 'ORDER_AUTHORISED'     => Log::add('Revolut webhook AUTHORISED order=' . $orderId, Log::INFO, 'com_alfa.payments'),
+                 'ORDER_CANCELLED'      => Log::add('Revolut webhook CANCELLED order=' . $orderId, Log::INFO, 'com_alfa.payments'),
+                 'ORDER_PAYMENT_FAILED' => Log::add('Revolut webhook PAYMENT_FAILED order=' . $orderId, Log::WARNING, 'com_alfa.payments'),
+                 default                => Log::add('Revolut webhook unknown event=' . $eventType, Log::DEBUG, 'com_alfa.payments'),
+             };
 
-            return ['ok' => true, 'event' => $eventType, 'state' => $state];
+             return ['ok' => true, 'event' => $eventType, 'state' => $state];
 
-        } catch (\Exception $e) {
-            Log::add('Revolut webhook error [' . $eventType . ']: ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
-            return ['ok' => false, 'error' => $e->getMessage()];
-        }
-    }*/
+         } catch (\Exception $e) {
+             Log::add('Revolut webhook error [' . $eventType . ']: ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
+             return ['ok' => false, 'error' => $e->getMessage()];
+         }
+     }*/
 
     // =========================================================================
     //  ADMIN ACTIONS
@@ -447,7 +444,7 @@ final class Revolut extends PaymentsPlugin
     public function onGetActions($event): void
     {
         $payment = $event->getPayment();
-        $status  = $payment->transaction_status ?? 'pending';
+        $status = $payment->transaction_status ?? 'pending';
 
         $event->add('view_details', Text::_('COM_ALFA_VIEW_DETAILS'))
             ->icon('eye')->css('btn-outline-secondary')
@@ -494,14 +491,14 @@ final class Revolut extends PaymentsPlugin
     public function onExecuteAction($event): void
     {
         match ($event->getAction()) {
-            'mark_paid'    => $this->handleMarkPaid($event),
-            'cancel'       => $this->handleCancel($event),
-            'capture'      => $this->handleCapture($event),
-            'void'         => $this->handleVoid($event),
-            'refund'       => $this->handleRefund($event),
+            'mark_paid' => $this->handleMarkPaid($event),
+            'cancel' => $this->handleCancel($event),
+            'capture' => $this->handleCapture($event),
+            'void' => $this->handleVoid($event),
+            'refund' => $this->handleRefund($event),
             'view_details' => $this->handleViewDetails($event),
-            'view_logs'    => $this->handleViewLogs($event),
-            default        => $event->setError(Text::sprintf('PLG_ALFA_PAYMENTS_REVOLUT_ERROR_UNKNOWN_ACTION', $event->getAction())),
+            'view_logs' => $this->handleViewLogs($event),
+            default => $event->setError(Text::sprintf('PLG_ALFA_PAYMENTS_REVOLUT_ERROR_UNKNOWN_ACTION', $event->getAction())),
         };
     }
 
@@ -511,12 +508,12 @@ final class Revolut extends PaymentsPlugin
 
     private function redirectToRevolut($event, object $order): void
     {
-		$params = $this->getParams($order);
+        $params = $this->getParams($order);
 
         try {
-            $payment        = $this->getLatestPendingPayment($order->id);
+            $payment = $this->getLatestPendingPayment($order->id);
             if ($payment == null) {
-                throw new \Exception('No valid pending payment found for ' . $order->id);
+                throw new Exception('No valid pending payment found for ' . $order->id);
             }
 
             $revolutOrderId = $payment->transaction_id ?? '';
@@ -525,7 +522,7 @@ final class Revolut extends PaymentsPlugin
                 throw new MerchantException('No Revolut order ID stored for order #' . $order->id);
             }
 
-            $result      = $this->revolut($params)->order->get($revolutOrderId);
+            $result = $this->revolut($params)->order->get($revolutOrderId);
             $checkoutUrl = $result->checkout_url ?? '';
 
             if (empty($checkoutUrl)) {
@@ -533,22 +530,21 @@ final class Revolut extends PaymentsPlugin
             }
 
             $this->log([
-                'id_order'           => (int) $order->id,
-                'id_order_payment'   => (int) ($payment->id ?? 0),
-                'action'             => 'redirect',
+                'id_order' => (int) $order->id,
+                'id_order_payment' => (int) ($payment->id ?? 0),
+                'action' => 'redirect',
                 'transaction_status' => OrderPaymentHelper::STATUS_PENDING,
-                'revolut_order_id'   => $revolutOrderId,
-                'revolut_state'      => $result->state ?? '',
-                'amount'             => $order->total_paid_tax_incl->getAmount(),
-                'currency'           => $order->currency->getCode(),
-                'note'               => 'Customer redirected to Revolut checkout.',
-                'created_on'         => Factory::getDate('now', 'UTC')->toSql(),
-                'created_by'         => (int) Factory::getApplication()->getIdentity()->id,
+                'revolut_order_id' => $revolutOrderId,
+                'revolut_state' => $result->state ?? '',
+                'amount' => $order->total_paid_tax_incl->getAmount(),
+                'currency' => $order->currency->getCode(),
+                'note' => 'Customer redirected to Revolut checkout.',
+                'created_on' => Factory::getDate('now', 'UTC')->toSql(),
+                'created_by' => (int) Factory::getApplication()->getIdentity()->id,
             ]);
 
             $event->setRedirectUrl($checkoutUrl);
-
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::add('Revolut redirect error for order #' . $order->id . ': ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
             $event->setLayout('default_order_process_error');
             $event->setLayoutData(['error' => $e->getMessage(), 'order' => $order]);
@@ -562,23 +558,23 @@ final class Revolut extends PaymentsPlugin
     private function handleMarkPaid($event): void
     {
         $payment = $event->getPayment();
-        $order   = $event->getOrder();
-        $now     = Factory::getDate('now', 'UTC')->toSql();
+        $order = $event->getOrder();
+        $now = Factory::getDate('now', 'UTC')->toSql();
 
         $this->paymentUpdate((int) $payment->id)->completed()->processedAt($now)->save();
 
         $this->log([
-            'id_order'           => (int) $order->id,
-            'id_order_payment'   => (int) $payment->id,
-            'action'             => 'mark_paid',
+            'id_order' => (int) $order->id,
+            'id_order_payment' => (int) $payment->id,
+            'action' => 'mark_paid',
             'transaction_status' => OrderPaymentHelper::STATUS_COMPLETED,
-            'revolut_order_id'   => $payment->transaction_id ?? null,
-            'revolut_state'      => 'COMPLETED',
-            'amount'             => $payment->amount->getAmount(),
-            'currency'           => $order->currency->getCode(),
-            'note'               => 'Manually marked as paid by admin.',
-            'created_on'         => $now,
-            'created_by'         => (int) Factory::getApplication()->getIdentity()->id,
+            'revolut_order_id' => $payment->transaction_id ?? null,
+            'revolut_state' => 'COMPLETED',
+            'amount' => $payment->amount->getAmount(),
+            'currency' => $order->currency->getCode(),
+            'note' => 'Manually marked as paid by admin.',
+            'created_on' => $now,
+            'created_by' => (int) Factory::getApplication()->getIdentity()->id,
         ]);
 
         $event->setMessage(Text::sprintf('PLG_ALFA_PAYMENTS_REVOLUT_MSG_MARKED_PAID', $payment->id));
@@ -588,15 +584,15 @@ final class Revolut extends PaymentsPlugin
     private function handleCancel($event): void
     {
         $payment = $event->getPayment();
-        $order   = $event->getOrder();
-		$params  = $this->getParams($order);
-        $now     = Factory::getDate('now', 'UTC')->toSql();
-        $txId    = $payment->transaction_id ?? '';
+        $order = $event->getOrder();
+        $params = $this->getParams($order);
+        $now = Factory::getDate('now', 'UTC')->toSql();
+        $txId = $payment->transaction_id ?? '';
 
         if (!empty($txId)) {
             try {
                 $this->revolut($params)->order->cancel($txId);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 Log::add('Revolut cancel API error: ' . $e->getMessage(), Log::WARNING, 'com_alfa.payments');
             }
         }
@@ -604,17 +600,17 @@ final class Revolut extends PaymentsPlugin
         $this->paymentUpdate((int) $payment->id)->cancelled()->save();
 
         $this->log([
-            'id_order'           => (int) $order->id,
-            'id_order_payment'   => (int) $payment->id,
-            'action'             => 'cancel',
+            'id_order' => (int) $order->id,
+            'id_order_payment' => (int) $payment->id,
+            'action' => 'cancel',
             'transaction_status' => OrderPaymentHelper::STATUS_CANCELLED,
-            'revolut_order_id'   => $txId ?: null,
-            'revolut_state'      => 'CANCELLED',
-            'amount'             => $payment->amount->getAmount(),
-            'currency'           => $order->currency->getCode(),
-            'note'               => 'Cancelled by admin.',
-            'created_on'         => $now,
-            'created_by'         => (int) Factory::getApplication()->getIdentity()->id,
+            'revolut_order_id' => $txId ?: null,
+            'revolut_state' => 'CANCELLED',
+            'amount' => $payment->amount->getAmount(),
+            'currency' => $order->currency->getCode(),
+            'note' => 'Cancelled by admin.',
+            'created_on' => $now,
+            'created_by' => (int) Factory::getApplication()->getIdentity()->id,
         ]);
 
         $event->setMessage(Text::sprintf('PLG_ALFA_PAYMENTS_REVOLUT_MSG_CANCELLED', $payment->id));
@@ -624,10 +620,10 @@ final class Revolut extends PaymentsPlugin
     private function handleCapture($event): void
     {
         $payment = $event->getPayment();
-        $order   = $event->getOrder();
-		$params  = $this->getParams($order);
-        $now     = Factory::getDate('now', 'UTC')->toSql();
-        $txId    = $payment->transaction_id ?? '';
+        $order = $event->getOrder();
+        $params = $this->getParams($order);
+        $now = Factory::getDate('now', 'UTC')->toSql();
+        $txId = $payment->transaction_id ?? '';
 
         if (empty($txId)) {
             $event->setError(Text::_('PLG_ALFA_PAYMENTS_REVOLUT_ERROR_NO_TRANSACTION_ID'));
@@ -636,29 +632,28 @@ final class Revolut extends PaymentsPlugin
 
         try {
             $this->revolut($params)->order->capture($txId, new OrderCapture(
-                amount: $payment->amount->getMinorUnits()
+                amount: $payment->amount->getMinorUnits(),
             ));
 
             $this->paymentUpdate((int) $payment->id)->completed()->processedAt($now)->save();
 
             $this->log([
-                'id_order'           => (int) $order->id,
-                'id_order_payment'   => (int) $payment->id,
-                'action'             => 'admin_capture',
+                'id_order' => (int) $order->id,
+                'id_order_payment' => (int) $payment->id,
+                'action' => 'admin_capture',
                 'transaction_status' => OrderPaymentHelper::STATUS_COMPLETED,
-                'revolut_order_id'   => $txId,
-                'revolut_state'      => 'COMPLETED',
-                'amount'             => $payment->amount->getAmount(),
-                'currency'           => $order->currency->getCode(),
-                'note'               => 'Captured by admin.',
-                'created_on'         => $now,
-                'created_by'         => (int) Factory::getApplication()->getIdentity()->id,
+                'revolut_order_id' => $txId,
+                'revolut_state' => 'COMPLETED',
+                'amount' => $payment->amount->getAmount(),
+                'currency' => $order->currency->getCode(),
+                'note' => 'Captured by admin.',
+                'created_on' => $now,
+                'created_by' => (int) Factory::getApplication()->getIdentity()->id,
             ]);
 
             $event->setMessage(Text::sprintf('PLG_ALFA_PAYMENTS_REVOLUT_MSG_CAPTURED', $payment->id));
             $event->setRefresh(true);
-
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $event->setError(Text::sprintf('PLG_ALFA_PAYMENTS_REVOLUT_ERROR_CAPTURE', $e->getMessage()));
         }
     }
@@ -666,10 +661,10 @@ final class Revolut extends PaymentsPlugin
     private function handleVoid($event): void
     {
         $payment = $event->getPayment();
-        $order   = $event->getOrder();
-		$params  = $this->getParams($order);
-        $now     = Factory::getDate('now', 'UTC')->toSql();
-        $txId    = $payment->transaction_id ?? '';
+        $order = $event->getOrder();
+        $params = $this->getParams($order);
+        $now = Factory::getDate('now', 'UTC')->toSql();
+        $txId = $payment->transaction_id ?? '';
 
         if (empty($txId)) {
             $event->setError(Text::_('PLG_ALFA_PAYMENTS_REVOLUT_ERROR_NO_TRANSACTION_ID'));
@@ -682,23 +677,22 @@ final class Revolut extends PaymentsPlugin
             $this->paymentUpdate((int) $payment->id)->cancelled()->save();
 
             $this->log([
-                'id_order'           => (int) $order->id,
-                'id_order_payment'   => (int) $payment->id,
-                'action'             => 'void',
+                'id_order' => (int) $order->id,
+                'id_order_payment' => (int) $payment->id,
+                'action' => 'void',
                 'transaction_status' => OrderPaymentHelper::STATUS_CANCELLED,
-                'revolut_order_id'   => $txId,
-                'revolut_state'      => 'CANCELLED',
-                'amount'             => $payment->amount->getAmount(),
-                'currency'           => $order->currency->getCode(),
-                'note'               => 'Authorization voided by admin.',
-                'created_on'         => $now,
-                'created_by'         => (int) Factory::getApplication()->getIdentity()->id,
+                'revolut_order_id' => $txId,
+                'revolut_state' => 'CANCELLED',
+                'amount' => $payment->amount->getAmount(),
+                'currency' => $order->currency->getCode(),
+                'note' => 'Authorization voided by admin.',
+                'created_on' => $now,
+                'created_by' => (int) Factory::getApplication()->getIdentity()->id,
             ]);
 
             $event->setMessage(Text::sprintf('PLG_ALFA_PAYMENTS_REVOLUT_MSG_VOIDED', $payment->id));
             $event->setRefresh(true);
-
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $event->setError(Text::sprintf('PLG_ALFA_PAYMENTS_REVOLUT_ERROR_VOID', $e->getMessage()));
         }
     }
@@ -706,10 +700,10 @@ final class Revolut extends PaymentsPlugin
     private function handleRefund($event): void
     {
         $payment = $event->getPayment();
-        $order   = $event->getOrder();
-		$params  = $this->getParams($order);
-        $now     = Factory::getDate('now', 'UTC')->toSql();
-        $txId    = $payment->transaction_id ?? '';
+        $order = $event->getOrder();
+        $params = $this->getParams($order);
+        $now = Factory::getDate('now', 'UTC')->toSql();
+        $txId = $payment->transaction_id ?? '';
 
         if (empty($txId)) {
             $event->setError(Text::_('PLG_ALFA_PAYMENTS_REVOLUT_ERROR_NO_TRANSACTION_ID'));
@@ -719,8 +713,8 @@ final class Revolut extends PaymentsPlugin
         try {
             $this->revolut($params)->order->refund($txId, new OrderRefund(
                 amount:      $payment->amount->getMinorUnits(),
-				currency: $order->currency->getCode(),
-                description: Text::sprintf('PLG_ALFA_PAYMENTS_REVOLUT_LOG_REFUNDED', $payment->id)
+                currency: $order->currency->getCode(),
+                description: Text::sprintf('PLG_ALFA_PAYMENTS_REVOLUT_LOG_REFUNDED', $payment->id),
             ));
 
             $this->paymentUpdate((int) $payment->id)->refunded()->save();
@@ -735,23 +729,22 @@ final class Revolut extends PaymentsPlugin
                 ->save();
 
             $this->log([
-                'id_order'           => (int) $order->id,
-                'id_order_payment'   => (int) $payment->id,
-                'action'             => 'refund',
+                'id_order' => (int) $order->id,
+                'id_order_payment' => (int) $payment->id,
+                'action' => 'refund',
                 'transaction_status' => OrderPaymentHelper::STATUS_REFUNDED,
-                'revolut_order_id'   => $txId,
-                'revolut_state'      => 'REFUNDED',
-                'amount'             => $payment->amount->getAmount(),
-                'currency'           => $order->currency->getCode(),
-                'note'               => Text::sprintf('PLG_ALFA_PAYMENTS_REVOLUT_LOG_REFUNDED', $payment->id),
-                'created_on'         => $now,
-                'created_by'         => (int) Factory::getApplication()->getIdentity()->id,
+                'revolut_order_id' => $txId,
+                'revolut_state' => 'REFUNDED',
+                'amount' => $payment->amount->getAmount(),
+                'currency' => $order->currency->getCode(),
+                'note' => Text::sprintf('PLG_ALFA_PAYMENTS_REVOLUT_LOG_REFUNDED', $payment->id),
+                'created_on' => $now,
+                'created_by' => (int) Factory::getApplication()->getIdentity()->id,
             ]);
 
             $event->setMessage(Text::sprintf('PLG_ALFA_PAYMENTS_REVOLUT_MSG_REFUNDED', $payment->id));
             $event->setRefresh(true);
-
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $event->setError(Text::sprintf('PLG_ALFA_PAYMENTS_REVOLUT_ERROR_REFUND', $e->getMessage()));
         }
     }
@@ -767,11 +760,11 @@ final class Revolut extends PaymentsPlugin
     private function handleViewLogs($event): void
     {
         $payment = $event->getPayment();
-        $order   = $event->getOrder();
+        $order = $event->getOrder();
         $event->setLayout('default_order_logs_view');
         $event->setLayoutData([
             'logData' => $this->loadLogs((int) $order->id, (int) $payment->id) ?? [],
-            'xml'     => $this->getLogsSchema(),
+            'xml' => $this->getLogsSchema(),
         ]);
         $event->setModalTitle(Text::_('COM_ALFA_PAYMENT_LOGS') . ' #' . $payment->id);
     }
@@ -832,10 +825,10 @@ final class Revolut extends PaymentsPlugin
      * Customer return URL after Revolut checkout.
      * task=payment.response → PaymentController::response() → onPaymentResponse()
      */
-	private function buildReturnUrl(): string
-	{
-		return Route::_('index.php?option=com_alfa&task=payment.response', false, Route::TLS_FORCE);
-	}
+    private function buildReturnUrl(): string
+    {
+        return Route::_('index.php?option=com_alfa&task=payment.response', false, Route::TLS_FORCE);
+    }
 
     /**
      * Webhook URL for Revolut's server-to-server notifications.

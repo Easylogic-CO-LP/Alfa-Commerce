@@ -1,5 +1,7 @@
 <?php
+
 namespace Alfa\PhpRevolut\Resources;
+
 defined('_JEXEC') or die;
 
 use Alfa\PhpRevolut\Client;
@@ -11,9 +13,11 @@ use Alfa\PhpRevolut\Responses\Order;
 
 class OrderResource
 {
-    const ENDPOINT = '/orders';
+    public const ENDPOINT = '/orders';
 
-    public function __construct(private Client $client) {}
+    public function __construct(private Client $client)
+    {
+    }
 
     /**
      * Create a new payment order.

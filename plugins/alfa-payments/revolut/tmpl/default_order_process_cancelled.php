@@ -2,7 +2,9 @@
 defined('_JEXEC') or die;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
-extract($displayData); $order = $order ?? null;
+
+extract($displayData);
+$order ??= null;
 ?>
 <div class="revolut-cancelled text-center py-4">
     <span class="icon-info-circle text-warning" style="font-size:3rem" aria-hidden="true"></span>
