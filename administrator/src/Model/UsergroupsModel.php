@@ -65,5 +65,3 @@ class UsergroupsModel extends ListModel
         return $query;
     }
 }
-
-?>
