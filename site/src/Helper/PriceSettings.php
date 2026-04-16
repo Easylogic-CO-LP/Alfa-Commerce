@@ -3,11 +3,12 @@
 /**
  * Price Settings Helper - Production Ready
  *
- * @package    Alfa Commerce
+ * @package    Com_Alfa
+ * @subpackage Site
  * @since      1.0.1
- * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
- * @license    GNU General Public License version 3 or later; see LICENSE
+ * @author     Agamemnon Fakas
+ * @copyright  2025 Easylogic CO LP
+ * @license    GNU General Public License version 2 or later
  *
  * FEATURES:
  * - Zero-error guarantee with comprehensive validation
@@ -592,8 +593,8 @@ class PriceSettings
 
             $db = Factory::getContainer()->get('DatabaseDriver');
             $query = $db->getQuery(true)
-                ->select('params')
-                ->from('#__alfa_usergroup_price_settings')
+                ->select('prices_display')
+                ->from('#__alfa_usergroups')
                 ->where('usergroup_id IN (' . implode(',', array_map('intval', $groups)) . ')')
                 ->order('usergroup_id DESC')
                 ->setLimit(1);
