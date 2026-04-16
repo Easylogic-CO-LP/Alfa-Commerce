@@ -181,6 +181,21 @@ class com_alfaInstallerScript extends InstallerScript
             return true;
         }
 
+        $syncHelperPath = JPATH_ADMINISTRATOR . '/components/com_alfa/src/Helper/SyncHelper.php';
+
+        if (!class_exists('Alfa\\Component\\Alfa\\Administrator\\Helper\\SyncHelper', false))
+        {
+            if (file_exists($syncHelperPath))
+            {
+                require_once $syncHelperPath;
+            }
+            else
+            {
+                Factory::getApplication()->enqueueMessage('SyncHelper not found at: ' . $syncHelperPath, 'error');
+                return false;
+            }
+        }
+
         $db  = Factory::getContainer()->get('DatabaseDriver');
         $app = Factory::getApplication();
 
