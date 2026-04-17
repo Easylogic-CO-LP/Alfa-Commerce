@@ -368,12 +368,13 @@ class PriceSettings
             return self::$userCache[$cacheKey];
         }
 
-        // Guest user - use global settings
-        if ($userId <= 0) {
-            $settings = self::global();
-            self::$userCache[$cacheKey] = $settings;
-            return $settings;
-        }
+        // Guest user - use global settings - to be removed
+        // if ($userId <= 0) {
+        //     print_r('global');
+        //     $settings = self::global();
+        //     self::$userCache[$cacheKey] = $settings;
+        //     return $settings;
+        // }
 
         // Resolve from user groups
         $settings = self::resolveUserGroup($userId);
@@ -585,7 +586,7 @@ class PriceSettings
     private static function resolveUserGroup(int $userId): array
     {
         try {
-            $groups = Access::getGroupsByUser($userId, false);
+            $groups = Access::getGroupsByUser($userId, false); //we could also use $user->groups variable
 
             if (empty($groups)) {
                 return self::global();
@@ -593,25 +594,27 @@ class PriceSettings
 
             $db = Factory::getContainer()->get('DatabaseDriver');
             $query = $db->getQuery(true)
-                ->select('prices_display')
+                ->select($db->quoteName('prices_display'))
                 ->from('#__alfa_usergroups')
-                ->where('usergroup_id IN (' . implode(',', array_map('intval', $groups)) . ')')
+                ->whereIn($db->quoteName('usergroup_id'), $groups)
+                ->where('prices_enable = 1')
                 ->order('usergroup_id DESC')
                 ->setLimit(1);
-
             $db->setQuery($query);
-            $params = $db->loadResult();
+            $pricesDisplay = $db->loadResult();
 
-            if (!$params) {
+            if (!$pricesDisplay) {
                 return self::global();
             }
-
-            $groupSettings = json_decode($params, true);
+            
+            $groupSettings = json_decode($pricesDisplay, true);
+            
             if (!is_array($groupSettings)) {
                 return self::global();
             }
-
+            
             return self::merge($groupSettings, self::global());
+        
         } catch (Exception $e) {
             self::log('Failed to resolve user group settings', $e);
             return self::global();
