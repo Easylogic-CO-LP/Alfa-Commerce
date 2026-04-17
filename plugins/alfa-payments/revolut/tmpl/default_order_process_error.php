@@ -13,7 +13,6 @@ $order ??= null;
     <p class="text-muted"><?php echo $error; ?></p>
     <?php if ($order && !empty($order->id)): ?>
     <div class="d-flex gap-2 justify-content-center mt-4">
-        <a href="<?php echo Route::_('index.php?option=com_alfa&task=checkout.process&order_id=' . (int) $order->id); ?>" class="btn btn-primary"><?php echo Text::_('PLG_ALFA_PAYMENTS_REVOLUT_TRY_AGAIN'); ?></a>
         <a href="<?php echo Route::_('index.php?option=com_alfa&view=cart'); ?>" class="btn btn-outline-secondary"><?php echo Text::_('PLG_ALFA_PAYMENTS_REVOLUT_BACK_TO_CART'); ?></a>
     </div>
     <?php endif; ?>

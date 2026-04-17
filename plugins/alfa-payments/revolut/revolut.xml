@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extension type="plugin" group="alfa-payments" method="upgrade">
-	<n>PLG_ALFA_PAYMENTS_REVOLUT</n>
+	<name>PLG_ALFA_PAYMENTS_REVOLUT</name>
 	<copyright>(C) 2024-2026 Alfa. All rights reserved.</copyright>
 	<license>GNU General Public License version 3 or later; see LICENSE</license>
 	<author>Alfa</author>
-	<creationDate>2025</creationDate>
+	<creationDate>2025-04-16</creationDate>
 	<authorUrl>https://alfa.gr</authorUrl>
 	<version>1.0.0</version>
 	<description>PLG_ALFA_PAYMENTS_REVOLUT_XML_DESCRIPTION</description>

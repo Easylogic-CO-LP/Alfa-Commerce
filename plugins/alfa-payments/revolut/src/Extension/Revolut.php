@@ -142,6 +142,19 @@ final class Revolut extends PaymentsPlugin
      */
     public function onOrderProcessView($event): void
     {
+        $input = Factory::getApplication()->getInput();
+        $result = $input->getString('revolut_result', '');
+        $error = $input->getString('revolut_error_msg', '');
+
+        if ($result === 'error') {
+            $event->setLayout('default_order_process_error');
+            $event->setLayoutData([
+                'error' => $error ?? Text::_('PLG_ALFA_PAYMENTS_REVOLUT_PAYMENT_FAILED'),
+                'order' => $event->getSubject(),
+            ]);
+            return;
+        }
+
         $this->redirectToRevolut($event, $event->getSubject());
     }
 
@@ -308,12 +321,7 @@ final class Revolut extends PaymentsPlugin
         $revolutOrderId = $payment->transaction_id ?? '';
 
         if (empty($revolutOrderId)) {
-            $event->setLayout('default_order_process_error');
-            $event->setLayoutData([
-                'error' => Text::_('PLG_ALFA_PAYMENTS_REVOLUT_PAYMENT_FAILED'),
-                'order' => $order,
-            ]);
-            return;
+            $event->setRedirectUrl($this->getProcessPageUrl() . '&revolut_result=error');
         }
 
         try {
@@ -367,13 +375,14 @@ final class Revolut extends PaymentsPlugin
                 'created_by' => 0,
             ]);
 
-            $event->setRedirectUrl(
-                Route::_('index.php?option=com_alfa&view=cart&layout=default_order_completed', false, Route::TLS_FORCE, true),
-            );
+            $event->setRedirectUrl($this->getCompletePageUrl());
         } catch (Exception $e) {
             Log::add('Revolut return error for order #' . ($order->id ?? '?') . ': ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
-            $event->setLayout('default_order_process_error');
-            $event->setLayoutData(['error' => $e->getMessage(), 'order' => $order]);
+            $redirectUrl = $this->getProcessPageUrl();
+            $redirectUrl .= '&revolut_result=error';
+            $redirectUrl .= '&revolut_error_msg=' . urlencode($e->getMessage());
+
+            $event->setRedirectUrl($redirectUrl);
         }
     }
 

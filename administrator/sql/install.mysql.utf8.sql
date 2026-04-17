@@ -717,6 +717,25 @@ CREATE TABLE IF NOT EXISTS `#__alfa_manufacturers` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `#__alfa_media`
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_media` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `item_id` int(11) NOT NULL,
+  `type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `path` varchar(250) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `thumbnail` varchar(400) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `color` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `alt` varchar(75) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `ordering` int(11) NOT NULL DEFAULT 0,
+  `origin` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `#__alfa_orders`
 --
 
@@ -1588,21 +1607,12 @@ CREATE TABLE IF NOT EXISTS `#__alfa_tax_users` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_usergroups` (
-  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `state` tinyint(1) DEFAULT 1,
-  `ordering` int(11) DEFAULT 0,
-  `checked_out` int(11) UNSIGNED DEFAULT NULL,
-  `checked_out_time` datetime DEFAULT NULL,
-  `created_by` int(11) DEFAULT 0,
-  `modified_by` int(11) DEFAULT 0,
-  `prices_display` varchar(255) DEFAULT '',
-  `name` varchar(255) NOT NULL,
-  `prices_enable` varchar(255) DEFAULT '0',
-  PRIMARY KEY (`id`),
-  KEY `idx_state` (`state`),
-  KEY `idx_checked_out` (`checked_out`),
-  KEY `idx_created_by` (`created_by`),
-  KEY `idx_modified_by` (`modified_by`)
+`id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+`usergroup_id` int(11) NOT NULL DEFAULT 1,
+`prices_enable` varchar(255) DEFAULT '0',
+`prices_display` longtext NOT NULL,
+PRIMARY KEY (`id`),
+KEY `idx_usergroup_id` (`usergroup_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -1612,18 +1622,11 @@ CREATE TABLE IF NOT EXISTS `#__alfa_usergroups` (
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_users` (
-  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `state` tinyint(1) DEFAULT 1,
-  `ordering` int(11) DEFAULT 0,
-  `checked_out` int(11) UNSIGNED DEFAULT NULL,
-  `checked_out_time` datetime DEFAULT NULL,
-  `created_by` int(11) DEFAULT 0,
-  `modified_by` int(11) DEFAULT 0,
-  PRIMARY KEY (`id`),
-  KEY `idx_state` (`state`),
-  KEY `idx_checked_out` (`checked_out`),
-  KEY `idx_created_by` (`created_by`),
-  KEY `idx_modified_by` (`modified_by`)
+`id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+`id_user` int(11) NOT NULL DEFAULT 0,
+`note` varchar(255) NOT NULL DEFAULT '',
+PRIMARY KEY (`id`),
+KEY `idx_user` (`id_user`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------

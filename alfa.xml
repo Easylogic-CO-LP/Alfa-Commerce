@@ -121,7 +121,8 @@
         <plugin group="alfa-shipments" plugin="boxnow"/>
 
         <plugin group="alfa-fields" plugin="text"/>
-        <plugin group="alfa-fields" plugin="textarea"/>     
+        <plugin group="alfa-fields" plugin="textarea"/> 
+        <plugin  group="system" plugin="alfasync"/>    
         
     </plugins>
 
