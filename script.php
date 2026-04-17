@@ -12,7 +12,6 @@ define('NOT_MODIFIED', 2);
 
 defined('_JEXEC') or die();
 
-use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Installer\Installer;
 use Joomla\CMS\Installer\InstallerScript;
@@ -183,17 +182,14 @@ class com_alfaInstallerScript extends InstallerScript
 
         $syncHelperPath = JPATH_ADMINISTRATOR . '/components/com_alfa/src/Helper/SyncHelper.php';
 
-        if (!class_exists('Alfa\\Component\\Alfa\\Administrator\\Helper\\SyncHelper', false))
+        if (file_exists($syncHelperPath))
         {
-            if (file_exists($syncHelperPath))
-            {
-                require_once $syncHelperPath;
-            }
-            else
-            {
-                Factory::getApplication()->enqueueMessage('SyncHelper not found at: ' . $syncHelperPath, 'error');
-                return false;
-            }
+            require_once $syncHelperPath;
+        }
+        else
+        {
+            Factory::getApplication()->enqueueMessage('SyncHelper not found at: ' . $syncHelperPath, 'error');
+            return false;
         }
 
         $db  = Factory::getContainer()->get('DatabaseDriver');
