@@ -203,7 +203,7 @@ class com_alfaInstallerScript extends InstallerScript
         // 2. Bulk-sync users
         try
         {
-            $count = SyncHelper::bulkSyncUsers($db);
+            $count = \Alfa\Component\Alfa\Administrator\Helper\SyncHelper::bulkSyncUsers($db);
             $app->enqueueMessage(
                 sprintf('Users synced successfully (%d new records).', $count)
             );
@@ -218,7 +218,7 @@ class com_alfaInstallerScript extends InstallerScript
         //    local array (safe even if DB params aren't fully committed yet).
         try
         {
-            $count = SyncHelper::bulkSyncUsergroups($db, $this->defaultParams);
+            $count = \Alfa\Component\Alfa\Administrator\Helper\SyncHelper::bulkSyncUsergroups($db, $this->defaultParams);
             $app->enqueueMessage(
                 sprintf('Usergroups synced successfully (%d new records).', $count)
             );
