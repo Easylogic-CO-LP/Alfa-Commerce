@@ -606,15 +606,14 @@ class PriceSettings
             if (!$pricesDisplay) {
                 return self::global();
             }
-            
+
             $groupSettings = json_decode($pricesDisplay, true);
-            
+
             if (!is_array($groupSettings)) {
                 return self::global();
             }
-            
+
             return self::merge($groupSettings, self::global());
-        
         } catch (Exception $e) {
             self::log('Failed to resolve user group settings', $e);
             return self::global();
