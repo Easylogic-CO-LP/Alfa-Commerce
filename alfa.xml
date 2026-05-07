@@ -122,6 +122,7 @@
 
         <plugin group="alfa-fields" plugin="text"/>
         <plugin group="alfa-fields" plugin="textarea"/> 
+        <plugin group="alfa-fields" plugin="tel"/>
         <plugin  group="system" plugin="alfasync"/>    
         
     </plugins>
