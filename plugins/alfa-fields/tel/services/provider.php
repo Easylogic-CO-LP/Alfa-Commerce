@@ -1,8 +1,8 @@
 <?php
+
 defined('_JEXEC') or die;
 
 use Joomla\CMS\Extension\PluginInterface;
-use Joomla\CMS\Extension\Service\Provider\PluginDispatcher;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\DI\Container;
@@ -17,15 +17,15 @@ return new class () implements ServiceProviderInterface {
             PluginInterface::class,
             function (Container $container) {
                 $dispatcher = $container->get(DispatcherInterface::class);
-                $plugin     = new Tel(
+                $plugin = new Tel(
                     $dispatcher,
-                    (array) PluginHelper::getPlugin('alfa-fields', 'tel')
+                    (array) PluginHelper::getPlugin('alfa-fields', 'tel'),
                 );
                 $plugin->setApplication(Factory::getApplication());
                 $dispatcher->addListener('onBeforeCompileHead', [$plugin, 'onBeforeCompileHead']);
 
                 return $plugin;
-            }
+            },
         );
     }
 };

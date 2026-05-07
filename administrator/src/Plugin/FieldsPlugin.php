@@ -35,7 +35,7 @@ abstract class FieldsPlugin extends CMSPlugin
      */
     public function prepareDom(PrepareDomEvent $event): ?DOMElement
     {
-        $field    = $event->getField();
+        $field = $event->getField();
         $fieldset = $event->getFieldset();
 
         if (!FieldsHelper::displayFieldOnForm($field)) {
@@ -46,22 +46,22 @@ abstract class FieldsPlugin extends CMSPlugin
 
         if (isset($field->fieldparams)) {
             $params->merge(
-                is_string($field->fieldparams) ? new Registry($field->fieldparams) : $field->fieldparams
+                is_string($field->fieldparams) ? new Registry($field->fieldparams) : $field->fieldparams,
             );
         }
 
         if (isset($field->params)) {
             $params->merge(
-                is_string($field->params) ? new Registry($field->params) : $field->params
+                is_string($field->params) ? new Registry($field->params) : $field->params,
             );
         }
 
         $node = $fieldset->appendChild(new DOMElement('field'));
-        $node->setAttribute('name',        $field->field_name);
-        $node->setAttribute('type',        $field->type);
-        $node->setAttribute('label',       $field->field_label);
+        $node->setAttribute('name', $field->field_name);
+        $node->setAttribute('type', $field->type);
+        $node->setAttribute('label', $field->field_label);
         $node->setAttribute('description', $field->field_description ?? '');
-        $node->setAttribute('required',    $field->required ? 'true' : 'false');
+        $node->setAttribute('required', $field->required ? 'true' : 'false');
 
         if (isset($field->default_value) && $field->default_value !== '') {
             $defaultNode = $node->appendChild(new DOMElement('default'));

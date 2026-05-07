@@ -253,7 +253,7 @@ class OrderModel extends AdminModel
         // dynamic fields exist, so they never get populated automatically. Resolve
         // values from user state (resubmit after validation failure must keep the
         // user's typed-in input) falling back to the order's user_info row from DB.
-        $userState   = $app->getUserState('com_alfa.edit.order.data', []);
+        $userState = $app->getUserState('com_alfa.edit.order.data', []);
         $fieldValues = [];
 
         if (isset($userState[FieldsHelper::FIELDS_KEY]) && is_array($userState[FieldsHelper::FIELDS_KEY])) {
@@ -270,59 +270,59 @@ class OrderModel extends AdminModel
         return $form;
     }
 
-//     public function getCartForm(object $userInfo = null): mixed
-//     {
-//         $form = $this->loadForm(
-//             'com_alfa.cart',
-//             JPATH_SITE . '/components/com_alfa/forms/cart.xml',
-//             [
-//                 'control'   => 'cartform',
-//                 'load_data' => false,
-//             ]
-//         );
+    //     public function getCartForm(object $userInfo = null): mixed
+    //     {
+    //         $form = $this->loadForm(
+    //             'com_alfa.cart',
+    //             JPATH_SITE . '/components/com_alfa/forms/cart.xml',
+    //             [
+    //                 'control'   => 'cartform',
+    //                 'load_data' => false,
+    //             ]
+    //         );
 
-//         if (empty($form)) {
-//             return false;
-//         }
+    //         if (empty($form)) {
+    //             return false;
+    //         }
 
-//         FieldsHelper::prepareForm('cart.form', $form, []);
+    //         FieldsHelper::prepareForm('cart.form', $form, []);
 
-//         if ($userInfo !== null) {
-//             // Bind user info values to the custom fields
-//             foreach ($form->getFieldsets() as $fieldset) {
-//                 if ($fieldset->name === 'captcha') {
-//                     continue;
-//                 }
-// //      !!DEBUG!!          echo 'Fieldset: ' . $fieldset->name . ' — field count: ' . count($form->getFieldset
-// //($fieldset->name)) . '<br>';
-//                 foreach ($form->getFieldset($fieldset->name) as $field) {
-//                     $fieldName = str_replace(['cartform[com_alfa][', ']'], '', $field->name);
-//                     $value = $userInfo->{$fieldName} ?? '';
-// //      !!DEBUG!!              echo '  ' . $fieldName . ' = ' . $value . '<br>';
-//                     $form->setValue($fieldName, 'com_alfa', $value);
-//                     $form->setFieldAttribute($fieldName, 'readonly', 'true', 'com_alfa');
-//                 }
-//             }
-//         }
+    //         if ($userInfo !== null) {
+    //             // Bind user info values to the custom fields
+    //             foreach ($form->getFieldsets() as $fieldset) {
+    //                 if ($fieldset->name === 'captcha') {
+    //                     continue;
+    //                 }
+    // //      !!DEBUG!!          echo 'Fieldset: ' . $fieldset->name . ' — field count: ' . count($form->getFieldset
+    // //($fieldset->name)) . '<br>';
+    //                 foreach ($form->getFieldset($fieldset->name) as $field) {
+    //                     $fieldName = str_replace(['cartform[com_alfa][', ']'], '', $field->name);
+    //                     $value = $userInfo->{$fieldName} ?? '';
+    // //      !!DEBUG!!              echo '  ' . $fieldName . ' = ' . $value . '<br>';
+    //                     $form->setValue($fieldName, 'com_alfa', $value);
+    //                     $form->setFieldAttribute($fieldName, 'readonly', 'true', 'com_alfa');
+    //                 }
+    //             }
+    //         }
 
-// //        echo '<pre>';
-// //        echo 'userInfo: ';
-// //        print_r($userInfo);
-// //        echo '<br>Fieldsets and values:<br>';
-// //        foreach ($form->getFieldsets() as $fieldset) {
-// //            if (!str_starts_with($fieldset->name, 'fields-')) {
-// //                continue;
-// //            }
-// //            echo 'Fieldset: ' . $fieldset->name . '<br>';
-// //            foreach ($form->getFieldset($fieldset->name) as $field) {
-// //                $fieldName = str_replace(['cartform[com_alfa][', ']'], '', $field->name);
-// //                echo '  ' . $fieldName . ' = ' . $field->value . '<br>';
-// //            }
-// //        }
-// //        echo '</pre>';
+    // //        echo '<pre>';
+    // //        echo 'userInfo: ';
+    // //        print_r($userInfo);
+    // //        echo '<br>Fieldsets and values:<br>';
+    // //        foreach ($form->getFieldsets() as $fieldset) {
+    // //            if (!str_starts_with($fieldset->name, 'fields-')) {
+    // //                continue;
+    // //            }
+    // //            echo 'Fieldset: ' . $fieldset->name . '<br>';
+    // //            foreach ($form->getFieldset($fieldset->name) as $field) {
+    // //                $fieldName = str_replace(['cartform[com_alfa][', ']'], '', $field->name);
+    // //                echo '  ' . $fieldName . ' = ' . $field->value . '<br>';
+    // //            }
+    // //        }
+    // //        echo '</pre>';
 
-//         return $form;
-//     }
+    //         return $form;
+    //     }
 
     protected function loadFormData()
     {
