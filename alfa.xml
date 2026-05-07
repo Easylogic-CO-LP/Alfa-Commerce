@@ -132,6 +132,11 @@
         <module module="mod_alfa_filters" />
 	</modules>
 
+    <libraries>
+        <library folder="lib_libphonenumber" libraryname="libphonenumber"/>
+        <library folder="lib_giggsey_locale" libraryname="giggsey/locale"/>
+    </libraries>
+
     <updateservers>
         <server type="extension" priority="1" name="com_alfa">https://cdn.demosites.gr/alfa-updates.xml</server>
     </updateservers>

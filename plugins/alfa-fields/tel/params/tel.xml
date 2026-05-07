@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+    <fields name="fieldsparams">
+        <fieldset name="fieldparams" label="COM_ALFA_FIELDS_PARAMS_TAB">
+            <field
+                addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
+                layout="joomla.form.field.list-fancy-select"
+                name="default_region"
+                component="com_alfa"
+                type="model"
+                model="places"
+                column_value="code2"
+                column_text="name"
+                default=""
+                label="PLG_ALFA_FIELDS_TEL_DEFAULT_REGION_LABEL"
+                orderBy="name"
+                orderDir="ASC">
+                <option value="">COM_FIELDS_FIELD_USE_GLOBAL</option>
+            </field>
+
+            <field
+                addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
+                layout="joomla.form.field.list-fancy-select"
+                name="allowed_regions"
+                component="com_alfa"
+                type="model"
+                model="places"
+                column_value="code2"
+                column_text="name"
+                default=""
+                label="PLG_ALFA_FIELDS_TEL_ALLOWED_REGIONS_LABEL"
+                hint="PLG_ALFA_FIELDS_TEL_SELECT_COUNTRY"
+                description="Let it empty to auto use all countries list"
+                multiple="true"
+                orderBy="name"
+                orderDir="ASC" />
+
+            <field name="require_mobile" type="radio" default=""
+                   label="PLG_ALFA_FIELDS_TEL_REQUIRE_MOBILE_LABEL">
+                <option value="">COM_FIELDS_FIELD_USE_GLOBAL</option>
+                <option value="0">JNO</option>
+                <option value="1">JYES</option>
+            </field>
+
+            <!-- `validate` is intentionally NOT set here. It is applied in code:
+                 plugins/alfa-fields/tel/src/Extension/Tel.php (prepareDom fallback).
+                 To override per field, add as a visible list with lowercase values. -->
+
+            <!-- Read by FormfieldModel.php to pick the MySQL column type. Do not remove.
+                 E.164 is max 15 digits + '+' = 16 chars; varchar(20) gives safe headroom. -->
+            <field name="sql_type" type="hidden" default="varchar(20)"/>
+
+        </fieldset>
+    </fields>
+</form>

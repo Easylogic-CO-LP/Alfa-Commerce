@@ -21,10 +21,10 @@ use Joomla\CMS\Installer\InstallerScript;
  *
  * Responsibilities:
  *  - Validate environment requirements before installation (preflight).
- *  - Install / update bundled plugins and modules alongside the component.
+ *  - Install / update bundled libraries, plugins and modules alongside the component.
  *  - Seed sensible default configuration parameters after install/update (postflight).
  *  - Bulk-sync existing Joomla users and usergroups into Alfa tables on install/update.
- *  - Clean up plugins and modules when the component is uninstalled.
+ *  - Clean up libraries, plugins and modules when the component is uninstalled.
  *
  * Sync logic lives entirely in SyncHelper so it is shared with the runtime
  * plugin (PlgSystemAlfasync) and any frontend registration code — there is no
@@ -35,6 +35,16 @@ use Joomla\CMS\Installer\InstallerScript;
  *  • Update         → only keys absent from the current stored params are added;
  *                     existing admin choices are never touched.
  *  • Multi-select   → pass a plain PHP array; it is json_encode()'d automatically.
+ *
+ * Library bundling:
+ *  • Libraries are declared in com_alfa.xml under <libraries>:
+ *        <library folder="lib_libphonenumber" libraryname="libphonenumber"/>
+ *    where `folder`      = path inside the component zip holding the library's files
+ *          `libraryname` = matches <libraryname> in the library's own manifest
+ *  • Libraries are installed BEFORE plugins/modules so plugins can `use` their classes.
+ *  • Libraries are uninstalled AFTER plugins/modules for reverse dependency safety.
+ *  • After any library install/update the PSR-4 namespace cache is flushed so the
+ *    library's <namespace> tag is picked up on the very next request.
  *
  * @since  0.1b
  */
@@ -139,25 +149,55 @@ class com_alfaInstallerScript extends InstallerScript
         return parent::preflight($type, $parent);
     }
 
-    /** @param object $parent */
+    /**
+     * Install-time hook.
+     *
+     * Order matters: libraries first (plugins may `use` library classes),
+     * then plugins, then modules.
+     *
+     * @param   object  $parent
+     *
+     * @return  void
+     */
     public function install($parent): void
     {
+        $this->installLibraries($parent);
         $this->installPlugins($parent);
         $this->installModules($parent);
     }
 
-    /** @param object $parent */
+    /**
+     * Update-time hook.
+     *
+     * Same order as install() — a library might have been added in this
+     * release that a new/updated plugin relies on.
+     *
+     * @param   object  $parent
+     *
+     * @return  void
+     */
     public function update($parent): void
     {
+        $this->installLibraries($parent);
         $this->installPlugins($parent);
         $this->installModules($parent);
     }
 
-    /** @param object $parent */
+    /**
+     * Uninstall-time hook.
+     *
+     * Reverse of install order: remove plugins and modules first (they may
+     * reference classes from our libraries), then the libraries themselves.
+     *
+     * @param   object  $parent
+     *
+     * @return  void
+     */
     public function uninstall($parent): void
     {
         $this->uninstallPlugins($parent);
         $this->uninstallModules($parent);
+        $this->uninstallLibraries($parent);
     }
 
     /**
@@ -285,6 +325,164 @@ class com_alfaInstallerScript extends InstallerScript
 
         $db->setQuery($query);
         $db->execute();
+    }
+
+    // =========================================================================
+    // Library helpers
+    // =========================================================================
+
+    /**
+     * Install or update all libraries declared in the component manifest.
+     *
+     * Expected manifest shape:
+     *   <libraries>
+     *       <library folder="lib_libphonenumber" libraryname="libphonenumber"/>
+     *       <library folder="lib_giggsey_locale" libraryname="giggsey/locale"/>
+     *   </libraries>
+     *
+     * After at least one successful install/update, the Joomla PSR-4 namespace
+     * cache (cache/autoload_psr4.php) is deleted so any <namespace> tag from
+     * the freshly installed library is picked up on the next request. Joomla
+     * core's InstallModel does NOT clear this cache, so without this flush the
+     * library's classes would not be autoloadable until the admin manually
+     * clears caches — leading to a "class not found" on first use.
+     *
+     * @param   object  $parent
+     *
+     * @return  void
+     */
+    private function installLibraries($parent): void
+    {
+        $installationFolder = $parent->getParent()->getPath('source');
+        $app                = Factory::getApplication();
+
+        $libraries = method_exists($parent, 'getManifest')
+            ? $parent->getManifest()->libraries
+            : $parent->get('manifest')->libraries;
+
+        if (empty($libraries) || !count($libraries->children()))
+        {
+            return;
+        }
+
+        $didAnything = false;
+
+        foreach ($libraries->children() as $library)
+        {
+            $folder      = (string) $library['folder'];
+            $libraryName = (string) $library['libraryname'];
+            $path        = $installationFolder . '/libraries/' . $folder;
+
+            if (!is_dir($path))
+            {
+                $app->enqueueMessage(
+                    sprintf('Library source missing at %s — skipped.', $path),
+                    'warning'
+                );
+                continue;
+            }
+
+            $installer = new Installer();
+            $installer->setDatabase(Factory::getContainer()->get('DatabaseDriver'));
+
+            $result = $this->isAlreadyInstalled('library', $libraryName)
+                ? $installer->update($path)
+                : $installer->install($path);
+
+            $app->enqueueMessage(
+                $result
+                    ? sprintf('Library %s installed successfully.', $libraryName)
+                    : sprintf('There was an issue installing library %s.', $libraryName),
+                $result ? 'message' : 'error'
+            );
+
+            $didAnything = $didAnything || $result;
+        }
+
+        if ($didAnything)
+        {
+            $this->flushNamespaceCache();
+        }
+    }
+
+    /**
+     * Uninstall every library declared in the component manifest.
+     *
+     * Looks up each by `libraryname` in #__extensions (the value Joomla stores
+     * in the `element` column for libraries) and dispatches a standard
+     * Installer::uninstall('library', $id) call.
+     *
+     * @param   object  $parent
+     *
+     * @return  void
+     */
+    private function uninstallLibraries($parent): void
+    {
+        $app = Factory::getApplication();
+
+        $libraries = method_exists($parent, 'getManifest')
+            ? $parent->getManifest()->libraries
+            : $parent->get('manifest')->libraries;
+
+        if (empty($libraries) || !count($libraries->children()))
+        {
+            return;
+        }
+
+        $db    = Factory::getContainer()->get('DatabaseDriver');
+        $query = $db->getQuery(true);
+
+        foreach ($libraries->children() as $library)
+        {
+            $libraryName = (string) $library['libraryname'];
+
+            $query
+                ->clear()
+                ->select($db->quoteName('extension_id'))
+                ->from($db->quoteName('#__extensions'))
+                ->where([
+                    'type LIKE '    . $db->quote('library'),
+                    'element LIKE ' . $db->quote($libraryName),
+                ]);
+
+            $db->setQuery($query);
+            $extensionId = $db->loadResult();
+
+            if (empty($extensionId))
+            {
+                continue;
+            }
+
+            $installer = new Installer();
+            $installer->setDatabase(Factory::getContainer()->get('DatabaseDriver'));
+            $result = $installer->uninstall('library', $extensionId);
+
+            $app->enqueueMessage(
+                $result
+                    ? sprintf('Library %s uninstalled successfully.', $libraryName)
+                    : sprintf('There was an issue uninstalling library %s.', $libraryName),
+                $result ? 'message' : 'error'
+            );
+        }
+
+        $this->flushNamespaceCache();
+    }
+
+    /**
+     * Delete Joomla's cached PSR-4 namespace map so it is regenerated on the
+     * next request. Required after any library install/update/uninstall
+     * because Joomla core does not invalidate this cache automatically.
+     *
+     * @return  void
+     */
+    private function flushNamespaceCache(): void
+    {
+        $cacheFile = JPATH_CACHE . '/autoload_psr4.php';
+
+        if (is_file($cacheFile))
+        {
+            @unlink($cacheFile);
+        }
     }
 
     // =========================================================================
@@ -488,13 +686,26 @@ class com_alfaInstallerScript extends InstallerScript
     // Utility
     // =========================================================================
 
+    /**
+     * Cheap filesystem check for "is this extension already installed?".
+     *
+     * For libraries, $name is the full `libraryname` (may contain a slash,
+     * e.g. "giggsey/locale") — mirrors the path produced by LibraryAdapter.
+     *
+     * @param   string       $type    One of: plugin, module, template, library
+     * @param   string       $name    Extension element name (plugin/module/template name, or libraryname)
+     * @param   string|null  $folder  Plugin group (only used for plugins)
+     *
+     * @return  bool
+     */
     private function isAlreadyInstalled(string $type, string $name, ?string $folder = null): bool
     {
         return match ($type)
         {
-            'plugin'   => file_exists(JPATH_PLUGINS . '/' . $folder . '/' . $name),
-            'module'   => file_exists(JPATH_SITE    . '/modules/' . $name),
-            'template' => file_exists(JPATH_SITE    . '/templates/' . $name),
+            'plugin'   => file_exists(JPATH_PLUGINS   . '/' . $folder . '/' . $name),
+            'module'   => file_exists(JPATH_SITE      . '/modules/'   . $name),
+            'template' => file_exists(JPATH_SITE      . '/templates/' . $name),
+            'library'  => file_exists(JPATH_LIBRARIES . '/' . $name),
             default    => false,
         };
     }

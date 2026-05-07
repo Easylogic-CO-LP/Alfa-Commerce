@@ -80,6 +80,11 @@ class HtmlView extends BaseHtmlView
             $toolbar->addNew('formfield.add');
         }
 
+        // Groups are managed from inside the Fields area.
+        $toolbar->linkButton('groups', Text::_('COM_ALFA_TOOLBAR_MANAGE_GROUPS'))
+            ->url('index.php?option=com_alfa&view=formfieldgroups')
+            ->icon('icon-folder');
+
         if ($canDo->get('core.edit.state')) {
             $dropdown = $toolbar->dropdownButton('status-group')
                 ->text('JTOOLBAR_CHANGE_STATUS')
@@ -99,10 +104,17 @@ class HtmlView extends BaseHtmlView
             }
 
             if ($this->state->get('filter.state') == AlfaComponent::CONDITION_TRASHED && $canDo->get('core.delete')) {
-                // If this component does not use state then show a direct delete button as we can not trash
-                $toolbar->delete('formfields.delete')
-                    ->text('JTOOLBAR_EMPTY_TRASH')
-                    ->message('JGLOBAL_CONFIRM_DELETE')
+                // Permanent delete — drops matching #__alfa_user_info columns.
+                // Use a popup (instead of the default confirm dialog) so we can show
+                // a properly styled warning with a red "Delete Permanently" button.
+                $toolbar->popupButton('delete-confirm', 'COM_ALFA_FORMFIELD_DELETE_PERMANENT')
+                    ->popupType('inline')
+                    ->icon('icon-warning')
+                    ->buttonClass('btn btn-danger')
+                    ->textHeader(Text::_('COM_ALFA_FORMFIELD_DELETE_PERMANENT_HEADER'))
+                    ->url('#joomla-dialog-delete')
+                    ->modalWidth('600px')
+                    ->modalHeight('fit-content')
                     ->listCheck(true);
             }
 

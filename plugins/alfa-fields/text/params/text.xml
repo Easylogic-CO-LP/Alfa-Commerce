@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <form>
 	<fields name="fieldsparams">
-		<fieldset name="fieldparams" label="PLG_ALFA_FIELDS_PARAMS_TAB">
+		<fieldset name="fieldparams" label="COM_ALFA_FIELDS_PARAMS_TAB">
 			<field
 				name="filter"
 				type="list"

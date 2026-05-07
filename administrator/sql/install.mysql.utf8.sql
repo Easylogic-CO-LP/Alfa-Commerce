@@ -486,6 +486,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_discount_users` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_form_fields` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
+  `group_id` int(11) NOT NULL DEFAULT 0,
   `type` text DEFAULT NULL,
   `params` text DEFAULT NULL,
   `name` text NOT NULL,

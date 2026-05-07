@@ -10,7 +10,7 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
-namespace Joomla\CMS\Event\CustomFields;
+namespace Alfa\Component\Alfa\Administrator\Event\Fields;
 
 use BadMethodCallException;
 

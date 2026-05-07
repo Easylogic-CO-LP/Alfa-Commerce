@@ -14,7 +14,6 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Language\Text;
-
 $wa = $this->getDocument()->getWebAssetManager();
 $wa->useStyle('com_alfa.admin')
 	->useScript('com_alfa.admin');
@@ -22,6 +21,7 @@ $wa->useStyle('com_alfa.admin')
 $user      = Factory::getApplication()->getIdentity();
 $listOrder = $this->escape($this->state->get('list.ordering'));
 $listDirn  = $this->escape($this->state->get('list.direction'));
+
 ?>
 
 <form action="<?php echo Route::_('index.php?option=com_alfa&view=usergroups'); ?>" method="post" name="adminForm" id="adminForm">

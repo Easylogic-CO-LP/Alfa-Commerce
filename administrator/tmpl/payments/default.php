@@ -33,7 +33,6 @@ if ($saveOrder && !empty($this->items)) {
 	HTMLHelper::_('draggablelist.draggable');
 }
 
-
 ?>
 
 <form action="<?php echo Route::_('index.php?option=com_alfa&view=payments'); ?>" method="post"
