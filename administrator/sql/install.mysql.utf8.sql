@@ -531,6 +531,24 @@ CREATE TABLE IF NOT EXISTS `#__alfa_form_fields_users` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `#__alfa_form_field_groups`
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_form_field_groups` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `title` varchar(255) NOT NULL DEFAULT '',
+  `description` text NOT NULL DEFAULT '',
+  `ordering` int(11) NOT NULL DEFAULT 0,
+  `state` tinyint(4) NOT NULL DEFAULT 0,
+  `created_by` int(11) NOT NULL DEFAULT 0,
+  `modified_by` int(11) DEFAULT NULL,
+  `checked_out` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `#__alfa_items`
 --
 
