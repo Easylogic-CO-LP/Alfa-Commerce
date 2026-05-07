@@ -1,4 +1,4 @@
-    <?php
+<?php
 
     /**
      * @package    Alfa Commerce
@@ -7,7 +7,7 @@
      * @license    GNU General Public License version 3 or later; see LICENSE
      */
 
-    namespace Alfa\Component\Alfa\Administrator\Model;
+namespace Alfa\Component\Alfa\Administrator\Model;
 
 // No direct access.
 defined('_JEXEC') or die;
