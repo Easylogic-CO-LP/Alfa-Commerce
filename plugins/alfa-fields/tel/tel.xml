@@ -16,7 +16,7 @@
     </files>
     <languages folder="language">
         <language tag="en-GB">en-GB/plg_alfa-fields_tel.ini</language>
-        <language tag="en-GB">plg_alfa-fields_tel.sys.ini</language>
+        <language tag="en-GB">en-GB/plg_alfa-fields_tel.sys.ini</language>
     </languages>
     <media destination="plg_alfa-fields_tel" folder="media">
         <folder>js</folder>
