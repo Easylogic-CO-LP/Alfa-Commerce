@@ -32,6 +32,7 @@
                         layout="joomla.form.field.list-fancy-select"
                         name="default_region"
                         type="places"
+                        component="com_alfa"
                         column_value="code2"
                         column_text="name"
                         default="GR"
