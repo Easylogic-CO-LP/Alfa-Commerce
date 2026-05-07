@@ -31,7 +31,7 @@
                         addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
                         layout="joomla.form.field.list-fancy-select"
                         name="default_region"
-                        type="places"
+                        type="model"
                         component="com_alfa"
                         column_value="code2"
                         column_text="name"
