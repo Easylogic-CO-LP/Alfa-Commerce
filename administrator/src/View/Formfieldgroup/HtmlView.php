@@ -41,16 +41,16 @@ class HtmlView extends FormView
     {
         Factory::getApplication()->getInput()->set('hidemainmenu', true);
 
-        $user       = $this->getCurrentUser();
-        $userId     = $user->id;
+        $user = $this->getCurrentUser();
+        $userId = $user->id;
         $checkedOut = !(is_null($this->item->checked_out) || $this->item->checked_out == $userId);
-        $canDo      = $this->canDo;
+        $canDo = $this->canDo;
 
         ToolbarHelper::title(Text::_('COM_ALFA_TITLE_FORM_FIELD_GROUP'), 'generic');
 
         if (!$checkedOut && ($canDo->get('core.edit') || $canDo->get('core.create'))) {
             ToolbarHelper::apply('formfieldgroup.apply', 'JTOOLBAR_APPLY');
-            ToolbarHelper::save('formfieldgroup.save',  'JTOOLBAR_SAVE');
+            ToolbarHelper::save('formfieldgroup.save', 'JTOOLBAR_SAVE');
         }
 
         if (!$checkedOut && $canDo->get('core.create')) {

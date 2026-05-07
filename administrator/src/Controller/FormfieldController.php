@@ -30,7 +30,7 @@ class FormfieldController extends FormController
         $model = $this->getModel('Formfield', 'Administrator', []);
 
         $this->setRedirect(
-            Route::_('index.php?option=com_alfa&view=formfields' . $this->getRedirectToListAppend(), false)
+            Route::_('index.php?option=com_alfa&view=formfields' . $this->getRedirectToListAppend(), false),
         );
 
         return parent::batch($model);
