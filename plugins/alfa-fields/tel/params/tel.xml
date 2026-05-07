@@ -30,7 +30,7 @@
                 default=""
                 label="PLG_ALFA_FIELDS_TEL_ALLOWED_REGIONS_LABEL"
                 hint="PLG_ALFA_FIELDS_TEL_SELECT_COUNTRY"
-                description="Let it empty to auto use all countries list"
+                description="PLG_ALFA_FIELDS_TEL_ALLOWED_REGIONS_DESC"
                 multiple="true"
                 orderBy="name"
                 orderDir="ASC" />
