@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="library" method="upgrade">
+	<name>lib_giggsey_locale</name>
+	<libraryname>giggsey/locale</libraryname>
+	<author>Giggsey (packaged for Joomla)</author>
+	<authorUrl>https://github.com/giggsey/Locale</authorUrl>
+	<creationDate>2026-04-20</creationDate>
+	<license>MIT</license>
+	<version>2.7.0</version>
+	<description>giggsey/locale — locale functions required by libphonenumber-for-php. Auto-registers Giggsey\Locale\ namespace.</description>
+	<namespace path="src">Giggsey\Locale</namespace>
+	<files>
+		<folder>src</folder>
+	</files>
+	<scriptfile>script.php</scriptfile>
+</extension>
