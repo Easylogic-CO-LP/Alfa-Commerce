@@ -12,9 +12,10 @@ namespace Joomla\Plugin\AlfaFields\Tel\Extension;
 use Alfa\Component\Alfa\Administrator\Event\Fields\PrepareDomEvent;
 use Alfa\Component\Alfa\Administrator\Plugin\FieldsPlugin;
 use DOMElement;
-use Joomla\CMS\Event\Application\BeforeCompileHeadEvent;
 use Joomla\CMS\Form\FormHelper;
 use Joomla\Registry\Registry;
+use Joomla\CMS\Log\Log;
+use Joomla\CMS\Event\Application\BeforeCompileHeadEvent;
 
 defined('_JEXEC') or die;
 
@@ -66,14 +67,11 @@ final class Tel extends FieldsPlugin
             $node->setAttribute('autocomplete', 'tel');
         }
 
-        $defaultRegion = $fieldParams->get('default_region', '') ?: $this->params->get('default_region', 'GR');
-        $allowedRegions = $fieldParams->get('allowed_regions', '') ?: [];
-        $require_mobile = $fieldParams->get('require_mobile', null);
-        $display_format = $fieldParams->get('display_format', 'E164');
 
-        if ($require_mobile === null || $require_mobile === '') {
-            $require_mobile = $this->params->get('require_mobile', '0');
-        }
+        $defaultRegion = $fieldParams->get('default_region', 'GR');
+        $allowedRegions = $fieldParams->get('allowed_regions', '') ?: [];
+        $require_mobile = $fieldParams->get('require_mobile', 0);
+        $display_format = $fieldParams->get('display_format', 'E164');
 
         if (is_array($allowedRegions)) {
             $allowedRegions = implode(',', array_filter(array_map('trim', $allowedRegions)));

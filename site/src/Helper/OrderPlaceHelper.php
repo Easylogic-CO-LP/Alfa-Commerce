@@ -794,14 +794,24 @@ class OrderPlaceHelper
     protected function saveUserInfo(array $data): ?object
     {
         try {
+            foreach ($data as $key => $value) {
+                if (is_array($value) || is_object($value)) {
+                    $data[$key] = json_encode($value);
+                }
+            }
+
             $infoObject = (object) $data;
+
             $infoObject->id_user = $this->user->id;
+
             $this->db->insertObject($this->user_info_table, $infoObject, 'id');
+
             return $infoObject;
         } catch (Exception $e) {
             Log::add('User info save error: ' . $e->getMessage(), Log::ERROR, 'com_alfa.orders');
             return null;
         }
+
     }
 
     protected function getPaymentType(int $id): void
