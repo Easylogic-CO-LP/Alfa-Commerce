@@ -811,7 +811,6 @@ class OrderPlaceHelper
             Log::add('User info save error: ' . $e->getMessage(), Log::ERROR, 'com_alfa.orders');
             return null;
         }
-
     }
 
     protected function getPaymentType(int $id): void

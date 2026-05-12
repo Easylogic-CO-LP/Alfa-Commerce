@@ -19,27 +19,27 @@ class AlfachoiceField extends FormField
 {
     protected $type = 'Alfachoice';
 
-//    public function getInputName($asArray = true)
-//    {
-//        return parent::getInputName(true);
-//    }
+    //    public function getInputName($asArray = true)
+    //    {
+    //        return parent::getInputName(true);
+    //    }
 
     protected function getInput()
     {
-        $renderAs    = (string) ($this->element['render_as'] ?: 'select');
-        $layout      = (string) ($this->element['layout'] ?: 'vertical');
+        $renderAs = (string) ($this->element['render_as'] ?: 'select');
+        $layout = (string) ($this->element['layout'] ?: 'vertical');
         $placeholder = (string) ($this->element['placeholder'] ?: '');
-        $minSel      = (int) ($this->element['min_selections'] ?: 0);
-        $maxSel      = (int) ($this->element['max_selections'] ?: 0);
+        $minSel = (int) ($this->element['min_selections'] ?: 0);
+        $maxSel = (int) ($this->element['max_selections'] ?: 0);
 
-        $name     = $this->getNameWithBrackets();
-        $id       = $this->id;
+        $name = $this->getNameWithBrackets();
+        $id = $this->id;
         $required = $this->required ? ' required' : '';
         $disabled = $this->disabled ? ' disabled' : '';
 
-        $options  = $this->parseOptions();
+        $options = $this->parseOptions();
         $selected = $this->parseValue();
-        $multi    = $this->isMulti($renderAs);
+        $multi = $this->isMulti($renderAs);
 
         if ($multi) {
             $optCount = count($options);
@@ -63,19 +63,19 @@ class AlfachoiceField extends FormField
             'select', 'multiselect'
                 => $this->renderSelect($name, $id, $options, $selected, $multi, $placeholder, $required, $disabled, $minSel, $maxSel),
             'radio'
-                => $this->renderInputs($name, $id, $options, $selected, 'radio',    $layout, 'radio',    $required, $disabled, 0, 0),
+                => $this->renderInputs($name, $id, $options, $selected, 'radio', $layout, 'radio', $required, $disabled, 0, 0),
             'checkbox'
                 => $this->renderInputs($name, $id, $options, $selected, 'checkbox', $layout, 'checkbox', $required, $disabled, $minSel, $maxSel),
             'button'
-                => $this->renderInputs($name, $id, $options, $selected, 'radio',    $layout, 'button',   $required, $disabled, 0, 0),
+                => $this->renderInputs($name, $id, $options, $selected, 'radio', $layout, 'button', $required, $disabled, 0, 0),
             'button-multi'
-                => $this->renderInputs($name, $id, $options, $selected, 'checkbox', $layout, 'button',   $required, $disabled, $minSel, $maxSel),
+                => $this->renderInputs($name, $id, $options, $selected, 'checkbox', $layout, 'button', $required, $disabled, $minSel, $maxSel),
             'chip'
-                => $this->renderInputs($name, $id, $options, $selected, 'radio',    $layout, 'chip',     $required, $disabled, 0, 0),
+                => $this->renderInputs($name, $id, $options, $selected, 'radio', $layout, 'chip', $required, $disabled, 0, 0),
             'chip-multi'
-                => $this->renderInputs($name, $id, $options, $selected, 'checkbox', $layout, 'chip',     $required, $disabled, $minSel, $maxSel),
+                => $this->renderInputs($name, $id, $options, $selected, 'checkbox', $layout, 'chip', $required, $disabled, $minSel, $maxSel),
             default
-                => $this->renderSelect($name, $id, $options, $selected, false, $placeholder, $required, $disabled, 0, 0),
+            => $this->renderSelect($name, $id, $options, $selected, false, $placeholder, $required, $disabled, 0, 0),
         };
     }
 
@@ -97,7 +97,7 @@ class AlfachoiceField extends FormField
         foreach ($this->element->xpath('option') ?: [] as $opt) {
             $opts[] = [
                 'value' => (string) $opt['value'],
-                'text'  => trim((string) $opt),
+                'text' => trim((string) $opt),
             ];
         }
         return $opts;
@@ -122,10 +122,10 @@ class AlfachoiceField extends FormField
     private function renderSelect(string $name, string $id, array $options, array $selected, bool $multi, string $placeholder, string $required, string $disabled, int $minSel, int $maxSel): string
     {
         $multiAttr = $multi ? ' multiple' : '';
-        $dataMin   = $minSel > 0 ? ' data-min-selections="' . $minSel . '"' : '';
-        $dataMax   = $maxSel > 0 ? ' data-max-selections="' . $maxSel . '"' : '';
+        $dataMin = $minSel > 0 ? ' data-min-selections="' . $minSel . '"' : '';
+        $dataMax = $maxSel > 0 ? ' data-max-selections="' . $maxSel . '"' : '';
 
-        $html  = '<div class="alfa-choice-wrap">';
+        $html = '<div class="alfa-choice-wrap">';
         $html .= '<select class="alfa-choice__select" name="' . $this->h($name) . '" id="' . $this->h($id) . '"'
               . $multiAttr . $required . $disabled . $dataMin . $dataMax . '>';
 
@@ -158,7 +158,7 @@ class AlfachoiceField extends FormField
         $i = 0;
         foreach ($options as $opt) {
             $i++;
-            $optId   = $id . '_' . $i;
+            $optId = $id . '_' . $i;
             $checked = in_array($opt['value'], $selected, true) ? ' checked' : '';
 
             $inputRequired = ($inputType === 'radio' && $i === 1) ? $required : '';

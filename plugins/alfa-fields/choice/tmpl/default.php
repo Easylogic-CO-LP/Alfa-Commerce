@@ -14,15 +14,15 @@ if (!is_array($decoded) || empty($decoded)) {
     $decoded = [(string) $value];
 }
 
-$params  = is_string($field->fieldparams)
+$params = is_string($field->fieldparams)
     ? new Registry($field->fieldparams)
     : ($field->fieldparams ?? new Registry());
 
 $options = (array) $params->get('options', []);
-$lookup  = [];
+$lookup = [];
 foreach ($options as $opt) {
     $v = is_object($opt) ? ($opt->value ?? '') : ($opt['value'] ?? '');
-    $t = is_object($opt) ? ($opt->text  ?? '') : ($opt['text']  ?? '');
+    $t = is_object($opt) ? ($opt->text ?? '') : ($opt['text'] ?? '');
     $lookup[(string) $v] = (string) $t;
 }
 

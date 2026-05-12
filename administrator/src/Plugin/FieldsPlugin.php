@@ -35,23 +35,23 @@ abstract class FieldsPlugin extends CMSPlugin
      */
     public function prepareDom(PrepareDomEvent $event): ?DOMElement
     {
-        $field    = $event->getField();
+        $field = $event->getField();
         $fieldset = $event->getFieldset();
 
         if (!FieldsHelper::displayFieldOnForm($field)) {
             return null;
         }
 
-//        $params = clone $this->params;
+        //        $params = clone $this->params;
 
         $params = new Registry($field->params);
 
         $node = $fieldset->appendChild(new DOMElement('field'));
-        $node->setAttribute('name',        $field->field_name);
-        $node->setAttribute('type',        $field->type);
-        $node->setAttribute('label',       $field->field_label);
+        $node->setAttribute('name', $field->field_name);
+        $node->setAttribute('type', $field->type);
+        $node->setAttribute('label', $field->field_label);
         $node->setAttribute('description', $field->field_description ?? '');
-        $node->setAttribute('required',    $field->required ? 'true' : 'false');
+        $node->setAttribute('required', $field->required ? 'true' : 'false');
 
         if (isset($field->default_value) && $field->default_value !== '') {
             $defaultNode = $node->appendChild(new DOMElement('default'));

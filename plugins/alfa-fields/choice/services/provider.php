@@ -1,4 +1,5 @@
 <?php
+
 defined('_JEXEC') or die;
 
 use Joomla\CMS\Extension\PluginInterface;
@@ -16,15 +17,15 @@ return new class () implements ServiceProviderInterface {
             PluginInterface::class,
             function (Container $container) {
                 $dispatcher = $container->get(DispatcherInterface::class);
-                $plugin     = new Choice(
+                $plugin = new Choice(
                     $dispatcher,
-                    (array) PluginHelper::getPlugin('alfa-fields', 'choice')
+                    (array) PluginHelper::getPlugin('alfa-fields', 'choice'),
                 );
                 $plugin->setApplication(Factory::getApplication());
                 $dispatcher->addListener('onBeforeCompileHead', [$plugin, 'onBeforeCompileHead']);
 
                 return $plugin;
-            }
+            },
         );
     }
 };

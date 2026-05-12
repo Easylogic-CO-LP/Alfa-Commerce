@@ -12,10 +12,9 @@ namespace Joomla\Plugin\AlfaFields\Tel\Extension;
 use Alfa\Component\Alfa\Administrator\Event\Fields\PrepareDomEvent;
 use Alfa\Component\Alfa\Administrator\Plugin\FieldsPlugin;
 use DOMElement;
+use Joomla\CMS\Event\Application\BeforeCompileHeadEvent;
 use Joomla\CMS\Form\FormHelper;
 use Joomla\Registry\Registry;
-use Joomla\CMS\Log\Log;
-use Joomla\CMS\Event\Application\BeforeCompileHeadEvent;
 
 defined('_JEXEC') or die;
 
@@ -66,7 +65,6 @@ final class Tel extends FieldsPlugin
         if (!$node->getAttribute('autocomplete')) {
             $node->setAttribute('autocomplete', 'tel');
         }
-
 
         $defaultRegion = $fieldParams->get('default_region', 'GR');
         $allowedRegions = $fieldParams->get('allowed_regions', '') ?: [];

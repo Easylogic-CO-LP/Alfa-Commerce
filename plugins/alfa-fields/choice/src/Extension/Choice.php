@@ -35,21 +35,21 @@ final class Choice extends FieldsPlugin
         FormHelper::addFieldPrefix('Joomla\\Plugin\\AlfaFields\\Choice\\Field');
         $node->setAttribute('type', 'alfachoice');
 
-        $field  = $event->getField();
+        $field = $event->getField();
         $params = is_string($field->params)
             ? new Registry($field->params)
             : ($field->params ?? new Registry());
 
-//        echo '<pre>';
-//        print_r($params);
-//        echo '</pre>';
-//
-//        exit;
+        //        echo '<pre>';
+        //        print_r($params);
+        //        echo '</pre>';
+        //
+        //        exit;
 
         // Append options as <option> children — JForm/Field reads them via xpath('option').
         foreach ((array) $params->get('options', []) as $opt) {
             $value = is_object($opt) ? ($opt->value ?? '') : ($opt['value'] ?? '');
-            $text  = is_object($opt) ? ($opt->text  ?? '') : ($opt['text']  ?? '');
+            $text = is_object($opt) ? ($opt->text ?? '') : ($opt['text'] ?? '');
 
             if ($value === '' && $text === '') {
                 continue;
