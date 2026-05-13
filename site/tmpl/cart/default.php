@@ -29,8 +29,11 @@ $wa->useStyle('com_alfa.general')
 
 ?>
 
-<div id="cart-outer" data-cart-outer>
-
+<div id="cart-outer"
+     data-cart-outer
+     data-payment-url="<?php echo Route::_('index.php?option=com_alfa&task=cart.updatePayment&format=json'); ?>"
+     data-shipment-url="<?php echo Route::_('index.php?option=com_alfa&task=cart.updateShipment&format=json'); ?>"
+>
     <h2 class="text-center"><?php echo Text::_('COM_ALFA_CART_HEADING'); ?></h2>
 
     <section class="container mt-5">

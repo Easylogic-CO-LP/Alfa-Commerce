@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Exception;
 use Joomla\CMS\Event\Model;
 use Joomla\CMS\Factory;
@@ -128,24 +129,22 @@ class FormfieldModel extends AdminModel
      */
     public function save($data)
     {
-        $app = Factory::getApplication();
-        //		$db = $this->getDatabase();
-        //	    $input = $app->getInput();
+	    $app = Factory::getApplication();
+	    $input = $app->getInput();
+
         $table = $this->getTable();
         $key = $table->getKeyName();
         $isNew = $data[$key] <= 0;
 
-        $data['field_name'] = $data['field_name'] ?: $data['name'];
-        $data['field_name'] = OutputFilter::stringURLSafe($data['field_name']);
+	    $rawData = $input->post->get('jform', [], 'array');
+	    $data    = array_merge($data, $rawData);
 
-        //	    Is no needed because the manageUserInfoTable handles the duplicate new columns
-        //      dynamically change name which is the column we will add in form fields, if already exists
-        //	    if ($table->load(['field_name' => $data['field_name']])) {
-        //		    if ($table->id != $data['id'])
-        //		    {
-        //			    $data['field_name'] = self::generateNewName($data['field_name'], 'field_name');
-        //		    }
-        //	    }
+	    $defaultLangTag = MultilingualHelper::getDefaultLanguageTag();
+
+		$data['name'] = $data['name_'  . $defaultLangTag] ?? $data['name']  ?? '';
+
+	    $data['field_name'] = $data['field_name'] ?: $data['name'];
+	    $data['field_name'] = OutputFilter::stringURLSafe($data['field_name']);
 
         // Assign plugin field params to our params variable in the database
         $data['params'] = (isset($data['fieldsparams']) && is_array($data['fieldsparams']))
@@ -159,6 +158,13 @@ class FormfieldModel extends AdminModel
         }
 
         $currentId = !$isNew ? intval($data['id']) : intval($this->getState($this->getName() . '.id'));
+
+	    MultilingualHelper::saveMultilingualData(
+		    currentId:         $currentId,
+		    primaryColumnName: 'id_form_field',
+		    tableName:         '#__alfa_form_fields',
+		    data:              $data,
+	    );
 
         $assignZeroIdIfDataEmpty = true;
         AlfaHelper::setAssocsToDb($currentId, $data['users'], '#__alfa_form_fields_users', 'field_id', 'user_id', $assignZeroIdIfDataEmpty);
@@ -192,19 +198,22 @@ class FormfieldModel extends AdminModel
 
     public function delete(&$pks)
     {
-        $db = $this->getDatabase();
-        $query = $db->getQuery(true);
-
-        // Delete field's columns from user info table.
         $fieldNames = self::getFieldNames($pks);
-        self::dropUserInfoColumns($fieldNames);
+        $retVal = parent::delete($pks);
 
-        $query
-            ->delete('#__alfa_form_fields')
-            ->whereIn($db->qn('id'), $pks);
+        if ($retVal && !empty($pks)) {
+            if (!empty($fieldNames)) {
+                self::dropUserInfoColumns($fieldNames);
+            }
 
-        $db->setQuery($query);
-        $db->execute();
+            MultilingualHelper::deleteMultilingualData(
+                ids:               $pks,
+                primaryColumnName: 'id_form_field',
+                tableName:         '#__alfa_form_fields',
+            );
+        }
+
+        return $retVal;
     }
 
     /**

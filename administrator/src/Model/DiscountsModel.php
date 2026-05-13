@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 use Joomla\CMS\MVC\Model\ListModel;
 
@@ -119,43 +120,64 @@ class DiscountsModel extends ListModel
         $query->select('`modified_by`.name AS `modified_by`');
         $query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
 
-        // Join over category IDs and names.
-        $query->select("GROUP_CONCAT(DISTINCT dcat.category_id SEPARATOR ',') AS discount_category_IDs")
-            ->join('LEFT', '#__alfa_discount_categories as dcat ON a.id = dcat.discount_id');
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'a',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_discounts',
+            langPrimaryColumn: 'id_discount',
+            fields:            ['name'],
+        );
 
-        $query->select("GROUP_CONCAT(DISTINCT cat.name SEPARATOR ', ') AS category_names")
-            ->join('LEFT', '#__alfa_categories as cat ON dcat.category_id = cat.id');
+        MultilingualHelper::addRelatedIdsToQuery(
+            query:         $query,
+            mainAlias:     'a',
+            mainPk:        'id',
+            junctionTable: '#__alfa_discount_categories',
+            junctionFk:    'discount_id',
+            junctionValue: 'category_id',
+            selectAlias:   'category_ids',
+        );
 
-        // Join over manufacturer IDs and names.
-        $query->select("GROUP_CONCAT(DISTINCT dman.manufacturer_id SEPARATOR ',') AS discount_manufacturer_IDs")
-            ->join('LEFT', '#__alfa_discount_manufacturers as dman ON a.id = dman.discount_id');
+        MultilingualHelper::addRelatedIdsToQuery(
+            query:         $query,
+            mainAlias:     'a',
+            mainPk:        'id',
+            junctionTable: '#__alfa_discount_manufacturers',
+            junctionFk:    'discount_id',
+            junctionValue: 'manufacturer_id',
+            selectAlias:   'manufacturer_ids',
+        );
 
-        $query->select("GROUP_CONCAT(DISTINCT man.name SEPARATOR ', ') AS manufacturer_names")
-            ->join('LEFT', '#__alfa_manufacturers as man ON dman.manufacturer_id = man.id');
+        MultilingualHelper::addRelatedIdsToQuery(
+            query:         $query,
+            mainAlias:     'a',
+            mainPk:        'id',
+            junctionTable: '#__alfa_discount_users',
+            junctionFk:    'discount_id',
+            junctionValue: 'user_id',
+            selectAlias:   'user_ids',
+        );
 
-        // Join over users IDs and names.
-        $query->select("GROUP_CONCAT(DISTINCT du.user_id SEPARATOR ',') AS discount_user_IDs")
-            ->join('LEFT', '#__alfa_discount_users as du ON a.id = du.discount_id');
+        MultilingualHelper::addRelatedIdsToQuery(
+            query:         $query,
+            mainAlias:     'a',
+            mainPk:        'id',
+            junctionTable: '#__alfa_discount_places',
+            junctionFk:    'discount_id',
+            junctionValue: 'place_id',
+            selectAlias:   'place_ids',
+        );
 
-        $query->select("GROUP_CONCAT(DISTINCT u.name SEPARATOR ', ') AS user_names")
-            ->join('LEFT', '#__users as u ON du.user_id = u.id');
-
-        // Join over places IDs and names.
-        $query->select("GROUP_CONCAT(DISTINCT dpl.place_id SEPARATOR ',') AS discount_place_IDs")
-            ->join('LEFT', '#__alfa_discount_places as dpl ON a.id = dpl.discount_id');
-
-        $query->select("GROUP_CONCAT(DISTINCT pl.name SEPARATOR ', ') AS place_names")
-            ->join('LEFT', '#__alfa_places as pl ON dpl.place_id = pl.id');
-
-        // Join over usergroups IDs and names.
-        $query->select("GROUP_CONCAT(DISTINCT dug.usergroup_id SEPARATOR ',') AS discount_usergroup_IDs")
-            ->join('LEFT', '#__alfa_discount_usergroups as dug ON a.id = dug.discount_id');
-
-        $query->select("GROUP_CONCAT(DISTINCT ug.name SEPARATOR ', ') AS usergroup_names")
-            ->join('LEFT', '#__alfa_usergroups as ug ON dug.usergroup_id = ug.id');
-
-        // Grouping by item id.
-        $query->group('a.id');
+        MultilingualHelper::addRelatedIdsToQuery(
+            query:         $query,
+            mainAlias:     'a',
+            mainPk:        'id',
+            junctionTable: '#__alfa_discount_usergroups',
+            junctionFk:    'discount_id',
+            junctionValue: 'usergroup_id',
+            selectAlias:   'usergroup_ids',
+        );
 
         // Filter by published state
         $published = $this->getState('filter.state');
@@ -192,11 +214,116 @@ class DiscountsModel extends ListModel
     /**
      * Get an array of data items
      *
+     * Enriches each paginated shipment with full related entity data.
+     *
+     * PATTERN
+     * -------
+     * 1. All DB work is grouped before the loop.
+     *    fetchRelated() is called once per relationship — it fires one query
+     *    per call and returns a [$itemId => [$relatedId => $record]] map.
+     *    The outer key is indexed by the shipment ID (a.id), NOT the junction
+     *    FK — the junction FK was already consumed in getListQuery() to build
+     *    the comma-separated IDs string on each item.
+     *
+     * 2. One foreach loop handles all binding and any per-item logic.
+     *    bindRelated() is called once per relationship inside the loop —
+     *    it assigns the correct records from the map onto each item and always
+     *    initialises the property to [] when no records exist for that item.
+     *
+     * ALTERNATIVE — one-liner per relationship (no extra per-item logic needed):
+     *    Replace all fetchRelated() calls + the foreach with individual
+     *    loadRelated() calls — see the commented block below the foreach.
+     *
      * @return mixed Array of data items on success, false on failure.
      */
     public function getItems()
     {
         $items = parent::getItems();
+
+        if (empty($items)) {
+            return $items;
+        }
+
+        $db = $this->getDatabase();
+
+        // ── Fetch all relationships — all DB queries grouped here ─────────────
+        // fetchRelated() is pure data: no mutation, one query per relationship.
+        // fields:     structural columns — same in every language (e.g. alias).
+        // langFields: translatable columns — resolved via lang tables when
+        //             langTableBase is set, or directly from the table when not.
+
+        $catMap = MultilingualHelper::fetchRelated(
+            db:                $db,
+            items:             $items,
+            idsProperty:       'category_ids',
+            table:             '#__alfa_categories',
+            langTableBase:     '#__alfa_categories',
+            langPrimaryColumn: 'id_category',
+            langFields:        ['name'],
+        );
+
+        $manMap = MultilingualHelper::fetchRelated(
+            db:                $db,
+            items:             $items,
+            idsProperty:       'manufacturer_ids',
+            table:             '#__alfa_manufacturers',
+            langTableBase:     '#__alfa_manufacturers',
+            langPrimaryColumn: 'id_manufacturer',
+            langFields:        ['name'],
+        );
+
+        // #__users is Joomla core — no lang tables exist.
+        // langTableBase omitted: name is read directly from #__users.
+        $userMap = MultilingualHelper::fetchRelated(
+            db:          $db,
+            items:       $items,
+            idsProperty: 'user_ids',
+            table:       '#__users',
+            langFields:  ['name'],
+        // no langTableBase — name read directly from #__users
+        );
+
+        $placeMap = MultilingualHelper::fetchRelated(
+            db:          $db,
+            items:       $items,
+            idsProperty: 'place_ids',
+            table:       '#__alfa_places',
+            langFields:  ['name'],
+        // no langTableBase — name read directly from #__alfa_places
+        );
+
+        $ugMap = MultilingualHelper::fetchRelated(
+            db:          $db,
+            items:       $items,
+            idsProperty: 'usergroup_ids',
+            table:       '#__alfa_usergroups',
+            langFields:  ['name'],
+        // no langTableBase — name read directly from #__alfa_usergroups
+        );
+
+        // ── One loop — bind all maps + any per-item logic ─────────────────────
+        // bindRelated() assigns [$relatedId => $record] onto each item.
+        // Always sets the property to [] when the item has no related records
+        // so templates never receive undefined property warnings.
+        foreach ($items as $item) {
+            MultilingualHelper::bindRelated($item, 'categories',    $catMap);
+            MultilingualHelper::bindRelated($item, 'manufacturers', $manMap);
+            MultilingualHelper::bindRelated($item, 'users',         $userMap);
+            MultilingualHelper::bindRelated($item, 'places',        $placeMap);
+            MultilingualHelper::bindRelated($item, 'usergroups',    $ugMap);
+
+            // Add any other per-item logic here (links, media, prices, etc.)
+        }
+
+        // ── ALTERNATIVE: one-liner per relationship via loadRelated() ──────────
+        // Use this instead of the fetchRelated() calls + foreach above when
+        // there is no extra per-item logic needed in the loop.
+        //
+        // MultilingualHelper::loadRelated($db, $items, 'category_ids',    'categories',    '#__alfa_categories',    fields: ['alias'], langTableBase: '#__alfa_categories',    langPrimaryColumn: 'id_category',    langFields: ['name', 'description']);
+        // MultilingualHelper::loadRelated($db, $items, 'manufacturer_ids','manufacturers', '#__alfa_manufacturers',                   langTableBase: '#__alfa_manufacturers', langPrimaryColumn: 'id_manufacturer', langFields: ['name']);
+        // MultilingualHelper::loadRelated($db, $items, 'user_ids',        'users',         '#__users',                                                                                                                langFields: ['name']);
+        // MultilingualHelper::loadRelated($db, $items, 'place_ids',       'places',        '#__alfa_places',                          langTableBase: '#__alfa_places',        langPrimaryColumn: 'id_place',        langFields: ['name']);
+        // MultilingualHelper::loadRelated($db, $items, 'usergroup_ids',   'usergroups',    '#__alfa_usergroups',                      langTableBase: '#__alfa_usergroups',    langPrimaryColumn: 'id_usergroup',    langFields: ['name']);
 
         return $items;
     }

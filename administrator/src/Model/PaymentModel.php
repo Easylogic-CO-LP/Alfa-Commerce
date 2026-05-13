@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\MVC\Model\AdminModel;
 use Joomla\CMS\Table\Table;
@@ -115,9 +116,7 @@ class PaymentModel extends AdminModel
 
     public function getItem($pk = null)
     {
-        $item = $this->item ?? ($this->item = parent::getItem($pk));
-
-        if ($item) {
+        if ($item = parent::getItem($pk)) {
             $item->categories = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_categories', 'payment_id', 'category_id');
             $item->manufacturers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_manufacturers', 'payment_id', 'manufacturer_id');
             $item->places = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_payment_places', 'payment_id', 'place_id');
@@ -140,10 +139,11 @@ class PaymentModel extends AdminModel
      */
     public function save($data)
     {
-        $app = Factory::getApplication();
-        $db = $this->getDatabase();
+	    $app = Factory::getApplication();
+	    $input = $app->getInput();
 
-        $input = $app->getInput();
+	    $rawData = $input->post->get('jform', [], 'array');
+	    $data    = array_merge($data, $rawData);
 
         $data['params'] = json_encode($data['paymentsparams']);
 
@@ -158,6 +158,17 @@ class PaymentModel extends AdminModel
             $currentId = intval($this->getState($this->getName() . '.id'));//get the id from setted joomla state
         }
 
+	    // MULTILINGUAL: Save per-language translations to language tables.
+	    // Each language table stores name, alias, desc etc. for that language.
+	    // Alias is treated as a slug — auto-generated from name when blank
+	    // and sanitised via OutputFilter inside MultilingualHelper.
+	    MultilingualHelper::saveMultilingualData(
+		    currentId:         $currentId,
+		    primaryColumnName: 'id_payment',
+		    tableName:         '#__alfa_payments',
+		    data:              $data,
+	    );
+
         //Category/manufacturer etc associations
         $assignZeroIdIfDataEmpty = true;
         AlfaHelper::setAssocsToDb($currentId, $data['categories'] ?? [], '#__alfa_payment_categories', 'payment_id', 'category_id', $assignZeroIdIfDataEmpty);
@@ -169,6 +180,30 @@ class PaymentModel extends AdminModel
 
         return true;
         // return parent::save($data);
+    }
+
+    /**
+     * Delete one or more item records.
+     *
+     * Removes price-index rows as an explicit safety net
+     * (FK ON DELETE CASCADE covers hard deletes, but not trash / soft-delete).
+     *
+     * @param  array $pks
+     *
+     * @return bool
+     */
+    public function delete(&$pks) {
+        $retVal = parent::delete($pks);
+
+        if ($retVal && !empty($pks)) {
+            MultilingualHelper::deleteMultilingualData(
+                ids:               $pks,
+                primaryColumnName: 'id_payment',
+                tableName:         '#__alfa_payments',
+            );
+        }
+
+        return $retVal;
     }
 
     /**

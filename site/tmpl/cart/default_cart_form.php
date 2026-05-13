@@ -15,21 +15,6 @@ defined('_JEXEC') or die;
             <h4><?php echo \Joomla\CMS\Language\Text::_('COM_ALFA_FORM_CUSTOMER_DETAILS'); ?></h4>
 
 			<?php
-			//                echo "<pre>";
-			//
-			//                foreach($this->form->getFieldsets() as $fieldset){
-			//                    $fields = $this->form->getFieldset($fieldset->name);
-			//                    print_r($fields);
-			////                    exit;
-			//                    if(count($fields)){
-			//                        foreach($fields as $field) {
-			//                            print_r($field);
-			//                        }
-			//                    }
-			//                }
-			//                echo "</pre>";
-			//                exit;
-
 			// Iterate through field groups.
 			foreach ($this->form->getFieldsets() as $fieldset)
 			{
@@ -38,10 +23,12 @@ defined('_JEXEC') or die;
 
 				// Render all fields of field group.
 				$fields = $this->form->getFieldset($fieldset->name);
-				if (count($fields))
-					foreach ($fields as $field)
-						echo $field->renderField();
 
+				if (count($fields)) {
+					foreach ($fields as $field) {
+						echo $field->renderField();
+                    }
+                }
 			}
 			?>
 			<?php echo $this->form->renderFieldset('captcha'); ?>
@@ -58,7 +45,6 @@ defined('_JEXEC') or die;
         </div>
 
     </div>
-
 
     <button type="submit" class="btn btn-primary w-100" data-main_button="1"><?php echo \Joomla\CMS\Language\Text::_('COM_ALFA_BUTTON_PLACE_ORDER'); ?></button>
 

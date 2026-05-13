@@ -83,6 +83,8 @@ if ($saveOrder && !empty($this->items)) {
                     </tr>
                     </tfoot>
                     <tbody <?php if (!empty($saveOrder)) :?> class="js-draggable" data-url="<?php echo $saveOrderingUrl; ?>" data-direction="<?php echo strtolower($listDirn); ?>" <?php endif; ?>>
+                    <?php if (!empty($this->items) && is_array($this->items)) : ?>
+
                     <?php foreach ($this->items as $i => $item) :
                         $ordering   = ($listOrder == 'a.ordering');
                         $canCreate  = $user->authorise('core.create', 'com_alfa');
@@ -95,7 +97,6 @@ if ($saveOrder && !empty($this->items)) {
                             <td class="text-center">
                                 <?php echo HTMLHelper::_('grid.id', $i, $item->id); ?>
                             </td>
-
 
                             <?php if (isset($this->items[0]->ordering)) : ?>
                                 <td class="text-center d-none d-md-table-cell">
@@ -136,6 +137,7 @@ if ($saveOrder && !empty($this->items)) {
 
                         </tr>
                     <?php endforeach; ?>
+                    <?php endif; ?>
                     </tbody>
                 </table>
 

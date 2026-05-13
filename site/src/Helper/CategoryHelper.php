@@ -14,6 +14,7 @@
 
 namespace Alfa\Component\Alfa\Site\Helper;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Exception;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Cache\Controller\CallbackController;
@@ -241,13 +242,24 @@ class CategoryHelper
     public static function loadCategoryFromDatabase(int $categoryId)
     {
         $db = Factory::getContainer()->get(DatabaseInterface::class);
+        $query = $db->getQuery(true);
 
-        $query = $db->getQuery(true)
-            ->select($db->quoteName(['id', 'name', 'alias', 'parent_id']))
-            ->from($db->quoteName('#__alfa_categories'))
-            ->where($db->quoteName('id') . ' = :id')
-            ->where($db->quoteName('state') . ' = 1')
+        $query->select($db->quoteName(['a.id', 'a.parent_id']))
+            ->from($db->quoteName('#__alfa_categories', 'a'))
+            ->where($db->quoteName('a.id') . ' = :id')
+            ->where($db->quoteName('a.state') . ' = 1')
             ->bind(':id', $categoryId, ParameterType::INTEGER);
+
+        $langAlias = MultilingualHelper::addMultilingualJoinToQuery(
+            query:              $query,
+            mainAlias:          'a',
+            mainPrimaryColumn:  'id',
+            langTableBase:      '#__alfa_categories',
+            langPrimaryColumn:  'id_category'
+        );
+
+        $query->select($db->quoteName($langAlias . '.alias', 'alias'));
+        $query->select($db->quoteName($langAlias . '.name', 'name'));
 
         return $db->setQuery($query)->loadAssoc();
     }

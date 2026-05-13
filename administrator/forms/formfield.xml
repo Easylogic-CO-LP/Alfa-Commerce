@@ -1,10 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
 
-    <field name="name" size="400" filter="safehtml" type="text" required="true" translateLabel="true"
-           label="COM_ALFA_FORM_LBL_PAYMENT_NAME" description="COM_ALFA_FORM_DESC_PAYMENT_NAME"
-           hint="COM_ALFA_FORM_LBL_PAYMENT_NAME"/>
-
+    <field
+            name="name"
+            multilingual_table="#__alfa_form_fields"
+            multilingual_pk="id_form_field"
+            size="400"
+            filter="safehtml"
+            class="form-control"
+            type="MultilingualText"
+            required="true"
+            label="COM_ALFA_FORM_LBL_PAYMENT_NAME"
+            description="COM_ALFA_FORM_DESC_PAYMENT_NAME"
+            hint="COM_ALFA_FORM_LBL_PAYMENT_NAME"/>
 
     <fieldset name="general">
 

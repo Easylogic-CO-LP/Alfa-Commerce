@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Site\Helper;
 
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 
 defined('_JEXEC') or die;
 
@@ -51,30 +52,41 @@ class AlfaHelper
         $usergroups[] = 0; //to support all usergroups for payment method
         // $users[] = 0; //to support all users for payment method
 
-        // GET ALL PAYMENT METHODS
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $query = $db->getQuery(true);
+	    $db = Factory::getContainer()->get('DatabaseDriver');
+	    $query = $db->getQuery(true);
 
-        $query
-            ->select('m.*')  // Select all payment method fields
-            ->select('GROUP_CONCAT(DISTINCT mc.category_id) AS categories')  // Get all unique categories for the payment
-            ->select('GROUP_CONCAT(DISTINCT mm.manufacturer_id) AS manufacturers')  // Get all unique manufacturers for the payment
-            ->select('GROUP_CONCAT(DISTINCT mu.user_id) AS users')  // Get all unique manufacturers for the payment
-            ->select('GROUP_CONCAT(DISTINCT mug.usergroup_id) AS groups')  // Get all unique manufacturers for the payment
-            ->from('#__alfa_' . $baseTable . 's AS m')  // Main table
+	    $tableName = '#__alfa_' . $baseTable . 's';
+	    $primaryColumn = 'id_' . $baseTable;
 
-            // Join related tables
-            ->join('LEFT', '#__alfa_' . $baseTable . '_categories AS mc ON mc.' . $baseTable . '_id = m.id')
-            ->join('LEFT', '#__alfa_' . $baseTable . '_manufacturers AS mm ON mm.' . $baseTable . '_id = m.id')
-            ->join('LEFT', '#__alfa_' . $baseTable . '_users AS mu ON mu.' . $baseTable . '_id = m.id')
-            ->join('LEFT', '#__alfa_' . $baseTable . '_usergroups AS mug ON mug.' . $baseTable . '_id = m.id')
-            ->where('m.state = 1')
+	    $query->from($tableName . ' AS m');
 
-            // Group by payment method ID to combine categories and manufacturers
-            ->group('m.id');
+	    $langAlias = MultilingualHelper::addMultilingualJoinToQuery(
+		    query:            $query,
+		    mainAlias:          'm',
+		    mainPrimaryColumn:  'id',
+		    langTableBase:      $tableName,
+		    langPrimaryColumn:  $primaryColumn,
+		    fields:             ['name']
+	    );
 
-        $db->setQuery($query);
-        $filteredMethods = $db->loadObjectList('id');
+	    $query
+		    ->select('m.*')
+		    ->select('IFNULL(NULLIF(' . $db->quoteName($langAlias . '.name') . ", ''), " . $db->quoteName('m.type') . ') AS ' . $db->quoteName('name'))
+		    ->select('GROUP_CONCAT(DISTINCT mc.category_id) AS categories')
+		    ->select('GROUP_CONCAT(DISTINCT mm.manufacturer_id) AS manufacturers')
+		    ->select('GROUP_CONCAT(DISTINCT mu.user_id) AS users')
+		    ->select('GROUP_CONCAT(DISTINCT mug.usergroup_id) AS groups')
+
+		    ->join('LEFT', '#__alfa_' . $baseTable . '_categories AS mc ON mc.' . $baseTable . '_id = m.id')
+		    ->join('LEFT', '#__alfa_' . $baseTable . '_manufacturers AS mm ON mm.' . $baseTable . '_id = m.id')
+		    ->join('LEFT', '#__alfa_' . $baseTable . '_users AS mu ON mu.' . $baseTable . '_id = m.id')
+		    ->join('LEFT', '#__alfa_' . $baseTable . '_usergroups AS mug ON mug.' . $baseTable . '_id = m.id')
+		    ->where('m.state = 1')
+
+		    ->group('m.id');
+
+	    $db->setQuery($query);
+	    $filteredMethods = $db->loadObjectList('id');
 
         // FILTER PAYMENT METHODS
         // Compare ids given with payment ids.

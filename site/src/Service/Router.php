@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Site\Service;
 // No direct access
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Joomla\CMS\Application\SiteApplication;
 use Joomla\CMS\Component\Router\RouterView;
@@ -260,20 +261,32 @@ class Router extends RouterView
     public function getItemsId($segment, $query)
     {
         $dbquery = $this->db->getQuery(true)
-            ->select($this->db->quoteName('id'))
-            ->from($this->db->quoteName('#__alfa_categories'))
-            ->where($this->db->quoteName('alias') . ' = ' . $this->db->quote($segment));
+            ->select($this->db->quoteName('a.id'))
+            ->from($this->db->quoteName('#__alfa_categories', 'a'));
 
-        // Verify this segment is actually a child of the parent to prevent infinite nesting
+        // 1. Let your helper perform the JOIN
+        $langAlias = MultilingualHelper::addMultilingualJoinToQuery(
+            query:              $dbquery,
+            mainAlias:          'a',
+            mainPrimaryColumn:  'id',
+            langTableBase:      '#__alfa_categories',
+            langPrimaryColumn:  'id_category'
+        );
+
+        // 2. MANUALLY select the translated alias using the helper's return value
+        $dbquery->select($this->db->quoteName($langAlias . '.alias', 'alias'));
+
+        // 3. Filter using HAVING because 'alias' is dynamically generated
+        $dbquery->having($this->db->quoteName('alias') . ' = ' . $this->db->quote($segment));
+
         if (!empty($query['category_id'])) {
-            $dbquery->where($this->db->quoteName('parent_id') . ' = ' . (int) $query['category_id']);
+            $dbquery->where($this->db->quoteName('a.parent_id') . ' = ' . (int) $query['category_id']);
         }
 
         $this->db->setQuery($dbquery);
-        $result = $this->db->loadResult();
+        $result = $this->db->loadObject();
 
-        // Return the result (will be null if no matching child category found)
-        return $result ? (int) $result : null;
+        return $result ? (int) $result->id : null;
     }
 
     /**
@@ -290,27 +303,39 @@ class Router extends RouterView
      */
     public function getItemSegment($id, $query): array
     {
-        // If ID doesn't contain alias yet, fetch it
         if (!strpos($id, ':')) {
-            // Check cache first
             if (isset(self::$itemAliasCache[$id])) {
                 $alias = self::$itemAliasCache[$id];
             } else {
                 $dbquery = $this->db->getQuery(true)
-                    ->select($this->db->quoteName('alias'))
-                    ->from($this->db->quoteName('#__alfa_items'))
-                    ->where($this->db->quoteName('id') . ' = ' . (int) $id);
-                $this->db->setQuery($dbquery);
-                $alias = $this->db->loadResult();
+                    ->select($this->db->quoteName('a.id'))
+                    ->from($this->db->quoteName('#__alfa_items', 'a'))
+                    ->where($this->db->quoteName('a.id') . ' = ' . (int) $id);
 
-                // Cache it
+                $langAlias = MultilingualHelper::addMultilingualJoinToQuery(
+                    query:              $dbquery,
+                    mainAlias:          'a',
+                    mainPrimaryColumn:  'id',
+                    langTableBase:      '#__alfa_items',
+                    langPrimaryColumn:  'id_item'
+                );
+
+                // Select the translated alias explicitly
+                $dbquery->select($this->db->quoteName($langAlias . '.alias', 'alias'));
+
+                $this->db->setQuery($dbquery);
+
+                // MUST use loadObject() here to grab the 'alias' property we just selected
+                $item = $this->db->loadObject();
+                $alias = $item ? $item->alias : '';
+
                 self::$itemAliasCache[$id] = $alias;
             }
 
-            $id .= ':' . $alias;
+            // Fallback: if translation is completely missing, append the ID so the URL doesn't crash
+            $id .= ':' . ($alias ?: $id);
         }
 
-        // Return only the alias for clean SEF URLs
         [$void, $segment] = explode(':', $id, 2);
 
         return [$void => $segment];
@@ -331,22 +356,32 @@ class Router extends RouterView
     public function getItemId($segment, $query)
     {
         $dbquery = $this->db->getQuery(true)
-            ->select('i.id')
-            ->from($this->db->quoteName('#__alfa_items', 'i'))
-            ->where('i.alias = ' . $this->db->quote($segment));
+            ->select($this->db->quoteName('i.id'))
+            ->from($this->db->quoteName('#__alfa_items', 'i'));
+
+        $langAlias = MultilingualHelper::addMultilingualJoinToQuery(
+            query:              $dbquery,
+            mainAlias:          'i',
+            mainPrimaryColumn:  'id',
+            langTableBase:      '#__alfa_items',
+            langPrimaryColumn:  'id_item'
+        );
+
+        // Select and filter the translated alias
+        $dbquery->select($this->db->quoteName($langAlias . '.alias', 'alias'));
+        $dbquery->having($this->db->quoteName('alias') . ' = ' . $this->db->quote($segment));
 
         if (!empty($query['category_id'])) {
-            // explicitly set the id cause it may not always exist e.g. on sef urls
             $this->app->getInput()->set('category_id', $query['category_id']);
 
             $dbquery->join('INNER', $this->db->quoteName('#__alfa_items_categories', 'ic') . ' ON ic.item_id = i.id')
-                ->where('ic.category_id = ' . (int) $query['category_id']);
+                ->where($this->db->quoteName('ic.category_id') . ' = ' . (int) $query['category_id']);
         }
 
         $this->db->setQuery($dbquery);
-        $result = $this->db->loadResult();
+        $result = $this->db->loadObject();
 
-        return $result ? (int) $result : null;
+        return $result ? (int) $result->id : null;
     }
 
     /**

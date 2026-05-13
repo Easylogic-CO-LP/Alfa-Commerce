@@ -17,10 +17,13 @@
             name="name"
             maxlength="400"
             filter="safehtml"
-            type="text"
-            required="true"
+            type="MultilingualText"
+            multilingual_table="#__alfa_discounts"
+            multilingual_pk="id_discount"
+            required="false"
             translateLabel="true"
             translateDescription="true"
+            class="form-control"
             label="COM_ALFA_FORM_LBL_DISCOUNT_NAME"
             description="COM_ALFA_FORM_DESC_DISCOUNT_NAME"
             hint="COM_ALFA_FORM_LBL_DISCOUNT_NAME"
@@ -119,18 +122,15 @@
     -->
     <field
             name="manufacturers"
-            type="sql"
-            input_type="list"
+            type="manufacturers"
             required="false"
             multiple="true"
+            default="0"
             label="COM_ALFA_FORM_LBL_MANUFACTURERS"
             description="COM_ALFA_FORM_DESC_MANUFACTURERS"
             layout="joomla.form.field.list-fancy-select"
-            query="SELECT `id`, `name` AS val FROM `#__alfa_manufacturers`"
-            key_field="id"
-            value_field="val"
     >
-      <option value="0">All manufacturers</option>
+      <option value="0">COM_ALFA_FORM_HEADER_ALL_MANUFACTURERS</option>
     </field>
 
     <!--

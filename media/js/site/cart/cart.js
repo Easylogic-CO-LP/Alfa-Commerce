@@ -338,7 +338,12 @@ document.addEventListener("DOMContentLoaded", () => {
         // console.log(params);
 
         const basePath = Joomla.getOptions('system.paths').base || '';
-        let url = basePath + '/index.php?option=com_alfa&task=cart.updateShipment&format=json';
+        let url = cartOuter.getAttribute('data-shipment-url');
+
+        if (!url) {
+            console.error('Shipment URL is missing from the cart.');
+            return;
+        }
 
         const options = {
             method: 'POST',
@@ -428,7 +433,12 @@ document.addEventListener("DOMContentLoaded", () => {
         // console.log(params);
 
         const basePath = Joomla.getOptions('system.paths').base || '';
-        let url = basePath + '/index.php?option=com_alfa&task=cart.updatePayment&format=json';
+        let url = cartOuter.getAttribute('data-payment-url');
+
+         if (!url) {
+             console.error('Payment URL is missing from the cart.');
+             return;
+         }
 
         const options = {
             method: 'POST',

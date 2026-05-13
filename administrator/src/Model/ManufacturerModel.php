@@ -12,6 +12,8 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use JForm;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\OutputFilter;
@@ -90,15 +92,75 @@ class ManufacturerModel extends AdminModel
      */
     public function save($data)
     {
-        $pk = $data['id'] ?? (int) $this->getState($this->getName() . '.id');
+        $app = Factory::getApplication();
+        $input = $app->getInput();
 
-        $data['alias'] = $data['alias'] ?: $data['name'];
-        $data['alias'] = $this->sanitizeAlias($data['alias']);
-        $data['alias'] = $this->getUniqueAlias($data['alias'], $pk);
+	    $rawData = $input->post->get('jform', [], 'array');
+	    $data    = array_merge($data, $rawData);
+
+	    $pk = $data['id'] ?? (int) $this->getState($this->getName() . '.id');
+        $isNew = $pk <= 0;
 
         $data['meta_data'] = json_encode(['robots' => $data['robots'] ?? '']);
 
-        return parent::save($data);
+        $newDropped = $input->files->get('jform')['uploads'] ?? [];
+
+        if (!parent::save($data)) {
+            return false;
+        }
+
+        $currentId = $isNew ? (int) $this->getState($this->getName() . '.id') : $pk;
+
+	    // MULTILINGUAL: Save per-language translations to language tables.
+	    // Each language table stores name, alias, desc etc. for that language.
+	    // Alias is treated as a slug — auto-generated from name when blank
+	    // and sanitised via OutputFilter inside MultilingualHelper.
+	    MultilingualHelper::saveMultilingualData(
+		    currentId:         $currentId,
+		    primaryColumnName: 'id_manufacturer',
+		    tableName:         '#__alfa_manufacturers',
+		    data:              $data,
+		    aliasFields:       ['alias'],
+	    );
+
+	    if (!empty($data['media'])) {
+		    // Use the default-language alias as the custom file name.
+		    $defaultLangTag = MultilingualHelper::getDefaultLanguageTag();
+
+		    MediaHelper::saveMedia(
+			    mediaData:      $data['media'],
+			    droppedMedia:   $newDropped,
+			    itemId:         $currentId,
+			    mediaOrigin:    $this->name,
+			    customFileName: $data['alias_' . $defaultLangTag] ?? '',
+		    );
+	    }
+
+        return true;
+    }
+
+    /**
+     * Delete one or more item records.
+     *
+     * Removes price-index rows as an explicit safety net
+     * (FK ON DELETE CASCADE covers hard deletes, but not trash / soft-delete).
+     *
+     * @param  array $pks
+     *
+     * @return bool
+     */
+    public function delete(&$pks) {
+        $retVal = parent::delete($pks);
+
+        if ($retVal && !empty($pks)) {
+            MultilingualHelper::deleteMultilingualData(
+                ids:               $pks,
+                primaryColumnName: 'id_manufacturer',
+                tableName:         '#__alfa_manufacturers',
+            );
+        }
+
+        return $retVal;
     }
 
     /**
@@ -140,9 +202,19 @@ class ManufacturerModel extends AdminModel
                 $item->params = json_encode($item->params);
             }
 
+            $item->medias = MediaHelper::getMediaData(
+                origin: $this->name,
+                itemIDs: $item->id,
+            );
+
             $meta_data = json_decode($item->meta_data ?? '{}');
             $item->robots = $meta_data->robots ?? '';
         }
+
+//        echo '<pre>';
+//        print_r($item);
+//        echo '<pre>';
+//        exit();
 
         return $item;
     }
@@ -197,7 +269,7 @@ class ManufacturerModel extends AdminModel
      * @param string $alias The desired alias.
      * @param int $id The item id (0 for new items).
      *
-     * @return string The unique alias.
+     * @return string The unique alias.s
      *
      * @since   1.0.1
      */

@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 use Joomla\CMS\MVC\Model\ListModel;
 
@@ -100,7 +101,7 @@ class ManufacturersModel extends ListModel
     protected function getListQuery()
     {
         // Create a new query object.
-        $db = $this->getDbo();
+        $db    = $this->getDatabase();
         $query = $db->getQuery(true);
 
         // Select the required fields from the table.
@@ -110,6 +111,7 @@ class ManufacturersModel extends ListModel
                 'DISTINCT a.*',
             ),
         );
+
         $query->from('`#__alfa_manufacturers` AS a');
 
         // Join over the users for the checked out user
@@ -124,7 +126,15 @@ class ManufacturersModel extends ListModel
         $query->select('`modified_by`.name AS `modified_by`');
         $query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
 
-        // Filter by published state
+	    MultilingualHelper::addMultilingualJoinToQuery(
+		    query:             $query,
+		    mainAlias:         'a',
+		    mainPrimaryColumn: 'id',
+		    langTableBase:     '#__alfa_manufacturers',
+		    langPrimaryColumn: 'id_manufacturer',
+		    fields:            ['name', 'alias'],
+	    );
+
         $published = $this->getState('filter.state');
 
         if (is_numeric($published)) {

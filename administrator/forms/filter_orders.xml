@@ -6,16 +6,15 @@
                class="js-stools-search-string" />
 
         <field
-          name="order_status" type="sql"
-          input_type="list"
-          required="true"
-          multiple="false"
-          label="COM_ALFA_FORM_LBL_ORDER_STATUSES"
-          description="COM_ALFA_FORM_DESC_ORDER_STATUSES"
-          layout="joomla.form.field.list-fancy-select"
-          query="SELECT `id`, `name` AS val FROM `#__alfa_orders_statuses`" key_field="id" value_field="val"
-          header="COM_ALFA_FILTER_SELECT_STATUS"
-          onchange="this.form.submit();"
+                name="order_status"
+                type="orderStatuses"
+                required="true"
+                multiple="false"
+                label="COM_ALFA_FORM_LBL_ORDER_STATUSES"
+                description="COM_ALFA_FORM_DESC_ORDER_STATUSES"
+                layout="joomla.form.field.list-fancy-select"
+                header="COM_ALFA_FILTER_SELECT_STATUS"
+                onchange="this.form.submit();"
         />
 
         <field

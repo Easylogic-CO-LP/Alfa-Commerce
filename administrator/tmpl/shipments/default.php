@@ -93,9 +93,6 @@ if ($saveOrder && !empty($this->items)) {
                             <?php echo Text::_('COM_ALFA_PAYMENTS_USERS'); ?>
                         </th>
 
-
-
-						
 					<th scope="col" class="w-3 d-none d-lg-table-cell" >
 
 						<?php echo HTMLHelper::_('searchtools.sort',  'JGRID_HEADING_ID', 'a.id', $listDirn, $listOrder); ?>					</th>
@@ -109,6 +106,8 @@ if ($saveOrder && !empty($this->items)) {
 					</tr>
 					</tfoot>
 					<tbody <?php if (!empty($saveOrder)) :?> class="js-draggable" data-url="<?php echo $saveOrderingUrl; ?>" data-direction="<?php echo strtolower($listDirn); ?>" <?php endif; ?>>
+					<?php if (!empty($this->items) && is_array($this->items)) : ?>
+
 					<?php foreach ($this->items as $i => $item) :
 						$ordering   = ($listOrder == 'a.ordering');
 						$canCreate  = $user->authorise('core.create', 'com_alfa');
@@ -164,46 +163,42 @@ if ($saveOrder && !empty($this->items)) {
                             </td>
 
                             <td>
-                                <?php
-                                echo $this->escape($item->category_names);
-                                ?>
-                            </td>
-
-                            <td>
-                                <?php
-                                echo $this->escape($item->manufacturer_names);
-                                ?>
-                            </td>
-
-                            <td>
-                                <?php
-                                echo $this->escape($item->user_names);
-                                ?>
-                            </td>
-
-                            <td>
-                                <?php
-                                echo $this->escape($item->place_names);
-                                ?>
-                            </td>
-
-                            <td>
-                                <?php
-                                echo $this->escape($item->user_names);
-                                ?>
-                            </td>
-
-
-
-							
-							<td class="d-none d-lg-table-cell">
-							<?php echo $item->id; ?>
-
+							    <?php echo $this->escape(
+							        implode(', ', array_column($item->categories, 'name'))
+							    ); ?>
 							</td>
 
+							<td>
+							    <?php echo $this->escape(
+							        implode(', ', array_column($item->manufacturers, 'name'))
+							    ); ?>
+							</td>
+
+							<td>
+							    <?php echo $this->escape(
+							        implode(', ', array_column($item->usergroups, 'name'))
+							    ); ?>
+							</td>
+
+							<td>
+							    <?php echo $this->escape(
+							        implode(', ', array_column($item->places, 'name'))
+							    ); ?>
+							</td>
+
+							<td>
+							    <?php echo $this->escape(
+							        implode(', ', array_column($item->users, 'name'))
+							    ); ?>
+							</td>
+							
+							<td class="d-none d-lg-table-cell">
+							    <?php echo $item->id; ?>
+							</td>
 
 						</tr>
 					<?php endforeach; ?>
+					<?php endif; ?>
 					</tbody>
 				</table>
 

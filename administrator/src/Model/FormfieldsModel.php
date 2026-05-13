@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
@@ -93,7 +94,7 @@ class FormFieldsModel extends ListModel
     /**
      * Build an SQL query to load the list data.
      *
-     * @return DatabaseQuery
+     * @return \Joomla\Database\QueryInterface
      *
      * @since   1.0.1
      */
@@ -113,25 +114,14 @@ class FormFieldsModel extends ListModel
         $query->from($db->qn('#__alfa_form_fields', 'a'))
             ->order('ordering ASC');
 
-        // Select the required fields from the table.
-        //        $query->select(
-        //            $this->getState(
-        //                'list.select', 'DISTINCT a.*'
-        //            )
-        //        );
-        //        $query->from('`#__alfa_form_fields` AS a');
-        //
-        //        // Join over the users for the checked out user
-        //        $query->select("uc.name AS uEditor");
-        //        $query->join("LEFT", "#__users AS uc ON uc.id=a.checked_out");
-        //
-        //        // Join over the user field 'created_by'
-        //        $query->select('`created_by`.name AS `created_by`');
-        //        $query->join('LEFT', '#__users AS `created_by` ON `created_by`.id = a.`created_by`');
-        //
-        //        // Join over the user field 'modified_by'
-        //        $query->select('`modified_by`.name AS `modified_by`');
-        //        $query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
+	    MultilingualHelper::addMultilingualJoinToQuery(
+		    query:             $query,
+		    mainAlias:         'a',
+		    mainPrimaryColumn: 'id',
+		    langTableBase:     '#__alfa_form_fields',
+		    langPrimaryColumn: 'id_form_field',
+		    fields:            ['name'],
+	    );
 
         // Filter by published state
         $published = $this->getState('filter.state');

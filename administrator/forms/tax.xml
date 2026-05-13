@@ -15,10 +15,13 @@
 
         <field
                 name="name"
+                multilingual_table="#__alfa_taxes"
+                multilingual_pk="id_tax"
                 maxlength="400"
                 filter="safehtml"
-                type="text"
+                type="MultilingualText"
                 required="true"
+                class="form-control"
                 translateLabel="true"
                 translateDescription="true"
                 label="COM_ALFA_FORM_LBL_TAX_NAME"
@@ -118,26 +121,39 @@
             <option value="0">COM_ALFA_FORM_CATEGORY_ALL</option>
         </field>
 
+        <field
+                name="manufacturers"
+                type="manufacturers"
+                required="false"
+                multiple="true"
+                default="0"
+                label="COM_ALFA_FORM_LBL_MANUFACTURERS"
+                description="COM_ALFA_FORM_DESC_MANUFACTURERS"
+                layout="joomla.form.field.list-fancy-select"
+        >
+            <option value="0">COM_ALFA_FORM_HEADER_ALL_MANUFACTURERS</option>
+        </field>
+
         <!--
             manufacturers: 0 = applies to ALL manufacturers.
             <option value="0"> instead of header="...".
             Removed default="0" — redundant when option value="0" is first.
         -->
-        <field
-                name="manufacturers"
-                type="sql"
-                input_type="list"
-                required="false"
-                multiple="true"
-                label="COM_ALFA_FORM_LBL_MANUFACTURERS"
-                description="COM_ALFA_FORM_DESC_MANUFACTURERS"
-                layout="joomla.form.field.list-fancy-select"
-                query="SELECT `id`, `name` AS val FROM `#__alfa_manufacturers`"
-                key_field="id"
-                value_field="val"
-        >
-            <option value="0">All manufacturers</option>
-        </field>
+<!--        <field-->
+<!--                name="manufacturers"-->
+<!--                type="sql"-->
+<!--                input_type="list"-->
+<!--                required="false"-->
+<!--                multiple="true"-->
+<!--                label="COM_ALFA_FORM_LBL_MANUFACTURERS"-->
+<!--                description="COM_ALFA_FORM_DESC_MANUFACTURERS"-->
+<!--                layout="joomla.form.field.list-fancy-select"-->
+<!--                query="SELECT `id`, `name` AS val FROM `#__alfa_manufacturers`"-->
+<!--                key_field="id"-->
+<!--                value_field="val"-->
+<!--        >-->
+<!--            <option value="0">All manufacturers</option>-->
+<!--        </field>-->
 
         <!--
             places: 0 = applies to ALL places/countries.
@@ -148,7 +164,7 @@
                 type="sql"
                 required="false"
                 multiple="true"
-                label="COM_ALFA_FORM_TAX_PLACE_LBL"
+                label="COM_ALFA_TAXES_PLACES"
                 layout="joomla.form.field.list-fancy-select"
                 query="SELECT `id`, `name` AS val FROM `#__alfa_places`"
                 key_field="id"
@@ -171,7 +187,7 @@
                 input_type="list"
                 required="false"
                 multiple="true"
-                label="COM_ALFA_FORM_TAX_ALLOWEDUSERGROUPS_LBL"
+                label="COM_ALFA_TAXES_USERGROUPS"
                 description="COM_ALFA_FORM_TAX_ALLOWEDUSERGROUPS_DESC"
                 layout="joomla.form.field.list-fancy-select"
                 query="SELECT `id`, `title` AS val FROM `#__usergroups`"

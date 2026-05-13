@@ -116,6 +116,8 @@
         <plugin group="alfa-payments" plugin="standard"/>
         <plugin group="alfa-payments" plugin="revolut"/>
         <plugin group="alfa-payments" plugin="viva"/>
+        <plugin group="alfa-payments" plugin="paypal"/>
+        <plugin group="alfa-payments" plugin="klarna"/>
 
         <plugin group="alfa-shipments" plugin="standard"/>
         <plugin group="alfa-shipments" plugin="boxnow"/>
