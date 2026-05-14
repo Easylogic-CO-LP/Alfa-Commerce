@@ -54,12 +54,9 @@
 
                         <?php if (isset($this->items[0]->ordering)): ?>
                             <th scope="col" class="w-1 text-center d-none d-md-table-cell">
-
                                 <?php echo HTMLHelper::_('searchtools.sort', '', 'a.ordering', $listDirn, $listOrder, null, 'asc', 'JGRID_HEADING_ORDERING', 'icon-menu-2'); ?>
-
                             </th>
                         <?php endif; ?>
-
 
                         <th  scope="col" class="w-1 text-center">
                             <?php echo HTMLHelper::_('searchtools.sort', 'JSTATUS', 'a.state', $listDirn, $listOrder); ?>
@@ -76,8 +73,8 @@
                         </th>
 
                         <th scope="col" class="w-3 d-none d-lg-table-cell" >
-
-                            <?php echo HTMLHelper::_('searchtools.sort',  'JGRID_HEADING_ID', 'a.id', $listDirn, $listOrder); ?>					</th>
+                            <?php echo HTMLHelper::_('searchtools.sort',  'JGRID_HEADING_ID', 'a.id', $listDirn, $listOrder); ?>
+                        </th>
                     </tr>
                     </thead>
                     <tfoot>
@@ -88,16 +85,28 @@
                     </tr>
                     </tfoot>
                     <tbody <?php if (!empty($saveOrder)) :?> class="js-draggable" data-url="<?php echo $saveOrderingUrl; ?>" data-direction="<?php echo strtolower($listDirn); ?>" <?php endif; ?>>
+                    <?php if (!empty($this->items) && is_array($this->items)) : ?>
+
                     <?php foreach ($this->items as $i => $item) :
-                        $ordering   = ($listOrder == 'a.ordering');
+	                    $ordering   = ($listOrder == 'a.ordering');
                         $canCreate  = $user->authorise('core.create', 'com_alfa');
                         $canEdit    = $user->authorise('core.edit', 'com_alfa');
                         $canCheckin = $user->authorise('core.manage', 'com_alfa');
                         $canChange  = $user->authorise('core.edit.state', 'com_alfa');
                         ?>
+
                         <tr class="row<?php echo $i % 2; ?>" data-draggable-group='1' data-transition>
                             <td class="text-center">
                                 <?php echo HTMLHelper::_('grid.id', $i, $item->id); ?>
+
+<!--                                --><?php
+//                                    echo '<pre>';
+//                                    print_r($item);
+//	                                echo '</pre>';
+//                                    exit();
+//
+//
+//                                    ?>
                             </td>
 
                             <?php if (isset($this->items[0]->ordering)) : ?>
@@ -119,7 +128,6 @@
                                 </td>
                             <?php endif; ?>
 
-
                             <td class="text-center">
                                 <?php echo HTMLHelper::_('jgrid.published', $item->state, $i, 'items.', $canChange, 'cb'); ?>
                             </td>
@@ -137,7 +145,9 @@
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <?php echo $item->sku; ?>
+                                <?php if (isset($item->sku)): ?>
+                                    <?php echo $item->sku; ?>
+                                <?php endif; ?>
                             </td>
                             <td>
                                 <?php echo $item->stock; ?>
@@ -145,15 +155,18 @@
 
                             <td class="d-none d-lg-table-cell">
                                 <?php echo $item->id; ?>
-
                             </td>
-
-
                         </tr>
                     <?php endforeach; ?>
+                    <?php else : ?>
+                        <tr>
+                            <td colspan="10" class="text-center">
+                                <div class="alert alert-warning">No items found</div>
+                            </td>
+                        </tr>
+                    <?php endif; ?>
                     </tbody>
                 </table>
-
 
                 <?php // Load the batch processing form. ?>
                 <?php

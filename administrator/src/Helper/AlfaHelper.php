@@ -179,30 +179,31 @@ class AlfaHelper
         return $flatArray;
     }
 
-    public static function addHierarchyData($items, $pathField = 'name', $pathSeparator = '/', $parentPath = '', $parentId = 0, $depth = 0)
-    {
-        $hierarchyData = [];
-        foreach ($items as $item) {
-            if ($item->parent_id == $parentId) {
-                $item->depth = $depth; // Assign the current depth level
+	public static function addHierarchyData($items, $pathField = 'name', $pathSeparator = '/', $parentPath = '', $parentId = 0, $depth = 0)
+	{
+		if (!is_array($items) && !is_object($items)) {
+			return [];
+		}
 
-                if ($pathField && property_exists($item, $pathField)) {
-                    // If parentPath is empty, avoid adding a leading separator
-                    $currentPath = $parentPath ? $parentPath . $pathSeparator . $item->{$pathField} : $item->{$pathField};
-                    // Add the current path to the flattened item
-                    $item->path = $currentPath;
-                } else {
-                    // Handle cases where the property does not exist or $pathField is invalid
-                    $item->path = $parentPath; // or set some default value
-                }
+		$hierarchyData = [];
 
-                $hierarchyData[] = $item; // Add the item to the array
-                // Recursively add next items to the array
-                $hierarchyData = array_merge($hierarchyData, self::addHierarchyData($items, $pathField, $pathSeparator, $currentPath, $item->id, $depth + 1));
-            }
-        }
-        return $hierarchyData;
-    }
+		foreach ($items as $item) {
+			if ($item->parent_id == $parentId) {
+				$item->depth = $depth;
+
+				if ($pathField && property_exists($item, $pathField)) {
+					$currentPath = $parentPath ? $parentPath . $pathSeparator . $item->{$pathField} : $item->{$pathField};
+					$item->path = $currentPath;
+				} else {
+					$item->path = $parentPath;
+				}
+
+				$hierarchyData[] = $item;
+				$hierarchyData = array_merge($hierarchyData, self::addHierarchyData($items, $pathField, $pathSeparator, $currentPath, $item->id, $depth + 1));
+			}
+		}
+		return $hierarchyData;
+	}
 
     /**
      * Saves the assocs data to to the database.
@@ -248,6 +249,12 @@ class AlfaHelper
         if (intval($mainFieldId) <= 0 || empty($table) || empty($mainField) || empty($dataField)) {
             return [];
         }
+
+//        echo '<pre>';
+//        print_r();
+//        echo '</pre>';
+//        exit;
+
 
         // load selected categories for item
         $db = Factory::getContainer()->get('DatabaseDriver');
@@ -311,15 +318,23 @@ class AlfaHelper
             return self::$orderStatusesCache;
         }
 
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $query = $db->getQuery(true)
-            ->select('*')
-            ->from($db->quoteName('#__alfa_orders_statuses'))
-            ->order('ordering ASC');
+	    $db = Factory::getContainer()->get('DatabaseDriver');
+	    $query = $db->getQuery(true);
 
-        $db->setQuery($query);
+	    $query->from('#__alfa_orders_statuses' . ' AS m');
 
-        self::$orderStatusesCache = $db->loadObjectList('id') ?: [];
+	    $langAlias = MultilingualHelper::addMultilingualJoinToQuery(
+		    query:            $query,
+		    mainAlias:          'm',
+		    mainPrimaryColumn:  'id',
+		    langTableBase:      '#__alfa_orders_statuses',
+		    langPrimaryColumn:  'id_order_status',
+		    fields:             ['name']
+	    );
+
+	    $db->setQuery($query);
+
+	    self::$orderStatusesCache = $db->loadObjectList('name') ?: [];
 
         return self::$orderStatusesCache;
     }
@@ -345,10 +360,21 @@ class AlfaHelper
 
         $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true)
-            ->select('id, name, color, bg_color')
-            ->from($db->quoteName('#__alfa_payments'))
-            ->where($db->quoteName('state') . ' = 1')
-            ->order('name ASC');
+            ->select('a.id, a.color, a.bg_color')
+            ->from($db->quoteName('#__alfa_payments', 'a'))
+            ->where($db->quoteName('a.state') . ' = 1')
+            ->order('a.id ASC');
+
+        $langAlias = MultilingualHelper::addMultilingualJoinToQuery(
+            query:              $query,
+            mainAlias:          'a',
+            mainPrimaryColumn:  'id',
+            langTableBase:      '#__alfa_payments',
+            langPrimaryColumn:  'id_payment',
+            fields:             ['name']
+        );
+
+        $query->select('COALESCE(' . $db->quoteName($langAlias . '.name') . ", '(Untranslated)') AS " . $db->quoteName('name'));
 
         $db->setQuery($query);
 
@@ -378,10 +404,21 @@ class AlfaHelper
 
         $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true)
-            ->select('id, name, color, bg_color')
-            ->from($db->quoteName('#__alfa_shipments'))
-            ->where($db->quoteName('state') . ' = 1')
-            ->order('name ASC');
+            ->select('a.id, a.color, a.bg_color')
+            ->from($db->quoteName('#__alfa_shipments', 'a'))
+            ->where($db->quoteName('a.state') . ' = 1')
+            ->order('a.id ASC');
+
+        $langAlias = MultilingualHelper::addMultilingualJoinToQuery(
+            query:              $query,
+            mainAlias:          'a',
+            mainPrimaryColumn:  'id',
+            langTableBase:      '#__alfa_shipments',
+            langPrimaryColumn:  'id_shipment',
+            fields:             ['name']
+        );
+
+        $query->select('COALESCE(' . $db->quoteName($langAlias . '.name') . ", '(Untranslated)') AS " . $db->quoteName('name'));
 
         $db->setQuery($query);
 
@@ -485,17 +522,17 @@ class AlfaHelper
         }
 
         $paramsFile = JPATH_ROOT . '/plugins/' . $pluginGroup . '/' . $pluginName . '/params/params.xml';
-        //        $paramsFile2 = JPATH_ROOT . '/plugins/' . $pluginGroup . '/' . $pluginName . '/params/' . $pluginName . '.xml';
+        $paramsFile2 = JPATH_ROOT . '/plugins/' . $pluginGroup . '/' . $pluginName . '/params/' . $pluginName . '.xml';
 
         $app->getLanguage()->load('plg_' . $pluginGroup . '_' . $pluginName);
 
         if (file_exists($paramsFile)) {
             // Load the XML file into the form.
             $form->loadFile($paramsFile, false);
-        } // elseif (file_exists($paramsFile2)) {
-        //            // Load the XML file into the form.
-        //            $form->loadFile($paramsFile2, false);
-        //        }
+        } elseif (file_exists($paramsFile2)) {
+            // Load the XML file into the form.
+            $form->loadFile($paramsFile2, false);
+        }
 
         //        echo "<pre>";
         //

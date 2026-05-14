@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use JForm;
 use Joomla\CMS\Factory;
 use Joomla\CMS\MVC\Model\AdminModel;
@@ -129,10 +130,11 @@ class ShipmentModel extends AdminModel
 
     public function save($data)
     {
-        $app = Factory::getApplication();
-        $db = $this->getDatabase();
+	    $app = Factory::getApplication();
+	    $input = $app->getInput();
 
-        $input = $app->getInput();
+	    $rawData = $input->post->get('jform', [], 'array');
+	    $data    = array_merge($data, $rawData);
 
         $data['params'] = json_encode($data['shipmentsparams']);
 
@@ -147,6 +149,17 @@ class ShipmentModel extends AdminModel
             $currentId = intval($this->getState($this->getName() . '.id'));//get the id from set joomla state.
         }
 
+	    // MULTILINGUAL: Save per-language translations to language tables.
+	    // Each language table stores name, alias, desc etc. for that language.
+	    // Alias is treated as a slug — auto-generated from name when blank
+	    // and sanitised via OutputFilter inside MultilingualHelper.
+	    MultilingualHelper::saveMultilingualData(
+		    currentId:         $currentId,
+		    primaryColumnName: 'id_shipment',
+		    tableName:         '#__alfa_shipments',
+		    data:              $data,
+	    );
+
         //Category/manufacturer etc associations
         $assignZeroIdIfDataEmpty = true;
         AlfaHelper::setAssocsToDb($currentId, $data['categories'], '#__alfa_shipment_categories', 'shipment_id', 'category_id', $assignZeroIdIfDataEmpty);
@@ -156,6 +169,30 @@ class ShipmentModel extends AdminModel
         AlfaHelper::setAssocsToDb($currentId, $data['usergroups'], '#__alfa_shipment_usergroups', 'shipment_id', 'usergroup_id', $assignZeroIdIfDataEmpty);
 
         return true;
+    }
+
+    /**
+     * Delete one or more item records.
+     *
+     * Removes price-index rows as an explicit safety net
+     * (FK ON DELETE CASCADE covers hard deletes, but not trash / soft-delete).
+     *
+     * @param  array $pks
+     *
+     * @return bool
+     */
+    public function delete(&$pks) {
+        $retVal = parent::delete($pks);
+
+        if ($retVal && !empty($pks)) {
+            MultilingualHelper::deleteMultilingualData(
+                ids:               $pks,
+                primaryColumnName: 'id_shipment',
+                tableName:         '#__alfa_shipments',
+            );
+        }
+
+        return $retVal;
     }
 
     /**

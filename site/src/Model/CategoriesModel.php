@@ -13,7 +13,7 @@ namespace Alfa\Component\Alfa\Site\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
-use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Exception;
 use Joomla\CMS\MVC\Model\ListModel;
@@ -65,6 +65,7 @@ class CategoriesModel extends ListModel
      * @return void
      *
      * @throws Exception
+     *
      */
     protected function populateState($ordering = 'a.id', $direction = 'ASC')
     {
@@ -92,6 +93,15 @@ class CategoriesModel extends ListModel
         );
 
         $query->from('`#__alfa_categories` AS a');
+
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:                $query,
+            mainAlias:              'a',
+            mainPrimaryColumn:      'id',
+            langTableBase:          '#__alfa_categories',
+            langPrimaryColumn:      'id_category',
+            fields:                 ['name', 'alias', 'desc'],
+        );
 
         $parentCategoryFilter = $this->getState('filter.parent_id');
         if ($parentCategoryFilter !== null) {
@@ -158,18 +168,18 @@ class CategoriesModel extends ListModel
     {
         $items = parent::getItems();
 
-        if (!empty($items)) {
-            foreach ($items as $category) {
-                $category->medias = MediaHelper::getMediaData(
-                    origin: 'category',
-                    itemIDs: $category->id,
-                    usePlaceHolder : true,
-                );
+	    if (!empty($items)) {
+		    foreach ($items as $category) {
+			    $category->medias = MediaHelper::getMediaData(
+				    origin: 'category',
+				    itemIDs: $category->id,
+				    usePlaceHolder : true
+			    );
 
-                // Generate links for categories
-                $category->link = Route::_('index.php?option=com_alfa&view=items&category_id' . (int) $category->id);
-            }
-        }
+			    // Generate links for categories
+			    $category->link = Route::_('index.php?option=com_alfa&view=items&category_id=' . (int) $category->id);
+		    }
+	    }
 
         return $items;
     }

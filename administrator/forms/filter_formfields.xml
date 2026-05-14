@@ -14,16 +14,7 @@
             <option value="">JOPTION_SELECT_PUBLISHED</option>
         </field>
 
-        <field name="group_id"
-               type="sql"
-               label="COM_ALFA_FORM_LBL_FIELD_GROUP"
-               description="COM_ALFA_FORM_DESC_FIELD_GROUP"
-               onchange="this.form.submit();"
-               query="SELECT id AS value, CONCAT(title, IF(state = 0, ' (disabled)', '')) AS text FROM #__alfa_form_field_groups ORDER BY ordering ASC"
-               key_field="value" value_field="text">
-            <option value="">COM_ALFA_FILTER_FIELD_GROUP</option>
-            <option value="0">COM_ALFA_FORM_OPTION_FIELD_GROUP_NONE</option>
-        </field>
+        
 
     </fields>
 

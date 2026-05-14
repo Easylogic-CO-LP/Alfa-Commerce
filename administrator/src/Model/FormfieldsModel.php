@@ -12,6 +12,9 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 use Joomla\CMS\MVC\Model\ListModel;
 
@@ -84,8 +87,6 @@ class FormFieldsModel extends ListModel
         // Compile the store id.
         $id .= ':' . $this->getState('filter.search');
         $id .= ':' . $this->getState('filter.state');
-        $id .= ':' . $this->getState('filter.context');
-        $id .= ':' . $this->getState('filter.group_id');
 
         return parent::getStoreId($id);
     }
@@ -93,7 +94,7 @@ class FormFieldsModel extends ListModel
     /**
      * Build an SQL query to load the list data.
      *
-     * @return DatabaseQuery
+     * @return \Joomla\Database\QueryInterface
      *
      * @since   1.0.1
      */
@@ -110,31 +111,17 @@ class FormFieldsModel extends ListModel
             ),
         );
 
-        $query->select('g.title AS group_title, g.state AS group_state');
-
         $query->from($db->qn('#__alfa_form_fields', 'a'))
-            ->join('LEFT', $db->qn('#__alfa_form_field_groups', 'g') . ' ON g.id = a.group_id')
             ->order('ordering ASC');
 
-        // Select the required fields from the table.
-        //        $query->select(
-        //            $this->getState(
-        //                'list.select', 'DISTINCT a.*'
-        //            )
-        //        );
-        //        $query->from('`#__alfa_form_fields` AS a');
-        //
-        //        // Join over the users for the checked out user
-        //        $query->select("uc.name AS uEditor");
-        //        $query->join("LEFT", "#__users AS uc ON uc.id=a.checked_out");
-        //
-        //        // Join over the user field 'created_by'
-        //        $query->select('`created_by`.name AS `created_by`');
-        //        $query->join('LEFT', '#__users AS `created_by` ON `created_by`.id = a.`created_by`');
-        //
-        //        // Join over the user field 'modified_by'
-        //        $query->select('`modified_by`.name AS `modified_by`');
-        //        $query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
+	    MultilingualHelper::addMultilingualJoinToQuery(
+		    query:             $query,
+		    mainAlias:         'a',
+		    mainPrimaryColumn: 'id',
+		    langTableBase:     '#__alfa_form_fields',
+		    langPrimaryColumn: 'id_form_field',
+		    fields:            ['name'],
+	    );
 
         // Filter by published state
         $published = $this->getState('filter.state');
@@ -143,12 +130,6 @@ class FormFieldsModel extends ListModel
             $query->where('a.state = ' . (int) $published);
         } elseif (empty($published)) {
             $query->where('(a.state IN (0, 1))');
-        }
-
-        // Filter by group (accepts 0 = Ungrouped).
-        $groupId = $this->getState('filter.group_id');
-        if ($groupId !== null && $groupId !== '') {
-            $query->where('a.group_id = ' . (int) $groupId);
         }
 
         // Filter by search in title
@@ -186,8 +167,58 @@ class FormFieldsModel extends ListModel
         return $items;
     }
 
-    // Delete is handled by FormfieldModel (single-item); the list controller
-    // routes list-delete actions through that model so #__alfa_user_info columns
-    // are dropped alongside the form_fields rows. No list-level delete override
-    // is needed — adding one risks divergence from the single-model path.
+    public function delete(&$pks)
+    {
+        $app = Factory::getApplication();
+        $db = self::getDatabase();
+        $query = $db->getQuery(true);
+
+        $fieldNames = self::getFieldNames($pks);
+
+        $query
+            ->delete('#__alfa_form_fields')
+            ->whereIn($db->qn('id'), $pks);
+
+        $db->setQuery($query);
+        if ($db->execute()) {
+            $app->enqueueMessage(Text::_('COM_ALFA_ENTRY_DELETED_SUCCESSFULLY'), 'success');
+        } else {
+            $app->enqueueMessage(Text::_('COM_ALFA_ENTRY_COULD_NOT_BE_DELETED'), 'error');
+        }
+    }
+
+    /**
+     * @param $columnName string the name of the column to delete.
+     *
+     * @return void
+     */
+    protected function deleteUserInfoTableColumn($columnName)
+    {
+        $formFieldModel = $this->app->bootComponent('com_alfa')
+            ->getMVCFactory()->createModel('Formfield', 'Admin', ['ignore_request' => true]);
+
+        // Delete column if it exists.
+        if ($formFieldModel->getTableColumn($this->orderUserInfoTableName, $columnName) != null) {
+            $db = self::getDatabase();
+            $query = $db->getQuery(true);
+            $query = 'ALTER TABLE ' . $db->quoteName($this->orderUserInfoTableName) . ' DROP COLUMN ' . $db->qn($columnName);
+
+            $db->setQuery($query);
+            $db->execute();
+        }
+    }
+
+    protected function getFieldNames($pks)
+    {
+        $db = self::getDatabase();
+        $query = $db->getQuery(true);
+
+        $query
+            ->select($db->qn('field_name'))
+            ->from($db->qn('#__alfa_form_fields'))
+            ->whereIn($db->qn('id'), $pks);
+        $db->setQuery($query);
+
+        return $db->loadObjectList();
+    }
 }

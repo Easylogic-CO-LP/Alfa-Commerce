@@ -1,24 +1,20 @@
 <?php
 
-/**
- * @package    Alfa Commerce
- * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
- * @license    GNU General Public License version 3 or later; see LICENSE
- */
+	/**
+	 * @package    Alfa Commerce
+	 * @author     Agamemnon Fakas <info@easylogic.gr>
+	 * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+	 * @license    GNU General Public License version 3 or later; see LICENSE
+	 */
 
-use Alfa\Component\Alfa\Site\Helper\PluginLayoutHelper;
+	use Alfa\Component\Alfa\Site\Helper\PluginLayoutHelper;
 
-$cart = !empty($displayData) ? $displayData : $this->cart;
+	$cart = !empty($displayData) ? $displayData : $this->cart;
 
 ?>
 
 <div class="mb-3" data-cart-payments>
-
-	<?php
-
-	foreach ($cart->getPaymentMethods() as $payment):
-
+	<?php foreach ($cart->getPaymentMethods() as $payment):
 		$checked = $cart->getData()->id_payment == $payment->id ? 'checked' : '';
 		?>
         <div>
@@ -38,15 +34,21 @@ $cart = !empty($displayData) ? $displayData : $this->cart;
             <p><?php echo htmlspecialchars($payment->description, ENT_QUOTES, 'UTF-8'); ?></p>
 
 			<?php
-			// TODO: Error handling for missing template.
-			echo PluginLayoutHelper::pluginLayout(
-				$payment->events->onCartView->getLayoutPluginType(),
-				$payment->events->onCartView->getLayoutPluginName(),
-				$payment->events->onCartView->getLayout()
-			)->render($payment->events->onCartView->getLayoutData());
+				// SAFEGUARD: Only attempt to render the plugin layout if the event actually exists!
+				if (!empty($payment->events->onCartView)) {
+					try {
+						echo PluginLayoutHelper::pluginLayout(
+							$payment->events->onCartView->getLayoutPluginType(),
+							$payment->events->onCartView->getLayoutPluginName(),
+							$payment->events->onCartView->getLayout()
+						)->render($payment->events->onCartView->getLayoutData());
+					} catch (\Exception $e) {
+						// Fallback just in case the layout file itself is missing
+						echo '';
+					}
+				}
 			?>
 
         </div>
 	<?php endforeach ?>
-
 </div>

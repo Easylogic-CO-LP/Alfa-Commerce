@@ -12,10 +12,12 @@ defined('_JEXEC') or die;
 use \Joomla\CMS\Uri\Uri;
 use \Joomla\CMS\Language\Text;
 use \Joomla\CMS\Layout\LayoutHelper;
+use Joomla\Component\Finder\Administrator\Indexer\Parser\Html;
 
 // Import CSS
 $wa = $this->document->getWebAssetManager();
 $wa->useStyle('com_alfa.list');
+
 ?>
 
 <form action="<?php echo htmlspecialchars(Uri::getInstance()->toString()); ?>" method="post"
@@ -30,7 +32,7 @@ $wa->useStyle('com_alfa.list');
                 <div class="manufacturer-item list-item">
                     <a href="<?php echo $item->link; ?>">
                         <?php if (!empty($item->medias[0])): ?>
-                            <img src=<?= $item->medias[0]->path ?>>
+                            <img src=<?= Uri::root() .  $item->medias[0]->path ?>>
                         <?php endif; ?>
                     </a>
 
@@ -39,7 +41,7 @@ $wa->useStyle('com_alfa.list');
                     </div>
 
                     <div class="manufacturer-description">
-                        <?php echo $this->escape($item->desc); ?>
+                        <?php echo $item->desc; ?>
                     </div>
                     <div class="manufacturer-products">
                         <a href="<?php echo $item->link; ?>">

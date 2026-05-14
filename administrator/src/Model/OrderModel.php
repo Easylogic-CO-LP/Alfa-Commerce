@@ -247,82 +247,21 @@ class OrderModel extends AdminModel
             $form->setFieldAttribute('user_name', 'class', '');
         }
 
-        FieldsHelper::prepareForm('cart.form', $form, $data, 'user_details');
+        FieldsHelper::prepareForm('com_alfa.order', $form, $data);
 
-        // Prefill dynamic fields. Joomla's bind runs inside loadForm() before the
-        // dynamic fields exist, so they never get populated automatically. Resolve
-        // values from user state (resubmit after validation failure must keep the
-        // user's typed-in input) falling back to the order's user_info row from DB.
-        $userState = $app->getUserState('com_alfa.edit.order.data', []);
-        $fieldValues = [];
+        foreach ($form->getFieldsets() as $fieldset) {
+            if (!str_starts_with($fieldset->name, 'fields-')) {
+                continue;
+            }
 
-        if (isset($userState[FieldsHelper::FIELDS_KEY]) && is_array($userState[FieldsHelper::FIELDS_KEY])) {
-            $fieldValues = $userState[FieldsHelper::FIELDS_KEY];
-        } elseif (!empty($this->item->user_info)) {
-            $fieldValues = (array) $this->item->user_info;
-            unset($fieldValues['id']);
-        }
-
-        foreach ($fieldValues as $key => $value) {
-            $form->setValue($key, FieldsHelper::FIELDS_KEY, $value);
+            foreach ($form->getFieldset($fieldset->name) as $field) {
+                $fieldName = str_replace(['jform[com_alfa][', ']'], '', $field->name);
+                $form->setValue($fieldName, 'com_alfa', $this->item->user_info->{$fieldName} ?? '');
+            }
         }
 
         return $form;
     }
-
-    //     public function getCartForm(object $userInfo = null): mixed
-    //     {
-    //         $form = $this->loadForm(
-    //             'com_alfa.cart',
-    //             JPATH_SITE . '/components/com_alfa/forms/cart.xml',
-    //             [
-    //                 'control'   => 'cartform',
-    //                 'load_data' => false,
-    //             ]
-    //         );
-
-    //         if (empty($form)) {
-    //             return false;
-    //         }
-
-    //         FieldsHelper::prepareForm('cart.form', $form, []);
-
-    //         if ($userInfo !== null) {
-    //             // Bind user info values to the custom fields
-    //             foreach ($form->getFieldsets() as $fieldset) {
-    //                 if ($fieldset->name === 'captcha') {
-    //                     continue;
-    //                 }
-    // //      !!DEBUG!!          echo 'Fieldset: ' . $fieldset->name . ' — field count: ' . count($form->getFieldset
-    // //($fieldset->name)) . '<br>';
-    //                 foreach ($form->getFieldset($fieldset->name) as $field) {
-    //                     $fieldName = str_replace(['cartform[com_alfa][', ']'], '', $field->name);
-    //                     $value = $userInfo->{$fieldName} ?? '';
-    // //      !!DEBUG!!              echo '  ' . $fieldName . ' = ' . $value . '<br>';
-    //                     $form->setValue($fieldName, 'com_alfa', $value);
-    //                     $form->setFieldAttribute($fieldName, 'readonly', 'true', 'com_alfa');
-    //                 }
-    //             }
-    //         }
-
-    // //        echo '<pre>';
-    // //        echo 'userInfo: ';
-    // //        print_r($userInfo);
-    // //        echo '<br>Fieldsets and values:<br>';
-    // //        foreach ($form->getFieldsets() as $fieldset) {
-    // //            if (!str_starts_with($fieldset->name, 'fields-')) {
-    // //                continue;
-    // //            }
-    // //            echo 'Fieldset: ' . $fieldset->name . '<br>';
-    // //            foreach ($form->getFieldset($fieldset->name) as $field) {
-    // //                $fieldName = str_replace(['cartform[com_alfa][', ']'], '', $field->name);
-    // //                echo '  ' . $fieldName . ' = ' . $field->value . '<br>';
-    // //            }
-    // //        }
-    // //        echo '</pre>';
-
-    //         return $form;
-    //     }
 
     protected function loadFormData()
     {
@@ -1493,7 +1432,7 @@ class OrderModel extends AdminModel
         // ================================================================
         // Save customer/address info
         // ================================================================
-        $userInfoData = $data[FieldsHelper::FIELDS_KEY] ?? [];
+        $userInfoData = $data['com_alfa'] ?? [];
 
         if (!empty($userInfoData) && !empty($data['id_address_delivery'])) {
             if (!OrderHelper::saveUserInfo((int) $data['id_address_delivery'], $userInfoData)) {

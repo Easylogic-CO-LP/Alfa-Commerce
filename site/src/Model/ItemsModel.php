@@ -16,6 +16,7 @@ namespace Alfa\Component\Alfa\Site\Model;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceCalculator;
@@ -172,7 +173,7 @@ class ItemsModel extends UrlListModel
             }
         }
 
-        return $items;
+        return $items ?: [];
     }
 
     /**
@@ -277,6 +278,16 @@ class ItemsModel extends UrlListModel
         $query->from('#__alfa_items AS a')
             ->join('LEFT', '#__alfa_items_categories    AS cat ON a.id = cat.item_id')
             ->join('LEFT', '#__alfa_items_manufacturers AS man ON a.id = man.item_id');
+
+	    // ── Multilingual Join & Smart Fallback ────────────────────────────────
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'a',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_items',
+            langPrimaryColumn: 'id_item',
+            fields:            ['name', 'alias', 'short_desc', 'full_desc', 'stock_low_message', 'stock_zero_message'],
+        );
 
         // ── Architecture B price index subquery JOIN ──────────────────────────
         $this->applyPriceIndexJoin($query);
@@ -492,16 +503,18 @@ class ItemsModel extends UrlListModel
                 $item->stock_low_message = $settings->get('stock_low_message');
                 $item->stock_zero_message = $settings->get('stock_zero_message');
             }
+
             $item->stock_low_message = $item->stock_low_message ?: $settings->get('stock_low_message');
             $item->stock_zero_message = $item->stock_zero_message ?: $settings->get('stock_zero_message');
 
             $item->medias = MediaHelper::getMediaData(
                 origin: 'item',
                 itemIDs: $item->id,
-                usePlaceHolder : true,
+                usePlaceHolder : true
             );
 
             $urlCategoryId = $this->categoryId ?: ($item->id_category_default ?? 0);
+
             $item->link = Route::_(
                 'index.php?option=com_alfa&view=item&id=' . (int) $item->id
                 . '&category_id=' . (int) $urlCategoryId,
@@ -551,107 +564,6 @@ class ItemsModel extends UrlListModel
             'min' => $result && $result->price_min !== null ? (float) $result->price_min : null,
             'max' => $result && $result->price_max !== null ? (float) $result->price_max : null,
         ];
-    }
-
-    /**
-     * Return a price histogram for the current non-price filters.
-     *
-     * Used by the frontend price slider to show approximate product density
-     * across the available price range. All price-related filter states are
-     * excluded so the histogram reflects the full visible price distribution
-     * under the other active filters (category, search, manufacturer, etc.).
-     *
-     * @param int $buckets Number of histogram buckets
-     *
-     * @return array<int, array{from: float, to: float, count: int}>
-     */
-    public function getAvailablePriceHistogram(int $buckets = 20, ?float $min = null, ?float $max = null): array
-    {
-        $model = $this->createFilterSubModel([
-            'filter.price_min',
-            'filter.price_max',
-            'filter.on_sale',
-            'filter.discount_amount_min',
-            'filter.discount_percent_min',
-        ]);
-
-        if ($min === null || $max === null) {
-            $range = $model->getAvailablePriceRange();
-
-            if ($range['min'] === null || $range['max'] === null) {
-                return [];
-            }
-
-            $min = (float) ($min ?? $range['min']);
-            $max = (float) ($max ?? $range['max']);
-        }
-
-        if ($buckets < 1) {
-            $buckets = 20;
-        }
-
-        // If all products share the same price, return one bucket
-        if ($max <= $min) {
-            $query = $model->getListQuery();
-            $query->clear('select')
-                ->clear('order')
-                ->clear('group')
-                ->select('COUNT(*) AS bucket_count')
-                ->where('pf.final_price IS NOT NULL')
-                ->where('pf.final_price > 0');
-
-            $count = (int) $this->getDatabase()->setQuery($query)->loadResult();
-
-            return [[
-                'from' => $min,
-                'to' => $max,
-                'count' => $count,
-            ]];
-        }
-
-        $bucketSize = ($max - $min) / $buckets;
-
-        $query = $model->getListQuery();
-        $query->clear('select')
-            ->clear('order')
-            ->clear('group')
-            ->select([
-                'CASE 
-                    WHEN FLOOR((pf.final_price - ' . $min . ') / ' . $bucketSize . ') >= ' . $buckets . '
-                    THEN ' . ($buckets - 1) . '
-                    ELSE FLOOR((pf.final_price - ' . $min . ') / ' . $bucketSize . ')
-                END AS bucket_index',
-                'COUNT(*) AS bucket_count',
-            ])
-            ->where('pf.final_price IS NOT NULL')
-            ->where('pf.final_price > 0')
-            ->group('bucket_index')
-            ->order('bucket_index ASC');
-
-        $rows = $this->getDatabase()->setQuery($query)->loadObjectList();
-
-        $countsByBucket = [];
-
-        foreach ($rows as $row) {
-            $countsByBucket[(int) $row->bucket_index] = (int) $row->bucket_count;
-        }
-
-        $histogram = [];
-
-        for ($i = 0; $i < $buckets; $i++) {
-            $from = $min + ($i * $bucketSize);
-            $to = $i === ($buckets - 1)
-                ? $max
-                : $from + $bucketSize;
-
-            $histogram[] = [
-                'from' => $from,
-                'to' => $to,
-                'count' => $countsByBucket[$i] ?? 0,
-            ];
-        }
-
-        return $histogram;
     }
 
     /**
@@ -758,22 +670,63 @@ class ItemsModel extends UrlListModel
         array $ids,
         string $table,
         array $selectFields = ['name'],
-        string $idFieldName = 'id',
+        string $idFieldName = 'id'
     ): array {
         if (empty($ids)) {
             return [];
         }
 
         $db = $this->getDatabase();
+        $query = $db->getQuery(true);
+        $mainAlias = 'a';
 
-        if (!in_array($idFieldName, $selectFields)) {
-            array_unshift($selectFields, $idFieldName);
+        $langKeys = [
+            '#__alfa_items'           => 'id_item',
+            '#__alfa_manufacturers'   => 'id_manufacturer',
+            '#__alfa_categories'      => 'id_category',
+            '#__alfa_orders_statuses' => 'id_order_status',
+            '#__alfa_payments'        => 'id_payment',
+            '#__alfa_shipments'       => 'id_shipment'
+        ];
+
+        // 1. Base Query
+        $query->from($db->quoteName($table, $mainAlias))
+            ->whereIn($db->quoteName($mainAlias . '.' . $idFieldName), array_unique($ids));
+
+        $baseSelects = [$db->quoteName($mainAlias . '.' . $idFieldName)];
+
+        if (isset($langKeys[$table])) {
+            $translatableColumns = ['name', 'alias', 'description', 'meta_title', 'meta_desc'];
+
+            $fieldsToTranslate = array_intersect($selectFields, $translatableColumns);
+            $baseFields        = array_diff($selectFields, $translatableColumns);
+
+            if (!empty($fieldsToTranslate)) {
+                MultilingualHelper::addMultilingualJoinToQuery(
+                    query:             $query,
+                    mainAlias:         $mainAlias,
+                    mainPrimaryColumn: $idFieldName,
+                    langTableBase:     $table,
+                    langPrimaryColumn: $langKeys[$table],
+                    fields:            array_values($fieldsToTranslate)
+                );
+            }
+
+            foreach ($baseFields as $field) {
+                if ($field !== $idFieldName) {
+                    $baseSelects[] = $db->quoteName($mainAlias . '.' . $field);
+                }
+            }
+
+        } else {
+            foreach ($selectFields as $field) {
+                if ($field !== $idFieldName) {
+                    $baseSelects[] = $db->quoteName($mainAlias . '.' . $field);
+                }
+            }
         }
 
-        $query = $db->getQuery(true)
-            ->select(implode(', ', array_map([$db, 'quoteName'], $selectFields)))
-            ->from($db->quoteName($table))
-            ->whereIn($idFieldName, array_unique($ids));
+        $query->select(implode(', ', $baseSelects));
 
         return $db->setQuery($query)->loadAssocList($idFieldName);
     }

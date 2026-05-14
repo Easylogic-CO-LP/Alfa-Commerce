@@ -73,53 +73,53 @@
     </div>
     <?php echo HTMLHelper::_('uitab.endTab'); ?>
 
-    <?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'publishing', Text::_('COM_ALFA_FIELDSET_PUBLISHING_SEO')); ?>
-    <div class="row">
-        <div class="col-12 col-lg-6">
-            <fieldset id="fieldset-publishingdata" class="options-form">
-                <legend><?php echo Text::_('JGLOBAL_FIELDSET_PUBLISHING'); ?></legend>
-                <div>
-                    <?php echo $this->form->renderFieldset('publish'); ?>
-                </div>
-            </fieldset>
-        </div>
-        <div class="col-12 col-lg-6">
-            <fieldset id="fieldset-metadata" class="options-form">
-                <legend><?php echo Text::_('JGLOBAL_FIELDSET_METADATA_OPTIONS'); ?></legend>
-                <div>
-                    <?php echo $this->form->renderFieldset('meta'); ?>
-
-                    <?php
-                        echo LayoutHelper::render(
-                            'seo.preview',
-                            (new \Alfa\Component\Alfa\Administrator\Controller\SeoController())->getResultObject(
-                                itemId: $this->item->id ?? 0,
-                                title: $this->item->name ?? '',
-                                metaTitle: $this->item->meta_title ?? '',
-                                metaDesc: $this->item->meta_desc ?? '',
-                                alias: $this->item->alias ?? '',
-                                defaultAlias: $this->item->alias ?? '',
-                                content: $this->item->desc ?? '',
-                                focusKeyword: $this->item->focus_keyword ?? '',
-                                itemType: 'category',
-                                robots: $this->item->robots ?? '',
-                                fieldJsSelectors: [
-                                    'title'        => '#jform_name',
-                                    'metaTitle'    => '#jform_meta_title',
-                                    'metaDesc'     => '#jform_meta_desc',
-                                    'alias'        => '#jform_alias',
-                                    'robots'       => '#jform_robots',
-                                    'content'      => '#jform_desc',
-                                    'focusKeyword' => '[data-seo-focus-keyword-field]'
-                                ]
-                            ));
-                    ?>
-                </div>
-            </fieldset>
-        </div>
-    </div>
-
-    <?php echo HTMLHelper::_('uitab.endTab'); ?>
+<!--    --><?php //echo HTMLHelper::_('uitab.addTab', 'myTab', 'publishing', Text::_('COM_ALFA_FIELDSET_PUBLISHING_SEO')); ?>
+<!--    <div class="row">-->
+<!--        <div class="col-12 col-lg-6">-->
+<!--            <fieldset id="fieldset-publishingdata" class="options-form">-->
+<!--                <legend>--><?php //echo Text::_('JGLOBAL_FIELDSET_PUBLISHING'); ?><!--</legend>-->
+<!--                <div>-->
+<!--                    --><?php //echo $this->form->renderFieldset('publish'); ?>
+<!--                </div>-->
+<!--            </fieldset>-->
+<!--        </div>-->
+<!--        <div class="col-12 col-lg-6">-->
+<!--            <fieldset id="fieldset-metadata" class="options-form">-->
+<!--                <legend>--><?php //echo Text::_('JGLOBAL_FIELDSET_METADATA_OPTIONS'); ?><!--</legend>-->
+<!--                <div>-->
+<!--                    --><?php //echo $this->form->renderFieldset('meta'); ?>
+<!---->
+<!--                    --><?php
+//                        echo LayoutHelper::render(
+//                            'seo.preview',
+//                            (new \Alfa\Component\Alfa\Administrator\Controller\SeoController())->getResultObject(
+//                                itemId: $this->item->id ?? 0,
+//                                title: $this->item->name ?? '',
+//                                metaTitle: $this->item->meta_title ?? '',
+//                                metaDesc: $this->item->meta_desc ?? '',
+//                                alias: $this->item->alias ?? '',
+//                                defaultAlias: $this->item->alias ?? '',
+//                                content: $this->item->desc ?? '',
+//                                focusKeyword: $this->item->focus_keyword ?? '',
+//                                itemType: 'category',
+//                                robots: $this->item->robots ?? '',
+//                                fieldJsSelectors: [
+//                                    'title'        => '#jform_name',
+//                                    'metaTitle'    => '#jform_meta_title',
+//                                    'metaDesc'     => '#jform_meta_desc',
+//                                    'alias'        => '#jform_alias',
+//                                    'robots'       => '#jform_robots',
+//                                    'content'      => '#jform_desc',
+//                                    'focusKeyword' => '[data-seo-focus-keyword-field]'
+//                                ]
+//                            ));
+//                    ?>
+<!--                </div>-->
+<!--            </fieldset>-->
+<!--        </div>-->
+<!--    </div>-->
+<!---->
+<!--    --><?php //echo HTMLHelper::_('uitab.endTab'); ?>
 
     <?php echo HTMLHelper::_('uitab.endTabSet'); ?>
 

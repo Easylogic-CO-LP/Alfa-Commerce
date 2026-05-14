@@ -36,7 +36,6 @@ class HtmlView extends BaseHtmlView
     protected $form;
 
     protected $canDo;
-    protected $cartForm;
 
     protected $onAdminOrderViewEventName = 'onAdminOrderView';
     protected $onAdminOrderViewLogsEventName = 'onAdminOrderViewLogs';
@@ -133,8 +132,6 @@ class HtmlView extends BaseHtmlView
         } else {
             $this->order = $model->getItem();
             $this->form = $model->getForm();
-
-            // $this->cartForm = $model->getCartForm($this->order->user_info ?? null);
 
             // Check out the order (lock for editing), same as FormView does
             if ($this->order->id) {

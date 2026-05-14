@@ -71,9 +71,7 @@ if ($saveOrder && !empty($this->items)) {
                             <?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_FORM_FIELDS_NAME', 'a.name', $listDirn, $listOrder); ?>
                         </th>
 
-                        <th class="d-none d-md-table-cell">
-                            <?php echo Text::_('COM_ALFA_FORM_FIELDS_GROUP'); ?>
-                        </th>
+
 
                     </tr>
                     </thead>
@@ -85,6 +83,8 @@ if ($saveOrder && !empty($this->items)) {
                     </tr>
                     </tfoot>
                     <tbody <?php if (!empty($saveOrder)) :?> class="js-draggable" data-url="<?php echo $saveOrderingUrl; ?>" data-direction="<?php echo strtolower($listDirn); ?>" <?php endif; ?>>
+                    <?php if (!empty($this->items) && is_array($this->items)) : ?>
+
                     <?php foreach ($this->items as $i => $item) :
                         $ordering   = ($listOrder == 'a.ordering');
                         $canCreate  = $user->authorise('core.create', 'com_alfa');
@@ -97,7 +97,6 @@ if ($saveOrder && !empty($this->items)) {
                             <td class="text-center">
                                 <?php echo HTMLHelper::_('grid.id', $i, $item->id); ?>
                             </td>
-
 
                             <?php if (isset($this->items[0]->ordering)) : ?>
                                 <td class="text-center d-none d-md-table-cell">
@@ -136,26 +135,13 @@ if ($saveOrder && !empty($this->items)) {
                                 <?php endif; ?>
                             </td>
 
-                            <td class="d-none d-md-table-cell">
-                                <?php if (!empty($item->group_title)) : ?>
-                                    <?php echo $this->escape($item->group_title); ?>
-                                    <?php if ((int) ($item->group_state ?? 1) === 0) : ?>
-                                        <span class="badge bg-warning text-dark ms-1"><?php echo Text::_('COM_ALFA_FORM_FIELDS_GROUP_DISABLED'); ?></span>
-                                    <?php endif; ?>
-                                <?php else : ?>
-                                    <span class="text-muted">&mdash;</span>
-                                <?php endif; ?>
-                            </td>
-
                         </tr>
                     <?php endforeach; ?>
+                    <?php endif; ?>
                     </tbody>
                 </table>
 
                 <?php echo $this->filterForm->renderControlFields(); ?>
-
-                <template id="joomla-dialog-batch"><?php echo $this->loadTemplate('batch_body'); ?></template>
-                <template id="joomla-dialog-delete"><?php echo $this->loadTemplate('delete_body'); ?></template>
             </div>
         </div>
     </div>

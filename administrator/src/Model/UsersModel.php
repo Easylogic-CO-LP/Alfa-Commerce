@@ -1,11 +1,10 @@
 <?php
 
 /**
- * @version    1.0.1
- * @package    Com_Alfa
+ * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  2024 Easylogic CO LP
- * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
 namespace Alfa\Component\Alfa\Administrator\Model;
@@ -17,35 +16,29 @@ use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 use Joomla\CMS\MVC\Model\ListModel;
 
 /**
- * List model for com_alfa users.
- *
- * Joins #__alfa_users with #__users to expose Joomla account fields
- * (username, email, lastvisitDate) alongside the component-specific columns.
+ * Methods supporting a list of Users records.
  *
  * @since  1.0.1
  */
 class UsersModel extends ListModel
 {
     /**
-     * Constructor.
-     *
-     * @param array $config Optional configuration array.
-     * @param MVCFactoryInterface|null $factory MVC factory.
-     *
-     * @since   1.0.1
-     */
+    * Constructor.
+    *
+     * @param array $config An optional associative array of configuration settings.
+    *
+    * @see        JController
+    * @since      1.6
+    */
     public function __construct($config = [], ?MVCFactoryInterface $factory = null)
     {
         if (empty($config['filter_fields'])) {
             $config['filter_fields'] = [
-                'id',          'a.id',
-                'note',        'a.note',
-                'ordering',    'a.ordering',
-                'created_by',  'a.created_by',
+                'id', 'a.id',
+                'state', 'a.state',
+                'ordering', 'a.ordering',
+                'created_by', 'a.created_by',
                 'modified_by', 'a.modified_by',
-                'username',    'u.username',
-                'email',       'u.email',
-                'lastvisitDate', 'u.lastvisitDate',
             ];
         }
 
@@ -53,16 +46,16 @@ class UsersModel extends ListModel
     }
 
     /**
-     * Auto-populate the model state.
+     * Method to auto-populate the model state.
      *
-     * Note: calling getState() inside this method will cause recursion.
+     * Note. Calling getState in this method will result in recursion.
      *
-     * @param string $ordering Default ordering column.
-     * @param string $direction Default ordering direction.
+     * @param string $ordering Elements order
+     * @param string $direction Order direction
      *
      * @return void
      *
-     * @since   1.0.1
+     * @throws Exception
      */
     protected function populateState($ordering = 'a.id', $direction = 'ASC')
     {
@@ -70,19 +63,21 @@ class UsersModel extends ListModel
     }
 
     /**
-     * Returns a store ID based on the current model state.
+     * Method to get a store id based on model configuration state.
      *
-     * Ensures different filter/search combinations each get their own cache
-     * entry so paginated lists stay consistent.
+     * This is necessary because the model is used by the component and
+     * different modules that might need different sets of data or different
+     * ordering requirements.
      *
-     * @param string $id A prefix for the store ID.
+     * @param string $id A prefix for the store id.
      *
-     * @return string
+     * @return string A store id.
      *
      * @since   1.0.1
      */
     protected function getStoreId($id = '')
     {
+        // Compile the store id.
         $id .= ':' . $this->getState('filter.search');
         $id .= ':' . $this->getState('filter.state');
 
@@ -90,70 +85,79 @@ class UsersModel extends ListModel
     }
 
     /**
-     * Builds the SQL query for the list.
+     * Build an SQL query to load the list data.
      *
-     * Selects all component columns (a.*) plus the Joomla user fields we need
-     * for display (username, email, lastvisitDate). The INNER JOIN ensures
-     * rows whose linked Joomla user has been hard-deleted are excluded.
-     *
-     * @return \Joomla\Database\DatabaseQuery
+     * @return DatabaseQuery
      *
      * @since   1.0.1
      */
     protected function getListQuery()
     {
-        $db = $this->getDatabase();
+        // Create a new query object.
+        $db = $this->getDbo();
         $query = $db->getQuery(true);
 
+        // Select the required fields from the table.
         $query->select(
             $this->getState(
                 'list.select',
-                'a.*, u.name AS joomla_name, u.username, u.email, u.lastvisitDate',  // no DISTINCT
+                'DISTINCT a.*',
             ),
         );
+        $query->from('`#__alfa_users` AS a');
 
-        $query->from($db->quoteName('#__alfa_users', 'a'));
+        // Join over the users for the checked out user
+        $query->select('uc.name AS uEditor');
+        $query->join('LEFT', '#__users AS uc ON uc.id=a.checked_out');
 
-        $query->join(
-            'INNER',
-            $db->quoteName('#__users', 'u') . ' ON u.id = a.id_user',
-        );
+        // Join over the user field 'created_by'
+        $query->select('`created_by`.name AS `created_by`');
+        $query->join('LEFT', '#__users AS `created_by` ON `created_by`.id = a.`created_by`');
 
+        // Join over the user field 'modified_by'
+        $query->select('`modified_by`.name AS `modified_by`');
+        $query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
+
+        // Filter by published state
+        $published = $this->getState('filter.state');
+
+        if (is_numeric($published)) {
+            $query->where('a.state = ' . (int) $published);
+        } elseif (empty($published)) {
+            $query->where('(a.state IN (0, 1))');
+        }
+
+        // Filter by search in title
         $search = $this->getState('filter.search');
 
         if (!empty($search)) {
             if (stripos($search, 'id:') === 0) {
                 $query->where('a.id = ' . (int) substr($search, 3));
             } else {
-                $search = $db->quote('%' . $db->escape($search, true) . '%');
-                $query->where(
-                    '(' .
-                        'u.username LIKE ' . $search .
-                        ' OR u.email LIKE ' . $search .
-                        ' OR a.note LIKE ' . $search .
-                    ')',
-                );
+                $search = $db->Quote('%' . $db->escape($search, true) . '%');
             }
         }
 
-        $orderCol = $this->getState('list.ordering', 'a.id');
-        $orderDirn = $this->getState('list.direction', 'ASC');
-        $query->order($db->escape($orderCol . ' ' . $orderDirn));
+        // Add the list ordering clause.
+        $orderCol = $this->state->get('list.ordering', 'id');
+        $orderDirn = $this->state->get('list.direction', 'ASC');
 
-        // print_r($db->replacePrefix((string) $query));
-        // exit;
+        if ($orderCol && $orderDirn) {
+            $query->order($db->escape($orderCol . ' ' . $orderDirn));
+        }
+
         return $query;
     }
 
     /**
-     * Returns the list of items, with any post-processing applied.
+     * Get an array of data items
      *
-     * @return array|false
-     *
-     * @since   1.0.1
+     * @return mixed Array of data items on success, false on failure.
      */
     public function getItems()
     {
-        return parent::getItems();
+        $items = parent::getItems();
+
+        return $items;
     }
 }

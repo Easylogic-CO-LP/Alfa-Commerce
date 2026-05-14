@@ -298,7 +298,7 @@ class PriceDataLoader
         $userId = (int) ($context->getUserId() ?? 0);
 
         $query = $db->getQuery(true)
-            ->select('DISTINCT d.id, d.name, d.value, d.is_amount, d.behavior, d.operation, d.apply_before_tax, ic.item_id')
+            ->select('DISTINCT d.id, d.value, d.is_amount, d.behavior, d.operation, d.apply_before_tax, ic.item_id')
             ->from('#__alfa_discounts AS d')
 
             // ── Scope 1: Category ──────────────────────────────────────────────
@@ -379,7 +379,7 @@ class PriceDataLoader
         $userId = (int) ($context->getUserId() ?? 0);
 
         $query = $db->getQuery(true)
-            ->select('DISTINCT t.id, t.name, t.value, t.behavior, ic.item_id')
+            ->select('DISTINCT t.id, t.value, t.behavior, ic.item_id')
             ->from('#__alfa_taxes AS t')
 
             // ── Scope 1: Category ──────────────────────────────────────────────

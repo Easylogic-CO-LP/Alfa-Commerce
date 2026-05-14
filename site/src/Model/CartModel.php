@@ -70,7 +70,7 @@ class CartModel extends FormModel   // Should this extend FormModel? Contact mod
         //	    print_r($data);
         //		exit;
 
-        FieldsHelper::prepareForm('cart.form', $form, $data, 'cart');
+        FieldsHelper::prepareForm('com_alfa.cart', $form, $data);
 
         //        echo '<pre>';
         //        echo htmlspecialchars($form->getXml()->saveXML());

@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\MVC\Model\AdminModel;
 use Joomla\CMS\Table\Table;
@@ -121,7 +122,11 @@ class OrderstatusModel extends AdminModel
     */
     public function save($data)
     {
-        $app = Factory::getApplication();
+	    $app = Factory::getApplication();
+	    $input = $app->getInput();
+
+	    $rawData = $input->post->get('jform', [], 'array');
+	    $data    = array_merge($data, $rawData);
 
         // $data['alias'] = $data['alias'] ?: $data['name'];
 
@@ -152,6 +157,17 @@ class OrderstatusModel extends AdminModel
             $currentId = intval($this->getState($this->getName() . '.id'));//get the id from setted joomla state
         }
 
+	    // MULTILINGUAL: Save per-language translations to language tables.
+	    // Each language table stores name, alias, desc etc. for that language.
+	    // Alias is treated as a slug — auto-generated from name when blank
+	    // and sanitised via OutputFilter inside MultilingualHelper.
+	    MultilingualHelper::saveMultilingualData(
+		    currentId:         $currentId,
+		    primaryColumnName: 'id_order_status',
+		    tableName:         '#__alfa_orders_statuses',
+		    data:              $data,
+	    );
+
         // $this->setPrices($currentId,$data['prices']);
 
         // AlfaHelper::setAssocsToDb($data['id'], $data['categories'], '#__alfa_items_categories', 'item_id','category_id');
@@ -162,6 +178,30 @@ class OrderstatusModel extends AdminModel
 
         return true;
         // return parent::save($data);
+    }
+
+    /**
+     * Delete one or more item records.
+     *
+     * Removes price-index rows as an explicit safety net
+     * (FK ON DELETE CASCADE covers hard deletes, but not trash / soft-delete).
+     *
+     * @param  array $pks
+     *
+     * @return bool
+     */
+    public function delete(&$pks) {
+        $retVal = parent::delete($pks);
+
+        if ($retVal && !empty($pks)) {
+            MultilingualHelper::deleteMultilingualData(
+                ids:               $pks,
+                primaryColumnName: 'id_order_status',
+                tableName:         '#__alfa_orders_statuses',
+            );
+        }
+
+        return $retVal;
     }
 
     /**

@@ -15,14 +15,8 @@
 }
 
 .list-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-
     border: 1px solid black;
     text-align: center;
-
-    height: 100%;
 }
 
 .list-item img {
@@ -35,8 +29,4 @@
 .product-title {
     margin: 0.7rem 0;
     padding: 0 10px;
-}
-
-.item-title {
-    margin-top: auto;
 }

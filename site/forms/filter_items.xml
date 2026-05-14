@@ -21,17 +21,15 @@
             chip on page load, even when the filter value is empty.
             Empty selection already means "all" — the placeholder handles the UX.
         -->
-        <field
-                name="category"
-                type="sql"
-                multiple="true"
-                label="COM_ALFA_FILTER_CATEGORY_LBL"
-                layout="joomla.form.field.list-fancy-select"
-                query="SELECT `id`, `name` AS val FROM `#__alfa_categories` WHERE `state` = 1 ORDER BY `name` ASC"
-                key_field="id"
-                value_field="val"
-                onchange="this.form.submit();"
-                hint="COM_ALFA_FILTER_ALL_CATEGORIES"
+        <field name="categories"
+               type="categories"
+               showPath="true"
+               multiple="true"
+               default="0"
+               layout="joomla.form.field.list-fancy-select"
+               label="COM_ALFA_FORM_LBL_CATEGORIES"
+               description=""
+               header="COM_ALFA_FORM_CATEGORY_ALL"
         />
 
         <!-- ── Manufacturer filter ──────────────────────────────────────── -->
@@ -40,16 +38,15 @@
             hint= provides the "all manufacturers" placeholder text.
         -->
         <field
-                name="manufacturer"
-                type="sql"
+                name="manufacturers"
+                type="manufacturers"
+                required="false"
                 multiple="true"
-                label="COM_ALFA_FILTER_MANUFACTURER_LBL"
+                default="0"
+                label="COM_ALFA_FORM_LBL_MANUFACTURERS"
+                description="COM_ALFA_FORM_DESC_MANUFACTURERS"
                 layout="joomla.form.field.list-fancy-select"
-                query="SELECT `id`, `name` AS val FROM `#__alfa_manufacturers` ORDER BY `name` ASC"
-                key_field="id"
-                value_field="val"
-                onchange="this.form.submit();"
-                hint="COM_ALFA_FILTER_ALL_MANUFACTURERS"
+                header="COM_ALFA_FORM_HEADER_ALL_MANUFACTURERS"
         />
 
         <!-- ── Price range ───────────────────────────────────────────────── -->

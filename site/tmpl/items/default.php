@@ -59,48 +59,12 @@ $wa->addInlineScript(<<<'JS'
         });
     });
 JS);
-// TEMPLATE OVERRIDE EXAMPLES (uncomment to use) else you can overwrite the price layout:
-//
-// Example 1: Hide tax on this page
-// $priceSettings = PriceSettings::except('tax');
-//
-// Example 2: Show only final price (minimal display)
-// $priceSettings = PriceSettings::minimal();
-//
-// Example 3: Show everything with labels
-// $priceSettings = PriceSettings::full();
-//
-// Example 4: Show everything without labels (compact)
-// $priceSettings = PriceSettings::compact();
-//
-// Example 5: Custom - show base, discount (no label), and final
-// $priceSettings = PriceSettings::make()
-//     ->show('base')             // With label
-//     ->show('discount', false)  // Without label
-//     ->show('final')            // With label
-//     ->get();
-//
-// Example 6: Show multiple elements without labels
-// $priceSettings = PriceSettings::make()
-//     ->show('base', false)
-//     ->show('discount', false)
-//     ->show('final', false)
-//     ->get();
-//
-// Example 7: Show elements then remove all labels (alternative to example 6)
-// $priceSettings = PriceSettings::make()
-//     ->show('base')
-//     ->show('discount')
-//     ->show('final')
-//     ->withoutLabels()  // Removes all labels
-//     ->get();
-//
-// Example 8: Show only base and final (comparison view)
-// $priceSettings = PriceSettings::only('base', 'final');
-//
-// Example 9: Hide base price and tax
-// $priceSettings = PriceSettings::except('base', 'tax');
-// ============================================================================
+
+//echo '<pre>';
+//print_r($this->items);
+//echo '</pre>';
+//exit();
+
 ?>
 
 <?php echo $this->loadTemplate('categories'); ?>

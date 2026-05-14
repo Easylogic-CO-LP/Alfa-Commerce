@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Exception;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 use Joomla\CMS\MVC\Model\ListModel;
@@ -119,6 +120,15 @@ class OrderstatusesModel extends ListModel
         // Join over the user field 'modified_by'
         $query->select('`modified_by`.name AS `modified_by`');
         $query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
+
+	    MultilingualHelper::addMultilingualJoinToQuery(
+		    query:             $query,
+		    mainAlias:         'a',
+		    mainPrimaryColumn: 'id',
+		    langTableBase:     '#__alfa_orders_statuses',
+		    langPrimaryColumn: 'id_order_status',
+		    fields:            ['name'],
+	    );
 
         // Filter by published state
         $published = $this->getState('filter.state');

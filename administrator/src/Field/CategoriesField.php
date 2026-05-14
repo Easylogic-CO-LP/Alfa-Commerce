@@ -77,10 +77,10 @@ class CategoriesField extends ListField
 
             $this->options['cat-' . $category->id] = [
                 'value' => $category->id,
-                'text' => (
-                    $showPath
-                    ? $category->path
-                    : str_repeat('-', $category->depth) . $category->name
+                'text' => (string) (
+                $showPath
+                    ? ($category->path ?? '')
+                    : str_repeat('-', (int) ($category->depth ?? 0)) . ($category->name ?? '')
                 ),
                 'disable' => $disableCurrent,
             ];

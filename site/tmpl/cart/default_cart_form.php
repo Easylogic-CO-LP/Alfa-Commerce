@@ -6,8 +6,6 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 defined('_JEXEC') or die;
-
-use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 ?>
 <form action="<?php echo \Joomla\CMS\Router\Route::_('index.php?option=com_alfa&task=cart.placeOrder'); ?>"
       method="POST">
@@ -16,7 +14,23 @@ use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
         <div class="col-md-6">
             <h4><?php echo \Joomla\CMS\Language\Text::_('COM_ALFA_FORM_CUSTOMER_DETAILS'); ?></h4>
 
-			<?php echo FieldsHelper::renderFieldset($this->form, 'cart'); ?>
+			<?php
+			// Iterate through field groups.
+			foreach ($this->form->getFieldsets() as $fieldset)
+			{
+				if ($fieldset->name === 'captcha')
+					continue;
+
+				// Render all fields of field group.
+				$fields = $this->form->getFieldset($fieldset->name);
+
+				if (count($fields)) {
+					foreach ($fields as $field) {
+						echo $field->renderField();
+                    }
+                }
+			}
+			?>
 			<?php echo $this->form->renderFieldset('captcha'); ?>
 
 
@@ -31,7 +45,6 @@ use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
         </div>
 
     </div>
-
 
     <button type="submit" class="btn btn-primary w-100" data-main_button="1"><?php echo \Joomla\CMS\Language\Text::_('COM_ALFA_BUTTON_PLACE_ORDER'); ?></button>
 

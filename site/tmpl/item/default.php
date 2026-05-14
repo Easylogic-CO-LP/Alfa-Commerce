@@ -31,6 +31,12 @@
 
     $priceSettings = $this->priceSettings;
     $medias = $this->item->medias;
+
+//    echo '<pre>';
+//    print_r($this->item);
+//    echo '</pre>';
+//    exit();
+
 ?>
 
 <div class="item-container" data-item-id="<?php echo $this->item->id; ?>">

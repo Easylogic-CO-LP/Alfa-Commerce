@@ -3,7 +3,6 @@
 </label>
 
 <?php
-
 /**
  * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
@@ -13,46 +12,47 @@
 
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 
-// Get a database connection.
-$db = Factory::getContainer()->get('DatabaseDriver');
+$app = Factory::getApplication();
+$db  = Factory::getContainer()->get('DatabaseDriver');
 
-// Create a new query object.
-$query = $db->getQuery(true);
+$app->getDocument()->getWebAssetManager()
+        ->usePreset('choicesjs')
+        ->useScript('webcomponent.field-fancy-select');
 
-// Select the columns you want to retrieve.
-$query->select($db->quoteName(['id', 'name']))
-    ->from($db->quoteName('#__alfa_manufacturers'));
+$queryMan = $db->getQuery(true)
+        ->select($db->quoteName('a.id'))
+        ->from($db->quoteName('#__alfa_manufacturers', 'a'));
 
-// Set the query and load the result.
-$db->setQuery($query);
+MultilingualHelper::addMultilingualJoinToQuery(
+        query:             $queryMan,
+        mainAlias:         'a',
+        mainPrimaryColumn: 'id',
+        langTableBase:     '#__alfa_manufacturers',
+        langPrimaryColumn: 'id_manufacturer',
+        fields:            ['name']
+);
 
-// Load the result as an associative array.
+$db->setQuery($queryMan);
 $manufacturers = $db->loadAssocList();
 
-// Create options array for the select list
-$options = array();
-// $options[] = HTMLHelper::_('select.option', '', '- Keep current manufacturer -');
+$manOptions = [];
 foreach ($manufacturers as $manufacturer) {
-    $options[] = HTMLHelper::_('select.option', $manufacturer['id'], $manufacturer['name']);
+    $name = !empty($manufacturer['name']) ? $manufacturer['name'] : 'ID: ' . $manufacturer['id'];
+    $manOptions[] = HTMLHelper::_('select.option', $manufacturer['id'], $name);
 }
-
-Factory::getApplication()->getDocument()->getWebAssetManager()
-    ->usePreset('choicesjs')
-    ->useScript('webcomponent.field-fancy-select');
-
-// Create the select list
 ?>
 
 <joomla-field-fancy-select>
     <?php echo HTMLHelper::_(
-    'select.genericlist',
-    $options,
-    'batch[manufacturer_id][]',
-    array(
-        'list.attr' => 'class="form-select" id="batch-manufacturer-id" multiple data-placeholder="- Select a manufacturer -"',
-        'list.select' => ''
-    ),
-);
-?>
+            'select.genericlist',
+            $manOptions,
+            'batch[manufacturer_id][]',
+            array(
+                    'list.attr'   => 'class="form-select" id="batch-manufacturer-id" multiple data-placeholder="- Select a manufacturer -"',
+                    'list.select' => ''
+            )
+    );
+    ?>
 </joomla-field-fancy-select>

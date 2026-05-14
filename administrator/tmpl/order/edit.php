@@ -24,7 +24,6 @@
 
 defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Language\Text;
@@ -56,14 +55,14 @@ HTMLHelper::_('bootstrap.tooltip');
     <div class="row">
         <div class="col-md-6">
             <fieldset class="adminform">
-                <legend><?php echo Text::_('COM_ALFA_FIELDSET_USER_DETAILS'); ?></legend>
-                <?php echo FieldsHelper::renderFieldset($this->form, 'user_details'); ?>
+                <h5 class="mb-0"><?php echo Text::_('COM_ALFA_FIELDSET_USER_DETAILS'); ?></h5>
+				<?php echo $this->form->renderFieldset('fields-0'); ?>
             </fieldset>
         </div>
         <div class="col-md-6">
             <fieldset class="adminform">
-                <legend><?php echo Text::_('COM_ALFA_FIELDSET_ORDER_DETAILS'); ?></legend>
-                <?php echo $this->form->renderFieldset('order_details'); ?>
+                <h5 class="mb-0"><?php echo Text::_('COM_ALFA_FIELDSET_ORDER_DETAILS'); ?></h5>
+				<?php echo $this->form->renderFieldset('order_details'); ?>
             </fieldset>
         </div>
     </div>

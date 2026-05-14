@@ -2,8 +2,15 @@
 <form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
 
     <fieldset name="general">
-        <field name="sku" size="255" filter="safehtml" type="text" translateLabel="true" translateDescription="true"
-               label="COM_ALFA_FORM_LBL_ITEM_SKU" description="COM_ALFA_FORM_DESC_ITEM_SKU"/>
+        <field name="sku"
+               size="255"
+               filter="safehtml"
+               type="text"
+               translateLabel="true"
+               translateDescription="true"
+               label="COM_ALFA_FORM_LBL_ITEM_SKU"
+               description="COM_ALFA_FORM_DESC_ITEM_SKU"
+        />
 
         <field name="gtin" size="255" filter="safehtml" type="text" translateLabel="true" translateDescription="true"
                label="COM_ALFA_FORM_LBL_ITEM_GTIN" description="COM_ALFA_FORM_DESC_ITEM_GTIN"/>
@@ -49,8 +56,9 @@
                 default="0"
                 min="0"
         />
+    </fieldset>
 
-
+    <fieldset name="inventory">
         <field
                 name="quantity_min"
                 type="number"
@@ -77,7 +85,6 @@
                 default="1"
         />
 
-
         <field name="stock_action" type="list"
                label="COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION"
                description="COM_ALFA_FORM_DESC_ITEM_STOCK_ACTION"
@@ -97,16 +104,20 @@
         />
 
         <field name="stock_low_message"
+               multilingual_table="#__alfa_items"
+               multilingual_pk="id_item"
                label="COM_ALFA_FORM_LBL_ITEM_LOW_STOCK_MESSAGE"
                description="COM_ALFA_FORM_DESC_ITEM_LOW_STOCK_MESSAGE"
-               type="editor"
+               type="MultilingualEditor"
                showon="stock_low!:"
         />
 
         <field name="stock_zero_message"
+               multilingual_table="#__alfa_items"
+               multilingual_pk="id_item"
                label="COM_ALFA_FORM_LBL_ITEM_ZERO_STOCK_MESSAGE"
                description="COM_ALFA_FORM_DESC_ITEM_ZERO_STOCK_MESSAGE"
-               type="editor"
+               type="MultilingualEditor"
         />
 
         <field name="manage_stock" type="radio"
@@ -117,14 +128,15 @@
             <option value="0">JNO</option>
             <option value="1">JYES</option>
         </field>
+    </fieldset>
 
-        <field name="short_desc" cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText"
-               type="editor" label="COM_ALFA_FORM_LBL_ITEM_SHORT_DESC"
+    <fieldset name="desc_editors">
+        <field name="short_desc" multilingual_table="#__alfa_items" multilingual_pk="id_item" cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText"
+               type="MultilingualEditor" label="COM_ALFA_FORM_LBL_ITEM_SHORT_DESC"
                description="COM_ALFA_FORM_DESC_ITEM_SHORT_DESC"/>
 
-        <field name="full_desc" cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText"
-               type="editor" label="COM_ALFA_FORM_LBL_ITEM_FULL_DESC" description="COM_ALFA_FORM_DESC_ITEM_FULL_DESC"/>
-
+        <field name="full_desc" multilingual_table="#__alfa_items" multilingual_pk="id_item" cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText"
+               type="MultilingualEditor" label="COM_ALFA_FORM_LBL_ITEM_FULL_DESC" description="COM_ALFA_FORM_DESC_ITEM_FULL_DESC"/>
     </fieldset>
 
     <fieldset>
@@ -148,33 +160,73 @@
 
         <!--    <field name="name" type="multilingualText" required="false" label="COM_ALFA_FORM_LBL_ITEM_NAME" description="COM_ALFA_FORM_DESC_ITEM_NAME" />-->
 
-        <field name="name" size="400" filter="safehtml" type="text" required="true" translateLabel="true"
+        <!-- if required = true throws error when saving -->
+        <field name="name" multilingual_table="#__alfa_items" multilingual_pk="id_item" maxlength="400" filter="safehtml" class="form-control" type="MultilingualText" required="true" translateLabel="true"
                label="COM_ALFA_FORM_LBL_ITEM_NAME" description="COM_ALFA_FORM_DESC_ITEM_NAME"/>
 
-
-        <field name="alias" type="text" label="JFIELD_ALIAS_LABEL" description="COM_ALFA_FORM_DESC_ITEM_ALIAS"/>
+        <field name="alias" multilingual_table="#__alfa_items" multilingual_pk="id_item" type="MultilingualText" label="JFIELD_ALIAS_LABEL" description="COM_ALFA_FORM_DESC_ITEM_ALIAS"/>
 
         <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL"
                description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>
 
-        <field name="id_category_default" type="categories" required="true" showPath="true" multiple="false"
-               layout="joomla.form.field.list-fancy-select" label="Default Category" description="">
+        <field name="id_category_default"
+               type="categories"
+               required="true"
+               showPath="true"
+               multiple="false"
+               layout="joomla.form.field.list-fancy-select"
+               label="Default Category"
+               description=""
+        >
         </field>
 
-        <field name="categories" type="categories" showPath="true" multiple="true"
-               layout="joomla.form.field.list-fancy-select" label="Categories" description="">
-        </field>
+        <!--        <field name="categories"-->
+        <!--               type="categories"-->
+        <!--               input_type="list"-->
+        <!--               showPath="true"-->
+        <!--               multiple="true"-->
+        <!--               layout="joomla.form.field.list-fancy-select"-->
+        <!--               label="Categories"-->
+        <!--               description=""-->
+        <!--               query="SELECT `id`, `name` AS val FROM `#__alfa_categories`" key_field="id" value_field="val"-->
+        <!--        />-->
 
         <field
-                name="manufacturers" type="sql"
-                input_type="list"
+                name="categories"
+                type="categories"
+                showPath="true"
+                multiple="true"
+                label="COM_ALFA_FORM_LBL_CATEGORIES"
+                description=""
+                layout="joomla.form.field.list-fancy-select"
+        >
+            <option value="0">COM_ALFA_FORM_CATEGORY_ALL</option>
+        </field>
+
+        <!--        <field-->
+        <!--                name="manufacturers"-->
+        <!--                type="manufacturers"-->
+        <!--                input_type="list"-->
+        <!--                required="false"-->
+        <!--                multiple="true"-->
+        <!--                label="COM_ALFA_FORM_LBL_MANUFACTURERS"-->
+        <!--                description="COM_ALFA_FORM_DESC_MANUFACTURERS"-->
+        <!--                layout="joomla.form.field.list-fancy-select"-->
+        <!--                query="SELECT `id`, `name` AS val FROM `#__alfa_manufacturers`" key_field="id" value_field="val"-->
+        <!--        />-->
+
+        <field
+                name="manufacturers"
+                type="manufacturers"
                 required="false"
                 multiple="true"
+                default="0"
                 label="COM_ALFA_FORM_LBL_MANUFACTURERS"
                 description="COM_ALFA_FORM_DESC_MANUFACTURERS"
                 layout="joomla.form.field.list-fancy-select"
-                query="SELECT `id`, `name` AS val FROM `#__alfa_manufacturers`" key_field="id" value_field="val"
-        />
+        >
+            <option value="0">COM_ALFA_FORM_HEADER_ALL_MANUFACTURERS</option>
+        </field>
 
         <field
                 name="prices"

@@ -42,7 +42,7 @@
                 <div class="category-item list-item">
                     <a href="<?php echo $item->link; ?>">
 						<?php if (!empty($item->medias[0])): ?>
-                            <img src=<?= $item->medias[0]->path ?>>
+                            <img src=<?= Uri::root() . $item->medias[0]->path ?>>
 						<?php endif; ?>
                     </a>
 
@@ -51,7 +51,7 @@
                     </div>
 
                     <div class="category-description">
-						<?php echo $this->escape($item->desc); ?>
+						<?php echo $item->desc; ?>
                     </div>
                     <div class="category-products">
                         <a href="<?php echo $item->link; ?>">

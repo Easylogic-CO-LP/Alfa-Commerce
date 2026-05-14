@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use JForm;
 use Joomla\CMS\Event\Model;
@@ -171,7 +172,15 @@ class DiscountModel extends AdminModel
      */
     public function save($data)
     {
-        $app = Factory::getApplication();
+	    $app = Factory::getApplication();
+	    $input = $app->getInput();
+
+	    $rawData = $input->post->get('jform', [], 'array');
+	    $data    = array_merge($data, $rawData);
+
+	    // MULTILINGUAL INJECTION: Resolve fallback name and alias from the default language
+	    $defaultLangTag = MultilingualHelper::getDefaultLanguageTag();
+	    $data['name']   = $data['name_' . $defaultLangTag] ?? $data['name'] ?? '';
 
         // Step 1: save the main discount row
         if (!parent::save($data)) {
@@ -184,6 +193,17 @@ class DiscountModel extends AdminModel
         } else { // is new
             $currentId = intval($this->getState($this->getName() . '.id'));//get the id from setted joomla state
         }
+
+	    // MULTILINGUAL: Save per-language translations to language tables.
+	    // Each language table stores name, alias, desc etc. for that language.
+	    // Alias is treated as a slug — auto-generated from name when blank
+	    // and sanitised via OutputFilter inside MultilingualHelper.
+	    MultilingualHelper::saveMultilingualData(
+		    currentId:         $currentId,
+		    primaryColumnName: 'id_discount',
+		    tableName:         '#__alfa_discounts',
+		    data:              $data,
+	    );
 
         // Step 2: save all scope associations.
         // $assignZeroIdIfDataEmpty = true means: if the admin left a scope field

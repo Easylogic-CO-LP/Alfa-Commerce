@@ -6,9 +6,6 @@
         <field name="id_user_group" type="hidden" default="1"/>
     </fieldset>
 
-
-    
-
     <fieldset name="order_details">
         <field name="id" type="text" readonly="true" default="0" label="ID" description="JGLOBAL_FIELD_ID_DESC"/>
         <field name="id_address_delivery" type="hidden" default="1"/>

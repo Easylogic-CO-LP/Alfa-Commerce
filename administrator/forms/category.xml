@@ -13,15 +13,38 @@
             <option value="0">COM_ALFA_FROM_CATEGORY_NO_OPTION</option>
         </field>
 
-        <field name="name" maxlength="400" filter="safehtml" type="text" required="true" translateLabel="true"
-               translateDescription="true" label="COM_ALFA_FORM_LBL_CATEGORY_NAME"
-               description="COM_ALFA_FORM_DESC_CATEGORY_NAME" hint="COM_ALFA_FORM_LBL_CATEGORY_NAME"/>
+        <field name="name"
+               type="MultilingualText"
+               multilingual_table="#__alfa_categories"
+               multilingual_pk="id_category"
+               maxlength="400"
+               filter="safehtml"
+               required="true"
+               translateLabel="true"
+               translateDescription="true"
+               label="COM_ALFA_FORM_LBL_CATEGORY_NAME"
+               description="COM_ALFA_FORM_DESC_CATEGORY_NAME"
+               hint="COM_ALFA_FORM_LBL_CATEGORY_NAME"
+        />
 
-        <field name="desc" type="editor" label="COM_ALFA_FORM_LBL_CATEGORY_DESC"
-               description="COM_ALFA_FORM_CATEGORY_DESC"/>
+        <field name="desc"
+               type="MultilingualEditor"
+               multilingual_table="#__alfa_categories"
+               filter="safehtml"
+               multilingual_pk="id_category"
+               label="COM_ALFA_FORM_LBL_CATEGORY_DESC"
+               description="COM_ALFA_FORM_CATEGORY_DESC"
+        />
 
-        <field name="alias" type="text" class="inputbox" generator="name" label="JFIELD_ALIAS_LABEL"
-               description="COM_ALFA_FORM_DESC_CATEGORY_ALIAS" hint="COM_ALFA_FORM_LBL_CATEGORY_ALIAS"/>
+        <field name="alias"
+               type="MultilingualText"
+               multilingual_table="#__alfa_categories"
+               multilingual_pk="id_category"
+               generator="name"
+               label="JFIELD_ALIAS_LABEL"
+               description="COM_ALFA_FORM_DESC_CATEGORY_ALIAS"
+               hint="COM_ALFA_FORM_LBL_CATEGORY_ALIAS"
+        />
 
         <field
                 name="state"

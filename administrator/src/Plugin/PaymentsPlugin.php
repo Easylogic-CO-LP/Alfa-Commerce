@@ -61,6 +61,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     /** @var string Default completion page URL */
     protected string $completePageUrl;
 
+    protected string $processPageUrl;
+
     /**
      * Events this plugin subscribes to.
      *
@@ -89,6 +91,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
         parent::__construct($config);
 
         $this->completePageUrl = 'index.php?option=com_alfa&view=cart&layout=default_order_completed';
+        $this->processPageUrl = 'index.php?option=com_alfa&view=cart&layout=default_order_process';
         $this->logIdentifierField = 'id_order_payment';
     }
 
@@ -110,6 +113,26 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     public function setCompletePageUrl(string $url): void
     {
         $this->completePageUrl = $url;
+    }
+
+    /**
+     * Get the order completion page URL.
+     *
+     * @since   3.0.0
+     */
+    public function getProcessPageUrl(): string
+    {
+        return $this->processPageUrl;
+    }
+
+    /**
+     * Set the order completion page URL.
+     *
+     * @since   3.0.0
+     */
+    public function setProcessPageUrl(string $url): void
+    {
+        $this->processPageUrl = $url;
     }
 
     // ==========================================================
