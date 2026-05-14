@@ -1,9 +1,8 @@
-<label id="batch-manufacturer-lbl" for="batch-manufacturer-id">
+<label id="batch-category-lbl" for="batch-category-id">
     Category to select:
 </label>
 
 <?php
-
 /**
  * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
@@ -13,44 +12,46 @@
 
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 
-// Get a database connection.
-$db = Factory::getContainer()->get('DatabaseDriver');
+$app = Factory::getApplication();
+$db  = Factory::getContainer()->get('DatabaseDriver');
 
-// Create a new query object.
-$query = $db->getQuery(true);
+$app->getDocument()->getWebAssetManager()
+        ->usePreset('choicesjs')
+        ->useScript('webcomponent.field-fancy-select');
 
-// Select the columns you want to retrieve.
-$query->select($db->quoteName(['id', 'name']))
-    ->from($db->quoteName('#__alfa_categories'));
+$queryCat = $db->getQuery(true)
+        ->select($db->quoteName('a.id'))
+        ->from($db->quoteName('#__alfa_categories', 'a'));
 
-// Set the query and load the result.
-$db->setQuery($query);
+MultilingualHelper::addMultilingualJoinToQuery(
+        query:             $queryCat,
+        mainAlias:         'a',
+        mainPrimaryColumn: 'id',
+        langTableBase:     '#__alfa_categories',
+        langPrimaryColumn: 'id_category',
+        fields:            ['name']
+);
 
-// Load the result as an associative array.
+$db->setQuery($queryCat);
 $categories = $db->loadAssocList();
 
-// Create options array for the select list
-$options = array();
-// $options[] = HTMLHelper::_('select.option', '', '- Keep current category -');
+$catOptions = [];
 foreach ($categories as $category) {
-    $options[] = HTMLHelper::_('select.option', $category['id'], $category['name']);
+    $name = !empty($category['name']) ? $category['name'] : 'ID: ' . $category['id'];
+    $catOptions[] = HTMLHelper::_('select.option', $category['id'], $name);
 }
-
-Factory::getApplication()->getDocument()->getWebAssetManager()
-    ->usePreset('choicesjs')
-    ->useScript('webcomponent.field-fancy-select');
-
 ?>
 
 <joomla-field-fancy-select>
     <?php echo HTMLHelper::_(
-        'select.genericlist',
-        $options,
-        'batch[category_id][]',
-        array(
-            'list.attr' => 'class="form-select" id="batch-category-id" multiple data-placeholder="- Select a category -" ',
-            'list.select' => ''
-        ),
+            'select.genericlist',
+            $catOptions,
+            'batch[category_id][]',
+            array(
+                    'list.attr'   => 'class="form-select" id="batch-category-id" multiple data-placeholder="- Select a category -"',
+                    'list.select' => ''
+            )
     ); ?>
 </joomla-field-fancy-select>
