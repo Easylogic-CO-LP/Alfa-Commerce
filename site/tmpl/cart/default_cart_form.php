@@ -6,6 +6,8 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 defined('_JEXEC') or die;
+
+use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 ?>
 <form action="<?php echo \Joomla\CMS\Router\Route::_('index.php?option=com_alfa&task=cart.placeOrder'); ?>"
       method="POST">
@@ -14,36 +16,7 @@ defined('_JEXEC') or die;
         <div class="col-md-6">
             <h4><?php echo \Joomla\CMS\Language\Text::_('COM_ALFA_FORM_CUSTOMER_DETAILS'); ?></h4>
 
-			<?php
-			//                echo "<pre>";
-			//
-			//                foreach($this->form->getFieldsets() as $fieldset){
-			//                    $fields = $this->form->getFieldset($fieldset->name);
-			//                    print_r($fields);
-			////                    exit;
-			//                    if(count($fields)){
-			//                        foreach($fields as $field) {
-			//                            print_r($field);
-			//                        }
-			//                    }
-			//                }
-			//                echo "</pre>";
-			//                exit;
-
-			// Iterate through field groups.
-			foreach ($this->form->getFieldsets() as $fieldset)
-			{
-				if ($fieldset->name === 'captcha')
-					continue;
-
-				// Render all fields of field group.
-				$fields = $this->form->getFieldset($fieldset->name);
-				if (count($fields))
-					foreach ($fields as $field)
-						echo $field->renderField();
-
-			}
-			?>
+			<?php echo FieldsHelper::renderFieldset($this->form, 'cart'); ?>
 			<?php echo $this->form->renderFieldset('captcha'); ?>
 
 

@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Site\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Helper\CartHelper;
 use Alfa\Component\Alfa\Site\Helper\OrderPlaceHelper;
@@ -288,7 +289,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
             $orderHelper = new OrderPlaceHelper();
 
             // FIXED: This returns TRUE on success, FALSE on failure
-            $orderPlacedSuccessfully = $orderHelper->placeOrder($data['com_alfa']);
+            $orderPlacedSuccessfully = $orderHelper->placeOrder($data[FieldsHelper::FIELDS_KEY]);
 
             // 7. Handle success
             if ($orderPlacedSuccessfully) {

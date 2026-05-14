@@ -122,6 +122,7 @@
 
         <plugin group="alfa-fields" plugin="text"/>
         <plugin group="alfa-fields" plugin="textarea"/> 
+        <plugin group="alfa-fields" plugin="tel"/>
         <plugin  group="system" plugin="alfasync"/>    
         
     </plugins>
@@ -131,6 +132,11 @@
 		<module module="mod_alfa_search" />
         <module module="mod_alfa_filters" />
 	</modules>
+
+    <libraries>
+        <library folder="lib_libphonenumber" libraryname="libphonenumber"/>
+        <library folder="lib_giggsey_locale" libraryname="giggsey/locale"/>
+    </libraries>
 
     <updateservers>
         <server type="extension" priority="1" name="com_alfa">https://cdn.demosites.gr/alfa-updates.xml</server>

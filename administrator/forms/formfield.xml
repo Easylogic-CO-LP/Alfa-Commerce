@@ -114,6 +114,20 @@
             <option value="-2">JTRASHED</option>
         </field>
 
+        <field name="group_id" type="sql"
+               default="0"
+               label="COM_ALFA_FORM_LBL_FIELD_GROUP"
+               description="COM_ALFA_FORM_DESC_FIELD_GROUP"
+               query="SELECT id AS value, CONCAT(title, IF(state = 0, ' (disabled)', '')) AS text FROM #__alfa_form_field_groups ORDER BY ordering ASC"
+               key_field="value" value_field="text">
+            <option value="0">COM_ALFA_FORM_OPTION_FIELD_GROUP_NONE</option>
+        </field>
+
+        <field name="layout" type="fieldLayout"
+               label="JFIELD_ALT_LAYOUT_LABEL"
+               description="COM_ALFA_FORM_DESC_FIELD_LAYOUT"
+               class="form-select"/>
+
         <field
                 name="created_by"
                 type="user"

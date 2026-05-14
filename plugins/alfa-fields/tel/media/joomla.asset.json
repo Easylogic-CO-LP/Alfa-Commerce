@@ -1,0 +1,48 @@
+{
+  "$schema": "https://developer.joomla.org/schemas/json-schema/web_assets.json",
+  "description": "intl-tel-input assets for plg_alfa-fields_tel",
+  "name": "plg_alfa-fields_tel",
+  "version": "1.0.0",
+  "assets": [
+    {
+      "name": "plg_alfa-fields_tel.intltelinput",
+      "type": "style",
+      "uri": "plg_alfa-fields_tel/intlTelInput.min.css"
+    },
+    {
+      "name": "plg_alfa-fields_tel.intltelinput",
+      "type": "script",
+      "uri": "plg_alfa-fields_tel/intlTelInputWithUtils.min.js",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "plg_alfa-fields_tel.tel",
+      "type": "style",
+      "uri": "plg_alfa-fields_tel/tel.css",
+      "dependencies": [
+        "plg_alfa-fields_tel.intltelinput"
+      ]
+    },
+    {
+      "name": "plg_alfa-fields_tel.tel",
+      "type": "script",
+      "uri": "plg_alfa-fields_tel/tel.js",
+      "dependencies": [
+        "plg_alfa-fields_tel.intltelinput"
+      ],
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "plg_alfa-fields_tel",
+      "type": "preset",
+      "dependencies": [
+        "plg_alfa-fields_tel.tel#style",
+        "plg_alfa-fields_tel.tel#script"
+      ]
+    }
+  ]
+}

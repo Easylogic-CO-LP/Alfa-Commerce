@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension type="plugin" group="alfa-fields" method="upgrade">
+    <name>PLG_ALFA_FIELDS_TEL</name>
+    <author>Easylogic</author>
+    <creationDate>2026-04</creationDate>
+    <copyright>(C) 2024-2026 Easylogic CO LP</copyright>
+    <license>GNU General Public License version 3 or later</license>
+    <version>1.0.0</version>
+    <description>PLG_ALFA_FIELDS_TEL_XML_DESCRIPTION</description>
+    <namespace path="src">Joomla\Plugin\AlfaFields\Tel</namespace>
+    <files>
+        <folder>params</folder>
+        <folder plugin="tel">services</folder>
+        <folder>src</folder>
+        <folder>tmpl</folder>
+    </files>
+    <languages folder="language">
+        <language tag="en-GB">en-GB/plg_alfa-fields_tel.ini</language>
+        <language tag="en-GB">en-GB/plg_alfa-fields_tel.sys.ini</language>
+    </languages>
+    <media destination="plg_alfa-fields_tel" folder="media">
+        <folder>js</folder>
+        <folder>css</folder>
+        <folder>img</folder>
+        <filename>joomla.asset.json</filename>
+    </media>
+    <config>
+        <fields name="params">
+            <fieldset name="basic">
+                <field
+                        addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
+                        layout="joomla.form.field.list-fancy-select"
+                        name="default_region"
+                        type="model"
+                        component="com_alfa"
+                        column_value="code2"
+                        column_text="name"
+                        default="GR"
+                        label="PLG_ALFA_FIELDS_TEL_DEFAULT_REGION_LABEL"
+                        orderBy="name"
+                        orderDir="ASC" />
+                <field name="require_mobile" type="radio" class="switcher" default="0"
+                       label="PLG_ALFA_FIELDS_TEL_REQUIRE_MOBILE_LABEL">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+            </fieldset>
+        </fields>
+    </config>
+</extension>

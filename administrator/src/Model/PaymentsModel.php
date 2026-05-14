@@ -23,13 +23,13 @@ use Joomla\CMS\MVC\Model\ListModel;
 class PaymentsModel extends ListModel
 {
     /**
-    * Constructor.
-    *
+     * Constructor.
+     *
      * @param array $config An optional associative array of configuration settings.
-    *
-    * @see        JController
-    * @since      1.6
-    */
+     *
+     * @see        JController
+     * @since      1.6
+     */
     public function __construct($config = [], ?MVCFactoryInterface $factory = null)
     {
         if (empty($config['filter_fields'])) {
@@ -122,10 +122,10 @@ class PaymentsModel extends ListModel
 
         // Join over category IDs and names.
         $query->select("GROUP_CONCAT(DISTINCT pcat.category_id SEPARATOR ',') AS payment_category_IDs")
-              ->join('LEFT', '#__alfa_payment_categories as pcat ON a.id = pcat.payment_id');
+            ->join('LEFT', '#__alfa_payment_categories as pcat ON a.id = pcat.payment_id');
 
         $query->select("GROUP_CONCAT(DISTINCT cat.name SEPARATOR ', ') AS category_names")
-              ->join('LEFT', '#__alfa_categories as cat ON pcat.category_id = cat.id');
+            ->join('LEFT', '#__alfa_categories as cat ON pcat.category_id = cat.id');
 
         // Join over manufacturer IDs and names.
         $query->select("GROUP_CONCAT(DISTINCT pman.manufacturer_id SEPARATOR ',') AS payment_manufacturer_IDs")
