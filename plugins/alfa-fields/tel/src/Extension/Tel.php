@@ -52,8 +52,8 @@ final class Tel extends FieldsPlugin
         // the validate="X" attribute (the attribute is server-side only).
         // Without this class, setHandler('alfatel') never fires on submit/blur.
         $validateKey = $node->getAttribute('validate') ?: 'alfatel';
-        $existing    = $node->getAttribute('class');
-        $needle      = 'validate-' . $validateKey;
+        $existing = $node->getAttribute('class');
+        $needle = 'validate-' . $validateKey;
         if (!preg_match('/\b' . preg_quote($needle, '/') . '\b/', $existing)) {
             $node->setAttribute('class', trim($existing . ' ' . $needle));
         }
@@ -65,7 +65,6 @@ final class Tel extends FieldsPlugin
         if (!$node->getAttribute('autocomplete')) {
             $node->setAttribute('autocomplete', 'tel');
         }
-
 
         $defaultRegion = $fieldParams->get('default_region', 'GR');
         $allowedRegions = $fieldParams->get('allowed_regions', '') ?: [];

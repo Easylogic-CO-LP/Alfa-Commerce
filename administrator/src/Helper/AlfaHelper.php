@@ -485,7 +485,7 @@ class AlfaHelper
         }
 
         $paramsFile = JPATH_ROOT . '/plugins/' . $pluginGroup . '/' . $pluginName . '/params/params.xml';
-//        $paramsFile2 = JPATH_ROOT . '/plugins/' . $pluginGroup . '/' . $pluginName . '/params/' . $pluginName . '.xml';
+        //        $paramsFile2 = JPATH_ROOT . '/plugins/' . $pluginGroup . '/' . $pluginName . '/params/' . $pluginName . '.xml';
 
         $app->getLanguage()->load('plg_' . $pluginGroup . '_' . $pluginName);
 
@@ -493,9 +493,9 @@ class AlfaHelper
             // Load the XML file into the form.
             $form->loadFile($paramsFile, false);
         } // elseif (file_exists($paramsFile2)) {
-//            // Load the XML file into the form.
-//            $form->loadFile($paramsFile2, false);
-//        }
+        //            // Load the XML file into the form.
+        //            $form->loadFile($paramsFile2, false);
+        //        }
 
         //        echo "<pre>";
         //

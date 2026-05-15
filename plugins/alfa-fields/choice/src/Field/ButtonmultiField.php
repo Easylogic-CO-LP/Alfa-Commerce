@@ -12,7 +12,7 @@ defined('_JEXEC') or die;
 // the layout (for the live hint) and ChoiceRule (for server validation).
 class ButtonmultiField extends CheckboxesField
 {
-    protected $type   = 'Buttonmulti';
+    protected $type = 'Buttonmulti';
     protected $layout = 'layouts.buttonmulti';
 
     public function getLayoutPaths(): array
@@ -24,15 +24,15 @@ class ButtonmultiField extends CheckboxesField
                 JPATH_THEMES . '/' . $template . '/html/plg_alfa-fields_choice',
                 JPATH_PLUGINS . '/alfa-fields/choice/tmpl',
             ],
-            parent::getLayoutPaths()
+            parent::getLayoutPaths(),
         );
     }
 
     protected function getLayoutData()
     {
-        $data                  = parent::getLayoutData();
-        $data['variant']       = (string) ($this->element['button_style'] ?: 'solid');
-        $data['layoutMode']    = (string) ($this->element['layout_mode'] ?: 'vertical');
+        $data = parent::getLayoutData();
+        $data['variant'] = (string) ($this->element['button_style'] ?: 'solid');
+        $data['layoutMode'] = (string) ($this->element['layout_mode'] ?: 'vertical');
         $data['minSelections'] = (int) ($this->element['data-min-selections'] ?: 0);
         $data['maxSelections'] = (int) ($this->element['data-max-selections'] ?: 0);
 

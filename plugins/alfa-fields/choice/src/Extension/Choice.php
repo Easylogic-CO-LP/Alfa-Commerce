@@ -45,15 +45,15 @@ final class Choice extends FieldsPlugin
             return null;
         }
 
-        $field  = $event->getField();
+        $field = $event->getField();
         $params = is_string($field->params)
             ? new Registry($field->params)
             : ($field->params ?? new Registry());
 
-        $renderAs  = (string) $params->get('render_as', 'select');
-        $minSel    = (int) $params->get('min_selections', 0);
-        $maxSel    = (int) $params->get('max_selections', 0);
-        $variant   = (string) $params->get('button_style', 'solid');
+        $renderAs = (string) $params->get('render_as', 'select');
+        $minSel = (int) $params->get('min_selections', 0);
+        $maxSel = (int) $params->get('max_selections', 0);
+        $variant = (string) $params->get('button_style', 'solid');
         $layoutMod = (string) $params->get('layout_mode', 'vertical');
 
         // FieldsPlugin::prepareDom() already copied params onto the node. The key
@@ -70,12 +70,12 @@ final class Choice extends FieldsPlugin
         // resolves them directly. Custom modes (button/buttonmulti) need the
         // field prefix so FormHelper finds ButtonField / ButtonmultiField.
         [$type, $multiple, $layout] = match ($renderAs) {
-            'multiselect'  => ['list',         true,  'joomla.form.field.list-fancy-select'],
-            'radio'        => ['radio',        false, null],
-            'checkbox'     => ['checkboxes',   false, null],
-            'button'       => ['button',       false, null],
+            'multiselect' => ['list',         true,  'joomla.form.field.list-fancy-select'],
+            'radio' => ['radio',        false, null],
+            'checkbox' => ['checkboxes',   false, null],
+            'button' => ['button',       false, null],
             'button-multi' => ['buttonmulti',  false, null],
-            default        => ['list',         false, null],
+            default => ['list',         false, null],
         };
 
         $node->setAttribute('type', $type);
@@ -119,13 +119,13 @@ final class Choice extends FieldsPlugin
         if (in_array($type, ['button', 'buttonmulti'], true)) {
             FormHelper::addFieldPrefix('Joomla\\Plugin\\AlfaFields\\Choice\\Field');
             $node->setAttribute('button_style', $variant);
-            $node->setAttribute('layout_mode',  $layoutMod);
+            $node->setAttribute('layout_mode', $layoutMod);
         }
 
         // Options pass through as <option> children — JForm picks them up via xpath.
         foreach ((array) $params->get('options', []) as $opt) {
             $value = is_object($opt) ? ($opt->value ?? '') : ($opt['value'] ?? '');
-            $text  = is_object($opt) ? ($opt->text  ?? '') : ($opt['text']  ?? '');
+            $text = is_object($opt) ? ($opt->text ?? '') : ($opt['text'] ?? '');
 
             if ($value === '' && $text === '') {
                 continue;

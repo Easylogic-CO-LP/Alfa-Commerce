@@ -1,4 +1,5 @@
 <?php
+
 defined('_JEXEC') or die;
 
 use Joomla\CMS\Extension\PluginInterface;
@@ -19,12 +20,12 @@ return new class () implements ServiceProviderInterface {
             PluginInterface::class,
             function (Container $container) {
                 $plugin = new Choice(
-                    (array) PluginHelper::getPlugin('alfa-fields', 'choice')
+                    (array) PluginHelper::getPlugin('alfa-fields', 'choice'),
                 );
                 $plugin->setApplication(Factory::getApplication());
 
                 return $plugin;
-            }
+            },
         );
     }
 };

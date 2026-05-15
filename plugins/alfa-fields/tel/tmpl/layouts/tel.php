@@ -28,26 +28,26 @@ $wa->useStyle('plg_alfa-fields_tel.intltelinput')
    ->useScript('plg_alfa-fields_tel.intltelinput')
    ->useScript('plg_alfa-fields_tel.tel');
 
-/** @var string  $autocomplete */
-/** @var bool    $autofocus    */
-/** @var string  $class        */
-/** @var bool    $disabled     */
-/** @var string  $hint         placeholder text */
-/** @var string  $id           */
-/** @var string  $name         */
-/** @var string  $onchange     */
-/** @var bool    $readonly     */
-/** @var bool    $required     */
-/** @var int     $size         */
-/** @var string  $value        */
-/** @var string  $dataAttribute  preformatted "data-foo=... data-bar=..." */
+/** @var string $autocomplete */
+/** @var bool $autofocus */
+/** @var string $class */
+/** @var bool $disabled */
+/** @var string $hint placeholder text */
+/** @var string $id */
+/** @var string $name */
+/** @var string $onchange */
+/** @var bool $readonly */
+/** @var bool $required */
+/** @var int $size */
+/** @var string $value */
+/** @var string $dataAttribute preformatted "data-foo=... data-bar=..." */
 
 $attributes = [
     !empty($class) ? 'class="form-control ' . $class . '"' : 'class="form-control"',
     !empty($size) ? 'size="' . $size . '"' : '',
     $disabled ? 'disabled' : '',
     $readonly ? 'readonly' : '',
-	$dataAttribute ?? '',
+    $dataAttribute ?? '',
     strlen($hint ?? '') ? 'placeholder="' . htmlspecialchars($hint, ENT_COMPAT, 'UTF-8') . '"' : '',
     $onchange ? 'onchange="' . $onchange . '"' : '',
     $required ? 'required' : '',
@@ -58,14 +58,14 @@ $attributes = [
 // Error keys map to JS state — tel.js reads element.querySelector('[data-err="..."]')
 // to show the right one. Add/remove rows here without touching JS.
 $errors = [
-    'invalid'         => 'PLG_ALFA_FIELDS_TEL_ERR_INVALID',
-    'too_short'       => 'PLG_ALFA_FIELDS_TEL_ERR_TOO_SHORT',
-    'too_long'        => 'PLG_ALFA_FIELDS_TEL_ERR_TOO_LONG',
+    'invalid' => 'PLG_ALFA_FIELDS_TEL_ERR_INVALID',
+    'too_short' => 'PLG_ALFA_FIELDS_TEL_ERR_TOO_SHORT',
+    'too_long' => 'PLG_ALFA_FIELDS_TEL_ERR_TOO_LONG',
     'invalid_country' => 'PLG_ALFA_FIELDS_TEL_ERR_INVALID_COUNTRY',
-    'local_only'      => 'PLG_ALFA_FIELDS_TEL_ERR_LOCAL_ONLY',
-    'invalid_length'  => 'PLG_ALFA_FIELDS_TEL_ERR_INVALID_LENGTH',
-    'not_mobile'      => 'PLG_ALFA_FIELDS_TEL_ERR_NOT_MOBILE',
-    'bad_region'      => 'PLG_ALFA_FIELDS_TEL_ERR_BAD_REGION',
+    'local_only' => 'PLG_ALFA_FIELDS_TEL_ERR_LOCAL_ONLY',
+    'invalid_length' => 'PLG_ALFA_FIELDS_TEL_ERR_INVALID_LENGTH',
+    'not_mobile' => 'PLG_ALFA_FIELDS_TEL_ERR_NOT_MOBILE',
+    'bad_region' => 'PLG_ALFA_FIELDS_TEL_ERR_BAD_REGION',
 ];
 ?>
 <div class="alfa-tel">
