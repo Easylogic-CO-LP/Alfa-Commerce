@@ -266,6 +266,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
 
         if (!$model->validate($form, $data)) {
             $errors = $model->getErrors();
+            
 
             foreach ($errors as $error) {
                 $errorMessage = $error;

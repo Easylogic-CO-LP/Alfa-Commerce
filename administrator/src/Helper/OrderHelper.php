@@ -550,6 +550,12 @@ class OrderHelper
             $userInfoObject = (object) $data;
             $userInfoObject->id = $userInfoId;
 
+            foreach ($userInfoObject as $key => $value) {
+                if (is_array($value)) {
+                    $userInfoObject->$key = json_encode($value);
+                }
+            }
+
             $db->updateObject('#__alfa_user_info', $userInfoObject, 'id', true);
 
             return true;

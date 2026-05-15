@@ -11,11 +11,10 @@
                 model="places"
                 column_value="code2"
                 column_text="name"
-                default=""
+                default="GR"
                 label="PLG_ALFA_FIELDS_TEL_DEFAULT_REGION_LABEL"
                 orderBy="name"
                 orderDir="ASC">
-                <option value="">COM_FIELDS_FIELD_USE_GLOBAL</option>
             </field>
 
             <field
@@ -30,14 +29,13 @@
                 default=""
                 label="PLG_ALFA_FIELDS_TEL_ALLOWED_REGIONS_LABEL"
                 hint="PLG_ALFA_FIELDS_TEL_SELECT_COUNTRY"
-                description="PLG_ALFA_FIELDS_TEL_ALLOWED_REGIONS_DESC"
+                description="Let it empty to auto use all countries list"
                 multiple="true"
                 orderBy="name"
                 orderDir="ASC" />
 
-            <field name="require_mobile" type="radio" default=""
+            <field name="require_mobile" type="radio" default="0"
                    label="PLG_ALFA_FIELDS_TEL_REQUIRE_MOBILE_LABEL">
-                <option value="">COM_FIELDS_FIELD_USE_GLOBAL</option>
                 <option value="0">JNO</option>
                 <option value="1">JYES</option>
             </field>

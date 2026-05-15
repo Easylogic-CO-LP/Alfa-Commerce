@@ -21,7 +21,6 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Model\AdminModel;
 use Joomla\CMS\Table\Table;
 use Joomla\String\StringHelper;
-use RuntimeException;
 
 /**
  * Item model.
@@ -336,11 +335,13 @@ class FormfieldModel extends AdminModel
 
     //	TODO: HANDLE DUPLICATES
 
+
+
     protected function manageUserInfoTable(array $data): string
     {
         $type = $data['fieldsparams']['sql_type'] ?? 'text';
         if (!self::isAllowedSqlType($type)) {
-            throw new RuntimeException('Invalid sql_type for form field: ' . $type);
+            throw new \RuntimeException('Invalid sql_type for form field: ' . $type);
         }
 
         $db = $this->getDatabase();

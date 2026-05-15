@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
@@ -29,12 +28,12 @@ class ModelField extends ListField
 
     protected function getOptions()
     {
-        $componentName = (string) ($this->element['component'] ?? 'com_alfa');
-        $modelName = (string) ($this->element['model'] ?? 'places');
-        $columnValue = (string) ($this->element['column_value'] ?? 'id');
-        $columnText = (string) ($this->element['column_text'] ?? 'name');
-        $orderBy = (string) ($this->element['orderBy'] ?? 'name');
-        $orderDir = strtoupper((string) ($this->element['orderDir'] ?? 'ASC')) === 'DESC' ? 'DESC' : 'ASC';
+        $componentName = (string) ($this->element['component']    ?? 'com_alfa');
+        $modelName     = (string) ($this->element['model']        ?? 'places');
+        $columnValue   = (string) ($this->element['column_value'] ?? 'id');
+        $columnText    = (string) ($this->element['column_text']  ?? 'name');
+        $orderBy       = (string) ($this->element['orderBy']      ?? 'name');
+        $orderDir      = strtoupper((string) ($this->element['orderDir'] ?? 'ASC')) === 'DESC' ? 'DESC' : 'ASC';
 
         $this->options = parent::getOptions();
 
@@ -53,10 +52,10 @@ class ModelField extends ListField
 
     protected function loadItems(string $componentName, string $modelName, string $columnValue, string $columnText, string $orderBy, string $orderDir): array
     {
-        $app = Factory::getApplication();
+        $app       = Factory::getApplication();
         $component = $app->bootComponent($componentName);
-        $factory = $component->getMVCFactory();
-        $model = $factory->createModel($modelName, 'Administrator');
+        $factory   = $component->getMVCFactory();
+        $model     = $factory->createModel($modelName, 'Administrator');
 
         if (!$model) {
             return [];
@@ -67,11 +66,11 @@ class ModelField extends ListField
         // (especially list.limit, which falls back to the component default — 20).
         $model->getState('list.ordering');
 
-        $model->setState('filter.state', '*');
-        $model->setState('filter.search', '');
-        $model->setState('list.limit', 0);
-        $model->setState('list.start', 0);
-        $model->setState('list.ordering', $orderBy);
+        $model->setState('filter.state',   '*');
+        $model->setState('filter.search',  '');
+        $model->setState('list.limit',     0);
+        $model->setState('list.start',     0);
+        $model->setState('list.ordering',  $orderBy);
         $model->setState('list.direction', $orderDir);
 
         $modelItems = $model->getItems() ?: [];
@@ -80,8 +79,8 @@ class ModelField extends ListField
 
         foreach ($modelItems as $modelItem) {
             $items[] = [
-                'value' => $modelItem->{$columnValue} ?? '',
-                'text' => $modelItem->{$columnText} ?? '',
+                'value'   => $modelItem->{$columnValue} ?? '',
+                'text'    => $modelItem->{$columnText}  ?? '',
                 'disable' => false,
             ];
         }

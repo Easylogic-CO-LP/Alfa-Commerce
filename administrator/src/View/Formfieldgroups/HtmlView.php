@@ -22,17 +22,17 @@ class HtmlView extends BaseHtmlView
     protected $items;
     protected $pagination;
     protected $state;
-    public $filterForm;
-    public $activeFilters;
+    public    $filterForm;
+    public    $activeFilters;
 
     public function display($tpl = null)
     {
         $model = $this->getModel();
 
-        $this->items = $model->getItems();
-        $this->pagination = $model->getPagination();
-        $this->state = $model->getState();
-        $this->filterForm = $model->getFilterForm();
+        $this->items         = $model->getItems();
+        $this->pagination    = $model->getPagination();
+        $this->state         = $model->getState();
+        $this->filterForm    = $model->getFilterForm();
         $this->activeFilters = $model->getActiveFilters();
 
         $this->addToolbar();
@@ -46,7 +46,7 @@ class HtmlView extends BaseHtmlView
 
     protected function addToolbar()
     {
-        $canDo = ContentHelper::getActions('com_alfa');
+        $canDo   = ContentHelper::getActions('com_alfa');
         $toolbar = $this->getDocument()->getToolbar();
 
         ToolbarHelper::title(Text::_('COM_ALFA_TITLE_FORMFIELDGROUPS'), 'generic');

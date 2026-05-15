@@ -44,7 +44,7 @@ class FormfieldgroupsModel extends ListModel
 
     protected function getListQuery()
     {
-        $db = $this->getDatabase();
+        $db    = $this->getDatabase();
         $query = $db->getQuery(true);
 
         $query->select($this->getState('list.select', 'a.*'))
@@ -71,7 +71,7 @@ class FormfieldgroupsModel extends ListModel
             }
         }
 
-        $orderCol = $this->state->get('list.ordering', 'a.ordering');
+        $orderCol  = $this->state->get('list.ordering',  'a.ordering');
         $orderDirn = $this->state->get('list.direction', 'ASC');
         $query->order($db->escape($orderCol . ' ' . $orderDirn));
 

@@ -8,8 +8,8 @@
 				label="PLG_ALFA_FIELDS_TEXT_PARAMS_FILTER_LABEL"
 				class="list"
 				validate="options"
+				default="safehtml"
 				>
-				<option value="">COM_FIELDS_FIELD_USE_GLOBAL</option>
 				<option value="0">JNO</option>
 				<option value="raw">JLIB_FILTER_PARAMS_RAW</option>
 				<option value="safehtml">JLIB_FILTER_PARAMS_SAFEHTML</option>
@@ -25,6 +25,7 @@
 				type="number"
 				label="PLG_ALFA_FIELDS_TEXT_PARAMS_MAXLENGTH_LABEL"
 				filter="integer"
+				default="255"
 			/>
 
 			<field
@@ -33,6 +34,7 @@
 					label="PLG_ALFA_FIELDS_TEXT_PARAMS_SQL_TYPE_LABEL"
 					class="list"
 					validate="options"
+					default="varchar(255)"
 			>
 				<option value="int(11)">Integer</option>
 				<option value="bigint(20)">Big Integer</option>

@@ -1,5 +1,4 @@
 <?php
-
 defined('_JEXEC') or die;
 
 use Joomla\CMS\Extension\PluginInterface;
@@ -7,8 +6,12 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
-use Joomla\Event\DispatcherInterface;
 use Joomla\Plugin\AlfaFields\Tel\Extension\Tel;
+
+// Events are auto-wired from Tel::getSubscribedEvents() (inherited empty default
+// from FieldsPlugin via SubscriberInterface). Do NOT pass a DispatcherInterface
+// to the constructor — that pattern is E_USER_DEPRECATED in Joomla 5+ and removed
+// in Joomla 7. See libraries/src/Plugin/CMSPlugin.php:133.
 
 return new class () implements ServiceProviderInterface {
     public function register(Container $container): void
@@ -16,16 +19,13 @@ return new class () implements ServiceProviderInterface {
         $container->set(
             PluginInterface::class,
             function (Container $container) {
-                $dispatcher = $container->get(DispatcherInterface::class);
                 $plugin = new Tel(
-                    $dispatcher,
-                    (array) PluginHelper::getPlugin('alfa-fields', 'tel'),
+                    (array) PluginHelper::getPlugin('alfa-fields', 'tel')
                 );
                 $plugin->setApplication(Factory::getApplication());
-                $dispatcher->addListener('onBeforeCompileHead', [$plugin, 'onBeforeCompileHead']);
 
                 return $plugin;
-            },
+            }
         );
     }
 };

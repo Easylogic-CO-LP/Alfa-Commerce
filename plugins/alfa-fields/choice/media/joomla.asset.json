@@ -1,0 +1,22 @@
+{
+  "$schema": "https://developer.joomla.org/schemas/json-schema/web_assets.json",
+  "name": "plg_alfa-fields_choice",
+  "version": "1.0.0",
+  "description": "Unified choice field assets",
+  "license": "GPL-2.0-or-later",
+  "assets": [
+    {
+      "name": "plg_alfa-fields_choice.choice",
+      "type": "style",
+      "uri": "plg_alfa-fields_choice/choice.css"
+    },
+    {
+      "name": "plg_alfa-fields_choice.choice",
+      "type": "script",
+      "uri": "plg_alfa-fields_choice/choice.js",
+      "dependencies": [
+        "form.validate"
+      ]
+    }
+  ]
+}

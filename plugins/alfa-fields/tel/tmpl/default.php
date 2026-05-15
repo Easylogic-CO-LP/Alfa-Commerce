@@ -31,23 +31,23 @@ if ($value === '') {
     return;
 }
 
-$region = (string) $fieldParams->get('default_region', 'GR');
+$region        = (string) $fieldParams->get('default_region', 'GR');
 $displayFormat = strtoupper((string) $fieldParams->get('display_format', 'INTERNATIONAL'));
 
 $href = $value;
 $text = $value;
 
 try {
-    $util = PhoneNumberUtil::getInstance();
+    $util   = PhoneNumberUtil::getInstance();
     $parsed = $util->parse($value, $region);
 
     // tel: href is always E.164 — phone diallers require it unambiguous.
     $href = $util->format($parsed, PhoneNumberFormat::E164);
 
     $text = match ($displayFormat) {
-        'E164' => $util->format($parsed, PhoneNumberFormat::E164),
+        'E164'     => $util->format($parsed, PhoneNumberFormat::E164),
         'NATIONAL' => $util->format($parsed, PhoneNumberFormat::NATIONAL),
-        default => $util->format($parsed, PhoneNumberFormat::INTERNATIONAL),
+        default    => $util->format($parsed, PhoneNumberFormat::INTERNATIONAL),
     };
 } catch (\Throwable $e) {
     // Keep raw fallbacks; don't break rendering for a single bad number.

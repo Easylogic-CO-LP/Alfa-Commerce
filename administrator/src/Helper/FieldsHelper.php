@@ -53,10 +53,10 @@ class FieldsHelper
      */
     private const CONTEXT_FLAGS = [
         'user.register' => ['registration'],
-        'user.edit' => ['registration'],
-        'cart.form' => ['billing', 'shipping'],
-        'cart.general' => ['billing', 'shipping'],
-        'cart.billing' => ['billing'],
+        'user.edit'     => ['registration'],
+        'cart.form'     => ['billing', 'shipping'],
+        'cart.general'  => ['billing', 'shipping'],
+        'cart.billing'  => ['billing'],
         'cart.shipping' => ['shipping'],
     ];
 
@@ -86,9 +86,9 @@ class FieldsHelper
         }
 
         $groupIds = array_filter(array_keys($buckets));
-        $groups = $groupIds ? self::getGroups($groupIds) : [];
+        $groups   = $groupIds ? self::getGroups($groupIds) : [];
 
-        $xml = new DOMDocument('1.0', 'UTF-8');
+        $xml        = new DOMDocument('1.0', 'UTF-8');
         $fieldsNode = $xml->appendChild(new DOMElement('form'))->appendChild(new DOMElement('fields'));
         $fieldsNode->setAttribute('name', self::FIELDS_KEY);
 
@@ -103,7 +103,7 @@ class FieldsHelper
             }
 
             $fieldset = $fieldsNode->appendChild(new DOMElement('fieldset'));
-            $fieldset->setAttribute('name', self::FIELDSET_PREFIX . $gid);
+            $fieldset->setAttribute('name',   self::FIELDSET_PREFIX . $gid);
             $fieldset->setAttribute('target', $targetFieldset);
 
             if ($gid === 0 || !isset($groups[$gid])) {
@@ -111,7 +111,7 @@ class FieldsHelper
                 $fieldset->setAttribute('label', '');
             } else {
                 $group = $groups[$gid];
-                $fieldset->setAttribute('label', Text::_($group->title));
+                $fieldset->setAttribute('label',       Text::_($group->title));
                 $fieldset->setAttribute('description', Text::_($group->description ?? ''));
             }
 
@@ -119,9 +119,9 @@ class FieldsHelper
                 try {
                     $plugin = self::boot($field->type ?? '');
                     $plugin?->prepareDom(new PrepareDomEvent('onAlfaFieldsPrepareDom', [
-                        'subject' => $field,
+                        'subject'  => $field,
                         'fieldset' => $fieldset,
-                        'form' => $form,
+                        'form'     => $form,
                     ]));
                 } catch (Throwable $e) {
                     Factory::getApplication()->enqueueMessage($e->getMessage(), 'error');
@@ -195,10 +195,10 @@ class FieldsHelper
             }
 
             $groups[] = [
-                'name' => $fs->name,
-                'label' => $fs->label ?? '',
+                'name'        => $fs->name,
+                'label'       => $fs->label ?? '',
                 'description' => $fs->description ?? '',
-                'fields' => $fields,
+                'fields'      => $fields,
             ];
         }
 
@@ -208,7 +208,7 @@ class FieldsHelper
 
         $layout = new FileLayout(
             'fieldshelper.grouped_fields',
-            JPATH_ADMINISTRATOR . '/components/com_alfa/layouts',
+            JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'
         );
 
         return (string) $layout->render([
@@ -223,7 +223,7 @@ class FieldsHelper
      */
     public static function getFields(string $context, $item = null, ?int $userId = null): array
     {
-        $itemId = is_object($item) && isset($item->id) ? (int) $item->id : 0;
+        $itemId   = is_object($item) && isset($item->id) ? (int) $item->id : 0;
         $userId ??= (int) (Factory::getApplication()->getIdentity()->id ?? 0);
 
         $cacheKey = $context . '|' . $itemId . '|' . $userId;
@@ -237,7 +237,7 @@ class FieldsHelper
             return self::$fieldsCache[$cacheKey] = [];
         }
 
-        $db = Factory::getContainer()->get('DatabaseDriver');
+        $db    = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true)
             ->select('a.*, g.ordering AS group_ordering')
             ->from($db->quoteName('#__alfa_form_fields', 'a'))
@@ -247,8 +247,8 @@ class FieldsHelper
 
         // Context match: ANY of the mapped flag columns = 1.
         $flagExpr = array_map(
-            fn ($col) => $db->quoteName('a.' . $col) . ' = 1',
-            $flagColumns,
+            fn($col) => $db->quoteName('a.' . $col) . ' = 1',
+            $flagColumns
         );
         $query->where('(' . implode(' OR ', $flagExpr) . ')');
 
@@ -262,11 +262,11 @@ class FieldsHelper
         // count as actual restrictions.
         $authGroups = array_filter(array_map(
             'intval',
-            (array) (Factory::getApplication()->getIdentity()?->getAuthorisedGroups() ?? []),
+            (array) (Factory::getApplication()->getIdentity()?->getAuthorisedGroups() ?? [])
         ));
         $authGroupsIn = $authGroups ? implode(',', $authGroups) : '0';
 
-        $usersTable = $db->quoteName('#__alfa_form_fields_users');
+        $usersTable  = $db->quoteName('#__alfa_form_fields_users');
         $groupsTable = $db->quoteName('#__alfa_form_fields_usergroups');
 
         $userDimension = $userId > 0
@@ -317,15 +317,15 @@ class FieldsHelper
         $fieldParams = new \Joomla\Registry\Registry();
         if (isset($field->params)) {
             $fieldParams->merge(
-                is_string($field->params) ? new \Joomla\Registry\Registry($field->params) : $field->params,
+                is_string($field->params) ? new \Joomla\Registry\Registry($field->params) : $field->params
             );
         }
 
         // Guarantee keys tmpls can rely on after extract($displayData).
-        $displayData['context'] = $context;
-        $displayData['field'] = $field;
+        $displayData['context']     = $context;
+        $displayData['field']       = $field;
         $displayData['fieldParams'] = $fieldParams;
-        $displayData['item'] ??= null;
+        $displayData['item']        = $displayData['item'] ?? null;
 
         $layout = new \Joomla\CMS\Layout\FileLayout(basename($path, '.php'), dirname($path));
 
@@ -339,8 +339,8 @@ class FieldsHelper
     private static function resolveLayoutPath($field, string $type): ?string
     {
         $layoutValue = (string) ($field->layout ?? '');
-        $template = null;
-        $name = 'default';
+        $template    = null;
+        $name        = 'default';
 
         if ($layoutValue !== '') {
             if (str_contains($layoutValue, ':')) {
@@ -413,7 +413,7 @@ class FieldsHelper
             return [];
         }
 
-        $db = Factory::getContainer()->get('DatabaseDriver');
+        $db    = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true)
             ->select('id, title, description, state, ordering')
             ->from($db->quoteName('#__alfa_form_field_groups'))
