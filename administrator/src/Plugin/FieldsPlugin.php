@@ -14,6 +14,7 @@ use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use DOMCdataSection;
 use DOMElement;
 use Joomla\CMS\Plugin\CMSPlugin;
+use Joomla\Event\SubscriberInterface;
 use Joomla\Registry\Registry;
 
 defined('_JEXEC') or die;
@@ -24,10 +25,28 @@ defined('_JEXEC') or die;
  * One plugin per field type (plugin name == type name by convention).
  * Default prepareDom() builds a standard <field> DOM node; subclasses override
  * to set type-specific attributes (inputmode, autocomplete, validate, etc.).
+ *
+ * Joomla 7-ready: implements SubscriberInterface so the dispatcher auto-wires
+ * events from getSubscribedEvents(). Subclasses needing extra events (e.g.
+ * onBeforeCompileHead) override getSubscribedEvents() — service providers
+ * MUST NOT call addListener (deprecated in Joomla 7).
+ *
+ * Note: prepareDom() is invoked DIRECTLY by FieldsHelper::prepareForm(), not
+ * dispatched, so it does NOT belong in getSubscribedEvents().
  */
-abstract class FieldsPlugin extends CMSPlugin
+abstract class FieldsPlugin extends CMSPlugin implements SubscriberInterface
 {
     protected $autoloadLanguage = true;
+
+    /**
+     * Subscribed events. Base default is empty — subclasses override to add
+     * events specific to their plugin. Merge via array_merge with parent
+     * to inherit any future base events without redeclaring.
+     */
+    public static function getSubscribedEvents(): array
+    {
+        return [];
+    }
 
     /**
      * Build a <field> node for $event->getField() and append it to $event->getFieldset().

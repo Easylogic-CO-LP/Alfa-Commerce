@@ -11,12 +11,12 @@
                 <option value="checkbox">PLG_ALFA_FIELDS_OPTIONS_RENDER_AS_CHECKBOX</option>
                 <option value="button">PLG_ALFA_FIELDS_OPTIONS_RENDER_AS_BUTTON</option>
                 <option value="button-multi">PLG_ALFA_FIELDS_OPTIONS_RENDER_AS_BUTTON_MULTI</option>
-                <option value="chip">PLG_ALFA_FIELDS_OPTIONS_RENDER_AS_CHIP</option>
-                <option value="chip-multi">PLG_ALFA_FIELDS_OPTIONS_RENDER_AS_CHIP_MULTI</option>
             </field>
 
-            <field name="layout" type="list" default="vertical"
-                   label="PLG_ALFA_FIELDS_OPTIONS_PARAMS_LAYOUT_LABEL">
+            <field name="layout_mode" type="list" default="vertical"
+                   label="PLG_ALFA_FIELDS_OPTIONS_PARAMS_LAYOUT_MODE_LABEL"
+                   description="PLG_ALFA_FIELDS_OPTIONS_PARAMS_LAYOUT_MODE_DESC"
+                   showon="render_as:radio,checkbox,button,button-multi">
                 <option value="vertical">PLG_ALFA_FIELDS_OPTIONS_LAYOUT_VERTICAL</option>
                 <option value="horizontal">PLG_ALFA_FIELDS_OPTIONS_LAYOUT_HORIZONTAL</option>
                 <option value="grid">PLG_ALFA_FIELDS_OPTIONS_LAYOUT_GRID</option>
@@ -24,15 +24,30 @@
 
             <field name="placeholder" type="text" default=""
                    label="PLG_ALFA_FIELDS_OPTIONS_PARAMS_PLACEHOLDER_LABEL"
-                   description="PLG_ALFA_FIELDS_OPTIONS_PARAMS_PLACEHOLDER_DESC"/>
+                   description="PLG_ALFA_FIELDS_OPTIONS_PARAMS_PLACEHOLDER_DESC"
+                   showon="render_as:select,multiselect"/>
+
+            <field name="button_style" type="list" default="solid"
+                   label="PLG_ALFA_FIELDS_OPTIONS_PARAMS_BUTTON_STYLE_LABEL"
+                   description="PLG_ALFA_FIELDS_OPTIONS_PARAMS_BUTTON_STYLE_DESC"
+                   showon="render_as:button,button-multi">
+                <option value="solid">PLG_ALFA_FIELDS_OPTIONS_BUTTON_STYLE_SOLID</option>
+                <option value="chip">PLG_ALFA_FIELDS_OPTIONS_BUTTON_STYLE_CHIP</option>
+                <option value="pill">PLG_ALFA_FIELDS_OPTIONS_BUTTON_STYLE_PILL</option>
+                <option value="outline">PLG_ALFA_FIELDS_OPTIONS_BUTTON_STYLE_OUTLINE</option>
+            </field>
 
             <field name="min_selections" type="number" default="0" filter="integer"
                    label="PLG_ALFA_FIELDS_OPTIONS_PARAMS_MIN_SELECTIONS_LABEL"
-                   description="PLG_ALFA_FIELDS_OPTIONS_PARAMS_MIN_SELECTIONS_DESC"/>
+                   description="PLG_ALFA_FIELDS_OPTIONS_PARAMS_MIN_SELECTIONS_DESC"
+                   showon="render_as:multiselect,checkbox,button-multi"
+            />
 
             <field name="max_selections" type="number" default="0" filter="integer"
                    label="PLG_ALFA_FIELDS_OPTIONS_PARAMS_MAX_SELECTIONS_LABEL"
-                   description="PLG_ALFA_FIELDS_OPTIONS_PARAMS_MAX_SELECTIONS_DESC"/>
+                   description="PLG_ALFA_FIELDS_OPTIONS_PARAMS_MAX_SELECTIONS_DESC"
+                   showon="render_as:multiselect,checkbox,button-multi"
+            />
 
             <field name="options" type="subform" multiple="true"
                    layout="joomla.form.field.subform.repeatable"
