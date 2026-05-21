@@ -109,24 +109,33 @@
 
         const iti = intlTelInput(input, opts);
         input.__iti = iti;
+
+        // ─── Value-change signals (for showon, validation, etc.) ───────────────
         input.dispatchEvent(new CustomEvent('alfa:field-change', { bubbles: true }));
         var fire = function () { input.dispatchEvent(new CustomEvent('alfa:field-change', { bubbles: true })); };
         input.addEventListener('input', fire);
         input.addEventListener('countrychange', fire);
 
-        // Live-clear feedback as the user edits.
+        // ─── Live UI feedback ──────────────────────────────────────────────────
         input.addEventListener('input', () => {
             input.classList.remove('invalid');
             hideAllHints(input);
         });
         input.addEventListener('countrychange', () => hideAllHints(input));
 
-        // NB: we do NOT rewrite input.value to E.164 on submit. AlfatelRule.test()
-        // on the server already parses with default_region and writes the canonical
-        // E.164 back to the input registry — so the JS substitution would be both
-        // redundant AND visually ugly when the form stays on page (validation
-        // failure elsewhere, server redirect-back). Server is the single
-        // canonicalisation point. Keep the visible input showing what the user typed.
+        // ─── Visibility sync (for showon-controlled disable) ───────────────────
+        // Showon disables our raw <input> when hiding the wrapper to exclude it
+        // from form submission/validation. intl-tel-input mirrors disabled state
+        // onto its country-selector button at init time only — without this sync,
+        // re-showing the field leaves the dropdown frozen.
+        const wrapper = input.closest('[data-showon-name]');
+        if (wrapper) {
+            wrapper.addEventListener('alfa:visibility-change', function (e) {
+                iti.setDisabled(!e.detail.visible);
+            });
+        }
+        iti.setDisabled(input.disabled); // initial sync (field may boot while hidden)
+
     }
 
     function registerValidator() {

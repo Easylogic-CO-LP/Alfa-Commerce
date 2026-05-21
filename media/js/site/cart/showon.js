@@ -353,6 +353,15 @@
                 }
             });
         }
+
+        // Signal plugins/observers that this field's visibility changed.
+        // NOTE: separate event from alfa:field-change to avoid feedback loops
+        // (showon listens to alfa:field-change; it does NOT listen to this).
+        el.dispatchEvent(new CustomEvent('alfa:visibility-change', {
+            bubbles: true,
+            detail: { visible: visible, name: el.getAttribute('data-showon-name') }
+        }));
+        
     }
 
     /** Αν όλα τα showon πεδία ενός group κρυφτούν -> κρύψε όλο το fieldset. */
