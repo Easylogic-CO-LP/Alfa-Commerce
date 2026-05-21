@@ -14,32 +14,32 @@ defined('_JEXEC') or die;
 extract($displayData);
 
 /**
- * @var   string   $autocomplete
- * @var   boolean  $autofocus
- * @var   string   $class
- * @var   boolean  $disabled
- * @var   string   $id
- * @var   string   $name           Joomla appends [] for multi values automatically.
- * @var   string   $onchange
- * @var   string   $onclick
- * @var   boolean  $readonly
- * @var   boolean  $required
- * @var   array    $options
- * @var   array    $checkedOptions
- * @var   boolean  $hasValue
- * @var   string   $dataAttribute
+ * @var string $autocomplete
+ * @var bool $autofocus
+ * @var string $class
+ * @var bool $disabled
+ * @var string $id
+ * @var string $name           Joomla appends [] for multi values automatically.
+ * @var string $onchange
+ * @var string $onclick
+ * @var bool $readonly
+ * @var bool $required
+ * @var array $options
+ * @var array $checkedOptions
+ * @var bool $hasValue
+ * @var string $dataAttribute
  *
  * Custom keys:
- * @var   string   $variant
- * @var   string   $layoutMode
- * @var   int      $minSelections
- * @var   int      $maxSelections
+ * @var string $variant
+ * @var string $layoutMode
+ * @var int $minSelections
+ * @var int $maxSelections
  */
 
-$variant       = $variant       ?? 'solid';
-$layoutMode    = $layoutMode    ?? 'vertical';
-$minSelections = $minSelections ?? 0;
-$maxSelections = $maxSelections ?? 0;
+$variant ??= 'solid';
+$layoutMode ??= 'vertical';
+$minSelections ??= 0;
+$maxSelections ??= 0;
 
 $wrapClass = trim('alfa-choice alfa-choice--button alfa-choice--' . $variant . ' alfa-choice--' . $layoutMode . ' ' . $class);
 
@@ -73,11 +73,11 @@ if (!str_ends_with($inputName, '[]')) {
     <fieldset <?php echo implode(' ', $attribs); ?> class="<?php echo $wrapClass; ?>" role="group">
         <?php foreach ($options as $i => $option) :
             $optDisabled = !empty($option->disable) ? 'disabled' : '';
-            $checked     = in_array((string) $option->value, array_map('strval', (array) $checkedOptions), true) ? 'checked="checked"' : '';
-            $oid         = $id . $i;
-            $ovalue      = htmlspecialchars($option->value, ENT_COMPAT, 'UTF-8');
+            $checked = in_array((string) $option->value, array_map('strval', (array) $checkedOptions), true) ? 'checked="checked"' : '';
+            $oid = $id . $i;
+            $ovalue = htmlspecialchars($option->value, ENT_COMPAT, 'UTF-8');
             $optionClass = !empty($option->class) ? $option->class : '';
-            $attributes  = array_filter([$checked, $optDisabled, $onchange ?? '', $onclick ?? '']);
+            $attributes = array_filter([$checked, $optDisabled, $onchange ?? '', $onclick ?? '']);
 
             if ($required && $i === 0) {
                 $attributes[] = 'required';

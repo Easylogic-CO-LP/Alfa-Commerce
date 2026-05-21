@@ -12,7 +12,7 @@ defined('_JEXEC') or die;
 // the element's button_style attribute and forwarded to the layout.
 class ButtonField extends RadioField
 {
-    protected $type   = 'Button';
+    protected $type = 'Button';
     protected $layout = 'layouts.button';
 
     // Template plg-tmpl override + plugin tmpl, then parent's defaults
@@ -26,14 +26,14 @@ class ButtonField extends RadioField
                 JPATH_THEMES . '/' . $template . '/html/plg_alfa-fields_choice',
                 JPATH_PLUGINS . '/alfa-fields/choice/tmpl',
             ],
-            parent::getLayoutPaths()
+            parent::getLayoutPaths(),
         );
     }
 
     protected function getLayoutData()
     {
-        $data               = parent::getLayoutData();
-        $data['variant']    = (string) ($this->element['button_style'] ?: 'solid');
+        $data = parent::getLayoutData();
+        $data['variant'] = (string) ($this->element['button_style'] ?: 'solid');
         $data['layoutMode'] = (string) ($this->element['layout_mode'] ?: 'vertical');
 
         return $data;

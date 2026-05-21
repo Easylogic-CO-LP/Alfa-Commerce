@@ -47,23 +47,23 @@ class ShowonField extends FormField
      * match exactly what the engine expects ('!' prefix = negation).
      */
     private const OPS = [
-        '='          => 'COM_ALFA_SHOWON_IS',
-        '!='         => 'COM_ALFA_SHOWON_ISNOT',
-        'contains'   => 'COM_ALFA_SHOWON_CONTAINS',
-        '!contains'  => 'COM_ALFA_SHOWON_NCONTAINS',
+        '=' => 'COM_ALFA_SHOWON_IS',
+        '!=' => 'COM_ALFA_SHOWON_ISNOT',
+        'contains' => 'COM_ALFA_SHOWON_CONTAINS',
+        '!contains' => 'COM_ALFA_SHOWON_NCONTAINS',
         'startsWith' => 'COM_ALFA_SHOWON_STARTS',
-        'endsWith'   => 'COM_ALFA_SHOWON_ENDS',
-        'regex'      => 'COM_ALFA_SHOWON_REGEX',
-        '!regex'     => 'COM_ALFA_SHOWON_NREGEX',
-        'empty'      => 'COM_ALFA_SHOWON_EMPTY',
-        '!empty'     => 'COM_ALFA_SHOWON_NEMPTY',
-        '>'          => 'COM_ALFA_SHOWON_GT',
-        '>='         => 'COM_ALFA_SHOWON_GTE',
-        '<'          => 'COM_ALFA_SHOWON_LT',
-        '<='         => 'COM_ALFA_SHOWON_LTE',
-        'between'    => 'COM_ALFA_SHOWON_BETWEEN',
-        'length'     => 'COM_ALFA_SHOWON_LENGTH',
-        '!length'    => 'COM_ALFA_SHOWON_NLENGTH',
+        'endsWith' => 'COM_ALFA_SHOWON_ENDS',
+        'regex' => 'COM_ALFA_SHOWON_REGEX',
+        '!regex' => 'COM_ALFA_SHOWON_NREGEX',
+        'empty' => 'COM_ALFA_SHOWON_EMPTY',
+        '!empty' => 'COM_ALFA_SHOWON_NEMPTY',
+        '>' => 'COM_ALFA_SHOWON_GT',
+        '>=' => 'COM_ALFA_SHOWON_GTE',
+        '<' => 'COM_ALFA_SHOWON_LT',
+        '<=' => 'COM_ALFA_SHOWON_LTE',
+        'between' => 'COM_ALFA_SHOWON_BETWEEN',
+        'length' => 'COM_ALFA_SHOWON_LENGTH',
+        '!length' => 'COM_ALFA_SHOWON_NLENGTH',
     ];
 
     /** Operators that take no value (value input hidden in the builder). */
@@ -86,9 +86,9 @@ class ShowonField extends FormField
 
         $config = [
             'noValueOps' => self::NO_VALUE_OPS,
-            'labels'     => [
-                'and'     => Text::_('COM_ALFA_SHOWON_AND'),
-                'or'      => Text::_('COM_ALFA_SHOWON_OR'),
+            'labels' => [
+                'and' => Text::_('COM_ALFA_SHOWON_AND'),
+                'or' => Text::_('COM_ALFA_SHOWON_OR'),
                 'noRules' => Text::_('COM_ALFA_SHOWON_NO_RULES'),
             ],
         ];
@@ -119,9 +119,9 @@ class ShowonField extends FormField
     private function renderGroup(array $items, bool $isRoot): string
     {
         $cls = 'aso-group' . ($isRoot ? ' aso-group--root' : '');
-        $n   = count($items);
+        $n = count($items);
 
-        $out  = '<div class="' . $cls . '">';
+        $out = '<div class="' . $cls . '">';
         $out .= '<div class="aso-items">';
         if (!$n) {
             $out .= '<div class="aso-empty">' . $this->esc(Text::_('COM_ALFA_SHOWON_NO_RULES')) . '</div>';
@@ -176,12 +176,12 @@ class ShowonField extends FormField
      */
     private function renderRule(array $r): string
     {
-        $field     = (string) ($r['field'] ?? '');
-        $op        = (string) ($r['op'] ?? '=');
-        $vals      = isset($r['values']) && is_array($r['values']) ? array_values($r['values']) : [];
-        $v0        = (string) ($vals[0] ?? '');
-        $v1        = (string) ($vals[1] ?? '');
-        $isNoVal   = in_array($op, self::NO_VALUE_OPS, true);
+        $field = (string) ($r['field'] ?? '');
+        $op = (string) ($r['op'] ?? '=');
+        $vals = isset($r['values']) && is_array($r['values']) ? array_values($r['values']) : [];
+        $v0 = (string) ($vals[0] ?? '');
+        $v1 = (string) ($vals[1] ?? '');
+        $isNoVal = in_array($op, self::NO_VALUE_OPS, true);
         $isBetween = ($op === 'between');
 
         // field <select>
@@ -222,7 +222,7 @@ class ShowonField extends FormField
     /** The AND/OR connector between two siblings. */
     private function renderGlue(string $glue): string
     {
-        $or  = $glue === 'OR';
+        $or = $glue === 'OR';
         $txt = $or ? Text::_('COM_ALFA_SHOWON_OR') : Text::_('COM_ALFA_SHOWON_AND');
 
         return '<div class="aso-glue-row">'
@@ -246,7 +246,7 @@ class ShowonField extends FormField
         return htmlspecialchars(
             json_encode($v, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}',
             ENT_QUOTES,
-            'UTF-8'
+            'UTF-8',
         );
     }
 
@@ -271,13 +271,13 @@ class ShowonField extends FormField
         // later inside getItems() and overwrites them (esp. list.limit,
         // which falls back to the component default, 20). Mirrors ModelField.
         $model->getState('list.ordering');
-        $model->setState('filter.state',    1);   // published only
-        $model->setState('filter.search',   '');
+        $model->setState('filter.state', 1);   // published only
+        $model->setState('filter.search', '');
         $model->setState('filter.group_id', '');
-        $model->setState('list.limit',      0);
-        $model->setState('list.start',      0);
-        $model->setState('list.ordering',   'a.name');
-        $model->setState('list.direction',  'ASC');
+        $model->setState('list.limit', 0);
+        $model->setState('list.start', 0);
+        $model->setState('list.ordering', 'a.name');
+        $model->setState('list.direction', 'ASC');
 
         $selfName = (string) ($this->form ? $this->form->getValue('field_name') : '');
 

@@ -6,6 +6,7 @@ use Joomla\CMS\Form\Form;
 use Joomla\CMS\Form\FormRule;
 use Joomla\CMS\Language\Text;
 use Joomla\Registry\Registry;
+use RuntimeException;
 use SimpleXMLElement;
 
 defined('_JEXEC') or die;
@@ -23,14 +24,14 @@ class ChoiceRule extends FormRule
             return true;
         }
 
-        $count = is_array($value) ? count(array_filter($value, static fn($v) => $v !== '' && $v !== null)) : 0;
+        $count = is_array($value) ? count(array_filter($value, static fn ($v) => $v !== '' && $v !== null)) : 0;
 
         if ($min > 0 && $count < $min) {
-            throw new \RuntimeException(Text::sprintf('PLG_ALFA_FIELDS_CHOICE_ERR_MIN', $min));
+            throw new RuntimeException(Text::sprintf('PLG_ALFA_FIELDS_CHOICE_ERR_MIN', $min));
         }
 
         if ($max > 0 && $count > $max) {
-            throw new \RuntimeException(Text::sprintf('PLG_ALFA_FIELDS_CHOICE_ERR_MAX', $max));
+            throw new RuntimeException(Text::sprintf('PLG_ALFA_FIELDS_CHOICE_ERR_MAX', $max));
         }
 
         return true;
