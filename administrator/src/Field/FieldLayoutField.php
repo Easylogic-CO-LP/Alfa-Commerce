@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 
 defined('_JEXEC') or die;
 
+use Joomla\CMS\Factory;
 use Joomla\CMS\Form\FormField;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
@@ -42,8 +43,8 @@ class FieldLayoutField extends FormField
 
         // Default group — empty value = "use default.php".
         $groups['default'] = [
-            'id' => $this->id . '__default',
-            'text' => Text::_('JOPTION_FROM_STANDARD'),
+            'id'    => $this->id . '__default',
+            'text'  => Text::_('JOPTION_FROM_STANDARD'),
             'items' => [
                 HTMLHelper::_('select.option', '', Text::_('COM_ALFA_LAYOUT_USE_DEFAULT')),
             ],
@@ -63,8 +64,8 @@ class FieldLayoutField extends FormField
 
         if ($pluginLayouts) {
             $groups['plugins'] = [
-                'id' => $this->id . '__plugins',
-                'text' => Text::_('COM_ALFA_LAYOUT_FROM_PLUGINS'),
+                'id'    => $this->id . '__plugins',
+                'text'  => Text::_('COM_ALFA_LAYOUT_FROM_PLUGINS'),
                 'items' => [],
             ];
             foreach (array_keys($pluginLayouts) as $name) {
@@ -90,8 +91,8 @@ class FieldLayoutField extends FormField
             }
 
             $groups['tpl_' . $template] = [
-                'id' => $this->id . '__tpl_' . $template,
-                'text' => Text::sprintf('COM_ALFA_LAYOUT_FROM_TEMPLATE', ucwords(str_replace('_', ' ', $template))),
+                'id'    => $this->id . '__tpl_' . $template,
+                'text'  => Text::sprintf('COM_ALFA_LAYOUT_FROM_TEMPLATE', ucwords(str_replace('_', ' ', $template))),
                 'items' => [],
             ];
 
@@ -99,12 +100,12 @@ class FieldLayoutField extends FormField
                 $groups['tpl_' . $template]['items'][] = HTMLHelper::_(
                     'select.option',
                     $template . ':' . $name,
-                    $name,
+                    $name
                 );
             }
         }
 
-        $attr = $this->element['size'] ? ' size="' . (int) $this->element['size'] . '"' : '';
+        $attr  = $this->element['size']  ? ' size="'  . (int) $this->element['size']  . '"' : '';
         $attr .= $this->element['class'] ? ' class="' . (string) $this->element['class'] . '"' : '';
 
         return HTMLHelper::_(
@@ -112,11 +113,11 @@ class FieldLayoutField extends FormField
             $groups,
             $this->name,
             [
-                'id' => $this->id,
-                'group.id' => 'id',
-                'list.attr' => $attr,
+                'id'          => $this->id,
+                'group.id'    => 'id',
+                'list.attr'   => $attr,
                 'list.select' => [$this->value],
-            ],
+            ]
         );
     }
 
@@ -125,9 +126,9 @@ class FieldLayoutField extends FormField
      */
     private function getEnabledFrontendTemplates(): array
     {
-        $db = $this->getDatabase();
-        $clientId = 0;
-        $type = 'template';
+        $db        = $this->getDatabase();
+        $clientId  = 0;
+        $type      = 'template';
 
         $query = $db->createQuery()
             ->select($db->quoteName('element'))

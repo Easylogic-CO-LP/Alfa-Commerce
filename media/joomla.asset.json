@@ -187,6 +187,25 @@
       "name": "com_alfa.sortable",
       "type": "script",
       "uri": "com_alfa/admin/sortable.min.js"
+    },
+    {
+      "name": "com_alfa.showon",
+      "type": "script",
+      "uri": "com_alfa/site/cart/showon.js",
+      "dependencies": [ "core" ],
+      "attributes": { "defer": true }
+    },
+    {
+      "name": "com_alfa.showon-builder",
+      "type": "style",
+      "uri": "com_alfa/admin/showon-builder.css"
+    },
+    {
+      "name": "com_alfa.showon-builder",
+      "type": "script",
+      "uri": "com_alfa/admin/showon-builder.js",
+      "dependencies": [ "core" ],
+      "attributes": { "defer": true }
     }
   ]
 }

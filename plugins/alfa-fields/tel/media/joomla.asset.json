@@ -30,7 +30,8 @@
       "type": "script",
       "uri": "plg_alfa-fields_tel/tel.js",
       "dependencies": [
-        "plg_alfa-fields_tel.intltelinput"
+        "plg_alfa-fields_tel.intltelinput",
+        "form.validate"
       ],
       "attributes": {
         "defer": true
@@ -41,7 +42,8 @@
       "type": "preset",
       "dependencies": [
         "plg_alfa-fields_tel.tel#style",
-        "plg_alfa-fields_tel.tel#script"
+        "plg_alfa-fields_tel.tel#script",
+        "com_alfa.showon"
       ]
     }
   ]

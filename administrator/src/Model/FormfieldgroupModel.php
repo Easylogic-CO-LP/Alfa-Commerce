@@ -26,7 +26,7 @@ class FormfieldgroupModel extends AdminModel
         return $this->loadForm(
             'com_alfa.' . $this->formName,
             $this->formName,
-            ['control' => 'jform', 'load_data' => $loadData],
+            ['control' => 'jform', 'load_data' => $loadData]
         ) ?: false;
     }
 
@@ -65,7 +65,7 @@ class FormfieldgroupModel extends AdminModel
             return parent::delete($pks);
         }
 
-        $db = $this->getDatabase();
+        $db    = $this->getDatabase();
         $query = $db->getQuery(true)
             ->select('COUNT(*)')
             ->from($db->quoteName('#__alfa_form_fields'))
@@ -87,7 +87,7 @@ class FormfieldgroupModel extends AdminModel
 
             Factory::getApplication()->enqueueMessage(
                 Text::sprintf('COM_ALFA_FORMFIELDGROUP_DELETED_FIELDS_MOVED', $affectedFields),
-                'info',
+                'info'
             );
         }
 

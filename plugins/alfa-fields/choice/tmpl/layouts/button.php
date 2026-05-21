@@ -13,28 +13,28 @@ defined('_JEXEC') or die;
 extract($displayData);
 
 /**
- * @var string $autocomplete
- * @var bool $autofocus
- * @var string $class
- * @var bool $disabled
- * @var string $id
- * @var string $name
- * @var string $onchange
- * @var string $onclick
- * @var bool $readonly
- * @var bool $required
- * @var string $validate
- * @var string $value
- * @var array $options
- * @var string $dataAttribute
+ * @var   string   $autocomplete
+ * @var   boolean  $autofocus
+ * @var   string   $class
+ * @var   boolean  $disabled
+ * @var   string   $id
+ * @var   string   $name
+ * @var   string   $onchange
+ * @var   string   $onclick
+ * @var   boolean  $readonly
+ * @var   boolean  $required
+ * @var   string   $validate
+ * @var   string   $value
+ * @var   array    $options
+ * @var   string   $dataAttribute
  *
  * Custom keys injected by ButtonField::getLayoutData():
- * @var string $variant      solid | chip | pill | outline
- * @var string $layoutMode   vertical | horizontal | grid
+ * @var   string   $variant      solid | chip | pill | outline
+ * @var   string   $layoutMode   vertical | horizontal | grid
  */
 
-$variant ??= 'solid';
-$layoutMode ??= 'vertical';
+$variant    = $variant    ?? 'solid';
+$layoutMode = $layoutMode ?? 'vertical';
 
 $wrapClass = trim('alfa-choice alfa-choice--button alfa-choice--' . $variant . ' alfa-choice--' . $layoutMode . ' ' . $class);
 
@@ -56,11 +56,11 @@ if (!empty($dataAttribute)) {
     <fieldset <?php echo implode(' ', $attribs); ?> class="<?php echo $wrapClass; ?>" role="radiogroup">
         <?php foreach ($options as $i => $option) :
             $optDisabled = !empty($option->disable) ? 'disabled' : '';
-            $checked = ((string) $option->value === (string) $value) ? 'checked="checked"' : '';
-            $oid = $id . $i;
-            $ovalue = htmlspecialchars($option->value, ENT_COMPAT, 'UTF-8');
+            $checked     = ((string) $option->value === (string) $value) ? 'checked="checked"' : '';
+            $oid         = $id . $i;
+            $ovalue      = htmlspecialchars($option->value, ENT_COMPAT, 'UTF-8');
             $optionClass = !empty($option->class) ? $option->class : '';
-            $attributes = array_filter([$checked, $optDisabled, $onchange ?? '', $onclick ?? '']);
+            $attributes  = array_filter([$checked, $optDisabled, $onchange ?? '', $onclick ?? '']);
 
             if ($required && $i === 0) {
                 $attributes[] = 'required';

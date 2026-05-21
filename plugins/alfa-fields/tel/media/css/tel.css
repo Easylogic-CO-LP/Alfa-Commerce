@@ -2,3 +2,20 @@
     --iti-path-flags-1x: url('/media/plg_alfa-fields_tel/img/flags.webp');
     --iti-path-flags-2x: url('/media/plg_alfa-fields_tel/img/flags@2x.webp');
 }
+
+/* Validation hints — layout pre-renders one <small> per error variant, all
+   `hidden` by default; tel.js removes `hidden` on the matching one. */
+.alfa-tel__hint {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.8125rem;
+    color: #6b7280;
+}
+
+.alfa-tel__hint--error {
+    color: #dc2626;
+}
+
+.alfa-tel__hint[hidden] {
+    display: none;
+}

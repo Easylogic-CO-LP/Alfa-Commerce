@@ -19,7 +19,7 @@ defined('_JEXEC') or die;
 // JS toggles which <small data-err="..."> is visible based on validation.
 class TelField extends TextField
 {
-    protected $type = 'Tel';
+    protected $type   = 'Tel';
     protected $layout = 'layouts.tel';
 
     // Template plg-tmpl override first, plugin tmpl fallback, then parent
@@ -33,7 +33,7 @@ class TelField extends TextField
                 JPATH_THEMES . '/' . $template . '/html/plg_alfa-fields_tel',
                 JPATH_PLUGINS . '/alfa-fields/tel/tmpl',
             ],
-            parent::getLayoutPaths(),
+            parent::getLayoutPaths()
         );
     }
 }

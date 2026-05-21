@@ -84,6 +84,8 @@
 
         if (msg) {
             setHint(el, msg, isError);
+        } else {
+            setHint(el, '', false);
         }
     }
 
@@ -93,7 +95,35 @@
 
         el.addEventListener('change', () => updateState(el));
         updateState(el);
+        // No synthetic 'alfa:field-change' here: radios/checkboxes/<select>
+        // fire native 'change', and showon.js self-evaluates on init —
+        // dispatching it would cause a redundant extra evaluation pass.
     }
+
+    // --- showon trigger support ---
+    function readChoiceValue(root) {
+        var sel = root.querySelector('select');
+        if (sel) {
+            return Array.prototype.map.call(sel.selectedOptions, function (o) { return o.value; });
+        }
+        return Array.prototype.map.call(
+            root.querySelectorAll('input[type="radio"]:checked, input[type="checkbox"]:checked'),
+            function (i) { return i.value; }
+        );
+    }
+
+    // Showon value reader — ONE line, no engine internals, any load order.
+    // Contract: media/com_alfa/js/site/cart/showon.js (queue facade).
+    (window.alfaShowOn = window.alfaShowOn || []).push({
+        type: 'choice',
+        value: function (name, form) {
+            // Το wrapper που έβαλε το grouped_fields.php (Βήμα D)
+            var box = form.querySelector('[data-showon-name="' + name + '"]');
+            var value = box ? readChoiceValue(box) : null;
+            // console.log(value);
+            return value;
+        }
+    });
 
     function init() {
         document.querySelectorAll(SELECTOR).forEach(attach);
@@ -101,20 +131,20 @@
         // Plug into Joomla's validator. Handler returns false to block submit.
         // Joomla resolves the handler by the field's `validate=` attribute,
         // which we stamp in Choice::prepareDom() as `choice`.
-        if (typeof document.formvalidator !== 'undefined'
-            && typeof document.formvalidator.setHandler === 'function') {
-            document.formvalidator.setHandler('choice', function (value, element) {
-                // `element` is the <fieldset>/<select> with the data attrs.
-                if (!element || !element.hasAttribute) {
-                    return true;
-                }
-                const { min, max } = getLimits(element);
-                const count = countSelected(element);
-                if (min > 0 && count < min) return false;
-                if (max > 0 && count > max) return false;
-                return true;
-            }, true /* skip empty-required check; multi mode handles min itself */);
-        }
+        // if (typeof document.formvalidator !== 'undefined'
+        //     && typeof document.formvalidator.setHandler === 'function') {
+        //     document.formvalidator.setHandler('choice', function (value, element) {
+        //         // `element` is the <fieldset>/<select> with the data attrs.
+        //         if (!element || !element.hasAttribute) {
+        //             return true;
+        //         }
+        //         const { min, max } = getLimits(element);
+        //         const count = countSelected(element);
+        //         if (min > 0 && count < min) return false;
+        //         if (max > 0 && count > max) return false;
+        //         return true;
+        //     }, true /* skip empty-required check; multi mode handles min itself */);
+        // }
     }
 
     if (document.readyState === 'loading') {

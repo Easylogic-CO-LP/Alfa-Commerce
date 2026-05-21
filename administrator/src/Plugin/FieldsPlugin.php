@@ -54,30 +54,31 @@ abstract class FieldsPlugin extends CMSPlugin implements SubscriberInterface
      */
     public function prepareDom(PrepareDomEvent $event): ?DOMElement
     {
-        $field = $event->getField();
+        $field    = $event->getField();
         $fieldset = $event->getFieldset();
 
         if (!FieldsHelper::displayFieldOnForm($field)) {
             return null;
         }
 
-        //        $params = clone $this->params;
+//        $params = clone $this->params;
 
         $params = new Registry($field->params);
 
         $node = $fieldset->appendChild(new DOMElement('field'));
-        $node->setAttribute('name', $field->field_name);
-        $node->setAttribute('type', $field->type);
-        $node->setAttribute('label', $field->field_label);
+        $node->setAttribute('name',        $field->field_name);
+        $node->setAttribute('type',        $field->type);
+        $node->setAttribute('label',       $field->field_label);
         $node->setAttribute('description', $field->field_description ?? '');
-        $node->setAttribute('required', $field->required ? 'true' : 'false');
+        $node->setAttribute('required',    $field->required ? 'true' : 'false');
 
         if (isset($field->default_value) && $field->default_value !== '') {
             $defaultNode = $node->appendChild(new DOMElement('default'));
             $defaultNode->appendChild(new DOMCdataSection((string) $field->default_value));
         }
 
-        $alwaysForward = ['class', 'labelclass', 'hint', 'layout', 'showon'];
+        // SHOWON: βγάλαμε το 'showon' από εδώ ώστε να ΜΗΝ γίνει Joomla attribute.
+        $alwaysForward = ['class', 'labelclass', 'hint', 'layout'];
         foreach ($alwaysForward as $key) {
             $val = $params->get($key, '');
             if ($val !== '' && $val !== null) {
@@ -85,14 +86,23 @@ abstract class FieldsPlugin extends CMSPlugin implements SubscriberInterface
             }
         }
 
+        // SHOWON: αυτά τα params τα διαχειρίζεται η μηχανή showon — όχι attributes.
+        // 'showon_builder' is dead legacy data (old subform) still present in
+        // pre-migration rows — never an attribute, always skip it.
+        $showonParamKeys = ['showon', 'showon_builder'];
+
         foreach ($params->toArray() as $key => $param) {
-            if (in_array($key, $alwaysForward, true)) {
+            if (in_array($key, $alwaysForward, true) || in_array($key, $showonParamKeys, true)) {
                 continue;
             }
 
             if (is_array($param)) {
-                // Multi-dim arrays can't be expressed as a single attribute.
-                $param = count($param) === count($param, COUNT_RECURSIVE) ? implode(',', $param) : '';
+                // Only a non-empty flat list of scalars can become one
+                // attribute; anything else (nested/empty) -> drop. Avoids
+                // "Array to string conversion" on implode.
+                $param = ($param && count($param) === count(array_filter($param, 'is_scalar')))
+                    ? implode(',', $param)
+                    : '';
             }
 
             if ($param === '' || $param === null || (!is_string($param) && !is_numeric($param))) {
@@ -105,6 +115,17 @@ abstract class FieldsPlugin extends CMSPlugin implements SubscriberInterface
         if (!FieldsHelper::canEditFieldValue($field)) {
             $node->setAttribute('disabled', 'true');
             $node->setAttribute('readonly', 'true');
+        }
+
+        // SHOWON: σταθερά attributes που διαβάζει το media/com_alfa/js/showon.js.
+        // - showonname/showontype: ΚΑΘΕ πεδίο (για να μπορεί να είναι «διακόπτης»)
+        // - showonrule: μόνο αν το πεδίο έχει κανόνα (είναι «λάμπα»)
+        $node->setAttribute('showonname', (string) $field->field_name);
+        $node->setAttribute('showontype', (string) $field->type);
+
+        $showonRule = (string) $params->get('showon', '');
+        if ($showonRule !== '') {
+            $node->setAttribute('showonrule', $showonRule);
         }
 
         return $node;

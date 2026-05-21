@@ -15,6 +15,7 @@ use Joomla\CMS\Factory;
 // you want a different validation strategy. Asset id is `form.validate`
 // per media/system/joomla.asset.json (not `core.form-validate`).
 Factory::getApplication()->getDocument()->getWebAssetManager()->useScript('form.validate');
+Factory::getApplication()->getDocument()->getWebAssetManager()->useScript('com_alfa.showon');
 ?>
 <form id="alfa-cart-form"
       class="form-validate"

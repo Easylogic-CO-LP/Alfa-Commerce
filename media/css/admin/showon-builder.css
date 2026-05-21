@@ -1,0 +1,173 @@
+/*
+ * Alfa ShowOn builder — self-contained, version-agnostic (no Bootstrap deps).
+ * Neutral, minimal: just structure, spacing, and clear affordances.
+ */
+.aso {
+    --aso-line: #d9dce1;
+    --aso-ink: #2b3038;
+    --aso-mut: #6b7280;
+    --aso-bg: #fbfbfc;
+    --aso-accent: #2f6f4f;
+    --aso-or: #b4762a;
+    --aso-danger: #b23b3b;
+    font-size: 14px;
+    color: var(--aso-ink);
+}
+
+.aso * { box-sizing: border-box; }
+
+.aso-group {
+    background: var(--aso-bg);
+    border: 1px solid var(--aso-line);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.aso-group--root { background: transparent; }
+
+.aso-empty {
+    color: var(--aso-mut);
+    font-style: italic;
+    padding: 6px 2px 10px;
+}
+
+.aso-item { margin: 0; }
+
+.aso-rule {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background: #fff;
+    border: 1px solid var(--aso-line);
+    border-radius: 6px;
+}
+
+.aso-select,
+.aso-input {
+    height: 34px;
+    padding: 4px 8px;
+    border: 1px solid var(--aso-line);
+    border-radius: 5px;
+    background: #fff;
+    color: var(--aso-ink);
+    font: inherit;
+}
+
+.aso-select { min-width: 150px; }
+.aso-input { flex: 1 1 160px; min-width: 120px; }
+
+/* between = two compact inputs (min … max) */
+.aso-between { display: inline-flex; align-items: center; gap: 6px; flex: 1 1 160px; }
+.aso-between .aso-input { flex: 1 1 60px; min-width: 60px; }
+.aso-between-sep { color: var(--aso-mut); }
+
+.aso-select:focus,
+.aso-input:focus {
+    outline: 2px solid var(--aso-accent);
+    outline-offset: -1px;
+}
+
+/* glue connector between two siblings */
+.aso-glue-row {
+    display: flex;
+    align-items: center;
+    padding: 6px 0;
+    margin-left: 10px;
+}
+
+.aso-glue-row::before,
+.aso-glue-row::after {
+    content: "";
+    flex: 0 0 14px;
+    border-left: 2px solid var(--aso-line);
+    height: 18px;
+}
+
+.aso-glue {
+    cursor: pointer;
+    border: 1px solid var(--aso-accent);
+    color: var(--aso-accent);
+    background: #fff;
+    font-weight: 600;
+    letter-spacing: .04em;
+    padding: 3px 14px;
+    border-radius: 999px;
+    margin: 0 8px;
+    min-width: 58px;
+}
+
+.aso-glue--or {
+    border-color: var(--aso-or);
+    color: var(--aso-or);
+}
+
+.aso-glue:hover { filter: brightness(.97); }
+
+/* nested group */
+.aso-subgroup {
+    border: 1px solid var(--aso-line);
+    border-left: 3px solid var(--aso-accent);
+    border-radius: 6px;
+    padding: 10px;
+    background: #fff;
+}
+
+.aso-subgroup-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.aso-subgroup-tag {
+    color: var(--aso-mut);
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: .03em;
+}
+
+/* action bar */
+.aso-bar {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.aso-add {
+    cursor: pointer;
+    border: 1px dashed var(--aso-line);
+    background: #fff;
+    color: var(--aso-ink);
+    padding: 6px 12px;
+    border-radius: 5px;
+    font: inherit;
+}
+
+.aso-add:hover {
+    border-color: var(--aso-accent);
+    color: var(--aso-accent);
+}
+
+.aso-icon {
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    line-height: 1;
+    border: 1px solid var(--aso-line);
+    background: #fff;
+    border-radius: 5px;
+    color: var(--aso-mut);
+    font-size: 16px;
+}
+
+.aso-icon--danger:hover {
+    border-color: var(--aso-danger);
+    color: var(--aso-danger);
+}
+
+@media (max-width: 600px) {
+    .aso-rule { flex-direction: column; align-items: stretch; }
+    .aso-select, .aso-input { width: 100%; }
+}

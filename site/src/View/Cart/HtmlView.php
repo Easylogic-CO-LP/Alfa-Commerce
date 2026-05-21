@@ -112,12 +112,12 @@ class HtmlView extends BaseHtmlView
                     'subject' => $orderData,
                     'method' => $selectedPayment,
                 ]);
+                $plugin = $this->app->bootPlugin($selectedPayment->type, 'alfa-payments');
 
-                $this->app->bootPlugin($selectedPayment->type, 'alfa-payments')->{$onProcessPaymentEventName}($paymentEvent);
+                // Register all events from getSubscribedEvents() on the global dispatcher
+                $this->app->getDispatcher()->addSubscriber($plugin);
 
-                if ($paymentEvent->hasRedirect()) {
-                    $app->redirect($paymentEvent->getRedirectUrl());
-                }
+                $plugin->{$onProcessPaymentEventName}($paymentEvent);
 
                 if (empty($paymentEvent->getLayoutPluginName())) {
                     $paymentEvent->setLayoutPluginName($selectedPayment->type);
@@ -150,13 +150,19 @@ class HtmlView extends BaseHtmlView
 
             if ($this->_layout == 'default_order_completed') {
                 $onOrderCompleteViewEventName = 'onOrderCompleteView';
+                $selectedPayment = $orderData->selected_payment;
 
                 $paymentEvent = new PaymentsOrderCompleteViewEvent($onOrderCompleteViewEventName, [
                     'subject' => $orderData,
                     'method' => $orderData->selected_payment,
                 ]);
 
-                $this->app->bootPlugin($orderData->selected_payment->type, 'alfa-payments')->{$onOrderCompleteViewEventName}($paymentEvent);
+                $plugin = $this->app->bootPlugin($selectedPayment->type, 'alfa-payments');
+
+                // Register all events from getSubscribedEvents() on the global dispatcher
+                $this->app->getDispatcher()->addSubscriber($plugin);
+
+                $plugin->{$onOrderCompleteViewEventName}($paymentEvent);
 
                 if (empty($paymentEvent->getLayoutPluginName())) {
                     $paymentEvent->setLayoutPluginName($orderData->selected_payment->type);
