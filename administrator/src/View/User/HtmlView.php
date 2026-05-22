@@ -62,7 +62,7 @@ class HtmlView extends FormView
             ToolbarHelper::save('user.save', 'JTOOLBAR_SAVE');
         }
 
-        if ( $canDo->get('core.create')) {
+        if ($canDo->get('core.create')) {
             ToolbarHelper::custom('user.save2new', 'save-new.png', 'save-new_f2.png', 'JTOOLBAR_SAVE_AND_NEW', false);
         }
 
