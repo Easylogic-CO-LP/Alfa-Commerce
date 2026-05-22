@@ -49,22 +49,20 @@ class HtmlView extends FormView
     {
         Factory::getApplication()->getInput()->set('hidemainmenu', true);
 
-        $user = $this->getCurrentUser();
-        $userId = $user->id;
         $isNew = ($this->item->id == 0);
-        $checkedOut = !(\is_null($this->item->checked_out) || $this->item->checked_out == $userId);
+        //$checkedOut = !(\is_null($this->item->checked_out) || $this->item->checked_out == $userId);
 
         $canDo = $this->canDo;
 
         ToolbarHelper::title(Text::_('COM_ALFA_TITLE_USER'), 'generic');
 
         // If not checked out, can save the item.
-        if (!$checkedOut && ($canDo->get('core.edit') || ($canDo->get('core.create')))) {
+        if ($canDo->get('core.edit') || ($canDo->get('core.create'))) {
             ToolbarHelper::apply('user.apply', 'JTOOLBAR_APPLY');
             ToolbarHelper::save('user.save', 'JTOOLBAR_SAVE');
         }
 
-        if (!$checkedOut && ($canDo->get('core.create'))) {
+        if ( $canDo->get('core.create')) {
             ToolbarHelper::custom('user.save2new', 'save-new.png', 'save-new_f2.png', 'JTOOLBAR_SAVE_AND_NEW', false);
         }
 

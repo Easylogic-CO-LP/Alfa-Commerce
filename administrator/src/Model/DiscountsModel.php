@@ -151,8 +151,8 @@ class DiscountsModel extends ListModel
         $query->select("GROUP_CONCAT(DISTINCT dug.usergroup_id SEPARATOR ',') AS discount_usergroup_IDs")
             ->join('LEFT', '#__alfa_discount_usergroups as dug ON a.id = dug.discount_id');
 
-        $query->select("GROUP_CONCAT(DISTINCT ug.name SEPARATOR ', ') AS usergroup_names")
-            ->join('LEFT', '#__alfa_usergroups as ug ON dug.usergroup_id = ug.id');
+        $query->select("GROUP_CONCAT(DISTINCT ug.title SEPARATOR ', ') AS usergroup_names")
+            ->join('LEFT', '#__usergroups as ug ON dug.usergroup_id = ug.id');
 
         // Grouping by item id.
         $query->group('a.id');

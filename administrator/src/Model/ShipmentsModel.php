@@ -146,8 +146,8 @@ class ShipmentsModel extends ListModel
         // Join over usergroup IDs and names.
         $query->select("GROUP_CONCAT(DISTINCT sug.usergroup_id SEPARATOR ',') AS shipment_usergroup_IDs")
             ->join('LEFT', '#__alfa_shipment_usergroups AS sug ON a.id = sug.shipment_id');
-        $query->select("GROUP_CONCAT(DISTINCT ug.name SEPARATOR ', ') AS usergroup_names")
-            ->join('LEFT', '#__alfa_usergroups AS ug ON sug.usergroup_id = ug.id');
+        $query->select("GROUP_CONCAT(DISTINCT ug.title SEPARATOR ', ') AS usergroup_names")
+            ->join('LEFT', '#__usergroups AS ug ON sug.usergroup_id = ug.id');
 
         // Grouping by item id.
         $query->group('a.id');

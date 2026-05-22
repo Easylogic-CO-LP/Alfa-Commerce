@@ -152,8 +152,8 @@ class TaxesModel extends ListModel
         $query->select("GROUP_CONCAT(DISTINCT tug.usergroup_id SEPARATOR ',') AS tax_usergroup_IDs")
             ->join('LEFT', '#__alfa_tax_usergroups as tug ON a.id = tug.tax_id');
 
-        $query->select("GROUP_CONCAT(DISTINCT ug.name SEPARATOR ', ') AS usergroup_names")
-            ->join('LEFT', '#__alfa_usergroups as ug ON tug.usergroup_id = ug.id');
+        $query->select("GROUP_CONCAT(DISTINCT ug.title SEPARATOR ', ') AS usergroup_names")
+            ->join('LEFT', '#__usergroups as ug ON tug.usergroup_id = ug.id');
 
         // Grouping by item id.
         $query->group('a.id');
