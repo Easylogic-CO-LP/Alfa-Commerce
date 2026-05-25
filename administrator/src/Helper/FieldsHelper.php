@@ -435,8 +435,15 @@ class FieldsHelper
             return null;
         }
 
-        $plugin = Factory::getApplication()->bootPlugin($type, 'alfa-fields');
+        $app = Factory::getApplication();
+        $plugin = $app->bootPlugin($type, 'alfa-fields');
 
-        return $plugin instanceof FieldsPlugin ? $plugin : null;
+        if ($plugin instanceof FieldsPlugin) {
+            $app->getDispatcher()->addSubscriber($plugin);
+
+            return $plugin;
+        }
+
+        return null;
     }
 }

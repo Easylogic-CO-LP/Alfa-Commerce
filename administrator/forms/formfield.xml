@@ -175,6 +175,18 @@
     <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL"
            description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>
 
-
+    <!-- ===== SHOWON: standalone builder field. Value carried by a hidden
+         input; showon-builder.js renders the UI and writes canonical JSON
+         back into it. No fieldsparams wrapper — FormfieldModel folds the
+         value into params on save and mirrors it back on load. Rendered
+         manually as its own tab in tmpl/formfield/edit.php. ===== -->
+    <field
+            name="showon"
+            type="showon"
+            label="COM_ALFA_SHOWON_LBL"
+            description="COM_ALFA_SHOWON_DESC"
+            hiddenLabel="true"
+    />
+    <!-- ===== /SHOWON ===== -->
 </form>
 

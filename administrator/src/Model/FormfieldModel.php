@@ -211,6 +211,16 @@ class FormfieldModel extends AdminModel
 
             $data = $this->item;
             $data->fieldsparams = $data->params;
+
+            // SHOWON lives inside the params JSON. Mirror it onto the
+            // standalone top-level `showon` field so ShowonField hydrates
+            // the builder on edit (replaces the old fieldsparams wrapper).
+            $p = $data->params;
+            if (is_string($p)) {
+                $p = json_decode($p, true) ?: [];
+            }
+            $p = (array) $p;
+            $data->showon = (string) ($p['showon'] ?? '');
         }
 
         return $data;
@@ -256,6 +266,18 @@ class FormfieldModel extends AdminModel
         //		    }
         //	    }
 
+        // SHOWON: the standalone `showon` field carries the builder's
+        // canonical JSON. Fold it into fieldsparams so it persists in the
+        // params JSON (FieldsPlugin reads params->get('showon')); no DB
+        // column and no fieldsparams wrapper needed.
+        if (array_key_exists('showon', $data)) {
+            if (!isset($data['fieldsparams']) || !is_array($data['fieldsparams'])) {
+                $data['fieldsparams'] = [];
+            }
+            $data['fieldsparams']['showon'] = (string) $data['showon'];
+            unset($data['showon']);
+        }
+
         // Assign plugin field params to our params variable in the database
         $data['params'] = (isset($data['fieldsparams']) && is_array($data['fieldsparams']))
             ? (json_encode($data['fieldsparams']) ?: null) : null;
@@ -281,6 +303,9 @@ class FormfieldModel extends AdminModel
 
         return true;
     }
+
+    // SHOWON compile shim removed — ShowonField is now the single
+    // producer of the canonical engine JSON (per-glue recursive schema).
 
     /**
      * Prepare and sanitise the table prior to saving.

@@ -19,5 +19,10 @@
         <folder>js</folder>
         <filename>joomla.asset.json</filename>
     </media>
+
+    <languages folder="language">
+        <language tag="en-GB">en-GB/plg_alfa-fields_choice.ini</language>
+        <language tag="en-GB">en-GB/plg_alfa-fields_choice.sys.ini</language>
+    </languages>
 </extension>
 <!--        Unified choice field — select / radio / checkbox / button / chip, always array.-->

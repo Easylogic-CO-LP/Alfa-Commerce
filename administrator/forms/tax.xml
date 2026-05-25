@@ -157,29 +157,17 @@
             <option value="0">COM_ALFA_FORM_PLACE_ALL</option>
         </field>
 
-        <!--
-            usergroups: 0 = applies to ALL user groups.
-            Changed from type="UserGroupList" to type="sql" against #__usergroups
-            because UserGroupList's header always emits value="" which does not
-            match the integer 0 stored in the DB.
-            Removed default="8" — 0 (all groups) is the correct default.
-            <option value="0"> instead of header="...".
-        -->
         <field
                 name="usergroups"
-                type="sql"
-                input_type="list"
-                required="false"
-                multiple="true"
-                label="COM_ALFA_FORM_TAX_ALLOWEDUSERGROUPS_LBL"
-                description="COM_ALFA_FORM_TAX_ALLOWEDUSERGROUPS_DESC"
+                type="usergrouplist"
+                label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_LBL"
+                description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_DESC"
                 layout="joomla.form.field.list-fancy-select"
-                query="SELECT `id`, `title` AS val FROM `#__usergroups`"
-                key_field="id"
-                value_field="val"
-        >
-            <option value="0">All User Groups</option>
-        </field>
+                multiple="true"
+                checksuperusergroup="1"
+                default="8"
+                header="COM_ALFA_FORM_HEADER_ALL_USERGROUPS"
+        />
 
         <!--
             users: 0 = applies to ALL users (not user-specific).

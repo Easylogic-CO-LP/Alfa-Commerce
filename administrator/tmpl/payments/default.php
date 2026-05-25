@@ -170,7 +170,7 @@ if ($saveOrder && !empty($this->items)) {
 
                             <td>
                                 <?php
-                                    echo $this->escape($item->user_names);
+                                    echo $this->escape($item->usergroup_names);
                                 ?>
                             </td>
 

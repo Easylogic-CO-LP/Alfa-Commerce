@@ -87,7 +87,7 @@
 
         <field
                 name="usergroups"
-                type="UserGroupList"
+                type="usergrouplist"
                 label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_LBL"
                 description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_DESC"
                 layout="joomla.form.field.list-fancy-select"

@@ -70,4 +70,7 @@ DROP TABLE IF EXISTS `#__alfa_user_info`;
 DROP TABLE IF EXISTS `#__alfa_usergroups`;
 DROP TABLE IF EXISTS `#__alfa_users`;
 
+-- Media
+DROP TABLE IF EXISTS `#__alfa_media`;
+
 SET FOREIGN_KEY_CHECKS = 1;

@@ -72,8 +72,13 @@ if ($saveOrder && !empty($this->items)) {
                         </th>
 
                         <th class="d-none d-md-table-cell">
+                            <?php echo Text::_('COM_ALFA_FORM_FIELDS_TYPE'); ?>
+                        </th>
+
+                        <th class="d-none d-md-table-cell">
                             <?php echo Text::_('COM_ALFA_FORM_FIELDS_GROUP'); ?>
                         </th>
+
 
                     </tr>
                     </thead>
@@ -134,6 +139,10 @@ if ($saveOrder && !empty($this->items)) {
                                 <?php else : ?>
                                     <?php echo $this->escape($item->name); ?>
                                 <?php endif; ?>
+                            </td>
+
+                            <td class="d-none d-md-table-cell">
+                                <?php echo $this->escape($item->type); ?>
                             </td>
 
                             <td class="d-none d-md-table-cell">

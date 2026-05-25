@@ -32,7 +32,7 @@ $input = Factory::getApplication()->getInput();
 //echo "</pre>";
 //exit;
 
-$ignoreFieldsets = ['general', 'publish', 'meta'];
+$ignoreFieldsets = ['general', 'publish', 'meta', 'showon'];
 // 'shipmentsparams' and any other from any plugin that we want to load params.xml of shipment plugin should have <fields name="shipmentsparams"> to work
 
 $fieldsets = $this->form->getFieldsets();
@@ -147,6 +147,16 @@ document.addEventListener('DOMContentLoaded', () => {
 <!--        </div>-->
 <!--    </div>-->
 <!--    --><?php //echo HTMLHelper::_('uitab.endTab'); ?>
+
+    <?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'showon', Text::_('COM_ALFA_SHOWON_FIELDSET')); ?>
+    <div class="row">
+        <div class="col-lg-12">
+            <fieldset class="adminform">
+                <?php echo $this->form->renderField('showon'); ?>
+            </fieldset>
+        </div>
+    </div>
+    <?php echo HTMLHelper::_('uitab.endTab'); ?>
 
     <?php echo HTMLHelper::_('uitab.endTabSet'); ?>
 

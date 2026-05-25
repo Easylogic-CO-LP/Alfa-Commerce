@@ -12,7 +12,6 @@ namespace Joomla\Plugin\AlfaFields\Tel\Extension;
 use Alfa\Component\Alfa\Administrator\Event\Fields\PrepareDomEvent;
 use Alfa\Component\Alfa\Administrator\Plugin\FieldsPlugin;
 use DOMElement;
-use Joomla\CMS\Event\Application\BeforeCompileHeadEvent;
 use Joomla\CMS\Form\FormHelper;
 use Joomla\Registry\Registry;
 
@@ -20,21 +19,9 @@ defined('_JEXEC') or die;
 
 final class Tel extends FieldsPlugin
 {
-    public function onBeforeCompileHead(BeforeCompileHeadEvent $event): void
-    {
-        $app = $event->getApplication();
-
-        if (!$app->isClient('site')) {
-            return;
-        }
-
-        $wa = $event->getDocument()->getWebAssetManager();
-        $wa->getRegistry()->addRegistryFile('media/plg_alfa-fields_tel/joomla.asset.json');
-        $wa->useStyle('plg_alfa-fields_tel.intltelinput')
-            ->useStyle('plg_alfa-fields_tel.tel')
-            ->useScript('plg_alfa-fields_tel.intltelinput')
-            ->useScript('plg_alfa-fields_tel.tel');
-    }
+    // Assets (intl-tel-input, tel.js, tel.css) load from inside the layout
+    // (tmpl/layouts/tel.php) so they're only pulled in when a tel field actually
+    // renders — and a template override of the layout can swap them.
 
     public function prepareDom(PrepareDomEvent $event): ?DOMElement
     {
@@ -50,12 +37,25 @@ final class Tel extends FieldsPlugin
             ? new Registry($field->params)
             : ($field->params ?? new Registry());
 
-        $node->setAttribute('type', 'text');
+        // Our own field class — wraps the input in a layout that pre-renders
+        // translated hint <small> elements that tel.js toggles.
+        $node->setAttribute('type', 'tel');
+        FormHelper::addFieldPrefix('Joomla\\Plugin\\AlfaFields\\Tel\\Field');
 
         // Single source of truth for the rule name. Keep it lowercase —
         // camelCase breaks FormHelper::loadClass (splits into sub-namespace).
         if (!$node->getAttribute('validate')) {
             $node->setAttribute('validate', 'alfatel');
+        }
+
+        // Joomla's validate.js discovers handlers via class="validate-X", NOT
+        // the validate="X" attribute (the attribute is server-side only).
+        // Without this class, setHandler('alfatel') never fires on submit/blur.
+        $validateKey = $node->getAttribute('validate') ?: 'alfatel';
+        $existing = $node->getAttribute('class');
+        $needle = 'validate-' . $validateKey;
+        if (!preg_match('/\b' . preg_quote($needle, '/') . '\b/', $existing)) {
+            $node->setAttribute('class', trim($existing . ' ' . $needle));
         }
 
         if (!$node->getAttribute('inputmode')) {

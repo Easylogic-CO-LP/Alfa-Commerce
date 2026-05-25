@@ -152,8 +152,8 @@ class PaymentsModel extends ListModel
         $query->select("GROUP_CONCAT(DISTINCT pug.usergroup_id SEPARATOR ',') AS payment_usergroup_IDs")
             ->join('LEFT', '#__alfa_payment_usergroups as pug ON a.id = pug.payment_id');
 
-        $query->select("GROUP_CONCAT(DISTINCT ug.name SEPARATOR ', ') AS usergroup_names")
-            ->join('LEFT', '#__alfa_usergroups as ug ON pug.usergroup_id = ug.id');
+        $query->select("GROUP_CONCAT(DISTINCT ug.title SEPARATOR ', ') AS usergroup_names")
+            ->join('LEFT', '#__usergroups as ug ON pug.usergroup_id = ug.id');
 
         // Grouping by item id.
         $query->group('a.id');
