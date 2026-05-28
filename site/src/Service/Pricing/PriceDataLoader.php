@@ -16,6 +16,7 @@ namespace Alfa\Component\Alfa\Site\Service\Pricing;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\Factory;
 
 /**
@@ -298,7 +299,7 @@ class PriceDataLoader
         $userId = (int) ($context->getUserId() ?? 0);
 
         $query = $db->getQuery(true)
-            ->select('DISTINCT d.id, d.name, d.value, d.is_amount, d.behavior, d.operation, d.apply_before_tax, ic.item_id')
+            ->select('DISTINCT d.id, d.value, d.is_amount, d.behavior, d.operation, d.apply_before_tax, ic.item_id')
             ->from('#__alfa_discounts AS d')
 
             // ── Scope 1: Category ──────────────────────────────────────────────
@@ -343,6 +344,17 @@ class PriceDataLoader
             ->where('d.state = 1')
             ->order('d.ordering ASC');
 
+        // Resolve the discount name in the visitor's language (name lives in the
+        // per-language tables, not on the main table).
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'd',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_discounts',
+            langPrimaryColumn: 'id_discount',
+            fields:            ['name'],
+        );
+
         $db->setQuery($query);
         $results = $db->loadObjectList();
 
@@ -379,7 +391,7 @@ class PriceDataLoader
         $userId = (int) ($context->getUserId() ?? 0);
 
         $query = $db->getQuery(true)
-            ->select('DISTINCT t.id, t.name, t.value, t.behavior, ic.item_id')
+            ->select('DISTINCT t.id, t.value, t.behavior, ic.item_id')
             ->from('#__alfa_taxes AS t')
 
             // ── Scope 1: Category ──────────────────────────────────────────────
@@ -408,6 +420,17 @@ class PriceDataLoader
             ->where($this->dateHelper->getActiveCondition('t.publish_up', 't.publish_down'))
             ->where('t.state = 1')
             ->order('t.ordering ASC');
+
+        // Resolve the tax name in the visitor's language (name lives in the
+        // per-language tables, not on the main table).
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         't',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_taxes',
+            langPrimaryColumn: 'id_tax',
+            fields:            ['name'],
+        );
 
         $db->setQuery($query);
         $results = $db->loadObjectList();

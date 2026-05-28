@@ -3,7 +3,10 @@
   <fieldset>
         <field name="id" type="text" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
 
-        <field name="name" size="400" filter="safehtml" type="text" required="true" translateLabel="true" label="COM_ALFA_FORM_LBL_ORDER_STATUS_NAME"/>
+        <field name="name" type="MultilingualText"
+               multilingual_table="#__alfa_orders_statuses" multilingual_pk="id_orderstatus"
+               maxlength="400" filter="safehtml" required="true" translateLabel="true"
+               label="COM_ALFA_FORM_LBL_ORDER_STATUS_NAME"/>
 
         <field
                 name="color"

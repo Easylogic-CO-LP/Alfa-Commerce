@@ -16,6 +16,7 @@ namespace Alfa\Component\Alfa\Site\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\MVC\Model\ItemModel as BaseItemModel;
@@ -71,8 +72,20 @@ class ManufacturerModel extends BaseItemModel
             $db = $this->getDatabase();
             $query = $db->getQuery(true)
                 ->select('a.*')
-                ->from($db->quoteName('#__alfa_manufacturers', 'a'))
-                ->where($db->quoteName('a.id') . ' = :pk')
+                ->from($db->quoteName('#__alfa_manufacturers', 'a'));
+
+            // Resolve translatable fields in the active language (current →
+            // default → '') from the per-language tables. No main-table fallback.
+            MultilingualHelper::addMultilingualJoinToQuery(
+                query:             $query,
+                mainAlias:         'a',
+                mainPrimaryColumn: 'id',
+                langTableBase:     '#__alfa_manufacturers',
+                langPrimaryColumn: 'id_manufacturer',
+                fields:            ['name', 'alias', 'desc', 'meta_title', 'meta_desc'],
+            );
+
+            $query->where($db->quoteName('a.id') . ' = :pk')
                 ->bind(':pk', $pk, ParameterType::INTEGER);
 
             $db->setQuery($query);

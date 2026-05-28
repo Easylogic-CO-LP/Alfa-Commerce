@@ -426,4 +426,121 @@ final class SyncHelper
 
         return $inserted;
     }
+
+    // =========================================================================
+    // Language schema sync (multilingual auxiliary tables)
+    // =========================================================================
+
+    /**
+     * Create / update the per-language auxiliary tables for every translatable
+     * entity, across all installed content languages.
+     *
+     * The translatable schema is DISCOVERED from the component's form XML — every
+     * <field> carrying a `multilingual_table` attribute (the MultilingualText /
+     * MultilingualTextarea / MultilingualEditor field types) declares its table,
+     * PK column and field name. This keeps the sync self-maintaining: adding a
+     * translatable field to a form is picked up automatically, with no list to
+     * maintain here.
+     *
+     * Idempotent: missing lang tables are created, missing columns added; nothing
+     * is dropped or seeded. Shared by the installer (script.php postflight), the
+     * PlgSystemAlfasync runtime sync, and the admin "Resync languages" button.
+     *
+     * @return array  ['tables' => [table => ensureLangSchema summary], 'errors' => [table => message]].
+     */
+    public static function syncLanguageSchema(): array
+    {
+        $schema  = self::getMultilingualSchema();
+        $summary = ['tables' => [], 'errors' => []];
+
+        foreach ($schema as $table => $definition) {
+            try {
+                $summary['tables'][$table] = MultilingualHelper::ensureLangSchema(
+                    tableName:         $table,
+                    primaryColumnName: $definition['pk'],
+                    fields:            $definition['fields'],
+                );
+            } catch (Exception $e) {
+                $summary['errors'][$table] = $e->getMessage();
+            }
+        }
+
+        return $summary;
+    }
+
+    /**
+     * Return the discovered translatable schema for the whole component, e.g.
+     *   [ '#__alfa_categories' => [
+     *         'pk'          => 'id_category',
+     *         'fields'      => ['name', 'desc', 'alias', 'meta_title', 'meta_desc'],
+     *         'aliasFields' => ['alias'],
+     *         'aliasScope'  => ['parent_id'],
+     *     ], … ]
+     *
+     * Scans the component's admin + site form XML for every field carrying a
+     * `multilingual_table` attribute. Public so the Tools view / SyncController
+     * can build the backfill plan from the same single source of truth used by
+     * the schema sync. Alias fields + uniqueness scope come from MultilingualAliasConfig.
+     *
+     * @return array<string, array{pk: string, fields: string[], aliasFields: string[], aliasScope: string[]}>
+     */
+    public static function getMultilingualSchema(): array
+    {
+        return self::discoverMultilingualSchema([
+            JPATH_ADMINISTRATOR . '/components/com_alfa/forms',
+            JPATH_SITE . '/components/com_alfa/forms',
+        ]);
+    }
+
+    /**
+     * Scan the given form directories for translatable-field declarations.
+     *
+     * Collects every <field multilingual_table="…" multilingual_pk="…" name="…">.
+     * Alias slug fields and their uniqueness scope are NOT read from the XML —
+     * they come from MultilingualAliasConfig.
+     *
+     * @param  string[] $formDirs  Absolute paths to directories of *.xml form files.
+     *
+     * @return array<string, array{pk: string, fields: string[], aliasFields: string[], aliasScope: string[]}>
+     */
+    private static function discoverMultilingualSchema(array $formDirs): array
+    {
+        $schema = [];
+
+        foreach ($formDirs as $dir) {
+            if (!is_dir($dir)) {
+                continue;
+            }
+
+            foreach (glob($dir . '/*.xml') ?: [] as $file) {
+                $xml = @simplexml_load_file($file);
+
+                if ($xml === false) {
+                    continue;
+                }
+
+                foreach ($xml->xpath('//field[@multilingual_table]') ?: [] as $field) {
+                    $table = (string) $field['multilingual_table'];
+                    $pk    = (string) $field['multilingual_pk'];
+                    $name  = (string) $field['name'];
+
+                    if ($table === '' || $pk === '' || $name === '') {
+                        continue;
+                    }
+
+                    $schema[$table]['pk']            = $pk;
+                    $schema[$table]['fields'][$name] = $name; // keyed → de-duplicated
+                }
+            }
+        }
+
+        // Flatten the field map; alias fields + scope come from the shared config.
+        foreach ($schema as $table => $definition) {
+            $schema[$table]['fields']      = array_values($definition['fields']);
+            $schema[$table]['aliasFields'] = MultilingualAliasConfig::FIELDS[$table] ?? [];
+            $schema[$table]['aliasScope']  = MultilingualAliasConfig::SCOPE[$table] ?? [];
+        }
+
+        return $schema;
+    }
 }

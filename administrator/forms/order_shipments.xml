@@ -32,15 +32,16 @@
 
         <!-- Shipment method (dropdown from shipments table) -->
         <field
-                name="id_shipment_method" type="sql"
+                name="id_shipment_method" type="model"
+                model="shipments"
+                column_value="id"
+                column_text="name"
                 input_type="list"
                 required="true"
                 multiple="false"
                 label="COM_ALFA_SHIPMENT_METHOD"
                 description="COM_ALFA_SHIPMENT_METHOD_DESC"
                 layout="joomla.form.field.list-fancy-select"
-                query="SELECT `id`, `name` AS `val` FROM `#__alfa_shipments`"
-                key_field="id" value_field="val"
         />
 
         <!-- Shipment status — options injected by OrderModel::getShipmentForm() -->

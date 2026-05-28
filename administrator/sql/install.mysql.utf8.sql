@@ -40,11 +40,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_cart_items` (
 CREATE TABLE IF NOT EXISTS `#__alfa_categories` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `parent_id` int(11) DEFAULT 0,
-  `name` varchar(400) NOT NULL,
-  `desc` text DEFAULT NULL,
-  `alias` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_bin DEFAULT NULL,
-  `meta_title` varchar(255) DEFAULT '',
-  `meta_desc` text DEFAULT NULL,
+  -- Translatable fields (name, desc, alias, meta_title, meta_desc) live ONLY in
+  -- the per-language tables #__alfa_categories_<langtag>. No main-table copy.
   `meta_data` text NOT NULL DEFAULT '{}',
   `state` tinyint(1) DEFAULT 1,
   `publish_up` datetime DEFAULT NULL,
@@ -380,7 +377,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_customs` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_discounts` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `name` varchar(400) NOT NULL,
+  -- Translatable field (name) lives ONLY in the per-language tables
+  -- #__alfa_discounts_<langtag>. No main-table copy. (`desc` is unused/legacy.)
   `desc` text DEFAULT NULL,
   `value` int(11) NOT NULL,
   `is_amount` tinyint(1) DEFAULT 0 COMMENT '0 is percentage, 1 is amount',
@@ -489,10 +487,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_form_fields` (
   `group_id` int(11) NOT NULL DEFAULT 0,
   `type` text DEFAULT NULL,
   `params` text DEFAULT NULL,
-  `name` text NOT NULL,
+  -- Translatable fields (name, field_label, field_description) live ONLY in
+  -- the per-language tables #__alfa_form_fields_<langtag>.
+  -- field_name is the machine key (NOT translatable) and stays here.
   `field_name` text NOT NULL,
-  `field_label` text NOT NULL,
-  `field_description` text NOT NULL DEFAULT '',
   `required` tinyint(1) DEFAULT 0,
   `registration` tinyint(1) DEFAULT 0,
   `billing` tinyint(1) DEFAULT 0,
@@ -537,9 +535,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_form_fields_users` (
 CREATE TABLE IF NOT EXISTS `#__alfa_items` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `id_category_default` int(11) NOT NULL,
-  `name` varchar(255) NOT NULL,
-  `short_desc` text DEFAULT NULL,
-  `full_desc` text DEFAULT NULL,
+  -- Translatable fields (name, short_desc, full_desc, alias, meta_title,
+  -- meta_desc) live ONLY in the per-language tables #__alfa_items_<langtag>.
   `sku` varchar(255) DEFAULT '',
   `gtin` varchar(255) DEFAULT '',
   `mpn` varchar(255) DEFAULT '',
@@ -556,9 +553,6 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items` (
   `height` decimal(20,6) NOT NULL DEFAULT 0.000000,
   `depth` decimal(20,6) NOT NULL DEFAULT 0.000000,
   `weight` decimal(20,6) NOT NULL DEFAULT 0.000000,
-  `alias` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_bin DEFAULT NULL,
-  `meta_title` varchar(255) DEFAULT '',
-  `meta_desc` text DEFAULT NULL,
   `meta_data` text NOT NULL DEFAULT '{}',
   `state` tinyint(1) DEFAULT 1,
   `publish_up` datetime DEFAULT NULL,
@@ -694,11 +688,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_users` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_manufacturers` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `name` varchar(255) NOT NULL,
-  `alias` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_bin DEFAULT NULL,
-  `desc` text DEFAULT NULL,
-  `meta_title` varchar(255) DEFAULT '',
-  `meta_desc` text DEFAULT NULL,
+  -- Translatable fields (name, alias, desc, meta_title, meta_desc) live ONLY in
+  -- the per-language tables #__alfa_manufacturers_<langtag>. No main-table copy.
   `meta_data` text NOT NULL DEFAULT '{}',
   `website` varchar(255) DEFAULT '',
   `state` tinyint(1) DEFAULT 1,
@@ -791,7 +782,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_orders_statuses` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(255) NOT NULL,
+  -- Translatable field (name) lives ONLY in the per-language tables
+  -- #__alfa_orders_statuses_<langtag>. No main-table copy.
   `color` varchar(50) NOT NULL,
   `bg_color` varchar(50) NOT NULL,
   `stock_operation` tinyint(1) DEFAULT 1 COMMENT '0 removes from stock,\r\n1 keep in stock',
@@ -807,14 +799,10 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders_statuses` (
 ) ENGINE=MyISAM AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `#__alfa_orders_statuses`
+-- Order statuses are intentionally NOT seeded. They are created (and named
+-- per language) by the admin / install wizard; the translatable name lives in
+-- the per-language tables #__alfa_orders_statuses_<langtag>.
 --
-
-INSERT INTO `#__alfa_orders_statuses` (`id`, `name`, `color`, `bg_color`, `stock_operation`, `is_default`, `state`, `checked_out`, `checked_out_time`, `created_by`, `modified`, `modified_by`, `ordering`) VALUES
-(1, 'Επιβεβαιωμένη', 'rgba(255, 255, 255, 1)', 'rgba(14, 158, 11, 1)', 0, 1, 1, NULL, NULL, 0, '2025-02-26 12:12:35', 923, 1),
-(2, 'Απεστάλη', '#eeeeee', 'rgba(25, 129, 255, 1)', 0, 0, 1, NULL, NULL, 0, '2025-02-26 12:12:33', 923, 2),
-(3, 'Ακυρωμένη', 'rgba(255, 255, 255, 1)', 'rgba(255, 0, 0, 1)', 1, 0, 1, NULL, NULL, 0, '2025-02-26 12:12:42', 923, 4),
-(4, 'Ολοκληρώθηκε', 'rgba(0, 0, 0, 1)', 'rgba(214, 214, 214, 1)', 0, 0, 1, NULL, NULL, 0, '2025-02-26 12:12:37', 923, 3);
 
 -- --------------------------------------------------------
 
@@ -1060,13 +1048,13 @@ CREATE TABLE IF NOT EXISTS `#__alfa_payments` (
   `bg_color` varchar(50) NOT NULL,
   `params` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '{}',
   `show_on_product` tinyint(4) NOT NULL,
-  `description` text NOT NULL,
+  -- Translatable fields (name, description) live ONLY in the per-language
+  -- tables #__alfa_payments_<langtag>. No main-table copy.
   `ordering` int(11) DEFAULT 0,
   `checked_out` int(11) UNSIGNED DEFAULT NULL,
   `checked_out_time` datetime DEFAULT NULL,
   `created_by` int(11) DEFAULT 0,
   `modified_by` int(11) DEFAULT 0,
-  `name` varchar(255) NOT NULL,
   `state` tinyint(1) DEFAULT 1,
   PRIMARY KEY (`id`),
   KEY `idx_checked_out` (`checked_out`),
@@ -1448,13 +1436,13 @@ CREATE TABLE IF NOT EXISTS `#__alfa_shipments` (
   `bg_color` varchar(50) NOT NULL,
   `params` longtext NOT NULL,
   `show_on_product` tinyint(4) NOT NULL,
-  `description` text NOT NULL,
+  -- Translatable fields (name, description) live ONLY in the per-language
+  -- tables #__alfa_shipments_<langtag>. No main-table copy.
   `ordering` int(11) DEFAULT 0,
   `checked_out` int(11) UNSIGNED DEFAULT NULL,
   `checked_out_time` datetime DEFAULT NULL,
   `created_by` int(11) DEFAULT 0,
   `modified_by` int(11) DEFAULT 0,
-  `name` varchar(255) NOT NULL,
   `state` tinyint(1) DEFAULT 1,
   PRIMARY KEY (`id`),
   KEY `idx_checked_out` (`checked_out`),
@@ -1526,8 +1514,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_shipment_users` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_taxes` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `name` varchar(400) NOT NULL,
-  `desc` text DEFAULT NULL,
+  -- Translatable fields (name, desc) live ONLY in the per-language tables
+  -- #__alfa_taxes_<langtag>. No main-table copy.
   `value` int(11) NOT NULL,
   `behavior` tinyint(1) NOT NULL COMMENT '0 only this tax, 1 combine , 2 one after another',
   `state` tinyint(1) DEFAULT 1,

@@ -44,6 +44,7 @@ use Alfa\Component\Alfa\Administrator\Event\Payments\OrderAfterPlaceEvent as Pay
 use Alfa\Component\Alfa\Administrator\Event\Payments\OrderPlaceEvent as PaymentOrderPlaceEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\OrderAfterPlaceEvent as ShipmentOrderAfterPlaceEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\OrderPlaceEvent as ShipmentOrderPlaceEvent;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStockHelper;
 use Exception;
 use Joomla\CMS\Component\ComponentHelper;
@@ -160,8 +161,8 @@ class OrderPlaceHelper
                 return false;
             }
 
-            $paymentMethodId = $this->app->input->getInt('payment_method', null);
-            $shipmentMethodId = $this->app->input->getInt('shipment_method', null);
+            $paymentMethodId = $this->app->input->getInt('payment_method', 0);
+            $shipmentMethodId = $this->app->input->getInt('shipment_method', 0);
 
             Log::add("Payment: {$paymentMethodId}, Shipment: {$shipmentMethodId}", Log::DEBUG, 'com_alfa.orders');
 
@@ -290,13 +291,13 @@ class OrderPlaceHelper
                 return false;
             }
 
-            $paymentMethodId = $this->app->input->getInt('payment_method', null);
+            $paymentMethodId = $this->app->input->getInt('payment_method', 0);
             if (!$this->checkPaymentMethod($paymentMethodId)) {
                 $this->app->enqueueMessage('Invalid payment method.', 'error');
                 return false;
             }
 
-            $shipmentMethodId = $this->app->input->getInt('shipment_method', null);
+            $shipmentMethodId = $this->app->input->getInt('shipment_method', 0);
             if (!$this->checkShipmentMethod($shipmentMethodId)) {
                 $this->app->enqueueMessage('Invalid shipment method.', 'error');
                 return false;
@@ -698,13 +699,13 @@ class OrderPlaceHelper
         try {
             $currentDate = Factory::getDate('now', 'UTC');
 
-            // Get status name
-            $query = $this->db->getQuery(true)
-                ->select('name')
-                ->from('#__alfa_orders_statuses')
-                ->where('id = ' . intval($statusId));
-            $this->db->setQuery($query);
-            $statusName = $this->db->loadResult() ?: "Status #{$statusId}";
+            // Status name in the customer's language (it lives in the per-language tables).
+            $statusName = MultilingualHelper::getTranslatedValue(
+                id:                $statusId,
+                tableName:         '#__alfa_orders_statuses',
+                primaryColumnName: 'id_orderstatus',
+                field:             'name',
+            ) ?: "Status #{$statusId}";
 
             $log = new stdClass();
             $log->id_order = $this->order->id;
@@ -767,27 +768,47 @@ class OrderPlaceHelper
     // Helper methods
     protected function checkPaymentMethod(?int $id): bool
     {
+        $methods = $this->cart->getPaymentMethods();
+
+        // No methods offered → payment is not required for this order.
+        if (empty($methods)) {
+            return true;
+        }
+
+        // Methods exist → a valid one must be chosen.
         if (!$id) {
             return false;
         }
-        foreach ($this->cart->getPaymentMethods() as $m) {
+
+        foreach ($methods as $m) {
             if ($m->id == $id) {
                 return true;
             }
         }
+
         return false;
     }
 
     protected function checkShipmentMethod(?int $id): bool
     {
+        $methods = $this->cart->getShipmentMethods();
+
+        // No methods offered → shipment is not required for this order.
+        if (empty($methods)) {
+            return true;
+        }
+
+        // Methods exist → a valid one must be chosen.
         if (!$id) {
             return false;
         }
-        foreach ($this->cart->getShipmentMethods() as $m) {
+
+        foreach ($methods as $m) {
             if ($m->id == $id) {
                 return true;
             }
         }
+
         return false;
     }
 
@@ -815,6 +836,13 @@ class OrderPlaceHelper
 
     protected function getPaymentType(int $id): void
     {
+        // No payment method (0) → nothing to resolve; skip the query.
+        if ($id <= 0) {
+            $this->payment_type = '';
+
+            return;
+        }
+
         try {
             $query = $this->db->getQuery(true)
                 ->select('type')
@@ -829,6 +857,13 @@ class OrderPlaceHelper
 
     protected function getShipmentType(int $id): void
     {
+        // No shipment method (0) → nothing to resolve; skip the query.
+        if ($id <= 0) {
+            $this->shipment_type = '';
+
+            return;
+        }
+
         try {
             $query = $this->db->getQuery(true)
                 ->select('type')
@@ -843,30 +878,36 @@ class OrderPlaceHelper
 
     protected function getPaymentMethodName(int $id): string
     {
-        try {
-            $query = $this->db->getQuery(true)
-                ->select('name')
-                ->from('#__alfa_payments')
-                ->where('id = ' . $id);
-            $this->db->setQuery($query);
-            return $this->db->loadResult() ?: 'Payment Method ' . $id;
-        } catch (Exception $e) {
-            return 'Payment Method ' . $id;
+        // No payment method (0) → empty name (avoids a needless query and the
+        // bogus "Payment Method 0" fallback).
+        if ($id <= 0) {
+            return '';
         }
+
+        // Name lives in the per-language tables; resolve in the customer's language.
+        return MultilingualHelper::getTranslatedValue(
+            id:                $id,
+            tableName:         '#__alfa_payments',
+            primaryColumnName: 'id_payment',
+            field:             'name',
+        ) ?: 'Payment Method ' . $id;
     }
 
     protected function getShipmentMethodName(int $id): string
     {
-        try {
-            $query = $this->db->getQuery(true)
-                ->select('name')
-                ->from('#__alfa_shipments')
-                ->where('id = ' . $id);
-            $this->db->setQuery($query);
-            return $this->db->loadResult() ?: 'Shipment Method ' . $id;
-        } catch (Exception $e) {
-            return 'Shipment Method ' . $id;
+        // No shipment method (0) → empty name (avoids a needless query and the
+        // bogus "Shipment Method 0" fallback).
+        if ($id <= 0) {
+            return '';
         }
+
+        // Name lives in the per-language tables; resolve in the customer's language.
+        return MultilingualHelper::getTranslatedValue(
+            id:                $id,
+            tableName:         '#__alfa_shipments',
+            primaryColumnName: 'id_shipment',
+            field:             'name',
+        ) ?: 'Shipment Method ' . $id;
     }
 
     protected function getCurrencyID(int $number): ?int

@@ -220,6 +220,15 @@ class com_alfaInstallerScript extends InstallerScript
             return true;
         }
 
+        // Register the component namespace so every Alfa\Component\Alfa\Administrator\…
+        // class autoloads here — the component autoloader isn't active yet at postflight
+        // time, and SyncHelper::syncLanguageSchema() pulls in further helpers
+        // (e.g. MultilingualAliasConfig) that a single require_once would miss.
+        \JLoader::registerNamespace(
+            'Alfa\\Component\\Alfa\\Administrator',
+            JPATH_ADMINISTRATOR . '/components/com_alfa/src'
+        );
+
         $syncHelperPath = JPATH_ADMINISTRATOR . '/components/com_alfa/src/Helper/SyncHelper.php';
 
         if (file_exists($syncHelperPath))
@@ -266,6 +275,37 @@ class com_alfaInstallerScript extends InstallerScript
         catch (\Throwable $e)
         {
             $app->enqueueMessage('Failed to sync usergroups: ' . $e->getMessage(), 'error');
+        }
+
+        // 4. Create / update the per-language translation tables, discovered from
+        //    the form XML (every field with a multilingual_table attribute).
+        //    MultilingualHelper is loaded explicitly — the component autoloader
+        //    may not be registered yet at postflight time.
+        $multilingualHelperPath = JPATH_ADMINISTRATOR . '/components/com_alfa/src/Helper/MultilingualHelper.php';
+
+        if (file_exists($multilingualHelperPath))
+        {
+            require_once $multilingualHelperPath;
+
+            try
+            {
+                $result = \Alfa\Component\Alfa\Administrator\Helper\SyncHelper::syncLanguageSchema();
+                $app->enqueueMessage(
+                    sprintf('Language tables synced (%d translatable tables processed).', count($result['tables']))
+                );
+
+                if (!empty($result['errors']))
+                {
+                    $app->enqueueMessage(
+                        'Some language tables failed: ' . implode('; ', array_keys($result['errors'])),
+                        'warning'
+                    );
+                }
+            }
+            catch (\Throwable $e)
+            {
+                $app->enqueueMessage('Failed to sync language tables: ' . $e->getMessage(), 'error');
+            }
         }
 
         return true;

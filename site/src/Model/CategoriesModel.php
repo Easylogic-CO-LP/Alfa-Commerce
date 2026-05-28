@@ -13,10 +13,10 @@ namespace Alfa\Component\Alfa\Site\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Exception;
-use Joomla\CMS\MVC\Model\ListModel;
 use Joomla\CMS\Router\Route;
 
 /**
@@ -24,7 +24,7 @@ use Joomla\CMS\Router\Route;
  *
  * @since  1.0.1
  */
-class CategoriesModel extends ListModel
+class CategoriesModel extends UrlListModel
 {
     /**
      * Constructor.
@@ -43,32 +43,14 @@ class CategoriesModel extends ListModel
                 'modified_by', 'a.modified_by',
                 'parent_id', 'a.parent_id',
                 'id', 'a.id',
-                'name', 'a.name',
                 'state', 'a.state',
-                'alias', 'a.alias',
-                'meta_title', 'a.meta_title',
-                'meta_desc', 'a.meta_desc',
+                // Translatable — resolved via the lang-table COALESCE alias.
+                'name',
+                'alias',
             ];
         }
 
         parent::__construct($config);
-    }
-
-    /**
-     * Method to auto-populate the model state.
-     *
-     * Note. Calling getState in this method will result in recursion.
-     *
-     * @param string $ordering Elements order
-     * @param string $direction Order direction
-     *
-     * @return void
-     *
-     * @throws Exception
-     */
-    protected function populateState($ordering = 'a.id', $direction = 'ASC')
-    {
-        parent::populateState($ordering, $direction);
     }
 
     /**
@@ -92,6 +74,17 @@ class CategoriesModel extends ListModel
         );
 
         $query->from('`#__alfa_categories` AS a');
+
+        // Resolve name / alias in the active language (current → default → '')
+        // from the per-language tables. LEFT JOIN keeps untranslated rows visible.
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'a',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_categories',
+            langPrimaryColumn: 'id_category',
+            fields:            ['name', 'alias', 'desc'],
+        );
 
         $parentCategoryFilter = $this->getState('filter.parent_id');
         if ($parentCategoryFilter !== null) {
@@ -134,12 +127,15 @@ class CategoriesModel extends ListModel
                 $query->where('a.id = ' . (int) substr($search, 3));
             } else {
                 $search = $db->quote('%' . $db->escape($search, true) . '%');
-                $query->where('( a.name LIKE ' . $search . ' )');
+                // HAVING (not WHERE) because `name` is the COALESCE alias built
+                // from the lang join — it is not a real column at WHERE time.
+                $query->having('( ' . $db->quoteName('name') . ' LIKE ' . $search . ' )');
             }
         }
 
-        // Add the list ordering clause.
-        $orderCol = $this->state->get('list.ordering', 'a.name');
+        // Add the list ordering clause. `name` is the translated COALESCE alias
+        // from the lang join (the main-table name column no longer exists).
+        $orderCol = $this->state->get('list.ordering', 'name');
         $orderDirn = $this->state->get('list.direction', 'ASC');
 
         if ($orderCol && $orderDirn) {
@@ -159,15 +155,18 @@ class CategoriesModel extends ListModel
         $items = parent::getItems();
 
         if (!empty($items)) {
+            // Batch media (one query for ALL categories, grouped by id — avoids N+1).
+            $mediaByCategory = MediaHelper::getMediaData(
+                origin:         'category',
+                itemIDs:        array_map(static fn ($c) => (int) $c->id, $items),
+                usePlaceHolder: true,
+            );
+
             foreach ($items as $category) {
-                $category->medias = MediaHelper::getMediaData(
-                    origin: 'category',
-                    itemIDs: $category->id,
-                    usePlaceHolder : true,
-                );
+                $category->medias = $mediaByCategory[$category->id] ?? [];
 
                 // Generate links for categories
-                $category->link = Route::_('index.php?option=com_alfa&view=items&category_id' . (int) $category->id);
+                $category->link = Route::_('index.php?option=com_alfa&view=items&category_id=' . (int) $category->id);
             }
         }
 

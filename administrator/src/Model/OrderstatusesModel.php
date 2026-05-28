@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Exception;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 use Joomla\CMS\MVC\Model\ListModel;
@@ -35,12 +36,13 @@ class OrderstatusesModel extends ListModel
     {
         if (empty($config['filter_fields'])) {
             $config['filter_fields'] = [
-                'name', 'a.name',
                 'color', 'a.color',
                 'bg_color', 'a.bg_color',
                 'stock_operation', 'a.stock_operation',
                 'state', 'a.state',
                 'ordering', 'a.ordering',
+                // Translatable — resolved via the lang-table COALESCE alias.
+                'name',
             ];
         }
 
@@ -120,6 +122,17 @@ class OrderstatusesModel extends ListModel
         $query->select('`modified_by`.name AS `modified_by`');
         $query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
 
+        // MULTILINGUAL: resolve the status name in the active language from the
+        // per-language tables (LEFT JOIN + COALESCE keeps untranslated rows).
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'a',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_orders_statuses',
+            langPrimaryColumn: 'id_orderstatus',
+            fields:            ['name'],
+        );
+
         // Filter by published state
         $published = $this->getState('filter.state');
 
@@ -137,7 +150,8 @@ class OrderstatusesModel extends ListModel
                 $query->where('a.id = ' . (int) substr($search, 3));
             } else {
                 $search = $db->Quote('%' . $db->escape($search, true) . '%');
-                $query->where('( a.name LIKE ' . $search . ' )');
+                // HAVING — `name` is the COALESCE alias from the lang join.
+                $query->having('( ' . $db->quoteName('name') . ' LIKE ' . $search . ' )');
             }
         }
 

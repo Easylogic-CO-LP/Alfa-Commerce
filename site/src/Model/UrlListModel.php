@@ -48,6 +48,16 @@ abstract class UrlListModel extends ListModel
     ];
 
     /**
+     * When true (config 'ignore_request'), state comes ONLY from explicit
+     * setState() calls — the URL is not read. Used when the model is driven
+     * programmatically as a sub-listing inside another view (e.g. ItemsModel
+     * building its sub-categories), so the host page's URL filters don't leak in.
+     *
+     * @var bool
+     */
+    protected bool $ignoreRequest = false;
+
+    /**
      * Constructor
      *
      * @param array $config Configuration array
@@ -56,6 +66,7 @@ abstract class UrlListModel extends ListModel
     {
         parent::__construct($config);
         $this->app = Factory::getApplication();
+        $this->ignoreRequest = !empty($config['ignore_request']);
 
         // Auto-set filterFormName if not defined
         if (empty($this->filterFormName)) {
@@ -236,24 +247,27 @@ abstract class UrlListModel extends ListModel
         $this->app->setUserState($this->context . '.list', null);
         $this->app->setUserState($this->context . '.limitstart', null);
 
-        // List params from URL or defaults
-        $list = $input->get('list', [], 'array');
+        // List params from URL or defaults (defaults only when ignoring the request,
+        // e.g. a programmatic sub-listing — the caller sets state via setState()).
+        $list = $this->ignoreRequest ? [] : $input->get('list', [], 'array');
         $this->populateListState($list, $defaults);
 
         // Pagination
         $limit = $this->state->get('list.limit');
-        $limitstart = $input->getInt('limitstart', 0);
+        $limitstart = $this->ignoreRequest ? 0 : $input->getInt('limitstart', 0);
         $limitstart = $limit ? (int) (floor($limitstart / $limit) * $limit) : 0;
         $this->setState('list.start', $limitstart);
 
-        // Filters from URL
-        $filters = $input->get('filter', [], 'array');
-        foreach ($filters as $name => $value) {
-            $this->setState('filter.' . $name, $this->normalizeFilterValue($value));
+        // Filters from URL (skipped when ignoring the request).
+        if (!$this->ignoreRequest) {
+            $filters = $input->get('filter', [], 'array');
+            foreach ($filters as $name => $value) {
+                $this->setState('filter.' . $name, $this->normalizeFilterValue($value));
+            }
         }
 
         // Layout
-        $this->setState('layout', $input->getString('layout'));
+        $this->setState('layout', $this->ignoreRequest ? null : $input->getString('layout'));
     }
 
     /**

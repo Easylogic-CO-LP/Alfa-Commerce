@@ -1,0 +1,84 @@
+/**
+ * Layout for the MultilingualText / MultilingualTextarea custom fields.
+ *
+ * The grid wrapper (.ml-field-grid) lays the per-language inputs in columns.
+ * The column count comes from the --ml-cols custom property the field emits
+ * (from fields_per_line, default 2). To change it site-wide without touching
+ * PHP, override it in admin CSS: .ml-field-grid { --ml-cols: 2 }. Phones
+ * collapse to one per row. fields_per_line="1" opts a field back into the
+ * stacked single-column layout (.ml-field-stack).
+ *
+ * The flag pin (.ml-field-flag) is shared across both single- and multi-
+ * column layouts so the language flag always sits inside the input wrapper.
+ */
+
+.ml-field-grid {
+  display: grid;
+  /* Column count is driven by --ml-cols (emitted by the field from
+   * fields_per_line, default 2). Override .ml-field-grid { --ml-cols: N }
+   * in admin custom CSS to change it everywhere without editing PHP. */
+  grid-template-columns: repeat(var(--ml-cols, 2), minmax(0, 1fr));
+  gap: 8px;
+}
+
+/* Small screens: one field per row — two inputs side by side get too cramped.
+ * 768px = tablet-portrait / Bootstrap's md edge. A clean integer is fine here
+ * (no paired min-width rule to overlap with). No !important needed because the
+ * count lives in --ml-cols, not an inline grid-template-columns. */
+@media (max-width: 768px) {
+  .ml-field-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* The grid declares N tracks; with a single installed language the lone input
+ * would sit at half width with an empty track beside it — so it spans them all. */
+.ml-field-grid > .ml-field-item:only-child {
+  grid-column: 1 / -1;
+}
+
+.ml-field-stack > .ml-field-item + .ml-field-item {
+  margin-top: 4px;
+}
+
+.ml-field-item {
+  position: relative;
+}
+
+/* The flag image / fallback text pinned to the right edge of each input
+ * wrapper. pointer-events:none so clicking the flag doesn't steal focus
+ * from the input below. */
+.ml-field-flag {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* For textarea fields the wrapper is tall — pin the flag to the top
+ * (slightly inset from the top edge) instead of vertically centred so it
+ * doesn't float mid-textarea. */
+.ml-field-item--textarea > .ml-field-flag {
+  top: 8px;
+  transform: none;
+}
+
+.ml-field-flag--text {
+  font-size: 0.75em;
+}
+
+/* Slight inner-right padding so the input value doesn't collide with the
+ * flag pinned to the right edge. */
+.ml-field-item > input,
+.ml-field-item > textarea {
+  padding-right: 36px;
+}
+
+/* The MultilingualEditor renders one joomla-tab panel per language. Core
+ * joomla-tab-element CSS adds `padding: 30px 2vw`, which insets the editor
+ * away from the field edge. Scope the reset to our editor tab sets only
+ * (id prefix "mlEditor_") so other joomla-tabs on the page keep their padding. */
+joomla-tab[id^="mlEditor_"] > joomla-tab-element {
+  padding: 0;
+}

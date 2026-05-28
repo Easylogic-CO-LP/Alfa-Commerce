@@ -39,7 +39,7 @@
                     </div>
                     <?php if ($firstImage) : ?>
                         <div class="item-list-entry-image item-manufacturer-image">
-                            <img src="<?php echo $firstImage->path; ?>" alt="<?php echo $imageAlt; ?>">
+                            <img src="<?php echo $firstImage->url; ?>" alt="<?php echo $imageAlt; ?>">
                         </div>
                     <?php endif; ?>
                 </a>

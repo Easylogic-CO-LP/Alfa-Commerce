@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Exception;
 use Joomla\CMS\Event\Model;
 use Joomla\CMS\Factory;
@@ -247,15 +248,49 @@ class FormfieldModel extends AdminModel
      */
     public function save($data)
     {
-        $app = Factory::getApplication();
-        //		$db = $this->getDatabase();
-        //	    $input = $app->getInput();
+        $app   = Factory::getApplication();
+        $input = $app->getInput();
+
+        // 'raw' filter preserves the per-language flat keys (name_en_gb,
+        // field_label_el_gr, field_description_*, meta_*) that the default
+        // 'array' filter would strip.
+        $rawData = $input->post->get('jform', [], 'raw');
+        $data = array_merge($data, $rawData);
+
         $table = $this->getTable();
-        $key = $table->getKeyName();
+        $key   = $table->getKeyName();
         $isNew = $data[$key] <= 0;
 
-        $data['field_name'] = $data['field_name'] ?: $data['name'];
-        $data['field_name'] = OutputFilter::stringURLSafe($data['field_name']);
+        // field_name is the machine key / DB column (NOT translatable). When the
+        // user leaves it blank, derive it from the name — preferring the default
+        // language, then any other language that actually has a value.
+        if (empty($data['field_name'])) {
+            $candidates = [$data['name_' . MultilingualHelper::getDefaultLanguageTag()] ?? ''];
+
+            foreach ($data as $dataKey => $dataValue) {
+                if (is_string($dataValue) && str_starts_with($dataKey, 'name_')) {
+                    $candidates[] = $dataValue;
+                }
+            }
+
+            foreach ($candidates as $candidate) {
+                if (trim((string) $candidate) !== '') {
+                    $data['field_name'] = $candidate;
+                    break;
+                }
+            }
+        }
+
+        $data['field_name'] = OutputFilter::stringURLSafe((string) $data['field_name']);
+
+        // A field_name is mandatory — it becomes the #__alfa_user_info column.
+        // Bail out with a friendly message rather than letting an empty
+        // "ALTER TABLE ADD ``" blow up (MySQL 1166 Incorrect column name '').
+        if ($data['field_name'] === '') {
+            $this->setError(Text::_('COM_ALFA_FORMFIELD_NAME_REQUIRED'));
+
+            return false;
+        }
 
         //	    Is no needed because the manageUserInfoTable handles the duplicate new columns
         //      dynamically change name which is the column we will add in form fields, if already exists
@@ -296,6 +331,16 @@ class FormfieldModel extends AdminModel
         }
 
         $currentId = !$isNew ? intval($data['id']) : intval($this->getState($this->getName() . '.id'));
+
+        // MULTILINGUAL: persist per-language translations (name, field_label,
+        // field_description).
+        MultilingualHelper::saveMultilingualData(
+            currentId:         $currentId,
+            primaryColumnName: 'id_formfield',
+            tableName:         '#__alfa_form_fields',
+            data:              $data,
+            aliasFields:       [],
+        );
 
         $assignZeroIdIfDataEmpty = true;
         AlfaHelper::setAssocsToDb($currentId, $data['users'], '#__alfa_form_fields_users', 'field_id', 'user_id', $assignZeroIdIfDataEmpty);
@@ -345,6 +390,13 @@ class FormfieldModel extends AdminModel
 
         $db->setQuery($query);
         $db->execute();
+
+        // MULTILINGUAL: remove the per-language rows for the deleted fields.
+        MultilingualHelper::deleteMultilingualData(
+            ids:               $pks,
+            primaryColumnName: 'id_formfield',
+            tableName:         '#__alfa_form_fields',
+        );
     }
 
     /**

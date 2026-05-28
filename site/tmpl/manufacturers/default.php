@@ -9,7 +9,6 @@
 // No direct access
 defined('_JEXEC') or die;
 
-use \Joomla\CMS\Uri\Uri;
 use \Joomla\CMS\Language\Text;
 use \Joomla\CMS\Layout\LayoutHelper;
 
@@ -18,10 +17,7 @@ $wa = $this->document->getWebAssetManager();
 $wa->useStyle('com_alfa.list');
 ?>
 
-<form action="<?php echo htmlspecialchars(Uri::getInstance()->toString()); ?>" method="post"
-      name="adminForm" id="adminForm">
-    <?php echo LayoutHelper::render('joomla.searchtools.default', array('view' => $this)); ?>
-</form>
+<?php echo LayoutHelper::render('filter_form', ['view' => $this]); ?>
 
 <section>
     <div class="manufacturer-list list-container">
@@ -30,7 +26,7 @@ $wa->useStyle('com_alfa.list');
                 <div class="manufacturer-item list-item">
                     <a href="<?php echo $item->link; ?>">
                         <?php if (!empty($item->medias[0])): ?>
-                            <img src=<?= $item->medias[0]->path ?>>
+                            <img src="<?= $item->medias[0]->url ?>">
                         <?php endif; ?>
                     </a>
 
@@ -39,7 +35,7 @@ $wa->useStyle('com_alfa.list');
                     </div>
 
                     <div class="manufacturer-description">
-                        <?php echo $this->escape($item->desc); ?>
+                        <?php echo $item->desc; // editor (HTML) field — output raw, not escaped ?>
                     </div>
                     <div class="manufacturer-products">
                         <a href="<?php echo $item->link; ?>">

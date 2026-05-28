@@ -22,7 +22,8 @@
                 <option value="grid">PLG_ALFA_FIELDS_OPTIONS_LAYOUT_GRID</option>
             </field>
 
-            <field name="placeholder" type="text" default=""
+            <field name="placeholder" type="MultilingualText" default=""
+                   addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
                    label="PLG_ALFA_FIELDS_OPTIONS_PARAMS_PLACEHOLDER_LABEL"
                    description="PLG_ALFA_FIELDS_OPTIONS_PARAMS_PLACEHOLDER_DESC"
                    showon="render_as:select,multiselect"/>
@@ -55,7 +56,9 @@
                    description="PLG_ALFA_FIELDS_OPTIONS_PARAMS_OPTIONS_DESC">
                 <form>
                     <field name="value" type="text" label="PLG_ALFA_FIELDS_OPTIONS_PARAMS_OPTIONS_VALUE_LABEL" required="true"/>
-                    <field name="text"  type="text" label="PLG_ALFA_FIELDS_OPTIONS_PARAMS_OPTIONS_TEXT_LABEL"  required="true"/>
+                    <field name="text" type="MultilingualText"
+                           addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
+                           label="PLG_ALFA_FIELDS_OPTIONS_PARAMS_OPTIONS_TEXT_LABEL" required="true"/>
                 </form>
             </field>
 

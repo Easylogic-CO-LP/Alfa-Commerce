@@ -245,6 +245,17 @@ class FieldsHelper
             ->where('a.state = 1')
             ->where('(a.group_id = 0 OR g.state IS NULL OR g.state = 1)');
 
+        // MULTILINGUAL: resolve the field's translatable text in the active
+        // language — field_label / field_description are shown to the customer.
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'a',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_form_fields',
+            langPrimaryColumn: 'id_formfield',
+            fields:            ['name', 'field_label', 'field_description'],
+        );
+
         // Context match: ANY of the mapped flag columns = 1.
         $flagExpr = array_map(
             fn ($col) => $db->quoteName('a.' . $col) . ' = 1',
@@ -314,12 +325,16 @@ class FieldsHelper
             return '';
         }
 
+        // Resolve inline {lang: value} maps (value/JSON-mode MultilingualText —
+        // e.g. choice option labels) to the current language for display.
+        $resolvedParams = MultilingualHelper::collapseToCurrent(
+            is_string($field->params ?? null)
+                ? (json_decode((string) $field->params, true) ?: [])
+                : (array) ($field->params ?? []),
+        );
+
         $fieldParams = new \Joomla\Registry\Registry();
-        if (isset($field->params)) {
-            $fieldParams->merge(
-                is_string($field->params) ? new \Joomla\Registry\Registry($field->params) : $field->params,
-            );
-        }
+        $fieldParams->loadArray(is_array($resolvedParams) ? $resolvedParams : []);
 
         // Guarantee keys tmpls can rely on after extract($displayData).
         $displayData['context'] = $context;
