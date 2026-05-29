@@ -1,17 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
     <fieldset>
-        <field name="name" size="400" filter="safehtml" type="text" required="true" translateLabel="true" label="COM_ALFA_FORM_LBL_MANUFACTURER_NAME" description="COM_ALFA_FORM_DESC_MANUFACTURER_NAME" hint="COM_ALFA_FORM_LBL_MANUFACTURER_NAME"/>
+        <field name="name" type="MultilingualText"
+               multilingual_table="#__alfa_manufacturers" multilingual_pk="id_manufacturer"
+               maxlength="400" filter="safehtml" required="true" translateLabel="true"
+               label="COM_ALFA_FORM_LBL_MANUFACTURER_NAME" description="COM_ALFA_FORM_DESC_MANUFACTURER_NAME" hint="COM_ALFA_FORM_LBL_MANUFACTURER_NAME"/>
 
         <field name="id" type="text" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
 
-        <field name="alias" type="text" class="inputbox" generator="name" label="JFIELD_ALIAS_LABEL" description="COM_ALFA_FORM_DESC_MANUFACTURER_ALIAS" hint="COM_ALFA_FORM_LBL_MANUFACTURER_ALIAS"/>
+        <field name="alias" type="MultilingualText"
+               multilingual_table="#__alfa_manufacturers" multilingual_pk="id_manufacturer"
+               label="JFIELD_ALIAS_LABEL" description="COM_ALFA_FORM_DESC_MANUFACTURER_ALIAS" hint="COM_ALFA_FORM_LBL_MANUFACTURER_ALIAS"/>
 
-        <field name="desc" cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText" type="editor" label="COM_ALFA_FORM_LBL_MANUFACTURER_DESC" description="COM_ALFA_FORM_DESC_MANUFACTURER_DESC" hint="COM_ALFA_FORM_LBL_MANUFACTURER_DESC"/>
+        <field name="desc" type="MultilingualEditor"
+               multilingual_table="#__alfa_manufacturers" multilingual_pk="id_manufacturer"
+               filter="JComponentHelper::filterText" label="COM_ALFA_FORM_LBL_MANUFACTURER_DESC" description="COM_ALFA_FORM_DESC_MANUFACTURER_DESC" hint="COM_ALFA_FORM_LBL_MANUFACTURER_DESC"/>
 
-        <field name="meta_title" maxlength="255" filter="safehtml" type="text" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_MANUFACTURER_META_TITLE" description="COM_ALFA_FORM_DESC_MANUFACTURER_META_TITLE" hint="COM_ALFA_FORM_LBL_MANUFACTURER_META_TITLE"/>
+        <field name="meta_title" type="MultilingualText"
+               multilingual_table="#__alfa_manufacturers" multilingual_pk="id_manufacturer"
+               maxlength="255" filter="safehtml" translateLabel="true" translateDescription="true"
+               label="COM_ALFA_FORM_LBL_MANUFACTURER_META_TITLE" description="COM_ALFA_FORM_DESC_MANUFACTURER_META_TITLE" hint="COM_ALFA_FORM_LBL_MANUFACTURER_META_TITLE"/>
 
-        <field name="meta_desc" cols="30" rows="3" filter="safehtml" type="textarea" label="JFIELD_META_DESCRIPTION_LABEL" description="COM_ALFA_FORM_DESC_MANUFACTURER_META_DESC" hint="COM_ALFA_FORM_LBL_MANUFACTURER_META_DESC"/>
+        <field name="meta_desc" type="MultilingualText"
+               multilingual_table="#__alfa_manufacturers" multilingual_pk="id_manufacturer"
+               maxlength="255" filter="safehtml"
+               label="JFIELD_META_DESCRIPTION_LABEL" description="COM_ALFA_FORM_DESC_MANUFACTURER_META_DESC" hint="COM_ALFA_FORM_LBL_MANUFACTURER_META_DESC"/>
 
         <field name="website" filter="url" type="text" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_MANUFACTURER_WEBSITE" description="COM_ALFA_FORM_DESC_MANUFACTURER_WEBSITE" hint="COM_ALFA_FORM_LBL_MANUFACTURER_WEBSITE"/>
 

@@ -230,7 +230,7 @@ $orderStatuses = $this->orderStatuses;
                                 <!-- Created date + age -->
                                 <td class="text-center">
 									<?php if (!empty($item->created)) : ?>
-										<?php echo HTMLHelper::_('date', $item->created, 'Y-m-d H:i'); ?>
+										<?php echo HTMLHelper::_('date', $item->created, Text::_('DATE_FORMAT_LC2')); ?>
                                         <span class="order-age d-block">
                                             <?php echo ($item->order_age_days ?? 0) . ' ' . Text::_('COM_ALFA_DAYS_AGO'); ?>
                                         </span>

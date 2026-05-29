@@ -14,9 +14,9 @@ if (!is_array($decoded) || empty($decoded)) {
     $decoded = [(string) $value];
 }
 
-$params = is_string($field->fieldparams)
-    ? new Registry($field->fieldparams)
-    : ($field->fieldparams ?? new Registry());
+// $fieldParams is supplied by FieldsHelper::render() with any inline
+// {lang: label} maps already collapsed to the current language.
+$params = $fieldParams ?? new Registry();
 
 $options = (array) $params->get('options', []);
 $lookup = [];

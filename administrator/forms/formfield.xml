@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
 
-    <field name="name" size="400" filter="safehtml" type="text" required="true" translateLabel="true"
+    <field name="name" type="MultilingualText"
+           multilingual_table="#__alfa_form_fields" multilingual_pk="id_formfield"
+           maxlength="400" filter="safehtml" required="true" translateLabel="true"
            label="COM_ALFA_FORM_LBL_PAYMENT_NAME" description="COM_ALFA_FORM_DESC_PAYMENT_NAME"
            hint="COM_ALFA_FORM_LBL_PAYMENT_NAME"/>
 
@@ -29,15 +31,20 @@
 
         <field
                 name="field_label"
-                type="text"
+                type="MultilingualText"
+                multilingual_table="#__alfa_form_fields"
+                multilingual_pk="id_formfield"
                 label="COM_ALFA_FORM_LBL_FIELD_LABEL"
                 required="true"
         />
 
         <field
                 name="field_description"
-                type="text"
+                type="MultilingualTextarea"
+                multilingual_table="#__alfa_form_fields"
+                multilingual_pk="id_formfield"
                 label="COM_ALFA_FORM_LBL_FIELD_DESCRIPTION"
+                rows="3"
                 required="false"
         />
 
@@ -158,14 +165,6 @@
 
         <field name="id" type="text" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
 
-    </fieldset>
-
-    <fieldset name="meta">
-        <field name="meta_title" maxlength="255" filter="safehtml" type="text" translateLabel="true"
-               translateDescription="true" label="COM_ALFA_FORM_LBL_ITEM_META_TITLE"
-               description="COM_ALFA_FORM_DESC_ITEM_META_TITLE"/>
-        <field name="meta_desc" cols="30" rows="3" filter="safehtml" type="textarea"
-               label="JFIELD_META_DESCRIPTION_LABEL" description="COM_ALFA_FORM_DESC_ITEM_META_DESC"/>
     </fieldset>
 
     <field name="ordering"/>

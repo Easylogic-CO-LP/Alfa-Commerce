@@ -654,29 +654,23 @@ class OrderHelper
             return [];
         }
 
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $search = $db->quote('%' . $db->escape($searchTerm, true) . '%');
+        // Pull translated rows from ItemsModel — it owns the per-language name
+        // join + the name/sku/gtin/mpn search — then attach customer pricing below.
+        $model = self::bootItemsModel();
 
-        $q = $db->getQuery(true)
-            ->select([
-                'i.id', 'i.name', 'i.sku', 'i.gtin', 'i.mpn',
-                'i.stock', 'i.weight', 'i.manage_stock', 'i.state',
-            ])
-            ->from($db->quoteName('#__alfa_items', 'i'))
-            ->where('i.state = 1')
-            ->where('(' .
-                'i.name LIKE ' . $search . ' OR ' .
-                'i.sku LIKE ' . $search . ' OR ' .
-                'i.gtin LIKE ' . $search . ' OR ' .
-                'i.mpn LIKE ' . $search .
-                ')')
-            ->order('i.name ASC');
+        if (!$model) {
+            return [];
+        }
 
-        $q->setLimit($limit);
-        $db->setQuery($q);
+        $model->setState('filter.state', 1);            // published only
+        $model->setState('filter.search', $searchTerm); // name / sku / gtin / mpn
+        $model->setState('list.limit', $limit);
+        $model->setState('list.start', 0);
+        $model->setState('list.ordering', 'name');
+        $model->setState('list.direction', 'ASC');
 
         try {
-            $items = $db->loadObjectList();
+            $items = $model->getItems() ?: [];
         } catch (Exception $e) {
             Log::add('Product search error: ' . $e->getMessage(), Log::ERROR, 'com_alfa.orders');
             return [];
@@ -711,6 +705,29 @@ class OrderHelper
     }
 
     /**
+     * Boot the admin Items list model with populateState() already run, so the
+     * caller's setState() values aren't overwritten inside getItems(). Rows come
+     * back with the per-language name resolved by the model — single source of
+     * the item query (search, joins, translation) for the order screens.
+     *
+     * @return \Joomla\CMS\MVC\Model\ListModel|null
+     *
+     * @since   1.0.1
+     */
+    private static function bootItemsModel()
+    {
+        $factory = Factory::getApplication()->bootComponent('com_alfa')->getMVCFactory();
+        $model   = $factory->createModel('Items', 'Administrator');
+
+        if ($model) {
+            // Force populateState() now; later setState() calls then take effect.
+            $model->getState('list.ordering');
+        }
+
+        return $model ?: null;
+    }
+
+    /**
      * Get a single product by ID with calculated prices
      *
      * Uses PriceCalculator with customer context for proper tax/discount.
@@ -729,18 +746,26 @@ class OrderHelper
             return null;
         }
 
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $query = $db->getQuery(true)
-            ->select('*')
-            ->from('#__alfa_items')
-            ->where('id = ' . intval($productId));
-        $db->setQuery($query);
+        // Translated single row via ItemsModel; the `id:` search matches any
+        // state (order items may reference unpublished products).
+        $model = self::bootItemsModel();
+
+        if (!$model) {
+            return null;
+        }
+
+        $model->setState('filter.state', '*');
+        $model->setState('filter.search', 'id:' . $productId);
+        $model->setState('list.limit', 1);
+        $model->setState('list.start', 0);
 
         try {
-            $item = $db->loadObject();
+            $items = $model->getItems() ?: [];
         } catch (Exception $e) {
             return null;
         }
+
+        $item = $items[0] ?? null;
 
         if (!$item) {
             return null;

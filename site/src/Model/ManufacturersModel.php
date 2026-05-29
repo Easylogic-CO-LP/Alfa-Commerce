@@ -13,8 +13,8 @@ namespace Alfa\Component\Alfa\Site\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\Factory;
-use Joomla\CMS\MVC\Model\ListModel;
 use Joomla\CMS\Router\Route;
 
 /**
@@ -22,7 +22,7 @@ use Joomla\CMS\Router\Route;
  *
  * @since  1.0.1
  */
-class ManufacturersModel extends ListModel
+class ManufacturersModel extends UrlListModel
 {
     /**
      * Constructor.
@@ -39,35 +39,16 @@ class ManufacturersModel extends ListModel
                 'ordering', 'a.ordering',
                 'created_by', 'a.created_by',
                 'modified_by', 'a.modified_by',
-                'name', 'a.name',
                 'id', 'a.id',
                 'state', 'a.state',
-                'alias', 'a.alias',
-                'desc', 'a.desc',
-                'meta_title', 'a.meta_title',
-                'meta_desc', 'a.meta_desc',
                 'website', 'a.website',
+                // Translatable — resolved via the lang-table COALESCE alias.
+                'name',
+                'alias',
             ];
         }
 
         parent::__construct($config);
-    }
-
-    /**
-     * Method to auto-populate the model state.
-     *
-     * Note. Calling getState in this method will result in recursion.
-     *
-     * @param string $ordering Elements order
-     * @param string $direction Order direction
-     *
-     * @return void
-     *
-     * @throws Exception
-     */
-    protected function populateState($ordering = 'a.id', $direction = 'ASC')
-    {
-        parent::populateState($ordering, $direction);
     }
 
     /**
@@ -103,6 +84,17 @@ class ManufacturersModel extends ListModel
         // Join over the created by field 'modified_by'
         $query->join('LEFT', '#__users AS modified_by ON modified_by.id = a.modified_by');
 
+        // MULTILINGUAL: resolve name / alias in the active language from the
+        // per-language tables (LEFT JOIN + COALESCE keeps untranslated rows).
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'a',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_manufacturers',
+            langPrimaryColumn: 'id_manufacturer',
+            fields:            ['name', 'alias', 'desc'],
+        );
+
         if (!Factory::getApplication()->getIdentity()->authorise('core.edit', 'com_alfa')) {
             $query->where('a.state = 1');
         } else {
@@ -117,12 +109,13 @@ class ManufacturersModel extends ListModel
                 $query->where('a.id = ' . (int) substr($search, 3));
             } else {
                 $search = $db->Quote('%' . $db->escape($search, true) . '%');
-                $query->where('( a.name LIKE ' . $search . ' )');
+                // HAVING — `name` is the COALESCE alias from the lang join.
+                $query->having('( ' . $db->quoteName('name') . ' LIKE ' . $search . ' )');
             }
         }
 
-        // Add the list ordering clause.
-        $orderCol = $this->state->get('list.ordering', 'a.name');
+        // Add the list ordering clause. `name` is the translated COALESCE alias.
+        $orderCol = $this->state->get('list.ordering', 'name');
         $orderDirn = $this->state->get('list.direction', 'ASC');
 
         if ($orderCol && $orderDirn) {
@@ -142,12 +135,15 @@ class ManufacturersModel extends ListModel
         $items = parent::getItems();
 
         if (!empty($items)) {
+            // Batch media (one query for ALL manufacturers, grouped by id — avoids N+1).
+            $mediaByManufacturer = MediaHelper::getMediaData(
+                origin:         'manufacturer',
+                itemIDs:        array_map(static fn ($m) => (int) $m->id, $items),
+                usePlaceHolder: true,
+            );
+
             foreach ($items as $manufacturer) {
-                $manufacturer->medias = MediaHelper::getMediaData(
-                    origin: 'manufacturer',
-                    itemIDs: $manufacturer->id,
-                    usePlaceHolder : true,
-                );
+                $manufacturer->medias = $mediaByManufacturer[$manufacturer->id] ?? [];
 
                 // Generate links for manufacturers
                 $manufacturer->details_link = Route::_('index.php?option=com_alfa&view=manufacturer&id=' . (int) $manufacturer->id);

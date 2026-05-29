@@ -29,15 +29,16 @@
 
         <!-- Payment method (dropdown from payments table) -->
         <field
-                name="id_payment_method" type="sql"
+                name="id_payment_method" type="model"
+                model="payments"
+                column_value="id"
+                column_text="name"
                 input_type="list"
                 required="true"
                 multiple="false"
                 label="COM_ALFA_PAYMENT_METHOD"
                 description="COM_ALFA_PAYMENT_METHOD_DESC"
                 layout="joomla.form.field.list-fancy-select"
-                query="SELECT `id`, `name` AS val FROM `#__alfa_payments`"
-                key_field="id" value_field="val"
         />
 
         <!-- Amount (tax inclusive) -->

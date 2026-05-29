@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use JForm;
 use Joomla\CMS\Factory;
 use Joomla\CMS\MVC\Model\AdminModel;
@@ -134,6 +135,11 @@ class ShipmentModel extends AdminModel
 
         $input = $app->getInput();
 
+        // 'raw' filter preserves the per-language flat keys (name_en_gb,
+        // description_el_gr …) that the default 'array' filter would strip.
+        $rawData = $input->post->get('jform', [], 'raw');
+        $data = array_merge($data, $rawData);
+
         $data['params'] = json_encode($data['shipmentsparams']);
 
         if (!parent::save($data)) {
@@ -141,13 +147,23 @@ class ShipmentModel extends AdminModel
         }
 
         $currentId = 0;
-        if ($data['id'] > 0) { //not a new
+        if ($data['id'] > 0) { // existing record
             $currentId = intval($data['id']);
-        } else { // is new
-            $currentId = intval($this->getState($this->getName() . '.id'));//get the id from set joomla state.
+        } else { // new record — read the id from the Joomla model state
+            $currentId = intval($this->getState($this->getName() . '.id'));
         }
 
-        //Category/manufacturer etc associations
+        // MULTILINGUAL: persist per-language translations (name, description).
+        // Shipments are not URL-routed, so there is no alias slug.
+        MultilingualHelper::saveMultilingualData(
+            currentId:         $currentId,
+            primaryColumnName: 'id_shipment',
+            tableName:         '#__alfa_shipments',
+            data:              $data,
+            aliasFields:       [],
+        );
+
+        // Category / manufacturer / place / user / usergroup associations.
         $assignZeroIdIfDataEmpty = true;
         AlfaHelper::setAssocsToDb($currentId, $data['categories'], '#__alfa_shipment_categories', 'shipment_id', 'category_id', $assignZeroIdIfDataEmpty);
         AlfaHelper::setAssocsToDb($currentId, $data['manufacturers'], '#__alfa_shipment_manufacturers', 'shipment_id', 'manufacturer_id', $assignZeroIdIfDataEmpty);
@@ -156,6 +172,31 @@ class ShipmentModel extends AdminModel
         AlfaHelper::setAssocsToDb($currentId, $data['usergroups'], '#__alfa_shipment_usergroups', 'shipment_id', 'usergroup_id', $assignZeroIdIfDataEmpty);
 
         return true;
+    }
+
+    /**
+     * Method to delete one or more records.
+     *
+     * @param   array  &$pks  An array of record primary keys.
+     *
+     * @return  bool  True on success.
+     *
+     * @since   1.0.1
+     */
+    public function delete(&$pks)
+    {
+        $result = parent::delete($pks);
+
+        if ($result && !empty($pks)) {
+            // MULTILINGUAL: remove the per-language rows for the deleted shipments.
+            MultilingualHelper::deleteMultilingualData(
+                ids:               $pks,
+                primaryColumnName: 'id_shipment',
+                tableName:         '#__alfa_shipments',
+            );
+        }
+
+        return $result;
     }
 
     /**

@@ -13,7 +13,7 @@
                label="COM_ALFA_LIST_FULL_ORDERING"
                description="COM_ALFA_LIST_FULL_ORDERING_DESC"
                onchange="this.form.submit();"
-               default="a.id DESC"
+               default="a.id ASC"
         >
             <option value="">JGLOBAL_SORT_BY</option>
             <option value="a.state ASC">COM_ALFA_STATE_ASC</option>

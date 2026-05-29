@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 use Joomla\CMS\MVC\Model\ListModel;
 
@@ -37,14 +38,12 @@ class ManufacturersModel extends ListModel
                 'ordering', 'a.ordering',
                 'created_by', 'a.created_by',
                 'modified_by', 'a.modified_by',
-                'name', 'a.name',
                 'id', 'a.id',
                 'state', 'a.state',
-                'alias', 'a.alias',
-                'desc', 'a.desc',
-                'meta_title', 'a.meta_title',
-                'meta_desc', 'a.meta_desc',
                 'website', 'a.website',
+                // Translatable — resolved via the lang-table COALESCE alias.
+                'name',
+                'alias',
             ];
         }
 
@@ -124,6 +123,17 @@ class ManufacturersModel extends ListModel
         $query->select('`modified_by`.name AS `modified_by`');
         $query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
 
+        // MULTILINGUAL: resolve name / alias in the active language from the
+        // per-language tables (LEFT JOIN + COALESCE keeps untranslated rows).
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'a',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_manufacturers',
+            langPrimaryColumn: 'id_manufacturer',
+            fields:            ['name', 'alias'],
+        );
+
         // Filter by published state
         $published = $this->getState('filter.state');
 
@@ -141,7 +151,9 @@ class ManufacturersModel extends ListModel
                 $query->where('a.id = ' . (int) substr($search, 3));
             } else {
                 $search = $db->Quote('%' . $db->escape($search, true) . '%');
-                $query->where('( a.name LIKE ' . $search . ' )');
+                // HAVING — `name` is the COALESCE alias from the lang join, not a
+                // real column at WHERE time.
+                $query->having('( ' . $db->quoteName('name') . ' LIKE ' . $search . ' )');
             }
         }
 

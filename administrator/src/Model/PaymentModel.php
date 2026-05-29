@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\MVC\Model\AdminModel;
 use Joomla\CMS\Table\Table;
@@ -145,6 +146,11 @@ class PaymentModel extends AdminModel
 
         $input = $app->getInput();
 
+        // 'raw' filter preserves the per-language flat keys (name_en_gb,
+        // description_el_gr …) that the default 'array' filter would strip.
+        $rawData = $input->post->get('jform', [], 'raw');
+        $data = array_merge($data, $rawData);
+
         $data['params'] = json_encode($data['paymentsparams']);
 
         if (!parent::save($data)) {
@@ -158,6 +164,16 @@ class PaymentModel extends AdminModel
             $currentId = intval($this->getState($this->getName() . '.id'));//get the id from setted joomla state
         }
 
+        // MULTILINGUAL: persist per-language translations (name, description).
+        // Payments are not URL-routed, so there is no alias slug.
+        MultilingualHelper::saveMultilingualData(
+            currentId:         $currentId,
+            primaryColumnName: 'id_payment',
+            tableName:         '#__alfa_payments',
+            data:              $data,
+            aliasFields:       [],
+        );
+
         //Category/manufacturer etc associations
         $assignZeroIdIfDataEmpty = true;
         AlfaHelper::setAssocsToDb($currentId, $data['categories'] ?? [], '#__alfa_payment_categories', 'payment_id', 'category_id', $assignZeroIdIfDataEmpty);
@@ -169,6 +185,31 @@ class PaymentModel extends AdminModel
 
         return true;
         // return parent::save($data);
+    }
+
+    /**
+     * Method to delete one or more records.
+     *
+     * @param   array  &$pks  An array of record primary keys.
+     *
+     * @return  bool  True on success.
+     *
+     * @since   1.0.1
+     */
+    public function delete(&$pks)
+    {
+        $result = parent::delete($pks);
+
+        if ($result && !empty($pks)) {
+            // MULTILINGUAL: remove the per-language rows for the deleted payments.
+            MultilingualHelper::deleteMultilingualData(
+                ids:               $pks,
+                primaryColumnName: 'id_payment',
+                tableName:         '#__alfa_payments',
+            );
+        }
+
+        return $result;
     }
 
     /**

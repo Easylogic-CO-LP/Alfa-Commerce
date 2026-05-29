@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Plugin;
 
 use Alfa\Component\Alfa\Administrator\Event\Fields\PrepareDomEvent;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use DOMCdataSection;
 use DOMElement;
 use Joomla\CMS\Plugin\CMSPlugin;
@@ -61,7 +62,16 @@ abstract class FieldsPlugin extends CMSPlugin implements SubscriberInterface
             return null;
         }
 
-        //        $params = clone $this->params;
+        // Resolve inline {lang: value} maps in the params to the CURRENT language
+        // (value/JSON-mode MultilingualText — e.g. choice option labels) so the
+        // render, and any option-based subclass reading $field->params, sees plain
+        // current-language strings. The admin definition editor uses a different
+        // path and keeps the full per-language maps untouched.
+        $field->params = json_encode(
+            MultilingualHelper::collapseToCurrent(
+                is_string($field->params) ? (json_decode($field->params, true) ?: []) : (array) ($field->params ?? []),
+            ),
+        );
 
         $params = new Registry($field->params);
 

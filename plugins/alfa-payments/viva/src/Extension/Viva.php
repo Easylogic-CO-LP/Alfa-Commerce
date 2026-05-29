@@ -273,9 +273,7 @@ final class Viva extends PaymentsPlugin
         // For cancelled/error cases redirect back to the process page with ?viva_result= param.
         // onOrderProcessView reads that param and sets the appropriate layout.
         if (empty($transactionId)) {
-            $event->setRedirectUrl(
-                Route::_($this->getProcessPageUrl() . '&viva_result=cancelled', false, Route::TLS_FORCE, true),
-            );
+            $event->setRedirectUrl($this->getProcessPageUrl() . '&viva_result=cancelled');
             return;
         }
 
@@ -368,9 +366,7 @@ final class Viva extends PaymentsPlugin
         } catch (Exception $e) {
             Log::add('Viva redirect error for order #' . $order->id . ': ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
             Log::add('Viva redirect error: ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
-            $event->setRedirectUrl(
-                Route::_($this->getProcessPageUrl() . '&viva_result=error&viva_msg=' . urlencode($e->getMessage()), false, Route::TLS_FORCE, true),
-            );
+            $event->setRedirectUrl($this->getProcessPageUrl() . '&viva_result=error&viva_msg=' . urlencode($e->getMessage()));
         }
     }
 
@@ -385,9 +381,7 @@ final class Viva extends PaymentsPlugin
 
         // Cancelled / failed before hitting API
         if (in_array($statusId, ['X', 'E', 'C'], true)) {
-            $event->setRedirectUrl(
-                Route::_($this->getProcessPageUrl() . '&viva_result=cancelled', false, Route::TLS_FORCE, true),
-            );
+            $event->setRedirectUrl($this->getProcessPageUrl() . '&viva_result=cancelled');
             return;
         }
 
@@ -443,14 +437,10 @@ final class Viva extends PaymentsPlugin
                 'created_by' => 0,
             ]);
 
-            $event->setRedirectUrl(
-                Route::_($this->getCompletePageUrl(), false, Route::TLS_FORCE, true),
-            );
+            $event->setRedirectUrl($this->getCompletePageUrl());
         } catch (Exception $e) {
             Log::add('Viva return error for order #' . $order->id . ': ' . $e->getMessage(), Log::ERROR, 'com_alfa.payments');
-            $event->setRedirectUrl(
-                Route::_($this->getProcessPageUrl() . '&viva_result=error&viva_msg=' . urlencode($e->getMessage()), false, Route::TLS_FORCE, true),
-            );
+            $event->setRedirectUrl($this->getProcessPageUrl() . '&viva_result=error&viva_msg=' . urlencode($e->getMessage()));
         }
     }
 

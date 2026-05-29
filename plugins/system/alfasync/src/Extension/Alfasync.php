@@ -46,6 +46,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Exception;
+use Joomla\CMS\Event\Menu\PreprocessMenuItemsEvent;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Plugin\CMSPlugin;
@@ -77,8 +78,13 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             'onUserAfterSaveGroup' => 'onUserAfterSaveGroup',
             'onUserAfterDelete' => 'onUserAfterDelete',
 
-            // Content events — uncomment to activate
-            // 'onContentAfterSave'   => 'onContentAfterSave',
+            // Content-language added/edited → (re)create the per-language tables.
+            'onContentAfterSave' => 'onContentAfterSave',
+
+            // Hide the com_alfa "Tools" admin menu item from users without `alfa.tools`.
+            'onPreprocessMenuItems' => 'onPreprocessMenuItems',
+
+            // Other content events — uncomment to activate
             // 'onContentAfterDelete' => 'onContentAfterDelete',
 
             // Custom Alfa events — uncomment + dispatch from component/plugin
@@ -197,28 +203,101 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     // =========================================================================
 
     /**
-     * Called after any Joomla content item is saved.
+     * Called after any content item is saved. Used here to (re)create the
+     * per-language translation tables whenever a CONTENT LANGUAGE is added or
+     * edited (Languages → Content Languages), so a freshly-added site language
+     * immediately gets its #__alfa_*_<langtag> auxiliary tables.
      *
-     * Filter by $context to act only on the items you care about:
-     *   'com_content.article'     – standard article
-     *   'com_categories.category' – category
+     * The translatable schema is discovered from the form XML inside
+     * SyncHelper::syncLanguageSchema() — the same routine the installer and the
+     * admin "Resync languages" button use.
      *
-     * @param Event $event
+     * @param Event|array $event
      *
      * @return void
      */
-    // public function onContentAfterSave(Event $event): void
-    // {
-    //     $context = $event->getArgument('0') ?? $event->getArgument('context') ?? '';
-    //     $item    = $event->getArgument('1') ?? $event->getArgument('subject');
-    //     $isNew   = (bool) ($event->getArgument('2') ?? false);
-    //
-    //     if ($context !== 'com_content.article') {
-    //         return;
-    //     }
-    //
-    //     // Add to SyncHelper and call it here.
-    // }
+    public function onContentAfterSave($event): void
+    {
+        // Prefer the typed accessor (Joomla\CMS\Event\Model\AfterSaveEvent::getContext());
+        // fall back to positional args for legacy / generic Event dispatch.
+        $context = ($event instanceof Event && method_exists($event, 'getContext'))
+            ? (string) $event->getContext()
+            : (string) (is_array($event) ? ($event[0] ?? '') : '');
+
+        $this->handleContentSave($context);
+    }
+
+    /**
+     * Route a content-save context to the relevant Alfa sync.
+     *
+     * Kept as a separate dispatcher so more contexts can be added over time
+     * (each with its own guard + SyncHelper call) without touching the event
+     * subscription wiring above.
+     *
+     * @param string $context  Joomla content context, e.g. 'com_languages.language'.
+     *
+     * @return void
+     */
+    private function handleContentSave(string $context): void
+    {
+        switch ($context) {
+            // A content language was added/edited → (re)create the per-language
+            // translation tables for every translatable Alfa entity.
+            case 'com_languages.language':
+                if (!(bool) $this->params->get('sync_languages', 1)) {
+                    return;
+                }
+
+                try {
+                    $result = SyncHelper::syncLanguageSchema();
+                    $this->logDebug('handleContentSave', 'Language schema synced — ' . count($result['tables']) . ' table(s).');
+                } catch (Exception $e) {
+                    $this->logError('handleContentSave', $e->getMessage(), ['context' => $context]);
+                }
+                break;
+
+            // Future: add more content contexts that should trigger a sync here.
+        }
+    }
+
+    // =========================================================================
+    // Admin menu handlers
+    // =========================================================================
+
+    /**
+     * Hide the com_alfa "Tools" admin menu item from users without `alfa.tools`.
+     * Cosmetic only — the Tools view + its controller enforce the same permission.
+     *
+     * Flagging an item with menu_show=0 makes Joomla's CssMenu drop it.
+     *
+     * @param   PreprocessMenuItemsEvent  $event  The admin-menu preprocess event.
+     *
+     * @return  void
+     *
+     * @since   1.0.1
+     */
+    public function onPreprocessMenuItems(PreprocessMenuItemsEvent $event): void
+    {
+        if ($event->getContext() !== 'com_menus.administrator.module') {
+            return;
+        }
+
+        // Permitted users keep the item — resolve the permission once.
+        $canSeeTools = Factory::getApplication()->getIdentity()->authorise('alfa.tools', 'com_alfa');
+
+        if ($canSeeTools) {
+            return;
+        }
+
+        foreach ($event->getItems() as $item) {
+            $link             = (string) ($item->link ?? '');
+            $isToolsMenuItem  = str_contains($link, 'option=com_alfa') && str_contains($link, 'view=tools');
+
+            if ($isToolsMenuItem) {
+                $item->getParams()->set('menu_show', 0);
+            }
+        }
+    }
 
     // =========================================================================
     // Custom Alfa event handlers — uncomment in getSubscribedEvents() to activate

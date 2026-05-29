@@ -42,6 +42,7 @@ use Alfa\Component\Alfa\Administrator\Event\Shipments\AdminOrderDeleteEvent as S
 use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderPaymentHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderShipmentHelper;
@@ -1748,9 +1749,21 @@ class OrderModel extends AdminModel
 
             $statusIds = array_filter([$oldId, $newId], fn ($id) => $id > 0);
             $query = $db->getQuery(true)
-                ->select(['id', 'name'])
-                ->from('#__alfa_orders_statuses')
-                ->whereIn('id', $statusIds);
+                ->select('a.id')
+                ->from($db->quoteName('#__alfa_orders_statuses', 'a'))
+                ->whereIn('a.id', $statusIds);
+
+            // Resolve the status name in the active language (name column moved
+            // to the per-language tables).
+            MultilingualHelper::addMultilingualJoinToQuery(
+                query:             $query,
+                mainAlias:         'a',
+                mainPrimaryColumn: 'id',
+                langTableBase:     '#__alfa_orders_statuses',
+                langPrimaryColumn: 'id_orderstatus',
+                fields:            ['name'],
+            );
+
             $db->setQuery($query);
             $names = $db->loadObjectList('id');
 
@@ -2247,12 +2260,23 @@ class OrderModel extends AdminModel
             $db = Factory::getContainer()->get('DatabaseDriver');
             $user = Factory::getApplication()->getIdentity();
 
-            // Get current order status for snapshot
+            // Get current order status for snapshot. The status name is resolved
+            // in the active language from the per-language tables (aliased `name`).
             $statusQuery = $db->getQuery(true)
-                ->select(['o.id_order_status', 's.name AS status_name'])
+                ->select('o.id_order_status')
                 ->from('#__alfa_orders AS o')
                 ->join('LEFT', '#__alfa_orders_statuses AS s ON s.id = o.id_order_status')
                 ->where('o.id = ' . intval($orderId));
+
+            MultilingualHelper::addMultilingualJoinToQuery(
+                query:             $statusQuery,
+                mainAlias:         's',
+                mainPrimaryColumn: 'id',
+                langTableBase:     '#__alfa_orders_statuses',
+                langPrimaryColumn: 'id_orderstatus',
+                fields:            ['name'],
+            );
+
             $db->setQuery($statusQuery);
             $status = $db->loadObject();
 
@@ -2262,7 +2286,7 @@ class OrderModel extends AdminModel
             $log->employee_name = $user->name ?? 'System';
             $log->event = $event;
             $log->id_order_status = $status->id_order_status ?? null;
-            $log->status_name = $status->status_name ?? '';
+            $log->status_name = $status->name ?? '';
             $log->entity_id = $entityId;
             $log->summary = mb_substr($summary, 0, 500);
             $log->context = $context ? json_encode($context, JSON_UNESCAPED_UNICODE) : null;

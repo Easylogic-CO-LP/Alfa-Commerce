@@ -14,6 +14,7 @@ namespace Alfa\Component\Alfa\Site\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Service\Pricing;
 use Exception;
@@ -87,6 +88,17 @@ class ItemModel extends BaseItemModel
                 ->from($db->quoteName('#__alfa_items', 'a'))
                 ->where($db->quoteName('a.id') . ' = :pk')
                 ->bind(':pk', $pk, ParameterType::INTEGER);
+
+            // Resolve translatable fields in the active language (current →
+            // default → '') from the per-language tables. No main-table fallback.
+            MultilingualHelper::addMultilingualJoinToQuery(
+                query:             $query,
+                mainAlias:         'a',
+                mainPrimaryColumn: 'id',
+                langTableBase:     '#__alfa_items',
+                langPrimaryColumn: 'id_item',
+                fields:            ['name', 'alias', 'short_desc', 'full_desc', 'meta_title', 'meta_desc', 'stock_low_message', 'stock_zero_message'],
+            );
 
             $db->setQuery($query);
             $data = $db->loadObject();
@@ -200,10 +212,7 @@ class ItemModel extends BaseItemModel
         $db = $this->getDatabase();
         $query = $db->getQuery(true);
 
-        $query->select([
-            $db->quoteName('c.id'),
-            $db->quoteName('c.name'),
-        ])
+        $query->select($db->quoteName('c.id'))
             ->from($db->quoteName('#__alfa_categories', 'c'))
             ->join(
                 'INNER',
@@ -212,6 +221,16 @@ class ItemModel extends BaseItemModel
             )
             ->where($db->quoteName('ic.item_id') . ' = :pk')
             ->bind(':pk', $pk, ParameterType::INTEGER);
+
+        // Resolve the category name in the active language from the per-language tables.
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'c',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_categories',
+            langPrimaryColumn: 'id_category',
+            fields:            ['name'],
+        );
 
         $db->setQuery($query);
 
@@ -231,10 +250,7 @@ class ItemModel extends BaseItemModel
         $db = $this->getDatabase();
         $query = $db->getQuery(true);
 
-        $query->select([
-            $db->quoteName('m.id'),
-            $db->quoteName('m.name'),
-        ])
+        $query->select($db->quoteName('m.id'))
             ->from($db->quoteName('#__alfa_manufacturers', 'm'))
             ->join(
                 'INNER',
@@ -243,6 +259,16 @@ class ItemModel extends BaseItemModel
             )
             ->where($db->quoteName('im.item_id') . ' = :pk')
             ->bind(':pk', $pk, ParameterType::INTEGER);
+
+        // Resolve the manufacturer name in the active language from the lang tables.
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'm',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_manufacturers',
+            langPrimaryColumn: 'id_manufacturer',
+            fields:            ['name'],
+        );
 
         $db->setQuery($query);
 

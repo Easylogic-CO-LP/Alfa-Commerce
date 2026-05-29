@@ -28,7 +28,7 @@
         <article>
             <?php if (!empty($manufacturerMedia)): ?>
                 <div class="manufacturer-image-wrapper">
-                    <img src="<?= $manufacturerMedia->path ?>">
+                    <img src="<?= $manufacturerMedia->url ?>">
                 </div>
             <?php endif; ?>
             <div class="manufacturer-name">

@@ -101,10 +101,24 @@ class HtmlView extends BaseHtmlView
             //            if ($this->state->get('filter.published') == ContentComponent::CONDITION_TRASHED && $canDo->get('core.delete')) {
             //			{
             // If this component does not use state then show a direct delete button as we can not trash
-            $toolbar->delete('orders.delete')
-                ->text('JTOOLBAR_EMPTY_TRASH')
-                ->message('JGLOBAL_CONFIRM_DELETE')
-                ->listCheck(true);
+            // Orders use a binary active/trashed view (the "show_trashed" filter),
+            // so there is no publish/unpublish/archive — just trash, then permanent
+            // delete from within the trashed view.
+            $isTrashed = ((int) $this->state->get('filter.show_trashed') === 1);
+
+            if (!$isTrashed) {
+                $childBar->trash('orders.trash')->listCheck(true);
+            } else {
+                // Restore a trashed order back to active (state -2 → published).
+                $childBar->publish('orders.publish')->text('JTOOLBAR_RESTORE')->listCheck(true);
+            }
+
+            if ($isTrashed && $canDo->get('core.delete')) {
+                $toolbar->delete('orders.delete')
+                    ->text('JTOOLBAR_EMPTY_TRASH')
+                    ->message('JGLOBAL_CONFIRM_DELETE')
+                    ->listCheck(true);
+            }
             //			}
 
             $childBar->checkin('orders.checkin')->listCheck(true);

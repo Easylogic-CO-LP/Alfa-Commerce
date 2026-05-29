@@ -937,6 +937,14 @@ class CartHelper
      */
     public function addEventsToShipments()
     {
+        // The cart view shows ALL shipment methods and the customer can switch
+        // between them, so register every method's plugin as a subscriber — this is
+        // what lets each plugin's getSubscribedEvents() (e.g. onBeforeCompileHead
+        // asset loading) actually fire, not just the selected method's. Deduped per
+        // type so a shared plugin isn't registered twice. (Order process/complete
+        // already know the chosen method, so they subscribe only that one.)
+        $subscribed = [];
+
         foreach ($this->getShipmentMethods() as $index => &$shipmentMethod) {
             $isSelected = ($this->getData()->id_shipment == $shipmentMethod->id);
 
@@ -948,6 +956,11 @@ class CartHelper
             ]);
 
             $plugin = $this->app->bootPlugin($shipmentMethod->type, 'alfa-shipments');
+
+            if ($plugin instanceof \Joomla\Event\SubscriberInterface && empty($subscribed[$shipmentMethod->type])) {
+                $this->app->getDispatcher()->addSubscriber($plugin);
+                $subscribed[$shipmentMethod->type] = true;
+            }
 
             if (is_object($plugin) && method_exists($plugin, $onCartViewEventName)) {
                 $plugin->{$onCartViewEventName}($shipmentEvent);
@@ -983,6 +996,14 @@ class CartHelper
      */
     public function addEventsToPayments()
     {
+        // The cart view shows ALL payment methods and the customer can switch
+        // between them, so register every method's plugin as a subscriber — this is
+        // what lets each plugin's getSubscribedEvents() (e.g. onBeforeCompileHead
+        // asset loading) actually fire, not just the selected method's. Deduped per
+        // type so a shared plugin isn't registered twice. (Order process/complete
+        // already know the chosen method, so they subscribe only that one.)
+        $subscribed = [];
+
         foreach ($this->getPaymentMethods() as $index => &$paymentMethod) {
             $isSelected = ($this->getData()->id_payment == $paymentMethod->id);
             $onCartViewEventName = 'onCartView';
@@ -993,6 +1014,11 @@ class CartHelper
             ]);
 
             $plugin = $this->app->bootPlugin($paymentMethod->type, 'alfa-payments');
+
+            if ($plugin instanceof \Joomla\Event\SubscriberInterface && empty($subscribed[$paymentMethod->type])) {
+                $this->app->getDispatcher()->addSubscriber($plugin);
+                $subscribed[$paymentMethod->type] = true;
+            }
 
             if (is_object($plugin) && method_exists($plugin, $onCartViewEventName)) {
                 $plugin->{$onCartViewEventName}($paymentEvent);

@@ -86,6 +86,8 @@
 
 			<menu link="option=com_alfa&amp;view=currencies" view="currencies" alt="Alfa/Currencies">COM_ALFA_TITLE_CURRENCIES</menu>
 
+            <menu link="option=com_alfa&amp;view=tools" view="tools" alt="Alfa/Tools">COM_ALFA_TITLE_TOOLS</menu>
+
         </submenu>
         <files folder="administrator">
             <filename>access.xml</filename>

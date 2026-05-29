@@ -37,8 +37,8 @@
             $imgAttribs['loading'] = 'lazy';
         }
         ?>
-        <a class="item-image" href="<?= $media->path ?>">
-            <?= HTMLHelper::_('image', $media->thumbnail, $imgAlt, $imgAttribs); ?>
+        <a class="item-image" href="<?= $media->url ?>">
+            <?= HTMLHelper::_('image', $media->thumbnail_url, $imgAlt, $imgAttribs); ?>
         </a>
     <?php endforeach; ?>
 </div>
@@ -61,6 +61,6 @@
         }
         ?>
 
-        <?= HTMLHelper::_('image', $media->thumbnail, $imgAlt, $imgAttribs); ?>
+        <?= HTMLHelper::_('image', $media->thumbnail_url, $imgAlt, $imgAttribs); ?>
     <?php endforeach; ?>
 </div>

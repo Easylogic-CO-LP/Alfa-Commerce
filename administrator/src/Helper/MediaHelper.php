@@ -18,12 +18,409 @@ use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\OutputFilter;
 use Joomla\CMS\HTML\HTMLHelper;
+use Joomla\CMS\Uri\Uri;
 use Joomla\Filesystem\File;
 use Joomla\Filesystem\Folder;
 use Joomla\String\StringHelper;
 
 class MediaHelper
 {
+    /**
+     * Resolve a stored (relative) media path to a browser URL for display.
+     *
+     * Storage stays relative + portable (the `path` column, which the admin save
+     * round-trips and the server uses as JPATH_ROOT . '/' . path for file ops);
+     * this builds the absolute URL by prefixing the live site base (Uri::root(),
+     * which honours root / subfolder / subdomain installs). Values that are
+     * already absolute — external `type=url` media (http/https), protocol-relative
+     * URLs, or data URIs — are returned untouched.
+     *
+     * @param   string|null  $path  Relative media path (e.g. "images/media-zone/x.webp").
+     *
+     * @return  string  Absolute URL, or '' for an empty path.
+     *
+     * @since   1.0.1
+     */
+    public static function toUrl(?string $path): string
+    {
+        $path = trim((string) $path);
+
+        // Empty, or already an absolute / protocol-relative / data URL → leave as-is.
+        if ($path === ''
+            || str_starts_with($path, 'http://')
+            || str_starts_with($path, 'https://')
+            || str_starts_with($path, '//')
+            || str_starts_with($path, 'data:')) {
+            return $path;
+        }
+
+        return rtrim(Uri::root(), '/') . '/' . ltrim($path, '/');
+    }
+
+    /**
+     * Delete all media belonging to the given entities (rows always; files only
+     * when the `media_full_deletion` setting is on, mirroring the per-image
+     * delete in saveMedia). Call from an entity's delete() so removing a
+     * manufacturer / item / category doesn't leave orphaned media rows + files.
+     *
+     * @param   int[]   $itemIds  Entity ids whose media should be removed.
+     * @param   string  $origin   Media origin ('item' | 'category' | 'manufacturer').
+     *
+     * @return  void
+     *
+     * @since   1.0.1
+     */
+    public static function deleteMediaForItems(array $itemIds, string $origin): void
+    {
+        $itemIds = array_values(array_filter(
+            array_map('intval', $itemIds),
+            static fn (int $id): bool => $id > 0,
+        ));
+
+        if (empty($itemIds) || $origin === '') {
+            return;
+        }
+
+        $db = Factory::getContainer()->get('DatabaseDriver');
+
+        // When enabled (default), remove the files from disk before the rows.
+        // Distinct from media_full_deletion (which governs removing a single media
+        // from an item) — here the whole entity is gone, so cleanup defaults on.
+        if ((bool) ComponentHelper::getParams('com_alfa')->get('media_delete_with_item', 1)) {
+            $rows = $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName(['path', 'thumbnail']))
+                    ->from($db->quoteName('#__alfa_media'))
+                    ->where($db->quoteName('origin') . ' = ' . $db->quote($origin))
+                    ->whereIn($db->quoteName('item_id'), $itemIds)
+            )->loadObjectList();
+
+            foreach ($rows as $row) {
+                foreach ([$row->path, $row->thumbnail] as $file) {
+                    $file = ltrim((string) $file, '/');
+
+                    // Skip empties and external URLs (type=url media stores an absolute URL).
+                    if ($file === ''
+                        || str_starts_with($file, 'http://')
+                        || str_starts_with($file, 'https://')
+                        || str_starts_with($file, '//')) {
+                        continue;
+                    }
+
+                    $absolute = JPATH_ROOT . '/' . $file;
+
+                    if (is_file($absolute)) {
+                        try {
+                            File::delete($absolute);
+                        } catch (\Throwable $e) {
+                            // Best-effort: a missing/locked file must not block the delete.
+                        }
+                    }
+                }
+            }
+        }
+
+        $db->setQuery(
+            $db->getQuery(true)
+                ->delete($db->quoteName('#__alfa_media'))
+                ->where($db->quoteName('origin') . ' = ' . $db->quote($origin))
+                ->whereIn($db->quoteName('item_id'), $itemIds)
+        )->execute();
+    }
+
+    /**
+     * Rows processed per slice by {@see self::deleteMediaByIds()}. Keeps the
+     * IN(...) clause and per-batch file work bounded so a single request can
+     * safely clear a very large selection ("show all") or the whole table.
+     *
+     * @since  1.0.1
+     */
+    private const DELETE_BATCH_SIZE = 500;
+
+    /**
+     * Delete media by their own row ids — rows plus any existing local files.
+     * Used by the Tools → Media maintenance view to clean up selected orphan /
+     * missing-file rows. Always removes the file when present (explicit cleanup).
+     *
+     * The work is processed in slices of {@see self::DELETE_BATCH_SIZE} so an
+     * arbitrarily large id set (e.g. "show all" + select-all, or delete-all)
+     * never produces an oversized IN(...) clause.
+     *
+     * @param   int[]  $mediaIds  #__alfa_media row ids to delete.
+     *
+     * @return  int  Number of rows removed.
+     *
+     * @since   1.0.1
+     */
+    public static function deleteMediaByIds(array $mediaIds): int
+    {
+        $mediaIds = array_values(array_unique(array_filter(
+            array_map('intval', $mediaIds),
+            static fn (int $id): bool => $id > 0,
+        )));
+
+        if (empty($mediaIds)) {
+            return 0;
+        }
+
+        $db      = Factory::getContainer()->get('DatabaseDriver');
+        $deleted = 0;
+
+        foreach (array_chunk($mediaIds, self::DELETE_BATCH_SIZE) as $batch) {
+            $rows = $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName(['path', 'thumbnail']))
+                    ->from($db->quoteName('#__alfa_media'))
+                    ->whereIn($db->quoteName('id'), $batch)
+            )->loadObjectList();
+
+            foreach ($rows as $row) {
+                foreach ([$row->path, $row->thumbnail] as $file) {
+                    $file = ltrim((string) $file, '/');
+
+                    if ($file === ''
+                        || str_starts_with($file, 'http://')
+                        || str_starts_with($file, 'https://')
+                        || str_starts_with($file, '//')) {
+                        continue;
+                    }
+
+                    $absolute = JPATH_ROOT . '/' . $file;
+
+                    if (is_file($absolute)) {
+                        try {
+                            File::delete($absolute);
+                        } catch (\Throwable $e) {
+                            // Best-effort — a missing/locked file must not block the delete.
+                        }
+                    }
+                }
+            }
+
+            $db->setQuery(
+                $db->getQuery(true)
+                    ->delete($db->quoteName('#__alfa_media'))
+                    ->whereIn($db->quoteName('id'), $batch)
+            )->execute();
+
+            $deleted += count($batch);
+        }
+
+        return $deleted;
+    }
+
+    /**
+     * Return the ids of every media row whose (origin, item_id) no longer points
+     * at a live parent entity (item / category / manufacturer). Detected purely
+     * in SQL via LEFT JOINs. Used by the Tools → Media "delete all orphans" action.
+     *
+     * @return  int[]
+     *
+     * @since   1.0.1
+     */
+    public static function findOrphanMediaIds(): array
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+
+        $query = $db->getQuery(true)
+            ->select($db->quoteName('a.id'))
+            ->from($db->quoteName('#__alfa_media', 'a'))
+            ->join('LEFT', $db->quoteName('#__alfa_items', 'i')
+                . ' ON a.origin = ' . $db->quote('item') . ' AND i.id = a.item_id')
+            ->join('LEFT', $db->quoteName('#__alfa_categories', 'c')
+                . ' ON a.origin = ' . $db->quote('category') . ' AND c.id = a.item_id')
+            ->join('LEFT', $db->quoteName('#__alfa_manufacturers', 'm')
+                . ' ON a.origin = ' . $db->quote('manufacturer') . ' AND m.id = a.item_id')
+            ->where('(CASE a.origin'
+                . ' WHEN ' . $db->quote('item') . ' THEN (i.id IS NOT NULL)'
+                . ' WHEN ' . $db->quote('category') . ' THEN (c.id IS NOT NULL)'
+                . ' WHEN ' . $db->quote('manufacturer') . ' THEN (m.id IS NOT NULL)'
+                . ' ELSE 1 END) = 0');
+
+        return array_map('intval', $db->setQuery($query)->loadColumn() ?: []);
+    }
+
+    /**
+     * Return the ids of every local-file media row whose file is absent on disk.
+     * Disk presence is not expressible in SQL, so each local row is stat()-ed
+     * here. External (type=url) and path-less rows are skipped. Used by both the
+     * Tools → Media "file missing" filter and the "delete all missing" action.
+     *
+     * @return  int[]
+     *
+     * @since   1.0.1
+     */
+    public static function findMissingFileMediaIds(): array
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+
+        $rows = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName(['id', 'path']))
+                ->from($db->quoteName('#__alfa_media'))
+                ->where($db->quoteName('type') . ' != ' . $db->quote('url'))
+                ->where($db->quoteName('path') . ' != ' . $db->quote(''))
+        )->loadObjectList();
+
+        $missing = [];
+
+        foreach ($rows as $row) {
+            if (!is_file(JPATH_ROOT . '/' . ltrim((string) $row->path, '/'))) {
+                $missing[] = (int) $row->id;
+            }
+        }
+
+        return $missing;
+    }
+
+    /**
+     * Absolute path of the com_alfa upload root (media_save_location).
+     *
+     * @return  string
+     *
+     * @since   1.0.1
+     */
+    public static function getUploadRoot(): string
+    {
+        $saveFolder = ltrim(
+            (string) ComponentHelper::getParams('com_alfa')->get('media_save_location', 'images/media-zone'),
+            '/',
+        );
+
+        return rtrim(JPATH_ROOT . '/' . $saveFolder, '/');
+    }
+
+    /**
+     * Every media path tracked in #__alfa_media — both `path` and `thumbnail`,
+     * keyed by relative path for O(1) lookup. Including the thumbnail column
+     * ensures generated thumbnails are never treated as untracked.
+     *
+     * @return  array<string, true>
+     *
+     * @since   1.0.1
+     */
+    private static function getTrackedRelativePaths(): array
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+
+        $rows = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName(['path', 'thumbnail']))
+                ->from($db->quoteName('#__alfa_media'))
+        )->loadObjectList();
+
+        $tracked = [];
+
+        foreach ($rows as $row) {
+            foreach ([$row->path, $row->thumbnail] as $value) {
+                $value = str_replace('\\', '/', ltrim((string) $value, '/'));
+
+                if ($value !== '') {
+                    $tracked[$value] = true;
+                }
+            }
+        }
+
+        return $tracked;
+    }
+
+    /**
+     * Walk the upload root and return every file that has NO row in
+     * #__alfa_media (neither as a path nor a thumbnail) — leftovers from aborted
+     * uploads, manual copies, or records deleted without their files.
+     *
+     * @return  object[]  Each: { path (relative), size (int bytes), mtime (int) }.
+     *
+     * @since   1.0.1
+     */
+    public static function findUntrackedFiles(): array
+    {
+        $root = self::getUploadRoot();
+
+        if (!is_dir($root)) {
+            return [];
+        }
+
+        $tracked = self::getTrackedRelativePaths();
+        $rootLen = strlen(rtrim(JPATH_ROOT, '/') . '/');
+        $files   = [];
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::LEAVES_ONLY,
+        );
+
+        foreach ($iterator as $fileInfo) {
+            if (!$fileInfo->isFile()) {
+                continue;
+            }
+
+            $relative = str_replace('\\', '/', substr($fileInfo->getPathname(), $rootLen));
+
+            if ($relative === '' || isset($tracked[$relative])) {
+                continue;
+            }
+
+            $files[] = (object) [
+                'path'  => $relative,
+                'size'  => (int) $fileInfo->getSize(),
+                'mtime' => (int) $fileInfo->getMTime(),
+            ];
+        }
+
+        return $files;
+    }
+
+    /**
+     * Delete the given untracked files from disk. Each path is validated to be
+     * inside the upload root (blocks traversal) and confirmed still untracked
+     * before removal — a file referenced by any media row is never deleted.
+     *
+     * @param   string[]  $relativePaths  Relative paths (as listed by findUntrackedFiles()).
+     *
+     * @return  int  Number of files deleted.
+     *
+     * @since   1.0.1
+     */
+    public static function deleteUntrackedFiles(array $relativePaths): int
+    {
+        $realRoot = realpath(self::getUploadRoot());
+
+        if ($realRoot === false) {
+            return 0;
+        }
+
+        $tracked = self::getTrackedRelativePaths();
+        $deleted = 0;
+
+        foreach ($relativePaths as $relative) {
+            $relative = str_replace('\\', '/', ltrim((string) $relative, '/'));
+
+            // Never touch a path that a media row points at.
+            if ($relative === '' || isset($tracked[$relative])) {
+                continue;
+            }
+
+            $absolute = realpath(JPATH_ROOT . '/' . $relative);
+
+            // Must resolve to a real file inside the upload root.
+            if ($absolute === false
+                || !is_file($absolute)
+                || !str_starts_with($absolute, $realRoot . DIRECTORY_SEPARATOR)) {
+                continue;
+            }
+
+            try {
+                File::delete($absolute);
+                $deleted++;
+            } catch (\Throwable $e) {
+                // Best-effort — a locked/removed file must not abort the batch.
+            }
+        }
+
+        return $deleted;
+    }
+
     /**
      * Saves and processes media items (uploads or existing selections).
      *
@@ -430,8 +827,13 @@ class MediaHelper
                 ), '/');
             }
 
-            // THEN clean both paths for output
+            // THEN clean both paths for output (relative — kept for storage / admin
+            // round-trip / server-side file ops).
             $result->path = ltrim($result->path, '/');
+
+            // Display URLs (absolute) for templates — never mutate the relative path.
+            $result->url           = self::toUrl($result->path);
+            $result->thumbnail_url = self::toUrl($result->thumbnail);
 
             $grouped[$result->item_id][] = $result;
         }
@@ -480,6 +882,8 @@ class MediaHelper
             'item_id' => 0,
             'path' => $placeholderPath,
             'thumbnail' => $placeholderPath,
+            'url' => self::toUrl($placeholderPath),
+            'thumbnail_url' => self::toUrl($placeholderPath),
             'alt' => 'Placeholder image',
             'ordering' => 0,
             'type' => 'placeholder',

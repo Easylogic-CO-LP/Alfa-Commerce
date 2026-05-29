@@ -14,6 +14,8 @@ namespace Alfa\Component\Alfa\Administrator\Event\General;
 
 use BadMethodCallException;
 use Joomla\CMS\Event\AbstractImmutableEvent;
+use Joomla\CMS\Router\Route;
+use Joomla\CMS\Uri\Uri;
 
 // phpcs:disable PSR1.Files.SideEffects
 \defined('_JEXEC') or die;
@@ -82,6 +84,8 @@ abstract class GeneralEvent extends AbstractImmutableEvent
     }
     public function setRedirectUrl(string $url): void
     {
+        // Store exactly what the plugin passes (raw). Routing to SEF happens lazily
+        // in getRedirectUrl(), so the event always keeps the original URL.
         $this->arguments['redirectUrl'] = $url;
     }
 
@@ -92,6 +96,31 @@ abstract class GeneralEvent extends AbstractImmutableEvent
      * @since  5.0.0
      */
     public function getRedirectUrl(): ?string
+    {
+        $url = $this->arguments['redirectUrl'] ?? null;
+
+        // SEF-route only RAW internal Joomla URLs: those on this site
+        // (Uri::isInternal — host check) AND still in raw "index.php?..." form
+        // (the only thing Route::_ can build a SEF link from). This lets a plugin
+        // set a plain "index.php?option=com_alfa&view=cart&layout=..." without
+        // calling Route::_() itself. External gateway URLs (host check fails) and
+        // already-final/SEF internal URLs (no "index.php") pass through unchanged,
+        // so they're never double-routed.
+        if (is_string($url) && str_contains($url, 'index.php') && Uri::isInternal($url)) {
+            return Route::_($url, false);
+        }
+
+        return $url;
+    }
+
+    /**
+     * Get the redirect URL exactly as the plugin set it — raw / unrouted.
+     *
+     * Use this when you need the original value (logging, or re-routing yourself
+     * with custom flags such as Route::TLS_FORCE / absolute). For redirecting,
+     * use getRedirectUrl(), which SEF-routes raw internal URLs.
+     */
+    public function getRawRedirectUrl(): ?string
     {
         return $this->arguments['redirectUrl'] ?? null;
     }

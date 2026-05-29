@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Exception;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 use Joomla\CMS\MVC\Model\ListModel;
@@ -39,19 +40,16 @@ class ItemsModel extends ListModel
                 'ordering', 'a.ordering',
                 'created_by', 'a.created_by',
                 'modified_by', 'a.modified_by',
-                'name', 'a.name',
                 'id', 'a.id',
-                'short_desc', 'a.short_desc',
-                'full_desc', 'a.full_desc',
                 'sku', 'a.sku',
                 'gtin', 'a.gtin',
                 'mpn', 'a.mpn',
                 'stock', 'a.stock',
                 'stock_action', 'a.stock_action',
                 'manage_stock', 'a.manage_stock',
-                'alias', 'a.alias',
-                'meta_title', 'a.meta_title',
-                'meta_desc', 'a.meta_desc',
+                // Translatable — resolved via the lang-table COALESCE alias.
+                'name',
+                'alias',
             ];
         }
 
@@ -129,6 +127,17 @@ class ItemsModel extends ListModel
         $query->select('`modified_by`.name AS `modified_by`');
         $query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
 
+        // MULTILINGUAL: resolve name / alias in the active language from the
+        // per-language tables (LEFT JOIN + COALESCE keeps untranslated rows).
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'a',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_items',
+            langPrimaryColumn: 'id_item',
+            fields:            ['name', 'alias'],
+        );
+
         // Filter by published state
         $published = $this->getState('filter.state');
 
@@ -146,7 +155,15 @@ class ItemsModel extends ListModel
                 $query->where('a.id = ' . (int) substr($search, 3));
             } else {
                 $search = $db->Quote('%' . $db->escape($search, true) . '%');
-                $query->where('( a.name LIKE ' . $search . ' )');
+                // HAVING — `name` is the COALESCE alias from the lang join; sku/gtin/mpn
+                // are real columns (selected via a.*). Match any of them.
+                $query->having(
+                    '(' . $db->quoteName('name') . ' LIKE ' . $search
+                    . ' OR ' . $db->quoteName('a.sku') . ' LIKE ' . $search
+                    . ' OR ' . $db->quoteName('a.gtin') . ' LIKE ' . $search
+                    . ' OR ' . $db->quoteName('a.mpn') . ' LIKE ' . $search
+                    . ')',
+                );
             }
         }
 

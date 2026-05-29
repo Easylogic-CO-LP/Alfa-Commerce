@@ -7,8 +7,6 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
-use Joomla\CMS\Language\Text;
-
 extract($displayData);
 
 if (empty($item)) return;
@@ -26,12 +24,13 @@ $stockMessage = '';
 if ($zeroStockShow)
 {
 	$stockClass   = 'zero-stock';
-	$stockMessage = Text::_($item->stock_zero_message);
+	// Per-language editor HTML (resolved via the lang-table COALESCE alias) — output raw.
+	$stockMessage = $item->stock_zero_message;
 }
 elseif ($lowStockShow)
 {
 	$stockClass   = 'low-stock';
-	$stockMessage = Text::_($item->stock_low_message);
+	$stockMessage = $item->stock_low_message;
 }
 
 // HTML structure
