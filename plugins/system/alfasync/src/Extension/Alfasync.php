@@ -213,8 +213,6 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * admin "Resync languages" button use.
      *
      * @param Event|array $event
-     *
-     * @return void
      */
     public function onContentAfterSave($event): void
     {
@@ -234,9 +232,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * (each with its own guard + SyncHelper call) without touching the event
      * subscription wiring above.
      *
-     * @param string $context  Joomla content context, e.g. 'com_languages.language'.
-     *
-     * @return void
+     * @param string $context Joomla content context, e.g. 'com_languages.language'.
      */
     private function handleContentSave(string $context): void
     {
@@ -256,7 +252,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
                 }
                 break;
 
-            // Future: add more content contexts that should trigger a sync here.
+                // Future: add more content contexts that should trigger a sync here.
         }
     }
 
@@ -270,9 +266,8 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      *
      * Flagging an item with menu_show=0 makes Joomla's CssMenu drop it.
      *
-     * @param   PreprocessMenuItemsEvent  $event  The admin-menu preprocess event.
+     * @param PreprocessMenuItemsEvent $event The admin-menu preprocess event.
      *
-     * @return  void
      *
      * @since   1.0.1
      */
@@ -290,8 +285,8 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
         }
 
         foreach ($event->getItems() as $item) {
-            $link             = (string) ($item->link ?? '');
-            $isToolsMenuItem  = str_contains($link, 'option=com_alfa') && str_contains($link, 'view=tools');
+            $link = (string) ($item->link ?? '');
+            $isToolsMenuItem = str_contains($link, 'option=com_alfa') && str_contains($link, 'view=tools');
 
             if ($isToolsMenuItem) {
                 $item->getParams()->set('menu_show', 0);

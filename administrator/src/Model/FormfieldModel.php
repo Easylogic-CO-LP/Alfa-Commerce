@@ -248,7 +248,7 @@ class FormfieldModel extends AdminModel
      */
     public function save($data)
     {
-        $app   = Factory::getApplication();
+        $app = Factory::getApplication();
         $input = $app->getInput();
 
         // 'raw' filter preserves the per-language flat keys (name_en_gb,
@@ -258,7 +258,7 @@ class FormfieldModel extends AdminModel
         $data = array_merge($data, $rawData);
 
         $table = $this->getTable();
-        $key   = $table->getKeyName();
+        $key = $table->getKeyName();
         $isNew = $data[$key] <= 0;
 
         // field_name is the machine key / DB column (NOT translatable). When the

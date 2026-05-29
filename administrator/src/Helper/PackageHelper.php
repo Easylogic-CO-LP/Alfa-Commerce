@@ -11,7 +11,14 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 
 defined('_JEXEC') or die;
 
+use FilesystemIterator;
 use Joomla\CMS\Factory;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use RuntimeException;
+use SimpleXMLElement;
+use SplFileInfo;
+use ZipArchive;
 
 /**
  * Developer packaging helper — re-assembles the com_alfa extension from a live
@@ -69,28 +76,28 @@ class PackageHelper
      * path to the finished archive (the caller is responsible for streaming it to
      * the browser and deleting it afterwards).
      *
-     * @param   string  $installRoot  Absolute path to the Joomla installation root (JPATH_ROOT).
+     * @param string $installRoot Absolute path to the Joomla installation root (JPATH_ROOT).
      *
-     * @return  array{zip: string, filename: string, version: string}  The archive
-     *          path on disk, the suggested download filename, and the manifest version.
+     * @return array{zip: string, filename: string, version: string} The archive
+     *                                                               path on disk, the suggested download filename, and the manifest version.
      *
-     * @throws  \RuntimeException  If the manifest is missing/invalid or zipping fails.
+     * @throws RuntimeException If the manifest is missing/invalid or zipping fails.
      *
      * @since   1.0.3
      */
     public static function buildPackageZip(string $installRoot): array
     {
-        $component    = 'com_alfa';
+        $component = 'com_alfa';
         $manifestPath = $installRoot . '/administrator/components/' . $component . '/alfa.xml';
-        $manifest     = self::parseManifest(manifestPath: $manifestPath);
+        $manifest = self::parseManifest(manifestPath: $manifestPath);
 
         $tmpDir = self::resolveTmpDir(installRoot: $installRoot);
         self::sweepStaleArchives(tmpDir: $tmpDir);
 
-        $workDir  = $tmpDir . '/alfa-package-' . bin2hex(random_bytes(6));
-        $version  = $manifest['version'] !== '' ? $manifest['version'] : 'dev';
+        $workDir = $tmpDir . '/alfa-package-' . bin2hex(random_bytes(6));
+        $version = $manifest['version'] !== '' ? $manifest['version'] : 'dev';
         $filename = $component . '-' . $version . '.zip';
-        $zipPath  = $tmpDir . '/' . $component . '-' . $version . '-' . bin2hex(random_bytes(4)) . '.zip';
+        $zipPath = $tmpDir . '/' . $component . '-' . $version . '-' . bin2hex(random_bytes(4)) . '.zip';
 
         try {
             self::buildTree(installRoot: $installRoot, manifest: $manifest, destRoot: $workDir);
@@ -107,11 +114,11 @@ class PackageHelper
      * developer exactly which folders to add (and from where) for an installable
      * build. Returns an empty array if the manifest declares no libraries.
      *
-     * @param   string  $installRoot  Absolute path to the Joomla installation root.
+     * @param string $installRoot Absolute path to the Joomla installation root.
      *
-     * @return  array<int, array{folder: string, libraryname: string, installCode: string, installManifest: string}>
-     *          Per library: the repo folder name, the Joomla library name, and the
-     *          install paths of its code and (renamed) manifest, for reference.
+     * @return array<int, array{folder: string, libraryname: string, installCode: string, installManifest: string}>
+     *                                                                                                              Per library: the repo folder name, the Joomla library name, and the
+     *                                                                                                              install paths of its code and (renamed) manifest, for reference.
      *
      * @since   1.0.3
      */
@@ -125,7 +132,7 @@ class PackageHelper
 
         try {
             $manifest = self::parseManifest(manifestPath: $manifestPath);
-        } catch (\RuntimeException) {
+        } catch (RuntimeException) {
             return [];
         }
 
@@ -135,9 +142,9 @@ class PackageHelper
             // Joomla stores the code under libraries/<libraryname>/ and the manifest
             // under administrator/manifests/libraries/<last-segment>.xml.
             $out[] = [
-                'folder'          => $folder,
-                'libraryname'     => $libraryName,
-                'installCode'     => 'libraries/' . $libraryName . '/',
+                'folder' => $folder,
+                'libraryname' => $libraryName,
+                'installCode' => 'libraries/' . $libraryName . '/',
                 'installManifest' => 'administrator/manifests/libraries/' . $libraryName . '.xml',
             ];
         }
@@ -148,65 +155,65 @@ class PackageHelper
     /**
      * Parse the component manifest into the structured shape the builder needs.
      *
-     * @param   string  $manifestPath  Absolute path to alfa.xml.
+     * @param string $manifestPath Absolute path to alfa.xml.
      *
-     * @return  array  Structured manifest data (folders, languages, plugins,
-     *                 modules, libraries, version, scriptfile, manifest filename).
+     * @return array Structured manifest data (folders, languages, plugins,
+     *               modules, libraries, version, scriptfile, manifest filename).
      *
-     * @throws  \RuntimeException  If the file is missing or not a valid <extension>.
+     * @throws RuntimeException If the file is missing or not a valid <extension>.
      *
      * @since   1.0.3
      */
     private static function parseManifest(string $manifestPath): array
     {
         if (!is_file($manifestPath)) {
-            throw new \RuntimeException('Component manifest not found: ' . $manifestPath);
+            throw new RuntimeException('Component manifest not found: ' . $manifestPath);
         }
 
         $xml = @simplexml_load_file($manifestPath);
 
         if ($xml === false || $xml->getName() !== 'extension') {
-            throw new \RuntimeException('Invalid component manifest: ' . $manifestPath);
+            throw new RuntimeException('Invalid component manifest: ' . $manifestPath);
         }
 
         // Folder attributes (with the Joomla defaults if an attribute is absent).
-        $siteFolder  = (string) ($xml->files['folder'] ?? 'site') ?: 'site';
+        $siteFolder = (string) ($xml->files['folder'] ?? 'site') ?: 'site';
         $adminFolder = (string) ($xml->administration->files['folder'] ?? 'administrator') ?: 'administrator';
-        $apiFolder   = (string) ($xml->api->files['folder'] ?? 'api') ?: 'api';
+        $apiFolder = (string) ($xml->api->files['folder'] ?? 'api') ?: 'api';
         $mediaFolder = (string) ($xml->media['folder'] ?? 'media') ?: 'media';
-        $mediaDest   = (string) ($xml->media['destination'] ?? 'com_alfa') ?: 'com_alfa';
+        $mediaDest = (string) ($xml->media['destination'] ?? 'com_alfa') ?: 'com_alfa';
 
         return [
             'manifestFilename' => basename($manifestPath),
-            'version'          => trim((string) $xml->version),
-            'scriptfile'       => trim((string) $xml->scriptfile),
-            'siteFolder'       => $siteFolder,
-            'adminFolder'      => $adminFolder,
-            'apiFolder'        => $apiFolder,
-            'hasApi'           => isset($xml->api->files),
-            'hasMedia'         => isset($xml->media),
-            'mediaFolder'      => $mediaFolder,
-            'mediaDest'        => $mediaDest,
-            'siteLangFolder'   => (string) ($xml->languages['folder'] ?? ''),
-            'siteLangs'        => self::parseLanguages(node: $xml->languages),
-            'adminLangFolder'  => (string) ($xml->administration->languages['folder'] ?? ''),
-            'adminLangs'       => self::parseLanguages(node: $xml->administration->languages),
-            'plugins'          => self::parsePlugins(node: $xml->plugins),
-            'modules'          => self::parseModules(node: $xml->modules),
-            'libraries'        => self::parseLibraries(node: $xml->libraries),
+            'version' => trim((string) $xml->version),
+            'scriptfile' => trim((string) $xml->scriptfile),
+            'siteFolder' => $siteFolder,
+            'adminFolder' => $adminFolder,
+            'apiFolder' => $apiFolder,
+            'hasApi' => isset($xml->api->files),
+            'hasMedia' => isset($xml->media),
+            'mediaFolder' => $mediaFolder,
+            'mediaDest' => $mediaDest,
+            'siteLangFolder' => (string) ($xml->languages['folder'] ?? ''),
+            'siteLangs' => self::parseLanguages(node: $xml->languages),
+            'adminLangFolder' => (string) ($xml->administration->languages['folder'] ?? ''),
+            'adminLangs' => self::parseLanguages(node: $xml->administration->languages),
+            'plugins' => self::parsePlugins(node: $xml->plugins),
+            'modules' => self::parseModules(node: $xml->modules),
+            'libraries' => self::parseLibraries(node: $xml->libraries),
         ];
     }
 
     /**
      * Extract [tag, relativeFile] pairs from a <languages> node.
      *
-     * @param   \SimpleXMLElement|null  $node  The <languages> element (or null).
+     * @param SimpleXMLElement|null $node The <languages> element (or null).
      *
-     * @return  array<int, array{0: string, 1: string}>
+     * @return array<int, array{0: string, 1: string}>
      *
      * @since   1.0.3
      */
-    private static function parseLanguages(?\SimpleXMLElement $node): array
+    private static function parseLanguages(?SimpleXMLElement $node): array
     {
         $out = [];
 
@@ -229,13 +236,13 @@ class PackageHelper
     /**
      * Extract [group, name] pairs from a <plugins> node.
      *
-     * @param   \SimpleXMLElement|null  $node  The <plugins> element (or null).
+     * @param SimpleXMLElement|null $node The <plugins> element (or null).
      *
-     * @return  array<int, array{0: string, 1: string}>
+     * @return array<int, array{0: string, 1: string}>
      *
      * @since   1.0.3
      */
-    private static function parsePlugins(?\SimpleXMLElement $node): array
+    private static function parsePlugins(?SimpleXMLElement $node): array
     {
         $out = [];
 
@@ -245,7 +252,7 @@ class PackageHelper
 
         foreach ($node->plugin as $plugin) {
             $group = trim((string) $plugin['group']);
-            $name  = trim((string) $plugin['plugin']);
+            $name = trim((string) $plugin['plugin']);
 
             if ($group !== '' && $name !== '') {
                 $out[] = [$group, $name];
@@ -258,13 +265,13 @@ class PackageHelper
     /**
      * Extract module names from a <modules> node.
      *
-     * @param   \SimpleXMLElement|null  $node  The <modules> element (or null).
+     * @param SimpleXMLElement|null $node The <modules> element (or null).
      *
-     * @return  string[]
+     * @return string[]
      *
      * @since   1.0.3
      */
-    private static function parseModules(?\SimpleXMLElement $node): array
+    private static function parseModules(?SimpleXMLElement $node): array
     {
         $out = [];
 
@@ -286,13 +293,13 @@ class PackageHelper
     /**
      * Extract [folder, libraryname] pairs from a <libraries> node.
      *
-     * @param   \SimpleXMLElement|null  $node  The <libraries> element (or null).
+     * @param SimpleXMLElement|null $node The <libraries> element (or null).
      *
-     * @return  array<int, array{0: string, 1: string}>
+     * @return array<int, array{0: string, 1: string}>
      *
      * @since   1.0.3
      */
-    private static function parseLibraries(?\SimpleXMLElement $node): array
+    private static function parseLibraries(?SimpleXMLElement $node): array
     {
         $out = [];
 
@@ -301,7 +308,7 @@ class PackageHelper
         }
 
         foreach ($node->library as $library) {
-            $folder      = trim((string) $library['folder']);
+            $folder = trim((string) $library['folder']);
             $libraryName = trim((string) $library['libraryname']);
 
             if ($folder !== '' && $libraryName !== '') {
@@ -316,17 +323,16 @@ class PackageHelper
      * Re-assemble the full repo-layout tree under $destRoot by copying each
      * declared area from its scattered install location.
      *
-     * @param   string  $installRoot  Joomla installation root.
-     * @param   array   $manifest     Parsed manifest (see {@see self::parseManifest()}).
-     * @param   string  $destRoot     Temporary working directory to build into.
+     * @param string $installRoot Joomla installation root.
+     * @param array $manifest Parsed manifest (see {@see self::parseManifest()}).
+     * @param string $destRoot Temporary working directory to build into.
      *
-     * @return  void
      *
      * @since   1.0.3
      */
     private static function buildTree(string $installRoot, array $manifest, string $destRoot): void
     {
-        $component   = 'com_alfa';
+        $component = 'com_alfa';
         $adminCompat = $installRoot . '/administrator/components/' . $component;
 
         // --- Root artifacts: manifest + scriptfile live at the repo root ---
@@ -415,19 +421,18 @@ class PackageHelper
      * and language files its own manifest declares — see
      * {@see self::copyDeclaredMediaAndLanguages()}.
      *
-     * @param   string  $installRoot  Joomla installation root.
-     * @param   string  $destRoot     Working directory.
-     * @param   string  $group        Plugin group (e.g. "alfa-payments").
-     * @param   string  $name         Plugin name (e.g. "standard").
+     * @param string $installRoot Joomla installation root.
+     * @param string $destRoot Working directory.
+     * @param string $group Plugin group (e.g. "alfa-payments").
+     * @param string $name Plugin name (e.g. "standard").
      *
-     * @return  void
      *
      * @since   1.0.3
      */
     private static function buildPlugin(string $installRoot, string $destRoot, string $group, string $name): void
     {
         $sourceDir = $installRoot . '/plugins/' . $group . '/' . $name;
-        $destBase  = $destRoot . '/plugins/' . $group . '/' . $name;
+        $destBase = $destRoot . '/plugins/' . $group . '/' . $name;
 
         // Code only — media + language folders are reconstructed from the manifest below.
         self::copyDir(source: $sourceDir, dest: $destBase, skipTop: ['media', 'language', 'languages']);
@@ -445,18 +450,17 @@ class PackageHelper
      * Re-assemble a single module: its code (the whole install folder) plus the media
      * and language files its own manifest declares.
      *
-     * @param   string  $installRoot  Joomla installation root.
-     * @param   string  $destRoot     Working directory.
-     * @param   string  $module       Module name (e.g. "mod_alfa_cart").
+     * @param string $installRoot Joomla installation root.
+     * @param string $destRoot Working directory.
+     * @param string $module Module name (e.g. "mod_alfa_cart").
      *
-     * @return  void
      *
      * @since   1.0.3
      */
     private static function buildModule(string $installRoot, string $destRoot, string $module): void
     {
         $sourceDir = $installRoot . '/modules/' . $module;
-        $destBase  = $destRoot . '/modules/' . $module;
+        $destBase = $destRoot . '/modules/' . $module;
 
         self::copyDir(source: $sourceDir, dest: $destBase, skipTop: ['media', 'language', 'languages']);
 
@@ -480,12 +484,11 @@ class PackageHelper
      * $langRoots and searched in priority order (first match wins). When the manifest
      * declares no <media> / <languages>, nothing is copied.
      *
-     * @param   string       $installRoot   Joomla installation root.
-     * @param   string|null  $manifestPath  Absolute path to the sub-extension manifest (or null).
-     * @param   string       $destBase      The sub-extension's folder in the repo layout.
-     * @param   string[]     $langRoots     Install language roots to search, highest priority first.
+     * @param string $installRoot Joomla installation root.
+     * @param string|null $manifestPath Absolute path to the sub-extension manifest (or null).
+     * @param string $destBase The sub-extension's folder in the repo layout.
+     * @param string[] $langRoots Install language roots to search, highest priority first.
      *
-     * @return  void
      *
      * @since   1.0.3
      */
@@ -504,7 +507,7 @@ class PackageHelper
         // Media: <media destination="X" folder="Y"/> — install media/X/ → repo <destBase>/Y/.
         foreach ($xml->media as $media) {
             $destination = trim((string) $media['destination']);
-            $folder      = trim((string) $media['folder']) ?: 'media';
+            $folder = trim((string) $media['folder']) ?: 'media';
 
             if ($destination !== '') {
                 self::copyDir(
@@ -553,10 +556,9 @@ class PackageHelper
      * convention for plugins/modules); otherwise returns the first &lt;extension&gt; XML
      * in the folder. Returns null if none is found.
      *
-     * @param   string  $dir            The sub-extension's install folder.
-     * @param   string  $preferredName  Expected manifest basename without extension.
+     * @param string $dir The sub-extension's install folder.
+     * @param string $preferredName Expected manifest basename without extension.
      *
-     * @return  string|null
      *
      * @since   1.0.3
      */
@@ -583,11 +585,10 @@ class PackageHelper
      * Recursively copy a directory, skipping ignored entries and (optionally) the
      * named immediate children. A missing source directory is a silent no-op.
      *
-     * @param   string    $source   Source directory.
-     * @param   string    $dest     Destination directory.
-     * @param   string[]  $skipTop  Immediate child names to skip at the source root.
+     * @param string $source Source directory.
+     * @param string $dest Destination directory.
+     * @param string[] $skipTop Immediate child names to skip at the source root.
      *
-     * @return  void
      *
      * @since   1.0.3
      */
@@ -603,7 +604,7 @@ class PackageHelper
             }
 
             $from = $source . '/' . $entry;
-            $to   = $dest . '/' . $entry;
+            $to = $dest . '/' . $entry;
 
             if (is_dir($from)) {
                 self::copyDir(source: $from, dest: $to);
@@ -617,10 +618,9 @@ class PackageHelper
      * Copy a single file, creating the destination directory as needed. A missing
      * source file is a silent no-op (so optional/absent areas don't abort a build).
      *
-     * @param   string  $source  Source file.
-     * @param   string  $dest    Destination file.
+     * @param string $source Source file.
+     * @param string $dest Destination file.
      *
-     * @return  void
      *
      * @since   1.0.3
      */
@@ -643,34 +643,33 @@ class PackageHelper
      * Zip the contents of a directory (files placed at the archive root, so the
      * archive extracts to the repo layout directly).
      *
-     * @param   string  $sourceDir  Directory to archive.
-     * @param   string  $zipPath    Destination .zip path.
+     * @param string $sourceDir Directory to archive.
+     * @param string $zipPath Destination .zip path.
      *
-     * @return  void
      *
-     * @throws  \RuntimeException  If the archive cannot be created.
+     * @throws RuntimeException If the archive cannot be created.
      *
      * @since   1.0.3
      */
     private static function zipTree(string $sourceDir, string $zipPath): void
     {
-        if (!class_exists(\ZipArchive::class)) {
-            throw new \RuntimeException('The PHP Zip extension is required to export a package.');
+        if (!class_exists(ZipArchive::class)) {
+            throw new RuntimeException('The PHP Zip extension is required to export a package.');
         }
 
-        $zip = new \ZipArchive();
+        $zip = new ZipArchive();
 
-        if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
-            throw new \RuntimeException('Could not create the package archive at ' . $zipPath);
+        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+            throw new RuntimeException('Could not create the package archive at ' . $zipPath);
         }
 
-        $base     = rtrim($sourceDir, '/') . '/';
-        $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($sourceDir, \FilesystemIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::SELF_FIRST,
+        $base = rtrim($sourceDir, '/') . '/';
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($sourceDir, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::SELF_FIRST,
         );
 
-        /** @var \SplFileInfo $item */
+        /** @var SplFileInfo $item */
         foreach ($iterator as $item) {
             $absolute = $item->getPathname();
             $relative = substr($absolute, \strlen($base));
@@ -688,9 +687,8 @@ class PackageHelper
     /**
      * Recursively delete a directory and its contents. Missing path is a no-op.
      *
-     * @param   string  $dir  Directory to remove.
+     * @param string $dir Directory to remove.
      *
-     * @return  void
      *
      * @since   1.0.3
      */
@@ -721,9 +719,8 @@ class PackageHelper
      * Delete leftover package archives older than one hour, in case a previous
      * export's stream died before its archive was cleaned up.
      *
-     * @param   string  $tmpDir  Temporary directory holding the archives.
+     * @param string $tmpDir Temporary directory holding the archives.
      *
-     * @return  void
      *
      * @since   1.0.3
      */
@@ -743,9 +740,9 @@ class PackageHelper
      * tmp_path, then the install's /tmp, then the system temp dir — so the tool
      * works on a dev box even when tmp_path points at a different (production) host.
      *
-     * @param   string  $installRoot  Joomla installation root.
+     * @param string $installRoot Joomla installation root.
      *
-     * @return  string  An existing, writable temporary directory path.
+     * @return string An existing, writable temporary directory path.
      *
      * @since   1.0.3
      */
@@ -763,15 +760,14 @@ class PackageHelper
             }
         }
 
-        throw new \RuntimeException('No writable temporary directory is available for the export.');
+        throw new RuntimeException('No writable temporary directory is available for the export.');
     }
 
     /**
      * Whether a file/folder name should always be skipped (VCS/IDE/OS cruft, backups).
      *
-     * @param   string  $name  Bare entry name.
+     * @param string $name Bare entry name.
      *
-     * @return  bool
      *
      * @since   1.0.3
      */

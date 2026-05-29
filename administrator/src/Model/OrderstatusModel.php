@@ -122,7 +122,7 @@ class OrderstatusModel extends AdminModel
     */
     public function save($data)
     {
-        $app   = Factory::getApplication();
+        $app = Factory::getApplication();
         $input = $app->getInput();
 
         // 'raw' filter preserves the per-language flat keys (name_en_gb,
@@ -153,9 +153,9 @@ class OrderstatusModel extends AdminModel
     /**
      * Method to delete one or more records.
      *
-     * @param   array  &$pks  An array of record primary keys.
+     * @param array &$pks An array of record primary keys.
      *
-     * @return  bool  True on success.
+     * @return bool True on success.
      *
      * @since   1.0.1
      */

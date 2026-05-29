@@ -446,11 +446,11 @@ final class SyncHelper
      * is dropped or seeded. Shared by the installer (script.php postflight), the
      * PlgSystemAlfasync runtime sync, and the admin "Resync languages" button.
      *
-     * @return array  ['tables' => [table => ensureLangSchema summary], 'errors' => [table => message]].
+     * @return array ['tables' => [table => ensureLangSchema summary], 'errors' => [table => message]].
      */
     public static function syncLanguageSchema(): array
     {
-        $schema  = self::getMultilingualSchema();
+        $schema = self::getMultilingualSchema();
         $summary = ['tables' => [], 'errors' => []];
 
         foreach ($schema as $table => $definition) {
@@ -499,7 +499,7 @@ final class SyncHelper
      * Alias slug fields and their uniqueness scope are NOT read from the XML —
      * they come from MultilingualAliasConfig.
      *
-     * @param  string[] $formDirs  Absolute paths to directories of *.xml form files.
+     * @param string[] $formDirs Absolute paths to directories of *.xml form files.
      *
      * @return array<string, array{pk: string, fields: string[], aliasFields: string[], aliasScope: string[]}>
      */
@@ -521,14 +521,14 @@ final class SyncHelper
 
                 foreach ($xml->xpath('//field[@multilingual_table]') ?: [] as $field) {
                     $table = (string) $field['multilingual_table'];
-                    $pk    = (string) $field['multilingual_pk'];
-                    $name  = (string) $field['name'];
+                    $pk = (string) $field['multilingual_pk'];
+                    $name = (string) $field['name'];
 
                     if ($table === '' || $pk === '' || $name === '') {
                         continue;
                     }
 
-                    $schema[$table]['pk']            = $pk;
+                    $schema[$table]['pk'] = $pk;
                     $schema[$table]['fields'][$name] = $name; // keyed → de-duplicated
                 }
             }
@@ -536,9 +536,9 @@ final class SyncHelper
 
         // Flatten the field map; alias fields + scope come from the shared config.
         foreach ($schema as $table => $definition) {
-            $schema[$table]['fields']      = array_values($definition['fields']);
+            $schema[$table]['fields'] = array_values($definition['fields']);
             $schema[$table]['aliasFields'] = MultilingualAliasConfig::FIELDS[$table] ?? [];
-            $schema[$table]['aliasScope']  = MultilingualAliasConfig::SCOPE[$table] ?? [];
+            $schema[$table]['aliasScope'] = MultilingualAliasConfig::SCOPE[$table] ?? [];
         }
 
         return $schema;

@@ -12,11 +12,13 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Field\TextareaField;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\LanguageHelper;
 use Joomla\CMS\Language\Text;
+use SimpleXMLElement;
 
 /**
  * MultilingualTextareaField
@@ -68,24 +70,23 @@ class MultilingualTextareaField extends TextareaField
      * We bypass it and read from the language tables using the item ID and the
      * table/pk declared as XML attributes on the field definition.
      *
-     * @param   \SimpleXMLElement  $element  The form field XML definition.
-     * @param   mixed              $value    The base field value — ignored.
-     * @param   string|null        $group    The field group name.
+     * @param SimpleXMLElement $element The form field XML definition.
+     * @param mixed $value The base field value — ignored.
+     * @param string|null $group The field group name.
      *
-     * @return  bool
      *
      * @since   1.0.1
      */
-    public function setup(\SimpleXMLElement $element, $value, $group = null): bool
+    public function setup(SimpleXMLElement $element, $value, $group = null): bool
     {
         $result = parent::setup($element, $value, $group);
 
         $languages = LanguageHelper::getLanguages('lang_code');
-        $flatData  = [];
+        $flatData = [];
 
         $itemId = (int) $this->form->getValue('id', null);
-        $table  = (string) ($this->element['multilingual_table'] ?? '');
-        $pk     = (string) ($this->element['multilingual_pk']    ?? '');
+        $table = (string) ($this->element['multilingual_table'] ?? '');
+        $pk = (string) ($this->element['multilingual_pk'] ?? '');
 
         if ($itemId > 0 && $table !== '' && $pk !== '') {
             $flatData = MultilingualHelper::getMultilingualDataFlat(
@@ -99,7 +100,7 @@ class MultilingualTextareaField extends TextareaField
 
         foreach ($languages as $langCode => $language) {
             $formatted = strtolower(str_replace('-', '_', $langCode));
-            $flatKey   = $this->fieldname . '_' . $formatted;
+            $flatKey = $this->fieldname . '_' . $formatted;
 
             $arrayValue[$formatted] = $flatData[$flatKey] ?? '';
         }
@@ -116,7 +117,7 @@ class MultilingualTextareaField extends TextareaField
     /**
      * Render one <textarea> per installed language.
      *
-     * @return  string  HTML markup for all language textareas.
+     * @return string HTML markup for all language textareas.
      *
      * @since   1.0.1
      */
@@ -125,21 +126,21 @@ class MultilingualTextareaField extends TextareaField
         Factory::getApplication()->getDocument()->getWebAssetManager()
             ->useStyle('com_alfa.multilingual-fields');
 
-        $languages       = LanguageHelper::getLanguages('lang_code');
-        $isMultilang     = count($languages) > 1;
-        $isRequired      = $this->required;
+        $languages = LanguageHelper::getLanguages('lang_code');
+        $isMultilang = count($languages) > 1;
+        $isRequired = $this->required;
         $defaultLangCode = strtolower(str_replace('-', '_', array_key_first($languages)));
 
-        $items  = '';
+        $items = '';
         $values = is_array($this->value) ? $this->value : [];
 
         foreach ($languages as $langCode => $language) {
             $formatted = strtolower(str_replace('-', '_', $langCode));
             $isDefault = ($formatted === $defaultLangCode);
 
-            $inputId   = $this->id . '_' . $formatted;
+            $inputId = $this->id . '_' . $formatted;
             $inputName = 'jform[' . $this->fieldname . '_' . $formatted . ']';
-            $val       = $values[$formatted] ?? '';
+            $val = $values[$formatted] ?? '';
 
             // Only the default-language textarea is marked required.
             $required = $isRequired && $isDefault;
@@ -178,21 +179,20 @@ class MultilingualTextareaField extends TextareaField
      * scalar value. jform[description] is never submitted — only the per-language
      * keys are — so raw POST is the only guaranteed source of truth.
      *
-     * @param   mixed                           $value  Always empty — ignored.
-     * @param   string|null                     $group  Optional form group path.
-     * @param   \Joomla\Registry\Registry|null  $input  Full form data registry.
+     * @param mixed $value Always empty — ignored.
+     * @param string|null $group Optional form group path.
+     * @param \Joomla\Registry\Registry|null $input Full form data registry.
      *
-     * @return  bool|\Exception
      *
      * @since   1.0.1
      */
-    public function validate($value, $group = null, ?\Joomla\Registry\Registry $input = null): bool|\Exception
+    public function validate($value, $group = null, ?\Joomla\Registry\Registry $input = null): bool|Exception
     {
-        $languages       = LanguageHelper::getLanguages('lang_code');
+        $languages = LanguageHelper::getLanguages('lang_code');
         $defaultLangCode = strtolower(str_replace('-', '_', array_key_first($languages)));
-        $flatKey         = $this->fieldname . '_' . $defaultLangCode;
+        $flatKey = $this->fieldname . '_' . $defaultLangCode;
 
-        $jform       = Factory::getApplication()->getInput()->post->get('jform', [], 'raw');
+        $jform = Factory::getApplication()->getInput()->post->get('jform', [], 'raw');
         $scalarValue = (string) ($jform[$flatKey] ?? '');
 
         return parent::validate($scalarValue, $group, $input);
@@ -205,12 +205,12 @@ class MultilingualTextareaField extends TextareaField
     /**
      * Render a single <textarea> element for one language slot.
      *
-     * @param   string  $id        The textarea element ID.
-     * @param   string  $name      The textarea element name (array notation).
-     * @param   string  $value     The pre-filled value for this language.
-     * @param   bool    $required  Whether to add `required` and `.required` class.
+     * @param string $id The textarea element ID.
+     * @param string $name The textarea element name (array notation).
+     * @param string $value The pre-filled value for this language.
+     * @param bool $required Whether to add `required` and `.required` class.
      *
-     * @return  string  HTML <textarea> tag.
+     * @return string HTML <textarea> tag.
      *
      * @since   1.0.1
      */
@@ -218,23 +218,35 @@ class MultilingualTextareaField extends TextareaField
         string $id,
         string $name,
         string $value,
-        bool   $required = false
+        bool $required = false,
     ): string {
         // Strip 'required' that parent::setup() injected into $this->class.
         $baseClass = trim(str_replace('required', '', $this->class ?: 'form-control')) ?: 'form-control';
 
         $attrs = [
-            'id'    => $id,
-            'name'  => $name,
+            'id' => $id,
+            'name' => $name,
             'class' => trim($baseClass . ($required ? ' required' : '')),
         ];
 
-        if (!empty($this->rows))      { $attrs['rows']        = (int) $this->rows; }
-        if (!empty($this->columns))   { $attrs['cols']        = (int) $this->columns; }
-        if (!empty($this->maxlength)) { $attrs['maxlength']   = (int) $this->maxlength; }
-        if ($this->readonly)          { $attrs['readonly']    = 'readonly'; }
-        if ($this->disabled)          { $attrs['disabled']    = 'disabled'; }
-        if (!empty($this->hint))      { $attrs['placeholder'] = Text::_($this->hint); }
+        if (!empty($this->rows)) {
+            $attrs['rows'] = (int) $this->rows;
+        }
+        if (!empty($this->columns)) {
+            $attrs['cols'] = (int) $this->columns;
+        }
+        if (!empty($this->maxlength)) {
+            $attrs['maxlength'] = (int) $this->maxlength;
+        }
+        if ($this->readonly) {
+            $attrs['readonly'] = 'readonly';
+        }
+        if ($this->disabled) {
+            $attrs['disabled'] = 'disabled';
+        }
+        if (!empty($this->hint)) {
+            $attrs['placeholder'] = Text::_($this->hint);
+        }
 
         // HTML5 native required — only on the default-language textarea.
         if ($required) {
@@ -255,9 +267,8 @@ class MultilingualTextareaField extends TextareaField
     /**
      * Render the language flag (image, or text fallback) pinned to the input.
      *
-     * @param   object  $language  Language object from LanguageHelper::getLanguages().
+     * @param object $language Language object from LanguageHelper::getLanguages().
      *
-     * @return  string
      *
      * @since   1.0.1
      */
