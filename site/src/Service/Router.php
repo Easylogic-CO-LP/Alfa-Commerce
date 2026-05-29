@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Site\Service;
 // No direct access
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Joomla\CMS\Application\SiteApplication;
 use Joomla\CMS\Component\Router\RouterView;
@@ -225,16 +226,17 @@ class Router extends RouterView
     {
         $aliasPath = [];
 
-        // Build category path hierarchy only when a specific category is requested
+        // Build category path hierarchy only when a specific category is requested.
+        // Pass the target language when building a language-switch URL (&lang) so
+        // the whole breadcrumb is resolved in that language; CategoryHelper owns
+        // the per-language resolution + caching.
         if (!empty($id) && $id !== 0 && $id !== '0') {
-            // Get category path from root to current category (parent-to-child order)
-            $pathData = array_reverse(CategoryHelper::getCategoryPath($id));
+            $pathData = array_reverse(
+                CategoryHelper::getCategoryPath($id, $query['lang'] ?? null),
+            );
 
-            if (!empty($pathData)) {
-                // Build segment array with category IDs as keys and aliases as values
-                foreach ($pathData as $category) {
-                    $aliasPath[$category['id']] = $category['alias'];
-                }
+            foreach ($pathData as $category) {
+                $aliasPath[$category['id']] = $category['alias'];
             }
         }
 
@@ -260,13 +262,25 @@ class Router extends RouterView
     public function getItemsId($segment, $query)
     {
         $dbquery = $this->db->getQuery(true)
-            ->select($this->db->quoteName('id'))
-            ->from($this->db->quoteName('#__alfa_categories'))
-            ->where($this->db->quoteName('alias') . ' = ' . $this->db->quote($segment));
+            ->select($this->db->quoteName('a.id'))
+            ->from($this->db->quoteName('#__alfa_categories', 'a'));
+
+        // Resolve the alias in the active language (current → default) from the
+        // per-language tables. HAVING filters on the resulting alias expression.
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $dbquery,
+            mainAlias:         'a',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_categories',
+            langPrimaryColumn: 'id_category',
+            fields:            ['alias'],
+        );
+
+        $dbquery->having($this->db->quoteName('alias') . ' = ' . $this->db->quote($segment));
 
         // Verify this segment is actually a child of the parent to prevent infinite nesting
         if (!empty($query['category_id'])) {
-            $dbquery->where($this->db->quoteName('parent_id') . ' = ' . (int) $query['category_id']);
+            $dbquery->where($this->db->quoteName('a.parent_id') . ' = ' . (int) $query['category_id']);
         }
 
         $this->db->setQuery($dbquery);
@@ -292,22 +306,28 @@ class Router extends RouterView
     {
         // If ID doesn't contain alias yet, fetch it
         if (!strpos($id, ':')) {
-            // Check cache first
-            if (isset(self::$itemAliasCache[$id])) {
-                $alias = self::$itemAliasCache[$id];
-            } else {
-                $dbquery = $this->db->getQuery(true)
-                    ->select($this->db->quoteName('alias'))
-                    ->from($this->db->quoteName('#__alfa_items'))
-                    ->where($this->db->quoteName('id') . ' = ' . (int) $id);
-                $this->db->setQuery($dbquery);
-                $alias = $this->db->loadResult();
+            // Resolve in the TARGET language when building a language-switch URL
+            // (&lang in the query); otherwise the current request language. The
+            // cache is keyed by language so one request can build URLs for many.
+            $langTag = (string) ($query['lang'] ?? '');
+            $cacheKey = $id . '|' . ($langTag !== '' ? $langTag : MultilingualHelper::getCurrentLanguageTag());
 
-                // Cache it
-                self::$itemAliasCache[$id] = $alias;
+            if (isset(self::$itemAliasCache[$cacheKey])) {
+                $alias = self::$itemAliasCache[$cacheKey];
+            } else {
+                $alias = MultilingualHelper::getTranslatedValue(
+                    id:                (int) $id,
+                    tableName:         '#__alfa_items',
+                    primaryColumnName: 'id_item',
+                    field:             'alias',
+                    langTag:           $langTag,
+                );
+
+                self::$itemAliasCache[$cacheKey] = $alias;
             }
 
-            $id .= ':' . $alias;
+            // Fall back to the ID as slug if no translation exists yet.
+            $id .= ':' . ($alias ?: $id);
         }
 
         // Return only the alias for clean SEF URLs
@@ -332,8 +352,20 @@ class Router extends RouterView
     {
         $dbquery = $this->db->getQuery(true)
             ->select('i.id')
-            ->from($this->db->quoteName('#__alfa_items', 'i'))
-            ->where('i.alias = ' . $this->db->quote($segment));
+            ->from($this->db->quoteName('#__alfa_items', 'i'));
+
+        // Resolve the alias in the active language (current → default); HAVING
+        // filters on the resulting alias expression.
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $dbquery,
+            mainAlias:         'i',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_items',
+            langPrimaryColumn: 'id_item',
+            fields:            ['alias'],
+        );
+
+        $dbquery->having($this->db->quoteName('alias') . ' = ' . $this->db->quote($segment));
 
         if (!empty($query['category_id'])) {
             // explicitly set the id cause it may not always exist e.g. on sef urls
@@ -365,20 +397,27 @@ class Router extends RouterView
     {
         // If ID doesn't contain alias yet, fetch it
         if (!strpos($id, ':')) {
-            // Check cache first
-            if (isset(self::$manufacturerAliasCache[$id])) {
-                $alias = self::$manufacturerAliasCache[$id];
+            // Target language for a language-switch URL (&lang), else current.
+            // Cache keyed by language so multi-language builds don't collide.
+            $langTag = (string) ($query['lang'] ?? '');
+            $cacheKey = $id . '|' . ($langTag !== '' ? $langTag : MultilingualHelper::getCurrentLanguageTag());
+
+            if (isset(self::$manufacturerAliasCache[$cacheKey])) {
+                $alias = self::$manufacturerAliasCache[$cacheKey];
             } else {
-                $dbquery = $this->db->getQuery(true)
-                    ->select($this->db->quoteName('alias'))
-                    ->from($this->db->quoteName('#__alfa_manufacturers'))
-                    ->where($this->db->quoteName('id') . ' = ' . (int) $id);
-                $this->db->setQuery($dbquery);
-                $alias = $this->db->loadResult();
-                self::$manufacturerAliasCache[$id] = $alias;
+                $alias = MultilingualHelper::getTranslatedValue(
+                    id:                (int) $id,
+                    tableName:         '#__alfa_manufacturers',
+                    primaryColumnName: 'id_manufacturer',
+                    field:             'alias',
+                    langTag:           $langTag,
+                );
+
+                self::$manufacturerAliasCache[$cacheKey] = $alias;
             }
 
-            $id .= ':' . $alias;
+            // Fall back to the ID as slug if no translation exists yet.
+            $id .= ':' . ($alias ?: $id);
         }
 
         // Return only the alias for clean SEF URLs
@@ -402,9 +441,21 @@ class Router extends RouterView
     public function getManufacturerId($segment, $query)
     {
         $dbquery = $this->db->getQuery(true)
-            ->select($this->db->quoteName('id'))
-            ->from($this->db->quoteName('#__alfa_manufacturers'))
-            ->where($this->db->quoteName('alias') . ' = ' . $this->db->quote($segment));
+            ->select($this->db->quoteName('a.id'))
+            ->from($this->db->quoteName('#__alfa_manufacturers', 'a'));
+
+        // Resolve the alias in the active language (current → default); HAVING
+        // filters on the resulting alias expression.
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $dbquery,
+            mainAlias:         'a',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_manufacturers',
+            langPrimaryColumn: 'id_manufacturer',
+            fields:            ['alias'],
+        );
+
+        $dbquery->having($this->db->quoteName('alias') . ' = ' . $this->db->quote($segment));
         $this->db->setQuery($dbquery);
         $result = $this->db->loadResult();
 

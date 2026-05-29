@@ -9,8 +9,6 @@
 	// No direct access
 	defined('_JEXEC') or die;
 
-	use \Joomla\CMS\HTML\HTMLHelper;
-	use \Joomla\CMS\Uri\Uri;
 	use \Joomla\CMS\Router\Route;
 	use \Joomla\CMS\Language\Text;
 	use \Joomla\CMS\Layout\LayoutHelper;
@@ -20,19 +18,7 @@
 	$wa->useStyle('com_alfa.list');
 ?>
 
-<form action="<?php echo htmlspecialchars(Uri::getInstance()->toString()); ?>" method="post"
-      name="adminForm" id="adminForm">
-	<?php if (!empty($this->filterForm))
-	{
-		echo LayoutHelper::render('joomla.searchtools.default', array('view' => $this));
-	} ?>
-
-    <input type="hidden" name="task" value=""/>
-    <input type="hidden" name="boxchecked" value="0"/>
-    <input type="hidden" name="filter_order" value=""/>
-    <input type="hidden" name="filter_order_Dir" value=""/>
-	<?php echo HTMLHelper::_('form.token'); ?>
-</form>
+<?php echo LayoutHelper::render('filter_form', ['view' => $this]); ?>
 
 
 <section>
@@ -42,7 +28,7 @@
                 <div class="category-item list-item">
                     <a href="<?php echo $item->link; ?>">
 						<?php if (!empty($item->medias[0])): ?>
-                            <img src=<?= $item->medias[0]->path ?>>
+                            <img src="<?= $item->medias[0]->url ?>">
 						<?php endif; ?>
                     </a>
 
@@ -51,7 +37,7 @@
                     </div>
 
                     <div class="category-description">
-						<?php echo $this->escape($item->desc); ?>
+						<?php echo $item->desc; // editor (HTML) field — output raw, not escaped ?>
                     </div>
                     <div class="category-products">
                         <a href="<?php echo $item->link; ?>">

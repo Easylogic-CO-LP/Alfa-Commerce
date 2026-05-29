@@ -1,33 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <form>
-    <fields name="filter">
+    <fields name="filter" addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
         <field name="search" type="text" description="COM_ALFA_SEARCH_FILTER_SUBMIT"
                label="COM_USERS_FILTER_SEARCH_DESC"
                class="js-stools-search-string" />
 
+        <!-- type="model" → Alfa ModelField, sourced from OrderstatusesModel so
+             status names come back in the active language. The empty first
+             option is the "all statuses" placeholder (single-select). -->
         <field
-          name="order_status" type="sql"
+          name="order_status" type="model"
+          model="orderstatuses"
+          column_value="id"
+          column_text="name"
           input_type="list"
-          required="true"
           multiple="false"
           label="COM_ALFA_FORM_LBL_ORDER_STATUSES"
           description="COM_ALFA_FORM_DESC_ORDER_STATUSES"
           layout="joomla.form.field.list-fancy-select"
-          query="SELECT `id`, `name` AS val FROM `#__alfa_orders_statuses`" key_field="id" value_field="val"
-          header="COM_ALFA_FILTER_SELECT_STATUS"
           onchange="this.form.submit();"
-        />
+        >
+            <option value="">COM_ALFA_FILTER_SELECT_STATUS</option>
+        </field>
 
         <field
           name="show_trashed" type="list"
-          required="true"
           multiple="false"
-          label="COM_ALFA_FORM_LBL_SHOW_TRASHED"
+          label="COM_ALFA_FILTER_ORDERS_VIEW"
           layout="joomla.form.field.list-fancy-select"
           onchange="this.form.submit();"
-          header="COM_ALFA_FILTER_SHOW_TRASHED"
+          header="COM_ALFA_FILTER_ORDERS_ACTIVE"
         >
-            <option value="1">JYES</option>
+            <option value="1">COM_ALFA_FILTER_ORDERS_TRASHED</option>
         </field>
 
     </fields>

@@ -33,11 +33,15 @@ Factory::getApplication()->getDocument()->getWebAssetManager()->useScript('com_a
         </div>
 
         <div class="col-md-6">
-            <h4><?php echo \Joomla\CMS\Language\Text::_('COM_ALFA_FORM_PAYMENT'); ?></h4>
-			<?php echo $this->loadTemplate('select_payment'); ?>
+			<?php if (!empty($this->cart->getPaymentMethods())) : ?>
+                <h4><?php echo \Joomla\CMS\Language\Text::_('COM_ALFA_FORM_PAYMENT'); ?></h4>
+				<?php echo $this->loadTemplate('select_payment'); ?>
+			<?php endif; ?>
 
-            <h4><?php echo \Joomla\CMS\Language\Text::_('COM_ALFA_FORM_SHIPMENT'); ?></h4>
-			<?php echo $this->loadTemplate('select_shipment'); ?>
+			<?php if (!empty($this->cart->getShipmentMethods())) : ?>
+                <h4><?php echo \Joomla\CMS\Language\Text::_('COM_ALFA_FORM_SHIPMENT'); ?></h4>
+				<?php echo $this->loadTemplate('select_shipment'); ?>
+			<?php endif; ?>
         </div>
 
     </div>

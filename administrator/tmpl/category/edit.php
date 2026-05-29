@@ -90,29 +90,17 @@
                     <?php echo $this->form->renderFieldset('meta'); ?>
 
                     <?php
-                        echo LayoutHelper::render(
-                            'seo.preview',
-                            (new \Alfa\Component\Alfa\Administrator\Controller\SeoController())->getResultObject(
-                                itemId: $this->item->id ?? 0,
-                                title: $this->item->name ?? '',
-                                metaTitle: $this->item->meta_title ?? '',
-                                metaDesc: $this->item->meta_desc ?? '',
-                                alias: $this->item->alias ?? '',
-                                defaultAlias: $this->item->alias ?? '',
-                                content: $this->item->desc ?? '',
-                                focusKeyword: $this->item->focus_keyword ?? '',
-                                itemType: 'category',
-                                robots: $this->item->robots ?? '',
-                                fieldJsSelectors: [
-                                    'title'        => '#jform_name',
-                                    'metaTitle'    => '#jform_meta_title',
-                                    'metaDesc'     => '#jform_meta_desc',
-                                    'alias'        => '#jform_alias',
-                                    'robots'       => '#jform_robots',
-                                    'content'      => '#jform_desc',
-                                    'focusKeyword' => '[data-seo-focus-keyword-field]'
-                                ]
-                            ));
+                        // One SEO preview per content language (tabset when >1).
+                        echo LayoutHelper::render('seo.multilingual', [
+                            'itemId'                  => $this->item->id ?? 0,
+                            'itemType'                => 'category',
+                            'table'                   => '#__alfa_categories',
+                            'pk'                      => 'id_category',
+                            'robots'                  => $this->item->robots ?? '',
+                            'focusKeyword'            => $this->item->focus_keyword ?? '',
+                            'contentField'            => 'desc',
+                            'additionalContentFields' => [],
+                        ]);
                     ?>
                 </div>
             </fieldset>

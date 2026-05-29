@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\MVC\Model\AdminModel;
 use Joomla\CMS\Table\Table;
@@ -122,46 +123,56 @@ class OrderstatusModel extends AdminModel
     public function save($data)
     {
         $app = Factory::getApplication();
+        $input = $app->getInput();
 
-        // $data['alias'] = $data['alias'] ?: $data['name'];
-
-        // if ($app->get('unicodeslugs') == 1){
-        // 	$data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
-        // } else {
-        // 	$data['alias'] = OutputFilter::stringURLSafe($data['alias']);
-        // }
-
-        // if ($table->load(['slug' => $data['slug']])) { //checks for duplicates
-        //     $data['slug'].= '-'.$pk;//if slug exists add the id after
-        //     // = OutputFilter::stringURLSafe($data['name'].'-'.$pk);
-        // }
-        // if ($input->get('task') == 'save2copy') {
-        // 	if ($table->load(['slug' => $data['slug']])) {
-
-        // }
-        // $origTable = clone $this->getTable();
+        // 'raw' filter preserves the per-language flat keys (name_en_gb,
+        // name_el_gr …) that the default 'array' filter would strip.
+        $rawData = $input->post->get('jform', [], 'raw');
+        $data = array_merge($data, $rawData);
 
         if (!parent::save($data)) {
             return false;
         }
 
-        $currentId = 0;
-        if ($data['id'] > 0) { //not a new
-            $currentId = intval($data['id']);
-        } else { // is new
-            $currentId = intval($this->getState($this->getName() . '.id'));//get the id from setted joomla state
-        }
+        $currentId = ($data['id'] > 0)
+            ? (int) $data['id']
+            : (int) $this->getState($this->getName() . '.id');
 
-        // $this->setPrices($currentId,$data['prices']);
-
-        // AlfaHelper::setAssocsToDb($data['id'], $data['categories'], '#__alfa_items_categories', 'item_id','category_id');
-        // AlfaHelper::setAssocsToDb($data['id'], $data['manufacturers'], '#__alfa_items_manufacturers', 'item_id','manufacturer_id');
-
-        // AlfaHelper::setAssocsToDb($data['id'], $data['allowedUsers'], '#__alfa_items_users', 'item_id','user_id');
-        // AlfaHelper::setAssocsToDb($data['id'], $data['allowedUserGroups'], '#__alfa_items_usergroups','item_id', 'usergroup_id');
+        // MULTILINGUAL: persist the per-language name to the language tables.
+        MultilingualHelper::saveMultilingualData(
+            currentId:         $currentId,
+            primaryColumnName: 'id_orderstatus',
+            tableName:         '#__alfa_orders_statuses',
+            data:              $data,
+            aliasFields:       [],
+        );
 
         return true;
-        // return parent::save($data);
+    }
+
+    /**
+     * Method to delete one or more records.
+     *
+     * @param array &$pks An array of record primary keys.
+     *
+     * @return bool True on success.
+     *
+     * @since   1.0.1
+     */
+    public function delete(&$pks)
+    {
+        $result = parent::delete($pks);
+
+        if ($result && !empty($pks)) {
+            // MULTILINGUAL: remove the per-language rows for the deleted statuses.
+            MultilingualHelper::deleteMultilingualData(
+                ids:               $pks,
+                primaryColumnName: 'id_orderstatus',
+                tableName:         '#__alfa_orders_statuses',
+            );
+        }
+
+        return $result;
     }
 
     /**

@@ -10,6 +10,17 @@
       "uri": "com_alfa/admin/admin.css"
     },
     {
+      "name": "com_alfa.multilingual-fields",
+      "type": "style",
+      "uri": "com_alfa/admin/multilingual-fields.css"
+    },
+    {
+      "name": "com_alfa.sync-tools",
+      "type": "script",
+      "uri": "com_alfa/admin/sync-tools.js",
+      "dependencies": ["core"]
+    },
+    {
       "name": "com_alfa.list",
       "type": "style",
       "uri": "com_alfa/site/list.css"

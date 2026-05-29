@@ -45,6 +45,12 @@
                 <?php echo LayoutHelper::render('joomla.searchtools.default', array('view' => $this)); ?>
 
                 <div class="clearfix"></div>
+                <?php if (empty($this->items)) : ?>
+                	<div class="alert alert-info">
+                		<span class="icon-info-circle" aria-hidden="true"></span><span class="visually-hidden"><?php echo \Joomla\CMS\Language\Text::_("INFO"); ?></span>
+                		<?php echo \Joomla\CMS\Language\Text::_("JGLOBAL_NO_MATCHING_RESULTS"); ?>
+                	</div>
+                <?php else : ?>
                 <table class="table table-striped" id="itemList">
                     <thead>
                     <tr>
@@ -153,6 +159,7 @@
                     <?php endforeach; ?>
                     </tbody>
                 </table>
+                <?php endif; ?>
 
 
                 <?php // Load the batch processing form. ?>

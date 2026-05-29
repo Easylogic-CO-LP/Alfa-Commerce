@@ -10,7 +10,6 @@
 defined('_JEXEC') or die;
 
 use Joomla\CMS\Factory;
-use Joomla\CMS\Uri\Uri;
 use Joomla\CMS\Layout\LayoutHelper;
 
 $app = Factory::getApplication();
@@ -28,37 +27,6 @@ $wa->useStyle('com_alfa.list')
 // Default: Use settings from view (resolved by user group)
 $priceSettings = $this->priceSettings;
 
-$wa = $this->document->getWebAssetManager();
-$wa->addInlineScript(<<<'JS'
-    document.addEventListener('DOMContentLoaded', function() {
-        const form = document.getElementById('adminForm');
-
-        if (!form) {
-            return;
-        }
-
-        const nativeSubmit = HTMLFormElement.prototype.submit;
-        
-        form.submit = function() {
-            // Disable empty fields
-            form.querySelectorAll('input, select, textarea').forEach(function(field) {
-                if (field.name && field.value.trim() === '') {
-                    field.disabled = true;
-                }
-            });
-            
-            nativeSubmit.call(form);
-        };
-
-        form.addEventListener('submit', function() {
-            form.querySelectorAll('input, select, textarea').forEach(function(field) {
-                if (field.name && field.value.trim() === '') {
-                    field.disabled = true;
-                }
-            });
-        });
-    });
-JS);
 // TEMPLATE OVERRIDE EXAMPLES (uncomment to use) else you can overwrite the price layout:
 //
 // Example 1: Hide tax on this page
@@ -105,15 +73,7 @@ JS);
 
 <?php echo $this->loadTemplate('categories'); ?>
 
-<?php if (!empty($this->filterForm)): ?>
-    <form action="<?php echo htmlspecialchars(Uri::getInstance()->toString()); ?>" method="get" name="adminForm"
-          id="adminForm">
-        <?php
-            echo LayoutHelper::render('joomla.searchtools.default', array('view' => $this));
-            //		echo $this->filterForm->renderControlFields();
-        ?>
-    </form>
-<?php endif; ?>
+<?php echo LayoutHelper::render('filter_form', ['view' => $this]); ?>
 
 <section>
     <?php echo $this->pagination->getListFooter(); ?>
@@ -124,7 +84,7 @@ JS);
                 <?php if (!empty($item->medias[0]->thumbnail)): ?>
                     <div class="item-image">
                         <a href="<?= $item->link ?>">
-                            <img src="<?= $item->medias[0]->thumbnail ?>" alt="<?= $item->name ?>" />
+                            <img src="<?= $item->medias[0]->thumbnail_url ?>" alt="<?= $item->name ?>" />
                         </a>
                     </div>
                 <?php endif; ?>

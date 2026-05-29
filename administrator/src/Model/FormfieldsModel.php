@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 use Joomla\CMS\MVC\Model\ListModel;
 
@@ -40,9 +41,9 @@ class FormFieldsModel extends ListModel
                 'ordering', 'a.ordering',
                 'created_by', 'a.created_by',
                 'modified_by', 'a.modified_by',
-                'name', 'a.name',
                 'state', 'a.state',
-                'id', 'a.id',
+                // Translatable — resolved via the lang-table COALESCE alias.
+                'name',
             ];
         }
 
@@ -116,6 +117,17 @@ class FormFieldsModel extends ListModel
             ->join('LEFT', $db->qn('#__alfa_form_field_groups', 'g') . ' ON g.id = a.group_id')
             ->order('ordering ASC');
 
+        // MULTILINGUAL: resolve the field name in the active language from the
+        // per-language tables (LEFT JOIN + COALESCE keeps untranslated rows).
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'a',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_form_fields',
+            langPrimaryColumn: 'id_formfield',
+            fields:            ['name'],
+        );
+
         // Select the required fields from the table.
         //        $query->select(
         //            $this->getState(
@@ -159,7 +171,8 @@ class FormFieldsModel extends ListModel
                 $query->where('a.id = ' . (int) substr($search, 3));
             } else {
                 $search = $db->Quote('%' . $db->escape($search, true) . '%');
-                $query->where('( a.name LIKE ' . $search . ' )');
+                // HAVING — `name` is the COALESCE alias from the lang join.
+                $query->having('( ' . $db->quoteName('name') . ' LIKE ' . $search . ' )');
             }
         }
 

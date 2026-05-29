@@ -91,7 +91,7 @@ class HtmlView extends BaseHtmlView
             $orderId = $app->getUserState('com_alfa.order_id');
 
             if ($orderId == null) {
-                $app->enqueueMessage('Order ID is not set.', 'error');
+                $app->enqueueMessage(Text::_('COM_ALFA_ORDER_SESSION_ENDED'), 'message');
                 $app->redirect(Route::_('/index.php'));//redirect to home page
             }
 
@@ -101,86 +101,117 @@ class HtmlView extends BaseHtmlView
             $orderData = $ordersModel->getItem($orderId);
 
             if ($orderData == null) {
-                $app->enqueueMessage('Order with this order id:' . $orderId . ' not found.', 'error');
+                $app->enqueueMessage(Text::_('COM_ALFA_ORDER_NOT_AVAILABLE'), 'warning');
                 $app->redirect(Route::_('/index.php'));//redirect to home page
             }
 
+            // Always present so the layout templates can safely check it.
+            $this->event = new stdClass();
+
             if ($this->_layout == 'default_order_process') {
+                $selectedPayment = $orderData->selected_payment ?? null;
+                $paymentType = $selectedPayment->type ?? '';
+
                 $onProcessPaymentEventName = 'onOrderProcessView';
-                $selectedPayment = $orderData->selected_payment;
                 $paymentEvent = new PaymentsOrderProcessViewEvent($onProcessPaymentEventName, [
                     'subject' => $orderData,
                     'method' => $selectedPayment,
                 ]);
-                $plugin = $this->app->bootPlugin($selectedPayment->type, 'alfa-payments');
 
-                // Register all events from getSubscribedEvents() on the global dispatcher
-                $this->app->getDispatcher()->addSubscriber($plugin);
+                // Engage the payment plugin only when the order has one. bootPlugin()
+                // returns a DummyPlugin otherwise — neither a SubscriberInterface nor
+                // owner of the event method.
+                if ($paymentType !== '') {
+                    $plugin = $this->app->bootPlugin($paymentType, 'alfa-payments');
 
-                $plugin->{$onProcessPaymentEventName}($paymentEvent);
+                    if ($plugin instanceof \Joomla\Event\SubscriberInterface) {
+                        $this->app->getDispatcher()->addSubscriber($plugin);
+                    }
 
-                if (empty($paymentEvent->getLayoutPluginName())) {
-                    $paymentEvent->setLayoutPluginName($selectedPayment->type);
+                    if (method_exists($plugin, $onProcessPaymentEventName)) {
+                        $plugin->{$onProcessPaymentEventName}($paymentEvent);
+                    }
+
+                    if (empty($paymentEvent->getLayoutPluginName())) {
+                        $paymentEvent->setLayoutPluginName($paymentType);
+                    }
+                    if (empty($paymentEvent->getLayoutPluginType())) {
+                        $paymentEvent->setLayoutPluginType('alfa-payments');
+                    }
+                    if ($paymentEvent->hasRedirect()) {
+                        $this->app->redirect(
+                            $paymentEvent->getRedirectUrl(),
+                            $paymentEvent->getRedirectCode() ?? 303,
+                        );
+
+                        return;
+                    }
                 }
-                if (empty($paymentEvent->getLayoutPluginType())) {
-                    $paymentEvent->setLayoutPluginType('alfa-payments');
-                }
-                if ($paymentEvent->hasRedirect()) {
+
+                // No payment, or the plugin produced no layout → show the completed page.
+                if (empty($paymentEvent->getLayout())) {
                     $this->app->redirect(
-                        $paymentEvent->getRedirectUrl(),
+                        Route::_('index.php?option=com_alfa&view=cart&layout=default_order_completed', false),
                         $paymentEvent->getRedirectCode() ?? 303,
                     );
 
                     return;
                 }
 
-                if (!$paymentEvent->hasRedirect() && empty($paymentEvent->getLayout())) {
-                    // Plugin did not set a layout or redirect, fallback redirect to complete page
-                    $this->app->redirect(
-                        'index.php?option=com_alfa&view=cart&layout=default_order_completed',
-                        $paymentEvent->getRedirectCode() ?? 303,
-                    );
-
-                    return;
-                }
-
-                $this->event = new stdClass();
                 $this->event->onOrderProcessView = $paymentEvent;
             }
 
             if ($this->_layout == 'default_order_completed') {
-                $onOrderCompleteViewEventName = 'onOrderCompleteView';
-                $selectedPayment = $orderData->selected_payment;
+                $selectedPayment = $orderData->selected_payment ?? null;
+                $paymentType = $selectedPayment->type ?? '';
 
+                $onOrderCompleteViewEventName = 'onOrderCompleteView';
                 $paymentEvent = new PaymentsOrderCompleteViewEvent($onOrderCompleteViewEventName, [
                     'subject' => $orderData,
-                    'method' => $orderData->selected_payment,
+                    'method' => $selectedPayment,
                 ]);
 
-                $plugin = $this->app->bootPlugin($selectedPayment->type, 'alfa-payments');
+                // Engage the payment plugin only when the order has one. bootPlugin()
+                // returns a DummyPlugin otherwise — neither a SubscriberInterface nor
+                // owner of the event method.
+                if ($paymentType !== '') {
+                    $plugin = $this->app->bootPlugin($paymentType, 'alfa-payments');
 
-                // Register all events from getSubscribedEvents() on the global dispatcher
-                $this->app->getDispatcher()->addSubscriber($plugin);
+                    if ($plugin instanceof \Joomla\Event\SubscriberInterface) {
+                        $this->app->getDispatcher()->addSubscriber($plugin);
+                    }
 
-                $plugin->{$onOrderCompleteViewEventName}($paymentEvent);
+                    if (method_exists($plugin, $onOrderCompleteViewEventName)) {
+                        $plugin->{$onOrderCompleteViewEventName}($paymentEvent);
+                    }
 
-                if (empty($paymentEvent->getLayoutPluginName())) {
-                    $paymentEvent->setLayoutPluginName($orderData->selected_payment->type);
+                    if (empty($paymentEvent->getLayoutPluginName())) {
+                        $paymentEvent->setLayoutPluginName($paymentType);
+                    }
+                    if (empty($paymentEvent->getLayoutPluginType())) {
+                        $paymentEvent->setLayoutPluginType('alfa-payments');
+                    }
+                    if ($paymentEvent->hasRedirect()) {
+                        $this->app->redirect(
+                            $paymentEvent->getRedirectUrl(),
+                            $paymentEvent->getRedirectCode() ?? 303,
+                        );
+
+                        return;
+                    }
                 }
-                if (empty($paymentEvent->getLayoutPluginType())) {
-                    $paymentEvent->setLayoutPluginType('alfa-payments');
-                }
-                if ($paymentEvent->hasRedirect()) {
-                    $this->app->redirect(
-                        $paymentEvent->getRedirectUrl(),
-                        $paymentEvent->getRedirectCode() ?? 303,
-                    );
 
-                    return;
-                }
-
-                $this->event = new stdClass();
+                // Always set — the template renders the plugin layout unconditionally;
+                // PluginLayoutHelper outputs nothing when the layout is empty (e.g. an
+                // order with no payment method).
                 $this->event->onOrderCompleteView = $paymentEvent;
+
+                // Terminal state: the order is loaded ($orderData) and every consumer
+                // of the session order id has already run (gateway return via
+                // PaymentController; Revolut resolves from its payload; retry links
+                // carry the id in the URL). Clear it so the completion can't be
+                // replayed and a stale id can't re-enter the process/payment page.
+                $this->app->setUserState('com_alfa.order_id', null);
             }
         }
 

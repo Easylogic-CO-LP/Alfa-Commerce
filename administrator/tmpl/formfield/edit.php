@@ -15,6 +15,7 @@ use Joomla\CMS\Plugin\PluginHelper;
 use \Joomla\CMS\Uri\Uri;
 use \Joomla\CMS\Router\Route;
 use \Joomla\CMS\Language\Text;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 
 $wa = $this->document->getWebAssetManager();
 $wa->useStyle('com_alfa.admin')
@@ -24,6 +25,10 @@ $wa->useStyle('com_alfa.admin')
 
 $input = Factory::getApplication()->getInput();
 
+// Default-language input id of the (multilingual) name field — used as the
+// source for auto-generating the machine field_name below.
+$defaultTitleInputId = 'jform_name_' . MultilingualHelper::getDefaultLanguageTag();
+
 //$pluginGroup = 'alfa-formfields';
 //$plugins = PluginHelper::getPlugin($pluginGroup);// Get a list of all plugins in the specified group
 //
@@ -32,7 +37,7 @@ $input = Factory::getApplication()->getInput();
 //echo "</pre>";
 //exit;
 
-$ignoreFieldsets = ['general', 'publish', 'meta', 'showon'];
+$ignoreFieldsets = ['general', 'publish', 'showon'];
 // 'shipmentsparams' and any other from any plugin that we want to load params.xml of shipment plugin should have <fields name="shipmentsparams"> to work
 
 $fieldsets = $this->form->getFieldsets();
@@ -41,18 +46,34 @@ $fieldsets = $this->form->getFieldsets();
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+  // Auto-generate the machine field_name from the default-language title, the
+  // same way Joomla custom fields derive Name from Title. The server still
+  // re-derives + validates it on save, so this is purely a UX convenience.
+  const titleInput = document.getElementById('<?php echo $this->escape($defaultTitleInputId); ?>');
+  const nameInput  = document.getElementById('jform_field_name');
 
-  const title = document.getElementById('jform_name');
-  title.dpOldValue = title.value;
-  title.addEventListener('change', ({
-    currentTarget
-  }) => {
-    const label = document.getElementById('jform_field_label');
-    const changedTitle = currentTarget;
-    if (changedTitle.dpOldValue === label.value) {
-      label.value = changedTitle.value;
+  if (!titleInput || !nameInput) {
+    return;
+  }
+
+  // Keep auto-filling only while field_name is empty / still tracks the title;
+  // once the user edits it by hand, leave it alone.
+  let auto = nameInput.value.trim() === '';
+
+  const slugify = (value) => value
+    .toString().toLowerCase().trim()
+    .normalize('NFD').replace(/\p{M}/gu, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  nameInput.addEventListener('input', () => {
+    auto = nameInput.value.trim() === '';
+  });
+
+  titleInput.addEventListener('input', () => {
+    if (auto) {
+      nameInput.value = slugify(titleInput.value);
     }
-    changedTitle.dpOldValue = changedTitle.value;
   });
 });
 </script>

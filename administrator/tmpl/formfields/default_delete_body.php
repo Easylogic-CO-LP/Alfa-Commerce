@@ -29,9 +29,9 @@ use Joomla\CMS\Language\Text;
 </div>
 
 <div class="btn-toolbar p-3 border-top">
-    <button type="button" class="btn btn-outline-secondary" data-button-cancel>
-        <?php echo Text::_('JCANCEL'); ?>
-    </button>
+    <form method="dialog" class="m-0">
+        <button type="submit" class="btn btn-outline-secondary"><?php echo Text::_('JCANCEL'); ?></button>
+    </form>
 
     <joomla-toolbar-button task="formfields.delete" class="ms-auto">
         <button type="button" class="btn btn-danger">

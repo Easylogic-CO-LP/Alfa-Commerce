@@ -15,9 +15,11 @@
 
         <field
                 name="name"
+                type="MultilingualText"
+                multilingual_table="#__alfa_taxes"
+                multilingual_pk="id_tax"
                 maxlength="400"
                 filter="safehtml"
-                type="text"
                 required="true"
                 translateLabel="true"
                 translateDescription="true"
@@ -28,7 +30,9 @@
 
         <field
                 name="desc"
-                type="editor"
+                type="MultilingualEditor"
+                multilingual_table="#__alfa_taxes"
+                multilingual_pk="id_tax"
                 label="COM_ALFA_FORM_LBL_TAX_DESC"
                 description="COM_ALFA_FORM_TAX_DESC"
         />
@@ -125,16 +129,16 @@
         -->
         <field
                 name="manufacturers"
-                type="sql"
+                type="model"
+                model="manufacturers"
+                column_value="id"
+                column_text="name"
                 input_type="list"
                 required="false"
                 multiple="true"
                 label="COM_ALFA_FORM_LBL_MANUFACTURERS"
                 description="COM_ALFA_FORM_DESC_MANUFACTURERS"
                 layout="joomla.form.field.list-fancy-select"
-                query="SELECT `id`, `name` AS val FROM `#__alfa_manufacturers`"
-                key_field="id"
-                value_field="val"
         >
             <option value="0">All manufacturers</option>
         </field>

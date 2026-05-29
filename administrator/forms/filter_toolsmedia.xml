@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<form>
+    <fields name="filter">
+        <field name="source"
+               type="list"
+               label="COM_ALFA_TOOLSMEDIA_FILTER_SOURCE"
+               description="COM_ALFA_TOOLSMEDIA_FILTER_SOURCE"
+               default="rows"
+               onchange="this.form.submit();"
+        >
+            <option value="rows">COM_ALFA_TOOLSMEDIA_SOURCE_ROWS</option>
+            <option value="files">COM_ALFA_TOOLSMEDIA_SOURCE_FILES</option>
+        </field>
+
+        <field name="search" type="text" description="COM_ALFA_TOOLSMEDIA_SEARCH_PLACEHOLDER"
+               label="COM_ALFA_TOOLSMEDIA_SEARCH_PLACEHOLDER"
+               hint="COM_ALFA_TOOLSMEDIA_SEARCH_PLACEHOLDER"
+               class="js-stools-search-string" />
+
+        <field name="status"
+               type="list"
+               label="COM_ALFA_TOOLSMEDIA_COL_STATUS"
+               description="COM_ALFA_TOOLSMEDIA_COL_STATUS"
+               onchange="this.form.submit();"
+               showon="source:rows"
+        >
+            <option value="">COM_ALFA_TOOLSMEDIA_FILTER_ALL</option>
+            <option value="orphan">COM_ALFA_TOOLSMEDIA_FILTER_ORPHAN</option>
+            <option value="missing">COM_ALFA_TOOLSMEDIA_FILTER_MISSING</option>
+        </field>
+    </fields>
+
+    <fields name="list">
+        <field name="fullordering"
+               type="list"
+               label="COM_ALFA_LIST_FULL_ORDERING"
+               description="COM_ALFA_LIST_FULL_ORDERING_DESC"
+               onchange="this.form.submit();"
+               default="a.id DESC"
+        >
+            <option value="">JGLOBAL_SORT_BY</option>
+            <option value="a.origin ASC">COM_ALFA_TOOLSMEDIA_COL_ORIGIN</option>
+            <option value="a.item_id ASC">COM_ALFA_TOOLSMEDIA_COL_ITEM_ID</option>
+            <option value="a.id ASC">COM_ALFA_ID_ASC</option>
+            <option value="a.id DESC">COM_ALFA_ID_DESC</option>
+        </field>
+
+        <field name="limit"
+               type="limitbox"
+               label="COM_ALFA_LIST_LIMIT"
+               description="COM_ALFA_LIST_LIMIT_DESC"
+               class="input-mini"
+               default="25"
+               onchange="this.form.submit();"
+        />
+    </fields>
+</form>

@@ -96,18 +96,18 @@
                 description="COM_ALFA_FORM_DESC_ITEM_LOW_STOCK_VALUE"
         />
 
-        <field name="stock_low_message"
+        <field name="stock_low_message" type="MultilingualEditor"
+               multilingual_table="#__alfa_items" multilingual_pk="id_item"
+               cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText"
                label="COM_ALFA_FORM_LBL_ITEM_LOW_STOCK_MESSAGE"
                description="COM_ALFA_FORM_DESC_ITEM_LOW_STOCK_MESSAGE"
-               type="editor"
-               showon="stock_low!:"
-        />
+               showon="stock_low!:"/>
 
-        <field name="stock_zero_message"
+        <field name="stock_zero_message" type="MultilingualEditor"
+               multilingual_table="#__alfa_items" multilingual_pk="id_item"
+               cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText"
                label="COM_ALFA_FORM_LBL_ITEM_ZERO_STOCK_MESSAGE"
-               description="COM_ALFA_FORM_DESC_ITEM_ZERO_STOCK_MESSAGE"
-               type="editor"
-        />
+               description="COM_ALFA_FORM_DESC_ITEM_ZERO_STOCK_MESSAGE"/>
 
         <field name="manage_stock" type="radio"
                class="btn-group"
@@ -118,12 +118,16 @@
             <option value="1">JYES</option>
         </field>
 
-        <field name="short_desc" cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText"
-               type="editor" label="COM_ALFA_FORM_LBL_ITEM_SHORT_DESC"
+        <field name="short_desc" type="MultilingualEditor"
+               multilingual_table="#__alfa_items" multilingual_pk="id_item"
+               cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText"
+               label="COM_ALFA_FORM_LBL_ITEM_SHORT_DESC"
                description="COM_ALFA_FORM_DESC_ITEM_SHORT_DESC"/>
 
-        <field name="full_desc" cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText"
-               type="editor" label="COM_ALFA_FORM_LBL_ITEM_FULL_DESC" description="COM_ALFA_FORM_DESC_ITEM_FULL_DESC"/>
+        <field name="full_desc" type="MultilingualEditor"
+               multilingual_table="#__alfa_items" multilingual_pk="id_item"
+               cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText"
+               label="COM_ALFA_FORM_LBL_ITEM_FULL_DESC" description="COM_ALFA_FORM_DESC_ITEM_FULL_DESC"/>
 
     </fieldset>
 
@@ -148,11 +152,15 @@
 
         <!--    <field name="name" type="multilingualText" required="false" label="COM_ALFA_FORM_LBL_ITEM_NAME" description="COM_ALFA_FORM_DESC_ITEM_NAME" />-->
 
-        <field name="name" size="400" filter="safehtml" type="text" required="true" translateLabel="true"
+        <field name="name" type="MultilingualText"
+               multilingual_table="#__alfa_items" multilingual_pk="id_item"
+               maxlength="400" filter="safehtml" required="true" translateLabel="true"
                label="COM_ALFA_FORM_LBL_ITEM_NAME" description="COM_ALFA_FORM_DESC_ITEM_NAME"/>
 
 
-        <field name="alias" type="text" label="JFIELD_ALIAS_LABEL" description="COM_ALFA_FORM_DESC_ITEM_ALIAS"/>
+        <field name="alias" type="MultilingualText"
+               multilingual_table="#__alfa_items" multilingual_pk="id_item"
+               label="JFIELD_ALIAS_LABEL" description="COM_ALFA_FORM_DESC_ITEM_ALIAS"/>
 
         <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL"
                description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>
@@ -166,14 +174,16 @@
         </field>
 
         <field
-                name="manufacturers" type="sql"
+                name="manufacturers" type="model"
+                model="manufacturers"
+                column_value="id"
+                column_text="name"
                 input_type="list"
                 required="false"
                 multiple="true"
                 label="COM_ALFA_FORM_LBL_MANUFACTURERS"
                 description="COM_ALFA_FORM_DESC_MANUFACTURERS"
                 layout="joomla.form.field.list-fancy-select"
-                query="SELECT `id`, `name` AS val FROM `#__alfa_manufacturers`" key_field="id" value_field="val"
         />
 
         <field
@@ -267,10 +277,14 @@
 
 
     <fieldset name="meta">
-        <field name="meta_title" maxlength="255" filter="safehtml" type="text" translateLabel="true"
+        <field name="meta_title" type="MultilingualText"
+               multilingual_table="#__alfa_items" multilingual_pk="id_item"
+               maxlength="255" filter="safehtml" translateLabel="true"
                translateDescription="true" label="COM_ALFA_FORM_LBL_ITEM_META_TITLE"
                description="COM_ALFA_FORM_DESC_ITEM_META_TITLE"/>
-        <field name="meta_desc" cols="30" rows="3" filter="safehtml" type="textarea"
+        <field name="meta_desc" type="MultilingualText"
+               multilingual_table="#__alfa_items" multilingual_pk="id_item"
+               maxlength="255" filter="safehtml"
                label="JFIELD_META_DESCRIPTION_LABEL" description="COM_ALFA_FORM_DESC_ITEM_META_DESC"/>
 
         <field

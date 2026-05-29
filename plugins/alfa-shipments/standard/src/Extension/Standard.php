@@ -774,7 +774,15 @@ final class Standard extends ShipmentsPlugin
     public function calculateShippingCost($cart, $method)
     {
         $cartData = $cart->getData();
+
+        // params is already the decoded cost-zone array. When the method has no
+        // zones configured it arrives empty, so bail out with zero cost.
         $shipmentPackages = $method->params;
+
+        if (empty($shipmentPackages['cost-per-place'])) {
+            return 0;
+        }
+
         $countrySelected = 84; // Greece (default — TODO: from cart address)
 
         // Get zip code from delivery address (default: 000000)

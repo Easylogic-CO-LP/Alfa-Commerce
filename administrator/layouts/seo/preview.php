@@ -48,6 +48,13 @@ $itemType     = $displayData->itemType ?? 'category';
 $itemId       = $displayData->itemId ?? 0;
 $robots       = $displayData->robots ?? '';
 
+// Per-language instance suffix (set by the seo.multilingual wrapper). Keeps the
+// script-options key and the focus-keyword input id unique when several previews
+// — one per content language — render on the same page in a tabset.
+$lang       = $displayData->lang ?? '';
+$suffix     = $lang !== '' ? '-' . $lang : '';
+$optionsKey = 'seo-preview' . $suffix;
+
 // Get field selectors from displayData
 $fieldSelectors = $displayData->fieldJsSelectors ?? [
 	'title' => '#jform_name',
@@ -56,12 +63,13 @@ $fieldSelectors = $displayData->fieldJsSelectors ?? [
 	'alias' => '#jform_alias',
 	'content' => '#jform_desc',
 	'additionalContent' => [],
-	'focusKeyword' => '[data-seo-focus-keyword-field]',
+	'focusKeyword' => '#seo-focus-keyword-input' . $suffix,
     'robots' => '#jform_robots'
 ];
 
-// Pass configuration to JavaScript
-$app->getDocument()->addScriptOptions('seo-preview', [
+// Pass configuration to JavaScript under a per-instance key; each container
+// references its own key via data-seo-options-key (read by seo.js).
+$app->getDocument()->addScriptOptions($optionsKey, [
 	'debug' => false,
 	'itemType' => $itemType,
 	'itemId' => $itemId,
@@ -178,7 +186,8 @@ $statusConfig = [
 ];
 ?>
 
-<div class="seo-preview-container mt-4 card border-0 shadow-sm" data-seo-preview-container>
+<div class="seo-preview-container mt-4 card border-0 shadow-sm" data-seo-preview-container
+     data-seo-options-key="<?php echo htmlspecialchars($optionsKey, ENT_QUOTES, 'UTF-8'); ?>">
     <!-- Header with Score Badge -->
     <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3"
          data-seo-preview-header>
@@ -218,7 +227,7 @@ $statusConfig = [
                 </span>
                 <input type="text"
                        class="form-control"
-                       id="seo-focus-keyword-input"
+                       id="seo-focus-keyword-input<?php echo htmlspecialchars($suffix, ENT_QUOTES, 'UTF-8'); ?>"
                        data-seo-focus-keyword-field
                        placeholder="<?php echo htmlspecialchars(Text::_('COM_ALFA_SEO_FOCUS_KEYWORD_PLACEHOLDER'), ENT_QUOTES, 'UTF-8'); ?>"
                        value="<?php echo htmlspecialchars($focusKeyword, ENT_QUOTES, 'UTF-8'); ?>"

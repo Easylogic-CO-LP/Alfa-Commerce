@@ -13,15 +13,15 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualAliasConfig;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use JForm;
 use Joomla\CMS\Factory;
-use Joomla\CMS\Filter\OutputFilter;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Model\AdminModel;
 use Joomla\CMS\Table\Table;
 use Joomla\Database\ParameterType;
-use Joomla\String\StringHelper;
 
 /**
  * Category model.
@@ -147,35 +147,30 @@ class CategoryModel extends AdminModel
         $app = Factory::getApplication();
         $input = $app->getInput();
 
+        // 'raw' filter preserves editor HTML and captures the per-language flat
+        // keys (name_en_gb, alias_el_gr, full_desc_en_gb …) that the default
+        // 'array' filter would strip. Merge over the validated $data.
+        $rawData = $input->post->get('jform', [], 'raw');
+        $data = array_merge($data, $rawData);
+
         $table = $this->getTable();
         $pk = (int) ($data['id'] ?? $this->getState($this->getName() . '.id'));
         $isNew = $pk <= 0;
         $parentId = (int) ($data['parent_id'] ?? 0);
 
-        // Track old values for cache clearing
+        // Alias lives exclusively in the language tables (lang-tables-only), so
+        // only the parent change matters for cache clearing here.
         $oldParentId = null;
-        $oldAlias = null;
-        $oldName = null;
 
         if (!$isNew && $table->load($pk)) {
             $oldParentId = (int) $table->parent_id;
-            $oldAlias = $table->alias;
         }
 
-        $data['alias'] = $data['alias'] ?: $data['name'];
-        $data['alias'] = $this->sanitizeAlias($data['alias']);
-
-        $data['alias'] = $this->getUniqueAlias($data['alias'], $parentId, $pk);
-
-        // Determine if cache clearing is needed
-        $needsCacheClearing = $isNew ||
-            ($oldParentId !== $parentId) ||
-            ($oldAlias !== $data['alias']) ||
-            ($oldName !== $data['name']);
+        $needsCacheClearing = $isNew || ($oldParentId !== $parentId);
 
         $data['meta_data'] = json_encode(['robots' => $data['robots'] ?? '']);
 
-        $data = $input->post->get('jform', [], 'array');
+        // Fetch uploads separately so $data (with the lang keys) is not clobbered.
         $newDropped = $input->files->get('jform')['uploads'] ?? [];
 
         if (!parent::save($data)) {
@@ -184,13 +179,27 @@ class CategoryModel extends AdminModel
 
         $currentId = $isNew ? (int) $this->getState($this->getName() . '.id') : $pk;
 
+        // MULTILINGUAL: persist per-language translations (name, alias, desc,
+        // meta_title, meta_desc) to the language tables. The alias slug is
+        // auto-generated, sanitised and made unique within the parent category.
+        MultilingualHelper::saveMultilingualData(
+            currentId:         $currentId,
+            primaryColumnName: 'id_category',
+            tableName:         '#__alfa_categories',
+            data:              $data,
+            aliasFields:       MultilingualAliasConfig::FIELDS['#__alfa_categories'],
+            aliasUniqueScope:  MultilingualAliasConfig::SCOPE['#__alfa_categories'] ?? [],
+        );
+
         if (!empty($data['media'])) {
+            $defaultLangTag = MultilingualHelper::getDefaultLanguageTag();
+
             MediaHelper::saveMedia(
                 mediaData:      $data['media'],
                 droppedMedia:   $newDropped,
                 itemId:         $currentId,
                 mediaOrigin:    $this->name,
-                customFileName: $data['alias'],
+                customFileName: $data['alias_' . $defaultLangTag] ?? '',
             );
         }
 
@@ -332,6 +341,16 @@ class CategoryModel extends AdminModel
             foreach ($pks as $pk) {
                 CategoryHelper::clearCacheRecursive((int) $pk);
             }
+
+            // MULTILINGUAL: remove the per-language rows for the deleted categories.
+            MultilingualHelper::deleteMultilingualData(
+                ids:               $pks,
+                primaryColumnName: 'id_category',
+                tableName:         '#__alfa_categories',
+            );
+
+            // Remove the categories' media (rows; files when media_full_deletion is on).
+            MediaHelper::deleteMediaForItems($pks, 'category');
         }
 
         return $result;
@@ -380,67 +399,5 @@ class CategoryModel extends AdminModel
         if (empty($table->publish_down)) {
             $table->publish_down = null;
         }
-    }
-
-    /**
-     * Sanitize alias based on Joomla configuration.
-     *
-     * @param string $alias The alias to sanitize.
-     *
-     * @return string The sanitized alias.
-     *
-     * @since   1.0.1
-     */
-    protected function sanitizeAlias($alias)
-    {
-        $app = Factory::getApplication();
-
-        if ($app->get('unicodeslugs') == 1) {
-            return OutputFilter::stringUrlUnicodeSlug($alias);
-        }
-
-        return OutputFilter::stringURLSafe($alias);
-    }
-
-    /**
-     * Method to ensure alias is unique within the same parent category.
-     *
-     * @param string $alias The desired alias.
-     * @param int $parentId The parent category id.
-     * @param int $id The category id (0 for new categories).
-     *
-     * @return string The unique alias.
-     *
-     * @since   1.0.1
-     */
-    protected function getUniqueAlias($alias, $parentId, $id = 0)
-    {
-        $db = $this->getDatabase();
-        $maxAttempts = 100;
-        $attempts = 0;
-
-        while ($attempts < $maxAttempts) {
-            $attempts++;
-
-            $query = $db->getQuery(true)
-                ->select($db->quoteName('id'))
-                ->from($db->quoteName('#__alfa_categories'))
-                ->where($db->quoteName('alias') . ' = ' . $db->quote($alias))
-                ->where($db->quoteName('parent_id') . ' = ' . (int) $parentId);
-
-            if ($id > 0) {
-                $query->where($db->quoteName('id') . ' != ' . (int) $id);
-            }
-
-            $db->setQuery($query);
-
-            if (!$db->loadResult()) {
-                return $alias;
-            }
-
-            $alias = StringHelper::increment($alias, 'dash');
-        }
-
-        return $alias . '-' . time();
     }
 }
