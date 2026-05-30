@@ -1,0 +1,118 @@
+/**
+ * @package    Alfa Commerce
+ * @author     Agamemnon Fakas <info@easylogic.gr>
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
+ *
+ * EmailPositionsField — "email composer" (native / minimal)
+ *
+ *  Clean, admin-native styling: custom language tabs with right-aligned
+ *  Preview / Send-test actions, plain labelled editable slots, structural
+ *  blocks with an eye show/hide toggle, and a variables palette. No
+ *  fake-email chrome, no web fonts — it should feel like a normal Joomla
+ *  admin field. Scoped under .aec.
+ */
+
+.aec{
+  --line:#dee2e6; --muted:#6c757d; --ink:#1c1f23; --accent:#0d6efd;
+  --slot:#f8f9fa;
+  /* No overflow:hidden — it would clip the sticky variables palette to
+     this box and stop it following the page scroll. */
+  border:1px solid var(--line); border-radius:.35rem;
+}
+.aec *{box-sizing:border-box}
+
+/* ---- tab bar: tabs left, actions right ---- */
+.aec-bar{
+  display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+  padding:8px 12px; border-bottom:1px solid var(--line); background:#fff;
+}
+.aec-tabs{display:flex; gap:2px; flex-wrap:wrap}
+.aec-tab{
+  appearance:none; border:1px solid transparent; background:transparent; cursor:pointer;
+  font:inherit; font-weight:600; font-size:.85rem; color:var(--muted);
+  padding:6px 12px; border-radius:.3rem; display:inline-flex; align-items:center; gap:6px;
+}
+.aec-tab img{width:16px;height:11px;border-radius:1px}
+.aec-tab[aria-selected="true"]{color:var(--ink); background:var(--slot); border-color:var(--line)}
+.aec-tab:hover:not([aria-selected="true"]){color:var(--ink); background:#f1f3f5}
+.aec-bar-actions{margin-left:auto; display:flex; align-items:center; gap:6px}
+.aec-actions{display:flex; gap:6px}
+.aec-bar-actions .btn{display:inline-flex;align-items:center;gap:5px}
+
+/* ---- stage: slots + variables ---- */
+.aec-stage{display:grid; grid-template-columns:minmax(0,1fr) 240px; gap:18px; padding:16px}
+@media(max-width:880px){.aec-stage{grid-template-columns:1fr}}
+/* Inactive language panels stay laid out (absolute + hidden), NOT
+   display:none. A display:none panel re-layouts its TinyMCE editors when
+   shown, which steals focus and scrolls the page. Keeping them rendered
+   (just invisible/out-of-flow) means switching tabs never re-layouts or
+   focuses an editor. The container is relative so the absolute panels
+   stack under the active one. */
+.aec-panels{position:relative}
+.aec-panel[hidden]{
+  display:block;            /* override the UA [hidden] display:none */
+  position:absolute; top:0; left:0; right:0;
+  visibility:hidden; pointer-events:none;
+}
+.aec-slots{display:flex; flex-direction:column; gap:14px}
+
+/* a position slot (label + Joomla editor / subject input) */
+.aec-slot{display:flex; flex-direction:column; gap:5px}
+.aec-slot .editor,
+.aec-slot .js-editor-tinymce{margin:0}
+.aec-tag{font-size:.72rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--muted)}
+.aec-subject{font-weight:600}
+
+/* layout-owned structural block (items/totals/payments/shipments) */
+.aec-struct{
+  display:flex; align-items:center; gap:11px; padding:11px 13px;
+  border:1px dashed var(--line); border-radius:.3rem; background:var(--slot); color:var(--muted);
+}
+.aec-struct b{color:var(--ink);font-weight:600;display:block;font-size:.85rem}
+.aec-struct small{font-size:.78rem}
+/* "· all languages" note — signals the eye is shared across languages */
+.aec-struct-alllangs{font-weight:400;font-size:.72rem;color:var(--muted);text-transform:none;letter-spacing:0}
+
+/* eye toggle (replaces the old static icon) */
+.aec-struct-eye{
+  appearance:none; cursor:pointer; flex:none;
+  width:30px; height:30px; border-radius:50%;
+  display:grid; place-items:center;
+  background:#fff; border:1px solid var(--line); color:var(--ink);
+}
+.aec-struct-eye:hover{border-color:var(--accent); color:var(--accent)}
+
+/* hidden section: dimmed block + muted eye, but still readable + reopenable */
+.aec-struct--off{opacity:.55; background:#f1f3f5}
+.aec-struct--off .aec-struct-eye{color:var(--muted)}
+
+/* stale (carried-over) */
+.aec-stale{padding:11px 13px;border:1px dashed #e0a800;border-radius:.3rem;background:#fff8e6}
+.aec-stale-head{font-weight:600;color:#9a6b00;margin-bottom:2px;font-size:.88rem}
+.aec-stale-hint{font-size:.78rem;color:var(--muted);margin-bottom:8px}
+
+/* ---- variables palette ---- */
+.aec-vars{align-self:start;position:sticky;top:10px;max-height:calc(100vh - 20px);overflow:auto}
+.aec-vars-panel{border:1px solid var(--line);border-radius:.3rem;background:#fff;overflow:hidden}
+.aec-vars-head{font-weight:600;font-size:.9rem;padding:10px 12px 6px;color:var(--ink)}
+.aec-vars-head small{display:block;font-weight:400;font-size:.75rem;color:var(--muted);margin-top:2px}
+.aec-vars-search{width:calc(100% - 20px);margin:0 10px 8px;padding:6px 9px;font:inherit;font-size:.85rem;border:1px solid var(--line);border-radius:.3rem}
+.aec-vars-scroll{max-height:52vh;overflow:auto;padding:0 10px 10px}
+.aec-vars-glabel{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:10px 2px 6px}
+.aec-chips{display:flex;flex-wrap:wrap;gap:5px}
+.aec-chip{
+  appearance:none;cursor:pointer;border:1px solid var(--line);background:var(--slot);
+  border-radius:.3rem;padding:4px 8px;display:flex;align-items:center;gap:6px;font:inherit;
+}
+.aec-chip:hover{border-color:var(--accent);background:#fff}
+.aec-chip code{font-size:.78rem;font-weight:600;color:var(--accent)}
+.aec-chip span{font-size:.75rem;color:var(--muted)}
+.aec-vars-foot{font-size:.75rem;color:var(--muted);padding:8px 12px;border-top:1px solid var(--line);background:var(--slot)}
+
+.aec-toast{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(16px);opacity:0;
+  background:#212529;color:#f8f9fa;font-size:.82rem;font-weight:600;
+  padding:8px 15px;border-radius:2rem;transition:.22s;pointer-events:none;z-index:2000;
+}
+.aec-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
