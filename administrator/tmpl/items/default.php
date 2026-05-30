@@ -74,6 +74,12 @@
                         <th class='left'>
                             <?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_ITEMS_NAME', 'a.name', $listDirn, $listOrder); ?>
                         </th>
+                        <th scope="col" class="left d-none d-md-table-cell">
+                            <?php echo Text::_('COM_ALFA_ITEMS_CATEGORIES'); ?>
+                        </th>
+                        <th scope="col" class="left d-none d-md-table-cell">
+                            <?php echo Text::_('COM_ALFA_ITEMS_MANUFACTURERS'); ?>
+                        </th>
                         <th class='left'>
                             <?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_ITEMS_SKU', 'a.sku', $listDirn, $listOrder); ?>
                         </th>
@@ -141,6 +147,16 @@
                                 <?php else : ?>
                                     <?php echo $this->escape($item->name); ?>
                                 <?php endif; ?>
+                            </td>
+                            <td class="d-none d-md-table-cell">
+                                <?php echo !empty($item->categories)
+                                    ? $this->escape(implode(', ', array_column($item->categories, 'name')))
+                                    : '<span class="text-muted">&ndash;</span>'; ?>
+                            </td>
+                            <td class="d-none d-md-table-cell">
+                                <?php echo !empty($item->manufacturers)
+                                    ? $this->escape(implode(', ', array_column($item->manufacturers, 'name')))
+                                    : '<span class="text-muted">&ndash;</span>'; ?>
                             </td>
                             <td>
                                 <?php echo $item->sku; ?>

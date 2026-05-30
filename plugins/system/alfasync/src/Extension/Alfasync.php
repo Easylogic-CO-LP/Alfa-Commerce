@@ -196,6 +196,20 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
         } catch (Exception $e) {
             $this->logError('onUserAfterDelete', $e->getMessage(), ['user_id' => $userId]);
         }
+
+        // Cascade-equivalent cleanup for the order-status admin recipients
+        // join table. No DB-level FK there (MyISAM compatibility on the
+        // parent table), so we mirror what #__alfa_users cleanup does.
+        try {
+            $query = $db->getQuery(true)
+                ->delete($db->quoteName('#__alfa_orderstatus_recipients'))
+                ->where($db->quoteName('id_user') . ' = ' . $userId);
+
+            $db->setQuery($query)->execute();
+            $this->logDebug('onUserAfterDelete', 'Dropped order-status recipient memberships for user #' . $userId);
+        } catch (Exception $e) {
+            $this->logError('onUserAfterDelete', $e->getMessage(), ['user_id' => $userId, 'table' => 'orderstatus_recipients']);
+        }
     }
 
     // =========================================================================

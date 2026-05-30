@@ -123,6 +123,7 @@ class MultilingualHelper
      */
     private const LONGTEXT_HINTS = [
         'desc', 'content', 'body', 'text', 'note', 'html', 'full_', 'short_', 'meta_', 'message',
+        'positions', 'json',
     ];
 
     // =========================================================================

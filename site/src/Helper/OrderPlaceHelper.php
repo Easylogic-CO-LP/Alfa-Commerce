@@ -45,6 +45,7 @@ use Alfa\Component\Alfa\Administrator\Event\Payments\OrderPlaceEvent as PaymentO
 use Alfa\Component\Alfa\Administrator\Event\Shipments\OrderAfterPlaceEvent as ShipmentOrderAfterPlaceEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\OrderPlaceEvent as ShipmentOrderPlaceEvent;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\OrderEmailHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStockHelper;
 use Exception;
 use Joomla\CMS\Component\ComponentHelper;
@@ -89,9 +90,9 @@ class OrderPlaceHelper
             $this->cart = new CartHelper();
             $this->configureLogging();
 
-            // Load default order status from database (not hardcoded).
-            // OrderStockHelper::getDefaultOrderStatus() reads is_default=1
-            // from #__alfa_orders_statuses, with fallback to first by ordering.
+            // Load the default order status from the table — the row
+            // currently marked is_initial=1, falling back to the first
+            // published row by ordering when no role has been nominated.
             $this->defaultStatus = OrderStockHelper::getDefaultOrderStatus();
 
             Log::add(
@@ -270,6 +271,17 @@ class OrderPlaceHelper
             if (!$this->cart->clearCart()) {
                 Log::add('Cart clearing failed', Log::WARNING, 'com_alfa.orders');
             }
+
+            // Frontend order placement is a "no status → initial status"
+            // transition from the customer's perspective. Reuse the same
+            // helper the admin OrderModel hook calls, so the per-status
+            // notify_customer flag + admin recipient list governs both
+            // paths uniformly. Mail failures are swallowed inside the
+            // helper — they never block order placement.
+            OrderEmailHelper::sendForStatusChange(
+                orderId:     $orderId,
+                newStatusId: (int) $this->defaultStatus->id,
+            );
 
             Log::add('=== Order placement completed successfully ===', Log::INFO, 'com_alfa.orders');
             return true;

@@ -15,6 +15,17 @@
       "uri": "com_alfa/admin/multilingual-fields.css"
     },
     {
+      "name": "com_alfa.email-positions",
+      "type": "style",
+      "uri": "com_alfa/admin/email-positions.css"
+    },
+    {
+      "name": "com_alfa.email-positions",
+      "type": "script",
+      "uri": "com_alfa/admin/email-positions.js",
+      "dependencies": ["core"]
+    },
+    {
       "name": "com_alfa.sync-tools",
       "type": "script",
       "uri": "com_alfa/admin/sync-tools.js",

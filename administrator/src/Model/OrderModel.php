@@ -43,9 +43,11 @@ use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\OrderEmailHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderPaymentHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderShipmentHelper;
+use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStockHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderTotalHelper;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
@@ -1421,6 +1423,14 @@ class OrderModel extends AdminModel
             if (empty($table->created_by)) {
                 $table->created_by = $user->id;
             }
+
+            // Default the order status to whichever row admin nominated as
+            // is_initial. OrderStatusHelper falls back to the first published
+            // row by ordering when no role has been assigned yet, so this
+            // never blocks order creation even on a fresh install.
+            if (empty($table->id_order_status)) {
+                $table->id_order_status = OrderStatusHelper::getInitialId();
+            }
         }
 
         $table->modified = $now;
@@ -1488,6 +1498,16 @@ class OrderModel extends AdminModel
                         'warning',
                     );
                 }
+
+                // Status-change notifications. OrderEmailHelper checks the
+                // per-status notify_customer flag and admin_recipient_ids
+                // list; it short-circuits silently when nothing's configured
+                // for this status, and swallows mail-send errors so a
+                // failed dispatch never blocks the order save.
+                OrderEmailHelper::sendForStatusChange(
+                    orderId:     $orderId,
+                    newStatusId: $newStatusId,
+                );
             }
         }
 

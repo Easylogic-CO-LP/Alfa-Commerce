@@ -50,6 +50,9 @@ class ItemsModel extends ListModel
                 // Translatable — resolved via the lang-table COALESCE alias.
                 'name',
                 'alias',
+                // Relational filters (many-to-many junctions).
+                'category',
+                'manufacturer',
             ];
         }
 
@@ -91,6 +94,8 @@ class ItemsModel extends ListModel
         // Compile the store id.
         $id .= ':' . $this->getState('filter.search');
         $id .= ':' . $this->getState('filter.state');
+        $id .= ':' . implode(',', (array) $this->getState('filter.category'));
+        $id .= ':' . implode(',', (array) $this->getState('filter.manufacturer'));
 
         return parent::getStoreId($id);
     }
@@ -138,6 +143,28 @@ class ItemsModel extends ListModel
             fields:            ['name', 'alias'],
         );
 
+        // RELATIONS: comma-separated category / manufacturer ids per item via
+        // correlated subqueries (no JOIN, so DISTINCT a.* row count is untouched).
+        // getItems() resolves these ids to translated names.
+        MultilingualHelper::addRelatedIdsToQuery(
+            query:         $query,
+            mainAlias:     'a',
+            mainPk:        'id',
+            junctionTable: '#__alfa_items_categories',
+            junctionFk:    'item_id',
+            junctionValue: 'category_id',
+            selectAlias:   'category_ids',
+        );
+        MultilingualHelper::addRelatedIdsToQuery(
+            query:         $query,
+            mainAlias:     'a',
+            mainPk:        'id',
+            junctionTable: '#__alfa_items_manufacturers',
+            junctionFk:    'item_id',
+            junctionValue: 'manufacturer_id',
+            selectAlias:   'manufacturer_ids',
+        );
+
         // Filter by published state
         $published = $this->getState('filter.state');
 
@@ -145,6 +172,30 @@ class ItemsModel extends ListModel
             $query->where('a.state = ' . (int) $published);
         } elseif (empty($published)) {
             $query->where('(a.state IN (0, 1))');
+        }
+
+        // Filter by category (multi-select, many-to-many). Matches the selected
+        // categories exactly — no subcategory expansion. Subquery keeps the main
+        // query shape (no JOIN, no GROUP BY needed).
+        $categories = array_filter(array_map('intval', (array) $this->getState('filter.category')));
+
+        if (!empty($categories)) {
+            $query->where(
+                'a.id IN (SELECT ' . $db->quoteName('item_id')
+                . ' FROM ' . $db->quoteName('#__alfa_items_categories')
+                . ' WHERE ' . $db->quoteName('category_id') . ' IN (' . implode(',', $categories) . '))',
+            );
+        }
+
+        // Filter by manufacturer (multi-select, many-to-many).
+        $manufacturers = array_filter(array_map('intval', (array) $this->getState('filter.manufacturer')));
+
+        if (!empty($manufacturers)) {
+            $query->where(
+                'a.id IN (SELECT ' . $db->quoteName('item_id')
+                . ' FROM ' . $db->quoteName('#__alfa_items_manufacturers')
+                . ' WHERE ' . $db->quoteName('manufacturer_id') . ' IN (' . implode(',', $manufacturers) . '))',
+            );
         }
 
         // Filter by search in title
@@ -186,6 +237,34 @@ class ItemsModel extends ListModel
     public function getItems()
     {
         $items = parent::getItems();
+
+        if (empty($items)) {
+            return $items;
+        }
+
+        // Resolve the comma-separated category / manufacturer ids (from the
+        // correlated subqueries) into translated records for display. Each bound
+        // value is a map [relatedId => ['id' => …, 'name' => …]].
+        $db = $this->getDatabase();
+
+        MultilingualHelper::loadRelated(
+            db:                $db,
+            items:             $items,
+            idsProperty:       'category_ids',
+            bindTo:            'categories',
+            table:             '#__alfa_categories',
+            langTableBase:     '#__alfa_categories',
+            langPrimaryColumn: 'id_category',
+        );
+        MultilingualHelper::loadRelated(
+            db:                $db,
+            items:             $items,
+            idsProperty:       'manufacturer_ids',
+            bindTo:            'manufacturers',
+            table:             '#__alfa_manufacturers',
+            langTableBase:     '#__alfa_manufacturers',
+            langPrimaryColumn: 'id_manufacturer',
+        );
 
         return $items;
     }

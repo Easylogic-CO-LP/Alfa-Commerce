@@ -13,6 +13,10 @@ defined('_JEXEC') or die;
 
 use Joomla\CMS\HTML\HTMLHelper;
 
+// FileLayout passes $displayData as a single array — pull the named
+// keys ($field, $fieldParams, $item, $context, $value) into local scope.
+extract($displayData);
+
 $value = $field->value ?? '';
 
 if ($value === '' || $value === null) {

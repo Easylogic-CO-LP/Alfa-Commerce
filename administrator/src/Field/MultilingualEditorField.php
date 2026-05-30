@@ -267,9 +267,11 @@ class MultilingualEditorField extends EditorField
         $activeTab = $tabSetId . '_' . $entries[0]['code'];
         $defaultLangCode = strtolower(str_replace('-', '_', array_key_first($languages)));
 
+        // No 'recall' here: nested recall tabsets all share one URL-keyed
+        // sessionStorage slot, and a deep language-tab id stored there can
+        // trip core joomla-tab's walk-up loop on reload (main-thread freeze).
         $html = HTMLHelper::_('uitab.startTabSet', $tabSetId, [
             'active' => $activeTab,
-            'recall' => true,
             'breakpoint' => 768,
         ]);
 
