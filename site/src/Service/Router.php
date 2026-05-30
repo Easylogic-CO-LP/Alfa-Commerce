@@ -232,7 +232,7 @@ class Router extends RouterView
         // the per-language resolution + caching.
         if (!empty($id) && $id !== 0 && $id !== '0') {
             $pathData = array_reverse(
-                CategoryHelper::getCategoryPath($id, $query['lang'] ?? null)
+                CategoryHelper::getCategoryPath($id, $query['lang'] ?? null),
             );
 
             foreach ($pathData as $category) {
@@ -309,7 +309,7 @@ class Router extends RouterView
             // Resolve in the TARGET language when building a language-switch URL
             // (&lang in the query); otherwise the current request language. The
             // cache is keyed by language so one request can build URLs for many.
-            $langTag  = (string) ($query['lang'] ?? '');
+            $langTag = (string) ($query['lang'] ?? '');
             $cacheKey = $id . '|' . ($langTag !== '' ? $langTag : MultilingualHelper::getCurrentLanguageTag());
 
             if (isset(self::$itemAliasCache[$cacheKey])) {
@@ -399,7 +399,7 @@ class Router extends RouterView
         if (!strpos($id, ':')) {
             // Target language for a language-switch URL (&lang), else current.
             // Cache keyed by language so multi-language builds don't collide.
-            $langTag  = (string) ($query['lang'] ?? '');
+            $langTag = (string) ($query['lang'] ?? '');
             $cacheKey = $id . '|' . ($langTag !== '' ? $langTag : MultilingualHelper::getCurrentLanguageTag());
 
             if (isset(self::$manufacturerAliasCache[$cacheKey])) {

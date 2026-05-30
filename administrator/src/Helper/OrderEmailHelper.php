@@ -20,6 +20,7 @@ use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Mail\MailerFactoryInterface;
 use Joomla\CMS\Uri\Uri;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -159,7 +160,7 @@ class OrderEmailHelper
             return self::$positionsCache[$layoutId];
         }
 
-        $seq  = [];
+        $seq = [];
         $seen = [];
 
         $record = static function (string $type, string $name = '') use (&$seq, &$seen): void {
@@ -199,12 +200,21 @@ class OrderEmailHelper
                     // branches (items/totals, payments, shipments) are walked
                     // during discovery. Never inspected: $render is a no-op
                     // collector here.
-                    'items'       => [(object) []],
-                    'payments'    => [(object) []],
-                    'shipments'   => [(object) []],
-                    'position'    => static function (string $name) use ($record): string { $record('position', $name); return ''; },
-                    'hasPosition' => static function (string $name) use ($record): bool { $record('position', $name); return true; },
-                    'render'      => static function (string $id = '', ?array $data = null) use ($record): string { $record('struct', $id); return ''; },
+                    'items' => [(object) []],
+                    'payments' => [(object) []],
+                    'shipments' => [(object) []],
+                    'position' => static function (string $name) use ($record): string {
+                        $record('position', $name);
+                        return '';
+                    },
+                    'hasPosition' => static function (string $name) use ($record): bool {
+                        $record('position', $name);
+                        return true;
+                    },
+                    'render' => static function (string $id = '', ?array $data = null) use ($record): string {
+                        $record('struct', $id);
+                        return '';
+                    },
                 ]),
                 null,
                 ['component' => 'com_alfa', 'client' => 1],
@@ -234,7 +244,7 @@ class OrderEmailHelper
      * bare machine key.
      *
      * @return array<string, array<string, string>> Map of group key
-     *               (`order`, `user`, `fields`, `site`) → token → label.
+     *                                              (`order`, `user`, `fields`, `site`) → token → label.
      *
      * @since   1.0.4
      */
@@ -242,26 +252,26 @@ class OrderEmailHelper
     {
         return [
             'order' => [
-                '{order_id}'     => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_ORDER_ID'),
+                '{order_id}' => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_ORDER_ID'),
                 '{order_number}' => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_ORDER_NUMBER'),
-                '{order_date}'       => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_ORDER_DATE'),
-                '{status}'           => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_STATUS'),
-                '{status_customer}'  => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_STATUS_CUSTOMER'),
-                '{order_total}'      => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_ORDER_TOTAL'),
-                '{payment_method}'   => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_PAYMENT_METHOD'),
-                '{shipment_method}'  => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_SHIPMENT_METHOD'),
+                '{order_date}' => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_ORDER_DATE'),
+                '{status}' => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_STATUS'),
+                '{status_customer}' => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_STATUS_CUSTOMER'),
+                '{order_total}' => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_ORDER_TOTAL'),
+                '{payment_method}' => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_PAYMENT_METHOD'),
+                '{shipment_method}' => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_SHIPMENT_METHOD'),
             ],
             'user' => [
-                '{user_id}'         => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_USER_ID'),
-                '{user_name}'       => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_USER_NAME'),
-                '{user_username}'   => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_USER_USERNAME'),
-                '{user_email}'      => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_USER_EMAIL'),
+                '{user_id}' => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_USER_ID'),
+                '{user_name}' => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_USER_NAME'),
+                '{user_username}' => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_USER_USERNAME'),
+                '{user_email}' => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_USER_EMAIL'),
                 '{user_registered}' => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_USER_REGISTERED'),
             ],
             'fields' => self::loadFormFieldTokenCatalogue(),
             'site' => [
                 '{site_name}' => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_SITE_NAME'),
-                '{site_url}'  => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_SITE_URL'),
+                '{site_url}' => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_SITE_URL'),
             ],
         ];
     }
@@ -278,11 +288,11 @@ class OrderEmailHelper
      * Defaults are plain HTML carrying tokens (e.g. {order_number},
      * {status_customer}); the tokens resolve at send/preview time.
      *
-     * @param string $position  Position name (incl. SUBJECT_POSITION).
-     * @param string $langTag   Requested content language (e.g. 'el-GR').
+     * @param string $position Position name (incl. SUBJECT_POSITION).
+     * @param string $langTag Requested content language (e.g. 'el-GR').
      *
-     * @return string  Default HTML, or '' when no language in the chain
-     *                 translates the key.
+     * @return string Default HTML, or '' when no language in the chain
+     *                translates the key.
      *
      * @since   1.0.4
      */
@@ -307,10 +317,10 @@ class OrderEmailHelper
      * via $position()). Keyed by position name; empty defaults are omitted so
      * a virgin-seed only writes meaningful slots.
      *
-     * @param string $layoutId  Layout whose positions to seed.
-     * @param string $langTag   Content language to resolve defaults in.
+     * @param string $layoutId Layout whose positions to seed.
+     * @param string $langTag Content language to resolve defaults in.
      *
-     * @return array<string, string>  position => default HTML.
+     * @return array<string, string> position => default HTML.
      *
      * @since   1.0.4
      */
@@ -330,7 +340,7 @@ class OrderEmailHelper
             }
 
             $position = (string) ($entry['name'] ?? '');
-            $value    = self::defaultContent(position: $position, langTag: $langTag);
+            $value = self::defaultContent(position: $position, langTag: $langTag);
 
             if ($value !== '') {
                 $defaults[$position] = $value;
@@ -344,7 +354,7 @@ class OrderEmailHelper
      * Language fallback chain for default resolution: requested → en-GB →
      * first installed content language. Deduped, empties dropped.
      *
-     * @param string $langTag  Requested language tag.
+     * @param string $langTag Requested language tag.
      *
      * @return string[]
      *
@@ -370,10 +380,10 @@ class OrderEmailHelper
      * The Language instance is loaded once per tag and cached for the
      * request — seeding touches the same few tags repeatedly.
      *
-     * @param string $key      Language constant.
-     * @param string $langTag  Language to resolve in.
+     * @param string $key Language constant.
+     * @param string $langTag Language to resolve in.
      *
-     * @return string  Translated text, or '' when untranslated.
+     * @return string Translated text, or '' when untranslated.
      *
      * @since   1.0.4
      */
@@ -422,7 +432,7 @@ class OrderEmailHelper
 
         try {
             $factory = Factory::getApplication()->bootComponent('com_alfa')->getMVCFactory();
-            $model   = $factory->createModel('Formfields', 'Administrator');
+            $model = $factory->createModel('Formfields', 'Administrator');
 
             if (!$model) {
                 return $cache = [];
@@ -434,12 +444,12 @@ class OrderEmailHelper
             // Clear any inherited admin user-state filters so we get
             // the FULL set of published fields, not whatever subset the
             // admin last narrowed the Form Fields list to.
-            $model->setState('filter.state',    1);
+            $model->setState('filter.state', 1);
             $model->setState('filter.group_id', '');
-            $model->setState('filter.search',   '');
-            $model->setState('filter.context',  '');
-            $model->setState('list.limit',      0);
-            $model->setState('list.start',      0);
+            $model->setState('filter.search', '');
+            $model->setState('filter.context', '');
+            $model->setState('list.limit', 0);
+            $model->setState('list.start', 0);
 
             $items = $model->getItems() ?: [];
         } catch (Throwable $e) {
@@ -485,8 +495,8 @@ class OrderEmailHelper
      * a fresh install. Returns the same HTML payload the live
      * dispatch path would build.
      *
-     * @param int    $statusId  Orderstatus PK.
-     * @param string $langTag   Language to render in (e.g. 'en-GB').
+     * @param int $statusId Orderstatus PK.
+     * @param string $langTag Language to render in (e.g. 'en-GB').
      * @param string $recipient 'customer' or 'admin'.
      *
      * @return string Final email HTML.
@@ -510,7 +520,7 @@ class OrderEmailHelper
         );
 
         $mostRecent = self::loadMostRecentOrder();
-        $order      = $mostRecent !== null
+        $order = $mostRecent !== null
             ? self::loadOrder(orderId: (int) $mostRecent->id)
             : null;
 
@@ -548,18 +558,17 @@ class OrderEmailHelper
      * same layout pipeline the live dispatch uses, so what arrives in
      * the inbox matches what the live email would.
      *
-     * @param int    $orderId          Order to resolve tokens against.
-     * @param int    $statusId         Status whose positions to use.
-     * @param string $langTag          Language to render in (e.g. 'en-GB').
-     * @param string $recipient        'customer' or 'admin' — picks which
-     *                                 positions JSON to read.
+     * @param int $orderId Order to resolve tokens against.
+     * @param int $statusId Status whose positions to use.
+     * @param string $langTag Language to render in (e.g. 'en-GB').
+     * @param string $recipient 'customer' or 'admin' — picks which
+     *                          positions JSON to read.
      * @param string $destinationEmail Single recipient address.
      *
-     * @return void
      *
-     * @throws \RuntimeException When the order/status can't be loaded
-     *                           or the destination is missing — caller
-     *                           surfaces the message to the admin.
+     * @throws RuntimeException When the order/status can't be loaded
+     *                          or the destination is missing — caller
+     *                          surfaces the message to the admin.
      *
      * @since   1.0.4
      */
@@ -573,7 +582,7 @@ class OrderEmailHelper
         $recipient = $recipient === 'admin' ? 'admin' : 'customer';
 
         if ($destinationEmail === '' || !filter_var($destinationEmail, FILTER_VALIDATE_EMAIL)) {
-            throw new \RuntimeException(
+            throw new RuntimeException(
                 Text::_('COM_ALFA_ORDEREMAIL_TEST_INVALID_EMAIL'),
             );
         }
@@ -581,7 +590,7 @@ class OrderEmailHelper
         $order = self::loadOrder(orderId: $orderId);
 
         if ($order === null) {
-            throw new \RuntimeException(
+            throw new RuntimeException(
                 Text::sprintf('COM_ALFA_ORDEREMAIL_TEST_ORDER_NOT_FOUND', $orderId),
             );
         }
@@ -589,7 +598,7 @@ class OrderEmailHelper
         $status = self::loadStatusForLanguage(statusId: $statusId, langTag: $langTag);
 
         if ($status === null) {
-            throw new \RuntimeException(
+            throw new RuntimeException(
                 Text::sprintf('COM_ALFA_ORDEREMAIL_TEST_STATUS_NOT_FOUND', $statusId),
             );
         }
@@ -601,7 +610,7 @@ class OrderEmailHelper
         );
 
         if (empty($positions)) {
-            throw new \RuntimeException(
+            throw new RuntimeException(
                 Text::_('COM_ALFA_ORDEREMAIL_TEST_NO_CONTENT'),
             );
         }
@@ -609,7 +618,7 @@ class OrderEmailHelper
         $tokens = self::buildTokens(order: $order, status: $status, langTag: $langTag);
 
         $subjectTpl = (string) ($positions[self::SUBJECT_POSITION] ?? '');
-        $subject    = self::applyTokens(template: $subjectTpl, tokens: $tokens);
+        $subject = self::applyTokens(template: $subjectTpl, tokens: $tokens);
 
         if ($subject === '') {
             $subject = Text::sprintf(
@@ -650,7 +659,6 @@ class OrderEmailHelper
      * Used by the preview path so tokens resolve against real data
      * whenever possible. Returns null when the table is empty.
      *
-     * @return object|null
      *
      * @since   1.0.4
      */
@@ -705,20 +713,19 @@ class OrderEmailHelper
      * viable: id, invoice_number, created, id_user, id_address_delivery,
      * id_language. Token values resolve to placeholder strings.
      *
-     * @return object
      *
      * @since   1.0.4
      */
     private static function buildSyntheticOrder(): object
     {
         return (object) [
-            'id'                   => 999,
-            'invoice_number'       => 0,
-            'created'              => Factory::getDate()->toSql(),
-            'id_user'              => 0,
-            'id_address_delivery'  => 0,
-            'id_language'          => 0,
-            'payment_method_name'  => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_PAYMENT_METHOD'),
+            'id' => 999,
+            'invoice_number' => 0,
+            'created' => Factory::getDate()->toSql(),
+            'id_user' => 0,
+            'id_address_delivery' => 0,
+            'id_language' => 0,
+            'payment_method_name' => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_PAYMENT_METHOD'),
             'shipment_method_name' => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_SHIPMENT_METHOD'),
         ];
     }
@@ -730,7 +737,6 @@ class OrderEmailHelper
      * mainly for tests) or after a layout file is rewritten in the
      * same PHP process.
      *
-     * @return void
      *
      * @since   1.0.4
      */
@@ -751,10 +757,9 @@ class OrderEmailHelper
      * Mailer instance so a failure on one doesn't poison the rest;
      * blocked / missing users are filtered out by resolveAdminRecipientEmails().
      *
-     * @param int $orderId     Order whose status just changed.
+     * @param int $orderId Order whose status just changed.
      * @param int $newStatusId Status the order is transitioning into.
      *
-     * @return void
      *
      * @since   1.0.5
      */
@@ -772,13 +777,13 @@ class OrderEmailHelper
             }
 
             $langTag = self::resolveLangTag(idLanguage: (int) ($order->id_language ?? 0));
-            $status  = self::loadStatusForLanguage(statusId: $newStatusId, langTag: $langTag);
+            $status = self::loadStatusForLanguage(statusId: $newStatusId, langTag: $langTag);
 
             if ($status === null) {
                 return;
             }
 
-            $notifyCustomer  = (int) ($status->notify_customer ?? 0) === 1;
+            $notifyCustomer = (int) ($status->notify_customer ?? 0) === 1;
             $adminRecipients = self::resolveAdminRecipientEmails(statusId: $newStatusId);
 
             if (!$notifyCustomer && empty($adminRecipients)) {
@@ -802,7 +807,7 @@ class OrderEmailHelper
             if (!empty($adminRecipients)) {
                 $adminPositions = self::decodePositions(json: $status->email_positions_admin ?? '');
 
-                $adminLayout  = (string) ($status->email_layout_admin ?? self::LAYOUT_ID);
+                $adminLayout = (string) ($status->email_layout_admin ?? self::LAYOUT_ID);
                 $adminContext = self::buildLayoutContext(order: $order, status: $status, recipient: 'admin', langTag: $langTag);
 
                 foreach ($adminRecipients as $adminEmail) {
@@ -845,19 +850,18 @@ class OrderEmailHelper
      * admins who configured only one channel don't get noise about the
      * other.
      *
-     * @param string                $recipient Destination email address.
+     * @param string $recipient Destination email address.
      * @param array<string, string> $positions Decoded positions for this
      *                                         recipient (subject + body).
-     * @param array<string, string> $tokens    Map of {token} → value.
-     * @param int                   $orderId   Used for fallback subject.
-     * @param int                   $statusId  Used for log context.
-     * @param string                $layoutId  Wrapper layout id for this
-     *                                         recipient's email.
-     * @param array<string, mixed>  $context   Display data forwarded to
-     *                                         the layout (order, items,
-     *                                         status, recipient, langTag).
+     * @param array<string, string> $tokens Map of {token} → value.
+     * @param int $orderId Used for fallback subject.
+     * @param int $statusId Used for log context.
+     * @param string $layoutId Wrapper layout id for this
+     *                         recipient's email.
+     * @param array<string, mixed> $context Display data forwarded to
+     *                                      the layout (order, items,
+     *                                      status, recipient, langTag).
      *
-     * @return void
      *
      * @since   1.0.4
      */
@@ -875,7 +879,7 @@ class OrderEmailHelper
         }
 
         $subjectTpl = (string) ($positions[self::SUBJECT_POSITION] ?? '');
-        $subject    = self::applyTokens(template: $subjectTpl, tokens: $tokens);
+        $subject = self::applyTokens(template: $subjectTpl, tokens: $tokens);
 
         if ($subject === '') {
             // Headerless emails are a deliverability red flag — fall back
@@ -929,22 +933,22 @@ class OrderEmailHelper
     private static function displayDataSkeleton(): array
     {
         return [
-            'order'       => null,
+            'order' => null,
             // One stub row each so a layout's `if(!empty($payments|$shipments))`
             // branch is walked during discovery. Never inspected (struct render
             // is a no-op collector during discoverSequence).
-            'items'       => [(object) []],
-            'totals'      => [],
-            'payments'    => [(object) []],
-            'shipments'   => [(object) []],
-            'status'      => null,
-            'tokens'      => [],
-            'positions'   => [],
-            'recipient'   => '',
-            'langTag'     => '',
-            'position'    => static fn (string $name = ''): string => '',
+            'items' => [(object) []],
+            'totals' => [],
+            'payments' => [(object) []],
+            'shipments' => [(object) []],
+            'status' => null,
+            'tokens' => [],
+            'positions' => [],
+            'recipient' => '',
+            'langTag' => '',
+            'position' => static fn (string $name = ''): string => '',
             'hasPosition' => static fn (string $name = ''): bool => false,
-            'render'      => static fn (string $layoutId = '', ?array $data = null): string => '',
+            'render' => static fn (string $layoutId = '', ?array $data = null): string => '',
         ];
     }
 
@@ -956,10 +960,10 @@ class OrderEmailHelper
      * attaches ->items on every render path; the synthetic preview stub
      * simply has none).
      *
-     * @param object $order     Resolved order row.
-     * @param object $status    Status row (+ per-language fields).
+     * @param object $order Resolved order row.
+     * @param object $status Status row (+ per-language fields).
      * @param string $recipient 'customer' or 'admin'.
-     * @param string $langTag   Active language tag.
+     * @param string $langTag Active language tag.
      *
      * @return array<string, mixed>
      *
@@ -967,8 +971,8 @@ class OrderEmailHelper
      */
     private static function buildLayoutContext(object $order, object $status, string $recipient, string $langTag): array
     {
-        $items    = is_array($order->items ?? null) ? $order->items : [];
-        $orderId  = (int) ($order->id ?? 0);
+        $items = is_array($order->items ?? null) ? $order->items : [];
+        $orderId = (int) ($order->id ?? 0);
         $currency = self::resolveCurrency(items: $items);
 
         // Payments/shipments are LISTS (their own tables) — prefer the rows
@@ -981,14 +985,14 @@ class OrderEmailHelper
             : self::safeLoadShipments(orderId: $orderId);
 
         return [
-            'order'     => $order,
-            'items'     => $items,
-            'totals'    => self::buildTotals(orderId: $orderId, items: $items),
-            'payments'  => $payments,
+            'order' => $order,
+            'items' => $items,
+            'totals' => self::buildTotals(orderId: $orderId, items: $items),
+            'payments' => $payments,
             'shipments' => $shipments,
-            'status'    => $status,
+            'status' => $status,
             'recipient' => $recipient,
-            'langTag'   => $langTag,
+            'langTag' => $langTag,
         ];
     }
 
@@ -1018,13 +1022,13 @@ class OrderEmailHelper
      * helper resolves them everywhere in one place.
      *
      * @param array<string, string> $positions Decoded positions.
-     * @param array<string, string> $tokens    Map of {token} → value.
-     * @param string                $layoutId  Wrapper layout id to render
-     *                                         (e.g. 'emails.order.default').
-     *                                         Empty falls back to LAYOUT_ID.
-     * @param array<string, mixed>  $context   Extra display data (order,
-     *                                         items, status, recipient,
-     *                                         langTag) for the layout.
+     * @param array<string, string> $tokens Map of {token} → value.
+     * @param string $layoutId Wrapper layout id to render
+     *                         (e.g. 'emails.order.default').
+     *                         Empty falls back to LAYOUT_ID.
+     * @param array<string, mixed> $context Extra display data (order,
+     *                                      items, status, recipient,
+     *                                      langTag) for the layout.
      *
      * @return string Final HTML payload for Mail::setBody().
      *
@@ -1037,7 +1041,7 @@ class OrderEmailHelper
         array $context = [],
     ): string {
         $dataContext = array_merge(self::displayDataSkeleton(), $context, [
-            'tokens'    => $tokens,
+            'tokens' => $tokens,
             'positions' => $positions,
         ]);
 
@@ -1075,9 +1079,9 @@ class OrderEmailHelper
      * variable pass afterward, so a partial that emits `{order_total}`
      * resolves just like admin content does.
      *
-     * @param array<string, string> $positions   Decoded position content.
-     * @param array<string, mixed>  $dataContext Default data handed to
-     *                                           sub-layouts via $render.
+     * @param array<string, string> $positions Decoded position content.
+     * @param array<string, mixed> $dataContext Default data handed to
+     *                                          sub-layouts via $render.
      *
      * @return array<string, callable>
      *
@@ -1143,8 +1147,8 @@ class OrderEmailHelper
      * Plain str_replace over the map — no recursion, no escaping (admin
      * is authoring the body in a WYSIWYG so HTML is already trusted).
      *
-     * @param string                $template Subject or body template.
-     * @param array<string, string> $tokens   Map of token → replacement.
+     * @param string $template Subject or body template.
+     * @param array<string, string> $tokens Map of token → replacement.
      *
      * @return string Token-substituted output.
      *
@@ -1184,8 +1188,8 @@ class OrderEmailHelper
      *
      *   • Site — {site_name}, {site_url}.
      *
-     * @param object $order   `#__alfa_orders` row.
-     * @param object $status  Status row joined to its per-language fields.
+     * @param object $order `#__alfa_orders` row.
+     * @param object $status Status row joined to its per-language fields.
      * @param string $langTag Resolved language tag (e.g. 'en-GB').
      *
      * @return array<string, string>
@@ -1194,10 +1198,10 @@ class OrderEmailHelper
      */
     private static function buildTokens(object $order, object $status, string $langTag): array
     {
-        $orderId     = (int) ($order->id ?? 0);
-        $invoiceNo   = (int) ($order->invoice_number ?? 0);
+        $orderId = (int) ($order->id ?? 0);
+        $invoiceNo = (int) ($order->invoice_number ?? 0);
         $orderNumber = $invoiceNo > 0 ? (string) $invoiceNo : (string) $orderId;
-        $config      = Factory::getApplication()->getConfig();
+        $config = Factory::getApplication()->getConfig();
 
         // Prefer the items already attached by OrderModel::getItem (the
         // canonical loader the admin view uses). Falls back to a fresh
@@ -1216,16 +1220,16 @@ class OrderEmailHelper
         // fallback.
         $tokens = [
             // Order
-            '{order_id}'        => (string) $orderId,
-            '{order_number}'    => $orderNumber,
-            '{order_date}'      => self::formatDate(sqlDate: $order->created ?? null),
-            '{status}'          => (string) ($status->name ?? ''),
+            '{order_id}' => (string) $orderId,
+            '{order_number}' => $orderNumber,
+            '{order_date}' => self::formatDate(sqlDate: $order->created ?? null),
+            '{status}' => (string) ($status->name ?? ''),
             '{status_customer}' => (string) ($status->name_customer ?? ''),
-            '{order_total}'     => self::formatOrderTotalFromItems(items: $items),
+            '{order_total}' => self::formatOrderTotalFromItems(items: $items),
 
             // Site
-            '{site_name}'    => (string) $config->get('sitename', ''),
-            '{site_url}'     => Uri::root(),
+            '{site_name}' => (string) $config->get('sitename', ''),
+            '{site_url}' => Uri::root(),
         ];
 
         // Customer (Joomla user) — always-present empty-string fallbacks
@@ -1260,10 +1264,10 @@ class OrderEmailHelper
     private static function resolveJoomlaUserTokens(int $idUser): array
     {
         $empty = [
-            '{user_id}'         => '',
-            '{user_name}'       => '',
-            '{user_username}'   => '',
-            '{user_email}'      => '',
+            '{user_id}' => '',
+            '{user_name}' => '',
+            '{user_username}' => '',
+            '{user_email}' => '',
             '{user_registered}' => '',
         ];
 
@@ -1272,7 +1276,7 @@ class OrderEmailHelper
         }
 
         try {
-            $db    = Factory::getContainer()->get('DatabaseDriver');
+            $db = Factory::getContainer()->get('DatabaseDriver');
             $query = $db->getQuery(true)
                 ->select([
                     $db->quoteName('id'),
@@ -1295,10 +1299,10 @@ class OrderEmailHelper
         }
 
         return [
-            '{user_id}'         => (string) ($row->id ?? ''),
-            '{user_name}'       => (string) ($row->name ?? ''),
-            '{user_username}'   => (string) ($row->username ?? ''),
-            '{user_email}'      => (string) ($row->email ?? ''),
+            '{user_id}' => (string) ($row->id ?? ''),
+            '{user_name}' => (string) ($row->name ?? ''),
+            '{user_username}' => (string) ($row->username ?? ''),
+            '{user_email}' => (string) ($row->email ?? ''),
             '{user_registered}' => self::formatDate(sqlDate: $row->registerDate ?? null),
         ];
     }
@@ -1318,10 +1322,10 @@ class OrderEmailHelper
      * value is '' in that case. Keeps admin templates safe against
      * "did this field exist when I wrote my body?" branching.
      *
-     * @param int    $addressId The order's `id_address_delivery`.
-     * @param string $langTag   Active language tag (reserved for
-     *                          future per-language enum value
-     *                          resolution; unused right now).
+     * @param int $addressId The order's `id_address_delivery`.
+     * @param string $langTag Active language tag (reserved for
+     *                        future per-language enum value
+     *                        resolution; unused right now).
      *
      * @return array<string, string>
      *
@@ -1336,7 +1340,7 @@ class OrderEmailHelper
         }
 
         $userInfo = $addressId > 0 ? self::loadUserInfoRow(addressId: $addressId) : null;
-        $tokens   = [];
+        $tokens = [];
 
         foreach ($fields as $machineKey => $field) {
             $raw = $userInfo !== null && isset($userInfo->{$machineKey})
@@ -1357,8 +1361,8 @@ class OrderEmailHelper
                 $fieldForRender,
                 [
                     'value' => $raw,
-                    'item'  => $userInfo,
-                    'raw'   => $raw,
+                    'item' => $userInfo,
+                    'raw' => $raw,
                 ],
             );
 
@@ -1393,7 +1397,7 @@ class OrderEmailHelper
 
         try {
             $factory = Factory::getApplication()->bootComponent('com_alfa')->getMVCFactory();
-            $model   = $factory->createModel('Formfields', 'Administrator');
+            $model = $factory->createModel('Formfields', 'Administrator');
 
             if (!$model) {
                 return $cache = [];
@@ -1410,12 +1414,12 @@ class OrderEmailHelper
             // filtered the Form Fields list (e.g. Group = Billing) that
             // value would silently scope our token catalogue. Clear
             // everything but the published filter.
-            $model->setState('filter.state',    1);
+            $model->setState('filter.state', 1);
             $model->setState('filter.group_id', '');
-            $model->setState('filter.search',   '');
-            $model->setState('filter.context',  '');
-            $model->setState('list.limit',      0);
-            $model->setState('list.start',      0);
+            $model->setState('filter.search', '');
+            $model->setState('filter.context', '');
+            $model->setState('list.limit', 0);
+            $model->setState('list.start', 0);
 
             $items = $model->getItems() ?: [];
         } catch (Throwable $e) {
@@ -1453,14 +1457,13 @@ class OrderEmailHelper
      *
      * @param int $addressId Row PK.
      *
-     * @return object|null
      *
      * @since   1.0.4
      */
     private static function loadUserInfoRow(int $addressId): ?object
     {
         try {
-            $db    = Factory::getContainer()->get('DatabaseDriver');
+            $db = Factory::getContainer()->get('DatabaseDriver');
             $query = $db->getQuery(true)
                 ->select('*')
                 ->from($db->quoteName('#__alfa_user_info'))
@@ -1488,7 +1491,6 @@ class OrderEmailHelper
      *
      * @param int $orderId Order PK.
      *
-     * @return object|null
      *
      * @since   1.0.4
      */
@@ -1500,7 +1502,7 @@ class OrderEmailHelper
 
         try {
             $factory = Factory::getApplication()->bootComponent('com_alfa')->getMVCFactory();
-            $model   = $factory->createModel('Order', 'Administrator');
+            $model = $factory->createModel('Order', 'Administrator');
 
             if (!$model) {
                 return null;
@@ -1528,8 +1530,8 @@ class OrderEmailHelper
      * $langTag — keeps the email from going out with blank subject
      * and body when admin only filled in one language.
      *
-     * @param int    $statusId Status PK.
-     * @param string $langTag  Language code (e.g. 'en-GB').
+     * @param int $statusId Status PK.
+     * @param string $langTag Language code (e.g. 'en-GB').
      *
      * @return object|null Combined row or null when status doesn't exist.
      *
@@ -1538,7 +1540,7 @@ class OrderEmailHelper
     private static function loadStatusForLanguage(int $statusId, string $langTag): ?object
     {
         try {
-            $db    = Factory::getContainer()->get('DatabaseDriver');
+            $db = Factory::getContainer()->get('DatabaseDriver');
             $query = $db->getQuery(true)
                 ->select([
                     's.id',
@@ -1559,7 +1561,7 @@ class OrderEmailHelper
             // Default empty/missing layout selections to the canonical layout
             // so callers never have to branch on a blank id.
             $status->email_layout_customer = ((string) ($status->email_layout_customer ?? '')) ?: self::LAYOUT_ID;
-            $status->email_layout_admin    = ((string) ($status->email_layout_admin ?? '')) ?: self::LAYOUT_ID;
+            $status->email_layout_admin = ((string) ($status->email_layout_admin ?? '')) ?: self::LAYOUT_ID;
 
             $langRow = self::loadLangRow(statusId: $statusId, langTag: $langTag);
 
@@ -1572,10 +1574,10 @@ class OrderEmailHelper
                 }
             }
 
-            $status->name                     = (string) ($langRow->name ?? '');
-            $status->name_customer            = (string) ($langRow->name_customer ?? '');
+            $status->name = (string) ($langRow->name ?? '');
+            $status->name_customer = (string) ($langRow->name_customer ?? '');
             $status->email_positions_customer = (string) ($langRow->email_positions_customer ?? '');
-            $status->email_positions_admin    = (string) ($langRow->email_positions_admin ?? '');
+            $status->email_positions_admin = (string) ($langRow->email_positions_admin ?? '');
 
             return $status;
         } catch (Exception $e) {
@@ -1590,8 +1592,8 @@ class OrderEmailHelper
      * ('en-GB' → 'en_gb'), matching MultilingualHelper::normaliseTag()
      * and SyncHelper's table-creation convention.
      *
-     * @param int    $statusId Status PK.
-     * @param string $langTag  Language code (e.g. 'en-GB').
+     * @param int $statusId Status PK.
+     * @param string $langTag Language code (e.g. 'en-GB').
      *
      * @return object|null Per-language row or null when missing.
      *
@@ -1606,7 +1608,7 @@ class OrderEmailHelper
         }
 
         try {
-            $db    = Factory::getContainer()->get('DatabaseDriver');
+            $db = Factory::getContainer()->get('DatabaseDriver');
             $table = '#__alfa_orders_statuses_' . $suffix;
             $query = $db->getQuery(true)
                 ->select('*')
@@ -1638,7 +1640,7 @@ class OrderEmailHelper
     {
         if ($idLanguage > 0) {
             try {
-                $db    = Factory::getContainer()->get('DatabaseDriver');
+                $db = Factory::getContainer()->get('DatabaseDriver');
                 $query = $db->getQuery(true)
                     ->select($db->quoteName('lang_code'))
                     ->from($db->quoteName('#__languages'))
@@ -1681,7 +1683,7 @@ class OrderEmailHelper
         }
 
         try {
-            $db    = Factory::getContainer()->get('DatabaseDriver');
+            $db = Factory::getContainer()->get('DatabaseDriver');
             $query = $db->getQuery(true)
                 ->select([
                     $db->quoteName('name'),
@@ -1743,7 +1745,7 @@ class OrderEmailHelper
         }
 
         try {
-            $db    = Factory::getContainer()->get('DatabaseDriver');
+            $db = Factory::getContainer()->get('DatabaseDriver');
             $query = $db->getQuery(true)
                 ->select($db->quoteName('u.email'))
                 ->from($db->quoteName('#__alfa_orderstatus_recipients', 'r'))
@@ -1764,7 +1766,7 @@ class OrderEmailHelper
 
         return array_values(array_unique(array_filter(
             array_map('strval', $emails),
-            static fn(string $email): bool => $email !== '',
+            static fn (string $email): bool => $email !== '',
         )));
     }
 
@@ -1803,7 +1805,6 @@ class OrderEmailHelper
      * the displayed currency code matches what admin sees in the order
      * detail view.
      *
-     * @param int $orderId Order PK.
      *
      * @return string Formatted total (e.g. '€42.50') or ''.
      *
@@ -1869,8 +1870,8 @@ class OrderEmailHelper
      * Numbers come from OrderTotalHelper::getBreakdown (the canonical
      * formula the admin order view + invoices use).
      *
-     * @param int      $orderId Order PK.
-     * @param object[] $items   Hydrated line items (carry ->currency).
+     * @param int $orderId Order PK.
+     * @param object[] $items Hydrated line items (carry ->currency).
      *
      * @return array<string, mixed> Keys: items, subtotal, shipping,
      *                              discount, tax, total.
@@ -1914,14 +1915,14 @@ class OrderEmailHelper
         };
 
         return [
-            'items'    => $items,
-            'subtotal' => $breakdown !== null ? $money($breakdown->items_tax_excl)       : null,
-            'shipping' => $breakdown !== null ? $money($breakdown->shipping_tax_incl)    : null,
-            'discount' => $breakdown !== null ? $money($breakdown->discount_tax_incl)    : null,
-            'tax'      => $breakdown !== null
+            'items' => $items,
+            'subtotal' => $breakdown !== null ? $money($breakdown->items_tax_excl) : null,
+            'shipping' => $breakdown !== null ? $money($breakdown->shipping_tax_incl) : null,
+            'discount' => $breakdown !== null ? $money($breakdown->discount_tax_incl) : null,
+            'tax' => $breakdown !== null
                 ? $money($breakdown->grand_total_tax_incl - $breakdown->grand_total_tax_excl)
                 : null,
-            'total'    => $breakdown !== null ? $money($breakdown->grand_total_tax_incl) : null,
+            'total' => $breakdown !== null ? $money($breakdown->grand_total_tax_incl) : null,
         ];
     }
 
@@ -1929,9 +1930,9 @@ class OrderEmailHelper
      * Resolve the currency to format email money with: the currency object
      * attached to a loaded item, else the shop default, else null.
      *
-     * @param  object[]  $items  Hydrated items (may carry ->currency).
+     * @param object[] $items Hydrated items (may carry ->currency).
      *
-     * @return object|null  Currency object or null when unresolvable.
+     * @return object|null Currency object or null when unresolvable.
      *
      * @since   1.0.4
      */
@@ -1954,10 +1955,9 @@ class OrderEmailHelper
      * Format a numeric value as a money string in the given currency,
      * '' when not formattable. Used by the payments/shipments partials.
      *
-     * @param  mixed   $value     Numeric amount (or null).
-     * @param  object|null  $currency  Currency object from resolveCurrency.
+     * @param mixed $value Numeric amount (or null).
+     * @param object|null $currency Currency object from resolveCurrency.
      *
-     * @return string
      *
      * @since   1.0.4
      */
@@ -1978,9 +1978,8 @@ class OrderEmailHelper
      * Human label for a payment/shipment status: translate
      * COM_ALFA_STATUS_<UPPER> when present, else title-case the raw value.
      *
-     * @param  string  $status  Raw status string.
+     * @param string $status Raw status string.
      *
-     * @return string
      *
      * @since   1.0.4
      */
@@ -2001,10 +2000,9 @@ class OrderEmailHelper
      * order payment with method name, formatted amount (refunds prefixed
      * with a minus), and a human status. Defensive — '' / [] on any error.
      *
-     * @param  int          $orderId
-     * @param  object|null  $currency
+     * @param object|null $currency
      *
-     * @return object[]  Each: {method, amount, status}.
+     * @return object[] Each: {method, amount, status}.
      *
      * @since   1.0.4
      */
@@ -2015,7 +2013,7 @@ class OrderEmailHelper
         }
 
         try {
-            $db    = Factory::getContainer()->get('DatabaseDriver');
+            $db = Factory::getContainer()->get('DatabaseDriver');
             $query = $db->getQuery(true)
                 ->select([
                     $db->quoteName('payment_method'),
@@ -2037,7 +2035,7 @@ class OrderEmailHelper
 
         foreach ($rows as $row) {
             $isRefund = ($row->payment_type ?? '') === 'refund';
-            $amount   = self::formatMoney(value: abs((float) ($row->amount ?? 0)), currency: $currency);
+            $amount = self::formatMoney(value: abs((float) ($row->amount ?? 0)), currency: $currency);
 
             $out[] = (object) [
                 'method' => (string) ($row->payment_method ?? ''),
@@ -2054,9 +2052,8 @@ class OrderEmailHelper
      * order shipment with method name, tracking number, and human status.
      * Defensive — '' / [] on any error.
      *
-     * @param  int  $orderId
      *
-     * @return object[]  Each: {method, tracking, status}.
+     * @return object[] Each: {method, tracking, status}.
      *
      * @since   1.0.4
      */
@@ -2067,7 +2064,7 @@ class OrderEmailHelper
         }
 
         try {
-            $db    = Factory::getContainer()->get('DatabaseDriver');
+            $db = Factory::getContainer()->get('DatabaseDriver');
             $query = $db->getQuery(true)
                 ->select([
                     $db->quoteName('shipment_method_name'),
@@ -2088,9 +2085,9 @@ class OrderEmailHelper
 
         foreach ($rows as $row) {
             $out[] = (object) [
-                'method'   => (string) ($row->shipment_method_name ?? ''),
+                'method' => (string) ($row->shipment_method_name ?? ''),
                 'tracking' => (string) ($row->tracking_number ?? ''),
-                'status'   => self::statusLabel(status: (string) ($row->status ?? '')),
+                'status' => self::statusLabel(status: (string) ($row->status ?? '')),
             ];
         }
 

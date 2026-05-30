@@ -38,15 +38,12 @@ class HtmlView extends BaseHtmlView
     /**
      * Active listing mode: 'rows' (database records) or 'files' (untracked
      * upload files). Drives both the model method used and the template layout.
-     *
-     * @var  string
      */
     public string $mode = 'rows';
 
     /**
-     * @param   string|null  $tpl
+     * @param string|null $tpl
      *
-     * @return  void
      *
      * @since   1.0.1
      */
@@ -59,15 +56,15 @@ class HtmlView extends BaseHtmlView
         $model = $this->getModel();
 
         $this->state = $model->getState();
-        $this->mode  = $this->state->get('filter.source') === 'files' ? 'files' : 'rows';
+        $this->mode = $this->state->get('filter.source') === 'files' ? 'files' : 'rows';
 
         // The two modes read different sources; the view picks the model method.
         // Pagination is the inherited list pagination (getTotal() is mode-aware).
-        $this->items         = $this->mode === 'files'
+        $this->items = $this->mode === 'files'
             ? $model->getUntrackedMediaItems()
             : $model->getItems();
-        $this->pagination    = $model->getPagination();
-        $this->filterForm    = $model->getFilterForm();
+        $this->pagination = $model->getPagination();
+        $this->filterForm = $model->getFilterForm();
         $this->activeFilters = $model->getActiveFilters();
 
         $this->addToolbar();
@@ -81,8 +78,6 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * @return  void
-     *
      * @since   1.0.1
      */
     protected function addToolbar(): void

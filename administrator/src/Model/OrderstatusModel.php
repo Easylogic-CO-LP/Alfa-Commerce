@@ -88,7 +88,7 @@ class OrderstatusModel extends AdminModel
      * @var array<string, string>
      */
     private const ROLE_LANG_KEYS = [
-        'is_initial'   => 'COM_ALFA_ORDERSTATUS_ROLE_INITIAL',
+        'is_initial' => 'COM_ALFA_ORDERSTATUS_ROLE_INITIAL',
         'is_cancelled' => 'COM_ALFA_ORDERSTATUS_ROLE_CANCELLED',
         'is_completed' => 'COM_ALFA_ORDERSTATUS_ROLE_COMPLETED',
     ];
@@ -96,8 +96,8 @@ class OrderstatusModel extends AdminModel
     /**
      * Load the orderstatus edit form.
      *
-     * @param array $data     Pre-populated form data, or empty array.
-     * @param bool  $loadData Hydrate from the bound item / user-state.
+     * @param array $data Pre-populated form data, or empty array.
+     * @param bool $loadData Hydrate from the bound item / user-state.
      *
      * @return Form|false The bound form on success, false on failure.
      *
@@ -109,7 +109,7 @@ class OrderstatusModel extends AdminModel
             'com_alfa.' . $this->formName,
             $this->formName,
             [
-                'control'   => 'jform',
+                'control' => 'jform',
                 'load_data' => $loadData,
             ],
         );
@@ -187,7 +187,7 @@ class OrderstatusModel extends AdminModel
 
         return array_values(array_unique(array_filter(
             array_map('intval', $raw),
-            static fn(int $id): bool => $id > 0,
+            static fn (int $id): bool => $id > 0,
         )));
     }
 
@@ -206,7 +206,7 @@ class OrderstatusModel extends AdminModel
             return [];
         }
 
-        $db    = $this->getDatabase();
+        $db = $this->getDatabase();
         $query = $db->getQuery(true)
             ->select($db->quoteName('id_user'))
             ->from($db->quoteName('#__alfa_orderstatus_recipients'))
@@ -225,10 +225,9 @@ class OrderstatusModel extends AdminModel
      * duplicates if $userIds itself contains repeats (extractAdminRecipientIds
      * already de-duplicates, this is just belt-and-suspenders).
      *
-     * @param int   $statusId Status PK.
-     * @param int[] $userIds  Sanitised user ids to write.
+     * @param int $statusId Status PK.
+     * @param int[] $userIds Sanitised user ids to write.
      *
-     * @return void
      *
      * @since   1.0.5
      */
@@ -252,7 +251,7 @@ class OrderstatusModel extends AdminModel
         }
 
         $columns = [$db->quoteName('id_orderstatus'), $db->quoteName('id_user')];
-        $values  = [];
+        $values = [];
 
         foreach ($userIds as $userId) {
             $values[] = (int) $statusId . ', ' . (int) $userId;
@@ -288,15 +287,14 @@ class OrderstatusModel extends AdminModel
      * downstream code doesn't see two parallel representations of the
      * same data.
      *
-     * @param  array  $data  Form payload (modified by reference).
+     * @param array $data Form payload (modified by reference).
      *
-     * @return  void
      *
      * @since   1.0.4
      */
     private static function bundleEmailPositionsIntoLanguageKeys(array &$data): void
     {
-        $fields    = ['email_positions_customer', 'email_positions_admin'];
+        $fields = ['email_positions_customer', 'email_positions_admin'];
         $languages = LanguageHelper::getLanguages('lang_code') ?: [];
 
         foreach ($fields as $field) {
@@ -327,7 +325,7 @@ class OrderstatusModel extends AdminModel
                 $suffix = strtolower(str_replace('-', '_', (string) $langCode));
                 $prefix = $field . '_' . $suffix . '_';
                 $perLanguage = [];
-                $sawAny      = false;
+                $sawAny = false;
 
                 // Harvest every posted key under this field+language prefix
                 // rather than a fixed position list. The remainder after the
@@ -383,18 +381,18 @@ class OrderstatusModel extends AdminModel
      */
     public function save($data)
     {
-        $app   = Factory::getApplication();
+        $app = Factory::getApplication();
         $input = $app->getInput();
 
         // The 'raw' filter keeps the per-language flat keys (name_en_gb,
         // name_el_gr …) that the default 'array' filter strips before
         // MultilingualHelper can pick them up.
         $rawData = $input->post->get('jform', [], 'raw');
-        $data    = array_merge($data, $rawData);
+        $data = array_merge($data, $rawData);
 
-        $pk    = (int) ($data['id'] ?? $this->getState($this->getName() . '.id'));
+        $pk = (int) ($data['id'] ?? $this->getState($this->getName() . '.id'));
         $isNew = $pk <= 0;
-        $prev  = !$isNew ? $this->getItem($pk) : null;
+        $prev = !$isNew ? $this->getItem($pk) : null;
 
         // The admin recipients live in the `#__alfa_orderstatus_recipients`
         // join table, not on the status row. Strip the field from $data
@@ -443,9 +441,9 @@ class OrderstatusModel extends AdminModel
      * with requireState = 1 so a transition that would leave a role
      * without a published holder is refused.
      *
-     * @param array $pks   Row primary keys (by reference — Joomla).
-     * @param int   $value 1 published, 0 unpublished, 2 archived,
-     *                     -2 trashed.
+     * @param array $pks Row primary keys (by reference — Joomla).
+     * @param int $value 1 published, 0 unpublished, 2 archived,
+     *                   -2 trashed.
      *
      * @return bool True on success, false when the guard or the
      *              parent rejects.
@@ -527,7 +525,6 @@ class OrderstatusModel extends AdminModel
      *
      * @param array $statusIds Status PKs that were deleted.
      *
-     * @return void
      *
      * @since   1.0.5
      */
@@ -535,14 +532,14 @@ class OrderstatusModel extends AdminModel
     {
         $ids = array_values(array_filter(
             array_map('intval', $statusIds),
-            static fn(int $id): bool => $id > 0,
+            static fn (int $id): bool => $id > 0,
         ));
 
         if (empty($ids)) {
             return;
         }
 
-        $db    = $this->getDatabase();
+        $db = $this->getDatabase();
         $query = $db->getQuery(true)
             ->delete($db->quoteName('#__alfa_orderstatus_recipients'))
             ->whereIn($db->quoteName('id_orderstatus'), $ids);
@@ -562,7 +559,7 @@ class OrderstatusModel extends AdminModel
      */
     protected function prepareTable($table)
     {
-        $table->modified    = Factory::getDate()->toSql();
+        $table->modified = Factory::getDate()->toSql();
         $table->modified_by = $this->getCurrentUser()->id;
 
         parent::prepareTable($table);
@@ -581,7 +578,7 @@ class OrderstatusModel extends AdminModel
      *      both un-ticking the flag and unpublishing the row via the
      *      Status dropdown.
      *
-     * @param array       $data Submitted form payload.
+     * @param array $data Submitted form payload.
      * @param object|null $prev Row state before save, or null on insert.
      *
      * @return bool True when the save is legal; false (with a queued
@@ -594,7 +591,7 @@ class OrderstatusModel extends AdminModel
         // Rule 1 — within-row exclusion.
         $rolesSet = array_filter(
             self::EXCLUSIVE_FLAGS,
-            static fn(string $flag): bool => (int) ($data[$flag] ?? 0) === 1,
+            static fn (string $flag): bool => (int) ($data[$flag] ?? 0) === 1,
         );
 
         if (count($rolesSet) > 1) {
@@ -620,12 +617,12 @@ class OrderstatusModel extends AdminModel
             return true;
         }
 
-        $wasPublished    = (int) ($prev->state ?? 0) === 1;
+        $wasPublished = (int) ($prev->state ?? 0) === 1;
         $willBePublished = (int) ($data['state'] ?? $prev->state ?? 0) === 1;
 
         foreach (self::EXCLUSIVE_FLAGS as $flag) {
             $wasHolder = (int) ($prev->{$flag} ?? 0) === 1;
-            $willHold  = (int) ($data[$flag] ?? $prev->{$flag} ?? 0) === 1;
+            $willHold = (int) ($data[$flag] ?? $prev->{$flag} ?? 0) === 1;
 
             // Was this row a published holder, and will it stop being one?
             if (!($wasPublished && $wasHolder)) {
@@ -670,11 +667,11 @@ class OrderstatusModel extends AdminModel
      * is queued naming which role saved it. The remaining rows get
      * passed on to `parent::delete()` / `parent::publish()`.
      *
-     * @param array    $pks          Row PKs submitted by the toolbar
-     *                               or controller.
-     * @param string   $messageKey   Language key for the per-skip
-     *                               warning (sprintf'd with the role
-     *                               name).
+     * @param array $pks Row PKs submitted by the toolbar
+     *                   or controller.
+     * @param string $messageKey Language key for the per-skip
+     *                           warning (sprintf'd with the role
+     *                           name).
      * @param int|null $requireState When set, only rows in that state
      *                               count as holders.
      *
@@ -687,7 +684,7 @@ class OrderstatusModel extends AdminModel
     {
         $candidates = array_values(array_filter(
             array_map('intval', $pks),
-            static fn(int $id): bool => $id > 0,
+            static fn (int $id): bool => $id > 0,
         ));
 
         if (empty($candidates)) {
@@ -773,10 +770,9 @@ class OrderstatusModel extends AdminModel
      * singleton flag, so the "= 1" invariant holds. Multi-row flags
      * are skipped — multiple statuses may carry them.
      *
-     * @param int   $currentId PK of the status just saved.
-     * @param array $data      Submitted form payload.
+     * @param int $currentId PK of the status just saved.
+     * @param array $data Submitted form payload.
      *
-     * @return void
      *
      * @since   1.0.1
      */
@@ -810,8 +806,8 @@ class OrderstatusModel extends AdminModel
      * Helper for canSaveStatus's "is this the last published holder?"
      * check. Reads the cached row set, returns early on first hit.
      *
-     * @param string $flag      Role column name.
-     * @param int    $excludeId The PK to skip (the row being saved).
+     * @param string $flag Role column name.
+     * @param int $excludeId The PK to skip (the row being saved).
      *
      * @return bool True when a sibling published holder exists.
      *

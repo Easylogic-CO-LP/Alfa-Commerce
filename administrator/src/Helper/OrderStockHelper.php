@@ -71,7 +71,7 @@ class OrderStockHelper
     public static function getDefaultOrderStatus(): object
     {
         $initialId = OrderStatusHelper::getInitialId();
-        $status    = $initialId !== null ? OrderStatusHelper::getById($initialId) : null;
+        $status = $initialId !== null ? OrderStatusHelper::getById($initialId) : null;
 
         if ($status !== null) {
             return $status;
@@ -84,10 +84,10 @@ class OrderStockHelper
         );
 
         return (object) [
-            'id'              => 0,
-            'name'            => 'Unknown',
+            'id' => 0,
+            'name' => 'Unknown',
             'stock_operation' => 0,
-            'state'           => 1,
+            'state' => 1,
         ];
     }
 

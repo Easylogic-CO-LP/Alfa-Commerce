@@ -687,5 +687,4 @@ class ItemModel extends AdminModel
 
         parent::prepareTable($table);
     }
-
 }

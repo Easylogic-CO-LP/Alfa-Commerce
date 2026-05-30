@@ -15,7 +15,6 @@ use Alfa\Component\Alfa\Administrator\Helper\OrderEmailHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\LanguageHelper;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\MVC\Controller\FormController;
 use Joomla\CMS\Router\Route;
@@ -56,7 +55,6 @@ class OrderstatusController extends FormController
      *   • Outputs the rendered email HTML and exits so format=raw
      *     suppresses the Joomla chrome.
      *
-     * @return void
      *
      * @since   1.0.4
      */
@@ -72,9 +70,9 @@ class OrderstatusController extends FormController
             $app->close();
         }
 
-        $input     = $app->getInput();
-        $statusId  = (int) $input->getInt('id', 0);
-        $langTag   = trim((string) $input->getString('lang', ''));
+        $input = $app->getInput();
+        $statusId = (int) $input->getInt('id', 0);
+        $langTag = trim((string) $input->getString('lang', ''));
         $recipient = (string) $input->getCmd('recipient', 'customer');
 
         if (!in_array($recipient, ['customer', 'admin'], true)) {
@@ -122,13 +120,12 @@ class OrderstatusController extends FormController
      * Output is a complete HTML document so the iframe doesn't depend
      * on the parent admin chrome — keeps the rendering predictable.
      *
-     * @return void
      *
      * @since   1.0.4
      */
     public function previewShell(): void
     {
-        $app  = $this->app;
+        $app = $this->app;
         $user = $app->getIdentity();
 
         if ($user === null || !$user->authorise('core.edit', 'com_alfa')) {
@@ -149,7 +146,7 @@ class OrderstatusController extends FormController
         // Optional recipient scoping — the per-tab Preview button passes
         // &recipient=customer|admin so the modal shows only that side.
         // Omitted → both (the combined view).
-        $only       = (string) $app->getInput()->getCmd('recipient', '');
+        $only = (string) $app->getInput()->getCmd('recipient', '');
         $recipients = in_array($only, ['customer', 'admin'], true) ? [$only] : ['customer', 'admin'];
 
         // Group by recipient — outer tabs (Customer / Admin) hold all
@@ -161,9 +158,9 @@ class OrderstatusController extends FormController
 
             foreach ($languages as $langCode => $language) {
                 $entries[] = [
-                    'lang'  => (string) $langCode,
+                    'lang' => (string) $langCode,
                     'label' => (string) ($language->title_native ?? $langCode),
-                    'url'   => Route::_(
+                    'url' => Route::_(
                         sprintf(
                             'index.php?option=com_alfa&task=orderstatus.previewEmail&format=raw&id=%d&recipient=%s&lang=%s',
                             $statusId,
@@ -176,8 +173,8 @@ class OrderstatusController extends FormController
             }
 
             $groups[$recipient] = [
-                'key'       => $recipient,
-                'label'     => Text::_('COM_ALFA_FORM_FIELDSET_ORDER_STATUS_EMAILS_' . strtoupper($recipient)),
+                'key' => $recipient,
+                'label' => Text::_('COM_ALFA_FORM_FIELDSET_ORDER_STATUS_EMAILS_' . strtoupper($recipient)),
                 'languages' => $entries,
             ];
         }
@@ -204,10 +201,10 @@ class OrderstatusController extends FormController
      * Self-contained document; tiny vanilla JS handles tab and
      * dropdown switching. Atum CSS provides Bootstrap visuals.
      *
-     * @param array<string, array> $groups   Map recipient → [key, label,
-     *                                       languages[lang, label, url]].
-     * @param int                  $statusId Status PK, used only for
-     *                                       the document title.
+     * @param array<string, array> $groups Map recipient → [key, label,
+     *                                     languages[lang, label, url]].
+     * @param int $statusId Status PK, used only for
+     *                      the document title.
      *
      * @return string Complete HTML page.
      *
@@ -234,13 +231,13 @@ class OrderstatusController extends FormController
             return '<!doctype html><html><body><p style="font-family:sans-serif;padding:24px;">No active languages.</p></body></html>';
         }
 
-        $tabs  = '';
+        $tabs = '';
         $panes = '';
         $first = true;
 
         foreach ($groups as $recipient => $group) {
             $paneId = 'preview-pane-' . $recipient;
-            $tabs  .= sprintf(
+            $tabs .= sprintf(
                 '<li class="nav-item" role="presentation">'
                     . '<button type="button" class="nav-link%s" data-preview-target="#%s" role="tab">%s</button>'
                 . '</li>',
@@ -294,54 +291,54 @@ class OrderstatusController extends FormController
         }
 
         return <<<HTML
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>{$titleText}</title>
-    <link rel="stylesheet" href="/media/templates/administrator/atum/css/template.min.css">
-    <style>
-        html, body { margin: 0; height: 100%; }
-        body { display: flex; flex-direction: column; background: #f3f4f6; }
-        .nav-tabs { padding: 10px 14px 0 14px; background: #fff; flex-shrink: 0; }
-    </style>
-</head>
-<body>
-    <ul class="nav nav-tabs" role="tablist">{$tabs}</ul>
-    {$panes}
-    <script>
-        (function () {
-            'use strict';
+            <!doctype html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width,initial-scale=1">
+                <title>{$titleText}</title>
+                <link rel="stylesheet" href="/media/templates/administrator/atum/css/template.min.css">
+                <style>
+                    html, body { margin: 0; height: 100%; }
+                    body { display: flex; flex-direction: column; background: #f3f4f6; }
+                    .nav-tabs { padding: 10px 14px 0 14px; background: #fff; flex-shrink: 0; }
+                </style>
+            </head>
+            <body>
+                <ul class="nav nav-tabs" role="tablist">{$tabs}</ul>
+                {$panes}
+                <script>
+                    (function () {
+                        'use strict';
 
-            // Outer tab switching — toggle d-none / d-flex on panes.
-            const tabs  = document.querySelectorAll('.nav-tabs .nav-link[data-preview-target]');
-            const panes = document.querySelectorAll('[data-preview-pane]');
-            tabs.forEach(function (tab) {
-                tab.addEventListener('click', function () {
-                    const target = tab.getAttribute('data-preview-target');
-                    tabs.forEach(function (t) { t.classList.remove('active'); });
-                    panes.forEach(function (p) { p.classList.remove('d-flex'); p.classList.add('d-none'); });
-                    tab.classList.add('active');
-                    const targetPane = document.querySelector(target);
-                    if (targetPane) { targetPane.classList.remove('d-none'); targetPane.classList.add('d-flex'); }
-                });
-            });
+                        // Outer tab switching — toggle d-none / d-flex on panes.
+                        const tabs  = document.querySelectorAll('.nav-tabs .nav-link[data-preview-target]');
+                        const panes = document.querySelectorAll('[data-preview-pane]');
+                        tabs.forEach(function (tab) {
+                            tab.addEventListener('click', function () {
+                                const target = tab.getAttribute('data-preview-target');
+                                tabs.forEach(function (t) { t.classList.remove('active'); });
+                                panes.forEach(function (p) { p.classList.remove('d-flex'); p.classList.add('d-none'); });
+                                tab.classList.add('active');
+                                const targetPane = document.querySelector(target);
+                                if (targetPane) { targetPane.classList.remove('d-none'); targetPane.classList.add('d-flex'); }
+                            });
+                        });
 
-            // Per-pane language dropdown — swap iframe src.
-            panes.forEach(function (pane) {
-                const select = pane.querySelector('[data-preview-lang]');
-                const frame  = pane.querySelector('[data-preview-frame]');
-                if (!select || !frame) return;
-                select.addEventListener('change', function () {
-                    frame.src = select.value;
-                });
-            });
-        })();
-    </script>
-</body>
-</html>
-HTML;
+                        // Per-pane language dropdown — swap iframe src.
+                        panes.forEach(function (pane) {
+                            const select = pane.querySelector('[data-preview-lang]');
+                            const frame  = pane.querySelector('[data-preview-frame]');
+                            if (!select || !frame) return;
+                            select.addEventListener('change', function () {
+                                frame.src = select.value;
+                            });
+                        });
+                    })();
+                </script>
+            </body>
+            </html>
+            HTML;
     }
 
     /**
@@ -354,13 +351,12 @@ HTML;
      *   • Destination email (pre-filled with current admin's email)
      *   • Submit posts to sendTestEmail() in the same iframe.
      *
-     * @return void
      *
      * @since   1.0.4
      */
     public function sendTestForm(): void
     {
-        $app  = $this->app;
+        $app = $this->app;
         $user = $app->getIdentity();
 
         if ($user === null || !$user->authorise('core.edit', 'com_alfa')) {
@@ -381,7 +377,7 @@ HTML;
 
         $recipient = (string) $app->getInput()->getCmd('recipient', '');
         $recipient = in_array($recipient, ['customer', 'admin'], true) ? $recipient : 'customer';
-        $lang      = trim((string) $app->getInput()->getString('lang', ''));
+        $lang = trim((string) $app->getInput()->getString('lang', ''));
 
         echo $this->renderSendTestFormHtml(statusId: $statusId, user: $user, recipient: $recipient, lang: $lang);
 
@@ -396,13 +392,12 @@ HTML;
      * the same iframe ("Sent" / error). The page has a "Send another"
      * link back to sendTestForm.
      *
-     * @return void
      *
      * @since   1.0.4
      */
     public function sendTestEmail(): void
     {
-        $app  = $this->app;
+        $app = $this->app;
         $user = $app->getIdentity();
 
         if ($user === null || !$user->authorise('core.edit', 'com_alfa')) {
@@ -414,10 +409,10 @@ HTML;
 
         $input = $app->getInput();
 
-        $statusId    = (int) $input->getInt('status_id', 0);
-        $orderId     = (int) $input->getInt('order_id', 0);
-        $langTag     = trim((string) $input->getString('lang', ''));
-        $recipient   = (string) $input->getCmd('recipient', 'customer');
+        $statusId = (int) $input->getInt('status_id', 0);
+        $orderId = (int) $input->getInt('order_id', 0);
+        $langTag = trim((string) $input->getString('lang', ''));
+        $recipient = (string) $input->getCmd('recipient', 'customer');
         $destination = trim((string) $input->getString('destination', ''));
 
         if ($langTag === '') {
@@ -462,10 +457,10 @@ HTML;
      * Bootstrap modal. Uses light Bootstrap styling so it visually
      * matches the admin chrome.
      *
-     * @param int                       $statusId  Status PK being tested.
-     * @param \Joomla\CMS\User\User      $user      Current admin (for default destination email).
-     * @param string                    $recipient Recipient ('customer'|'admin') — from the composer button.
-     * @param string                    $lang      Language tag — from the active composer tab.
+     * @param int $statusId Status PK being tested.
+     * @param \Joomla\CMS\User\User $user Current admin (for default destination email).
+     * @param string $recipient Recipient ('customer'|'admin') — from the composer button.
+     * @param string $lang Language tag — from the active composer tab.
      *
      * @return string Complete HTML page.
      *
@@ -473,8 +468,8 @@ HTML;
      */
     private function renderSendTestFormHtml(int $statusId, $user, string $recipient = 'customer', string $lang = ''): string
     {
-        $orders     = $this->loadRecentOrdersForPicker(limit: 25);
-        $userEmail  = (string) ($user->email ?? '');
+        $orders = $this->loadRecentOrdersForPicker(limit: 25);
+        $userEmail = (string) ($user->email ?? '');
 
         // Recipient + language are fixed by the composer context (button +
         // active tab), so they're hidden inputs here, not pickers.
@@ -484,11 +479,11 @@ HTML;
             $lang = Factory::getApplication()->getLanguage()->getTag();
         }
 
-        $langObj   = LanguageHelper::getLanguages('lang_code')[$lang] ?? null;
-        $langName  = (string) ($langObj->title_native ?? $lang);
+        $langObj = LanguageHelper::getLanguages('lang_code')[$lang] ?? null;
+        $langName = (string) ($langObj->title_native ?? $lang);
         $rcptLabel = Text::_('COM_ALFA_FORM_FIELDSET_ORDER_STATUS_EMAILS_' . strtoupper($recipient));
 
-        $submitUrl  = Route::_(sprintf(
+        $submitUrl = Route::_(sprintf(
             'index.php?option=com_alfa&task=orderstatus.sendTestEmail&tmpl=component&status_id=%d',
             $statusId,
         ), false);
@@ -529,53 +524,53 @@ HTML;
             'UTF-8',
         );
         $recipientEsc = htmlspecialchars($recipient, ENT_COMPAT, 'UTF-8');
-        $langEsc      = htmlspecialchars($lang, ENT_COMPAT, 'UTF-8');
+        $langEsc = htmlspecialchars($lang, ENT_COMPAT, 'UTF-8');
 
         return <<<HTML
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Send test email</title>
-    <link rel="stylesheet" href="/media/templates/administrator/atum/css/template.min.css">
-</head>
-<body class="bg-light">
-    <div class="container py-4" style="max-width:560px;">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h5 class="card-title mb-2">{$heading}</h5>
-                <p class="text-muted small mb-4">{$context}</p>
-                <form method="post" action="{$submitUrlEsc}">
-                    <input type="hidden" name="recipient" value="{$recipientEsc}">
-                    <input type="hidden" name="lang" value="{$langEsc}">
-                    <div class="mb-3">
-                        <label for="alfa-test-order" class="form-label fw-semibold">{$lblOrder}</label>
-                        <select id="alfa-test-order" name="order_id" class="form-select" required>{$orderOptions}</select>
-                        <div class="form-text">{$lblOrderHint}</div>
+            <!doctype html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width,initial-scale=1">
+                <title>Send test email</title>
+                <link rel="stylesheet" href="/media/templates/administrator/atum/css/template.min.css">
+            </head>
+            <body class="bg-light">
+                <div class="container py-4" style="max-width:560px;">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title mb-2">{$heading}</h5>
+                            <p class="text-muted small mb-4">{$context}</p>
+                            <form method="post" action="{$submitUrlEsc}">
+                                <input type="hidden" name="recipient" value="{$recipientEsc}">
+                                <input type="hidden" name="lang" value="{$langEsc}">
+                                <div class="mb-3">
+                                    <label for="alfa-test-order" class="form-label fw-semibold">{$lblOrder}</label>
+                                    <select id="alfa-test-order" name="order_id" class="form-select" required>{$orderOptions}</select>
+                                    <div class="form-text">{$lblOrderHint}</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="alfa-test-destination" class="form-label fw-semibold">{$lblDestination}</label>
+                                    <input id="alfa-test-destination" type="email" name="destination" class="form-control" value="{$userEmailEsc}" required>
+                                </div>
+                                <div class="text-end mt-4">
+                                    <button type="submit" class="btn btn-primary">{$lblSubmit}</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="alfa-test-destination" class="form-label fw-semibold">{$lblDestination}</label>
-                        <input id="alfa-test-destination" type="email" name="destination" class="form-control" value="{$userEmailEsc}" required>
-                    </div>
-                    <div class="text-end mt-4">
-                        <button type="submit" class="btn btn-primary">{$lblSubmit}</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</body>
-</html>
-HTML;
+                </div>
+            </body>
+            </html>
+            HTML;
     }
 
     /**
      * Build the result page (success or error) shown after submission.
      *
-     * @param int         $statusId    Status PK (for "Send another" link).
-     * @param string      $destination Destination email (for confirmation).
-     * @param string|null $error       Error message or null on success.
+     * @param int $statusId Status PK (for "Send another" link).
+     * @param string $destination Destination email (for confirmation).
+     * @param string|null $error Error message or null on success.
      *
      * @return string Complete HTML page.
      *
@@ -583,7 +578,7 @@ HTML;
      */
     private function renderSendTestResultHtml(int $statusId, string $destination, ?string $error): string
     {
-        $isError    = $error !== null;
+        $isError = $error !== null;
         $alertClass = $isError ? 'alert-danger' : 'alert-success';
 
         $title = htmlspecialchars(
@@ -614,27 +609,27 @@ HTML;
         $bootstrapUrl = Uri::root(true) . '/media/templates/administrator/atum/css/template.min.css';
 
         return <<<HTML
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Send test email — result</title>
-    <link rel="stylesheet" href="{$bootstrapUrl}">
-</head>
-<body class="p-4">
-    <div class="container" style="max-width:560px;">
-        <div class="alert {$alertClass}" role="alert">
-            <h4 class="alert-heading mb-2">{$title}</h4>
-            <p class="mb-0">{$body}</p>
-        </div>
-        <div class="text-center mt-3">
-            <a class="btn btn-link" href="{$backUrlEsc}">{$backLabel}</a>
-        </div>
-    </div>
-</body>
-</html>
-HTML;
+            <!doctype html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width,initial-scale=1">
+                <title>Send test email — result</title>
+                <link rel="stylesheet" href="{$bootstrapUrl}">
+            </head>
+            <body class="p-4">
+                <div class="container" style="max-width:560px;">
+                    <div class="alert {$alertClass}" role="alert">
+                        <h4 class="alert-heading mb-2">{$title}</h4>
+                        <p class="mb-0">{$body}</p>
+                    </div>
+                    <div class="text-center mt-3">
+                        <a class="btn btn-link" href="{$backUrlEsc}">{$backLabel}</a>
+                    </div>
+                </div>
+            </body>
+            </html>
+            HTML;
     }
 
     /**
@@ -655,7 +650,7 @@ HTML;
     private function loadRecentOrdersForPicker(int $limit): array
     {
         try {
-            $db    = Factory::getContainer()->get('DatabaseDriver');
+            $db = Factory::getContainer()->get('DatabaseDriver');
             $query = $db->getQuery(true)
                 ->select([
                     $db->quoteName('id'),
@@ -684,7 +679,6 @@ HTML;
      *
      * @param string $message Plain-text error message.
      *
-     * @return void
      *
      * @since   1.0.4
      */

@@ -92,7 +92,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
         parent::__construct($config);
 
         $this->completePageUrl = 'index.php?option=com_alfa&view=cart&layout=default_order_completed';
-        $this->processPageUrl  = 'index.php?option=com_alfa&view=cart&layout=default_order_process';
+        $this->processPageUrl = 'index.php?option=com_alfa&view=cart&layout=default_order_process';
         $this->logIdentifierField = 'id_order_payment';
     }
 

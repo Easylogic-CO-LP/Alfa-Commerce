@@ -233,9 +233,9 @@ class CategoryHelper
      * Normalise an optional language tag to the snake-case form used in cache
      * keys and lang-table names, defaulting to the current request language.
      *
-     * @param  string|null  $langTag  lang_code/snake tag, or null for current.
+     * @param string|null $langTag lang_code/snake tag, or null for current.
      *
-     * @return string  e.g. "en_gb"
+     * @return string e.g. "en_gb"
      *
      * @since   1.0.1
      */
@@ -251,8 +251,8 @@ class CategoryHelper
      *
      * PUBLIC because it's called by cache controller via callback
      *
-     * @param int          $categoryId  Category ID
-     * @param string|null  $langTag     Resolve name/alias in THIS language; null = current.
+     * @param int $categoryId Category ID
+     * @param string|null $langTag Resolve name/alias in THIS language; null = current.
      *
      * @return array|false Category data or false if not found
      * @since   1.0.1
@@ -296,8 +296,8 @@ class CategoryHelper
         // Effective language tag — explicit (language switch) or current request.
         // It scopes every cache key: name / alias are language-resolved, so a
         // language-blind key would serve one language's data to another.
-        $lang        = self::resolveLangTag($langTag);
-        $memoKey     = $categoryId . '_' . $lang;
+        $lang = self::resolveLangTag($langTag);
+        $memoKey = $categoryId . '_' . $lang;
 
         if (isset(self::$categoryDataCache[$memoKey])) {
             return self::$categoryDataCache[$memoKey];
@@ -329,9 +329,9 @@ class CategoryHelper
     /**
      * Get category path from root to current category
      *
-     * @param int          $categoryId  Category ID
-     * @param string|null  $langTag     Resolve aliases in THIS language (language
-     *                                  switch); null = current request language.
+     * @param int $categoryId Category ID
+     * @param string|null $langTag Resolve aliases in THIS language (language
+     *                             switch); null = current request language.
      *
      * @return array Array of categories from root to current
      * @since   1.0.1
@@ -344,7 +344,7 @@ class CategoryHelper
 
         // Effective language scopes every cache key — the path carries
         // per-language aliases used in SEF URLs.
-        $lang    = self::resolveLangTag($langTag);
+        $lang = self::resolveLangTag($langTag);
         $memoKey = $categoryId . '_' . $lang;
 
         if (isset(self::$categoryPathCache[$memoKey])) {
@@ -373,8 +373,8 @@ class CategoryHelper
      *
      * PUBLIC because it's called by cache controller via callback
      *
-     * @param int          $categoryId  Category ID
-     * @param string|null  $langTag     Resolve aliases in THIS language; null = current.
+     * @param int $categoryId Category ID
+     * @param string|null $langTag Resolve aliases in THIS language; null = current.
      *
      * @return array Array of categories from root to current
      * @since   1.0.1
