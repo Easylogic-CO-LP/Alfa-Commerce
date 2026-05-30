@@ -18,7 +18,6 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\BaseController;
 use Joomla\CMS\Response\JsonResponse;
 use Joomla\CMS\Session\Session;
-use Throwable;
 
 /**
  * Maintenance controller for Alfa ↔ Joomla / multilingual sync tasks.
@@ -43,6 +42,7 @@ class SyncController extends BaseController
      * entity (discovered from the form XML), across all installed content
      * languages. Idempotent — only creates missing tables / columns.
      *
+     * @return  void
      *
      * @since   1.0.1
      */
@@ -51,7 +51,7 @@ class SyncController extends BaseController
         $this->ajaxGuard();
 
         try {
-            $result = SyncHelper::syncLanguageSchema();
+            $result  = SyncHelper::syncLanguageSchema();
             $created = 0;
 
             foreach ($result['tables'] as $tableSummary) {
@@ -65,7 +65,7 @@ class SyncController extends BaseController
             }
 
             $this->ajaxRespond(['message' => $message]);
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             $this->ajaxRespond([], false, $e->getMessage());
         }
     }
@@ -74,6 +74,7 @@ class SyncController extends BaseController
      * AJAX: bulk-sync Joomla users + usergroups into the Alfa tables (catches up
      * any that were created before the plugin was active, or outside the app).
      *
+     * @return  void
      *
      * @since   1.0.1
      */
@@ -82,12 +83,12 @@ class SyncController extends BaseController
         $this->ajaxGuard();
 
         try {
-            $db = Factory::getContainer()->get('DatabaseDriver');
-            $users = SyncHelper::bulkSyncUsers($db);
+            $db     = Factory::getContainer()->get('DatabaseDriver');
+            $users  = SyncHelper::bulkSyncUsers($db);
             $groups = SyncHelper::bulkSyncUsergroups($db);
 
             $this->ajaxRespond(['message' => Text::sprintf('COM_ALFA_SYNC_USERS_DONE', $users, $groups)]);
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             $this->ajaxRespond([], false, $e->getMessage());
         }
     }
@@ -97,6 +98,7 @@ class SyncController extends BaseController
      * field list and total record count — so the Tools view can drive the
      * chunked backfill and compute overall progress.
      *
+     * @return  void
      *
      * @since   1.0.1
      */
@@ -104,13 +106,13 @@ class SyncController extends BaseController
     {
         $this->ajaxGuard();
 
-        $db = Factory::getContainer()->get('DatabaseDriver');
+        $db     = Factory::getContainer()->get('DatabaseDriver');
         $schema = SyncHelper::getMultilingualSchema();
-        $plan = [];
+        $plan   = [];
 
         foreach ($schema as $table => $definition) {
             $total = (int) $db->setQuery(
-                $db->getQuery(true)->select('COUNT(*)')->from($db->quoteName($db->replacePrefix($table))),
+                $db->getQuery(true)->select('COUNT(*)')->from($db->quoteName($db->replacePrefix($table)))
             )->loadResult();
 
             $plan[] = [
@@ -128,6 +130,7 @@ class SyncController extends BaseController
      * list are resolved server-side from the discovered schema (the client only
      * supplies the table name + offset) so they can't be tampered with.
      *
+     * @return  void
      *
      * @since   1.0.1
      */
@@ -135,7 +138,7 @@ class SyncController extends BaseController
     {
         $this->ajaxGuard();
 
-        $table = (string) $this->input->get('table', '', 'raw');
+        $table  = (string) $this->input->get('table', '', 'raw');
         $offset = (int) $this->input->get('offset', 0, 'int');
         $schema = SyncHelper::getMultilingualSchema();
 
@@ -156,14 +159,14 @@ class SyncController extends BaseController
             );
 
             $this->ajaxRespond([
-                'table' => $table,
-                'written' => $result['written'],
+                'table'     => $table,
+                'written'   => $result['written'],
                 'processed' => $result['processed'],
-                'total' => $result['total'],
-                'next' => $offset + self::BACKFILL_CHUNK,
-                'done' => ($offset + self::BACKFILL_CHUNK) >= $result['total'],
+                'total'     => $result['total'],
+                'next'      => $offset + self::BACKFILL_CHUNK,
+                'done'      => ($offset + self::BACKFILL_CHUNK) >= $result['total'],
             ]);
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             $this->ajaxRespond([], false, $e->getMessage());
         }
     }
@@ -171,6 +174,7 @@ class SyncController extends BaseController
     /**
      * Shared AJAX guard: admin permission + CSRF token (accepted in GET or POST).
      *
+     * @return  void
      *
      * @since   1.0.1
      */
@@ -190,10 +194,11 @@ class SyncController extends BaseController
     /**
      * Emit a Joomla JsonResponse ({success, message, data}) and close the app.
      *
-     * @param array $data Payload (returned under `data` on success).
-     * @param bool $success Success flag.
-     * @param string $message Message (used for the error case).
+     * @param   array   $data     Payload (returned under `data` on success).
+     * @param   bool    $success  Success flag.
+     * @param   string  $message  Message (used for the error case).
      *
+     * @return  void
      *
      * @since   1.0.1
      */

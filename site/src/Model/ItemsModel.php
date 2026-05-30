@@ -786,14 +786,14 @@ class ItemsModel extends UrlListModel
         // main table — resolve them in the active language via the per-language
         // tables. Only tables that have been migrated are listed here.
         $langPkMap = [
-            '#__alfa_categories' => 'id_category',
+            '#__alfa_categories'    => 'id_category',
             '#__alfa_manufacturers' => 'id_manufacturer',
         ];
 
         if (isset($langPkMap[$table])) {
             $langFields = array_values(array_filter(
                 $selectFields,
-                static fn ($field) => $field !== $idFieldName,
+                static fn($field) => $field !== $idFieldName,
             )) ?: ['name'];
 
             return MultilingualHelper::getRecordsByIds(

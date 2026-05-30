@@ -12,12 +12,10 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
-use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Field\EditorField;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\LanguageHelper;
-use SimpleXMLElement;
 
 /**
  * MultilingualEditorField
@@ -96,25 +94,26 @@ class MultilingualEditorField extends EditorField
      *
      * For new items (id = 0) all editors are initialised with empty strings.
      *
-     * @param SimpleXMLElement $element The XML field definition.
-     * @param mixed $value The base field value — always empty, ignored.
-     * @param string|null $group Field name group.
+     * @param   \SimpleXMLElement  $element  The XML field definition.
+     * @param   mixed              $value    The base field value — always empty, ignored.
+     * @param   string|null        $group    Field name group.
      *
+     * @return  bool
      *
      * @since   1.0.1
      */
-    public function setup(SimpleXMLElement $element, $value, $group = null): bool
+    public function setup(\SimpleXMLElement $element, $value, $group = null): bool
     {
         $result = parent::setup($element, $value, $group);
 
         $languages = LanguageHelper::getLanguages('lang_code');
-        $flatData = [];
+        $flatData  = [];
 
         // Read table and PK from XML attributes — makes this field reusable
         // across any entity without any model involvement.
         $itemId = (int) $this->form->getValue('id', null);
-        $table = (string) ($this->element['multilingual_table'] ?? '');
-        $pk = (string) ($this->element['multilingual_pk'] ?? '');
+        $table  = (string) ($this->element['multilingual_table'] ?? '');
+        $pk     = (string) ($this->element['multilingual_pk']    ?? '');
 
         if ($itemId > 0 && $table !== '' && $pk !== '') {
             // Read flat keys (desc_en_gb, desc_el_gr …) directly from DB,
@@ -130,7 +129,7 @@ class MultilingualEditorField extends EditorField
 
         foreach ($languages as $langCode => $language) {
             $formatted = strtolower(str_replace('-', '_', $langCode));
-            $flatKey = $this->fieldname . '_' . $formatted;
+            $flatKey   = $this->fieldname . '_' . $formatted;
 
             $arrayValue[$formatted] = $flatData[$flatKey] ?? '';
         }
@@ -152,7 +151,7 @@ class MultilingualEditorField extends EditorField
      * and dispatcher wiring internally. We call it once here and pass it down
      * to avoid repeated initialisation per language tab.
      *
-     * @return string Ready-to-render HTML.
+     * @return  string  Ready-to-render HTML.
      *
      * @since   1.0.1
      */
@@ -161,9 +160,9 @@ class MultilingualEditorField extends EditorField
         Factory::getApplication()->getDocument()->getWebAssetManager()
             ->useStyle('com_alfa.multilingual-fields');
 
-        $editor = $this->getEditor();
+        $editor    = $this->getEditor();
         $languages = LanguageHelper::getLanguages('lang_code');
-        $values = is_array($this->value) ? $this->value : [];
+        $values    = is_array($this->value) ? $this->value : [];
 
         if (count($languages) === 1) {
             return $this->renderSingleLanguage(
@@ -191,23 +190,23 @@ class MultilingualEditorField extends EditorField
      * Both $value and $input are therefore always empty by the time this runs.
      * Raw POST is the only guaranteed source of truth during form submission.
      *
-     * @param mixed $value Always empty — ignored.
-     * @param string|null $group Optional form group path.
-     * @param \Joomla\Registry\Registry|null $input Full form data registry.
+     * @param   mixed                           $value  Always empty — ignored.
+     * @param   string|null                     $group  Optional form group path.
+     * @param   \Joomla\Registry\Registry|null  $input  Full form data registry.
      *
-     * @return bool|Exception True if valid, Exception on failure.
+     * @return  bool|\Exception  True if valid, Exception on failure.
      *
      * @since   1.0.1
      */
-    public function validate($value, $group = null, ?\Joomla\Registry\Registry $input = null): bool|Exception
+    public function validate($value, $group = null, ?\Joomla\Registry\Registry $input = null): bool|\Exception
     {
-        $languages = LanguageHelper::getLanguages('lang_code');
+        $languages       = LanguageHelper::getLanguages('lang_code');
         $defaultLangCode = strtolower(str_replace('-', '_', array_key_first($languages)));
-        $flatKey = $this->fieldname . '_' . $defaultLangCode;
+        $flatKey         = $this->fieldname . '_' . $defaultLangCode;
 
         // jform[desc] is never in POST — only jform[desc_en_gb] etc. are submitted.
         // $value and $input are always empty. Read directly from raw POST.
-        $jform = Factory::getApplication()->getInput()->post->get('jform', [], 'raw');
+        $jform       = Factory::getApplication()->getInput()->post->get('jform', [], 'raw');
         $scalarValue = (string) ($jform[$flatKey] ?? '');
 
         return parent::validate($scalarValue, $group, $input);
@@ -220,9 +219,11 @@ class MultilingualEditorField extends EditorField
     /**
      * Single language: render the editor with no surrounding chrome.
      *
-     * @param array $languages LanguageHelper::getLanguages() result.
-     * @param array $values Keyed by formatted lang code e.g. 'en_gb'.
+     * @param   \Joomla\CMS\Editor\Editor  $editor
+     * @param   array                      $languages  LanguageHelper::getLanguages() result.
+     * @param   array                      $values     Keyed by formatted lang code e.g. 'en_gb'.
      *
+     * @return  string
      *
      * @since   1.0.1
      */
@@ -251,9 +252,11 @@ class MultilingualEditorField extends EditorField
      * default-language tab label — mirroring the native Joomla label star.
      * The editor owns its own markup so required="" cannot be injected into it.
      *
-     * @param array $languages LanguageHelper::getLanguages() result.
-     * @param array $values Keyed by formatted lang code e.g. 'en_gb'.
+     * @param   \Joomla\CMS\Editor\Editor  $editor
+     * @param   array                      $languages  LanguageHelper::getLanguages() result.
+     * @param   array                      $values     Keyed by formatted lang code e.g. 'en_gb'.
      *
+     * @return  string
      *
      * @since   1.0.1
      */
@@ -262,19 +265,21 @@ class MultilingualEditorField extends EditorField
         array $languages,
         array $values,
     ): string {
-        $entries = $this->normaliseLangEntries($languages);
-        $tabSetId = 'mlEditor_' . $this->id;
-        $activeTab = $tabSetId . '_' . $entries[0]['code'];
+        $entries         = $this->normaliseLangEntries($languages);
+        $tabSetId        = 'mlEditor_' . $this->id;
+        $activeTab       = $tabSetId . '_' . $entries[0]['code'];
         $defaultLangCode = strtolower(str_replace('-', '_', array_key_first($languages)));
 
+        // No 'recall' here: nested recall tabsets all share one URL-keyed
+        // sessionStorage slot, and a deep language-tab id stored there can
+        // trip core joomla-tab's walk-up loop on reload (main-thread freeze).
         $html = HTMLHelper::_('uitab.startTabSet', $tabSetId, [
-            'active' => $activeTab,
-            'recall' => true,
+            'active'     => $activeTab,
             'breakpoint' => 768,
         ]);
 
         foreach ($entries as $entry) {
-            $tabId = $tabSetId . '_' . $entry['code'];
+            $tabId     = $tabSetId . '_' . $entry['code'];
             $isDefault = ($entry['code'] === $defaultLangCode);
 
             // Append required star to default-language tab label when field is required.
@@ -312,11 +317,12 @@ class MultilingualEditorField extends EditorField
      * Uses the typed properties EditorField exposes from the XML definition
      * ($this->width, $this->height, etc.) — exactly as the parent field would.
      *
-     * @param \Joomla\CMS\Editor\Editor $editor Fully initialised editor instance.
-     * @param string $id HTML id for this editor instance.
-     * @param string $name Form input name e.g. jform[desc_en_gb].
-     * @param string $value Existing translation value.
+     * @param   \Joomla\CMS\Editor\Editor  $editor  Fully initialised editor instance.
+     * @param   string                     $id      HTML id for this editor instance.
+     * @param   string                     $name    Form input name e.g. jform[desc_en_gb].
+     * @param   string                     $value   Existing translation value.
      *
+     * @return  string
      *
      * @since   1.0.1
      */
@@ -331,10 +337,10 @@ class MultilingualEditorField extends EditorField
         return $editor->display(
             $name,
             $value,
-            $this->width ?? '100%',
-            $this->height ?? '250',
+            $this->width   ?? '100%',
+            $this->height  ?? '250',
             (int) ($this->columns ?? 80),
-            (int) ($this->rows ?? 15),
+            (int) ($this->rows    ?? 15),
             $buttons,
             $id,
         );
@@ -350,8 +356,9 @@ class MultilingualEditorField extends EditorField
      * Note: the required star is NOT added here — it is appended by renderTabSet()
      * after this method returns, keeping label building and required logic separate.
      *
-     * @param object $language Language object from LanguageHelper::getLanguages().
+     * @param   object  $language  Language object from LanguageHelper::getLanguages().
      *
+     * @return  string
      *
      * @since   1.0.1
      */
@@ -383,8 +390,9 @@ class MultilingualEditorField extends EditorField
      * Normalise the raw LanguageHelper result into a flat list of
      * ['code' => string, 'language' => object] pairs ready for iteration.
      *
-     * @param array $languages Keyed by raw lang code e.g. 'en-GB'.
+     * @param   array  $languages  Keyed by raw lang code e.g. 'en-GB'.
      *
+     * @return  array
      *
      * @since   1.0.1
      */
@@ -394,7 +402,7 @@ class MultilingualEditorField extends EditorField
 
         foreach ($languages as $langCode => $language) {
             $entries[] = [
-                'code' => $this->formatLangCode($langCode),
+                'code'     => $this->formatLangCode($langCode),
                 'language' => $language,
             ];
         }
@@ -408,8 +416,9 @@ class MultilingualEditorField extends EditorField
      *
      * Examples:  'en-GB' → 'en_gb',  'el-GR' → 'el_gr'
      *
-     * @param string $langCode Raw code as returned by LanguageHelper.
+     * @param   string  $langCode  Raw code as returned by LanguageHelper.
      *
+     * @return  string
      *
      * @since   1.0.1
      */
@@ -421,9 +430,9 @@ class MultilingualEditorField extends EditorField
     /**
      * Build the jform input name for a given language slot.
      *
-     * @param string $formattedLangCode e.g. 'en_gb'
+     * @param   string  $formattedLangCode  e.g. 'en_gb'
      *
-     * @return string e.g. 'jform[desc_en_gb]'
+     * @return  string  e.g. 'jform[desc_en_gb]'
      *
      * @since   1.0.1
      */

@@ -42,10 +42,10 @@ class AssociationHelper
      * switching; everything else returns [] so Joomla falls back to native
      * menu-item associations.
      *
-     * @param int $id Record id (0 = read from the request).
-     * @param string|null $view View name (null = read from the request).
+     * @param   int          $id    Record id (0 = read from the request).
+     * @param   string|null  $view  View name (null = read from the request).
      *
-     * @return array [ 'el-GR' => 'index.php?...&lang=el-GR', 'en-GB' => … ]
+     * @return  array  [ 'el-GR' => 'index.php?...&lang=el-GR', 'en-GB' => … ]
      *
      * @since   1.0.1
      */
@@ -56,8 +56,8 @@ class AssociationHelper
         }
 
         $input = Factory::getApplication()->getInput();
-        $view = $view ?: $input->get('view');
-        $id = $id ?: $input->getInt('id');
+        $view  = $view ?: $input->get('view');
+        $id    = $id ?: $input->getInt('id');
 
         switch ($view) {
             case 'item':
@@ -66,9 +66,9 @@ class AssociationHelper
                 }
                 // The id (and its category) are shared across languages; only the
                 // emitted slug differs, which the Router handles via &lang.
-                $base = 'index.php?option=com_alfa&view=item&id=' . $id;
-                $catId = $input->getInt('category_id');
-                $base .= $catId ? '&category_id=' . $catId : '';
+                $base   = 'index.php?option=com_alfa&view=item&id=' . $id;
+                $catId  = $input->getInt('category_id');
+                $base  .= $catId ? '&category_id=' . $catId : '';
                 break;
 
             case 'manufacturer':
@@ -81,7 +81,7 @@ class AssociationHelper
             case 'items':
                 // Category product listing (id lives in category_id, not id).
                 $catId = $input->getInt('category_id');
-                $base = 'index.php?option=com_alfa&view=items' . ($catId ? '&category_id=' . $catId : '');
+                $base  = 'index.php?option=com_alfa&view=items' . ($catId ? '&category_id=' . $catId : '');
                 break;
 
             default:

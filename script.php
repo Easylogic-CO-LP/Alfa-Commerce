@@ -19,6 +19,7 @@ use Joomla\CMS\Installer\InstallerScript;
 /**
  * Installer / uninstaller script for the Alfa Commerce component.
  *
+ *
  * Responsibilities:
  *  - Validate environment requirements before installation (preflight).
  *  - Install / update bundled libraries, plugins and modules alongside the component.

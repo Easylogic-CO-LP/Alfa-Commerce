@@ -35,8 +35,8 @@ final class MultilingualAliasConfig
      * @since  1.0.1
      */
     public const FIELDS = [
-        '#__alfa_categories' => ['alias'],
-        '#__alfa_items' => ['alias'],
+        '#__alfa_categories'    => ['alias'],
+        '#__alfa_items'         => ['alias'],
         '#__alfa_manufacturers' => ['alias'],
     ];
 

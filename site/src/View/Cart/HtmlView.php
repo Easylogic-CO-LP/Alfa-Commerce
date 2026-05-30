@@ -110,12 +110,12 @@ class HtmlView extends BaseHtmlView
 
             if ($this->_layout == 'default_order_process') {
                 $selectedPayment = $orderData->selected_payment ?? null;
-                $paymentType = $selectedPayment->type ?? '';
+                $paymentType     = $selectedPayment->type ?? '';
 
                 $onProcessPaymentEventName = 'onOrderProcessView';
                 $paymentEvent = new PaymentsOrderProcessViewEvent($onProcessPaymentEventName, [
                     'subject' => $orderData,
-                    'method' => $selectedPayment,
+                    'method'  => $selectedPayment,
                 ]);
 
                 // Engage the payment plugin only when the order has one. bootPlugin()
@@ -163,12 +163,12 @@ class HtmlView extends BaseHtmlView
 
             if ($this->_layout == 'default_order_completed') {
                 $selectedPayment = $orderData->selected_payment ?? null;
-                $paymentType = $selectedPayment->type ?? '';
+                $paymentType     = $selectedPayment->type ?? '';
 
                 $onOrderCompleteViewEventName = 'onOrderCompleteView';
                 $paymentEvent = new PaymentsOrderCompleteViewEvent($onOrderCompleteViewEventName, [
                     'subject' => $orderData,
-                    'method' => $selectedPayment,
+                    'method'  => $selectedPayment,
                 ]);
 
                 // Engage the payment plugin only when the order has one. bootPlugin()

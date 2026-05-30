@@ -279,11 +279,11 @@ class ShipmentsModel extends ListModel
         );
 
         foreach ($items as $item) {
-            MultilingualHelper::bindRelated($item, 'categories', $catMap);
+            MultilingualHelper::bindRelated($item, 'categories',    $catMap);
             MultilingualHelper::bindRelated($item, 'manufacturers', $manMap);
-            MultilingualHelper::bindRelated($item, 'users', $userMap);
-            MultilingualHelper::bindRelated($item, 'places', $placeMap);
-            MultilingualHelper::bindRelated($item, 'usergroups', $ugMap);
+            MultilingualHelper::bindRelated($item, 'users',         $userMap);
+            MultilingualHelper::bindRelated($item, 'places',        $placeMap);
+            MultilingualHelper::bindRelated($item, 'usergroups',    $ugMap);
         }
 
         return $items;

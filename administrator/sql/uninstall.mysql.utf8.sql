@@ -65,6 +65,7 @@ DROP TABLE IF EXISTS `#__alfa_coupons`;
 DROP TABLE IF EXISTS `#__alfa_currencies`;
 DROP TABLE IF EXISTS `#__alfa_customs`;
 DROP TABLE IF EXISTS `#__alfa_form_fields`;
+DROP TABLE IF EXISTS `#__alfa_form_field_groups`;
 DROP TABLE IF EXISTS `#__alfa_places`;
 DROP TABLE IF EXISTS `#__alfa_user_info`;
 DROP TABLE IF EXISTS `#__alfa_usergroups`;

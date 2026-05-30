@@ -16,7 +16,6 @@ use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\BaseController;
 use Joomla\CMS\Router\Route;
-use Throwable;
 
 /**
  * Controller for the Tools → Media maintenance view.
@@ -29,6 +28,7 @@ class ToolsmediaController extends BaseController
      * Delete the selected media rows (and their files) — orphan / missing-file
      * cleanup. Gated by the alfa.tools permission.
      *
+     * @return  void
      *
      * @since   1.0.1
      */
@@ -41,7 +41,7 @@ class ToolsmediaController extends BaseController
         }
 
         // 'files' mode selects by relative path; 'rows' mode by media row id.
-        $source = (string) ($this->input->get('filter', [], 'array')['source'] ?? 'rows');
+        $source    = (string) ($this->input->get('filter', [], 'array')['source'] ?? 'rows');
         $selection = (array) $this->input->get('cid', [], 'raw');
 
         try {
@@ -59,7 +59,7 @@ class ToolsmediaController extends BaseController
                 $deleted = MediaHelper::deleteMediaByIds($ids);
                 $this->setMessage(Text::sprintf('COM_ALFA_TOOLSMEDIA_N_DELETED', $deleted));
             }
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             $this->setMessage($e->getMessage(), 'error');
         }
 
@@ -70,6 +70,7 @@ class ToolsmediaController extends BaseController
      * Delete every orphan media row (and its files) across all pages. Gated by
      * the alfa.tools permission.
      *
+     * @return  void
      *
      * @since   1.0.1
      */
@@ -82,6 +83,7 @@ class ToolsmediaController extends BaseController
      * Delete every media row whose file is missing on disk, across all pages.
      * Gated by the alfa.tools permission.
      *
+     * @return  void
      *
      * @since   1.0.1
      */
@@ -94,8 +96,9 @@ class ToolsmediaController extends BaseController
      * Shared driver for the "delete all" maintenance actions: resolve the full
      * id set via the given finder, then delete it (the helper slices internally).
      *
-     * @param callable $finder Returns the int[] of media ids to delete.
+     * @param   callable  $finder  Returns the int[] of media ids to delete.
      *
+     * @return  void
      *
      * @since   1.0.1
      */
@@ -108,10 +111,10 @@ class ToolsmediaController extends BaseController
         }
 
         try {
-            $ids = (array) $finder();
+            $ids     = (array) $finder();
             $deleted = MediaHelper::deleteMediaByIds($ids);
             $this->setMessage(Text::sprintf('COM_ALFA_TOOLSMEDIA_N_DELETED', $deleted));
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             $this->setMessage($e->getMessage(), 'error');
         }
 

@@ -17,7 +17,6 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\BaseController;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Session\Session;
-use Throwable;
 
 /**
  * Developer tools controller — actions for the Tools view that don't belong to a
@@ -37,6 +36,7 @@ class ToolsController extends BaseController
      * Build and download the extension package archive (repo layout, libraries
      * excluded — a source/PR package rather than a guaranteed-installable one).
      *
+     * @return  void
      *
      * @since   1.0.3
      */
@@ -56,7 +56,7 @@ class ToolsController extends BaseController
 
         try {
             $package = PackageHelper::buildPackageZip(installRoot: JPATH_ROOT);
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             $this->setMessage(Text::sprintf('COM_ALFA_TOOLS_PACKAGE_ERROR', $e->getMessage()), 'error');
             $this->setRedirect(Route::_('index.php?option=com_alfa&view=tools', false));
 
@@ -71,9 +71,10 @@ class ToolsController extends BaseController
      * end the request. Output buffers are flushed first so the binary payload is
      * not corrupted by stray output.
      *
-     * @param string $path Absolute path to the archive on disk.
-     * @param string $filename Download filename presented to the browser.
+     * @param   string  $path      Absolute path to the archive on disk.
+     * @param   string  $filename  Download filename presented to the browser.
      *
+     * @return  void
      *
      * @since   1.0.3
      */

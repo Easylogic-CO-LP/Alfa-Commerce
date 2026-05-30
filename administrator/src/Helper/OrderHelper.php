@@ -717,7 +717,7 @@ class OrderHelper
     private static function bootItemsModel()
     {
         $factory = Factory::getApplication()->bootComponent('com_alfa')->getMVCFactory();
-        $model = $factory->createModel('Items', 'Administrator');
+        $model   = $factory->createModel('Items', 'Administrator');
 
         if ($model) {
             // Force populateState() now; later setState() calls then take effect.

@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @version    CVS: 1.0.1
  * @package    Com_Alfa
@@ -13,13 +12,11 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
-use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Field\TextField;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\LanguageHelper;
 use Joomla\CMS\Language\Text;
-use SimpleXMLElement;
 
 /**
  * MultilingualTextField
@@ -85,14 +82,15 @@ class MultilingualTextField extends TextField
      *
      * For new items (id = 0) all inputs are initialised with empty strings.
      *
-     * @param SimpleXMLElement $element The form field XML definition.
-     * @param mixed $value The base field value — always empty, ignored.
-     * @param string|null $group The field group name.
+     * @param   \SimpleXMLElement  $element  The form field XML definition.
+     * @param   mixed              $value    The base field value — always empty, ignored.
+     * @param   string|null        $group    The field group name.
      *
+     * @return  bool
      *
      * @since   1.0.1
      */
-    public function setup(SimpleXMLElement $element, $value, $group = null): bool
+    public function setup(\SimpleXMLElement $element, $value, $group = null): bool
     {
         $result = parent::setup($element, $value, $group);
 
@@ -108,7 +106,7 @@ class MultilingualTextField extends TextField
 
             if (is_string($value)) {
                 $decoded = json_decode($value, true);
-                $map = is_array($decoded) ? $decoded : ($value !== '' ? [$default => $value] : []);
+                $map     = is_array($decoded) ? $decoded : ($value !== '' ? [$default => $value] : []);
             } else {
                 $map = (array) $value;
             }
@@ -116,7 +114,7 @@ class MultilingualTextField extends TextField
             $arrayValue = [];
 
             foreach ($languages as $langCode => $language) {
-                $formatted = strtolower(str_replace('-', '_', $langCode));
+                $formatted              = strtolower(str_replace('-', '_', $langCode));
                 $arrayValue[$formatted] = (string) ($map[$formatted] ?? '');
             }
 
@@ -130,9 +128,9 @@ class MultilingualTextField extends TextField
         // them. Table and PK come from XML attributes so the field is reusable
         // across any entity without model involvement.
         $flatData = [];
-        $itemId = (int) $this->form->getValue('id', null);
-        $table = (string) ($this->element['multilingual_table'] ?? '');
-        $pk = (string) ($this->element['multilingual_pk'] ?? '');
+        $itemId   = (int) $this->form->getValue('id', null);
+        $table    = (string) ($this->element['multilingual_table'] ?? '');
+        $pk       = (string) ($this->element['multilingual_pk'] ?? '');
 
         if ($itemId > 0 && $table !== '' && $pk !== '') {
             $flatData = MultilingualHelper::getMultilingualDataFlat(
@@ -146,7 +144,7 @@ class MultilingualTextField extends TextField
 
         foreach ($languages as $langCode => $language) {
             $formatted = strtolower(str_replace('-', '_', $langCode));
-            $flatKey = $this->fieldname . '_' . $formatted;
+            $flatKey   = $this->fieldname . '_' . $formatted;
 
             $arrayValue[$formatted] = $flatData[$flatKey] ?? '';
         }
@@ -162,6 +160,7 @@ class MultilingualTextField extends TextField
      * inline as its own value (plugin params, subforms) instead of reading and
      * writing language tables. Column mode is used when multilingual_table is set.
      *
+     * @return  bool
      *
      * @since   1.0.1
      */
@@ -182,7 +181,7 @@ class MultilingualTextField extends TextField
      * Only the default-language input receives the HTML5 `required` attribute and
      * Joomla's `.required` CSS class, matching native Joomla field markup.
      *
-     * @return string HTML markup for all language inputs.
+     * @return  string  HTML markup for all language inputs.
      *
      * @since   1.0.1
      */
@@ -191,13 +190,13 @@ class MultilingualTextField extends TextField
         Factory::getApplication()->getDocument()->getWebAssetManager()
             ->useStyle('com_alfa.multilingual-fields');
 
-        $languages = LanguageHelper::getLanguages('lang_code');
-        $isMultilang = count($languages) > 1;
-        $isRequired = $this->required;
+        $languages       = LanguageHelper::getLanguages('lang_code');
+        $isMultilang     = count($languages) > 1;
+        $isRequired      = $this->required;
         $defaultLangCode = strtolower(str_replace('-', '_', array_key_first($languages)));
-        $jsonMode = $this->isJsonMode();
+        $jsonMode        = $this->isJsonMode();
 
-        $items = '';
+        $items  = '';
         $values = is_array($this->value) ? $this->value : [];
 
         foreach ($languages as $langCode => $language) {
@@ -252,29 +251,29 @@ class MultilingualTextField extends TextField
      * $value and $input are therefore always empty. Raw POST is the only
      * guaranteed source of truth during form submission.
      *
-     * @param mixed $value Always empty — ignored.
-     * @param string|null $group The optional form group path.
-     * @param \Joomla\Registry\Registry|null $input The full form data registry.
+     * @param   mixed                           $value  Always empty — ignored.
+     * @param   string|null                     $group  The optional form group path.
+     * @param   \Joomla\Registry\Registry|null  $input  The full form data registry.
      *
-     * @return bool|Exception True if valid, Exception on failure.
+     * @return  bool|\Exception  True if valid, Exception on failure.
      *
      * @since   1.0.1
      */
-    public function validate($value, $group = null, ?\Joomla\Registry\Registry $input = null): bool|Exception
+    public function validate($value, $group = null, ?\Joomla\Registry\Registry $input = null): bool|\Exception
     {
-        $languages = LanguageHelper::getLanguages('lang_code');
+        $languages       = LanguageHelper::getLanguages('lang_code');
         $defaultLangCode = strtolower(str_replace('-', '_', array_key_first($languages)));
 
         if ($this->isJsonMode()) {
             // JSON/inline mode: the value is this row's {lang: text} map — an
             // array, or a stdClass from the Registry. Validate the
             // default-language entry against the real rules.
-            $map = is_string($value) ? (json_decode($value, true) ?: []) : (array) $value;
+            $map         = is_string($value) ? (json_decode($value, true) ?: []) : (array) $value;
             $scalarValue = (string) ($map[$defaultLangCode] ?? '');
         } else {
             // Column mode: only jform[name_en_gb] etc. are in POST ($value/$input
             // are empty), so read the default-language flat key from raw POST.
-            $jform = Factory::getApplication()->getInput()->post->get('jform', [], 'raw');
+            $jform       = Factory::getApplication()->getInput()->post->get('jform', [], 'raw');
             $scalarValue = (string) ($jform[$this->fieldname . '_' . $defaultLangCode] ?? '');
         }
 
@@ -301,12 +300,12 @@ class MultilingualTextField extends TextField
      * The second ?: 'form-control' fallback is necessary because when $this->class
      * contains only 'required' and nothing else, stripping it leaves an empty string.
      *
-     * @param string $id The input element ID.
-     * @param string $name The input element name (array notation).
-     * @param string $value The pre-filled value for this language.
-     * @param bool $required Whether to add `required` and `.required` class.
+     * @param   string  $id        The input element ID.
+     * @param   string  $name      The input element name (array notation).
+     * @param   string  $value     The pre-filled value for this language.
+     * @param   bool    $required  Whether to add `required` and `.required` class.
      *
-     * @return string HTML <input> tag.
+     * @return  string  HTML <input> tag.
      *
      * @since   1.0.1
      */
@@ -314,7 +313,7 @@ class MultilingualTextField extends TextField
         string $id,
         string $name,
         string $value,
-        bool $required = false,
+        bool   $required = false
     ): string {
         // Strip 'required' that parent::setup() injected into $this->class.
         // The second ?: 'form-control' guards against $this->class being *only*
@@ -322,28 +321,18 @@ class MultilingualTextField extends TextField
         $baseClass = trim(str_replace('required', '', $this->class ?: 'form-control')) ?: 'form-control';
 
         $attrs = [
-            'type' => 'text',
-            'id' => $id,
-            'name' => $name,
+            'type'  => 'text',
+            'id'    => $id,
+            'name'  => $name,
             'value' => $value,
             'class' => trim($baseClass . ($required ? ' required' : '')),
         ];
 
-        if (!empty($this->size)) {
-            $attrs['size'] = (int) $this->size;
-        }
-        if (!empty($this->maxlength)) {
-            $attrs['maxlength'] = (int) $this->maxlength;
-        }
-        if ($this->readonly) {
-            $attrs['readonly'] = 'readonly';
-        }
-        if ($this->disabled) {
-            $attrs['disabled'] = 'disabled';
-        }
-        if (!empty($this->hint)) {
-            $attrs['placeholder'] = Text::_($this->hint);
-        }
+        if (!empty($this->size))      { $attrs['size']        = (int) $this->size; }
+        if (!empty($this->maxlength)) { $attrs['maxlength']   = (int) $this->maxlength; }
+        if ($this->readonly)          { $attrs['readonly']    = 'readonly'; }
+        if ($this->disabled)          { $attrs['disabled']    = 'disabled'; }
+        if (!empty($this->hint))      { $attrs['placeholder'] = Text::_($this->hint); }
 
         // HTML5 native required — only on the default-language input
         if ($required) {
@@ -363,9 +352,9 @@ class MultilingualTextField extends TextField
      * Render a small flag image pinned to the right edge of the wrapper div.
      * Falls back to a plain text language code when no flag image is available.
      *
-     * @param object $language Language object from LanguageHelper::getLanguages().
+     * @param   object  $language  Language object from LanguageHelper::getLanguages().
      *
-     * @return string HTML image tag or text fallback.
+     * @return  string  HTML image tag or text fallback.
      *
      * @since   1.0.1
      */

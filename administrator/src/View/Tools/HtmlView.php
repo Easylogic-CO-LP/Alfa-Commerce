@@ -31,7 +31,7 @@ class HtmlView extends BaseHtmlView
      * manually for an installable build" note. Each entry: folder, libraryname,
      * installCode, installManifest.
      *
-     * @var array<int, array{folder: string, libraryname: string, installCode: string, installManifest: string}>
+     * @var    array<int, array{folder: string, libraryname: string, installCode: string, installManifest: string}>
      * @since  1.0.3
      */
     public array $libraries = [];
@@ -39,8 +39,9 @@ class HtmlView extends BaseHtmlView
     /**
      * Render the Tools page.
      *
-     * @param string|null $tpl The template name.
+     * @param   string|null  $tpl  The template name.
      *
+     * @return  void
      *
      * @since   1.0.1
      */
@@ -61,6 +62,7 @@ class HtmlView extends BaseHtmlView
     /**
      * Build the toolbar.
      *
+     * @return  void
      *
      * @since   1.0.1
      */

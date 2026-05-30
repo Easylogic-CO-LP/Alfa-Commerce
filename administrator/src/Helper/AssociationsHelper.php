@@ -31,7 +31,7 @@ class AssociationsHelper extends AssociationExtensionHelper
     /**
      * The extension name.
      *
-     * @var string
+     * @var  string
      * @since  1.0.1
      */
     protected $extension = 'com_alfa';
@@ -39,7 +39,7 @@ class AssociationsHelper extends AssociationExtensionHelper
     /**
      * Item types that take part in language switching.
      *
-     * @var string[]
+     * @var  string[]
      * @since  1.0.1
      */
     protected $itemTypes = ['item', 'manufacturer', 'items'];
@@ -47,7 +47,7 @@ class AssociationsHelper extends AssociationExtensionHelper
     /**
      * This component supports associations.
      *
-     * @var bool
+     * @var  boolean
      * @since  1.0.1
      */
     protected $associationsSupport = true;
@@ -58,10 +58,10 @@ class AssociationsHelper extends AssociationExtensionHelper
      * Called with no arguments by mod_languages / languagefilter, so the site
      * helper resolves the current view + id from the request itself.
      *
-     * @param int $id Id of the item.
-     * @param string|null $view Name of the view.
+     * @param   integer      $id    Id of the item.
+     * @param   string|null  $view  Name of the view.
      *
-     * @return array
+     * @return  array
      *
      * @since   1.0.1
      */

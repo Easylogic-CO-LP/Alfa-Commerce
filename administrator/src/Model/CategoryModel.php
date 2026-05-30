@@ -400,4 +400,5 @@ class CategoryModel extends AdminModel
             $table->publish_down = null;
         }
     }
+
 }

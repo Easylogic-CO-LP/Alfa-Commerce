@@ -31,12 +31,12 @@ class ToolsmediaModel extends ListModel
     /**
      * Cached untracked-file scan for the current request (filtered + sorted).
      *
-     * @var object[]|null
+     * @var  object[]|null
      */
     private ?array $untrackedFiles = null;
 
     /**
-     * @param array $config
+     * @param  array  $config
      *
      * @since  1.0.1
      */
@@ -62,8 +62,8 @@ class ToolsmediaModel extends ListModel
      * Filter and ordering state is read from the searchtools filter form
      * (filter_toolsmedia.xml) by the parent ListModel.
      *
-     * @param string $ordering
-     * @param string $direction
+     * @param  string  $ordering
+     * @param  string  $direction
      *
      * @return void
      *
@@ -77,9 +77,9 @@ class ToolsmediaModel extends ListModel
     /**
      * Vary the cached store id by the active filters.
      *
-     * @param string $id A prefix for the store id.
+     * @param   string  $id  A prefix for the store id.
      *
-     * @return string
+     * @return  string
      *
      * @since   1.0.1
      */
@@ -93,13 +93,13 @@ class ToolsmediaModel extends ListModel
     }
 
     /**
-     * @return \Joomla\Database\DatabaseQuery
+     * @return  \Joomla\Database\DatabaseQuery
      *
      * @since   1.0.1
      */
     protected function getListQuery()
     {
-        $db = $this->getDatabase();
+        $db    = $this->getDatabase();
         $query = $db->getQuery(true);
 
         $query->select('a.*')
@@ -109,7 +109,7 @@ class ToolsmediaModel extends ListModel
                 . ' WHEN ' . $db->quote('item') . ' THEN (i.id IS NOT NULL)'
                 . ' WHEN ' . $db->quote('category') . ' THEN (c.id IS NOT NULL)'
                 . ' WHEN ' . $db->quote('manufacturer') . ' THEN (m.id IS NOT NULL)'
-                . ' ELSE 1 END) AS has_parent',
+                . ' ELSE 1 END) AS has_parent'
             )
             ->from($db->quoteName('#__alfa_media', 'a'))
             ->join('LEFT', $db->quoteName('#__alfa_items', 'i')
@@ -161,7 +161,7 @@ class ToolsmediaModel extends ListModel
     /**
      * Decorate each row with display URLs and the disk/orphan status badges.
      *
-     * @return object[]|false
+     * @return  object[]|false
      *
      * @since   1.0.1
      */
@@ -174,9 +174,9 @@ class ToolsmediaModel extends ListModel
         }
 
         foreach ($items as $row) {
-            $row->url = MediaHelper::toUrl($row->path);
+            $row->url           = MediaHelper::toUrl($row->path);
             $row->thumbnail_url = MediaHelper::toUrl($row->thumbnail);
-            $row->is_orphan = !(int) ($row->has_parent ?? 1);
+            $row->is_orphan     = !(int) ($row->has_parent ?? 1);
 
             // External (type=url) media has no local file — never "missing".
             $row->file_missing = $row->type !== 'url'
@@ -191,7 +191,7 @@ class ToolsmediaModel extends ListModel
      * Full, filtered + sorted list of untracked upload files (cached per request).
      * Backs the "Untracked files" mode — files on disk with no #__alfa_media row.
      *
-     * @return object[] Each: { path, size, mtime }.
+     * @return  object[]  Each: { path, size, mtime }.
      *
      * @since   1.0.1
      */
@@ -207,7 +207,7 @@ class ToolsmediaModel extends ListModel
 
         if ($search !== '') {
             $needle = mb_strtolower($search);
-            $files = array_values(array_filter(
+            $files  = array_values(array_filter(
                 $files,
                 static fn (object $file): bool => str_contains(mb_strtolower($file->path), $needle),
             ));
@@ -224,13 +224,13 @@ class ToolsmediaModel extends ListModel
      * Paginated slice of untracked upload files, decorated with a display URL.
      * Called by the view (instead of getItems()) when filter.source = "files".
      *
-     * @return object[]
+     * @return  object[]
      *
      * @since   1.0.1
      */
     public function getUntrackedMediaItems(): array
     {
-        $all = $this->scanUntrackedFiles();
+        $all   = $this->scanUntrackedFiles();
         $limit = (int) $this->getState('list.limit');
         $start = (int) $this->getState('list.start');
 
@@ -247,7 +247,7 @@ class ToolsmediaModel extends ListModel
      * Total item count. In "files" mode this is the untracked-file count so the
      * inherited getPagination() works unchanged; otherwise the SQL row count.
      *
-     * @return int
+     * @return  int
      *
      * @since   1.0.1
      */

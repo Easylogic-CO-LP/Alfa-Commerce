@@ -14,7 +14,6 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 defined('_JEXEC') or die;
 
 use Exception;
-use FilesystemIterator;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\OutputFilter;
@@ -23,9 +22,6 @@ use Joomla\CMS\Uri\Uri;
 use Joomla\Filesystem\File;
 use Joomla\Filesystem\Folder;
 use Joomla\String\StringHelper;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
-use Throwable;
 
 class MediaHelper
 {
@@ -39,9 +35,9 @@ class MediaHelper
      * already absolute — external `type=url` media (http/https), protocol-relative
      * URLs, or data URIs — are returned untouched.
      *
-     * @param string|null $path Relative media path (e.g. "images/media-zone/x.webp").
+     * @param   string|null  $path  Relative media path (e.g. "images/media-zone/x.webp").
      *
-     * @return string Absolute URL, or '' for an empty path.
+     * @return  string  Absolute URL, or '' for an empty path.
      *
      * @since   1.0.1
      */
@@ -67,9 +63,10 @@ class MediaHelper
      * delete in saveMedia). Call from an entity's delete() so removing a
      * manufacturer / item / category doesn't leave orphaned media rows + files.
      *
-     * @param int[] $itemIds Entity ids whose media should be removed.
-     * @param string $origin Media origin ('item' | 'category' | 'manufacturer').
+     * @param   int[]   $itemIds  Entity ids whose media should be removed.
+     * @param   string  $origin   Media origin ('item' | 'category' | 'manufacturer').
      *
+     * @return  void
      *
      * @since   1.0.1
      */
@@ -95,7 +92,7 @@ class MediaHelper
                     ->select($db->quoteName(['path', 'thumbnail']))
                     ->from($db->quoteName('#__alfa_media'))
                     ->where($db->quoteName('origin') . ' = ' . $db->quote($origin))
-                    ->whereIn($db->quoteName('item_id'), $itemIds),
+                    ->whereIn($db->quoteName('item_id'), $itemIds)
             )->loadObjectList();
 
             foreach ($rows as $row) {
@@ -115,7 +112,7 @@ class MediaHelper
                     if (is_file($absolute)) {
                         try {
                             File::delete($absolute);
-                        } catch (Throwable $e) {
+                        } catch (\Throwable $e) {
                             // Best-effort: a missing/locked file must not block the delete.
                         }
                     }
@@ -127,7 +124,7 @@ class MediaHelper
             $db->getQuery(true)
                 ->delete($db->quoteName('#__alfa_media'))
                 ->where($db->quoteName('origin') . ' = ' . $db->quote($origin))
-                ->whereIn($db->quoteName('item_id'), $itemIds),
+                ->whereIn($db->quoteName('item_id'), $itemIds)
         )->execute();
     }
 
@@ -149,9 +146,9 @@ class MediaHelper
      * arbitrarily large id set (e.g. "show all" + select-all, or delete-all)
      * never produces an oversized IN(...) clause.
      *
-     * @param int[] $mediaIds #__alfa_media row ids to delete.
+     * @param   int[]  $mediaIds  #__alfa_media row ids to delete.
      *
-     * @return int Number of rows removed.
+     * @return  int  Number of rows removed.
      *
      * @since   1.0.1
      */
@@ -166,7 +163,7 @@ class MediaHelper
             return 0;
         }
 
-        $db = Factory::getContainer()->get('DatabaseDriver');
+        $db      = Factory::getContainer()->get('DatabaseDriver');
         $deleted = 0;
 
         foreach (array_chunk($mediaIds, self::DELETE_BATCH_SIZE) as $batch) {
@@ -174,7 +171,7 @@ class MediaHelper
                 $db->getQuery(true)
                     ->select($db->quoteName(['path', 'thumbnail']))
                     ->from($db->quoteName('#__alfa_media'))
-                    ->whereIn($db->quoteName('id'), $batch),
+                    ->whereIn($db->quoteName('id'), $batch)
             )->loadObjectList();
 
             foreach ($rows as $row) {
@@ -193,7 +190,7 @@ class MediaHelper
                     if (is_file($absolute)) {
                         try {
                             File::delete($absolute);
-                        } catch (Throwable $e) {
+                        } catch (\Throwable $e) {
                             // Best-effort — a missing/locked file must not block the delete.
                         }
                     }
@@ -203,7 +200,7 @@ class MediaHelper
             $db->setQuery(
                 $db->getQuery(true)
                     ->delete($db->quoteName('#__alfa_media'))
-                    ->whereIn($db->quoteName('id'), $batch),
+                    ->whereIn($db->quoteName('id'), $batch)
             )->execute();
 
             $deleted += count($batch);
@@ -217,7 +214,7 @@ class MediaHelper
      * at a live parent entity (item / category / manufacturer). Detected purely
      * in SQL via LEFT JOINs. Used by the Tools → Media "delete all orphans" action.
      *
-     * @return int[]
+     * @return  int[]
      *
      * @since   1.0.1
      */
@@ -249,7 +246,7 @@ class MediaHelper
      * here. External (type=url) and path-less rows are skipped. Used by both the
      * Tools → Media "file missing" filter and the "delete all missing" action.
      *
-     * @return int[]
+     * @return  int[]
      *
      * @since   1.0.1
      */
@@ -262,7 +259,7 @@ class MediaHelper
                 ->select($db->quoteName(['id', 'path']))
                 ->from($db->quoteName('#__alfa_media'))
                 ->where($db->quoteName('type') . ' != ' . $db->quote('url'))
-                ->where($db->quoteName('path') . ' != ' . $db->quote('')),
+                ->where($db->quoteName('path') . ' != ' . $db->quote(''))
         )->loadObjectList();
 
         $missing = [];
@@ -279,6 +276,7 @@ class MediaHelper
     /**
      * Absolute path of the com_alfa upload root (media_save_location).
      *
+     * @return  string
      *
      * @since   1.0.1
      */
@@ -297,7 +295,7 @@ class MediaHelper
      * keyed by relative path for O(1) lookup. Including the thumbnail column
      * ensures generated thumbnails are never treated as untracked.
      *
-     * @return array<string, true>
+     * @return  array<string, true>
      *
      * @since   1.0.1
      */
@@ -308,7 +306,7 @@ class MediaHelper
         $rows = $db->setQuery(
             $db->getQuery(true)
                 ->select($db->quoteName(['path', 'thumbnail']))
-                ->from($db->quoteName('#__alfa_media')),
+                ->from($db->quoteName('#__alfa_media'))
         )->loadObjectList();
 
         $tracked = [];
@@ -331,7 +329,7 @@ class MediaHelper
      * #__alfa_media (neither as a path nor a thumbnail) — leftovers from aborted
      * uploads, manual copies, or records deleted without their files.
      *
-     * @return object[] Each: { path (relative), size (int bytes), mtime (int) }.
+     * @return  object[]  Each: { path (relative), size (int bytes), mtime (int) }.
      *
      * @since   1.0.1
      */
@@ -345,11 +343,11 @@ class MediaHelper
 
         $tracked = self::getTrackedRelativePaths();
         $rootLen = strlen(rtrim(JPATH_ROOT, '/') . '/');
-        $files = [];
+        $files   = [];
 
-        $iterator = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS),
-            RecursiveIteratorIterator::LEAVES_ONLY,
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::LEAVES_ONLY,
         );
 
         foreach ($iterator as $fileInfo) {
@@ -364,8 +362,8 @@ class MediaHelper
             }
 
             $files[] = (object) [
-                'path' => $relative,
-                'size' => (int) $fileInfo->getSize(),
+                'path'  => $relative,
+                'size'  => (int) $fileInfo->getSize(),
                 'mtime' => (int) $fileInfo->getMTime(),
             ];
         }
@@ -378,9 +376,9 @@ class MediaHelper
      * inside the upload root (blocks traversal) and confirmed still untracked
      * before removal — a file referenced by any media row is never deleted.
      *
-     * @param string[] $relativePaths Relative paths (as listed by findUntrackedFiles()).
+     * @param   string[]  $relativePaths  Relative paths (as listed by findUntrackedFiles()).
      *
-     * @return int Number of files deleted.
+     * @return  int  Number of files deleted.
      *
      * @since   1.0.1
      */
@@ -415,7 +413,7 @@ class MediaHelper
             try {
                 File::delete($absolute);
                 $deleted++;
-            } catch (Throwable $e) {
+            } catch (\Throwable $e) {
                 // Best-effort — a locked/removed file must not abort the batch.
             }
         }
@@ -834,7 +832,7 @@ class MediaHelper
             $result->path = ltrim($result->path, '/');
 
             // Display URLs (absolute) for templates — never mutate the relative path.
-            $result->url = self::toUrl($result->path);
+            $result->url           = self::toUrl($result->path);
             $result->thumbnail_url = self::toUrl($result->thumbnail);
 
             $grouped[$result->item_id][] = $result;

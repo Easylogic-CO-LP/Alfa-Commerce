@@ -52,6 +52,8 @@ abstract class UrlListModel extends ListModel
      * setState() calls — the URL is not read. Used when the model is driven
      * programmatically as a sub-listing inside another view (e.g. ItemsModel
      * building its sub-categories), so the host page's URL filters don't leak in.
+     *
+     * @var bool
      */
     protected bool $ignoreRequest = false;
 

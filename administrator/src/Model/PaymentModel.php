@@ -190,9 +190,9 @@ class PaymentModel extends AdminModel
     /**
      * Method to delete one or more records.
      *
-     * @param array &$pks An array of record primary keys.
+     * @param   array  &$pks  An array of record primary keys.
      *
-     * @return bool True on success.
+     * @return  bool  True on success.
      *
      * @since   1.0.1
      */
