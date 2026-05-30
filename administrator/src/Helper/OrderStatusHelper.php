@@ -90,7 +90,7 @@ class OrderStatusHelper
         }
 
         try {
-            $db    = Factory::getContainer()->get('DatabaseDriver');
+            $db = Factory::getContainer()->get('DatabaseDriver');
             $query = $db->getQuery(true)
                 ->select('*')
                 ->from($db->quoteName('#__alfa_orders_statuses'))
@@ -119,7 +119,6 @@ class OrderStatusHelper
      * Call after writing to `#__alfa_orders_statuses` so the next
      * lookup re-queries the DB.
      *
-     * @return void
      *
      * @since   1.0.1
      */
@@ -246,12 +245,12 @@ class OrderStatusHelper
      * Used only by getInitialId() now that is_cancelled / is_completed
      * are multi-row families (which go through resolveRoleIds() instead).
      *
-     * @param string $flag          The singleton role flag column.
-     * @param bool   $allowFallback When true and no row owns the role,
-     *                              fall back to the first published row
-     *                              by `ordering`. Used by is_initial so
-     *                              new orders always get a status even
-     *                              before nomination.
+     * @param string $flag The singleton role flag column.
+     * @param bool $allowFallback When true and no row owns the role,
+     *                            fall back to the first published row
+     *                            by `ordering`. Used by is_initial so
+     *                            new orders always get a status even
+     *                            before nomination.
      *
      * @return int|null Status PK or null if nothing matches.
      *
@@ -309,7 +308,7 @@ class OrderStatusHelper
      * Shared body of the is{Role} checks.
      *
      * @param int|null $statusId The status id under test.
-     * @param string   $flag     Role flag column name.
+     * @param string $flag Role flag column name.
      *
      * @return bool True when the row identified by $statusId has $flag = 1.
      *
