@@ -59,7 +59,6 @@ class OrderStatusEmailLayoutField extends FormField
      * of an existing id resolves automatically at render time, so it is
      * not listed twice).
      *
-     * @return  string
      *
      * @since   1.0.4
      */
@@ -101,15 +100,15 @@ class OrderStatusEmailLayoutField extends FormField
             ->useScript('webcomponent.core-loader');
 
         $class = $this->element['class'] ? (string) $this->element['class'] : 'form-select';
-        $attr  = ' class="' . $class . '" onchange="Joomla.typeHasChanged(this);"';
+        $attr = ' class="' . $class . '" onchange="Joomla.typeHasChanged(this);"';
 
         return HTMLHelper::_(
             'select.genericlist',
             $options,
             $this->name,
             [
-                'id'          => $this->id,
-                'list.attr'   => $attr,
+                'id' => $this->id,
+                'list.attr' => $attr,
                 'list.select' => (string) $this->value,
             ],
         );
@@ -119,9 +118,9 @@ class OrderStatusEmailLayoutField extends FormField
      * Return the layout basenames in a folder (no extension), skipping
      * private (`_`-prefixed) files. Missing folder → empty list.
      *
-     * @param   string  $dir  Absolute path to the layouts/emails folder.
+     * @param string $dir Absolute path to the layouts/emails folder.
      *
-     * @return  string[]
+     * @return string[]
      *
      * @since   1.0.4
      */
@@ -149,15 +148,14 @@ class OrderStatusEmailLayoutField extends FormField
      * title-cased basename so template-added layouts read sensibly
      * without a language string.
      *
-     * @param   string  $name  Layout basename (e.g. 'order').
+     * @param string $name Layout basename (e.g. 'order').
      *
-     * @return  string
      *
      * @since   1.0.4
      */
     private function layoutLabel(string $name): string
     {
-        $key   = 'COM_ALFA_ORDEREMAIL_LAYOUT_' . strtoupper($name);
+        $key = 'COM_ALFA_ORDEREMAIL_LAYOUT_' . strtoupper($name);
         $label = Text::_($key);
 
         if ($label === $key) {
@@ -170,15 +168,15 @@ class OrderStatusEmailLayoutField extends FormField
     /**
      * Element names of enabled administrator templates (client_id = 1).
      *
-     * @return  string[]
+     * @return string[]
      *
      * @since   1.0.4
      */
     private function getEnabledAdminTemplates(): array
     {
-        $db       = $this->getDatabase();
+        $db = $this->getDatabase();
         $clientId = 1;
-        $type     = 'template';
+        $type = 'template';
 
         $query = $db->createQuery()
             ->select($db->quoteName('element'))
