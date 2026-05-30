@@ -3,7 +3,12 @@
   <fieldset>
     <field name="id" type="text" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
 
-    <field name="number" filter="safehtml" min="0" step="1" type="number" required="true" message="Currency Number Already Exists" label="COM_ALFA_FORM_LBL_PLACE_NUMBER" description="COM_ALFA_FORM_DESC_PLACE_NUMBER" hint="COM_ALFA_FORM_LBL_PLACE_NUMBER"/>
+    <field name="currency_id" type="sql" default="0"
+           query="SELECT id, name FROM #__alfa_currencies ORDER BY name ASC" key_field="id" value_field="name"
+           layout="joomla.form.field.list-fancy-select"
+           label="COM_ALFA_FORM_LBL_PLACE_CURRENCY" description="COM_ALFA_FORM_DESC_PLACE_CURRENCY">
+        <option value="0">COM_ALFA_FORM_PLACE_CURRENCY_NONE</option>
+    </field>
 
     <field name="code2" maxlength="2" filter="safehtml" type="text" required="true" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_PLACE_CODE2" description="COM_ALFA_FORM_DESC_PLACE_CODE2" hint="COM_ALFA_FORM_LBL_PLACE_CODE2"/>
     <field name="code3" maxlength="3" filter="safehtml" type="text" required="true" translateLabel="true" translateDescription="true" label="COM_ALFA_FORM_LBL_PLACE_CODE3" description="COM_ALFA_FORM_DESC_PLACE_CODE3" hint="COM_ALFA_FORM_LBL_PLACE_CODE3"/>
@@ -14,7 +19,6 @@
            showPath="false"
            orderBy="id"
            orderDir="desc"
-           disableDescendants="true"
            layout="joomla.form.field.list-fancy-select" label="COM_ALFA_FORM_LBL_PLACE_PARENT_ID">
       <option value="0">COM_ALFA_FROM_PLACE_NO_OPTION</option>
     </field>
@@ -23,9 +27,6 @@
 
     <field name="desc" type="editor" label="COM_ALFA_FORM_LBL_PLACE_DESC"
            description="COM_ALFA_FORM_PLACE_DESC"/>
-
-    <field name="alias" type="text" class="inputbox" generator="name" label="JFIELD_ALIAS_LABEL"
-           description="COM_ALFA_FORM_DESC_PLACE_ALIAS" hint="COM_ALFA_FORM_LBL_PLACE_ALIAS"/>
 
     <field name="meta_title" maxlength="255" filter="safehtml" type="text" translateLabel="true"
            translateDescription="true" label="COM_ALFA_FORM_LBL_PLACE_META_TITLE"

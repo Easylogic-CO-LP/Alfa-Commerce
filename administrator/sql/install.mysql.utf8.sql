@@ -554,7 +554,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `id_category_default` int(11) NOT NULL,
   -- Translatable fields (name, short_desc, full_desc, alias, meta_title,
-  -- meta_desc) live ONLY in the per-language tables #__alfa_items_<langtag>.
+  -- meta_desc, stock_low_message, stock_zero_message) live ONLY in the
+  -- per-language tables #__alfa_items_<langtag>.
   `sku` varchar(255) DEFAULT '',
   `gtin` varchar(255) DEFAULT '',
   `mpn` varchar(255) DEFAULT '',
@@ -564,8 +565,6 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items` (
   `quantity_step` float UNSIGNED NOT NULL DEFAULT 1,
   `stock_action` tinyint(1) DEFAULT 0,
   `stock_low` float UNSIGNED DEFAULT NULL,
-  `stock_low_message` varchar(300) NOT NULL,
-  `stock_zero_message` varchar(300) NOT NULL,
   `manage_stock` tinyint(1) DEFAULT 1,
   `width` decimal(20,6) NOT NULL DEFAULT 0.000000,
   `height` decimal(20,6) NOT NULL DEFAULT 0.000000,
@@ -1201,7 +1200,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_places` (
   `name` varchar(255) NOT NULL,
   `code2` varchar(2) NOT NULL,
   `code3` varchar(3) NOT NULL,
-  `number` double NOT NULL DEFAULT 0,
+  `currency_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'FK to #__alfa_currencies.id; 0 = none. The default currency this country uses.',
   `parent_id` int(11) DEFAULT 0,
   `state` tinyint(1) NOT NULL DEFAULT 1,
   `ordering` int(11) DEFAULT 0,
@@ -1221,7 +1220,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_places` (
 -- Dumping data for table `#__alfa_places`
 --
 
-INSERT INTO `#__alfa_places` (`id`, `name`, `code2`, `code3`, `number`, `parent_id`, `state`, `ordering`, `checked_out`, `checked_out_time`, `created_by`, `modified_by`) VALUES
+INSERT INTO `#__alfa_places` (`id`, `name`, `code2`, `code3`, `currency_id`, `parent_id`, `state`, `ordering`, `checked_out`, `checked_out_time`, `created_by`, `modified_by`) VALUES
 (1, 'Afghanistan', 'AF', 'AFG', 0, 0, 0, 0, NULL, NULL, 42, 0),
 (2, 'Albania', 'AL', 'ALB', 0, 0, 0, 0, NULL, NULL, 42, 0),
 (3, 'Algeria', 'DZ', 'DZA', 0, 0, 0, 0, NULL, NULL, 42, 0),
@@ -1246,7 +1245,7 @@ INSERT INTO `#__alfa_places` (`id`, `name`, `code2`, `code3`, `number`, `parent_
 (22, 'Belize', 'BZ', 'BLZ', 0, 0, 0, 0, NULL, NULL, 42, 0),
 (23, 'Benin', 'BJ', 'BEN', 0, 0, 0, 0, NULL, NULL, 42, 0),
 (24, 'Bermuda', 'BM', 'BMU', 0, 0, 0, 0, NULL, NULL, 42, 0),
-(25, 'Bhutan', 'BT', 'BTN', 64, 0, 0, 0, NULL, NULL, 42, 0),
+(25, 'Bhutan', 'BT', 'BTN', 0, 0, 0, 0, NULL, NULL, 42, 0),
 (26, 'Bolivia', 'BO', 'BOL', 0, 0, 0, 0, NULL, NULL, 42, 0),
 (27, 'Bosnia and Herzegowina', 'BA', 'BIH', 0, 0, 0, 0, NULL, NULL, 42, 0),
 (28, 'Botswana', 'BW', 'BWA', 0, 0, 0, 0, NULL, NULL, 42, 0),
@@ -1468,7 +1467,251 @@ INSERT INTO `#__alfa_places` (`id`, `name`, `code2`, `code3`, `number`, `parent_
 (246, 'Sint Maarten (French Antilles)', 'MF', 'MAF', 0, 0, 0, 0, NULL, NULL, 42, 0),
 (247, 'Sint Maarten (Netherlands Antilles)', 'SX', 'SXM', 0, 0, 0, 0, NULL, NULL, 42, 923),
 (248, 'Palestinian Territory, occupied', 'PS', 'PSE', 0, 0, 0, 0, NULL, NULL, 42, 923),
-(249, 'Larisa', 'ZZ', 'LAR', 121, 84, 1, 1, NULL, NULL, 923, 923);
+(249, 'Larisa', 'ZZ', 'LAR', 0, 84, 1, 1, NULL, NULL, 923, 923);
+
+--
+-- Assign each country its default currency_id by joining on ISO currency
+-- code (id-agnostic). Countries whose currency is not seeded stay 0.
+--
+UPDATE `#__alfa_places` p
+JOIN `#__alfa_currencies` c ON c.`code` = CASE p.`code2`
+    WHEN 'AD' THEN 'EUR'
+    WHEN 'AE' THEN 'AED'
+    WHEN 'AF' THEN 'AFN'
+    WHEN 'AG' THEN 'XCD'
+    WHEN 'AI' THEN 'XCD'
+    WHEN 'AL' THEN 'ALL'
+    WHEN 'AM' THEN 'AMD'
+    WHEN 'AN' THEN 'ANG'
+    WHEN 'AO' THEN 'AOA'
+    WHEN 'AR' THEN 'ARS'
+    WHEN 'AS' THEN 'USD'
+    WHEN 'AT' THEN 'EUR'
+    WHEN 'AU' THEN 'AUD'
+    WHEN 'AW' THEN 'AWG'
+    WHEN 'AZ' THEN 'AZN'
+    WHEN 'BA' THEN 'BAM'
+    WHEN 'BB' THEN 'BBD'
+    WHEN 'BD' THEN 'BDT'
+    WHEN 'BE' THEN 'EUR'
+    WHEN 'BF' THEN 'XOF'
+    WHEN 'BG' THEN 'BGN'
+    WHEN 'BH' THEN 'BHD'
+    WHEN 'BI' THEN 'BIF'
+    WHEN 'BJ' THEN 'XOF'
+    WHEN 'BM' THEN 'BMD'
+    WHEN 'BN' THEN 'BND'
+    WHEN 'BO' THEN 'BOB'
+    WHEN 'BR' THEN 'BRL'
+    WHEN 'BS' THEN 'BSD'
+    WHEN 'BT' THEN 'BTN'
+    WHEN 'BW' THEN 'BWP'
+    WHEN 'BY' THEN 'BYR'
+    WHEN 'BZ' THEN 'BZD'
+    WHEN 'CA' THEN 'CAD'
+    WHEN 'CC' THEN 'AUD'
+    WHEN 'CF' THEN 'XAF'
+    WHEN 'CG' THEN 'XAF'
+    WHEN 'CH' THEN 'CHF'
+    WHEN 'CI' THEN 'XOF'
+    WHEN 'CK' THEN 'NZD'
+    WHEN 'CL' THEN 'CLP'
+    WHEN 'CM' THEN 'XAF'
+    WHEN 'CN' THEN 'CNY'
+    WHEN 'CO' THEN 'COP'
+    WHEN 'CR' THEN 'CRC'
+    WHEN 'CU' THEN 'CUP'
+    WHEN 'CV' THEN 'CVE'
+    WHEN 'CX' THEN 'AUD'
+    WHEN 'CY' THEN 'EUR'
+    WHEN 'CZ' THEN 'CZK'
+    WHEN 'DC' THEN 'CDF'
+    WHEN 'DE' THEN 'EUR'
+    WHEN 'DJ' THEN 'DJF'
+    WHEN 'DK' THEN 'DKK'
+    WHEN 'DM' THEN 'XCD'
+    WHEN 'DO' THEN 'DOP'
+    WHEN 'DZ' THEN 'DZD'
+    WHEN 'EC' THEN 'USD'
+    WHEN 'EE' THEN 'EUR'
+    WHEN 'EG' THEN 'EGP'
+    WHEN 'ER' THEN 'ERN'
+    WHEN 'ES' THEN 'EUR'
+    WHEN 'ET' THEN 'ETB'
+    WHEN 'FI' THEN 'EUR'
+    WHEN 'FJ' THEN 'FJD'
+    WHEN 'FK' THEN 'FKP'
+    WHEN 'FM' THEN 'USD'
+    WHEN 'FO' THEN 'DKK'
+    WHEN 'FR' THEN 'EUR'
+    WHEN 'GA' THEN 'XAF'
+    WHEN 'GB' THEN 'GBP'
+    WHEN 'GD' THEN 'XCD'
+    WHEN 'GE' THEN 'GEL'
+    WHEN 'GF' THEN 'EUR'
+    WHEN 'GH' THEN 'GHS'
+    WHEN 'GI' THEN 'GIP'
+    WHEN 'GL' THEN 'DKK'
+    WHEN 'GM' THEN 'GMD'
+    WHEN 'GN' THEN 'GNF'
+    WHEN 'GP' THEN 'EUR'
+    WHEN 'GQ' THEN 'XAF'
+    WHEN 'GR' THEN 'EUR'
+    WHEN 'GT' THEN 'GTQ'
+    WHEN 'GU' THEN 'USD'
+    WHEN 'GW' THEN 'XOF'
+    WHEN 'GY' THEN 'GYD'
+    WHEN 'HK' THEN 'HKD'
+    WHEN 'HN' THEN 'HNL'
+    WHEN 'HR' THEN 'EUR'
+    WHEN 'HT' THEN 'HTG'
+    WHEN 'HU' THEN 'HUF'
+    WHEN 'ID' THEN 'IDR'
+    WHEN 'IE' THEN 'EUR'
+    WHEN 'IL' THEN 'ILS'
+    WHEN 'IN' THEN 'INR'
+    WHEN 'IO' THEN 'USD'
+    WHEN 'IQ' THEN 'IQD'
+    WHEN 'IR' THEN 'IRR'
+    WHEN 'IS' THEN 'ISK'
+    WHEN 'IT' THEN 'EUR'
+    WHEN 'JE' THEN 'GBP'
+    WHEN 'JM' THEN 'JMD'
+    WHEN 'JO' THEN 'JOD'
+    WHEN 'JP' THEN 'JPY'
+    WHEN 'KE' THEN 'KES'
+    WHEN 'KG' THEN 'KGS'
+    WHEN 'KH' THEN 'KHR'
+    WHEN 'KI' THEN 'AUD'
+    WHEN 'KM' THEN 'KMF'
+    WHEN 'KN' THEN 'XCD'
+    WHEN 'KP' THEN 'KPW'
+    WHEN 'KR' THEN 'KRW'
+    WHEN 'KW' THEN 'KWD'
+    WHEN 'KY' THEN 'KYD'
+    WHEN 'KZ' THEN 'KZT'
+    WHEN 'LA' THEN 'LAK'
+    WHEN 'LB' THEN 'LBP'
+    WHEN 'LC' THEN 'XCD'
+    WHEN 'LI' THEN 'CHF'
+    WHEN 'LK' THEN 'LKR'
+    WHEN 'LR' THEN 'LRD'
+    WHEN 'LS' THEN 'LSL'
+    WHEN 'LT' THEN 'EUR'
+    WHEN 'LU' THEN 'EUR'
+    WHEN 'LV' THEN 'EUR'
+    WHEN 'LY' THEN 'LYD'
+    WHEN 'MA' THEN 'MAD'
+    WHEN 'MC' THEN 'EUR'
+    WHEN 'MD' THEN 'MDL'
+    WHEN 'ME' THEN 'EUR'
+    WHEN 'MF' THEN 'EUR'
+    WHEN 'MG' THEN 'MGA'
+    WHEN 'MH' THEN 'USD'
+    WHEN 'MK' THEN 'MKD'
+    WHEN 'ML' THEN 'XOF'
+    WHEN 'MM' THEN 'MMK'
+    WHEN 'MN' THEN 'MNT'
+    WHEN 'MO' THEN 'MOP'
+    WHEN 'MQ' THEN 'EUR'
+    WHEN 'MR' THEN 'MRO'
+    WHEN 'MS' THEN 'XCD'
+    WHEN 'MT' THEN 'EUR'
+    WHEN 'MU' THEN 'MUR'
+    WHEN 'MV' THEN 'MVR'
+    WHEN 'MW' THEN 'MWK'
+    WHEN 'MX' THEN 'MXN'
+    WHEN 'MY' THEN 'MYR'
+    WHEN 'MZ' THEN 'MZN'
+    WHEN 'NA' THEN 'NAD'
+    WHEN 'NC' THEN 'XPF'
+    WHEN 'NE' THEN 'XOF'
+    WHEN 'NG' THEN 'NGN'
+    WHEN 'NI' THEN 'NIO'
+    WHEN 'NL' THEN 'EUR'
+    WHEN 'NO' THEN 'NOK'
+    WHEN 'NP' THEN 'NPR'
+    WHEN 'NR' THEN 'AUD'
+    WHEN 'NU' THEN 'NZD'
+    WHEN 'NZ' THEN 'NZD'
+    WHEN 'OM' THEN 'OMR'
+    WHEN 'PA' THEN 'PAB'
+    WHEN 'PE' THEN 'PEN'
+    WHEN 'PF' THEN 'XPF'
+    WHEN 'PG' THEN 'PGK'
+    WHEN 'PH' THEN 'PHP'
+    WHEN 'PK' THEN 'PKR'
+    WHEN 'PL' THEN 'PLN'
+    WHEN 'PM' THEN 'EUR'
+    WHEN 'PN' THEN 'NZD'
+    WHEN 'PR' THEN 'USD'
+    WHEN 'PS' THEN 'ILS'
+    WHEN 'PT' THEN 'EUR'
+    WHEN 'PW' THEN 'USD'
+    WHEN 'PY' THEN 'PYG'
+    WHEN 'QA' THEN 'QAR'
+    WHEN 'RE' THEN 'EUR'
+    WHEN 'RO' THEN 'RON'
+    WHEN 'RS' THEN 'RSD'
+    WHEN 'RU' THEN 'RUB'
+    WHEN 'RW' THEN 'RWF'
+    WHEN 'SA' THEN 'SAR'
+    WHEN 'SB' THEN 'SBD'
+    WHEN 'SC' THEN 'SCR'
+    WHEN 'SD' THEN 'SDG'
+    WHEN 'SE' THEN 'SEK'
+    WHEN 'SG' THEN 'SGD'
+    WHEN 'SH' THEN 'SHP'
+    WHEN 'SI' THEN 'EUR'
+    WHEN 'SJ' THEN 'NOK'
+    WHEN 'SK' THEN 'EUR'
+    WHEN 'SL' THEN 'SLL'
+    WHEN 'SM' THEN 'EUR'
+    WHEN 'SN' THEN 'XOF'
+    WHEN 'SO' THEN 'SOS'
+    WHEN 'SR' THEN 'SRD'
+    WHEN 'ST' THEN 'STD'
+    WHEN 'SV' THEN 'USD'
+    WHEN 'SX' THEN 'ANG'
+    WHEN 'SY' THEN 'SYP'
+    WHEN 'SZ' THEN 'SZL'
+    WHEN 'TC' THEN 'USD'
+    WHEN 'TD' THEN 'XAF'
+    WHEN 'TG' THEN 'XOF'
+    WHEN 'TH' THEN 'THB'
+    WHEN 'TJ' THEN 'TJS'
+    WHEN 'TM' THEN 'USD'
+    WHEN 'TN' THEN 'TND'
+    WHEN 'TO' THEN 'TOP'
+    WHEN 'TR' THEN 'TRY'
+    WHEN 'TT' THEN 'TTD'
+    WHEN 'TV' THEN 'AUD'
+    WHEN 'TW' THEN 'TWD'
+    WHEN 'TZ' THEN 'TZS'
+    WHEN 'UA' THEN 'UAH'
+    WHEN 'UG' THEN 'UGX'
+    WHEN 'UM' THEN 'USD'
+    WHEN 'US' THEN 'USD'
+    WHEN 'UY' THEN 'UYU'
+    WHEN 'UZ' THEN 'UZS'
+    WHEN 'VA' THEN 'EUR'
+    WHEN 'VC' THEN 'XCD'
+    WHEN 'VE' THEN 'VEF'
+    WHEN 'VG' THEN 'USD'
+    WHEN 'VI' THEN 'USD'
+    WHEN 'VN' THEN 'VND'
+    WHEN 'VU' THEN 'VUV'
+    WHEN 'WF' THEN 'XPF'
+    WHEN 'WS' THEN 'WST'
+    WHEN 'XC' THEN 'EUR'
+    WHEN 'YE' THEN 'YER'
+    WHEN 'YT' THEN 'EUR'
+    WHEN 'ZA' THEN 'ZAR'
+    WHEN 'ZM' THEN 'ZMK'
+    WHEN 'ZW' THEN 'ZWD'
+    WHEN 'ZZ' THEN 'EUR'
+END
+SET p.`currency_id` = c.`id`;
 
 -- --------------------------------------------------------
 

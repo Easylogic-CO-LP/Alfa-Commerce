@@ -21,6 +21,14 @@ class CategoriesField extends ListField
 
     protected function getOptions()
     {
+        // `disableDescendants` is the single switch for self-parent prevention.
+        // It is ONLY valid on a self-referential picker — a category/place
+        // choosing its own parent — and there it disables the current node
+        // itself AND its descendants (so a node can't be its own parent or pick
+        // a child as parent → cycle). On every other consumer (items, payments,
+        // … assigning categories) it is false, so NOTHING is disabled: those
+        // forms don't pick a parent, so there is no node to exclude, and the
+        // edited record's id isn't even from this tree.
         $disableDescendants = $this->element['disableDescendants'] == 'true' ? true : false;
         $showPath = $this->element['showPath'] == 'true' ? true : false;
         $orderBy = $this->element['orderBy'] ?? 'name';
@@ -47,7 +55,9 @@ class CategoriesField extends ListField
         $model->setState('list.direction', $orderDir);
 
         $categories = $model->getItems();
-        $currentCategoryId = $this->form->getData()->get($currentCategoryIdField);
+        $currentCategoryId = $disableDescendants
+            ? $this->form->getData()->get($currentCategoryIdField)
+            : null;
 
         $disableMode = false;
         $disableParentCategoryLevel = null;
@@ -55,23 +65,21 @@ class CategoriesField extends ListField
         foreach ($categories as $category) {
             $disableCurrent = false;
 
-            // CRITICAL: Always disable the current category itself
-            if ($currentCategoryId == $category->id) {
-                $disableCurrent = true;
-
-                // If disableDescendants is enabled, also track to disable children
-                if ($disableDescendants) {
+            if ($disableDescendants) {
+                // Disable the current node itself (can't be its own parent) …
+                if ($currentCategoryId == $category->id) {
+                    $disableCurrent = true;
                     $disableMode = true;
                     $disableParentCategoryLevel = $category->depth;
                 }
-            }
-            // Disable descendants if we're in disable mode
-            elseif ($disableMode) {
-                if ($category->depth > $disableParentCategoryLevel) {
-                    $disableCurrent = true;
-                } else {
-                    // We've moved back up or to the same level - stop disabling
-                    $disableMode = false;
+                // … and its descendants (can't pick a child as parent → cycle).
+                elseif ($disableMode) {
+                    if ($category->depth > $disableParentCategoryLevel) {
+                        $disableCurrent = true;
+                    } else {
+                        // Moved back up or to the same level — stop disabling.
+                        $disableMode = false;
+                    }
                 }
             }
 

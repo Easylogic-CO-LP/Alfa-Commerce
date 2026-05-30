@@ -82,7 +82,6 @@
                    showPath="false"
                    orderBy="id"
                    orderDir="desc"
-                   disableDescendants="true"
                    default="0"
                    header="COM_ALFA_FORM_PLACE_ALL"
                    layout="joomla.form.field.list-fancy-select"

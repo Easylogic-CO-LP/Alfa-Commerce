@@ -79,7 +79,10 @@ if ($saveOrder && !empty($this->items)) {
 						<th class='left'>
 							<?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_PLACES_CODE3', 'a.code3', $listDirn, $listOrder); ?>
 						</th>
-						
+						<th class='left'>
+							<?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_PLACES_CURRENCY', 'currency.name', $listDirn, $listOrder); ?>
+						</th>
+
 					<th scope="col" class="w-3 d-none d-lg-table-cell" >
 
 						<?php echo HTMLHelper::_('searchtools.sort',  'JGRID_HEADING_ID', 'a.id', $listDirn, $listOrder); ?>					</th>
@@ -147,7 +150,10 @@ if ($saveOrder && !empty($this->items)) {
 							<td>
 								<?php echo $item->code3; ?>
 							</td>
-							
+							<td>
+								<?php echo $this->escape($item->currency_name ?? ''); ?>
+							</td>
+
 							<td class="d-none d-lg-table-cell">
 							<?php echo $item->id; ?>
 

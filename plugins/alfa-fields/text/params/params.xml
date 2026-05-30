@@ -28,22 +28,9 @@
 				default="255"
 			/>
 
-			<field
-					name="sql_type"
-					type="list"
-					label="PLG_ALFA_FIELDS_TEXT_PARAMS_SQL_TYPE_LABEL"
-					class="list"
-					validate="options"
-					default="varchar(255)"
-			>
-				<option value="int(11)">Integer</option>
-				<option value="bigint(20)">Big Integer</option>
-				<option value="decimal(15,5)">Decimal</option>
-				<option value="varchar(255)">Small Text</option>
-				<option value="text">Text</option>
-				<option value="longtext">Long Text</option>
-				<option value="datetime">Date Time</option>
-			</field>
+			<!-- Read by FormfieldModel.php to pick the MySQL column type. Fixed:
+			     a text field always stores as varchar(255). Do not remove. -->
+			<field name="sql_type" type="hidden" default="varchar(255)"/>
 
 		</fieldset>
 	</fields>

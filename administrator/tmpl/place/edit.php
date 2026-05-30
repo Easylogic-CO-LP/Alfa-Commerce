@@ -31,11 +31,8 @@ $input = Factory::getApplication()->getInput();
     aria-label="<?php echo Text::_('COM_ALFA_PLACE_FORM_TITLE_' . ((int)$this->item->id === 0 ? 'NEW' : 'EDIT'), true); ?>">
 
     <div class="row title-alias form-vertical mb-3">
-        <div class="col-12 col-md-6">
+        <div class="col-12">
             <?php echo $this->form->renderField('name'); ?>
-        </div>
-        <div class="col-12 col-md-6">
-            <?php echo $this->form->renderField('alias'); ?>
         </div>
     </div>
 
@@ -66,7 +63,7 @@ $input = Factory::getApplication()->getInput();
 
             <?php echo $this->form->renderField('code3'); ?>
 
-            <?php echo $this->form->renderField('number'); ?>
+            <?php echo $this->form->renderField('currency_id'); ?>
 
         </div>
     </div>
