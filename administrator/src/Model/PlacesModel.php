@@ -41,7 +41,8 @@ class PlacesModel extends ListModel
                 'modified_by', 'a.modified_by',
                 'name', 'a.name',
                 'state', 'a.state',
-                'number', 'a.number',
+                'currency_id', 'a.currency_id',
+                'currency_name', 'currency.name',
                 'parent_id', 'a.parent_id',
                 'code2', 'a.code2',
                 'code3', 'a.code3',
@@ -123,6 +124,10 @@ class PlacesModel extends ListModel
         // Join over the user field 'modified_by'
         $query->select('`modified_by`.name AS `modified_by`');
         $query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
+
+        // Join over the currency for its display name
+        $query->select('`currency`.name AS `currency_name`');
+        $query->join('LEFT', '#__alfa_currencies AS `currency` ON `currency`.id = a.`currency_id`');
 
         // Filter by published state
         $published = $this->getState('filter.state');

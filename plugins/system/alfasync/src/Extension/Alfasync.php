@@ -115,10 +115,6 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             return;
         }
 
-        if (!(bool) $this->params->get('sync_users', 1)) {
-            return;
-        }
-
         $userId = (int) $data['id'];
 
         try {
@@ -141,10 +137,6 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
         [$group, $isNew] = $this->extractGroupArgs($event, $isNew);
 
         if (empty($group['id'])) {
-            return;
-        }
-
-        if (!(bool) $this->params->get('sync_usergroups', 1)) {
             return;
         }
 
@@ -176,10 +168,6 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
         }
 
         if (!$success || empty($user['id'])) {
-            return;
-        }
-
-        if (!(bool) $this->params->get('delete_users', 1)) {
             return;
         }
 
@@ -254,10 +242,6 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             // A content language was added/edited → (re)create the per-language
             // translation tables for every translatable Alfa entity.
             case 'com_languages.language':
-                if (!(bool) $this->params->get('sync_languages', 1)) {
-                    return;
-                }
-
                 try {
                     $result = SyncHelper::syncLanguageSchema();
                     $this->logDebug('handleContentSave', 'Language schema synced — ' . count($result['tables']) . ' table(s).');

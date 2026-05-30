@@ -14,7 +14,6 @@ defined('_JEXEC') or die;
 
 use JForm;
 use Joomla\CMS\Factory;
-use Joomla\CMS\Filter\OutputFilter;
 use Joomla\CMS\MVC\Model\AdminModel;
 use Joomla\CMS\Table\Table;
 
@@ -136,17 +135,6 @@ class PlaceModel extends AdminModel
     {
         $app = Factory::getApplication();
         $db = $this->getDatabase();
-
-        //		$data['alias']='the alias';
-        //		$data['name']='the name';
-
-        $data['alias'] = $data['alias'] ?: $data['name'];
-
-        if ($app->get('unicodeslugs') == 1) {
-            $data['alias'] = OutputFilter::stringUrlUnicodeSlug($data['alias']);
-        } else {
-            $data['alias'] = OutputFilter::stringURLSafe($data['alias']);
-        }
 
         if (!parent::save($data)) {
             return false;
