@@ -844,13 +844,13 @@ class OrderPlaceHelper
                     foreach ($violations as $fieldName => $value) {
                         $this->app->enqueueMessage(
                             Text::sprintf('COM_ALFA_ORDER_ERROR_FIELD_NOT_UNIQUE', $fieldName),
-                            'error'
+                            'error',
                         );
                     }
                     Log::add(
                         'Unique field violation(s): ' . implode(', ', array_keys($violations)),
                         Log::WARNING,
-                        'com_alfa.orders'
+                        'com_alfa.orders',
                     );
                     return null;
                 }
@@ -900,8 +900,10 @@ class OrderPlaceHelper
             return [];
         }
 
-        $fieldsToCheck = array_filter($uniqueFields, fn($field) =>
-            isset($data[$field]) && $data[$field] !== '' && $data[$field] !== null
+        $fieldsToCheck = array_filter(
+            $uniqueFields,
+            fn ($field) =>
+            isset($data[$field]) && $data[$field] !== '' && $data[$field] !== null,
         );
 
         if (empty($fieldsToCheck)) {
@@ -917,7 +919,7 @@ class OrderPlaceHelper
                 $this->db->quoteName($fieldName),
                 $this->db->quote($data[$fieldName]),
                 $this->db->quoteName('id_user'),
-                $this->user->id
+                $this->user->id,
             );
         }
 
