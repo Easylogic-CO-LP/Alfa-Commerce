@@ -50,6 +50,7 @@ use Alfa\Component\Alfa\Administrator\Helper\OrderStockHelper;
 use Exception;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseDriver;
 use Joomla\Utilities\IpHelper;
@@ -833,6 +834,28 @@ class OrderPlaceHelper
                 }
             }
 
+            // Unique field validation
+            $uniqueFields = $this->getUniqueFormFields();
+
+            if (!empty($uniqueFields)) {
+                $violations = $this->checkUniqueFieldViolations($data, $uniqueFields);
+
+                if (!empty($violations)) {
+                    foreach ($violations as $fieldName => $value) {
+                        $this->app->enqueueMessage(
+                            Text::sprintf('COM_ALFA_ORDER_ERROR_FIELD_NOT_UNIQUE', $fieldName),
+                            'error',
+                        );
+                    }
+                    Log::add(
+                        'Unique field violation(s): ' . implode(', ', array_keys($violations)),
+                        Log::WARNING,
+                        'com_alfa.orders',
+                    );
+                    return null;
+                }
+            }
+
             $infoObject = (object) $data;
 
             $infoObject->id_user = $this->user->id;
@@ -844,6 +867,80 @@ class OrderPlaceHelper
             Log::add('User info save error: ' . $e->getMessage(), Log::ERROR, 'com_alfa.orders');
             return null;
         }
+    }
+
+    /**
+     * Load all form fields marked as unique=1 from the form fields table.
+     * Returns an array of field_name strings.
+     */
+    protected function getUniqueFormFields(): array
+    {
+        try {
+            $query = $this->db->getQuery(true)
+                ->select($this->db->quoteName('field_name'))
+                ->from($this->db->quoteName('#__alfa_form_fields'))
+                ->where($this->db->quoteName('unique') . ' = ' . '1')
+                ->where($this->db->quoteName('state') . ' = ' . '1')
+                ->where($this->db->quoteName('field_name') . ' IS NOT NULL')
+                ->where($this->db->quoteName('field_name') . ' != ' . $this->db->quote(''));
+
+            $this->db->setQuery($query);
+            return $this->db->loadColumn() ?: [];
+        } catch (Exception $e) {
+            Log::add('Failed to load unique form fields: ' . $e->getMessage(), Log::WARNING, 'com_alfa.orders');
+            return [];
+        }
+    }
+
+    protected function checkUniqueFieldViolations(array $data, array $uniqueFields): array
+    {
+        Log::add('checkUniqueFieldViolations - data values: ' . json_encode($data), Log::DEBUG, 'com_alfa.orders');
+
+        if ($this->user->id === 0) {
+            return [];
+        }
+
+        $fieldsToCheck = array_filter(
+            $uniqueFields,
+            fn ($field) =>
+            isset($data[$field]) && $data[$field] !== '' && $data[$field] !== null,
+        );
+
+        if (empty($fieldsToCheck)) {
+            return [];
+        }
+
+        $selects = [];
+        foreach ($fieldsToCheck as $fieldName) {
+            $selects[] = sprintf(
+                '(SELECT %s AS field_name FROM %s WHERE %s = %s AND %s != %d LIMIT 1)',
+                $this->db->quote($fieldName),
+                $this->db->quoteName($this->user_info_table),
+                $this->db->quoteName($fieldName),
+                $this->db->quote($data[$fieldName]),
+                $this->db->quoteName('id_user'),
+                $this->user->id,
+            );
+        }
+
+        $unionQuery = implode(' UNION ALL ', $selects);
+
+        Log::add('checkUniqueFieldViolations - query: ' . $unionQuery, Log::DEBUG, 'com_alfa.orders');
+
+        try {
+            $this->db->setQuery($unionQuery);
+            $collisions = $this->db->loadColumn();
+        } catch (Exception $e) {
+            Log::add('Unique check query failed: ' . $e->getMessage(), Log::WARNING, 'com_alfa.orders');
+            return [];
+        }
+
+        $violations = [];
+        foreach ($collisions as $fieldName) {
+            $violations[$fieldName] = $data[$fieldName];
+        }
+
+        return $violations;
     }
 
     protected function getPaymentType(int $id): void

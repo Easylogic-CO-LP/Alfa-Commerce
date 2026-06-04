@@ -513,6 +513,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_form_fields` (
   `registration` tinyint(1) DEFAULT 0,
   `billing` tinyint(1) DEFAULT 0,
   `shipping` tinyint(1) DEFAULT 0,
+  `unique` tinyint(1) DEFAULT 0,
   `ordering` int(11) NOT NULL DEFAULT 0,
   `created_by` int(11) NOT NULL,
   `modified_by` int(11) DEFAULT NULL,
