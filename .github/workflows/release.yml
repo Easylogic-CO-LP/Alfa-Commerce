@@ -1,0 +1,105 @@
+# ===========================================================================
+# Alfa Commerce — release pipeline.
+#
+# On a version bump landed on main: build the installable, FTP it + update.xml +
+# changelog.xml to the CDN, then SSH the server to SIGN (the private key never leaves
+# your server). It self-gates: if that version's zip is already on the CDN, it does
+# nothing — so ordinary commits to main don't re-release.
+#
+# NOTHING about your infrastructure is hard-coded here — every host, path and credential
+# comes from a repo SECRET, so reading this public YAML reveals only the abstract flow,
+# not where or how signing happens. (The real protection is that the signing key never
+# leaves your server; this just avoids leaking recon.)
+#
+# REPO SECRETS REQUIRED:
+#   FTP_BASE  FTP_USER  FTP_PASS            — CDN FTP target (e.g. ftp://host/path/com_alfa) + creds
+#   SIGN_SSH_HOST  SIGN_SSH_USER  SIGN_SSH_KEY  — server SSH (only TRIGGERS signing; the key stays home)
+#   SIGN_SCRIPT                              — absolute server path to sign-release.php
+#
+# ONE-TIME SETUP:
+#   * Move update.xml + changelog.xml into the REPO ROOT (the source of truth) —
+#     they currently live only in the CDN checkout.
+# ===========================================================================
+
+name: Release com_alfa
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: Resolve version + gate (skip if already published)
+        id: ver
+        run: |
+          V="$(php -r 'echo trim((string) simplexml_load_file("alfa.xml")->version);')"
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          if curl -fsI "https://cdn.alfacommerce.gr/com_alfa/versions/com_alfa-$V.zip" >/dev/null 2>&1; then
+            echo "publish=no" >> "$GITHUB_OUTPUT"
+            echo "::notice::com_alfa-$V is already on the CDN — nothing to release."
+          else
+            echo "publish=yes" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build installable zip
+        if: steps.ver.outputs.publish == 'yes'
+        run: |
+          V="${{ steps.ver.outputs.version }}"
+          # The repo IS package layout — ship only the declared component items.
+          zip -r -q "com_alfa-$V.zip" \
+            alfa.xml script.php administrator site media api modules plugins libraries \
+            -x "*/.DS_Store"
+          echo "SHA=$(sha256sum "com_alfa-$V.zip" | cut -d' ' -f1)" >> "$GITHUB_ENV"
+
+      - name: Stamp update.xml (version, download URL, sha256)
+        if: steps.ver.outputs.publish == 'yes'
+        env:
+          V: ${{ steps.ver.outputs.version }}
+        run: |
+          php -r '
+            $v=getenv("V"); $sha=getenv("SHA"); $x=file_get_contents("update.xml");
+            $x=preg_replace("#<version>[^<]*</version>#", "<version>$v</version>", $x, 1);
+            $x=preg_replace("#com_alfa[-_][0-9][0-9.]*\.zip#", "com_alfa-$v.zip", $x);
+            if (preg_match("#<sha256>#", $x)) {
+                $x=preg_replace("#<sha256>[^<]*</sha256>#", "<sha256>$sha</sha256>", $x);
+            } else {
+                $x=preg_replace("#(\s*</downloads>)#", "$1\n        <sha256>$sha</sha256>", $x, 1);
+            }
+            file_put_contents("update.xml", $x);
+          '
+
+      - name: FTP deploy to the CDN (zip + update.xml + changelog.xml)
+        if: steps.ver.outputs.publish == 'yes'
+        env:
+          FTP_BASE: ${{ secrets.FTP_BASE }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASS: ${{ secrets.FTP_PASS }}
+        run: |
+          V="${{ steps.ver.outputs.version }}"
+          curl -sS --ftp-create-dirs -T "com_alfa-$V.zip" "$FTP_BASE/versions/com_alfa-$V.zip" --user "$FTP_USER:$FTP_PASS"
+          curl -sS -T update.xml    "$FTP_BASE/update.xml"    --user "$FTP_USER:$FTP_PASS"
+          curl -sS -T changelog.xml "$FTP_BASE/changelog.xml" --user "$FTP_USER:$FTP_PASS"
+
+      - name: Sign on the server (private key never leaves it)
+        if: steps.ver.outputs.publish == 'yes'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SIGN_SSH_HOST }}
+          username: ${{ secrets.SIGN_SSH_USER }}
+          key: ${{ secrets.SIGN_SSH_KEY }}
+          # The zip is already in versions/; sign-release.php hashes it + writes integrity/ + latest.
+          # The script path comes from a secret — not exposed in this public file.
+          script: php "${{ secrets.SIGN_SCRIPT }}" "${{ steps.ver.outputs.version }}"
