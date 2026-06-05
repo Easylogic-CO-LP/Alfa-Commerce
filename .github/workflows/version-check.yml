@@ -1,0 +1,48 @@
+# ===========================================================================
+# Alfa Commerce — require a version bump on every PR into main.
+#
+# A PR targeting main FAILS this check unless alfa.xml's <version> is strictly greater
+# than the version currently on main — so a release can never reach main without bumping
+# the version, which is what makes Joomla's updater offer the update to installations.
+#
+# IMPORTANT: a failing check only BLOCKS the merge if you mark it REQUIRED in the repo's
+# branch-protection rules for main (Settings → Branches → main → Require status checks →
+# add "Require a version bump over main"). Without that, it reports but doesn't block.
+# ===========================================================================
+
+name: Version bump check
+
+on:
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Require a version bump over main
+        run: |
+          PR_VER="$(grep -m1 -oP '(?<=<version>)[^<]+' alfa.xml)"
+          git fetch origin main --depth=1 --quiet
+          MAIN_VER="$(git show origin/main:alfa.xml | grep -m1 -oP '(?<=<version>)[^<]+')"
+          echo "PR version: $PR_VER  |  main version: $MAIN_VER"
+
+          if [ -z "$PR_VER" ]; then
+            echo "::error::Could not read <version> from alfa.xml."
+            exit 1
+          fi
+
+          # bumped == PR_VER != MAIN_VER AND PR_VER sorts highest (version-aware)
+          if [ "$PR_VER" != "$MAIN_VER" ] && \
+             [ "$(printf '%s\n%s\n' "$PR_VER" "$MAIN_VER" | sort -V | tail -1)" = "$PR_VER" ]; then
+            echo "::notice::Version bumped ($MAIN_VER → $PR_VER) ✓"
+          else
+            echo "::error::alfa.xml <version> is $PR_VER but main is already $MAIN_VER — a PR to main must INCREASE the version so installations receive the update."
+            exit 1
+          fi
