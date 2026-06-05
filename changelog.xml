@@ -11,10 +11,6 @@
             <item>Package export tool (Tools): builds a repo-layout zip of the component for packaging and pull requests.</item>
         </addition>
 
-        <change>
-            <item>Premium payment and shipment gateways (Revolut, Viva Wallet, BoxNow) are no longer bundled in the package; they are distributed separately via the CDN.</item>
-        </change>
-
         <fix>
             <item>Notifications: the sort dropdown showed raw language keys; the labels now translate correctly.</item>
             <item>Notifications: the toolbar count badge now shows and hides correctly and is no longer overridden by the admin template styles.</item>
