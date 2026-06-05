@@ -38,12 +38,12 @@
                onchange="this.form.submit();"
                default="a.created DESC">
             <option value="">JGLOBAL_SORT_BY</option>
-            <option value="a.created ASC">COM_ALFA_NOTIFY_COL_CREATED JGLOBAL_ORDER_ASCENDING</option>
-            <option value="a.created DESC">COM_ALFA_NOTIFY_COL_CREATED JGLOBAL_ORDER_DESCENDING</option>
-            <option value="a.severity ASC">COM_ALFA_NOTIFY_COL_SEVERITY JGLOBAL_ORDER_ASCENDING</option>
-            <option value="a.severity DESC">COM_ALFA_NOTIFY_COL_SEVERITY JGLOBAL_ORDER_DESCENDING</option>
-            <option value="a.notify_group ASC">COM_ALFA_NOTIFY_COL_GROUP JGLOBAL_ORDER_ASCENDING</option>
-            <option value="a.notify_group DESC">COM_ALFA_NOTIFY_COL_GROUP JGLOBAL_ORDER_DESCENDING</option>
+            <option value="a.created ASC">COM_ALFA_NOTIFY_SORT_CREATED_ASC</option>
+            <option value="a.created DESC">COM_ALFA_NOTIFY_SORT_CREATED_DESC</option>
+            <option value="a.severity ASC">COM_ALFA_NOTIFY_SORT_SEVERITY_ASC</option>
+            <option value="a.severity DESC">COM_ALFA_NOTIFY_SORT_SEVERITY_DESC</option>
+            <option value="a.notify_group ASC">COM_ALFA_NOTIFY_SORT_GROUP_ASC</option>
+            <option value="a.notify_group DESC">COM_ALFA_NOTIFY_SORT_GROUP_DESC</option>
         </field>
 
         <field name="limit" type="limitbox"

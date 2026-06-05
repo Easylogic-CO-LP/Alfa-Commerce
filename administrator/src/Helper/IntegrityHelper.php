@@ -14,7 +14,6 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Http\HttpFactory;
-use Throwable;
 
 /**
  * File-integrity verification for com_alfa — SINGLE SOURCE OF TRUTH: the signed
@@ -117,10 +116,10 @@ class IntegrityHelper
 
         // Exact version first; only on a miss fall back to the "latest" pointer.
         $fellBack = false;
-        $fetched = self::fetchOfficial(file: 'checksums-' . $siteVersion . '.json');
+        $fetched  = self::fetchOfficial(file: 'checksums-' . $siteVersion . '.json');
 
         if ($fetched === null) {
-            $fetched = self::fetchOfficial(file: 'checksums-latest.json');
+            $fetched  = self::fetchOfficial(file: 'checksums-latest.json');
             $fellBack = true;
         }
 
@@ -133,7 +132,7 @@ class IntegrityHelper
 
         // Verify the detached signature over the EXACT fetched bytes.
         $sigRaw = base64_decode(trim($sigB64), true);
-        $sigOk = false;
+        $sigOk  = false;
 
         if ($sigRaw !== false && \strlen($sigRaw) === SODIUM_CRYPTO_SIGN_BYTES) {
             foreach (self::TRUSTED_PUBLIC_KEYS as $b64pk) {
@@ -155,16 +154,16 @@ class IntegrityHelper
             return ['status' => 'bad_signature', 'siteVersion' => $siteVersion, 'fellBack' => $fellBack];
         }
 
-        $doc = json_decode($jsonBytes, true);
+        $doc           = json_decode($jsonBytes, true);
         $officialFiles = (\is_array($doc) && isset($doc['files']) && \is_array($doc['files'])) ? $doc['files'] : null;
 
         if ($officialFiles === null) {
             return ['status' => 'bad_signature', 'reason' => 'unparseable', 'siteVersion' => $siteVersion, 'fellBack' => $fellBack];
         }
 
-        $root = JPATH_ROOT;
+        $root     = JPATH_ROOT;
         $modified = [];
-        $missing = [];
+        $missing  = [];
 
         foreach ($officialFiles as $rel => $fp) {
             $abs = $root . '/' . $rel;
@@ -186,13 +185,13 @@ class IntegrityHelper
             : ($clean ? 'official' : 'modified');
 
         return [
-            'status' => $status,
-            'fellBack' => $fellBack,
-            'siteVersion' => $siteVersion,
+            'status'          => $status,
+            'fellBack'        => $fellBack,
+            'siteVersion'     => $siteVersion,
             'officialVersion' => (string) ($doc['version'] ?? ''),
-            'modified' => $modified,
-            'missing' => $missing,
-            'injected' => $injected,
+            'modified'        => $modified,
+            'missing'         => $missing,
+            'injected'        => $injected,
         ];
     }
 
@@ -216,12 +215,12 @@ class IntegrityHelper
                 ->get(CacheControllerFactoryInterface::class)
                 ->createCacheController('callback', [
                     'defaultgroup' => 'com_alfa.integrity',
-                    'lifetime' => 1440, // 24h, in minutes
-                    'caching' => true,
+                    'lifetime'     => 1440, // 24h, in minutes
+                    'caching'      => true,
                 ]);
 
             return (array) $cache->get([self::class, 'verifyAgainstOfficial'], [], 'verdict');
-        } catch (Throwable) {
+        } catch (\Throwable) {
             // Cache unavailable → compute directly (correct, just uncached).
             return self::verifyAgainstOfficial();
         }
@@ -231,6 +230,7 @@ class IntegrityHelper
      * Drop the cached verdict so the next {@see self::cachedVerdict()} recomputes.
      * Called after a fresh Security-tab check so the badge reflects the latest.
      *
+     * @return  void
      *
      * @since   1.0.5
      */
@@ -238,7 +238,7 @@ class IntegrityHelper
     {
         try {
             Factory::getCache('com_alfa.integrity', '')->clean();
-        } catch (Throwable) {
+        } catch (\Throwable) {
             // Best-effort — a stale badge for up to the TTL is harmless.
         }
     }
@@ -251,8 +251,8 @@ class IntegrityHelper
      * applies a tight, name-based ignore (dotfiles/cruft) so genuine intruders can't
      * hide behind a broad rule.
      *
-     * @param string $root Joomla installation root.
-     * @param array<string, array{h:string,s:int,m:int}> $known The expected file set.
+     * @param string                                      $root  Joomla installation root.
+     * @param array<string, array{h:string,s:int,m:int}>  $known The expected file set.
      *
      * @return string[] Root-relative paths present on disk but absent from $known.
      *
@@ -272,7 +272,7 @@ class IntegrityHelper
 
         return array_values(array_filter(
             $found,
-            static fn (string $rel): bool => !\array_key_exists($rel, $known),
+            static fn (string $rel): bool => !\array_key_exists($rel, $known)
         ));
     }
 
@@ -312,7 +312,7 @@ class IntegrityHelper
             }
 
             return [(string) $jsonRes->body, (string) $sigRes->body];
-        } catch (Throwable) {
+        } catch (\Throwable) {
             return null;
         }
     }
@@ -347,9 +347,9 @@ class IntegrityHelper
      * (a tight, name-based ignore — never broad, so an intruder can't hide behind
      * an over-greedy rule). A missing directory is a silent no-op.
      *
-     * @param string $absDir Absolute directory on the live install.
-     * @param string $relDir Root-relative path of that directory (no leading slash).
-     * @param string[] $out Accumulator of root-relative file paths (by ref).
+     * @param string   $absDir Absolute directory on the live install.
+     * @param string   $relDir Root-relative path of that directory (no leading slash).
+     * @param string[] $out    Accumulator of root-relative file paths (by ref).
      *
      * @since   1.0.5
      */

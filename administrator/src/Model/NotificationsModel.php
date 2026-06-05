@@ -39,7 +39,7 @@ class NotificationsModel extends ListModel
     /**
      * Constructor.
      *
-     * @param array $config Configuration array.
+     * @param array                    $config  Configuration array.
      * @param MVCFactoryInterface|null $factory The factory.
      *
      * @since   1.0.5
@@ -63,7 +63,7 @@ class NotificationsModel extends ListModel
     /**
      * Autopopulate the model state from the request.
      *
-     * @param string $ordering Default ordering column.
+     * @param string $ordering  Default ordering column.
      * @param string $direction Default ordering direction.
      *
      * @return void
@@ -115,7 +115,7 @@ class NotificationsModel extends ListModel
         // Drop expired history rows before reading (lazy cleanup — no cron).
         NotificationHelper::purge();
 
-        $db = $this->getDatabase();
+        $db    = $this->getDatabase();
         $query = $db->createQuery();
 
         $query->select($this->getState('list.select', 'a.*'))
@@ -151,7 +151,7 @@ class NotificationsModel extends ListModel
         if (!empty($search)) {
             $like = '%' . str_replace(' ', '%', trim($search)) . '%';
             $query->where(
-                '(' . $db->quoteName('a.title') . ' LIKE :s1 OR ' . $db->quoteName('a.message') . ' LIKE :s2)',
+                '(' . $db->quoteName('a.title') . ' LIKE :s1 OR ' . $db->quoteName('a.message') . ' LIKE :s2)'
             )
                 ->bind(':s1', $like)
                 ->bind(':s2', $like);

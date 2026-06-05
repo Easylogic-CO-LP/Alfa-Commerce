@@ -70,13 +70,14 @@ class NotificationHelper
      * still-true condition never re-nags an already-seen row.
      *
      * @param string $dedupKey Stable identity, e.g. "order:123" or "alfa.integrity".
-     * @param string $title Short headline.
-     * @param array $options group|severity|message|url|dismissible(bool)|expires(sql)|
-     *                       constant(bool — re-alert on re-push: clears read state so a
-     *                       persistent condition like integrity resurfaces each cycle)|
-     *                       view(['action'=>..,'asset'=>..] — who may SEE it; null = all managers)|
-     *                       link(['action'=>..,'asset'=>..] — who may use the LINK; null = anyone who sees it).
+     * @param string $title    Short headline.
+     * @param array  $options  group|severity|message|url|dismissible(bool)|expires(sql)|
+     *                         constant(bool — re-alert on re-push: clears read state so a
+     *                         persistent condition like integrity resurfaces each cycle)|
+     *                         view(['action'=>..,'asset'=>..] — who may SEE it; null = all managers)|
+     *                         link(['action'=>..,'asset'=>..] — who may use the LINK; null = anyone who sees it).
      *
+     * @return void
      *
      * @since   1.0.5
      */
@@ -89,19 +90,19 @@ class NotificationHelper
         $existingId = self::idForKey(dedupKey: $dedupKey);
 
         $data = [
-            'id' => $existingId,
-            'dedup_key' => $dedupKey,
+            'id'           => $existingId,
+            'dedup_key'    => $dedupKey,
             'notify_group' => (string) ($options['group'] ?? Text::_('COM_ALFA_NOTIFY_GROUP_GENERAL')),
-            'severity' => $severity,
-            'title' => $title,
-            'message' => (string) ($options['message'] ?? ''),
-            'url' => self::safeUrl((string) ($options['url'] ?? '')),
-            'dismissible' => (($options['dismissible'] ?? true) ? 1 : 0),
-            'view_access' => $options['view']['action'] ?? null,
-            'view_access_asset' => $options['view']['asset'] ?? null,
-            'url_access' => $options['link']['action'] ?? null,
-            'url_access_asset' => $options['link']['asset'] ?? null,
-            'expires' => $options['expires'] ?? null,
+            'severity'     => $severity,
+            'title'        => $title,
+            'message'      => (string) ($options['message'] ?? ''),
+            'url'          => self::safeUrl((string) ($options['url'] ?? '')),
+            'dismissible'  => (($options['dismissible'] ?? true) ? 1 : 0),
+            'view_access'         => $options['view']['action'] ?? null,
+            'view_access_asset'   => $options['view']['asset'] ?? null,
+            'url_access'          => $options['link']['action'] ?? null,
+            'url_access_asset'    => $options['link']['asset'] ?? null,
+            'expires'      => $options['expires'] ?? null,
         ];
 
         // A constant re-alert (e.g. integrity, while the condition holds) resurfaces as
@@ -121,7 +122,7 @@ class NotificationHelper
         // Joomla's Table::store() SKIPS null values, so a re-alert's readed=null would
         // never persist via save() — clear the read state with a direct update instead.
         if ($isRealert) {
-            $db = self::db();
+            $db    = self::db();
             $query = $db->getQuery(true)
                 ->update($db->quoteName(self::TABLE))
                 ->set($db->quoteName('readed') . ' = NULL')
@@ -136,18 +137,19 @@ class NotificationHelper
     /**
      * Mark a notification read, recording who read it.
      *
-     * @param int $id Notification id.
-     * @param int $userId The reading admin's id (0 = unknown).
+     * @param int $id     Notification id.
+     * @param int $userId  The reading admin's id (0 = unknown).
      *
+     * @return void
      *
      * @since   1.0.5
      */
     public static function markRead(int $id, int $userId = 0): void
     {
-        $db = self::db();
+        $db  = self::db();
         $row = (object) [
-            'id' => $id,
-            'readed' => Factory::getDate()->toSql(),
+            'id'        => $id,
+            'readed'    => Factory::getDate()->toSql(),
             'readed_by' => $userId > 0 ? $userId : null,
         ];
 
@@ -158,15 +160,16 @@ class NotificationHelper
      * Dismiss a notification → ARCHIVE it to history (set `dismissed` now, `expires`
      * a retention window ahead). Only affects dismissible, still-active rows.
      *
-     * @param int $id Notification id.
-     * @param int|null $historyDays Days to keep as history (null = default).
+     * @param int      $id           Notification id.
+     * @param int|null $historyDays  Days to keep as history (null = default).
      *
+     * @return void
      *
      * @since   1.0.5
      */
     public static function dismiss(int $id, ?int $historyDays = null): void
     {
-        $db = self::db();
+        $db    = self::db();
         $query = $db->getQuery(true)
             ->update($db->quoteName(self::TABLE))
             ->set($db->quoteName('dismissed') . ' = :now')
@@ -189,10 +192,11 @@ class NotificationHelper
      * for history; with $hard = true it is deleted outright — used for fluctuating
      * live states (e.g. integrity) that shouldn't spam history.
      *
-     * @param string $dedupKey The key passed to {@see self::push()}.
-     * @param bool $hard True = delete; false = archive to history.
+     * @param string   $dedupKey    The key passed to {@see self::push()}.
+     * @param bool     $hard        True = delete; false = archive to history.
      * @param int|null $historyDays Retention when archiving (null = default).
      *
+     * @return void
      *
      * @since   1.0.5
      */
@@ -211,8 +215,8 @@ class NotificationHelper
             return;
         }
 
-        $now = Factory::getDate()->toSql();
-        $exp = self::historyExpiry(historyDays: $historyDays);
+        $now   = Factory::getDate()->toSql();
+        $exp   = self::historyExpiry(historyDays: $historyDays);
         $query = $db->getQuery(true)
             ->update($db->quoteName(self::TABLE))
             ->set($db->quoteName('dismissed') . ' = :now')
@@ -238,7 +242,7 @@ class NotificationHelper
     {
         self::purge();
 
-        $db = self::db();
+        $db    = self::db();
         $query = $db->getQuery(true)
             ->select($db->quoteName(['severity', 'view_access', 'view_access_asset']))
             ->from($db->quoteName(self::TABLE))
@@ -248,7 +252,7 @@ class NotificationHelper
         $rows = (array) $db->setQuery($query)->loadObjectList();
 
         $count = 0;
-        $rank = -1;
+        $rank  = -1;
         $worst = 'info';
 
         foreach ($rows as $row) {
@@ -261,7 +265,7 @@ class NotificationHelper
             $r = self::SEVERITY_RANK[$row->severity] ?? 0;
 
             if ($r > $rank) {
-                $rank = $r;
+                $rank  = $r;
                 $worst = $row->severity;
             }
         }
@@ -273,9 +277,10 @@ class NotificationHelper
      * Whether the given user (default: current) may SEE a notification — true when it
      * declares no view access, or the user is authorised for it.
      *
-     * @param object $notification Row carrying `view_access` / `view_access_asset`.
-     * @param mixed $user A user object, or null for the current identity.
+     * @param object    $notification Row carrying `view_access` / `view_access_asset`.
+     * @param mixed     $user         A user object, or null for the current identity.
      *
+     * @return bool
      *
      * @since   1.0.5
      */
@@ -284,7 +289,7 @@ class NotificationHelper
         return self::authorised(
             action: (string) ($notification->view_access ?? ''),
             asset: (string) ($notification->view_access_asset ?? ''),
-            user: $user,
+            user: $user
         );
     }
 
@@ -292,9 +297,10 @@ class NotificationHelper
      * Whether the given user (default: current) may follow a notification's LINK. If
      * false, the notification is still shown — just without its clickable target.
      *
-     * @param object $notification Row carrying `url_access` / `url_access_asset`.
-     * @param mixed $user A user object, or null for the current identity.
+     * @param object    $notification Row carrying `url_access` / `url_access_asset`.
+     * @param mixed     $user         A user object, or null for the current identity.
      *
+     * @return bool
      *
      * @since   1.0.5
      */
@@ -303,7 +309,7 @@ class NotificationHelper
         return self::authorised(
             action: (string) ($notification->url_access ?? ''),
             asset: (string) ($notification->url_access_asset ?? ''),
-            user: $user,
+            user: $user
         );
     }
 
@@ -350,7 +356,7 @@ class NotificationHelper
      */
     public static function renderActivePanel(bool $isOpen = false): string
     {
-        $app = Factory::getApplication();
+        $app   = Factory::getApplication();
         $model = self::model('Notifications');
 
         $model->getState('list.ordering'); // force populateState()
@@ -358,16 +364,16 @@ class NotificationHelper
         $model->setState('list.limit', 0);
         $model->setState('list.start', 0);
 
-        $user = $app->getIdentity();
+        $user  = $app->getIdentity();
         $items = array_values(array_filter(
             $model->getItems() ?: [],
-            static fn ($item): bool => self::canSee(notification: $item, user: $user),
+            static fn ($item): bool => self::canSee(notification: $item, user: $user)
         ));
 
         return LayoutHelper::render(
             'notifications.panel',
             ['items' => $items, 'is_open' => $isOpen],
-            JPATH_ADMINISTRATOR . '/components/com_alfa/layouts',
+            JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'
         );
     }
 
@@ -389,7 +395,7 @@ class NotificationHelper
         return LayoutHelper::render(
             'notifications.badge',
             ['summary' => self::summary(), 'is_open' => $isOpen],
-            JPATH_ADMINISTRATOR . '/components/com_alfa/layouts',
+            JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'
         );
     }
 
@@ -400,6 +406,7 @@ class NotificationHelper
      *
      * @param mixed $toolbar The view's Toolbar instance ($this->getDocument()->getToolbar()).
      *
+     * @return void
      *
      * @since   1.0.5
      */
@@ -419,11 +426,11 @@ class NotificationHelper
             ->useScript('com_alfa.integrity-check');
 
         $doc->addScriptOptions('com_alfa.notifications', [
-            'panelUrl' => Route::_('index.php?option=com_alfa&task=notifications.panel', false),
-            'markUrl' => Route::_('index.php?option=com_alfa&task=notifications.markRead', false),
+            'panelUrl'   => Route::_('index.php?option=com_alfa&task=notifications.panel', false),
+            'markUrl'    => Route::_('index.php?option=com_alfa&task=notifications.markRead', false),
             'dismissUrl' => Route::_('index.php?option=com_alfa&task=notifications.dismiss', false),
-            'token' => Session::getFormToken(),
-            'poll' => 0,
+            'token'      => Session::getFormToken(),
+            'poll'       => 0,
         ]);
 
         $toolbar->appendButton('Custom', self::renderBadge(), 'alfa-notification-badge');
@@ -434,9 +441,10 @@ class NotificationHelper
      * (defaulting to com_alfa).
      *
      * @param string $action The ACL action, or '' for "no restriction".
-     * @param string $asset The asset name, or '' to default to com_alfa.
-     * @param mixed $user A user object, or null for the current identity.
+     * @param string $asset  The asset name, or '' to default to com_alfa.
+     * @param mixed  $user   A user object, or null for the current identity.
      *
+     * @return bool
      *
      * @since   1.0.5
      */
@@ -446,7 +454,7 @@ class NotificationHelper
             return true;
         }
 
-        $user ??= Factory::getApplication()->getIdentity();
+        $user = $user ?? Factory::getApplication()->getIdentity();
 
         return (bool) $user->authorise($action, $asset !== '' ? $asset : 'com_alfa');
     }
@@ -454,13 +462,14 @@ class NotificationHelper
     /**
      * Delete history rows whose `expires` is in the past (lazy cleanup — no cron).
      *
+     * @return void
      *
      * @since   1.0.5
      */
     public static function purge(): void
     {
-        $db = self::db();
-        $now = Factory::getDate()->toSql();
+        $db    = self::db();
+        $now   = Factory::getDate()->toSql();
         $query = $db->getQuery(true)
             ->delete($db->quoteName(self::TABLE))
             ->where($db->quoteName('expires') . ' IS NOT NULL')
@@ -498,7 +507,7 @@ class NotificationHelper
      */
     private static function idForKey(string $dedupKey): int
     {
-        $db = self::db();
+        $db    = self::db();
         $query = $db->getQuery(true)
             ->select($db->quoteName('id'))
             ->from($db->quoteName(self::TABLE))
@@ -531,6 +540,7 @@ class NotificationHelper
     /**
      * The component database driver.
      *
+     * @return DatabaseInterface
      *
      * @since   1.0.5
      */

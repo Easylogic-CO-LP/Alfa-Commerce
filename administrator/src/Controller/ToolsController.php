@@ -70,7 +70,7 @@ class ToolsController extends BaseController
                 // go in files/removed/<version>.json instead.)
                 $report = IntegrityHelper::verifyAgainstOfficial();
                 $status = $report['status'] ?? '';
-                $diff = array_merge($report['modified'] ?? [], $report['injected'] ?? []);
+                $diff   = array_merge($report['modified'] ?? [], $report['injected'] ?? []);
 
                 // 'modified' = exact-version deviation, 'ahead' = customised/off-catalog
                 // — both have real diffs to export. Anything else (official/unreachable/
