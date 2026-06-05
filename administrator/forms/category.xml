@@ -164,9 +164,9 @@
                 name="medias"
                 type="MediaZone"
                 label="Insert Media: "
-                multiple="true"
+                multiple="false"
                 hiddenLabel="true"
-                types="media,url"
+                types="media"
         />
     </fieldset>
 </form>

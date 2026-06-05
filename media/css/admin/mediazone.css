@@ -440,3 +440,22 @@
         grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     }
 }
+/* ── URL thumbnail picker (media zone) ── */
+.media-url-thumb {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .5rem;
+}
+.media-url-thumb-hint {
+    font-size: .8rem;
+    color: #6c757d;
+}
+.media-url-thumb-preview {
+    width: 96px;
+    height: 96px;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 1px solid #e2e2e6;
+    background: #f7f7f8;
+}
