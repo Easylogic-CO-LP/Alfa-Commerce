@@ -47,9 +47,5 @@
             <item>The database Fix tool (System &gt; Database) now recognises the component.</item>
             <item>Order-status email "Restore defaults" now fills every section, not just the intro.</item>
         </fix>
-
-        <note>
-            <item>Existing sites can add the new form-field-groups table via System &gt; Database &gt; Fix; fresh installs get it automatically.</item>
-        </note>
     </changelog>
 </changelogs>
