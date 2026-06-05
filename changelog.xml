@@ -16,29 +16,14 @@
         <version>1.0.5</version>
 
         <addition>
+            <item>Multilingual catalog — translate categories, manufacturers, items and more, each in its own language.</item>
+            <item>Order statuses with customisable status-change emails for customers and admins.</item>
+            <item>Customisable email layouts for order-status notifications.</item>
+            <item>Unique values for custom form field options.</item>
+            <item>Categories and Manufacturers columns and filters on the Items list.</item>
             <item>Notification centre in the admin — a toolbar bell with a quick panel and a full history.</item>
             <item>File-integrity check (Tools &gt; Security) that verifies your installed files against the official release.</item>
             <item>One-click export of the component as an installable package.</item>
-        </addition>
-
-        <fix>
-            <item>Notification sort options now show translated labels instead of raw keys.</item>
-            <item>The notification count badge now shows and hides correctly.</item>
-            <item>Tools now appears as the last item in the component menu.</item>
-        </fix>
-    </changelog>
-
-    <changelog>
-        <element>com_alfa</element>
-        <type>component</type>
-        <version>1.0.4</version>
-
-        <addition>
-            <item>Multilingual catalog — translate categories, manufacturers, items and more, each in its own language.</item>
-            <item>Unique values for custom form field options.</item>
-            <item>Categories and Manufacturers columns and filters on the Items list.</item>
-            <item>Order statuses with customisable status-change emails for customers and admins.</item>
-            <item>Customisable email layouts for order-status notifications.</item>
             <item>Automatic updates delivered through Joomla's update manager.</item>
         </addition>
 
@@ -46,6 +31,9 @@
             <item>Custom form field groups now work correctly on a fresh install.</item>
             <item>The database Fix tool (System &gt; Database) now recognises the component.</item>
             <item>Order-status email "Restore defaults" now fills every section, not just the intro.</item>
+            <item>Notification sort options now show translated labels instead of raw keys.</item>
+            <item>The notification count badge now shows and hides correctly.</item>
+            <item>Tools now appears as the last item in the component menu.</item>
         </fix>
     </changelog>
 </changelogs>
