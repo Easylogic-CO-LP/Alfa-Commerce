@@ -56,6 +56,7 @@
 	$urlLabelText          = Text::_('COM_ALFA_MEDIA_URL_LABEL');
 	$insertUrlTitle        = Text::_('COM_ALFA_MEDIA_INSERT_URL');
 	$urlThumbnailText      = Text::_('COM_ALFA_MEDIA_URL_THUMBNAIL');
+	$urlThumbnailHintText  = Text::_('COM_ALFA_MEDIA_URL_THUMBNAIL_HINT');
 	$closeText             = Text::_('JCLOSE');
 	$addUrlText            = Text::_('COM_ALFA_MEDIA_ADD_URL');
 
@@ -109,7 +110,10 @@
             <label for="media-url-input" class="form-label">{$urlLabelText}</label>
             <input type="url" class="form-control" id="media-url-input" placeholder="https://example.com">
             <small id="media-url-error" class="hidden">-</small>
-            <button type="button" class="btn btn-primary media-url-thumbnail-btn">{$urlThumbnailText}</button>
+        </div>
+        <div class="media-url-thumb">
+            <small class="media-url-thumb-hint">{$urlThumbnailHintText}</small>
+            <button type="button" class="btn btn-outline-secondary btn-sm media-url-thumbnail-btn">{$urlThumbnailText}</button>
         </div>
         <div>
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{$closeText}</button>

@@ -12,6 +12,11 @@
             <item>Clarified the wording of the file-integrity security note.</item>
             <item>Removed the unused Metadata fields from the Place editor (places are not public pages).</item>
         </fix>
+
+        <change>
+            <item>The media-zone URL-thumbnail picker now explains that a default image is used if none is chosen, with a tidier preview.</item>
+            <item>Categories now use a single image picker (no URL option), matching Manufacturers.</item>
+        </change>
     </changelog>
 
     <changelog>

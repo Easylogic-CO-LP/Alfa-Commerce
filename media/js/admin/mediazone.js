@@ -428,7 +428,7 @@
 
             // Thumbnail preview inside URL modal
             const thumbPreview = document.createElement('img');
-            thumbPreview.style.cssText = 'margin-top:10px;margin-left:3px;border-radius:15px;object-fit:cover;';
+            thumbPreview.className = 'media-url-thumb-preview';
 
             if (thumbBtn && pickerInput && pickerOpenBtn) {
                 thumbBtn.addEventListener('click', () => pickerOpenBtn.click());
@@ -436,9 +436,7 @@
                 pickerInput.addEventListener('change', () => {
                     const safePath = encodeURI(pickerInput.value);
 
-                    thumbPreview.width  = 100;
-                    thumbPreview.height = 100;
-                    thumbPreview.src    = '/' + safePath;
+                    thumbPreview.src = '/' + safePath;
                     thumbBtn.insertAdjacentElement('afterend', thumbPreview);
                 });
             }
