@@ -73,7 +73,7 @@ $input = Factory::getApplication()->getInput();
     <?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'publishing', Text::_('COM_ALFA_FIELDSET_PUBLISHING_SEO')); ?>
 
     <div class="row">
-        <div class="col-12 col-lg-6">
+        <div class="col-12">
             <fieldset id="fieldset-publishingdata" class="options-form">
                 <legend><?php echo Text::_('JGLOBAL_FIELDSET_PUBLISHING'); ?></legend>
                 <div>
@@ -91,15 +91,6 @@ $input = Factory::getApplication()->getInput();
                     <?php echo $this->form->renderField('id'); ?>
 
 
-                </div>
-            </fieldset>
-        </div>
-        <div class="col-12 col-lg-6">
-            <fieldset id="fieldset-metadata" class="options-form">
-                <legend><?php echo Text::_('JGLOBAL_FIELDSET_METADATA_OPTIONS'); ?></legend>
-                <div>
-                    <?php echo $this->form->renderField('meta_title'); ?>
-                    <?php echo $this->form->renderField('meta_desc'); ?>
                 </div>
             </fieldset>
         </div>

@@ -10,6 +10,7 @@
             <item>Category images now display on the subcategory cards in the product listing.</item>
             <item>The "Payment Methods" and "Shipment Methods" headings on a product no longer appear when there are none to list.</item>
             <item>Clarified the wording of the file-integrity security note.</item>
+            <item>Removed the unused Metadata fields from the Place editor (places are not public pages).</item>
         </fix>
     </changelog>
 
