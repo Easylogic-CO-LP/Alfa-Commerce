@@ -7,8 +7,6 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
-use Joomla\CMS\Uri\Uri;
-
 defined('_JEXEC') or die;
 
 // Check if categories exist
@@ -22,10 +20,12 @@ if (empty($this->categories)) return;
 
         <a class="list-item category-item"
            href="<?= $category->link ?>">
-            <img src="<?= Uri::root().'/media/com_alfa/images/placeholder_600x.webp' ?>"
-                 alt="<?= $category->name ?>"
-            />
-            <h3><?php echo htmlspecialchars($category->name, ENT_QUOTES, 'UTF-8'); ?></h3>
+            <?php if (!empty($category->medias[0])): ?>
+                <img class="category-item-img" src="<?= $category->medias[0]->url ?>"
+                     alt="<?= htmlspecialchars($category->name, ENT_QUOTES, 'UTF-8') ?>"
+                />
+            <?php endif; ?>
+            <h3 class="category-item-title"><?php echo htmlspecialchars($category->name, ENT_QUOTES, 'UTF-8'); ?></h3>
         </a>
 
 	<?php } ?>
