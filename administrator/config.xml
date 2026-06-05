@@ -3,6 +3,17 @@
     <fieldset label="COM_ALFA" name="alfa">
 
         <field
+                name="notifications_history_days"
+                type="number"
+                default="7"
+                min="1"
+                max="365"
+                filter="integer"
+                label="COM_ALFA_CONFIG_NOTIFY_HISTORY_DAYS"
+                description="COM_ALFA_CONFIG_NOTIFY_HISTORY_DAYS_DESC"
+        />
+
+        <field
                 name="include_subcategories"
                 type="radio"
                 default="1"

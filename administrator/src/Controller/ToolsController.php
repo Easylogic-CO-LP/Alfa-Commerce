@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\IntegrityHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PackageHelper;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Language\Text;
@@ -37,6 +38,11 @@ class ToolsController extends BaseController
      * Build and download the extension package archive (repo layout, libraries
      * excluded — a source/PR package rather than a guaranteed-installable one).
      *
+     * With `&changed=1` the archive is restricted to the files the integrity scan
+     * reports as changed against the install/update baseline — but only when that
+     * scan is verified and actually reports changes; otherwise nothing is streamed
+     * and the request redirects back to the Tools view with a notice.
+     *
      *
      * @since   1.0.3
      */
@@ -54,8 +60,39 @@ class ToolsController extends BaseController
             return;
         }
 
+        $changed = (int) $this->input->getInt('changed', 0);
+
         try {
-            $package = PackageHelper::buildPackageZip(installRoot: JPATH_ROOT);
+            if ($changed === 1) {
+                // The changed set comes from the signed official CDN checksums
+                // (single source of truth): files that differ from the released
+                // version = modified + injected. ('missing' can't be zipped — those
+                // go in files/removed/<version>.json instead.)
+                $report = IntegrityHelper::verifyAgainstOfficial();
+                $status = $report['status'] ?? '';
+                $diff = array_merge($report['modified'] ?? [], $report['injected'] ?? []);
+
+                // 'modified' = exact-version deviation, 'ahead' = customised/off-catalog
+                // — both have real diffs to export. Anything else (official/unreachable/
+                // bad_signature) has nothing trustworthy to export.
+                if (($status !== 'modified' && $status !== 'ahead') || empty($diff)) {
+                    if ($status === 'official') {
+                        // Verified — this install matches the official release exactly.
+                        $this->setMessage(Text::_('COM_ALFA_TOOLS_CHANGED_NONE'), 'notice');
+                    } else {
+                        // unreachable / bad_signature — can't trust a diff; go online.
+                        $this->setMessage(Text::_('COM_ALFA_TOOLS_CHANGED_UNVERIFIED'), 'warning');
+                    }
+
+                    $this->setRedirect(Route::_('index.php?option=com_alfa&view=tools', false));
+
+                    return;
+                }
+
+                $package = PackageHelper::buildPackageZip(installRoot: JPATH_ROOT, onlyRelPaths: $diff);
+            } else {
+                $package = PackageHelper::buildPackageZip(installRoot: JPATH_ROOT);
+            }
         } catch (Throwable $e) {
             $this->setMessage(Text::sprintf('COM_ALFA_TOOLS_PACKAGE_ERROR', $e->getMessage()), 'error');
             $this->setRedirect(Route::_('index.php?option=com_alfa&view=tools', false));

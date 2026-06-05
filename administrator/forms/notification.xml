@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+
+    <fieldset name="general">
+        <field name="title" type="text" required="true"
+               maxlength="255" filter="string"
+               label="COM_ALFA_FORM_LBL_NOTIFICATION_TITLE"/>
+
+        <field name="message" type="textarea" rows="4"
+               filter="safehtml"
+               label="COM_ALFA_FORM_LBL_NOTIFICATION_MESSAGE"/>
+
+        <field name="notify_group" type="text"
+               maxlength="64" filter="cmd"
+               label="COM_ALFA_FORM_LBL_NOTIFICATION_GROUP"/>
+
+        <field name="severity" type="list" default="info" validate="options"
+               label="COM_ALFA_FORM_LBL_NOTIFICATION_SEVERITY">
+            <option value="success">COM_ALFA_NOTIFY_SEVERITY_SUCCESS</option>
+            <option value="info">COM_ALFA_NOTIFY_SEVERITY_INFO</option>
+            <option value="warning">COM_ALFA_NOTIFY_SEVERITY_WARNING</option>
+            <option value="danger">COM_ALFA_NOTIFY_SEVERITY_DANGER</option>
+        </field>
+
+        <field name="url" type="url" filter="url"
+               maxlength="1024"
+               label="COM_ALFA_FORM_LBL_NOTIFICATION_URL"/>
+
+        <field name="dedup_key" type="text"
+               maxlength="191" filter="string"
+               label="COM_ALFA_FORM_LBL_NOTIFICATION_KEY"
+               description="COM_ALFA_FORM_DESC_NOTIFICATION_KEY"/>
+
+        <field name="dismissible" type="radio" default="1"
+               layout="joomla.form.field.radio.switcher"
+               label="COM_ALFA_FORM_LBL_NOTIFICATION_DISMISSIBLE">
+            <option value="1">JYES</option>
+            <option value="0">JNO</option>
+        </field>
+
+        <field name="expires" type="calendar" translateformat="true" showtime="true"
+               filter="user_utc"
+               label="COM_ALFA_FORM_LBL_NOTIFICATION_EXPIRES"
+               description="COM_ALFA_FORM_DESC_NOTIFICATION_EXPIRES"/>
+    </fieldset>
+
+</form>

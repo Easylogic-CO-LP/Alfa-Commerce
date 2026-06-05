@@ -1,27 +1,27 @@
 <?php
 
 /**
- * @version    1.0.1
- * @package    Com_Alfa
+ * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  2024 Easylogic CO LP
- * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
-namespace Alfa\Component\Alfa\Administrator\View\Users;
+namespace Alfa\Component\Alfa\Administrator\View\Notifications;
 
-// No direct access
 defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\View\HtmlView as BaseHtmlView;
-use Joomla\CMS\Helper\ContentHelper;
+use Joomla\CMS\Access\Exception\NotAllowed;
+use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 
 /**
- * View class for a list of Users.
+ * Notification history view — the full, filterable/paginated list reached from the
+ * quick panel's "Show all". Read-only browsing of active + dismissed notifications.
  *
- * @since  1.0.1
+ * @since  1.0.5
  */
 class HtmlView extends BaseHtmlView
 {
@@ -36,14 +36,20 @@ class HtmlView extends BaseHtmlView
     public $activeFilters;
 
     /**
-     * Display the view
+     * Display the view.
      *
-     * @param string $tpl The name of the template file to parse; automatically searches through the template paths.
+     * @param string|null $tpl The template name.
      *
      * @return void
+     *
+     * @since   1.0.5
      */
     public function display($tpl = null)
     {
+        if (!Factory::getApplication()->getIdentity()->authorise('core.manage', 'com_alfa')) {
+            throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
+        }
+
         $model = $this->getModel();
 
         $this->items = $model->getItems();
@@ -54,7 +60,6 @@ class HtmlView extends BaseHtmlView
 
         $this->addToolbar();
 
-        // Add form control fields
         $this->filterForm
             ->addControlField('task', '')
             ->addControlField('boxchecked', '0');
@@ -67,23 +72,16 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since   1.0.1
+     * @since   1.0.5
      */
     protected function addToolbar()
     {
-        $canDo = ContentHelper::getActions('com_alfa');
         $toolbar = $this->getDocument()->getToolbar();
 
-        ToolbarHelper::title(Text::_('COM_ALFA_TITLE_USERS'), 'person');
+        ToolbarHelper::title(Text::_('COM_ALFA_NOTIFY_HISTORY_TITLE'), 'bell');
 
-        //Add new User Button
-        //        if ($canDo->get('core.create')) {
-        //            $toolbar->addNew('user.add');
-        //        }
-
-        if ($canDo->get('core.admin')) {
+        if (Factory::getApplication()->getIdentity()->authorise('core.admin', 'com_alfa')) {
             $toolbar->preferences('com_alfa');
         }
-        \Alfa\Component\Alfa\Administrator\Helper\NotificationHelper::toolbarBadge($toolbar);
     }
 }

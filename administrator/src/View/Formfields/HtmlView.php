@@ -132,5 +132,6 @@ class HtmlView extends BaseHtmlView
         if ($canDo->get('core.admin')) {
             $toolbar->preferences('com_alfa');
         }
+        \Alfa\Component\Alfa\Administrator\Helper\NotificationHelper::toolbarBadge($toolbar);
     }
 }

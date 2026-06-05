@@ -62,6 +62,14 @@ class com_alfaInstallerScript extends InstallerScript
     protected $minimumJoomla = '4.0';
 
     /**
+     * Version we are updating FROM, captured in preflight before the new files
+     * overwrite the old manifest. Drives the obsolete-file cleanup in postflight.
+     *
+     * @var string
+     */
+    private string $fromVersion = '';
+
+    /**
      * Default component parameters to seed after install / update.
      *
      * Keys must match the `name` attribute of every <field> in config.xml.
@@ -147,6 +155,24 @@ class com_alfaInstallerScript extends InstallerScript
      */
     public function preflight($type, $parent): bool
     {
+        // Capture the version we are updating FROM while the OLD manifest is still
+        // on disk (the new files have not been copied yet). postflight uses it to
+        // know which version-keyed deletion lists to apply.
+        if ($type === 'update')
+        {
+            $oldManifest = JPATH_ADMINISTRATOR . '/components/com_alfa/alfa.xml';
+
+            if (is_file($oldManifest))
+            {
+                $xml = @simplexml_load_file($oldManifest);
+
+                if ($xml !== false)
+                {
+                    $this->fromVersion = trim((string) $xml->version);
+                }
+            }
+        }
+
         return parent::preflight($type, $parent);
     }
 
@@ -219,6 +245,13 @@ class com_alfaInstallerScript extends InstallerScript
         if (!in_array($type, ['install', 'update'], true))
         {
             return true;
+        }
+
+        // On update, clean up files/folders that older versions shipped but this
+        // version no longer does (Joomla's installer never removes them on its own).
+        if ($type === 'update')
+        {
+            $this->removeObsoleteFiles($this->fromVersion !== '' ? $this->fromVersion : '0.0.0');
         }
 
         // Register the component namespace so every Alfa\Component\Alfa\Administrator\…
@@ -309,7 +342,99 @@ class com_alfaInstallerScript extends InstallerScript
             }
         }
 
+        // File integrity is verified online against the signed canonical checksums
+        // on the CDN (single source of truth — IntegrityHelper::verifyAgainstOfficial),
+        // so there is no local baseline to capture at install/update.
+
         return true;
+    }
+
+    // =========================================================================
+    // Obsolete-file cleanup (version-keyed, mirrors sql/updates)
+    // =========================================================================
+
+    /**
+     * Delete files and folders that earlier releases installed but the current one
+     * no longer ships. Mirrors the SQL-update model: each release that drops files
+     * adds a version-keyed list at
+     * `administrator/components/com_alfa/files/removed/<version>.json`
+     * (sibling of `sql/updates/<version>.sql`), and on update every list newer than
+     * the installed version is applied (so a customer skipping several versions is
+     * fully cleaned up).
+     *
+     * Each JSON file has the shape (paths are relative to the Joomla root):
+     *   {
+     *     "files":   ["/components/com_alfa/controller.php", ...],
+     *     "folders": ["/media/com_alfa/js/legacy", ...]
+     *   }
+     *
+     * Auto-created runtime folders (logs, caches, generated data) must NOT be
+     * listed — they are regenerated and may hold live data. Deletion is guarded by
+     * Joomla's removeFiles(), which no-ops on paths that no longer exist.
+     *
+     * @param   string  $fromVersion  The version being updated from.
+     *
+     * @return  void
+     */
+    private function removeObsoleteFiles(string $fromVersion): void
+    {
+        $dir = JPATH_ADMINISTRATOR . '/components/com_alfa/files/removed';
+
+        if (!is_dir($dir))
+        {
+            return;
+        }
+
+        $files   = [];
+        $folders = [];
+
+        foreach ((array) glob($dir . '/*.json') as $path)
+        {
+            $version = basename($path, '.json');
+
+            // Only lists for releases newer than the one we are updating from.
+            if (version_compare($version, $fromVersion, '<='))
+            {
+                continue;
+            }
+
+            $data = json_decode((string) file_get_contents($path), true);
+
+            if (!is_array($data))
+            {
+                continue;
+            }
+
+            foreach ((array) ($data['files'] ?? []) as $file)
+            {
+                $files[] = '/' . ltrim((string) $file, '/');
+            }
+
+            foreach ((array) ($data['folders'] ?? []) as $folder)
+            {
+                $folders[] = '/' . ltrim((string) $folder, '/');
+            }
+        }
+
+        if (!$files && !$folders)
+        {
+            return;
+        }
+
+        // Feed Joomla's InstallerScript::removeFiles(), which prefixes JPATH_ROOT
+        // and silently skips anything already gone.
+        $this->deleteFiles   = array_values(array_unique($files));
+        $this->deleteFolders = array_values(array_unique($folders));
+
+        $this->removeFiles();
+
+        Factory::getApplication()->enqueueMessage(
+            sprintf(
+                'Cleaned up %d obsolete file(s) and %d folder(s) from previous versions.',
+                count($this->deleteFiles),
+                count($this->deleteFolders)
+            )
+        );
     }
 
     // =========================================================================
