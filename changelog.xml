@@ -34,6 +34,8 @@
         <version>1.0.4</version>
 
         <addition>
+            <item>Multilingual support across the catalog: per-language content (names, aliases and metadata) for categories, manufacturers, items and more.</item>
+            <item>Unique form fields: enforce unique values on custom form field options.</item>
             <item>Items list (back end): new Categories and Manufacturers columns showing every related entry per item, with translated names.</item>
             <item>Items list (back end): working Categories and Manufacturers filters (multi-select) in the search toolbar.</item>
             <item>Order statuses: role-flag taxonomy (Initial / Cancellation / Completed) replacing the legacy is_default column, with save/publish/delete invariants.</item>
