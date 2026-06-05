@@ -2,22 +2,20 @@
 
 A full-featured eCommerce component for Joomla 4.x / 5.x / 6.x, developed by [Easylogic](https://easylogic.gr).
 
-> **Beta** – actively developed; features and APIs may still change.
-
-> **Status:** Pre-alpha â the core is being actively built and tested.
+> **Status:** Beta — the core is being actively built and tested.
 
 ## Features
 
-- **Product Catalog** â Items, categories, manufacturers, custom fields
-- **Cart & Checkout** â Full shopping cart with multi-step checkout
-- **Orders Management** â Order lifecycle, statuses, history tracking
-- **Payments** â Pluggable payment gateways (Standard, Revolut, Viva Wallet)
-- **Shipping** â Pluggable shipment methods (Standard, BoxNow)
-- **Pricing Engine** â Taxes, discounts, coupons, multi-currency support
-- **Users & Groups** â Customer management with user group pricing
-- **REST API** â 18 JSON-API endpoints for third-party integrations
-- **SEO** â SEF URLs, metadata management
-- **Multilingual** â Full i18n support (en-GB, el-GR)
+- **Product Catalog** — Items, categories, manufacturers, custom fields
+- **Cart & Checkout** — Full shopping cart with multi-step checkout
+- **Orders Management** — Order lifecycle, statuses, history tracking
+- **Payments** — Pluggable payment gateways
+- **Shipping** — Pluggable shipment methods
+- **Pricing Engine** — Taxes, discounts, coupons, multi-currency support
+- **Users & Groups** — Customer management with user group pricing
+- **REST API** — JSON-API endpoints for third-party integrations
+- **SEO** — SEF URLs, metadata management
+- **Multilingual** — Full i18n support (en-GB, el-GR)
 
 ## Requirements
 
@@ -32,23 +30,6 @@ A full-featured eCommerce component for Joomla 4.x / 5.x / 6.x, developed by [Ea
 3. Upload the ZIP file
 4. The installer will automatically set up the component, plugins, and modules
 
-## Project Structure
-
-```
-administrator/          Backend admin panel (MVC, forms, services, events)
-site/                   Frontend customer-facing views and logic
-api/                    REST JSON-API controllers (18 endpoints)
-plugins/
-  alfa-payments/        Payment gateways (standard, revolut, viva)
-  alfa-shipments/       Shipping methods (standard, boxnow)
-  alfa-fields/          Custom form field types (text, textarea)
-  webservices/          API routing plugin
-modules/
-  mod_alfa_cart/        Shopping cart module
-  mod_alfa_search/      Product search module
-media/com_alfa/         CSS, JavaScript, images
-```
-
 ## API
 
 Alfa Commerce exposes a REST API for integration with external applications.
@@ -61,33 +42,7 @@ Full documentation is available at **[manual.alfacommerce.gr](https://manual.alf
 
 ## Contributing
 
-We welcome contributions from everyone. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide.
-
-**Quick start:**
-
-```bash
-# Fork and clone
-git clone https://github.com/YOUR-USERNAME/Alfa-Commerce.git
-cd Alfa-Commerce
-
-# Create a feature branch from developer
-git checkout developer
-git checkout -b feature/my-feature
-
-# Make changes, commit, push
-git push origin feature/my-feature
-
-# Open a Pull Request targeting the "developer" branch
-```
-
-### Branch Strategy
-
-| Branch | Purpose |
-|--------|---------|
-| `main` | Stable releases. Never commit directly. |
-| `developer` | Active development. Base your branches here. |
-| `feature/*` | New features |
-| `fix/*` | Bug fixes |
+We welcome contributions. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, branch strategy and the PR process.
 
 ## Contact
 
