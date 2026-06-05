@@ -54,7 +54,6 @@ class HtmlView extends BaseHtmlView
      * 1.0.5), so the contribution guide's SQL-update / version-bump examples match
      * this install instead of a hard-coded number.
      *
-     * @var string
      * @since  1.0.4
      */
     public string $nextVersion = '';
@@ -100,11 +99,11 @@ class HtmlView extends BaseHtmlView
             throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
         }
 
-        $this->libraries   = PackageHelper::describeLibraries(installRoot: JPATH_ROOT);
-        $this->drift       = PackageHelper::detectDrift(installRoot: JPATH_ROOT);
+        $this->libraries = PackageHelper::describeLibraries(installRoot: JPATH_ROOT);
+        $this->drift = PackageHelper::detectDrift(installRoot: JPATH_ROOT);
         $this->nextVersion = PackageHelper::nextVersion(installRoot: JPATH_ROOT);
-        $this->release     = PackageHelper::releaseReadiness(installRoot: JPATH_ROOT);
-        $this->official    = IntegrityHelper::verifyAgainstOfficial();
+        $this->release = PackageHelper::releaseReadiness(installRoot: JPATH_ROOT);
+        $this->official = IntegrityHelper::verifyAgainstOfficial();
 
         // A fresh Tools check is authoritative: refresh the cached verdict (so the
         // badge's 24h sync doesn't overwrite this with a stale one) and apply it to the

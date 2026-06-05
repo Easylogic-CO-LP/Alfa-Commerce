@@ -29,11 +29,10 @@ class NotificationsController extends AdminController
     /**
      * Proxy for getModel (defaults to the singular item model).
      *
-     * @param string $name    Model name.
-     * @param string $prefix  Class prefix.
-     * @param array  $config  Configuration.
+     * @param string $name Model name.
+     * @param string $prefix Class prefix.
+     * @param array $config Configuration.
      *
-     * @return object
      *
      * @since   1.0.5
      */
@@ -48,7 +47,6 @@ class NotificationsController extends AdminController
      * JS just swaps the node in place (no client-side building). `&open=1` preserves the
      * open state across the refresh.
      *
-     * @return void
      *
      * @since   1.0.5
      */
@@ -72,7 +70,6 @@ class NotificationsController extends AdminController
     /**
      * Mark a notification read (records the current user).
      *
-     * @return void
      *
      * @since   1.0.5
      */
@@ -93,7 +90,6 @@ class NotificationsController extends AdminController
     /**
      * Dismiss a notification → archive it to history.
      *
-     * @return void
      *
      * @since   1.0.5
      */
@@ -115,7 +111,6 @@ class NotificationsController extends AdminController
     /**
      * Guard: the current user may manage com_alfa.
      *
-     * @return void
      *
      * @since   1.0.5
      */
@@ -131,7 +126,6 @@ class NotificationsController extends AdminController
      *
      * @param array $payload The data to encode.
      *
-     * @return void
      *
      * @since   1.0.5
      */
