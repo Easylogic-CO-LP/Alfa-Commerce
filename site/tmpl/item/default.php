@@ -57,6 +57,7 @@
         <?php echo LayoutHelper::render('stock_info', ['item' => $this->item]); ?>
 
 
+        <?php if (!empty($this->item->payment_methods)): ?>
         <div class="item-payment-methods">
             <span class="item-payment-method-title">Payment Methods:</span>
 
@@ -81,6 +82,9 @@
             </div>
         </div>
 
+        <?php endif; ?>
+
+        <?php if (!empty($this->item->shipment_methods)): ?>
         <div class="item-shipment-methods">
             Shipment Methods :
 
@@ -101,6 +105,8 @@
                 <?php } ?>
 
         </div>
+
+        <?php endif; ?>
 
         <?php echo LayoutHelper::render('add_to_cart', $this->item); ?>
 

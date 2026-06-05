@@ -107,7 +107,7 @@ class HtmlView extends BaseHtmlView
 
         foreach ($this->item->shipment_methods as &$shipment_method) {
             if (!$shipment_method->show_on_product) {
-                unset($this->item->payment_methods[$shipment_method->id]);
+                unset($this->item->shipment_methods[$shipment_method->id]);
                 continue;
             }
 
