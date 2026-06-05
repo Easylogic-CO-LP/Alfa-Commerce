@@ -9,7 +9,7 @@
  * The panel region of the badge component — the `.alfa-notify-dropdown` itself (the JS
  * moves nothing; it's position:fixed and the JS only sets its coordinates). `data-region`
  * lets the JS target it; `data-open` + the `show` class carry the open state so a refresh
- * restores it. Visibility is already filtered upstream; here we only decide per row
+ * restores it. Visibility is already filtered upstream; this layout only decides, per row,
  * whether to show the link (url-access). Styling: notifications.css.
  *
  * @var array $displayData  ['items' => object[], 'is_open' => bool]
