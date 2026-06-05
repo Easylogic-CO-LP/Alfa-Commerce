@@ -45,8 +45,8 @@ class NotificationModel extends AdminModel
     /**
      * Get the record form.
      *
-     * @param array $data     Optional data for the form to interrogate.
-     * @param bool  $loadData True if the form should load its own data.
+     * @param array $data Optional data for the form to interrogate.
+     * @param bool $loadData True if the form should load its own data.
      *
      * @return Form|false
      *
@@ -58,7 +58,7 @@ class NotificationModel extends AdminModel
             'com_alfa.notification',
             'notification',
             [
-                'control'   => 'jform',
+                'control' => 'jform',
                 'load_data' => $loadData,
             ],
         );

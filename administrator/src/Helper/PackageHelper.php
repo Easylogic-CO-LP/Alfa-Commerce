@@ -88,7 +88,7 @@ class PackageHelper
      * path to the finished archive (the caller is responsible for streaming it to
      * the browser and deleting it afterwards).
      *
-     * @param string        $installRoot  Absolute path to the Joomla installation root (JPATH_ROOT).
+     * @param string $installRoot Absolute path to the Joomla installation root (JPATH_ROOT).
      * @param string[]|null $onlyRelPaths When non-null, restrict the package to exactly these
      *                                    LIVE root-relative file paths (no leading slash) — the
      *                                    same keys {@see self::enumerateShippedFiles()} returns
@@ -162,7 +162,7 @@ class PackageHelper
      * @param string $installRoot Absolute path to the Joomla installation root.
      *
      * @return array<string, array{h: string, s: int, m: int}> Live root-relative path
-     *                                                          => {h: sha256, s: size, m: mtime}.
+     *                                                         => {h: sha256, s: size, m: mtime}.
      *
      * @since   1.0.5
      */
@@ -247,7 +247,7 @@ class PackageHelper
                 throw new RuntimeException('Cannot open installable: ' . $zipPath);
             }
 
-            if (!@mkdir($tmp, 0775, true) && !is_dir($tmp)) {
+            if (!@mkdir($tmp, 0o775, true) && !is_dir($tmp)) {
                 throw new RuntimeException('Cannot create temp dir: ' . $tmp);
             }
 
@@ -277,7 +277,7 @@ class PackageHelper
     public static function enumerateFromPackage(string $packageRoot): array
     {
         $component = 'com_alfa';
-        $m         = self::parseManifest(manifestPath: $packageRoot . '/alfa.xml');
+        $m = self::parseManifest(manifestPath: $packageRoot . '/alfa.xml');
 
         $out = [];
 
@@ -386,19 +386,18 @@ class PackageHelper
      * the FIRST of $langRoots (matching the export's search preference, i.e. plugins land
      * in administrator/language, site modules in language).
      *
-     * @param string                                           $packageRoot Extracted package root.
-     * @param string                                           $relDir      Sub-extension dir, e.g. plugins/system/alfasync.
-     * @param string                                           $preferred   Preferred manifest basename.
-     * @param array<int, string>                               $langRoots   Live language roots, most-preferred first.
-     * @param array<string, array{abs: string, repo: string}> $out         Accumulator (by ref).
+     * @param string $packageRoot Extracted package root.
+     * @param string $relDir Sub-extension dir, e.g. plugins/system/alfasync.
+     * @param string $preferred Preferred manifest basename.
+     * @param array<int, string> $langRoots Live language roots, most-preferred first.
+     * @param array<string, array{abs: string, repo: string}> $out Accumulator (by ref).
      *
-     * @return void
      *
      * @since   1.0.5
      */
     private static function collectSubExtensionFromPackage(string $packageRoot, string $relDir, string $preferred, array $langRoots, array &$out): void
     {
-        $pkgDir       = $packageRoot . '/' . $relDir;
+        $pkgDir = $packageRoot . '/' . $relDir;
         $manifestPath = self::findSubManifest(dir: $pkgDir, preferredName: $preferred);
 
         if ($manifestPath === null) {
@@ -413,7 +412,7 @@ class PackageHelper
 
         // Code: declared <files> — same relative path in package and install.
         foreach ($xml->files as $files) {
-            $sub    = trim((string) $files['folder']);
+            $sub = trim((string) $files['folder']);
             $absSub = $sub !== '' ? $pkgDir . '/' . $sub : $pkgDir;
             $relSub = $sub !== '' ? $relDir . '/' . $sub : $relDir;
 
@@ -437,7 +436,7 @@ class PackageHelper
         // Media: package <relDir>/<folder> → live media/<destination>.
         foreach ($xml->media as $media) {
             $destination = trim((string) $media['destination']);
-            $folder      = trim((string) $media['folder']) ?: 'media';
+            $folder = trim((string) $media['folder']) ?: 'media';
 
             if ($destination !== '') {
                 self::collectFiles(
@@ -452,7 +451,7 @@ class PackageHelper
         // Languages: package <relDir>/<langFolder>/<rel> → live <langRoots[0]>/<tag>/<file>.
         if (isset($xml->languages)) {
             $langFolder = trim((string) $xml->languages['folder']);
-            $liveRoot   = $langRoots[0];
+            $liveRoot = $langRoots[0];
 
             foreach ($xml->languages->language as $language) {
                 $tag = trim((string) $language['tag']);
@@ -500,7 +499,7 @@ class PackageHelper
      * @param string $installRoot Absolute path to the Joomla installation root (JPATH_ROOT).
      *
      * @return array<string, array{abs: string, repo: string}> Live root-relative path
-     *                                                          => {abs: absolute live path, repo: destRoot-relative repo path}.
+     *                                                         => {abs: absolute live path, repo: destRoot-relative repo path}.
      *
      * @throws RuntimeException If the manifest is missing or invalid.
      *
@@ -508,10 +507,10 @@ class PackageHelper
      */
     public static function enumerateShippedFiles(string $installRoot): array
     {
-        $component    = 'com_alfa';
-        $adminCompat  = $installRoot . '/administrator/components/' . $component;
+        $component = 'com_alfa';
+        $adminCompat = $installRoot . '/administrator/components/' . $component;
         $manifestPath = $adminCompat . '/' . 'alfa.xml';
-        $m            = self::parseManifest(manifestPath: $manifestPath);
+        $m = self::parseManifest(manifestPath: $manifestPath);
 
         $out = [];
 
@@ -703,7 +702,7 @@ class PackageHelper
         }
 
         $parts = explode('.', $current);
-        $last  = end($parts);
+        $last = end($parts);
 
         if (!ctype_digit($last)) {
             return $current;
@@ -727,21 +726,21 @@ class PackageHelper
      * @param string $installRoot Absolute path to the Joomla installation root.
      *
      * @return array{version: string, sqlFile: string, removedFile: string, hasSqlUpdate: bool, hasRemovedJson: bool}
-     *               version is '' (and both flags true) when it cannot be
-     *               determined, so the UI shows no spurious reminder.
+     *                                                                                                                version is '' (and both flags true) when it cannot be
+     *                                                                                                                determined, so the UI shows no spurious reminder.
      *
      * @since   1.0.4
      */
     public static function releaseReadiness(string $installRoot): array
     {
         $componentAdmin = $installRoot . '/administrator/components/com_alfa';
-        $manifestPath   = $componentAdmin . '/alfa.xml';
+        $manifestPath = $componentAdmin . '/alfa.xml';
 
         $out = [
-            'version'        => '',
-            'sqlFile'        => '',
-            'removedFile'    => '',
-            'hasSqlUpdate'   => true,
+            'version' => '',
+            'sqlFile' => '',
+            'removedFile' => '',
+            'hasSqlUpdate' => true,
             'hasRemovedJson' => true,
         ];
 
@@ -763,13 +762,13 @@ class PackageHelper
 
         // Schema-update folder comes from the manifest (single source of truth).
         $schemaPath = trim((string) ($xml->update->schemas->schemapath ?? '')) ?: 'sql/updates';
-        $sqlRel     = $schemaPath . '/' . $version . '.sql';
+        $sqlRel = $schemaPath . '/' . $version . '.sql';
         $removedRel = 'files/removed/' . $version . '.json';
 
-        $out['version']        = $version;
-        $out['sqlFile']        = $sqlRel;
-        $out['removedFile']    = $removedRel;
-        $out['hasSqlUpdate']   = is_file($componentAdmin . '/' . $sqlRel);
+        $out['version'] = $version;
+        $out['sqlFile'] = $sqlRel;
+        $out['removedFile'] = $removedRel;
+        $out['hasSqlUpdate'] = is_file($componentAdmin . '/' . $sqlRel);
         $out['hasRemovedJson'] = is_file($componentAdmin . '/' . $removedRel);
 
         return $out;
@@ -798,7 +797,7 @@ class PackageHelper
      */
     public static function detectDrift(string $installRoot): array
     {
-        $missing    = [];
+        $missing = [];
         $undeclared = [];
 
         $manifestPath = $installRoot . '/administrator/components/com_alfa/alfa.xml';
@@ -860,12 +859,12 @@ class PackageHelper
      * are absent (→ $missing) and on-disk top-level entries that are not declared
      * and not in $extraSkip (→ $undeclared). Cruft is ignored.
      *
-     * @param string                                  $label      Human-readable root label.
-     * @param string                                  $dir        Absolute path of the root on disk.
-     * @param array<int, array{0: string, 1: string}> $items      Declared entries.
-     * @param string[]                                 $extraSkip  Extra names exempt from the undeclared check.
-     * @param string[]                                 $missing    Accumulator (by ref).
-     * @param string[]                                 $undeclared Accumulator (by ref).
+     * @param string $label Human-readable root label.
+     * @param string $dir Absolute path of the root on disk.
+     * @param array<int, array{0: string, 1: string}> $items Declared entries.
+     * @param string[] $extraSkip Extra names exempt from the undeclared check.
+     * @param string[] $missing Accumulator (by ref).
+     * @param string[] $undeclared Accumulator (by ref).
      *
      * @since   1.0.3
      */
@@ -884,7 +883,7 @@ class PackageHelper
 
         foreach ($items as [$type, $name]) {
             $declared[] = $name;
-            $path       = $dir . '/' . $name;
+            $path = $dir . '/' . $name;
 
             if ($type === 'folder' ? !is_dir($path) : !is_file($path)) {
                 $missing[] = $label . ': ' . $name;
@@ -911,12 +910,12 @@ class PackageHelper
      * $undeclared. The manifest XML and the tag-handled media/language folders are
      * exempt from the undeclared check.
      *
-     * @param string      $label        Human-readable extension label.
-     * @param string      $dir          The extension's install folder.
+     * @param string $label Human-readable extension label.
+     * @param string $dir The extension's install folder.
      * @param string|null $manifestPath Its manifest path (or null if not found).
-     * @param string      $installRoot  Joomla root (to resolve media/<destination>).
-     * @param string[]    $missing      Accumulator (by ref).
-     * @param string[]    $undeclared   Accumulator (by ref).
+     * @param string $installRoot Joomla root (to resolve media/<destination>).
+     * @param string[] $missing Accumulator (by ref).
+     * @param string[] $undeclared Accumulator (by ref).
      *
      * @since   1.0.3
      */
@@ -935,12 +934,12 @@ class PackageHelper
         $declared = [];
 
         foreach ($xml->files as $files) {
-            $sub  = trim((string) $files['folder']);
+            $sub = trim((string) $files['folder']);
             $base = $sub !== '' ? $dir . '/' . $sub : $dir;
 
             foreach (self::parseFilesItems(node: $files) as [$type, $name]) {
                 $declared[] = $name;
-                $path       = $base . '/' . $name;
+                $path = $base . '/' . $name;
 
                 if ($type === 'folder' ? !is_dir($path) : !is_file($path)) {
                     $missing[] = $label . ': ' . $name;
@@ -977,7 +976,7 @@ class PackageHelper
         $elementAttr = match ((string) $xml['type']) {
             'plugin' => 'plugin',
             'module' => 'module',
-            default  => null,
+            default => null,
         };
 
         if ($elementAttr !== null) {
@@ -1411,10 +1410,10 @@ class PackageHelper
      * to keep the root manifest/scriptfile out of the admin copy). Missing sources
      * are silent no-ops.
      *
-     * @param array<int, array{0: string, 1: string}> $items    Declared entries.
-     * @param string                                   $srcRoot  Source root directory.
-     * @param string                                   $destRoot Destination root.
-     * @param string[]                                 $skip     Entry names to skip.
+     * @param array<int, array{0: string, 1: string}> $items Declared entries.
+     * @param string $srcRoot Source root directory.
+     * @param string $destRoot Destination root.
+     * @param string[] $skip Entry names to skip.
      *
      *
      * @since   1.0.3
@@ -1442,8 +1441,8 @@ class PackageHelper
      * {@see self::copyDeclaredMediaAndLanguages()}. A null/invalid manifest is a
      * silent no-op.
      *
-     * @param string      $sourceDir    The sub-extension's install folder.
-     * @param string      $destBase     Its folder in the repo layout.
+     * @param string $sourceDir The sub-extension's install folder.
+     * @param string $destBase Its folder in the repo layout.
      * @param string|null $manifestPath Absolute path to its manifest (or null).
      *
      *
@@ -1590,11 +1589,11 @@ class PackageHelper
      * Each entry also records its repo destination, computed by swapping $relRoot for
      * $repoRoot (mirroring how buildTree re-roots the area under the manifest folder).
      *
-     * @param array<int, array{0: string, 1: string}>          $items    Declared entries.
-     * @param string                                            $absRoot  Absolute source root on the live install.
-     * @param string                                            $relRoot  Root-relative path of that source root (no leading slash).
-     * @param string                                            $repoRoot Repo (destRoot-relative) root buildTree writes this area to.
-     * @param array<string, array{abs: string, repo: string}>  $out      Accumulator: liveRel => {abs, repo} (by ref).
+     * @param array<int, array{0: string, 1: string}> $items Declared entries.
+     * @param string $absRoot Absolute source root on the live install.
+     * @param string $relRoot Root-relative path of that source root (no leading slash).
+     * @param string $repoRoot Repo (destRoot-relative) root buildTree writes this area to.
+     * @param array<string, array{abs: string, repo: string}> $out Accumulator: liveRel => {abs, repo} (by ref).
      *
      *
      * @since   1.0.4
@@ -1640,12 +1639,12 @@ class PackageHelper
      * co-located at <relSourceDir>/<folder>/<manifest-rel> (the <languages folder="">
      * name) — both mirroring {@see self::copyDeclaredMediaAndLanguages()}.
      *
-     * @param string                                           $installRoot  Joomla installation root.
-     * @param string                                           $sourceDir    The sub-extension's absolute install folder.
-     * @param string                                           $relSourceDir The sub-extension's root-relative folder (no leading slash).
-     * @param string|null                                      $manifestPath Absolute path to its manifest (or null).
-     * @param string[]                                         $langRoots    Root-relative language roots to search, highest priority first.
-     * @param array<string, array{abs: string, repo: string}> $out          Accumulator: liveRel => {abs, repo} (by ref).
+     * @param string $installRoot Joomla installation root.
+     * @param string $sourceDir The sub-extension's absolute install folder.
+     * @param string $relSourceDir The sub-extension's root-relative folder (no leading slash).
+     * @param string|null $manifestPath Absolute path to its manifest (or null).
+     * @param string[] $langRoots Root-relative language roots to search, highest priority first.
+     * @param array<string, array{abs: string, repo: string}> $out Accumulator: liveRel => {abs, repo} (by ref).
      *
      *
      * @since   1.0.4
@@ -1665,7 +1664,7 @@ class PackageHelper
         // Code: each <files folder="…"> block's declared <folder>/<filename> entries.
         // Sub-extension code keeps the same relative path in repo and install.
         foreach ($xml->files as $files) {
-            $sub    = trim((string) $files['folder']);
+            $sub = trim((string) $files['folder']);
             $absSub = $sub !== '' ? $sourceDir . '/' . $sub : $sourceDir;
             $relSub = $sub !== '' ? $relSourceDir . '/' . $sub : $relSourceDir;
 
@@ -1691,7 +1690,7 @@ class PackageHelper
         // recursively) → repo <relSourceDir>/Y/ (folder default "media").
         foreach ($xml->media as $media) {
             $destination = trim((string) $media['destination']);
-            $folder      = trim((string) $media['folder']) ?: 'media';
+            $folder = trim((string) $media['folder']) ?: 'media';
 
             if ($destination !== '') {
                 self::collectFiles(
@@ -1743,10 +1742,10 @@ class PackageHelper
      * live tree's shape under $repoDir). Skips '.', '..' and ignored names at every
      * level, recursing into subdirectories. A missing directory is a silent no-op.
      *
-     * @param string                                           $absDir  Absolute directory on the live install.
-     * @param string                                           $relDir  Root-relative path of that directory (no leading slash).
-     * @param string                                           $repoDir Repo (destRoot-relative) path of that directory (no leading slash).
-     * @param array<string, array{abs: string, repo: string}> $out     Accumulator: liveRel => {abs, repo} (by ref).
+     * @param string $absDir Absolute directory on the live install.
+     * @param string $relDir Root-relative path of that directory (no leading slash).
+     * @param string $repoDir Repo (destRoot-relative) path of that directory (no leading slash).
+     * @param array<string, array{abs: string, repo: string}> $out Accumulator: liveRel => {abs, repo} (by ref).
      *
      *
      * @since   1.0.4
@@ -1762,8 +1761,8 @@ class PackageHelper
                 continue;
             }
 
-            $abs  = $absDir . '/' . $entry;
-            $rel  = $relDir . '/' . $entry;
+            $abs = $absDir . '/' . $entry;
+            $rel = $relDir . '/' . $entry;
             $repo = $repoDir . '/' . $entry;
 
             if (is_dir($abs)) {
@@ -1779,10 +1778,10 @@ class PackageHelper
      * path and its repo destination, if it exists and is not ignored. A
      * missing/ignored file is a silent no-op.
      *
-     * @param string                                           $abs  Absolute path on the live install.
-     * @param string                                           $rel  Live root-relative path key (no leading slash).
-     * @param string                                           $repo Repo (destRoot-relative) destination path (no leading slash).
-     * @param array<string, array{abs: string, repo: string}> $out  Accumulator: liveRel => {abs, repo} (by ref).
+     * @param string $abs Absolute path on the live install.
+     * @param string $rel Live root-relative path key (no leading slash).
+     * @param string $repo Repo (destRoot-relative) destination path (no leading slash).
+     * @param array<string, array{abs: string, repo: string}> $out Accumulator: liveRel => {abs, repo} (by ref).
      *
      *
      * @since   1.0.4

@@ -20,6 +20,7 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
 use Joomla\Database\DatabaseInterface;
 use stdClass;
+use Throwable;
 
 /**
  * SyncHelper — single source of truth for all Alfa ↔ Joomla sync operations.
@@ -555,7 +556,6 @@ final class SyncHelper
      * group as {@see IntegrityHelper::cachedVerdict()}), so callers don't worry about
      * scheduling. The actual push/clear runs only on a cache miss.
      *
-     * @return void
      *
      * @since   1.0.5
      */
@@ -566,12 +566,12 @@ final class SyncHelper
                 ->get(CacheControllerFactoryInterface::class)
                 ->createCacheController('callback', [
                     'defaultgroup' => 'com_alfa.integrity',
-                    'lifetime'     => 1440, // 24h, in minutes
-                    'caching'      => true,
+                    'lifetime' => 1440, // 24h, in minutes
+                    'caching' => true,
                 ]);
 
             $cache->get([self::class, 'doSyncIntegrity'], [], 'sync');
-        } catch (\Throwable) {
+        } catch (Throwable) {
             // Cache unavailable → just do it (correct, only less throttled).
             self::doSyncIntegrity();
         }
@@ -600,7 +600,6 @@ final class SyncHelper
      *
      * @param array $verdict A verdict from IntegrityHelper (verifyAgainstOfficial/cachedVerdict).
      *
-     * @return void
      *
      * @since   1.0.5
      */
@@ -615,9 +614,9 @@ final class SyncHelper
         }
 
         $map = [
-            'modified'      => ['danger',  'COM_ALFA_NOTIFY_INTEGRITY_MODIFIED'],
-            'ahead'         => ['info',    'COM_ALFA_NOTIFY_INTEGRITY_AHEAD'],
-            'unreachable'   => ['warning', 'COM_ALFA_NOTIFY_INTEGRITY_UNVERIFIED'],
+            'modified' => ['danger',  'COM_ALFA_NOTIFY_INTEGRITY_MODIFIED'],
+            'ahead' => ['info',    'COM_ALFA_NOTIFY_INTEGRITY_AHEAD'],
+            'unreachable' => ['warning', 'COM_ALFA_NOTIFY_INTEGRITY_UNVERIFIED'],
             'bad_signature' => ['danger',  'COM_ALFA_NOTIFY_INTEGRITY_BADSIG'],
         ];
 
@@ -627,18 +626,18 @@ final class SyncHelper
             dedupKey: 'alfa.integrity',
             title: Text::_('COM_ALFA_NOTIFY_INTEGRITY_TITLE'),
             options: [
-                'group'       => Text::_('COM_ALFA_NOTIFY_GROUP_SECURITY'),
-                'severity'    => $severity,
-                'message'     => Text::_($messageKey),
+                'group' => Text::_('COM_ALFA_NOTIFY_GROUP_SECURITY'),
+                'severity' => $severity,
+                'message' => Text::_($messageKey),
                 // Raw URL (no &amp;) — output encoding adds the entities once, not twice.
-                'url'         => Route::_('index.php?option=com_alfa&view=tools', false),
+                'url' => Route::_('index.php?option=com_alfa&view=tools', false),
                 'dismissible' => false,
                 // Constant: while the install isn't clean, re-alert each 24h sync even if read.
-                'constant'    => true,
+                'constant' => true,
                 // Everyone SEES the integrity state (awareness), but only admins with
                 // alfa.tools get the clickable link to Tools (others see it link-less).
-                'link'        => ['action' => 'alfa.tools', 'asset' => 'com_alfa'],
-            ]
+                'link' => ['action' => 'alfa.tools', 'asset' => 'com_alfa'],
+            ],
         );
     }
 }
