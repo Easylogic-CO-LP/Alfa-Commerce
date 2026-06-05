@@ -7,7 +7,7 @@
     <author>Agamemnon Fakas</author>
     <authorEmail>info@easylogic.gr</authorEmail>
     <authorUrl>https://easylogic.gr</authorUrl>
-    <version>1.0.3</version>
+    <version>1.0.5</version>
     <description>The smartest,fastest and easiest ecommerce solution for companies developed with love by Easylogic.</description>
     <namespace path="src">Alfa\Component\Alfa</namespace>
 
@@ -20,7 +20,7 @@
     </install>
     <update> <!-- Runs on update -->
         <schemas>
-            <schemapath type="mysql">sql/updates</schemapath>
+            <schemapath type="mysql">sql/updates/mysql</schemapath>
         </schemas>
     </update>
     <uninstall> <!-- Runs on uninstall -->
@@ -86,10 +86,15 @@
 
 			<menu link="option=com_alfa&amp;view=currencies" view="currencies" alt="Alfa/Currencies">COM_ALFA_TITLE_CURRENCIES</menu>
 
+            <menu link="option=com_alfa&amp;view=notifications" view="notifications" alt="Alfa/Notifications">COM_ALFA_NOTIFY_HISTORY_TITLE</menu>
+
+            <menu link="option=com_alfa&amp;view=tools" view="tools" alt="Alfa/Tools">COM_ALFA_TITLE_TOOLS</menu>
+
         </submenu>
         <files folder="administrator">
             <filename>access.xml</filename>
             <filename>config.xml</filename>
+            <folder>files</folder>
             <folder>forms</folder>
             <folder>src</folder>
             <folder>tmpl</folder>
@@ -114,23 +119,29 @@
 		<plugin group="webservices" plugin="alfa"/>
 
         <plugin group="alfa-payments" plugin="standard"/>
-        <plugin group="alfa-payments" plugin="revolut"/>
-        <plugin group="alfa-payments" plugin="viva"/>
 
         <plugin group="alfa-shipments" plugin="standard"/>
-        <plugin group="alfa-shipments" plugin="boxnow"/>
 
+        <plugin group="alfa-fields" plugin="tel"/>
         <plugin group="alfa-fields" plugin="text"/>
-        <plugin group="alfa-fields" plugin="textarea"/>     
-        
+        <plugin group="alfa-fields" plugin="textarea"/>
+        <plugin group="alfa-fields" plugin="choice"/>
+        <plugin  group="system" plugin="alfasync"/>
+
     </plugins>
 
     <modules>
         <module module="mod_alfa_cart" />
 		<module module="mod_alfa_search" />
+        <module module="mod_alfa_filters" />
 	</modules>
 
+    <libraries>
+        <library folder="lib_libphonenumber" libraryname="libphonenumber"/>
+        <library folder="lib_giggsey_locale" libraryname="giggsey/locale"/>
+    </libraries>
+
     <updateservers>
-        <server type="extension" priority="1" name="com_alfa">https://cdn.demosites.gr/alfa-updates.xml</server>
+        <server type="extension" priority="1" name="Alfa Commerce Update Server">https://cdn.alfacommerce.gr/com_alfa/update.xml</server>
     </updateservers>
 </extension>

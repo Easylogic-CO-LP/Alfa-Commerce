@@ -13,9 +13,9 @@
      * SEO Preview AJAX Handler
      */
     class SEOPreview {
-        constructor() {
-            // Get configuration from Joomla script options
-            const options = Joomla.getOptions('seo-preview');
+        constructor(container, options) {
+            // Each instance is scoped to its own container (one per language tab).
+            this.container = container;
 
             if (!options) {
                 console.warn('SEO Preview: No configuration found');
@@ -73,15 +73,10 @@
                 });
             }
 
-            this.container = document.querySelector('[data-seo-preview-container]');
             this.debounceTimer = null;
 
-            // Initialize if container exists
-            if (this.container) {
-                this.init();
-            } else {
-                console.warn('SEO Preview: Container not found [data-seo-preview-container]');
-            }
+            // Container is supplied by the bootstrapper — initialise directly.
+            this.init();
         }
 
         /**
@@ -140,8 +135,9 @@
             // Handle additional content fields (may be editors)
             this.initAdditionalContentFields();
 
-            // Handle refresh button
-            document.addEventListener('click', (e) => {
+            // Handle refresh button (scoped to THIS preview's container so one
+            // language tab's refresh doesn't trigger the others).
+            this.container.addEventListener('click', (e) => {
                 if (e.target.closest('[data-seo-refresh-btn]')) {
                     e.preventDefault();
                     this.updatePreview();
@@ -376,7 +372,7 @@
          * Update preview content in DOM
          */
         updatePreviewContent(html) {
-            const container = document.querySelector('[data-seo-preview-container]');
+            const container = this.container;
             if (!container) {
                 console.warn('SEO Preview: Container not found during update');
                 return;
@@ -401,11 +397,25 @@
         }
     }
 
-    // Initialize on DOM ready
+    // Initialize on DOM ready — one instance per preview container (each language
+    // tab renders its own container with its own options key).
     document.addEventListener('DOMContentLoaded', function() {
-        if (document.querySelector('[data-seo-preview-container]')) {
-            window.alfaSeoPreview = new SEOPreview();
+        const containers = document.querySelectorAll('[data-seo-preview-container]');
+
+        if (!containers.length) {
+            return;
         }
+
+        window.alfaSeoPreviews = [];
+
+        containers.forEach(function(container) {
+            const key = container.getAttribute('data-seo-options-key') || 'seo-preview';
+            const options = Joomla.getOptions(key);
+
+            if (options) {
+                window.alfaSeoPreviews.push(new SEOPreview(container, options));
+            }
+        });
     });
 
 })(document, window.Joomla || {});

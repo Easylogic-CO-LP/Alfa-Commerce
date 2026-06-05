@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 use Joomla\CMS\MVC\Model\ListModel;
 
@@ -35,9 +36,10 @@ class TaxesModel extends ListModel
         if (empty($config['filter_fields'])) {
             $config['filter_fields'] = [
                 'id', 'a.id',
-                'name', 'a.name',
                 'value', 'a.value',
                 'state', 'a.state',
+                // Translatable — resolved via the lang-table COALESCE alias.
+                'name',
                 'ordering', 'a.ordering',
                 'created_by', 'a.created_by',
                 'modified_by', 'a.modified_by',
@@ -120,43 +122,64 @@ class TaxesModel extends ListModel
         $query->select('`modified_by`.name AS `modified_by`');
         $query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
 
-        // Join over category IDs and names.
-        $query->select("GROUP_CONCAT(DISTINCT tcat.category_id SEPARATOR ',') AS tax_category_IDs")
-            ->join('LEFT', '#__alfa_tax_categories as tcat ON a.id = tcat.tax_id');
+        // MULTILINGUAL: resolve the tax's own name in the active language.
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'a',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_taxes',
+            langPrimaryColumn: 'id_tax',
+            fields:            ['name'],
+        );
 
-        $query->select("GROUP_CONCAT(DISTINCT cat.name SEPARATOR ', ') AS category_names")
-            ->join('LEFT', '#__alfa_categories as cat ON tcat.category_id = cat.id');
-
-        // Join over manufacturer IDs and names.
-        $query->select("GROUP_CONCAT(DISTINCT tman.manufacturer_id SEPARATOR ',') AS tax_manufacturer_IDs")
-            ->join('LEFT', '#__alfa_tax_manufacturers as tman ON a.id = tman.tax_id');
-
-        $query->select("GROUP_CONCAT(DISTINCT man.name SEPARATOR ', ') AS manufacturer_names")
-            ->join('LEFT', '#__alfa_manufacturers as man ON tman.manufacturer_id = man.id');
-
-        // Join over users IDs and names.
-        $query->select("GROUP_CONCAT(DISTINCT tu.user_id SEPARATOR ',') AS tax_user_IDs")
-            ->join('LEFT', '#__alfa_tax_users as tu ON a.id = tu.tax_id');
-
-        $query->select("GROUP_CONCAT(DISTINCT u.name SEPARATOR ', ') AS user_names")
-            ->join('LEFT', '#__users as u ON tu.user_id = u.id');
-
-        // Join over places IDs and names.
-        $query->select("GROUP_CONCAT(DISTINCT tpl.place_id SEPARATOR ',') AS tax_place_IDs")
-            ->join('LEFT', '#__alfa_tax_places as tpl ON a.id = tpl.tax_id');
-
-        $query->select("GROUP_CONCAT(DISTINCT pl.name SEPARATOR ', ') AS place_names")
-            ->join('LEFT', '#__alfa_places as pl ON tpl.place_id = pl.id');
-
-        // Join over usergroups IDs and names.
-        $query->select("GROUP_CONCAT(DISTINCT tug.usergroup_id SEPARATOR ',') AS tax_usergroup_IDs")
-            ->join('LEFT', '#__alfa_tax_usergroups as tug ON a.id = tug.tax_id');
-
-        $query->select("GROUP_CONCAT(DISTINCT ug.name SEPARATOR ', ') AS usergroup_names")
-            ->join('LEFT', '#__alfa_usergroups as ug ON tug.usergroup_id = ug.id');
-
-        // Grouping by item id.
-        $query->group('a.id');
+        // Related-entity IDs as correlated subqueries (no JOIN / GROUP BY, so
+        // pagination totals stay correct). Names are resolved per-language in
+        // getItems() via fetchRelated().
+        MultilingualHelper::addRelatedIdsToQuery(
+            query:         $query,
+            mainAlias:     'a',
+            mainPk:        'id',
+            junctionTable: '#__alfa_tax_categories',
+            junctionFk:    'tax_id',
+            junctionValue: 'category_id',
+            selectAlias:   'category_ids',
+        );
+        MultilingualHelper::addRelatedIdsToQuery(
+            query:         $query,
+            mainAlias:     'a',
+            mainPk:        'id',
+            junctionTable: '#__alfa_tax_manufacturers',
+            junctionFk:    'tax_id',
+            junctionValue: 'manufacturer_id',
+            selectAlias:   'manufacturer_ids',
+        );
+        MultilingualHelper::addRelatedIdsToQuery(
+            query:         $query,
+            mainAlias:     'a',
+            mainPk:        'id',
+            junctionTable: '#__alfa_tax_users',
+            junctionFk:    'tax_id',
+            junctionValue: 'user_id',
+            selectAlias:   'user_ids',
+        );
+        MultilingualHelper::addRelatedIdsToQuery(
+            query:         $query,
+            mainAlias:     'a',
+            mainPk:        'id',
+            junctionTable: '#__alfa_tax_places',
+            junctionFk:    'tax_id',
+            junctionValue: 'place_id',
+            selectAlias:   'place_ids',
+        );
+        MultilingualHelper::addRelatedIdsToQuery(
+            query:         $query,
+            mainAlias:     'a',
+            mainPk:        'id',
+            junctionTable: '#__alfa_tax_usergroups',
+            junctionFk:    'tax_id',
+            junctionValue: 'usergroup_id',
+            selectAlias:   'usergroup_ids',
+        );
 
         // Filter by published state
         $published = $this->getState('filter.state');
@@ -175,6 +198,8 @@ class TaxesModel extends ListModel
                 $query->where('a.id = ' . (int) substr($search, 3));
             } else {
                 $search = $db->Quote('%' . $db->escape($search, true) . '%');
+                // HAVING — `name` is the COALESCE alias from the lang join.
+                $query->having('( ' . $db->quoteName('name') . ' LIKE ' . $search . ' )');
             }
         }
 
@@ -197,6 +222,70 @@ class TaxesModel extends ListModel
     public function getItems()
     {
         $items = parent::getItems();
+
+        if (empty($items)) {
+            return $items;
+        }
+
+        $db = $this->getDatabase();
+
+        // One query per relationship — names resolved per-language for the
+        // translatable tables (categories, manufacturers), read directly for
+        // non-translatable / core tables (users, places, usergroups).
+        $catMap = MultilingualHelper::fetchRelated(
+            db:                $db,
+            items:             $items,
+            idsProperty:       'category_ids',
+            table:             '#__alfa_categories',
+            langTableBase:     '#__alfa_categories',
+            langPrimaryColumn: 'id_category',
+            langFields:        ['name'],
+        );
+
+        $manMap = MultilingualHelper::fetchRelated(
+            db:                $db,
+            items:             $items,
+            idsProperty:       'manufacturer_ids',
+            table:             '#__alfa_manufacturers',
+            langTableBase:     '#__alfa_manufacturers',
+            langPrimaryColumn: 'id_manufacturer',
+            langFields:        ['name'],
+        );
+
+        // #__users is Joomla core — name read directly, no lang tables.
+        $userMap = MultilingualHelper::fetchRelated(
+            db:          $db,
+            items:       $items,
+            idsProperty: 'user_ids',
+            table:       '#__users',
+            langFields:  ['name'],
+        );
+
+        // #__alfa_places — not yet translatable; name read directly.
+        $placeMap = MultilingualHelper::fetchRelated(
+            db:          $db,
+            items:       $items,
+            idsProperty: 'place_ids',
+            table:       '#__alfa_places',
+            langFields:  ['name'],
+        );
+
+        // Joomla core usergroups use the `title` column (not `name`).
+        $ugMap = MultilingualHelper::fetchRelated(
+            db:          $db,
+            items:       $items,
+            idsProperty: 'usergroup_ids',
+            table:       '#__usergroups',
+            langFields:  ['title'],
+        );
+
+        foreach ($items as $item) {
+            MultilingualHelper::bindRelated($item, 'categories', $catMap);
+            MultilingualHelper::bindRelated($item, 'manufacturers', $manMap);
+            MultilingualHelper::bindRelated($item, 'users', $userMap);
+            MultilingualHelper::bindRelated($item, 'places', $placeMap);
+            MultilingualHelper::bindRelated($item, 'usergroups', $ugMap);
+        }
 
         return $items;
     }

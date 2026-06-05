@@ -25,7 +25,7 @@
  *   - quantity_in_stock on order_items is a SNAPSHOT, not an operation flag
  *
  * ORDER STATUS HELPERS:
- *   getDefaultOrderStatus()          — Returns the is_default=1 status
+ *   getDefaultOrderStatus()          — Returns the is_initial=1 status
  *   shouldDeductStock($statusId)     — Checks stock_operation on a status
  *   handleStatusTransition(...)      — Detects 0↔1 transitions, adjusts stock
  *
@@ -52,59 +52,41 @@ class OrderStockHelper
     /**
      * Get the default order status for new orders.
      *
-     * Reads from #__alfa_orders_statuses WHERE is_default = 1.
-     * Falls back to the status with the lowest ordering value
-     * if no default is explicitly set (backward compatibility).
+     * Delegates to OrderStatusHelper::getInitialId() — the single
+     * source of truth for "which row plays the brand-new-order role".
+     * The helper's fallback chain (is_initial = 1 → first published
+     * row by ordering) covers the freshly-installed case where no role
+     * has been nominated yet.
      *
-     * @return object Status row with: id, name, stock_operation, is_default, etc.
+     * Returns an emergency stub only when the statuses table is empty,
+     * which should never happen in production but is logged at
+     * CRITICAL so it's visible if it does.
+     *
+     * @return object Status row with at least: id, name, stock_operation,
+     *                state. Additional columns are passed through from
+     *                the underlying row.
+     *
      * @since   3.5.1
      */
     public static function getDefaultOrderStatus(): object
     {
-        $db = Factory::getContainer()->get('DatabaseDriver');
+        $initialId = OrderStatusHelper::getInitialId();
+        $status = $initialId !== null ? OrderStatusHelper::getById($initialId) : null;
 
-        // Primary: explicit default
-        $query = $db->getQuery(true)
-            ->select('*')
-            ->from('#__alfa_orders_statuses')
-            ->where('is_default = 1')
-            ->where('state = 1')
-            ->setLimit(1);
-        $db->setQuery($query);
-        $status = $db->loadObject();
-
-        if ($status) {
+        if ($status !== null) {
             return $status;
         }
 
-        // Fallback: first by ordering (backward compat before migration)
-        $query = $db->getQuery(true)
-            ->select('*')
-            ->from('#__alfa_orders_statuses')
-            ->where('state = 1')
-            ->order('ordering ASC')
-            ->setLimit(1);
-        $db->setQuery($query);
-        $status = $db->loadObject();
-
-        if ($status) {
-            Log::add(
-                'No default order status set (is_default=1). Using first by ordering: '
-                . $status->name . ' (id=' . $status->id . ')',
-                Log::WARNING,
-                'com_alfa.orders',
-            );
-            return $status;
-        }
-
-        // Emergency fallback: return a stub (should never happen in production)
-        Log::add('No order statuses found in database!', Log::CRITICAL, 'com_alfa.orders');
+        Log::add(
+            entry:    'No order statuses found in database — returning emergency stub.',
+            priority: Log::CRITICAL,
+            category: 'com_alfa.orders',
+        );
 
         return (object) [
-            'id' => 1,
+            'id' => 0,
             'name' => 'Unknown',
             'stock_operation' => 0,
-            'is_default' => 0,
             'state' => 1,
         ];
     }

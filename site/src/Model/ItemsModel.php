@@ -16,6 +16,8 @@ namespace Alfa\Component\Alfa\Site\Model;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceCalculator;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
@@ -88,7 +90,8 @@ class ItemsModel extends UrlListModel
         if (empty($config['filter_fields'])) {
             $config['filter_fields'] = [
                 'id',       'a.id',
-                'name',     'a.name',
+                // Translatable — resolved via the lang-table COALESCE alias.
+                'name',
                 'ordering', 'a.ordering',
                 'sku',      'a.sku',
                 'stock',    'a.stock',
@@ -280,6 +283,17 @@ class ItemsModel extends UrlListModel
         // ── Architecture B price index subquery JOIN ──────────────────────────
         $this->applyPriceIndexJoin($query);
 
+        // ── MULTILINGUAL: resolve name / alias in the active language ─────────
+        // 1:1 LEFT JOIN on the PK, so it does not affect the GROUP BY a.id below.
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'a',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_items',
+            langPrimaryColumn: 'id_item',
+            fields:            ['name', 'alias', 'stock_low_message', 'stock_zero_message'],
+        );
+
         // ── Published items only ──────────────────────────────────────────────
         $query->where('a.state = 1');
         $query->where('NOT (a.stock_action = 2 AND a.stock > 0)');
@@ -290,7 +304,9 @@ class ItemsModel extends UrlListModel
             if (stripos($search, 'id:') === 0) {
                 $query->where('a.id = ' . (int) substr($search, 3));
             } else {
-                $query->where('a.name LIKE ' . $db->quote('%' . $db->escape($search, true) . '%'));
+                // HAVING — `name` is the COALESCE alias from the lang join, and the
+                // query groups by a.id, so the alias filter belongs in HAVING.
+                $query->having('`name` LIKE ' . $db->quote('%' . $db->escape($search, true) . '%'));
             }
         }
 
@@ -480,6 +496,13 @@ class ItemsModel extends UrlListModel
 
         $prices = $this->getPriceCalculator()->calculate($productIds, $quantities, PriceContext::fromSession());
 
+        // ── Batch media (one query for ALL items, grouped by id — avoids N+1) ──
+        $mediaByItem = MediaHelper::getMediaData(
+            origin:         'item',
+            itemIDs:        $productIds,
+            usePlaceHolder: true,
+        );
+
         // ── Enrich each item ────────────────────────────────────────────────────
         foreach ($items as &$item) {
             $item->price = $prices[$item->id];
@@ -493,6 +516,8 @@ class ItemsModel extends UrlListModel
             }
             $item->stock_low_message = $item->stock_low_message ?: $settings->get('stock_low_message');
             $item->stock_zero_message = $item->stock_zero_message ?: $settings->get('stock_zero_message');
+
+            $item->medias = $mediaByItem[$item->id] ?? [];
 
             $urlCategoryId = $this->categoryId ?: ($item->id_category_default ?? 0);
             $item->link = Route::_(
@@ -544,6 +569,107 @@ class ItemsModel extends UrlListModel
             'min' => $result && $result->price_min !== null ? (float) $result->price_min : null,
             'max' => $result && $result->price_max !== null ? (float) $result->price_max : null,
         ];
+    }
+
+    /**
+     * Return a price histogram for the current non-price filters.
+     *
+     * Used by the frontend price slider to show approximate product density
+     * across the available price range. All price-related filter states are
+     * excluded so the histogram reflects the full visible price distribution
+     * under the other active filters (category, search, manufacturer, etc.).
+     *
+     * @param int $buckets Number of histogram buckets
+     *
+     * @return array<int, array{from: float, to: float, count: int}>
+     */
+    public function getAvailablePriceHistogram(int $buckets = 20, ?float $min = null, ?float $max = null): array
+    {
+        $model = $this->createFilterSubModel([
+            'filter.price_min',
+            'filter.price_max',
+            'filter.on_sale',
+            'filter.discount_amount_min',
+            'filter.discount_percent_min',
+        ]);
+
+        if ($min === null || $max === null) {
+            $range = $model->getAvailablePriceRange();
+
+            if ($range['min'] === null || $range['max'] === null) {
+                return [];
+            }
+
+            $min = (float) ($min ?? $range['min']);
+            $max = (float) ($max ?? $range['max']);
+        }
+
+        if ($buckets < 1) {
+            $buckets = 20;
+        }
+
+        // If all products share the same price, return one bucket
+        if ($max <= $min) {
+            $query = $model->getListQuery();
+            $query->clear('select')
+                ->clear('order')
+                ->clear('group')
+                ->select('COUNT(*) AS bucket_count')
+                ->where('pf.final_price IS NOT NULL')
+                ->where('pf.final_price > 0');
+
+            $count = (int) $this->getDatabase()->setQuery($query)->loadResult();
+
+            return [[
+                'from' => $min,
+                'to' => $max,
+                'count' => $count,
+            ]];
+        }
+
+        $bucketSize = ($max - $min) / $buckets;
+
+        $query = $model->getListQuery();
+        $query->clear('select')
+            ->clear('order')
+            ->clear('group')
+            ->select([
+                'CASE 
+                    WHEN FLOOR((pf.final_price - ' . $min . ') / ' . $bucketSize . ') >= ' . $buckets . '
+                    THEN ' . ($buckets - 1) . '
+                    ELSE FLOOR((pf.final_price - ' . $min . ') / ' . $bucketSize . ')
+                END AS bucket_index',
+                'COUNT(*) AS bucket_count',
+            ])
+            ->where('pf.final_price IS NOT NULL')
+            ->where('pf.final_price > 0')
+            ->group('bucket_index')
+            ->order('bucket_index ASC');
+
+        $rows = $this->getDatabase()->setQuery($query)->loadObjectList();
+
+        $countsByBucket = [];
+
+        foreach ($rows as $row) {
+            $countsByBucket[(int) $row->bucket_index] = (int) $row->bucket_count;
+        }
+
+        $histogram = [];
+
+        for ($i = 0; $i < $buckets; $i++) {
+            $from = $min + ($i * $bucketSize);
+            $to = $i === ($buckets - 1)
+                ? $max
+                : $from + $bucketSize;
+
+            $histogram[] = [
+                'from' => $from,
+                'to' => $to,
+                'count' => $countsByBucket[$i] ?? 0,
+            ];
+        }
+
+        return $histogram;
     }
 
     /**
@@ -654,6 +780,31 @@ class ItemsModel extends UrlListModel
     ): array {
         if (empty($ids)) {
             return [];
+        }
+
+        // Translatable tables: the listed fields (name, …) no longer live in the
+        // main table — resolve them in the active language via the per-language
+        // tables. Only tables that have been migrated are listed here.
+        $langPkMap = [
+            '#__alfa_categories' => 'id_category',
+            '#__alfa_manufacturers' => 'id_manufacturer',
+        ];
+
+        if (isset($langPkMap[$table])) {
+            $langFields = array_values(array_filter(
+                $selectFields,
+                static fn ($field) => $field !== $idFieldName,
+            )) ?: ['name'];
+
+            return MultilingualHelper::getRecordsByIds(
+                db:                $this->getDatabase(),
+                ids:               array_map('intval', $ids),
+                table:             $table,
+                idColumn:          $idFieldName,
+                langTableBase:     $table,
+                langPrimaryColumn: $langPkMap[$table],
+                langFields:        $langFields,
+            );
         }
 
         $db = $this->getDatabase();

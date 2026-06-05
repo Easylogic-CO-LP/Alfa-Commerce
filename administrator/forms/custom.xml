@@ -26,8 +26,11 @@
       <option value="0">COM_ALFA_CUSTOMS_REQUIRED_OPTION_0</option>
       <option value="1">COM_ALFA_CUSTOMS_REQUIRED_OPTION_1</option>
     </field>
-    <field name="categories" type="foreignkey" label="COM_ALFA_FORM_LBL_CUSTOM_CATEGORIES" description="COM_ALFA_FORM_DESC_CUSTOM_CATEGORIES" default="0" input_type="list" table="#__alfa_categories" key_field="id" translate="true" value_field="name" multiple="multiple"/>
-    <field name="items" type="foreignkey" label="COM_ALFA_FORM_LBL_CUSTOM_ITEMS" description="COM_ALFA_FORM_DESC_CUSTOM_ITEMS" default="0" input_type="list" table="#__alfa_items" key_field="id" translate="true" value_field="name" multiple="multiple"/>
+    <!-- Alfa CategoriesField (model-backed, language-resolved names) — replaces the
+         foreignkey lookup since the category name no longer lives in the main table. -->
+    <field name="categories" type="categories" label="COM_ALFA_FORM_LBL_CUSTOM_CATEGORIES" description="COM_ALFA_FORM_DESC_CUSTOM_CATEGORIES" default="0" multiple="true" showPath="true"/>
+    <!-- Alfa ModelField (model-backed, language-resolved item names). -->
+    <field name="items" type="model" model="items" column_value="id" column_text="name" label="COM_ALFA_FORM_LBL_CUSTOM_ITEMS" description="COM_ALFA_FORM_DESC_CUSTOM_ITEMS" default="0" multiple="true"/>
     <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL" description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>
   </fieldset>
 </form>

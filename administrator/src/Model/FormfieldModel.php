@@ -13,13 +13,16 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Exception;
 use Joomla\CMS\Event\Model;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\OutputFilter;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Model\AdminModel;
 use Joomla\CMS\Table\Table;
 use Joomla\String\StringHelper;
+use RuntimeException;
 
 /**
  * Item model.
@@ -42,6 +45,113 @@ class FormfieldModel extends AdminModel
      */
     protected $item = null;
     protected $orderUserInfoTableName = '#__alfa_user_info';
+
+    /**
+     * Joomla's AdminModel::batch() handles copy/move. We only reassign group_id,
+     * so disable copy/move and register the custom command.
+     */
+    protected $batch_copymove = false;
+
+    protected $batch_commands = [
+        'group_id' => 'batchGroup',
+    ];
+
+    /**
+     * Reassign selected fields to the chosen group (0 = ungrouped).
+     */
+    protected function batchGroup($value, $pks, $contexts)
+    {
+        $app = Factory::getApplication();
+
+        if ($value === '' || $value === null) {
+            $app->enqueueMessage(Text::_('COM_ALFA_FORM_FIELDS_GROUP_NOT_CHANGED'), 'info');
+            return true;
+        }
+
+        $groupId = (int) $value;
+
+        // Reject non-zero ids that don't exist in the groups table (prevents orphan assignments).
+        if ($groupId > 0) {
+            $db = $this->getDatabase();
+            $query = $db->getQuery(true)
+                ->select('COUNT(*)')
+                ->from($db->quoteName('#__alfa_form_field_groups'))
+                ->where('id = ' . $groupId);
+            $db->setQuery($query);
+
+            if ((int) $db->loadResult() === 0) {
+                $app->enqueueMessage(Text::_('COM_ALFA_FORM_FIELDS_GROUP_INVALID'), 'error');
+                return false;
+            }
+        }
+
+        $pks = array_map('intval', (array) $pks);
+        if (!$pks) {
+            return true;
+        }
+
+        $db = $this->getDatabase();
+        $update = $db->getQuery(true)
+            ->update($db->quoteName('#__alfa_form_fields'))
+            ->set($db->quoteName('group_id') . ' = ' . $groupId)
+            ->whereIn($db->quoteName('id'), $pks);
+        $db->setQuery($update);
+        $db->execute();
+
+        $app->enqueueMessage(Text::_('COM_ALFA_FORM_FIELDS_GROUP_SET_SUCCESSFULLY'), 'info');
+        return true;
+    }
+
+    /**
+     * Unparameterised MySQL types accepted as-is (no size/precision).
+     */
+    private const ALLOWED_SQL_TYPES_SIMPLE = [
+        'tinyint', 'smallint', 'mediumint', 'int', 'bigint',
+        'float', 'double', 'real',
+        'date', 'datetime', 'timestamp', 'time', 'year',
+        'tinytext', 'text', 'mediumtext', 'longtext',
+        'json',
+        'tinyblob', 'blob', 'mediumblob', 'longblob',
+        'boolean', 'bool',
+    ];
+
+    /**
+     * Regex patterns for parameterised types (varchar(N), decimal(M,N), etc.).
+     * Keep sizes capped to reasonable values so nobody passes varchar(99999999).
+     */
+    private const ALLOWED_SQL_TYPES_PATTERNS = [
+        '/^(tiny|small|medium|big)?int\(\d{1,3}\)$/',
+        '/^(decimal|numeric)\(\d{1,3},\d{1,3}\)$/',
+        '/^(float|double)(\(\d{1,3},\d{1,3}\))?$/',
+        '/^(var)?char\(\d{1,5}\)$/',
+        '/^(var)?binary\(\d{1,5}\)$/',
+    ];
+
+    /**
+     * True if $type is a MySQL column type we allow. Trims whitespace and
+     * matches case-insensitively. Rejects anything that isn't an exact match
+     * (no trailing SQL, no comments, no newlines).
+     */
+    protected static function isAllowedSqlType(string $type): bool
+    {
+        $t = strtolower(trim($type));
+
+        if ($t === '') {
+            return false;
+        }
+
+        if (in_array($t, self::ALLOWED_SQL_TYPES_SIMPLE, true)) {
+            return true;
+        }
+
+        foreach (self::ALLOWED_SQL_TYPES_PATTERNS as $pattern) {
+            if (preg_match($pattern, $t)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     public function getForm($data = [], $loadData = true)
     {
@@ -102,6 +212,16 @@ class FormfieldModel extends AdminModel
 
             $data = $this->item;
             $data->fieldsparams = $data->params;
+
+            // SHOWON lives inside the params JSON. Mirror it onto the
+            // standalone top-level `showon` field so ShowonField hydrates
+            // the builder on edit (replaces the old fieldsparams wrapper).
+            $p = $data->params;
+            if (is_string($p)) {
+                $p = json_decode($p, true) ?: [];
+            }
+            $p = (array) $p;
+            $data->showon = (string) ($p['showon'] ?? '');
         }
 
         return $data;
@@ -129,14 +249,48 @@ class FormfieldModel extends AdminModel
     public function save($data)
     {
         $app = Factory::getApplication();
-        //		$db = $this->getDatabase();
-        //	    $input = $app->getInput();
+        $input = $app->getInput();
+
+        // 'raw' filter preserves the per-language flat keys (name_en_gb,
+        // field_label_el_gr, field_description_*, meta_*) that the default
+        // 'array' filter would strip.
+        $rawData = $input->post->get('jform', [], 'raw');
+        $data = array_merge($data, $rawData);
+
         $table = $this->getTable();
         $key = $table->getKeyName();
         $isNew = $data[$key] <= 0;
 
-        $data['field_name'] = $data['field_name'] ?: $data['name'];
-        $data['field_name'] = OutputFilter::stringURLSafe($data['field_name']);
+        // field_name is the machine key / DB column (NOT translatable). When the
+        // user leaves it blank, derive it from the name — preferring the default
+        // language, then any other language that actually has a value.
+        if (empty($data['field_name'])) {
+            $candidates = [$data['name_' . MultilingualHelper::getDefaultLanguageTag()] ?? ''];
+
+            foreach ($data as $dataKey => $dataValue) {
+                if (is_string($dataValue) && str_starts_with($dataKey, 'name_')) {
+                    $candidates[] = $dataValue;
+                }
+            }
+
+            foreach ($candidates as $candidate) {
+                if (trim((string) $candidate) !== '') {
+                    $data['field_name'] = $candidate;
+                    break;
+                }
+            }
+        }
+
+        $data['field_name'] = OutputFilter::stringURLSafe((string) $data['field_name']);
+
+        // A field_name is mandatory — it becomes the #__alfa_user_info column.
+        // Bail out with a friendly message rather than letting an empty
+        // "ALTER TABLE ADD ``" blow up (MySQL 1166 Incorrect column name '').
+        if ($data['field_name'] === '') {
+            $this->setError(Text::_('COM_ALFA_FORMFIELD_NAME_REQUIRED'));
+
+            return false;
+        }
 
         //	    Is no needed because the manageUserInfoTable handles the duplicate new columns
         //      dynamically change name which is the column we will add in form fields, if already exists
@@ -147,6 +301,18 @@ class FormfieldModel extends AdminModel
         //		    }
         //	    }
 
+        // SHOWON: the standalone `showon` field carries the builder's
+        // canonical JSON. Fold it into fieldsparams so it persists in the
+        // params JSON (FieldsPlugin reads params->get('showon')); no DB
+        // column and no fieldsparams wrapper needed.
+        if (array_key_exists('showon', $data)) {
+            if (!isset($data['fieldsparams']) || !is_array($data['fieldsparams'])) {
+                $data['fieldsparams'] = [];
+            }
+            $data['fieldsparams']['showon'] = (string) $data['showon'];
+            unset($data['showon']);
+        }
+
         // Assign plugin field params to our params variable in the database
         $data['params'] = (isset($data['fieldsparams']) && is_array($data['fieldsparams']))
             ? (json_encode($data['fieldsparams']) ?: null) : null;
@@ -154,11 +320,27 @@ class FormfieldModel extends AdminModel
         // Edit order's user info table - the field_name maybe change inside so we update the variable if so
         $data['field_name'] = self::manageUserInfoTable($data);
 
+        $max = (int) ($data['fieldsparams']['maxlength'] ?? 0);
+        if ($max > 0 && mb_strlen((string) $data['value'] ?? '') > $max) {
+            $this->setError(Text::sprintf('COM_ALFA_FIELD_VALUE_TOO_LONG', $max));
+            return false;
+        }
+
         if (!parent::save($data)) {
             return false;
         }
 
         $currentId = !$isNew ? intval($data['id']) : intval($this->getState($this->getName() . '.id'));
+
+        // MULTILINGUAL: persist per-language translations (name, field_label,
+        // field_description).
+        MultilingualHelper::saveMultilingualData(
+            currentId:         $currentId,
+            primaryColumnName: 'id_formfield',
+            tableName:         '#__alfa_form_fields',
+            data:              $data,
+            aliasFields:       [],
+        );
 
         $assignZeroIdIfDataEmpty = true;
         AlfaHelper::setAssocsToDb($currentId, $data['users'], '#__alfa_form_fields_users', 'field_id', 'user_id', $assignZeroIdIfDataEmpty);
@@ -166,6 +348,9 @@ class FormfieldModel extends AdminModel
 
         return true;
     }
+
+    // SHOWON compile shim removed — ShowonField is now the single
+    // producer of the canonical engine JSON (per-glue recursive schema).
 
     /**
      * Prepare and sanitise the table prior to saving.
@@ -205,6 +390,13 @@ class FormfieldModel extends AdminModel
 
         $db->setQuery($query);
         $db->execute();
+
+        // MULTILINGUAL: remove the per-language rows for the deleted fields.
+        MultilingualHelper::deleteMultilingualData(
+            ids:               $pks,
+            primaryColumnName: 'id_formfield',
+            tableName:         '#__alfa_form_fields',
+        );
     }
 
     /**
@@ -223,6 +415,11 @@ class FormfieldModel extends AdminModel
 
     protected function manageUserInfoTable(array $data): string
     {
+        $type = $data['fieldsparams']['sql_type'] ?? 'text';
+        if (!self::isAllowedSqlType($type)) {
+            throw new RuntimeException('Invalid sql_type for form field: ' . $type);
+        }
+
         $db = $this->getDatabase();
         $origTable = $this->getTable();
         $tableKey = $origTable->getKeyName();

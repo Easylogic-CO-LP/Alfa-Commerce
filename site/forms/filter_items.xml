@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <form>
-    <fields name="filter">
+    <fields name="filter" addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
 
         <!-- ── Text search ──────────────────────────────────────────────── -->
         <field
@@ -13,23 +13,21 @@
 
         <!-- ── Category filter ──────────────────────────────────────────── -->
         <!--
-            IMPORTANT: type="sql" against #__alfa_categories, NOT type="categories"
-            which would query #__categories (Joomla content categories).
+            type="categories" resolves (via this form's addfieldprefix) to Alfa's
+            CategoriesField — NOT Joomla's core categories field. It sources its
+            options from CategoriesModel, so names come back in the active language
+            (the names no longer live in the main table).
 
-            NO <option> children on multi-select filter fields.
-            The fancy-select widget renders any child <option> as a pre-selected
-            chip on page load, even when the filter value is empty.
-            Empty selection already means "all" — the placeholder handles the UX.
+            No <option> children: CategoriesField builds options dynamically, so
+            nothing is pre-selected as a chip when the filter value is empty.
         -->
         <field
                 name="category"
-                type="sql"
+                type="categories"
                 multiple="true"
+                showPath="true"
                 label="COM_ALFA_FILTER_CATEGORY_LBL"
                 layout="joomla.form.field.list-fancy-select"
-                query="SELECT `id`, `name` AS val FROM `#__alfa_categories` WHERE `state` = 1 ORDER BY `name` ASC"
-                key_field="id"
-                value_field="val"
                 onchange="this.form.submit();"
                 hint="COM_ALFA_FILTER_ALL_CATEGORIES"
         />
@@ -39,15 +37,17 @@
             NO <option> children — same reason as categories above.
             hint= provides the "all manufacturers" placeholder text.
         -->
+        <!-- type="model" → Alfa ModelField, sourced from ManufacturersModel so
+             names come back in the active language (no main-table name column). -->
         <field
                 name="manufacturer"
-                type="sql"
+                type="model"
+                model="manufacturers"
+                column_value="id"
+                column_text="name"
                 multiple="true"
                 label="COM_ALFA_FILTER_MANUFACTURER_LBL"
                 layout="joomla.form.field.list-fancy-select"
-                query="SELECT `id`, `name` AS val FROM `#__alfa_manufacturers` ORDER BY `name` ASC"
-                key_field="id"
-                value_field="val"
                 onchange="this.form.submit();"
                 hint="COM_ALFA_FILTER_ALL_MANUFACTURERS"
         />

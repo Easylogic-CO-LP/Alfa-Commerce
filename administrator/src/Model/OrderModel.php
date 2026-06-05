@@ -42,9 +42,12 @@ use Alfa\Component\Alfa\Administrator\Event\Shipments\AdminOrderDeleteEvent as S
 use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\OrderEmailHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderPaymentHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderShipmentHelper;
+use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStockHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderTotalHelper;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
@@ -247,21 +250,82 @@ class OrderModel extends AdminModel
             $form->setFieldAttribute('user_name', 'class', '');
         }
 
-        FieldsHelper::prepareForm('com_alfa.order', $form, $data);
+        FieldsHelper::prepareForm('cart.form', $form, $data, 'user_details');
 
-        foreach ($form->getFieldsets() as $fieldset) {
-            if (!str_starts_with($fieldset->name, 'fields-')) {
-                continue;
-            }
+        // Prefill dynamic fields. Joomla's bind runs inside loadForm() before the
+        // dynamic fields exist, so they never get populated automatically. Resolve
+        // values from user state (resubmit after validation failure must keep the
+        // user's typed-in input) falling back to the order's user_info row from DB.
+        $userState = $app->getUserState('com_alfa.edit.order.data', []);
+        $fieldValues = [];
 
-            foreach ($form->getFieldset($fieldset->name) as $field) {
-                $fieldName = str_replace(['jform[com_alfa][', ']'], '', $field->name);
-                $form->setValue($fieldName, 'com_alfa', $this->item->user_info->{$fieldName} ?? '');
-            }
+        if (isset($userState[FieldsHelper::FIELDS_KEY]) && is_array($userState[FieldsHelper::FIELDS_KEY])) {
+            $fieldValues = $userState[FieldsHelper::FIELDS_KEY];
+        } elseif (!empty($this->item->user_info)) {
+            $fieldValues = (array) $this->item->user_info;
+            unset($fieldValues['id']);
+        }
+
+        foreach ($fieldValues as $key => $value) {
+            $form->setValue($key, FieldsHelper::FIELDS_KEY, $value);
         }
 
         return $form;
     }
+
+    //     public function getCartForm(object $userInfo = null): mixed
+    //     {
+    //         $form = $this->loadForm(
+    //             'com_alfa.cart',
+    //             JPATH_SITE . '/components/com_alfa/forms/cart.xml',
+    //             [
+    //                 'control'   => 'cartform',
+    //                 'load_data' => false,
+    //             ]
+    //         );
+
+    //         if (empty($form)) {
+    //             return false;
+    //         }
+
+    //         FieldsHelper::prepareForm('cart.form', $form, []);
+
+    //         if ($userInfo !== null) {
+    //             // Bind user info values to the custom fields
+    //             foreach ($form->getFieldsets() as $fieldset) {
+    //                 if ($fieldset->name === 'captcha') {
+    //                     continue;
+    //                 }
+    // //      !!DEBUG!!          echo 'Fieldset: ' . $fieldset->name . ' — field count: ' . count($form->getFieldset
+    // //($fieldset->name)) . '<br>';
+    //                 foreach ($form->getFieldset($fieldset->name) as $field) {
+    //                     $fieldName = str_replace(['cartform[com_alfa][', ']'], '', $field->name);
+    //                     $value = $userInfo->{$fieldName} ?? '';
+    // //      !!DEBUG!!              echo '  ' . $fieldName . ' = ' . $value . '<br>';
+    //                     $form->setValue($fieldName, 'com_alfa', $value);
+    //                     $form->setFieldAttribute($fieldName, 'readonly', 'true', 'com_alfa');
+    //                 }
+    //             }
+    //         }
+
+    // //        echo '<pre>';
+    // //        echo 'userInfo: ';
+    // //        print_r($userInfo);
+    // //        echo '<br>Fieldsets and values:<br>';
+    // //        foreach ($form->getFieldsets() as $fieldset) {
+    // //            if (!str_starts_with($fieldset->name, 'fields-')) {
+    // //                continue;
+    // //            }
+    // //            echo 'Fieldset: ' . $fieldset->name . '<br>';
+    // //            foreach ($form->getFieldset($fieldset->name) as $field) {
+    // //                $fieldName = str_replace(['cartform[com_alfa][', ']'], '', $field->name);
+    // //                echo '  ' . $fieldName . ' = ' . $field->value . '<br>';
+    // //            }
+    // //        }
+    // //        echo '</pre>';
+
+    //         return $form;
+    //     }
 
     protected function loadFormData()
     {
@@ -1359,6 +1423,14 @@ class OrderModel extends AdminModel
             if (empty($table->created_by)) {
                 $table->created_by = $user->id;
             }
+
+            // Default the order status to whichever row admin nominated as
+            // is_initial. OrderStatusHelper falls back to the first published
+            // row by ordering when no role has been assigned yet, so this
+            // never blocks order creation even on a fresh install.
+            if (empty($table->id_order_status)) {
+                $table->id_order_status = OrderStatusHelper::getInitialId();
+            }
         }
 
         $table->modified = $now;
@@ -1426,13 +1498,23 @@ class OrderModel extends AdminModel
                         'warning',
                     );
                 }
+
+                // Status-change notifications. OrderEmailHelper checks the
+                // per-status notify_customer flag and admin_recipient_ids
+                // list; it short-circuits silently when nothing's configured
+                // for this status, and swallows mail-send errors so a
+                // failed dispatch never blocks the order save.
+                OrderEmailHelper::sendForStatusChange(
+                    orderId:     $orderId,
+                    newStatusId: $newStatusId,
+                );
             }
         }
 
         // ================================================================
         // Save customer/address info
         // ================================================================
-        $userInfoData = $data['com_alfa'] ?? [];
+        $userInfoData = $data[FieldsHelper::FIELDS_KEY] ?? [];
 
         if (!empty($userInfoData) && !empty($data['id_address_delivery'])) {
             if (!OrderHelper::saveUserInfo((int) $data['id_address_delivery'], $userInfoData)) {
@@ -1687,9 +1769,21 @@ class OrderModel extends AdminModel
 
             $statusIds = array_filter([$oldId, $newId], fn ($id) => $id > 0);
             $query = $db->getQuery(true)
-                ->select(['id', 'name'])
-                ->from('#__alfa_orders_statuses')
-                ->whereIn('id', $statusIds);
+                ->select('a.id')
+                ->from($db->quoteName('#__alfa_orders_statuses', 'a'))
+                ->whereIn('a.id', $statusIds);
+
+            // Resolve the status name in the active language (name column moved
+            // to the per-language tables).
+            MultilingualHelper::addMultilingualJoinToQuery(
+                query:             $query,
+                mainAlias:         'a',
+                mainPrimaryColumn: 'id',
+                langTableBase:     '#__alfa_orders_statuses',
+                langPrimaryColumn: 'id_orderstatus',
+                fields:            ['name'],
+            );
+
             $db->setQuery($query);
             $names = $db->loadObjectList('id');
 
@@ -2186,12 +2280,23 @@ class OrderModel extends AdminModel
             $db = Factory::getContainer()->get('DatabaseDriver');
             $user = Factory::getApplication()->getIdentity();
 
-            // Get current order status for snapshot
+            // Get current order status for snapshot. The status name is resolved
+            // in the active language from the per-language tables (aliased `name`).
             $statusQuery = $db->getQuery(true)
-                ->select(['o.id_order_status', 's.name AS status_name'])
+                ->select('o.id_order_status')
                 ->from('#__alfa_orders AS o')
                 ->join('LEFT', '#__alfa_orders_statuses AS s ON s.id = o.id_order_status')
                 ->where('o.id = ' . intval($orderId));
+
+            MultilingualHelper::addMultilingualJoinToQuery(
+                query:             $statusQuery,
+                mainAlias:         's',
+                mainPrimaryColumn: 'id',
+                langTableBase:     '#__alfa_orders_statuses',
+                langPrimaryColumn: 'id_orderstatus',
+                fields:            ['name'],
+            );
+
             $db->setQuery($statusQuery);
             $status = $db->loadObject();
 
@@ -2201,7 +2306,7 @@ class OrderModel extends AdminModel
             $log->employee_name = $user->name ?? 'System';
             $log->event = $event;
             $log->id_order_status = $status->id_order_status ?? null;
-            $log->status_name = $status->status_name ?? '';
+            $log->status_name = $status->name ?? '';
             $log->entity_id = $entityId;
             $log->summary = mb_substr($summary, 0, 500);
             $log->context = $context ? json_encode($context, JSON_UNESCAPED_UNICODE) : null;

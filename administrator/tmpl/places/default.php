@@ -44,6 +44,12 @@ if ($saveOrder && !empty($this->items)) {
 			<?php echo LayoutHelper::render('joomla.searchtools.default', array('view' => $this)); ?>
 
 				<div class="clearfix"></div>
+				<?php if (empty($this->items)) : ?>
+					<div class="alert alert-info">
+						<span class="icon-info-circle" aria-hidden="true"></span><span class="visually-hidden"><?php echo \Joomla\CMS\Language\Text::_("INFO"); ?></span>
+						<?php echo \Joomla\CMS\Language\Text::_("JGLOBAL_NO_MATCHING_RESULTS"); ?>
+					</div>
+				<?php else : ?>
 				<table class="table table-striped" id="placeList">
 					<thead>
 					<tr>
@@ -73,7 +79,10 @@ if ($saveOrder && !empty($this->items)) {
 						<th class='left'>
 							<?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_PLACES_CODE3', 'a.code3', $listDirn, $listOrder); ?>
 						</th>
-						
+						<th class='left'>
+							<?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_PLACES_CURRENCY', 'currency.name', $listDirn, $listOrder); ?>
+						</th>
+
 					<th scope="col" class="w-3 d-none d-lg-table-cell" >
 
 						<?php echo HTMLHelper::_('searchtools.sort',  'JGRID_HEADING_ID', 'a.id', $listDirn, $listOrder); ?>					</th>
@@ -141,7 +150,10 @@ if ($saveOrder && !empty($this->items)) {
 							<td>
 								<?php echo $item->code3; ?>
 							</td>
-							
+							<td>
+								<?php echo $this->escape($item->currency_name ?? ''); ?>
+							</td>
+
 							<td class="d-none d-lg-table-cell">
 							<?php echo $item->id; ?>
 
@@ -152,6 +164,7 @@ if ($saveOrder && !empty($this->items)) {
 					<?php endforeach; ?>
 					</tbody>
 				</table>
+				<?php endif; ?>
 
                 <?php echo $this->filterForm->renderControlFields(); ?>
 			</div>

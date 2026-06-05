@@ -313,9 +313,19 @@ class AlfaHelper
 
         $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true)
-            ->select('*')
-            ->from($db->quoteName('#__alfa_orders_statuses'))
-            ->order('ordering ASC');
+            ->select('a.*')
+            ->from($db->quoteName('#__alfa_orders_statuses', 'a'))
+            ->order('a.ordering ASC');
+
+        // Resolve the status name in the active language from the lang tables.
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'a',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_orders_statuses',
+            langPrimaryColumn: 'id_orderstatus',
+            fields:            ['name'],
+        );
 
         $db->setQuery($query);
 
@@ -345,10 +355,21 @@ class AlfaHelper
 
         $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true)
-            ->select('id, name, color, bg_color')
-            ->from($db->quoteName('#__alfa_payments'))
-            ->where($db->quoteName('state') . ' = 1')
+            ->select('a.id, a.color, a.bg_color')
+            ->from($db->quoteName('#__alfa_payments', 'a'))
+            ->where($db->quoteName('a.state') . ' = 1')
             ->order('name ASC');
+
+        // Resolve the method name in the active language from the lang tables
+        // (the ORDER BY then sorts on that resolved alias).
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'a',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_payments',
+            langPrimaryColumn: 'id_payment',
+            fields:            ['name'],
+        );
 
         $db->setQuery($query);
 
@@ -378,10 +399,21 @@ class AlfaHelper
 
         $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true)
-            ->select('id, name, color, bg_color')
-            ->from($db->quoteName('#__alfa_shipments'))
-            ->where($db->quoteName('state') . ' = 1')
+            ->select('a.id, a.color, a.bg_color')
+            ->from($db->quoteName('#__alfa_shipments', 'a'))
+            ->where($db->quoteName('a.state') . ' = 1')
             ->order('name ASC');
+
+        // Resolve the method name in the active language from the lang tables
+        // (the ORDER BY then sorts on that resolved alias).
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'a',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_shipments',
+            langPrimaryColumn: 'id_shipment',
+            fields:            ['name'],
+        );
 
         $db->setQuery($query);
 
@@ -485,17 +517,17 @@ class AlfaHelper
         }
 
         $paramsFile = JPATH_ROOT . '/plugins/' . $pluginGroup . '/' . $pluginName . '/params/params.xml';
-        $paramsFile2 = JPATH_ROOT . '/plugins/' . $pluginGroup . '/' . $pluginName . '/params/' . $pluginName . '.xml';
+        //        $paramsFile2 = JPATH_ROOT . '/plugins/' . $pluginGroup . '/' . $pluginName . '/params/' . $pluginName . '.xml';
 
         $app->getLanguage()->load('plg_' . $pluginGroup . '_' . $pluginName);
 
         if (file_exists($paramsFile)) {
             // Load the XML file into the form.
             $form->loadFile($paramsFile, false);
-        } elseif (file_exists($paramsFile2)) {
-            // Load the XML file into the form.
-            $form->loadFile($paramsFile2, false);
-        }
+        } // elseif (file_exists($paramsFile2)) {
+        //            // Load the XML file into the form.
+        //            $form->loadFile($paramsFile2, false);
+        //        }
 
         //        echo "<pre>";
         //

@@ -33,7 +33,7 @@ use Joomla\CMS\Language\Text;
 $wa = $this->getDocument()->getWebAssetManager();
 $wa->useStyle('com_alfa.admin')
 	->useScript('com_alfa.admin')
-	->usePreset('com_alfa.notifications')
+	->usePreset('com_alfa.toast')
 	->useStyle('com_alfa.admin.orders-list')
 	->useScript('com_alfa.admin.orders-list')
 	->useScript('com_alfa.order-actions');
@@ -230,7 +230,7 @@ $orderStatuses = $this->orderStatuses;
                                 <!-- Created date + age -->
                                 <td class="text-center">
 									<?php if (!empty($item->created)) : ?>
-										<?php echo HTMLHelper::_('date', $item->created, 'Y-m-d H:i'); ?>
+										<?php echo HTMLHelper::_('date', $item->created, Text::_('DATE_FORMAT_LC2')); ?>
                                         <span class="order-age d-block">
                                             <?php echo ($item->order_age_days ?? 0) . ' ' . Text::_('COM_ALFA_DAYS_AGO'); ?>
                                         </span>

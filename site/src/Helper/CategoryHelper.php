@@ -14,6 +14,7 @@
 
 namespace Alfa\Component\Alfa\Site\Helper;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Exception;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Cache\Controller\CallbackController;
@@ -229,25 +230,55 @@ class CategoryHelper
     // =========================================================================
 
     /**
+     * Normalise an optional language tag to the snake-case form used in cache
+     * keys and lang-table names, defaulting to the current request language.
+     *
+     * @param string|null $langTag lang_code/snake tag, or null for current.
+     *
+     * @return string e.g. "en_gb"
+     *
+     * @since   1.0.1
+     */
+    private static function resolveLangTag(?string $langTag): string
+    {
+        return ($langTag !== null && $langTag !== '')
+            ? strtolower(str_replace('-', '_', $langTag))
+            : MultilingualHelper::getCurrentLanguageTag();
+    }
+
+    /**
      * Load a single category from the database
      *
      * PUBLIC because it's called by cache controller via callback
      *
      * @param int $categoryId Category ID
+     * @param string|null $langTag Resolve name/alias in THIS language; null = current.
      *
      * @return array|false Category data or false if not found
      * @since   1.0.1
      */
-    public static function loadCategoryFromDatabase(int $categoryId)
+    public static function loadCategoryFromDatabase(int $categoryId, ?string $langTag = null)
     {
         $db = Factory::getContainer()->get(DatabaseInterface::class);
 
         $query = $db->getQuery(true)
-            ->select($db->quoteName(['id', 'name', 'alias', 'parent_id']))
-            ->from($db->quoteName('#__alfa_categories'))
-            ->where($db->quoteName('id') . ' = :id')
-            ->where($db->quoteName('state') . ' = 1')
+            ->select($db->quoteName(['a.id', 'a.parent_id']))
+            ->from($db->quoteName('#__alfa_categories', 'a'))
+            ->where($db->quoteName('a.id') . ' = :id')
+            ->where($db->quoteName('a.state') . ' = 1')
             ->bind(':id', $categoryId, ParameterType::INTEGER);
+
+        // Resolve name / alias from the per-language tables — in $langTag when
+        // given (language switch), otherwise the current request language.
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'a',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_categories',
+            langPrimaryColumn: 'id_category',
+            fields:            ['name', 'alias'],
+            langTag:           $langTag,
+        );
 
         return $db->setQuery($query)->loadAssoc();
     }
@@ -260,10 +291,16 @@ class CategoryHelper
      * @return array|false Category data or false if not found
      * @since   1.0.1
      */
-    private static function getCategory(int $categoryId)
+    private static function getCategory(int $categoryId, ?string $langTag = null)
     {
-        if (isset(self::$categoryDataCache[$categoryId])) {
-            return self::$categoryDataCache[$categoryId];
+        // Effective language tag — explicit (language switch) or current request.
+        // It scopes every cache key: name / alias are language-resolved, so a
+        // language-blind key would serve one language's data to another.
+        $lang = self::resolveLangTag($langTag);
+        $memoKey = $categoryId . '_' . $lang;
+
+        if (isset(self::$categoryDataCache[$memoKey])) {
+            return self::$categoryDataCache[$memoKey];
         }
 
         $cache = self::getCacheController();
@@ -271,15 +308,15 @@ class CategoryHelper
         if ($cache !== null) {
             $category = $cache->get(
                 [self::class, 'loadCategoryFromDatabase'],
-                [$categoryId],
-                'cat_' . $categoryId,
+                [$categoryId, $langTag],
+                'cat_' . $lang . '_' . $categoryId,
             );
         } else {
-            $category = self::loadCategoryFromDatabase($categoryId);
+            $category = self::loadCategoryFromDatabase($categoryId, $langTag);
         }
 
         if ($category) {
-            self::$categoryDataCache[$categoryId] = $category;
+            self::$categoryDataCache[$memoKey] = $category;
         }
 
         return $category;
@@ -293,18 +330,25 @@ class CategoryHelper
      * Get category path from root to current category
      *
      * @param int $categoryId Category ID
+     * @param string|null $langTag Resolve aliases in THIS language (language
+     *                             switch); null = current request language.
      *
      * @return array Array of categories from root to current
      * @since   1.0.1
      */
-    public static function getCategoryPath(int $categoryId): array
+    public static function getCategoryPath(int $categoryId, ?string $langTag = null): array
     {
         if ($categoryId <= 0) {
             return [];
         }
 
-        if (isset(self::$categoryPathCache[$categoryId])) {
-            return self::$categoryPathCache[$categoryId];
+        // Effective language scopes every cache key — the path carries
+        // per-language aliases used in SEF URLs.
+        $lang = self::resolveLangTag($langTag);
+        $memoKey = $categoryId . '_' . $lang;
+
+        if (isset(self::$categoryPathCache[$memoKey])) {
+            return self::$categoryPathCache[$memoKey];
         }
 
         $cache = self::getCacheController();
@@ -312,14 +356,14 @@ class CategoryHelper
         if ($cache !== null) {
             $path = $cache->get(
                 [self::class, 'buildCategoryPath'],
-                [$categoryId],
-                'path_' . $categoryId,
+                [$categoryId, $langTag],
+                'path_' . $lang . '_' . $categoryId,
             );
         } else {
-            $path = self::buildCategoryPath($categoryId);
+            $path = self::buildCategoryPath($categoryId, $langTag);
         }
 
-        self::$categoryPathCache[$categoryId] = $path;
+        self::$categoryPathCache[$memoKey] = $path;
 
         return $path;
     }
@@ -330,11 +374,12 @@ class CategoryHelper
      * PUBLIC because it's called by cache controller via callback
      *
      * @param int $categoryId Category ID
+     * @param string|null $langTag Resolve aliases in THIS language; null = current.
      *
      * @return array Array of categories from root to current
      * @since   1.0.1
      */
-    public static function buildCategoryPath(int $categoryId): array
+    public static function buildCategoryPath(int $categoryId, ?string $langTag = null): array
     {
         $path = [];
         $currentId = $categoryId;
@@ -350,7 +395,7 @@ class CategoryHelper
             $visited[$currentId] = true;
             $iterations++;
 
-            $category = self::getCategory($currentId);
+            $category = self::getCategory($currentId, $langTag);
 
             if (!$category) {
                 break;
@@ -417,12 +462,14 @@ class CategoryHelper
         $cache = self::getCacheController();
 
         if ($cache !== null) {
+            // Language-aware key — the tree carries per-language name / alias.
+            $lang = MultilingualHelper::getCurrentLanguageTag();
             $tree = $cache->get(
                 function ($parent, $depth, $count) {
                     return self::buildCategoryTree($parent, $depth, $count);
                 },
                 [$parentId, $buildDepth, $includeCount],
-                'tree_' . md5($cacheKey),
+                'tree_' . md5($lang . '_' . $cacheKey),
             );
         } else {
             $tree = self::buildCategoryTree($parentId, $buildDepth, $includeCount);
@@ -505,12 +552,22 @@ class CategoryHelper
 
         // Clean category query — no count joins
         $query = $db->getQuery(true)
-            ->select('c.id, c.name, c.alias, c.parent_id, c.ordering')
+            ->select('c.id, c.parent_id, c.ordering')
             ->from('#__alfa_categories AS c')
             ->where('c.parent_id = :parent')
             ->where('c.state = 1')
             ->order('c.ordering ASC')
             ->bind(':parent', $parentId, ParameterType::INTEGER);
+
+        // Resolve name / alias in the active language from the per-language tables.
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'c',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_categories',
+            langPrimaryColumn: 'id_category',
+            fields:            ['name', 'alias'],
+        );
 
         $categories = $db->setQuery($query)->loadObjectList();
 
@@ -768,31 +825,24 @@ class CategoryHelper
      */
     public static function clearCache(?int $categoryId = null): void
     {
-        if ($categoryId !== null) {
-            unset(
-                self::$categoryPathCache[$categoryId],
-                self::$categoryDataCache[$categoryId],
-            );
-
-            self::$categoryTreeCache = [];
-        } else {
-            self::$categoryPathCache = [];
-            self::$categoryDataCache = [];
-            self::$categoryTreeCache = [];
-        }
+        // The in-memory memos are language-keyed (`<id>_<lang>`), so a per-id
+        // unset can't target them — reset them wholesale (cheap, per-request).
+        // The persistent group-clean below invalidates every language variant
+        // regardless, so a targeted vs full clear differs only in the controller reset.
+        self::$categoryPathCache = [];
+        self::$categoryDataCache = [];
+        self::$categoryTreeCache = [];
 
         $cache = self::getCacheController();
 
         if ($cache !== null) {
-            if ($categoryId !== null) {
-                $cache->cache->remove('path_' . $categoryId, 'com_alfa.categories');
-                $cache->cache->remove('cat_' . $categoryId, 'com_alfa.categories');
+            // Persistent keys are language- AND usergroup-scoped
+            // (cat_<lang>_<id>, path_<lang>_<id>, tree_<lang>_<hash>). A targeted
+            // per-id remove cannot cover all those variants, so clean the whole
+            // group — this invalidates every language / usergroup entry at once.
+            $cache->cache->clean('com_alfa.categories');
 
-                // Tree caches include usergroup variants — clear entire group
-                // to ensure all usergroup-specific trees are invalidated
-                $cache->cache->clean('com_alfa.categories');
-            } else {
-                $cache->cache->clean('com_alfa.categories');
+            if ($categoryId === null) {
                 self::$cacheController = null;
             }
         }

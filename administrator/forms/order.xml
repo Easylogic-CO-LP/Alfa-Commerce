@@ -6,19 +6,24 @@
         <field name="id_user_group" type="hidden" default="1"/>
     </fieldset>
 
+
+    
+
     <fieldset name="order_details">
         <field name="id" type="text" readonly="true" default="0" label="ID" description="JGLOBAL_FIELD_ID_DESC"/>
         <field name="id_address_delivery" type="hidden" default="1"/>
 
         <field
-                name="id_order_status" type="sql"
+                name="id_order_status" type="model"
+                model="orderstatuses"
+                column_value="id"
+                column_text="name"
                 input_type="list"
                 required="true"
                 multiple="false"
                 label="COM_ALFA_FORM_LBL_ORDER_STATUSES"
                 description="COM_ALFA_FORM_DESC_ORDER_STATUSES"
                 layout="joomla.form.field.list-fancy-select"
-                query="SELECT `id`, `name` AS val FROM `#__alfa_orders_statuses`" key_field="id" value_field="val"
         />
 
         <field name="id_currency" label="COM_ALFA_FORM_LBL_CURRENCY_ID" readonly="true" />

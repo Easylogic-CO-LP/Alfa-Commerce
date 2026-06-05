@@ -44,10 +44,13 @@ use Alfa\Component\Alfa\Administrator\Event\Payments\OrderAfterPlaceEvent as Pay
 use Alfa\Component\Alfa\Administrator\Event\Payments\OrderPlaceEvent as PaymentOrderPlaceEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\OrderAfterPlaceEvent as ShipmentOrderAfterPlaceEvent;
 use Alfa\Component\Alfa\Administrator\Event\Shipments\OrderPlaceEvent as ShipmentOrderPlaceEvent;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\OrderEmailHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStockHelper;
 use Exception;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseDriver;
 use Joomla\Utilities\IpHelper;
@@ -88,9 +91,9 @@ class OrderPlaceHelper
             $this->cart = new CartHelper();
             $this->configureLogging();
 
-            // Load default order status from database (not hardcoded).
-            // OrderStockHelper::getDefaultOrderStatus() reads is_default=1
-            // from #__alfa_orders_statuses, with fallback to first by ordering.
+            // Load the default order status from the table — the row
+            // currently marked is_initial=1, falling back to the first
+            // published row by ordering when no role has been nominated.
             $this->defaultStatus = OrderStockHelper::getDefaultOrderStatus();
 
             Log::add(
@@ -160,8 +163,8 @@ class OrderPlaceHelper
                 return false;
             }
 
-            $paymentMethodId = $this->app->input->getInt('payment_method', null);
-            $shipmentMethodId = $this->app->input->getInt('shipment_method', null);
+            $paymentMethodId = $this->app->input->getInt('payment_method', 0);
+            $shipmentMethodId = $this->app->input->getInt('shipment_method', 0);
 
             Log::add("Payment: {$paymentMethodId}, Shipment: {$shipmentMethodId}", Log::DEBUG, 'com_alfa.orders');
 
@@ -270,6 +273,17 @@ class OrderPlaceHelper
                 Log::add('Cart clearing failed', Log::WARNING, 'com_alfa.orders');
             }
 
+            // Frontend order placement is a "no status → initial status"
+            // transition from the customer's perspective. Reuse the same
+            // helper the admin OrderModel hook calls, so the per-status
+            // notify_customer flag + admin recipient list governs both
+            // paths uniformly. Mail failures are swallowed inside the
+            // helper — they never block order placement.
+            OrderEmailHelper::sendForStatusChange(
+                orderId:     $orderId,
+                newStatusId: (int) $this->defaultStatus->id,
+            );
+
             Log::add('=== Order placement completed successfully ===', Log::INFO, 'com_alfa.orders');
             return true;
         } catch (Exception $e) {
@@ -290,13 +304,13 @@ class OrderPlaceHelper
                 return false;
             }
 
-            $paymentMethodId = $this->app->input->getInt('payment_method', null);
+            $paymentMethodId = $this->app->input->getInt('payment_method', 0);
             if (!$this->checkPaymentMethod($paymentMethodId)) {
                 $this->app->enqueueMessage('Invalid payment method.', 'error');
                 return false;
             }
 
-            $shipmentMethodId = $this->app->input->getInt('shipment_method', null);
+            $shipmentMethodId = $this->app->input->getInt('shipment_method', 0);
             if (!$this->checkShipmentMethod($shipmentMethodId)) {
                 $this->app->enqueueMessage('Invalid shipment method.', 'error');
                 return false;
@@ -698,13 +712,13 @@ class OrderPlaceHelper
         try {
             $currentDate = Factory::getDate('now', 'UTC');
 
-            // Get status name
-            $query = $this->db->getQuery(true)
-                ->select('name')
-                ->from('#__alfa_orders_statuses')
-                ->where('id = ' . intval($statusId));
-            $this->db->setQuery($query);
-            $statusName = $this->db->loadResult() ?: "Status #{$statusId}";
+            // Status name in the customer's language (it lives in the per-language tables).
+            $statusName = MultilingualHelper::getTranslatedValue(
+                id:                $statusId,
+                tableName:         '#__alfa_orders_statuses',
+                primaryColumnName: 'id_orderstatus',
+                field:             'name',
+            ) ?: "Status #{$statusId}";
 
             $log = new stdClass();
             $log->id_order = $this->order->id;
@@ -767,36 +781,87 @@ class OrderPlaceHelper
     // Helper methods
     protected function checkPaymentMethod(?int $id): bool
     {
+        $methods = $this->cart->getPaymentMethods();
+
+        // No methods offered → payment is not required for this order.
+        if (empty($methods)) {
+            return true;
+        }
+
+        // Methods exist → a valid one must be chosen.
         if (!$id) {
             return false;
         }
-        foreach ($this->cart->getPaymentMethods() as $m) {
+
+        foreach ($methods as $m) {
             if ($m->id == $id) {
                 return true;
             }
         }
+
         return false;
     }
 
     protected function checkShipmentMethod(?int $id): bool
     {
+        $methods = $this->cart->getShipmentMethods();
+
+        // No methods offered → shipment is not required for this order.
+        if (empty($methods)) {
+            return true;
+        }
+
+        // Methods exist → a valid one must be chosen.
         if (!$id) {
             return false;
         }
-        foreach ($this->cart->getShipmentMethods() as $m) {
+
+        foreach ($methods as $m) {
             if ($m->id == $id) {
                 return true;
             }
         }
+
         return false;
     }
 
     protected function saveUserInfo(array $data): ?object
     {
         try {
+            foreach ($data as $key => $value) {
+                if (is_array($value) || is_object($value)) {
+                    $data[$key] = json_encode($value);
+                }
+            }
+
+            // Unique field validation
+            $uniqueFields = $this->getUniqueFormFields();
+
+            if (!empty($uniqueFields)) {
+                $violations = $this->checkUniqueFieldViolations($data, $uniqueFields);
+
+                if (!empty($violations)) {
+                    foreach ($violations as $fieldName => $value) {
+                        $this->app->enqueueMessage(
+                            Text::sprintf('COM_ALFA_ORDER_ERROR_FIELD_NOT_UNIQUE', $fieldName),
+                            'error',
+                        );
+                    }
+                    Log::add(
+                        'Unique field violation(s): ' . implode(', ', array_keys($violations)),
+                        Log::WARNING,
+                        'com_alfa.orders',
+                    );
+                    return null;
+                }
+            }
+
             $infoObject = (object) $data;
+
             $infoObject->id_user = $this->user->id;
+
             $this->db->insertObject($this->user_info_table, $infoObject, 'id');
+
             return $infoObject;
         } catch (Exception $e) {
             Log::add('User info save error: ' . $e->getMessage(), Log::ERROR, 'com_alfa.orders');
@@ -804,8 +869,89 @@ class OrderPlaceHelper
         }
     }
 
+    /**
+     * Load all form fields marked as unique=1 from the form fields table.
+     * Returns an array of field_name strings.
+     */
+    protected function getUniqueFormFields(): array
+    {
+        try {
+            $query = $this->db->getQuery(true)
+                ->select($this->db->quoteName('field_name'))
+                ->from($this->db->quoteName('#__alfa_form_fields'))
+                ->where($this->db->quoteName('unique') . ' = ' . '1')
+                ->where($this->db->quoteName('state') . ' = ' . '1')
+                ->where($this->db->quoteName('field_name') . ' IS NOT NULL')
+                ->where($this->db->quoteName('field_name') . ' != ' . $this->db->quote(''));
+
+            $this->db->setQuery($query);
+            return $this->db->loadColumn() ?: [];
+        } catch (Exception $e) {
+            Log::add('Failed to load unique form fields: ' . $e->getMessage(), Log::WARNING, 'com_alfa.orders');
+            return [];
+        }
+    }
+
+    protected function checkUniqueFieldViolations(array $data, array $uniqueFields): array
+    {
+        Log::add('checkUniqueFieldViolations - data values: ' . json_encode($data), Log::DEBUG, 'com_alfa.orders');
+
+        if ($this->user->id === 0) {
+            return [];
+        }
+
+        $fieldsToCheck = array_filter(
+            $uniqueFields,
+            fn ($field) =>
+            isset($data[$field]) && $data[$field] !== '' && $data[$field] !== null,
+        );
+
+        if (empty($fieldsToCheck)) {
+            return [];
+        }
+
+        $selects = [];
+        foreach ($fieldsToCheck as $fieldName) {
+            $selects[] = sprintf(
+                '(SELECT %s AS field_name FROM %s WHERE %s = %s AND %s != %d LIMIT 1)',
+                $this->db->quote($fieldName),
+                $this->db->quoteName($this->user_info_table),
+                $this->db->quoteName($fieldName),
+                $this->db->quote($data[$fieldName]),
+                $this->db->quoteName('id_user'),
+                $this->user->id,
+            );
+        }
+
+        $unionQuery = implode(' UNION ALL ', $selects);
+
+        Log::add('checkUniqueFieldViolations - query: ' . $unionQuery, Log::DEBUG, 'com_alfa.orders');
+
+        try {
+            $this->db->setQuery($unionQuery);
+            $collisions = $this->db->loadColumn();
+        } catch (Exception $e) {
+            Log::add('Unique check query failed: ' . $e->getMessage(), Log::WARNING, 'com_alfa.orders');
+            return [];
+        }
+
+        $violations = [];
+        foreach ($collisions as $fieldName) {
+            $violations[$fieldName] = $data[$fieldName];
+        }
+
+        return $violations;
+    }
+
     protected function getPaymentType(int $id): void
     {
+        // No payment method (0) → nothing to resolve; skip the query.
+        if ($id <= 0) {
+            $this->payment_type = '';
+
+            return;
+        }
+
         try {
             $query = $this->db->getQuery(true)
                 ->select('type')
@@ -820,6 +966,13 @@ class OrderPlaceHelper
 
     protected function getShipmentType(int $id): void
     {
+        // No shipment method (0) → nothing to resolve; skip the query.
+        if ($id <= 0) {
+            $this->shipment_type = '';
+
+            return;
+        }
+
         try {
             $query = $this->db->getQuery(true)
                 ->select('type')
@@ -834,30 +987,36 @@ class OrderPlaceHelper
 
     protected function getPaymentMethodName(int $id): string
     {
-        try {
-            $query = $this->db->getQuery(true)
-                ->select('name')
-                ->from('#__alfa_payments')
-                ->where('id = ' . $id);
-            $this->db->setQuery($query);
-            return $this->db->loadResult() ?: 'Payment Method ' . $id;
-        } catch (Exception $e) {
-            return 'Payment Method ' . $id;
+        // No payment method (0) → empty name (avoids a needless query and the
+        // bogus "Payment Method 0" fallback).
+        if ($id <= 0) {
+            return '';
         }
+
+        // Name lives in the per-language tables; resolve in the customer's language.
+        return MultilingualHelper::getTranslatedValue(
+            id:                $id,
+            tableName:         '#__alfa_payments',
+            primaryColumnName: 'id_payment',
+            field:             'name',
+        ) ?: 'Payment Method ' . $id;
     }
 
     protected function getShipmentMethodName(int $id): string
     {
-        try {
-            $query = $this->db->getQuery(true)
-                ->select('name')
-                ->from('#__alfa_shipments')
-                ->where('id = ' . $id);
-            $this->db->setQuery($query);
-            return $this->db->loadResult() ?: 'Shipment Method ' . $id;
-        } catch (Exception $e) {
-            return 'Shipment Method ' . $id;
+        // No shipment method (0) → empty name (avoids a needless query and the
+        // bogus "Shipment Method 0" fallback).
+        if ($id <= 0) {
+            return '';
         }
+
+        // Name lives in the per-language tables; resolve in the customer's language.
+        return MultilingualHelper::getTranslatedValue(
+            id:                $id,
+            tableName:         '#__alfa_shipments',
+            primaryColumnName: 'id_shipment',
+            field:             'name',
+        ) ?: 'Shipment Method ' . $id;
     }
 
     protected function getCurrencyID(int $number): ?int

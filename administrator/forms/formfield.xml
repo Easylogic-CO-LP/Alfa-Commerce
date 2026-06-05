@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
 
-    <field name="name" size="400" filter="safehtml" type="text" required="true" translateLabel="true"
+    <field name="name" type="MultilingualText"
+           multilingual_table="#__alfa_form_fields" multilingual_pk="id_formfield"
+           maxlength="400" filter="safehtml" required="true" translateLabel="true"
            label="COM_ALFA_FORM_LBL_PAYMENT_NAME" description="COM_ALFA_FORM_DESC_PAYMENT_NAME"
            hint="COM_ALFA_FORM_LBL_PAYMENT_NAME"/>
 
@@ -29,15 +31,20 @@
 
         <field
                 name="field_label"
-                type="text"
+                type="MultilingualText"
+                multilingual_table="#__alfa_form_fields"
+                multilingual_pk="id_formfield"
                 label="COM_ALFA_FORM_LBL_FIELD_LABEL"
                 required="true"
         />
 
         <field
                 name="field_description"
-                type="text"
+                type="MultilingualTextarea"
+                multilingual_table="#__alfa_form_fields"
+                multilingual_pk="id_formfield"
                 label="COM_ALFA_FORM_LBL_FIELD_DESCRIPTION"
+                rows="3"
                 required="false"
         />
 
@@ -79,6 +86,15 @@
             <option value="1">JYES</option>
         </field>
 
+        <field name="unique" type="radio"
+               layout="joomla.form.field.radio.switcher"
+               label="COM_ALFA_FORM_LBL_UNIQUE"
+               description=""
+               default="0">
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
         <field
                 name="usergroups"
                 type="UserGroupList"
@@ -114,6 +130,20 @@
             <option value="-2">JTRASHED</option>
         </field>
 
+        <field name="group_id" type="sql"
+               default="0"
+               label="COM_ALFA_FORM_LBL_FIELD_GROUP"
+               description="COM_ALFA_FORM_DESC_FIELD_GROUP"
+               query="SELECT id AS value, CONCAT(title, IF(state = 0, ' (disabled)', '')) AS text FROM #__alfa_form_field_groups ORDER BY ordering ASC"
+               key_field="value" value_field="text">
+            <option value="0">COM_ALFA_FORM_OPTION_FIELD_GROUP_NONE</option>
+        </field>
+
+        <field name="layout" type="fieldLayout"
+               label="JFIELD_ALT_LAYOUT_LABEL"
+               description="COM_ALFA_FORM_DESC_FIELD_LAYOUT"
+               class="form-select"/>
+
         <field
                 name="created_by"
                 type="user"
@@ -146,14 +176,6 @@
 
     </fieldset>
 
-    <fieldset name="meta">
-        <field name="meta_title" maxlength="255" filter="safehtml" type="text" translateLabel="true"
-               translateDescription="true" label="COM_ALFA_FORM_LBL_ITEM_META_TITLE"
-               description="COM_ALFA_FORM_DESC_ITEM_META_TITLE"/>
-        <field name="meta_desc" cols="30" rows="3" filter="safehtml" type="textarea"
-               label="JFIELD_META_DESCRIPTION_LABEL" description="COM_ALFA_FORM_DESC_ITEM_META_DESC"/>
-    </fieldset>
-
     <field name="ordering"/>
     <field name="checked_out" type="hidden" filter="unset"/>
     <field name="checked_out_time" type="hidden" filter="unset"/>
@@ -161,6 +183,18 @@
     <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL"
            description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>
 
-
+    <!-- ===== SHOWON: standalone builder field. Value carried by a hidden
+         input; showon-builder.js renders the UI and writes canonical JSON
+         back into it. No fieldsparams wrapper — FormfieldModel folds the
+         value into params on save and mirrors it back on load. Rendered
+         manually as its own tab in tmpl/formfield/edit.php. ===== -->
+    <field
+            name="showon"
+            type="showon"
+            label="COM_ALFA_SHOWON_LBL"
+            description="COM_ALFA_SHOWON_DESC"
+            hiddenLabel="true"
+    />
+    <!-- ===== /SHOWON ===== -->
 </form>
 

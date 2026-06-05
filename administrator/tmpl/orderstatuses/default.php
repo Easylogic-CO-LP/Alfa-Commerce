@@ -34,6 +34,15 @@ if ($saveOrder && !empty($this->items)) {
     HTMLHelper::_('draggablelist.draggable');
 }
 
+// Render a role badge only when the row owns that role. Mirrors the
+// com_deliveryplus orderstatuses pattern: terse closure, one call per
+// flag, blank string when off so the cell collapses cleanly.
+$flagBadge = static function (bool $on, string $label): string {
+    return $on
+        ? '<span class="badge bg-success">' . htmlspecialchars($label, ENT_COMPAT, 'UTF-8') . '</span>'
+        : '';
+};
+
 ?>
 
 <form action="<?php echo Route::_('index.php?option=com_alfa&view=orderstatuses'); ?>" method="post" name="adminForm" id="adminForm">
@@ -42,6 +51,12 @@ if ($saveOrder && !empty($this->items)) {
             <?php echo LayoutHelper::render('joomla.searchtools.default', array('view' => $this)); ?>
 
             <div class="clearfix"></div>
+            <?php if (empty($this->items)) : ?>
+            	<div class="alert alert-info">
+            		<span class="icon-info-circle" aria-hidden="true"></span><span class="visually-hidden"><?php echo \Joomla\CMS\Language\Text::_("INFO"); ?></span>
+            		<?php echo \Joomla\CMS\Language\Text::_("JGLOBAL_NO_MATCHING_RESULTS"); ?>
+            	</div>
+            <?php else : ?>
             <table class="table table-striped" id="orderList">
                 <thead>
                 <tr>
@@ -63,6 +78,10 @@ if ($saveOrder && !empty($this->items)) {
 
                     <th scope="col">
                         <?php echo HTMLHelper::_('searchtools.sort','Name','a.name', $listDirn, $listOrder); ?>
+                    </th>
+
+                    <th scope="col">
+                        <?php echo Text::_('COM_ALFA_ORDERSTATUSES_HEADING_ROLE'); ?>
                     </th>
 
                     <th scope="col">
@@ -141,6 +160,14 @@ if ($saveOrder && !empty($this->items)) {
                         </td>
 
                         <td>
+                            <?php
+                            echo $flagBadge((bool) ($item->is_initial ?? 0),   Text::_('COM_ALFA_ORDERSTATUSES_BADGE_INITIAL'))
+                                . ' ' . $flagBadge((bool) ($item->is_cancelled ?? 0), Text::_('COM_ALFA_ORDERSTATUSES_BADGE_CANCELLED'))
+                                . ' ' . $flagBadge((bool) ($item->is_completed ?? 0), Text::_('COM_ALFA_ORDERSTATUSES_BADGE_COMPLETED'));
+                            ?>
+                        </td>
+
+                        <td>
                             <?php echo $item->stock_operation?'Keep in stock':'Remove from stock'; ?>
                         </td>
 
@@ -152,6 +179,7 @@ if ($saveOrder && !empty($this->items)) {
                 <?php endforeach; ?>
                 </tbody>
             </table>
+            <?php endif; ?>
 
             <?php echo $this->filterForm->renderControlFields(); ?>
         </div>

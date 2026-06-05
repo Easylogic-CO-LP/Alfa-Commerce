@@ -13,15 +13,16 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualAliasConfig;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Joomla\CMS\Factory;
-use Joomla\CMS\Filter\OutputFilter;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\MVC\Model\AdminModel;
 use Joomla\CMS\Table\Table;
-use Joomla\String\StringHelper;
 use stdClass;
 use Throwable;
 
@@ -257,6 +258,12 @@ class ItemModel extends AdminModel
 
             $item->allowedUsers = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_users', 'item_id', 'user_id');
             $item->allowedUserGroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_items_usergroups', 'item_id', 'usergroup_id');
+
+            // get media origin (cat, man, item...)
+            $item->medias = MediaHelper::getMediaData(
+                origin: $this->name,
+                itemIDs: $item->id,
+            );
         }
 
         $this->item[$pk] = $item;
@@ -285,25 +292,21 @@ class ItemModel extends AdminModel
      */
     public function save($data)
     {
-        //		$app = Factory::getApplication();
-        //		$input = $app->input;
+        $app = Factory::getApplication();
+        $input = $app->getInput();
         //		$user = $app->getIdentity();
         //		$db = $this->getDatabase();
         $table = $this->getTable();
 
         //		$key   = $table->getKeyName();
         //		$pk  = $data[$key] ?? (int) $this->getState($this->getName() . '.id');
+        // 'raw' filter preserves editor HTML (short_desc / full_desc) and the
+        // per-language flat keys (name_en_gb, alias_el_gr …) that the default
+        // 'array' filter would strip.
+        $rawData = $input->post->get('jform', [], 'raw');
+        $data = array_merge($data, $rawData);
+
         $pk = $data['id'] ?? (int) $this->getState($this->getName() . '.id');
-        //		$isNew = $pk <= 0;
-        //		$prevItem = !$isNew ? $this->getItem($pk) : null;
-        //		$isClientApi = $app->isClient('api');
-
-        $data['alias'] = $data['alias'] ?: $data['name'];
-
-        // Sanitize alias
-        $data['alias'] = $this->sanitizeAlias($data['alias']);
-        // Check alias uniqueness
-        $data['alias'] = $this->getUniqueAlias($data['alias'], $pk);
 
         // Checking valid height/width/depth/weight.
         if ($data['width'] < 0) {
@@ -323,9 +326,35 @@ class ItemModel extends AdminModel
             ['robots' => $data['robots'] ?? ''],
         );
 
-        // Step 1: save the main item row
+        $newDropped = $input->files->get('jform')['uploads'] ?? [];
+
         if (!parent::save($data)) {
             return false;
+        }
+
+        $currentId = $pk > 0 ? $pk : (int) $this->getState($this->getName() . '.id'); //get the id from joomla state
+
+        // MULTILINGUAL: persist per-language translations (name, alias, short_desc,
+        // full_desc, meta_title, meta_desc). The alias slug is auto-generated,
+        // sanitised and made globally unique (an item can belong to many categories).
+        MultilingualHelper::saveMultilingualData(
+            currentId:         $currentId,
+            primaryColumnName: 'id_item',
+            tableName:         '#__alfa_items',
+            data:              $data,
+            aliasFields:       MultilingualAliasConfig::FIELDS['#__alfa_items'],
+        );
+
+        if (!empty($data['media'])) {
+            $defaultLangTag = MultilingualHelper::getDefaultLanguageTag();
+
+            MediaHelper::saveMedia(
+                mediaData:      $data['media'],
+                droppedMedia:   $newDropped,
+                itemId:         $currentId,
+                mediaOrigin:    $this->name,
+                customFileName: $data['alias_' . $defaultLangTag] ?? '',
+            );
         }
 
         $currentId = $pk > 0 ? $pk : (int) $this->getState($this->getName() . '.id'); //get the id from joomla state
@@ -501,6 +530,16 @@ class ItemModel extends AdminModel
             }
         }
 
+        // MULTILINGUAL: remove the per-language rows for the deleted items.
+        MultilingualHelper::deleteMultilingualData(
+            ids:               $pks,
+            primaryColumnName: 'id_item',
+            tableName:         '#__alfa_items',
+        );
+
+        // Remove the items' media (rows; files when media_full_deletion is on).
+        MediaHelper::deleteMediaForItems($pks, 'item');
+
         return true;
     }
 
@@ -647,76 +686,5 @@ class ItemModel extends AdminModel
         }
 
         parent::prepareTable($table);
-    }
-
-    /**
-     * Sanitize alias based on Joomla configuration.
-     *
-     * @param string $alias The alias to sanitize.
-     *
-     * @return string The sanitized alias.
-     *
-     * @since   1.0.1
-     */
-    protected function sanitizeAlias($alias)
-    {
-        $app = Factory::getApplication();
-
-        if ($app->get('unicodeslugs') == 1) {
-            return OutputFilter::stringUrlUnicodeSlug($alias);
-        }
-
-        return OutputFilter::stringURLSafe($alias);
-    }
-
-    /**
-     * Method to ensure alias is unique, incrementing if necessary.
-     *
-     * @param string $alias The desired alias.
-     * @param int $id The item id (0 for new items).
-     *
-     * @return string The unique alias.
-     *
-     * @since   1.0.1
-     */
-    /**
-     * Method to ensure alias is unique.
-     *
-     * @param string $alias The desired alias.
-     * @param int $id The item id (0 for new items).
-     *
-     * @return string The unique alias.
-     *
-     * @since   1.0.1
-     */
-    protected function getUniqueAlias($alias, $id = 0)
-    {
-        $db = $this->getDatabase();
-        $maxAttempts = 100;
-        $attempts = 0;
-
-        while ($attempts < $maxAttempts) {
-            $attempts++;
-
-            $query = $db->getQuery(true)
-                ->select($db->quoteName('id'))
-                ->from($db->quoteName('#__alfa_items'))
-                ->where($db->quoteName('alias') . ' = ' . $db->quote($alias));
-
-            if ($id > 0) {
-                $query->where($db->quoteName('id') . ' != ' . (int) $id);
-            }
-
-            $db->setQuery($query);
-
-            if (!$db->loadResult()) {
-                return $alias;
-            }
-
-            $alias = StringHelper::increment($alias, 'dash');
-        }
-
-        // Fallback if max attempts reached
-        return $alias . '-' . time();
     }
 }

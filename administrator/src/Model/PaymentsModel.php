@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 use Joomla\CMS\MVC\Model\ListModel;
 
@@ -23,13 +24,13 @@ use Joomla\CMS\MVC\Model\ListModel;
 class PaymentsModel extends ListModel
 {
     /**
-    * Constructor.
-    *
+     * Constructor.
+     *
      * @param array $config An optional associative array of configuration settings.
-    *
-    * @see        JController
-    * @since      1.6
-    */
+     *
+     * @see        JController
+     * @since      1.6
+     */
     public function __construct($config = [], ?MVCFactoryInterface $factory = null)
     {
         if (empty($config['filter_fields'])) {
@@ -38,9 +39,9 @@ class PaymentsModel extends ListModel
                 'ordering', 'a.ordering',
                 'created_by', 'a.created_by',
                 'modified_by', 'a.modified_by',
-                'name', 'a.name',
-                'category_names',
                 'state', 'a.state',
+                // Translatable — resolved via the lang-table COALESCE alias.
+                'name',
             ];
         }
 
@@ -120,43 +121,64 @@ class PaymentsModel extends ListModel
         $query->select('`modified_by`.name AS `modified_by`');
         $query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
 
-        // Join over category IDs and names.
-        $query->select("GROUP_CONCAT(DISTINCT pcat.category_id SEPARATOR ',') AS payment_category_IDs")
-              ->join('LEFT', '#__alfa_payment_categories as pcat ON a.id = pcat.payment_id');
+        // MULTILINGUAL: resolve the payment's own name in the active language.
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'a',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_payments',
+            langPrimaryColumn: 'id_payment',
+            fields:            ['name'],
+        );
 
-        $query->select("GROUP_CONCAT(DISTINCT cat.name SEPARATOR ', ') AS category_names")
-              ->join('LEFT', '#__alfa_categories as cat ON pcat.category_id = cat.id');
-
-        // Join over manufacturer IDs and names.
-        $query->select("GROUP_CONCAT(DISTINCT pman.manufacturer_id SEPARATOR ',') AS payment_manufacturer_IDs")
-            ->join('LEFT', '#__alfa_payment_manufacturers as pman ON a.id = pman.payment_id');
-
-        $query->select("GROUP_CONCAT(DISTINCT man.name SEPARATOR ', ') AS manufacturer_names")
-            ->join('LEFT', '#__alfa_manufacturers as man ON pman.manufacturer_id = man.id');
-
-        // Join over users IDs and names.
-        $query->select("GROUP_CONCAT(DISTINCT pu.user_id SEPARATOR ',') AS payment_user_IDs")
-            ->join('LEFT', '#__alfa_payment_users as pu ON a.id = pu.payment_id');
-
-        $query->select("GROUP_CONCAT(DISTINCT u.name SEPARATOR ', ') AS user_names")
-            ->join('LEFT', '#__users as u ON pu.user_id = u.id');
-
-        // Join over places IDs and names.
-        $query->select("GROUP_CONCAT(DISTINCT ppl.place_id SEPARATOR ',') AS payment_place_IDs")
-            ->join('LEFT', '#__alfa_payment_places as ppl ON a.id = ppl.payment_id');
-
-        $query->select("GROUP_CONCAT(DISTINCT pl.name SEPARATOR ', ') AS place_names")
-            ->join('LEFT', '#__alfa_places as pl ON ppl.place_id = pl.id');
-
-        // Join over usergroups IDs and names.
-        $query->select("GROUP_CONCAT(DISTINCT pug.usergroup_id SEPARATOR ',') AS payment_usergroup_IDs")
-            ->join('LEFT', '#__alfa_payment_usergroups as pug ON a.id = pug.payment_id');
-
-        $query->select("GROUP_CONCAT(DISTINCT ug.name SEPARATOR ', ') AS usergroup_names")
-            ->join('LEFT', '#__alfa_usergroups as ug ON pug.usergroup_id = ug.id');
-
-        // Grouping by item id.
-        $query->group('a.id');
+        // Related-entity IDs as correlated subqueries (no JOIN / GROUP BY, so
+        // pagination totals stay correct). Names are resolved per-language in
+        // getItems() via fetchRelated().
+        MultilingualHelper::addRelatedIdsToQuery(
+            query:         $query,
+            mainAlias:     'a',
+            mainPk:        'id',
+            junctionTable: '#__alfa_payment_categories',
+            junctionFk:    'payment_id',
+            junctionValue: 'category_id',
+            selectAlias:   'category_ids',
+        );
+        MultilingualHelper::addRelatedIdsToQuery(
+            query:         $query,
+            mainAlias:     'a',
+            mainPk:        'id',
+            junctionTable: '#__alfa_payment_manufacturers',
+            junctionFk:    'payment_id',
+            junctionValue: 'manufacturer_id',
+            selectAlias:   'manufacturer_ids',
+        );
+        MultilingualHelper::addRelatedIdsToQuery(
+            query:         $query,
+            mainAlias:     'a',
+            mainPk:        'id',
+            junctionTable: '#__alfa_payment_users',
+            junctionFk:    'payment_id',
+            junctionValue: 'user_id',
+            selectAlias:   'user_ids',
+        );
+        MultilingualHelper::addRelatedIdsToQuery(
+            query:         $query,
+            mainAlias:     'a',
+            mainPk:        'id',
+            junctionTable: '#__alfa_payment_places',
+            junctionFk:    'payment_id',
+            junctionValue: 'place_id',
+            selectAlias:   'place_ids',
+        );
+        MultilingualHelper::addRelatedIdsToQuery(
+            query:         $query,
+            mainAlias:     'a',
+            mainPk:        'id',
+            junctionTable: '#__alfa_payment_usergroups',
+            junctionFk:    'payment_id',
+            junctionValue: 'usergroup_id',
+            selectAlias:   'usergroup_ids',
+        );
 
         // Filter by published state
         $published = $this->getState('filter.state');
@@ -175,7 +197,8 @@ class PaymentsModel extends ListModel
                 $query->where('a.id = ' . (int) substr($search, 3));
             } else {
                 $search = $db->Quote('%' . $db->escape($search, true) . '%');
-                $query->where('( a.name LIKE ' . $search . ' )');
+                // HAVING — `name` is the COALESCE alias from the lang join.
+                $query->having('( ' . $db->quoteName('name') . ' LIKE ' . $search . ' )');
             }
         }
 
@@ -198,6 +221,70 @@ class PaymentsModel extends ListModel
     public function getItems()
     {
         $items = parent::getItems();
+
+        if (empty($items)) {
+            return $items;
+        }
+
+        $db = $this->getDatabase();
+
+        // One query per relationship — names resolved per-language where the
+        // related table is translatable (categories, manufacturers), or read
+        // directly for non-translatable / core tables (users, places, usergroups).
+        $catMap = MultilingualHelper::fetchRelated(
+            db:                $db,
+            items:             $items,
+            idsProperty:       'category_ids',
+            table:             '#__alfa_categories',
+            langTableBase:     '#__alfa_categories',
+            langPrimaryColumn: 'id_category',
+            langFields:        ['name'],
+        );
+
+        $manMap = MultilingualHelper::fetchRelated(
+            db:                $db,
+            items:             $items,
+            idsProperty:       'manufacturer_ids',
+            table:             '#__alfa_manufacturers',
+            langTableBase:     '#__alfa_manufacturers',
+            langPrimaryColumn: 'id_manufacturer',
+            langFields:        ['name'],
+        );
+
+        // #__users is Joomla core — name read directly, no lang tables.
+        $userMap = MultilingualHelper::fetchRelated(
+            db:          $db,
+            items:       $items,
+            idsProperty: 'user_ids',
+            table:       '#__users',
+            langFields:  ['name'],
+        );
+
+        // #__alfa_places — not yet translatable; name read directly.
+        $placeMap = MultilingualHelper::fetchRelated(
+            db:          $db,
+            items:       $items,
+            idsProperty: 'place_ids',
+            table:       '#__alfa_places',
+            langFields:  ['name'],
+        );
+
+        // Joomla core usergroups use the `title` column (not `name`).
+        $ugMap = MultilingualHelper::fetchRelated(
+            db:          $db,
+            items:       $items,
+            idsProperty: 'usergroup_ids',
+            table:       '#__usergroups',
+            langFields:  ['title'],
+        );
+
+        foreach ($items as $item) {
+            MultilingualHelper::bindRelated($item, 'categories', $catMap);
+            MultilingualHelper::bindRelated($item, 'manufacturers', $manMap);
+            MultilingualHelper::bindRelated($item, 'users', $userMap);
+            MultilingualHelper::bindRelated($item, 'places', $placeMap);
+            MultilingualHelper::bindRelated($item, 'usergroups', $ugMap);
+        }
 
         return $items;
     }

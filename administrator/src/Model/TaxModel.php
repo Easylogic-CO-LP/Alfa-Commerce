@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use JForm;
 use Joomla\CMS\Factory;
@@ -175,17 +176,32 @@ class TaxModel extends AdminModel
     {
         $app = Factory::getApplication();
 
+        // 'raw' filter preserves editor HTML (desc) and the per-language flat
+        // keys (name_en_gb, desc_el_gr …) that the default 'array' filter strips.
+        $rawData = $app->getInput()->post->get('jform', [], 'raw');
+        $data = array_merge($data, $rawData);
+
         // Step 1: save the main tax row
         if (!parent::save($data)) {
             return false;
         }
 
         $currentId = 0;
-        if ($data['id'] > 0) { //not a new
+        if ($data['id'] > 0) { // existing record
             $currentId = intval($data['id']);
-        } else { // is new
-            $currentId = intval($this->getState($this->getName() . '.id'));//get the id from setted joomla state
+        } else { // new record — read the id from the Joomla model state
+            $currentId = intval($this->getState($this->getName() . '.id'));
         }
+
+        // MULTILINGUAL: persist per-language translations (name, desc).
+        // Taxes are not URL-routed, so there is no alias slug.
+        MultilingualHelper::saveMultilingualData(
+            currentId:         $currentId,
+            primaryColumnName: 'id_tax',
+            tableName:         '#__alfa_taxes',
+            data:              $data,
+            aliasFields:       [],
+        );
 
         // Step 2: save all scope associations.
         // $assignZeroIdIfDataEmpty = true means: if the admin left a scope field
@@ -334,6 +350,13 @@ class TaxModel extends AdminModel
         if (!$result) {
             return false;
         }
+
+        // MULTILINGUAL: remove the per-language rows for the deleted taxes.
+        MultilingualHelper::deleteMultilingualData(
+            ids:               $pks,
+            primaryColumnName: 'id_tax',
+            tableName:         '#__alfa_taxes',
+        );
 
         // Step 3: re-index the collected items now that the tax is gone.
         // PriceCalculator will compute prices without the deleted tax,

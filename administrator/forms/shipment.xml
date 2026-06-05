@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
 
-    <field name="name" size="400" filter="safehtml" type="text" required="true" translateLabel="true"
+    <field name="name" type="MultilingualText"
+           multilingual_table="#__alfa_shipments" multilingual_pk="id_shipment"
+           maxlength="400" filter="safehtml" required="true" translateLabel="true"
            label="COM_ALFA_FORM_LBL_PAYMENT_NAME" description="COM_ALFA_FORM_DESC_PAYMENT_NAME"
            hint="COM_ALFA_FORM_LBL_PAYMENT_NAME"/>
 
@@ -36,7 +38,10 @@
 
         <field
                 name="description"
-                input_type="textarea"
+                type="MultilingualTextarea"
+                multilingual_table="#__alfa_shipments"
+                multilingual_pk="id_shipment"
+                rows="3"
                 required="false"
                 hint="COM_ALFA_FORM_HINT_SHIPMENT_DESC"
                 label="COM_ALFA_FORM_LBL_DESCRIPTION"
@@ -58,7 +63,10 @@
                header="COM_ALFA_FORM_CATEGORY_ALL"/>
 
         <field
-                name="manufacturers" type="sql"
+                name="manufacturers" type="model"
+                model="manufacturers"
+                column_value="id"
+                column_text="name"
                 input_type="list"
                 required="false"
                 multiple="true"
@@ -66,7 +74,6 @@
                 label="COM_ALFA_FORM_LBL_MANUFACTURERS"
                 description="COM_ALFA_FORM_DESC_MANUFACTURERS"
                 layout="joomla.form.field.list-fancy-select"
-                query="SELECT `id`, `name` AS val FROM `#__alfa_manufacturers`" key_field="id" value_field="val"
                 header="COM_ALFA_FORM_HEADER_ALL_MANUFACTURERS"
         />
 
@@ -77,7 +84,6 @@
                showPath="false"
                orderBy="id"
                orderDir="desc"
-               disableDescendants="true"
                default="0"
                header="COM_ALFA_FORM_PLACE_ALL"
                layout="joomla.form.field.list-fancy-select"
@@ -87,7 +93,7 @@
 
         <field
                 name="usergroups"
-                type="UserGroupList"
+                type="usergrouplist"
                 label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_LBL"
                 description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_DESC"
                 layout="joomla.form.field.list-fancy-select"

@@ -1,10 +1,11 @@
 <?php
 
 /**
- * @package    Alfa Commerce
+ * @version    1.0.1
+ * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
- * @license    GNU General Public License version 3 or later; see LICENSE
+ * @copyright  2024 Easylogic CO LP
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
  */
 
 namespace Alfa\Component\Alfa\Administrator\Model;
@@ -12,87 +13,63 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
-use JForm;
 use Joomla\CMS\Factory;
 use Joomla\CMS\MVC\Model\AdminModel;
+use Joomla\CMS\User\UserFactoryInterface;
 
 /**
  * User model.
+ *
+ * Persists com_alfa user records. The linked Joomla account is displayed
+ * read-only; all credential management is done via the Joomla User Manager.
  *
  * @since  1.0.1
  */
 class UserModel extends AdminModel
 {
-    /**
-     * @var string The prefix to use with controller messages.
-     *
-     * @since  1.0.1
-     */
+    /** @var string @since 1.0.1 */
     protected $text_prefix = 'COM_ALFA';
 
-    /**
-     * @var string Alias to manage history control
-     *
-     * @since  1.0.1
-     */
+    /** @var string @since 1.0.1 */
     public $typeAlias = 'com_alfa.user';
 
-    /**
-     * @var null Item data
-     *
-     * @since  1.0.1
-     */
+    /** @var object|null @since 1.0.1 */
     protected $item = null;
 
     /**
-     * Method to get the record form.
-     *
-     * @param array $data An optional array of data for the form to interogate.
-     * @param bool $loadData True if the form is to load its own data (default case), false if not.
-     *
-     * @return JForm|bool A \JForm object on success, false on failure
-     *
-     * @since   1.0.1
+     * {@inheritdoc}
+     * @since 1.0.1
      */
-    public function getForm($data = [], $loadData = true)
+    public function getTable($name = 'User', $prefix = 'Administrator', $options = [])
     {
-        // Initialise variables.
-        $app = Factory::getApplication();
-
-        // Get the form.
-        $form = $this->loadForm(
-            'com_alfa.user',
-            'user',
-            [
-                'control' => 'jform',
-                'load_data' => $loadData,
-            ],
-        );
-
-        if (empty($form)) {
-            return false;
-        }
-
-        return $form;
+        return parent::getTable($name, $prefix, $options);
     }
 
     /**
-     * Method to get the data that should be injected in the form.
-     *
-     * @return mixed The data for the form.
-     *
-     * @since   1.0.1
+     * {@inheritdoc}
+     * @since 1.0.1
+     */
+    public function getForm($data = [], $loadData = true)
+    {
+        $form = $this->loadForm(
+            'com_alfa.user',
+            'user',
+            ['control' => 'jform', 'load_data' => $loadData],
+        );
+
+        return $form ?: false;
+    }
+
+    /**
+     * {@inheritdoc}
+     * @since 1.0.1
      */
     protected function loadFormData()
     {
-        // Check the session for previously entered form data.
         $data = Factory::getApplication()->getUserState('com_alfa.edit.user.data', []);
 
         if (empty($data)) {
-            if ($this->item === null) {
-                $this->item = $this->getItem();
-            }
-
+            $this->item ??= $this->getItem();
             $data = $this->item;
         }
 
@@ -100,24 +77,51 @@ class UserModel extends AdminModel
     }
 
     /**
-     * Method to get a single record.
+     * Returns a single record enriched with read-only display data from the
+     * linked Joomla user (name, email, username) and a pre-built edit URL.
      *
-     * @param int $pk The id of the primary key.
+     * The edit URL uses tmpl=component so the iframe only loads the edit form
+     * without the full admin chrome around it.
      *
-     * @return mixed Object on success, false on failure.
+     * @param int|null $pk Primary key.
+     *
+     * @return object|false
      *
      * @since   1.0.1
      */
     public function getItem($pk = null)
     {
-        if ($item = parent::getItem($pk)) {
-            //				if (isset($item->params))
-            //				{
-            //					$item->params = json_encode($item->params);
-            //				}
+        $pk = (!empty($pk)) ? (int) $pk : (int) $this->getState($this->getName() . '.id');
 
-            // Do any procesing on fields here if needed
+        // Serve from cache when the same PK is requested more than once.
+        if ($this->item !== null && isset($this->item->id) && (int) $this->item->id === $pk) {
+            return $this->item;
         }
+
+        $item = parent::getItem($pk);
+
+        if (!$item) {
+            return false;
+        }
+
+        // Hydrate read-only display fields from the linked Joomla user.
+        if (!empty($item->id_user)) {
+            $user = Factory::getContainer()
+                ->get(UserFactoryInterface::class)
+                ->loadUserById((int) $item->id_user);
+
+            $item->joomla_name = $user->name;
+            $item->joomla_email = $user->email;
+            $item->joomla_username = $user->username;
+
+            // tmpl=component strips admin chrome — only the edit form renders
+            // inside the iframe. Route::_() is intentionally avoided here as
+            // it can mangle core com_users admin URLs.
+            $item->joomla_edit_url = 'index.php?option=com_users&task=user.edit'
+    . '&id=' . (int) $item->id_user;
+        }
+
+        $this->item = $item;
 
         return $item;
     }

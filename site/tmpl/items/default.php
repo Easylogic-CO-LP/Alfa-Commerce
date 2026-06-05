@@ -1,21 +1,25 @@
 <?php
 /**
- * @package    Alfa Commerce
+ * @version    1.0.1
+ * @package    Com_Alfa
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
- * @license    GNU General Public License version 3 or later; see LICENSE
+ * @copyright  2024 Easylogic CO LP
+ * @license    GNU General Public License version 2 or later; see LICENSE.txt
  */
 
 defined('_JEXEC') or die;
 
-use Joomla\CMS\Uri\Uri;
+use Joomla\CMS\Factory;
 use Joomla\CMS\Layout\LayoutHelper;
+
+$app = Factory::getApplication();
+$params = $app->getParams();
 
 $wa = $this->document->getWebAssetManager();
 $wa->useStyle('com_alfa.list')
-	->useStyle('com_alfa.item')
-	->useScript('com_alfa.item.recalculate')
-	->useScript('com_alfa.item.addtocart');
+    ->useStyle('com_alfa.item')
+    ->useScript('com_alfa.item.recalculate')
+    ->useScript('com_alfa.item.addtocart');
 
 // ============================================================================
 // PRICE SETTINGS - CUSTOMIZABLE
@@ -72,30 +76,33 @@ $priceSettings = $this->priceSettings;
 <?php echo LayoutHelper::render('filter_form', ['view' => $this]); ?>
 
 <section>
-	<?php echo $this->pagination->getListFooter(); ?>
+    <?php echo $this->pagination->getListFooter(); ?>
     <div class="list-container items-list">
-		<?php foreach ($this->items as $item) : ?>
-
+        <?php foreach ($this->items as $item) : ?>
             <article class="list-item" data-item-id="<?php echo $item->id; ?>">
-                <div>
-                    <a href="<?= htmlspecialchars($item->link, ENT_QUOTES, 'UTF-8') ?>">
-                        <img src="<?= Uri::root() . '/media/com_alfa/images/placeholder_600x.webp' ?>" alt="<?= htmlspecialchars($item->name, ENT_QUOTES, 'UTF-8') ?>" />
-                    </a>
-                </div>
+
+                <?php if (!empty($item->medias[0]->thumbnail)): ?>
+                    <div class="item-image">
+                        <a href="<?= $item->link ?>">
+                            <img src="<?= $item->medias[0]->thumbnail_url ?>" alt="<?= $item->name ?>" />
+                        </a>
+                    </div>
+                <?php endif; ?>
+
                 <div class="item-title">
-                    <a href="<?= htmlspecialchars($item->link, ENT_QUOTES, 'UTF-8') ?>">
-						<?php echo $this->escape($item->name); ?></a>
+                    <a href="<?= $item->link ?>">
+                        <?php echo $this->escape($item->name); ?></a>
                 </div>
 
-	            <?php echo LayoutHelper::render('price', [ 'item' => $item,  'settings' => $priceSettings ]); ?>
+                <?php echo LayoutHelper::render('price', [ 'item' => $item,  'settings' => $priceSettings ]); ?>
 
-				<?php echo LayoutHelper::render('stock_info', ['item' => $item]); ?>
+                <?php echo LayoutHelper::render('stock_info', ['item' => $item]); ?>
 
-				<?php echo LayoutHelper::render('add_to_cart', $item); ?>
+                <?php echo LayoutHelper::render('add_to_cart', $item); ?>
 
             </article>
 
-		<?php endforeach; ?>
+        <?php endforeach; ?>
     </div>
-	<?php echo $this->pagination->getListFooter(); ?>
+    <?php echo $this->pagination->getListFooter(); ?>
 </section>

@@ -124,12 +124,11 @@ class CustomsModel extends ListModel
         // Join over the user field 'modified_by'
         $query->select('`modified_by`.name AS `modified_by`');
         $query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
-        // Join over the foreign key 'categories'
-        $query->select('`#__alfa_categories_4047035`.`name` AS categories_fk_value_4047035');
-        $query->join('LEFT', '#__alfa_categories AS #__alfa_categories_4047035 ON #__alfa_categories_4047035.`id` = a.`categories`');
-        // Join over the foreign key 'items'
-        $query->select('`#__alfa_items_4047036`.`name` AS items_fk_value_4047036');
-        $query->join('LEFT', '#__alfa_items AS #__alfa_items_4047036 ON #__alfa_items_4047036.`id` = a.`items`');
+        // NOTE: the builder-generated FK joins that selected category/item `name`
+        // were removed — `name` now lives in the per-language tables (so the raw
+        // join errored on the dropped column), and these *_fk_value_* columns are
+        // not rendered by the customs list template. Re-add via a lang join only
+        // if they're ever actually displayed.
 
         // Filter by published state
         $published = $this->getState('filter.state');

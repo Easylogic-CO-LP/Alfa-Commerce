@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+
+    <field name="title" size="400" filter="safehtml" type="text" required="true"
+           label="COM_ALFA_FORM_LBL_FORMFIELDGROUP_TITLE"
+           description="COM_ALFA_FORM_DESC_FORMFIELDGROUP_TITLE"
+           hint="COM_ALFA_FORM_LBL_FORMFIELDGROUP_TITLE"/>
+
+    <fieldset name="general">
+        <field name="description" type="textarea" cols="30" rows="4"
+               filter="safehtml"
+               label="COM_ALFA_FORM_LBL_FORMFIELDGROUP_DESCRIPTION"
+               description="COM_ALFA_FORM_DESC_FORMFIELDGROUP_DESCRIPTION"/>
+    </fieldset>
+
+    <fieldset name="publish">
+        <field name="state" type="list" default="1" class="inputbox" size="1"
+               label="JSTATUS" description="JFIELD_PUBLISHED_DESC">
+            <option value="1">JPUBLISHED</option>
+            <option value="0">JUNPUBLISHED</option>
+        </field>
+
+        <field name="created_by" type="user" label="JGLOBAL_FIELD_CREATED_BY_LABEL" validate="UserId"/>
+        <field name="modified_by" type="user" label="JGLOBAL_FIELD_MODIFIED_BY_LABEL"
+               class="readonly" readonly="true" filter="unset" validate="UserId"/>
+
+        <field name="id" type="text" readonly="true" class="readonly" default="0"
+               description="JGLOBAL_FIELD_ID_DESC"/>
+    </fieldset>
+
+    <field name="ordering"/>
+    <field name="checked_out" type="hidden" filter="unset"/>
+    <field name="checked_out_time" type="hidden" filter="unset"/>
+
+</form>

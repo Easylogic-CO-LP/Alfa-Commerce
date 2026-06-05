@@ -5,16 +5,17 @@
             <![CDATA[COM_ALFA_TITLE_ITEM_VIEW_ITEM_DESC]]>
         </message>
     </layout>
-    <fields name="request">
+    <fields name="request" addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
         <fieldset
                 name="request"
                 label="COM_ALFA_FIELDSET_ITEM_ID_SELECT_LABEL">
+            <!-- type="model" → Alfa ModelField (language-resolved item names). -->
             <field
                     name="id"
-                    query="SELECT `id`, `name` FROM #__alfa_items ORDER BY `id`"
-                    type="sql"
-                    key_field="id"
-                    value_field="name"
+                    type="model"
+                    model="items"
+                    column_value="id"
+                    column_text="name"
                     label="COM_ALFA_ITEM_ID_SELECT_LABEL"
                     require="true"
                     description="JGLOBAL_SHOW_TITLE_DESC">

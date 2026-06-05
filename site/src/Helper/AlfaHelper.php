@@ -9,6 +9,7 @@
 
 namespace Alfa\Component\Alfa\Site\Helper;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 
@@ -72,6 +73,17 @@ class AlfaHelper
 
             // Group by payment method ID to combine categories and manufacturers
             ->group('m.id');
+
+        // MULTILINGUAL: resolve the method name + description in the active
+        // language. 1:1 join on m.id, so the GROUP BY above is unaffected.
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'm',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_' . $baseTable . 's',
+            langPrimaryColumn: 'id_' . $baseTable,
+            fields:            ['name', 'description'],
+        );
 
         $db->setQuery($query);
         $filteredMethods = $db->loadObjectList('id');

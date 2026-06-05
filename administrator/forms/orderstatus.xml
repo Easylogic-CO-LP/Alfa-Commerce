@@ -1,9 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
-  <fieldset>
+  <fieldset name="general">
+
         <field name="id" type="text" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
 
-        <field name="name" size="400" filter="safehtml" type="text" required="true" translateLabel="true" label="COM_ALFA_FORM_LBL_ORDER_STATUS_NAME"/>
+        <field name="name" type="MultilingualText"
+               multilingual_table="#__alfa_orders_statuses" multilingual_pk="id_orderstatus"
+               maxlength="400" filter="safehtml" required="true" translateLabel="true"
+               label="COM_ALFA_FORM_LBL_ORDER_STATUS_NAME"
+               description="COM_ALFA_FORM_LBL_ORDER_STATUS_NAME_DESC"/>
+
+        <!-- Customer-facing status name. Internal `name` stays the admin
+             label; this is what {status_customer} renders in customer
+             emails. Required — no fallback. -->
+        <field name="name_customer" type="MultilingualText"
+               multilingual_table="#__alfa_orders_statuses" multilingual_pk="id_orderstatus"
+               maxlength="400" filter="safehtml" required="true" translateLabel="true"
+               label="COM_ALFA_FORM_LBL_ORDER_STATUS_NAME_CUSTOMER"
+               description="COM_ALFA_FORM_LBL_ORDER_STATUS_NAME_CUSTOMER_DESC"/>
 
         <field
                 name="color"
@@ -62,6 +76,131 @@
         <field name="ordering"/>
         <field name="checked_out" type="hidden" filter="unset"/>
         <field name="checked_out_time" type="hidden" filter="unset"/>
-        
+
+  </fieldset>
+
+  <!--
+      Role flags. At most ONE row in #__alfa_orders_statuses may have each
+      flag set to 1; OrderstatusModel::save() enforces this on persist
+      (cross-row uniqueness). Within a single row the three roles are also
+      mutually exclusive — a status can't be both "brand-new order" and
+      "cancellation" — so each field's `showon` hides the other two when
+      one is ticked. The cross-row and within-row guards together mean
+      OrderStatusHelper can lookup by flag and trust exactly one winner.
+  -->
+  <fieldset name="roles" label="COM_ALFA_FORM_FIELDSET_ORDER_STATUS_ROLES">
+
+      <field name="is_initial" type="radio" default="0"
+             layout="joomla.form.field.radio.switcher"
+             label="COM_ALFA_FORM_LBL_ORDER_STATUS_IS_INITIAL"
+             description="COM_ALFA_FORM_LBL_ORDER_STATUS_IS_INITIAL_DESC"
+             showon="is_cancelled:0[AND]is_completed:0">
+          <option value="0">JNO</option>
+          <option value="1">JYES</option>
+      </field>
+
+      <field name="is_cancelled" type="radio" default="0"
+             layout="joomla.form.field.radio.switcher"
+             label="COM_ALFA_FORM_LBL_ORDER_STATUS_IS_CANCELLED"
+             description="COM_ALFA_FORM_LBL_ORDER_STATUS_IS_CANCELLED_DESC"
+             showon="is_initial:0[AND]is_completed:0">
+          <option value="0">JNO</option>
+          <option value="1">JYES</option>
+      </field>
+
+      <field name="is_completed" type="radio" default="0"
+             layout="joomla.form.field.radio.switcher"
+             label="COM_ALFA_FORM_LBL_ORDER_STATUS_IS_COMPLETED"
+             description="COM_ALFA_FORM_LBL_ORDER_STATUS_IS_COMPLETED_DESC"
+             showon="is_initial:0[AND]is_cancelled:0">
+          <option value="0">JNO</option>
+          <option value="1">JYES</option>
+      </field>
+
+  </fieldset>
+
+  <!--
+      Status-change emails. When notify_customer = 1, OrderEmailHelper
+      sends the per-language subject/body to the customer on transition
+      INTO this status. notify_admin does the same for the Joomla site
+      email (admin notification). Both flags + their template fields
+      are independent — admin can configure customer-only, admin-only,
+      or both. Subject/body fields are MultilingualText / Editor so each
+      language's template lives in `#__alfa_orders_statuses_<langtag>`.
+  -->
+  <!--
+      Customer-side notification. The Emails tab in the edit view
+      renders this fieldset as one nested tab; the matching
+      emails_admin fieldset below as the other. Splitting at the
+      fieldset level keeps the form XML self-describing and lets the
+      template iterate via renderFieldset() with no per-field special
+      casing.
+  -->
+  <fieldset name="emails_customer" label="COM_ALFA_FORM_FIELDSET_ORDER_STATUS_EMAILS_CUSTOMER">
+
+      <field name="notify_customer" type="radio" default="0"
+             layout="joomla.form.field.radio.switcher"
+             label="COM_ALFA_FORM_LBL_ORDER_STATUS_NOTIFY_CUSTOMER"
+             description="COM_ALFA_FORM_LBL_ORDER_STATUS_NOTIFY_CUSTOMER_DESC">
+          <option value="0">JNO</option>
+          <option value="1">JYES</option>
+      </field>
+
+      <!-- Wrapper layout for the customer email. Drives which position
+           editors appear below (the positions the layout requests via
+           $position()/$hasPosition()). Read back by EmailPositionsField + OrderEmailHelper. -->
+      <field name="email_layout_customer" type="OrderStatusEmailLayout"
+             default="emails.order.default"
+             label="COM_ALFA_FORM_LBL_ORDER_STATUS_EMAIL_LAYOUT_CUSTOMER"
+             description="COM_ALFA_FORM_LBL_ORDER_STATUS_EMAIL_LAYOUT_CUSTOMER_DESC"
+             showon="notify_customer:1"/>
+
+      <field name="email_positions_customer" type="EmailPositions"
+             multilingual_table="#__alfa_orders_statuses"
+             multilingual_pk="id_orderstatus"
+             email_layout="emails.order.default"
+             label="COM_ALFA_FORM_LBL_ORDER_STATUS_EMAIL_POSITIONS_CUSTOMER"
+             description="COM_ALFA_FORM_LBL_ORDER_STATUS_EMAIL_POSITIONS_CUSTOMER_DESC"
+             hiddenLabel="true"
+             showon="notify_customer:1"/>
+
+  </fieldset>
+
+  <!--
+      Admin-side notification. Multi-user picker → join table; each
+      picked user receives the admin email separately. Empty list =
+      no admin email. SqlField key_field / value_field are explicit
+      because Joomla defaults the latter to the field's `name`, which
+      would collide with the column name we read.
+  -->
+  <fieldset name="emails_admin" label="COM_ALFA_FORM_FIELDSET_ORDER_STATUS_EMAILS_ADMIN">
+
+      <field name="admin_recipient_ids" type="sql"
+             input_type="list"
+             multiple="true"
+             default=""
+             layout="joomla.form.field.list-fancy-select"
+             query="SELECT `u`.`id`, CONCAT(`u`.`name`, ' - ', `u`.`email`) AS `label` FROM `#__users` AS `u` WHERE `u`.`block` = 0 ORDER BY `u`.`name` ASC"
+             key_field="id"
+             value_field="label"
+             label="COM_ALFA_FORM_LBL_ORDER_STATUS_ADMIN_RECIPIENTS"
+             description="COM_ALFA_FORM_LBL_ORDER_STATUS_ADMIN_RECIPIENTS_DESC"/>
+
+      <!-- Wrapper layout for the admin email — see customer note above. -->
+      <field name="email_layout_admin" type="OrderStatusEmailLayout"
+             default="emails.order.default"
+             label="COM_ALFA_FORM_LBL_ORDER_STATUS_EMAIL_LAYOUT_ADMIN"
+             description="COM_ALFA_FORM_LBL_ORDER_STATUS_EMAIL_LAYOUT_ADMIN_DESC"
+             showon="admin_recipient_ids!:"/>
+
+      <field name="email_positions_admin" type="EmailPositions"
+             multilingual_table="#__alfa_orders_statuses"
+             multilingual_pk="id_orderstatus"
+             email_layout="emails.order.default"
+             label="COM_ALFA_FORM_LBL_ORDER_STATUS_EMAIL_POSITIONS_ADMIN"
+             description="COM_ALFA_FORM_LBL_ORDER_STATUS_EMAIL_POSITIONS_ADMIN_DESC"
+             hiddenLabel="true"
+             showon="admin_recipient_ids!:"/>
+
   </fieldset>
 </form>

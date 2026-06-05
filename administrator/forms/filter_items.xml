@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <form >
-    <fields name="filter">
+    <fields name="filter" addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
         <field name="search" type="text" description="COM_ALFA_SEARCH_FILTER_SUBMIT"
                label="COM_USERS_FILTER_SEARCH_DESC"
                class="js-stools-search-string" />
@@ -14,12 +14,28 @@
             <option value="">JOPTION_SELECT_PUBLISHED</option>
         </field>
 
-        <!--        TODO: get the categories to filter-->
-        <!--        addFieldPrefix="Alfa\Component\Alfa\Administrator\Field"-->
-        <!--        <field name="categories" type="categories" removeCurrent="false" layout="joomla.form.field.list-fancy-select" label="COM_ALFA_FORM_LBL_CATEGORY_PARENT_ID" description="perigrafi">-->
-        <!--            <option value="0">COM_ALFA_FROM_CATEGORY_NO_OPTION</option>-->
-        <!--        </field>-->
+        <field name="category"
+               type="categories"
+               multiple="true"
+               label="COM_ALFA_TITLE_CATEGORIES"
+               layout="joomla.form.field.list-fancy-select"
+               onchange="this.form.submit();"
+        >
+            <option value="">COM_ALFA_FILTER_SELECT_CATEGORY</option>
+        </field>
 
+        <field name="manufacturer"
+               type="model"
+               model="manufacturers"
+               column_value="id"
+               column_text="name"
+               multiple="true"
+               label="COM_ALFA_TITLE_MANUFACTURERS"
+               layout="joomla.form.field.list-fancy-select"
+               onchange="this.form.submit();"
+        >
+            <option value="">COM_ALFA_FILTER_SELECT_MANUFACTURER</option>
+        </field>
 
     </fields>
 

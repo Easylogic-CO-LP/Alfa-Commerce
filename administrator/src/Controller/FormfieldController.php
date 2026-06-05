@@ -12,13 +12,27 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 \defined('_JEXEC') or die;
 
 use Joomla\CMS\MVC\Controller\FormController;
+use Joomla\CMS\Router\Route;
 
 /**
- * Payment controller class.
+ * Form field controller class.
  *
  * @since  1.0.1
  */
 class FormfieldController extends FormController
 {
     protected $view_list = 'formfields';
+
+    public function batch($model = null)
+    {
+        $this->checkToken();
+
+        $model = $this->getModel('Formfield', 'Administrator', []);
+
+        $this->setRedirect(
+            Route::_('index.php?option=com_alfa&view=formfields' . $this->getRedirectToListAppend(), false),
+        );
+
+        return parent::batch($model);
+    }
 }

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="library" method="upgrade">
+	<name>lib_libphonenumber</name>
+	<libraryname>libphonenumber</libraryname>
+	<author>Giggsey (packaged for Joomla)</author>
+	<authorUrl>https://github.com/giggsey/libphonenumber-for-php</authorUrl>
+	<creationDate>2026-04-20</creationDate>
+	<license>Apache-2.0</license>
+	<version>9.0.0</version>
+	<description>libphonenumber-for-php. Installs as a Joomla library and auto-registers the libphonenumber\ namespace via the Joomla autoloader. Requires lib_giggsey_locale.</description>
+	<namespace path="src">libphonenumber</namespace>
+	<files>
+		<folder>src</folder>
+	</files>
+	<scriptfile>script.php</scriptfile>
+</extension>

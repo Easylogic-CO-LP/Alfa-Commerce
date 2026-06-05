@@ -1,54 +1,86 @@
 <?php
-/**
- * @package    Alfa Commerce
- * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
- * @license    GNU General Public License version 3 or later; see LICENSE
- */
-
-// No direct access
 defined('_JEXEC') or die;
 
-use \Joomla\CMS\HTML\HTMLHelper;
-use \Joomla\CMS\Factory;
-use \Joomla\CMS\Uri\Uri;
-use \Joomla\CMS\Router\Route;
-use \Joomla\CMS\Language\Text;
+use Joomla\CMS\HTML\HTMLHelper;
+use Joomla\CMS\Router\Route;
+use Joomla\CMS\Language\Text;
 
 $wa = $this->document->getWebAssetManager();
 $wa->useScript('keepalive')
-	->useScript('form.validate');
+   ->useScript('form.validate');
 ?>
-
 <form
-	action="<?php echo Route::_('index.php?option=com_alfa&layout=edit&id=' . (int) $this->item->id); ?>"
-	method="post" enctype="multipart/form-data" name="adminForm" id="usergroup-form" class="form-validate form-horizontal">
+    action="<?php echo Route::_('index.php?option=com_alfa&layout=edit&id=' . (int) $this->item->id); ?>"
+    method="post"
+    enctype="multipart/form-data"
+    name="adminForm"
+    id="usergroup-form"
+    class="form-validate form-horizontal">
 
-	
-	<?php echo HTMLHelper::_('uitab.startTabSet', 'myTab', array('active' => 'usergroup')); ?>
-	<?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'usergroup', Text::_('COM_ALFA_TAB_USERGROUP', true)); ?>
-	<div class="row-fluid">
-		<div class="col-md-12 form-horizontal">
-			<fieldset class="adminform">
-				<legend><?php echo Text::_('COM_ALFA_FIELDSET_USERGROUP'); ?></legend>
-				<?php echo $this->form->renderField('id'); ?>
-				<?php echo $this->form->renderField('prices_display'); ?>
-				<?php echo $this->form->renderField('name'); ?>
-				<?php echo $this->form->renderField('prices_enable'); ?>
-			</fieldset>
-		</div>
-	</div>
-	<?php echo HTMLHelper::_('uitab.endTab'); ?>
-	<input type="hidden" name="jform[state]" value="<?php echo $this->item->state; ?>" />
-	<input type="hidden" name="jform[ordering]" value="<?php echo $this->item->ordering; ?>" />
-	<input type="hidden" name="jform[checked_out]" value="<?php echo $this->item->checked_out; ?>" />
-	<input type="hidden" name="jform[checked_out_time]" value="<?php echo $this->item->checked_out_time; ?>" />
-	<?php echo $this->form->renderField('created_by'); ?>
-	<?php echo $this->form->renderField('modified_by'); ?>
+    <?php // ── Hidden fields required for correct save (UPDATE vs INSERT) ── ?>
+    <?php echo $this->form->renderField('id'); ?>
+    <?php echo $this->form->renderField('usergroup_id'); ?>
 
-	
-	<?php echo HTMLHelper::_('uitab.endTabSet'); ?>
+    <div class="row title-alias form-vertical mb-3">
+        <div class="col-12">
+            <?php echo $this->form->renderField('name'); ?>
+        </div>
+    </div>
 
-	<?php echo $this->form->renderControlFields(); ?>
+    <div class="row">
+
+        <div class="col-lg-12">
+
+            <?php echo HTMLHelper::_('uitab.startTabSet', 'myTab', ['active' => 'usergroup', 'recall' => true]); ?>
+            <?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'usergroup', Text::_('COM_ALFA_TAB_USERGROUP', true)); ?>
+
+            <?php echo $this->form->renderField('prices_enable'); ?>
+
+            <?php $pricesDisplay = $this->item->prices_enable == '1' ? '' : 'display:none'; ?>
+            <div
+                data-show-when="jform[prices_enable]"
+                data-show-value="1"
+                style="<?php echo $pricesDisplay; ?>"
+             >
+                <?php echo $this->form->renderFieldset('prices'); ?>
+            </div>
+
+            <?php echo HTMLHelper::_('uitab.endTab'); ?>
+            <?php echo HTMLHelper::_('uitab.endTabSet'); ?>
+
+        </div>
+
+    </div>
+
+    <?php echo $this->form->renderControlFields(); ?>
 
 </form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // Finds all [data-show-when] elements and toggles their visibility
+    // based on the value of the named input.
+    //
+    // Usage in HTML:
+    //   <div data-show-when="jform[my_field]" data-show-value="1"> ... </div>
+
+    function applyConditionalVisibility() {
+        document.querySelectorAll('[data-show-when]').forEach(function (el) {
+            const fieldName = el.dataset.showWhen;
+            const showValue = el.dataset.showValue;
+            const input     = document.querySelector(`[name="${fieldName}"]:checked`)
+                           ?? document.querySelector(`[name="${fieldName}"]`);
+
+            el.style.display = (input && input.value === showValue) ? '' : 'none';
+        });
+    }
+
+    // Set initial state on page load
+    applyConditionalVisibility();
+
+    // Re-evaluate whenever any input inside the form changes
+    document.getElementById('usergroup-form').addEventListener('change', applyConditionalVisibility);
+
+});
+</script>

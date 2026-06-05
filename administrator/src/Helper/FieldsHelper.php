@@ -3,1239 +3,462 @@
 /**
  * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
- *
- * @copyright   (C) 2018 Open Source Matters, Inc. <https://www.joomla.org>
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
 namespace Alfa\Component\Alfa\Administrator\Helper;
 
-// use Joomla\CMS\Event\CustomFields\AfterPrepareFieldEvent;
-// use Joomla\CMS\Event\CustomFields\BeforePrepareFieldEvent;
-// use Joomla\CMS\Event\CustomFields\GetTypesEvent;
-
-// use Joomla\CMS\Event\CustomFields\PrepareDomEvent;
 use Alfa\Component\Alfa\Administrator\Event\Fields\PrepareDomEvent;
-// use Joomla\CMS\Event\CustomFields\PrepareFieldEvent;
+use Alfa\Component\Alfa\Administrator\Plugin\FieldsPlugin;
 use DOMDocument;
 use DOMElement;
-use Exception;
 use Joomla\CMS\Factory;
-use Joomla\CMS\Fields\FieldsServiceInterface;
 use Joomla\CMS\Form\Form;
-use Joomla\CMS\Form\FormHelper;
-use Joomla\CMS\Language\Multilanguage;
-use Joomla\CMS\Layout\LayoutHelper;
+use Joomla\CMS\Language\Text;
+use Joomla\CMS\Layout\FileLayout;
 use Joomla\CMS\Plugin\PluginHelper;
-use Joomla\Component\Fields\Administrator\Model\FieldModel;
-use Joomla\Component\Fields\Administrator\Model\FieldsModel;
-use Joomla\Database\ParameterType;
-use Joomla\Event\DispatcherInterface;
-use stdClass;
+use Throwable;
 
-// phpcs:disable PSR1.Files.SideEffects
-\defined('_JEXEC') or die;
-// phpcs:enable PSR1.Files.SideEffects
+defined('_JEXEC') or die;
 
 /**
  * FieldsHelper
  *
- * @since  3.7.0
+ * Entry points for rendering alfa-fields in Joomla forms.
+ *   - prepareForm()  injects custom fields into a Form for the given context
+ *   - getFields()    loads fields visible to the given user in the given context
  */
 class FieldsHelper
 {
     /**
-     * @var FieldsModel
+     * Prefix used for every fieldset injected by prepareForm(). Views detect
+     * alfa-injected fieldsets via str_starts_with($name, self::FIELDSET_PREFIX).
      */
-    private static $fieldsCache = null;
+    public const FIELDSET_PREFIX = 'formfield_group_';
 
     /**
-     * @var FieldModel
+     * Wrapper name applied to the <fields> node injected by prepareForm().
+     * On submit, all alfa form-field values land under $data[self::FIELDS_KEY].
+     * Mirrors the table name #__alfa_form_fields for predictability.
      */
-    private static $fieldCache = null;
+    public const FIELDS_KEY = 'alfa_form_fields';
+
+    /** @var array<string, array> */
+    private static array $fieldsCache = [];
 
     /**
-     * Loads the fields plugins and returns an array of field types from the plugins.
-     *
-     * The returned array contains arrays with the following keys:
-     * - label: The label of the field
-     * - type:  The type of the field
-     * - path:  The path of the folder where the field can be found
-     *
-     * @return array
-     *
-     * @since   3.7.0
+     * Path A context → boolean-flag columns on #__alfa_form_fields.
+     * A context matches fields where ANY of the listed columns is 1.
      */
-    public static function getFieldTypes()
+    private const CONTEXT_FLAGS = [
+        'user.register' => ['registration'],
+        'user.edit' => ['registration'],
+        'cart.form' => ['billing', 'shipping'],
+        'cart.general' => ['billing', 'shipping'],
+        'cart.billing' => ['billing'],
+        'cart.shipping' => ['shipping'],
+    ];
+
+    /**
+     * Inject custom alfa-fields for $context into $form as one <fieldset> per
+     * group. Each generated fieldset is tagged with target="$targetFieldset"
+     * so views can pull only the groups meant for a specific UI slot via
+     * getTargetFieldsets() / renderTargetFieldsets().
+     *
+     * Joomla's native $form->renderFieldset('user_details') returns ONLY the
+     * static fields declared in the consumer's order/cart XML — the dynamic
+     * groups produced here are separate fieldsets and are rendered through
+     * FieldsHelper::renderTargetFieldsets() instead.
+     */
+    public static function prepareForm(string $context, Form $form, $data, string $targetFieldset): bool
     {
-        $plugin_types = [];
-
-        $pluginGroup = 'alfa-fields';
-
-        $plugins = PluginHelper::getPlugin($pluginGroup);// Get a list of all plugins in the specified group
-
-        foreach ($plugins as $plugin) {// Process each shipment payment group plugin.
-            $plugin_types[] =
-                [
-                    'id' => $plugin->id,
-                    'name' => $plugin->name,
-                    'params' => $plugin->params,
-                ];
-        }
-        return $plugin_types;
-    }
-
-    //     * PrepareForm
-    /*
-    * @param   string  $context  The context of the content passed to the helper
-    * @param   Form    $form     form
-    * @param   object  $data     data.
-    *
-    * @return  boolean
-    *
-    * @since   3.7.0
-    */
-    public static function prepareForm($context, Form $form, $data)
-    {
-        // Extracting the component and section
-        //        $parts = self::extract($context);
-
-        $parts = explode('.', $context, 2);
-
-        if (! $parts) {
-            return true;
-        }
-
-        $context = $parts[0] . '.' . $parts[1];
-
-        // When no fields available return here
-        //        $fields = self::getFields($parts[0] . '.' . $parts[1]);
-        //
-        //        if (! $fields) {
-        //            return true;
-        //        }
-
-        $component = $parts[0];
-        $section = $parts[1];
-
-        //        echo $parts[0] . "." . $parts[1];
-        //        exit;
-
-        // Getting the fields
-        $fields = self::getFields($parts[0] . '.' . $parts[1], $data);
-
-        //        echo "<pre>";
-        //        print_r($fields);
-        //        echo "</pre>";
-        //        exit;
-
+        $fields = self::getFields($context, $data);
         if (!$fields) {
             return true;
         }
 
-        //for grouping fields into groups
-        //        $fieldTypes = self::getFieldTypes();
-
-        // Creating the dom
-        $xml = new DOMDocument('1.0', 'UTF-8');
-        $fieldsNode = $xml->appendChild(new DOMElement('form'))->appendChild(new DOMElement('fields'));
-        $fieldsNode->setAttribute('name', 'com_alfa');
-
-        // Organizing the fields according to their group
-        $fieldsPerGroup = [0 => []];
-
+        // Bucket fields by group id. Ungrouped (0) first.
+        $buckets = [0 => []];
         foreach ($fields as $field) {
-            //            if (!\array_key_exists($field->type, $fieldTypes)) {
-            //                // Field type is not available
-            //                continue;
-            //            }
-
-            //            if (!\array_key_exists($field->group_id, $fieldsPerGroup)) {
-            //                $fieldsPerGroup[$field->group_id] = [];
-            //            }
-
-            //            if ($path = $fieldTypes[$field->type]['path']) {
-            //                // Add the lookup path for the field
-            //                FormHelper::addFieldPath($path);
-            //            }
-            //
-            //            if ($path = $fieldTypes[$field->type]['rules']) {
-            //                // Add the lookup path for the rule
-            //                FormHelper::addRulePath($path);
-            //            }
-
-            //            $fieldsPerGroup[$field->group_id][] = $field;
-
-            $fieldsPerGroup[0][] = $field;
+            $gid = (int) ($field->group_id ?? 0);
+            $buckets[$gid][] = $field;
         }
 
-        //        $model = Factory::getApplication()->bootComponent('com_fields')
-        //            ->getMVCFactory()->createModel('Groups', 'Administrator', ['ignore_request' => true]);
-        //        $model->setState('filter.context', $context);
-        //        /** @var DispatcherInterface $dispatcher */
-        $dispatcher = Factory::getContainer()->get(DispatcherInterface::class);
+        $groupIds = array_filter(array_keys($buckets));
+        $groups = $groupIds ? self::getGroups($groupIds) : [];
 
-        /**
-         * $model->getItems() would only return existing groups, but we also
-         * have the 'default' group with id 0 which is not in the database,
-         * so we create it virtually here.
-         */
-        $defaultGroup = new stdClass();
-        $defaultGroup->id = 0;
-        $defaultGroup->title = '';
-        $defaultGroup->description = '';
-        //        $iterateGroups             = array_merge([$defaultGroup], $model->getItems());
-        $iterateGroups = [$defaultGroup];
+        $xml = new DOMDocument('1.0', 'UTF-8');
+        $fieldsNode = $xml->appendChild(new DOMElement('form'))->appendChild(new DOMElement('fields'));
+        $fieldsNode->setAttribute('name', self::FIELDS_KEY);
 
-        // TODO: in future group the fields
-        //        currently only default group will be here
-        // Looping through the groups
-        foreach ($iterateGroups as $group) {
-            if (empty($fieldsPerGroup[$group->id])) {
+        foreach ($buckets as $gid => $groupFields) {
+            if (!$groupFields) {
                 continue;
             }
 
-            // Defining the field set
-            /** @var DOMElement $fieldset */
+            // Skip fields whose group exists but is disabled.
+            if ($gid !== 0 && isset($groups[$gid]) && (int) $groups[$gid]->state === 0) {
+                continue;
+            }
+
             $fieldset = $fieldsNode->appendChild(new DOMElement('fieldset'));
-            $fieldset->setAttribute('name', 'fields-' . $group->id);
-            //            $fieldset->setAttribute('name', 'cart');
-            $fieldset->setAttribute('addfieldpath', '/administrator/components/' . $component . '/models/fields');
-            $fieldset->setAttribute('addrulepath', '/administrator/components/' . $component . '/models/rules');
+            $fieldset->setAttribute('name', self::FIELDSET_PREFIX . $gid);
+            $fieldset->setAttribute('target', $targetFieldset);
 
-            $label = $group->title;
-            $description = $group->description;
-
-            if (!$label) {
-                $key = strtoupper($component . '_FIELDS_' . $section . '_LABEL');
-
-                if (!Factory::getApplication()->getLanguage()->hasKey($key)) {
-                    $key = 'JGLOBAL_FIELDS';
-                }
-
-                $label = $key;
+            if ($gid === 0 || !isset($groups[$gid])) {
+                // No legend for the ungrouped fieldset — kept unlabelled on purpose.
+                $fieldset->setAttribute('label', '');
+            } else {
+                $group = $groups[$gid];
+                $fieldset->setAttribute('label', Text::_($group->title));
+                $fieldset->setAttribute('description', Text::_($group->description ?? ''));
             }
 
-            if (!$description) {
-                $key = strtoupper($component . '_FIELDS_' . $section . '_DESC');
-
-                if (Factory::getApplication()->getLanguage()->hasKey($key)) {
-                    $description = $key;
-                }
-            }
-
-            $fieldset->setAttribute('label', $label);
-            $fieldset->setAttribute('description', strip_tags($description));
-
-            // Looping through the fields for that context
-            foreach ($fieldsPerGroup[$group->id] as $field) {
-                // $event = AbstractEvent::create('onAlfaFieldsPrepareDom', $myModel, $arguments);
-
+            foreach ($groupFields as $field) {
                 try {
-                    /*
-
-                        event without a custom class
-
-                        $event = AbstractEvent::create(
-                            'onAlfaFieldsPrepareDom',
-                            $field, // subject
-                            [
-                                'fieldset' => $fieldset,
-                                'form'     => $form,
-                            ]
-                        );
-
-                    */
-
-                    $prepareDomEvent = new PrepareDomEvent(
-                        'onAlfaFieldsPrepareDom',
-                        [
-                            'subject' => $field,
-                            'fieldset' => $fieldset,
-                            'form' => $form,
-                        ],
-                    );
-
-                    $dispatcher->dispatch($prepareDomEvent->getName(), $prepareDomEvent);
-
-                    /*
-                     * If the field belongs to an assigned_cat_id but the assigned_cat_ids in the data
-                     * is not known, set the required flag to false on any circumstance.
-                     */
-                    //                    if (!$assignedCatids && !empty($field->assigned_cat_ids) && $form->getField($field->name)) {
-                    //                        $form->setFieldAttribute($field->name, 'required', 'false');
-                    //                    }
-                } catch (Exception $e) {
+                    $plugin = self::boot($field->type ?? '');
+                    $plugin?->prepareDom(new PrepareDomEvent('onAlfaFieldsPrepareDom', [
+                        'subject' => $field,
+                        'fieldset' => $fieldset,
+                        'form' => $form,
+                    ]));
+                } catch (Throwable $e) {
                     Factory::getApplication()->enqueueMessage($e->getMessage(), 'error');
                 }
             }
 
-            // When the field set is empty, then remove it
             if (!$fieldset->hasChildNodes()) {
                 $fieldsNode->removeChild($fieldset);
             }
         }
 
-        // Loading the XML fields string into the form
         $form->load($xml->saveXML());
-
-        // Looping through the fields again to set the value
-        //        if (!isset($data->id) || !$data->id) {
-        //            return true;
-        //        }
-        //
-        //        foreach ($fields as $field) {
-        //            // Get the value already loaded by static::getFields()
-        //            $value = $field->rawvalue;
-        //
-        //            if ($value === null) {
-        //                continue;
-        //            }
-        //
-        //            if (!\is_array($value) && $value !== '') {
-        //                // Function getField doesn't cache the fields, so we try to do it only when necessary
-        //                $formField = $form->getField($field->name, 'com_fields');
-        //
-        //                if ($formField && $formField->forceMultiple) {
-        //                    $value = (array) $value;
-        //                }
-        //            }
-        //
-        //            // Setting the value on the field
-        //            $form->setValue($field->name, 'com_fields', $value);
-        //        }
 
         return true;
     }
 
-    public static function getFields(
-        $context,
-        $item = null,
-        $prepareValue = false,
-        ?array $valuesToOverride = null,
-        bool $includeSubformFields = false,
-    ) {
-        if (self::$fieldsCache === null) {
-            // Load the model
-            self::$fieldsCache = Factory::getApplication()->bootComponent('com_alfa')
-                ->getMVCFactory()->createModel('Formfields', 'Administrator', ['ignore_request' => true]);
+    /**
+     * Return the fieldset stdClass objects produced by prepareForm() that are
+     * routed to a given UI slot. Pass $target = null to get every alfa-injected
+     * fieldset regardless of routing.
+     *
+     * @return object[]
+     */
+    public static function getTargetFieldsets(Form $form, ?string $target = null): array
+    {
+        $matched = [];
 
-            //            self::$fieldsCache->getState('list.ordering');
-            self::$fieldsCache->setState('filter.state', 1);
-            //            self::$fieldsCache->setState('filter.search', 'Ma');
-            self::$fieldsCache->setState('list.limit', 0);
+        foreach ($form->getFieldsets() as $fieldset) {
+            if (!str_starts_with($fieldset->name, self::FIELDSET_PREFIX)) {
+                continue;
+            }
+
+            if ($target !== null && ($fieldset->target ?? null) !== $target) {
+                continue;
+            }
+
+            $matched[] = $fieldset;
         }
 
-        //        if ($includeSubformFields) {
-        //            self::$fieldsCache->setState('filter.only_use_in_subform', '');
-        //        } else {
-        //            self::$fieldsCache->setState('filter.only_use_in_subform', 0);
-        //        }
+        return $matched;
+    }
 
-        if (\is_array($item)) {
-            $item = (object) $item;
+    /**
+     * Render the full UI slot for $target: the static fields declared in the
+     * consumer's XML <fieldset name="$target"> first (loose at the top), then
+     * each alfa-injected group routed to $target as its own sub-fieldset with
+     * the group title/description as legend.
+     *
+     * Pass $target = null to render every alfa-injected group regardless of
+     * routing (useful for forms like the frontend cart where there are no
+     * static fields to render alongside).
+     */
+    public static function renderFieldset(Form $form, ?string $target = null): string
+    {
+        // Static fields: declared in the consumer's XML under <fieldset name="$target">
+        // (e.g. forms/order.xml has <fieldset name="user_details"> with user_email,
+        // user_name, id_user_group). Rendered loose at the top of the slot, before any
+        // dynamic groups. With $target = null there is no static fieldset to pull from.
+        $static = $target !== null ? $form->getFieldset($target) : [];
+
+        // Grouped fields: alfa-injected fieldsets created by prepareForm(), one per
+        // #__alfa_form_field_groups row, tagged with target="$target" so we pull only
+        // the groups routed to this UI slot. Each becomes its own sub-fieldset with the
+        // group title/description as legend. $target = null pulls every alfa group.
+        $groups = [];
+
+        foreach (self::getTargetFieldsets($form, $target) as $fs) {
+            $fields = $form->getFieldset($fs->name);
+            if (!count($fields)) {
+                continue;
+            }
+
+            $groups[] = [
+                'name' => $fs->name,
+                'label' => $fs->label ?? '',
+                'description' => $fs->description ?? '',
+                'fields' => $fields,
+            ];
         }
 
-        //        if (Multilanguage::isEnabled() && isset($item->language) && $item->language != '*') {
-        //            self::$fieldsCache->setState('filter.language', ['*', $item->language]);
-        //        }
-        //
-        //        self::$fieldsCache->setState('filter.context', $context);
-        //        self::$fieldsCache->setState('filter.assigned_cat_ids', []);
+        if (!$static && !$groups) {
+            return '';
+        }
 
-        /*
-         * If item has assigned_cat_ids parameter display only fields which
-         * belong to the category
-         */
-        //        if ($item && (isset($item->catid) || isset($item->fieldscatid))) {
-        //            $assignedCatIds = $item->catid ?? $item->fieldscatid;
-        //
-        //            if (!\is_array($assignedCatIds)) {
-        //                $assignedCatIds = explode(',', $assignedCatIds);
-        //            }
-        //
-        //            // Fields without any category assigned should show as well
-        //            $assignedCatIds[] = 0;
-        //
-        //            self::$fieldsCache->setState('filter.assigned_cat_ids', $assignedCatIds);
-        //        }
+        $layout = new FileLayout(
+            'fieldshelper.grouped_fields',
+            JPATH_ADMINISTRATOR . '/components/com_alfa/layouts',
+        );
 
-        $fields = self::$fieldsCache->getItems();
+        return (string) $layout->render([
+            'target' => $target,
+            'static' => $static,
+            'groups' => $groups,
+        ]);
+    }
 
-        if ($fields === false) {
+    /**
+     * Load fields visible to $userId in $context. Ordered by group.ordering, field.ordering.
+     */
+    public static function getFields(string $context, $item = null, ?int $userId = null): array
+    {
+        $itemId = is_object($item) && isset($item->id) ? (int) $item->id : 0;
+        $userId ??= (int) (Factory::getApplication()->getIdentity()->id ?? 0);
+
+        $cacheKey = $context . '|' . $itemId . '|' . $userId;
+        if (isset(self::$fieldsCache[$cacheKey])) {
+            return self::$fieldsCache[$cacheKey];
+        }
+
+        $flagColumns = self::CONTEXT_FLAGS[$context] ?? null;
+        if ($flagColumns === null) {
+            // Unknown context — no fields.
+            return self::$fieldsCache[$cacheKey] = [];
+        }
+
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $query = $db->getQuery(true)
+            ->select('a.*, g.ordering AS group_ordering')
+            ->from($db->quoteName('#__alfa_form_fields', 'a'))
+            ->leftJoin($db->quoteName('#__alfa_form_field_groups', 'g') . ' ON g.id = a.group_id')
+            ->where('a.state = 1')
+            ->where('(a.group_id = 0 OR g.state IS NULL OR g.state = 1)');
+
+        // MULTILINGUAL: resolve the field's translatable text in the active
+        // language — field_label / field_description are shown to the customer.
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'a',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_form_fields',
+            langPrimaryColumn: 'id_formfield',
+            fields:            ['name', 'field_label', 'field_description'],
+        );
+
+        // Context match: ANY of the mapped flag columns = 1.
+        $flagExpr = array_map(
+            fn ($col) => $db->quoteName('a.' . $col) . ' = 1',
+            $flagColumns,
+        );
+        $query->where('(' . implode(' OR ', $flagExpr) . ')');
+
+        // Per-user visibility — two dimensions AND-combined:
+        //   user dimension:       pass if current user is listed OR no real users are listed
+        //   usergroup dimension:  pass if any of user's groups is listed OR no real groups are listed
+        //
+        // Rows with user_id = 0 / usergroup_id = 0 are sentinels written by
+        // AlfaHelper::setAssocsToDb when the admin left the list empty. They mean
+        // "no restriction on this dimension", not "allow guest". Only rows with id > 0
+        // count as actual restrictions.
+        $authGroups = array_filter(array_map(
+            'intval',
+            (array) (Factory::getApplication()->getIdentity()?->getAuthorisedGroups() ?? []),
+        ));
+        $authGroupsIn = $authGroups ? implode(',', $authGroups) : '0';
+
+        $usersTable = $db->quoteName('#__alfa_form_fields_users');
+        $groupsTable = $db->quoteName('#__alfa_form_fields_usergroups');
+
+        $userDimension = $userId > 0
+            ? '(EXISTS (SELECT 1 FROM ' . $usersTable . ' fu WHERE fu.field_id = a.id AND fu.user_id = ' . (int) $userId . ')'
+              . ' OR NOT EXISTS (SELECT 1 FROM ' . $usersTable . ' fu WHERE fu.field_id = a.id AND fu.user_id > 0))'
+            : 'NOT EXISTS (SELECT 1 FROM ' . $usersTable . ' fu WHERE fu.field_id = a.id AND fu.user_id > 0)';
+
+        $groupDimension =
+            '(EXISTS (SELECT 1 FROM ' . $groupsTable . ' fg WHERE fg.field_id = a.id AND fg.usergroup_id IN (' . $authGroupsIn . '))'
+            . ' OR NOT EXISTS (SELECT 1 FROM ' . $groupsTable . ' fg WHERE fg.field_id = a.id AND fg.usergroup_id > 0))';
+
+        $query->where('(' . $userDimension . ' AND ' . $groupDimension . ')');
+
+        $query->order('COALESCE(g.ordering, 0) ASC, a.ordering ASC');
+
+        $db->setQuery($query);
+        $fields = $db->loadObjectList() ?: [];
+
+        return self::$fieldsCache[$cacheKey] = $fields;
+    }
+
+    /**
+     * Render a field's stored value using its chosen layout.
+     *
+     * Signature order mirrors Joomla core's FieldsHelper::render($context, ...).
+     * Tmpls start with `extract($displayData);` and see $context, $field,
+     * $fieldParams, $item, plus anything else the caller passed in.
+     *
+     * Layout resolution (from $field->layout):
+     *   ""              → active-template override then plugin's default.php
+     *   "_:name"        → plugin's tmpl/name.php only
+     *   "tpl:name"      → templates/tpl/html/plg_alfa-fields_<type>/name.php
+     *
+     * Falls back to the plugin's default.php if the chosen file is missing.
+     */
+    public static function render(string $context, $field, array $displayData = []): string
+    {
+        $type = (string) ($field->type ?? '');
+        if ($type === '') {
+            return '';
+        }
+
+        $path = self::resolveLayoutPath($field, $type);
+        if ($path === null) {
+            return '';
+        }
+
+        // Resolve inline {lang: value} maps (value/JSON-mode MultilingualText —
+        // e.g. choice option labels) to the current language for display.
+        $resolvedParams = MultilingualHelper::collapseToCurrent(
+            is_string($field->params ?? null)
+                ? (json_decode((string) $field->params, true) ?: [])
+                : (array) ($field->params ?? []),
+        );
+
+        $fieldParams = new \Joomla\Registry\Registry();
+        $fieldParams->loadArray(is_array($resolvedParams) ? $resolvedParams : []);
+
+        // Guarantee keys tmpls can rely on after extract($displayData).
+        $displayData['context'] = $context;
+        $displayData['field'] = $field;
+        $displayData['fieldParams'] = $fieldParams;
+        $displayData['item'] ??= null;
+
+        $layout = new \Joomla\CMS\Layout\FileLayout(basename($path, '.php'), dirname($path));
+
+        return (string) $layout->render($displayData);
+    }
+
+    /**
+     * Resolve the filesystem path for a field's chosen layout.
+     * Returns null if neither the chosen file nor the plugin default exists.
+     */
+    private static function resolveLayoutPath($field, string $type): ?string
+    {
+        $layoutValue = (string) ($field->layout ?? '');
+        $template = null;
+        $name = 'default';
+
+        if ($layoutValue !== '') {
+            if (str_contains($layoutValue, ':')) {
+                [$prefix, $rawName] = explode(':', $layoutValue, 2);
+                $template = ($prefix !== '' && $prefix !== '_') ? $prefix : null;
+                if ($rawName !== '') {
+                    $name = $rawName;
+                }
+            } else {
+                // Back-compat: bare layout name without prefix.
+                $name = $layoutValue;
+            }
+        }
+
+        $candidates = [];
+
+        if ($template !== null) {
+            // Explicit template override chosen by admin.
+            $candidates[] = JPATH_SITE . '/templates/' . $template
+                          . '/html/plg_alfa-fields_' . $type . '/' . $name . '.php';
+        } else {
+            // No explicit template — let PluginHelper resolve active-template
+            // override + plugin default.
+            $candidates[] = PluginHelper::getLayoutPath('alfa-fields', $type, $name);
+        }
+
+        // Last-resort fallback: plugin's default.php for this type.
+        $candidates[] = JPATH_PLUGINS . '/alfa-fields/' . $type . '/tmpl/default.php';
+
+        foreach ($candidates as $path) {
+            if ($path && is_file($path)) {
+                return $path;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Clear the per-request field cache.
+     */
+    public static function clearFieldsCache(): void
+    {
+        self::$fieldsCache = [];
+    }
+
+    /**
+     * Whether the field should be displayed on a form. Kept as a hook for future show_on /
+     * display_readonly logic; returns true by default.
+     */
+    public static function displayFieldOnForm($field): bool
+    {
+        return true;
+    }
+
+    /**
+     * Whether the current user may edit the field value. Hook for future ACL; returns true.
+     */
+    public static function canEditFieldValue($field): bool
+    {
+        return true;
+    }
+
+    /**
+     * Load groups by id, keyed by id. Used by prepareForm to render fieldsets.
+     */
+    private static function getGroups(array $ids): array
+    {
+        if (!$ids) {
             return [];
         }
 
-        //        if ($item && isset($item->id)) {
-        //            if (self::$fieldCache === null) {
-        //                self::$fieldCache = Factory::getApplication()->bootComponent('com_alfa')
-        //                    ->getMVCFactory()->createModel('Formfield', 'Administrator', ['ignore_request' => true]);
-        //            }
-        //
-        //            /** @var DispatcherInterface $dispatcher */
-        $dispatcher = Factory::getContainer()->get(DispatcherInterface::class);
-        PluginHelper::importPlugin('alfa-fields', null, true, $dispatcher);
-        //
-        //            $fieldIds = array_map(
-        //                function ($f) {
-        //                    return $f->id;
-        //                },
-        //                $fields
-        //            );
-        //
-        //            $fieldValues = self::$fieldCache->getFieldValues($fieldIds, $item->id);
-        //
-        //            $new = [];
-        //
-        //            foreach ($fields as $key => $original) {
-        //                /*
-        //                 * Doing a clone, otherwise fields for different items will
-        //                 * always reference to the same object
-        //                 */
-        //                $field = clone $original;
-        //
-        //                if ($valuesToOverride && \array_key_exists($field->name, $valuesToOverride)) {
-        //                    $field->value = $valuesToOverride[$field->name];
-        //                } elseif ($valuesToOverride && \array_key_exists($field->id, $valuesToOverride)) {
-        //                    $field->value = $valuesToOverride[$field->id];
-        //                } elseif (\array_key_exists($field->id, $fieldValues)) {
-        //                    $field->value = $fieldValues[$field->id];
-        //                }
-        //
-        //                if (!isset($field->value) || $field->value === '') {
-        //                    $field->value = $field->default_value;
-        //                }
-        //
-        //                $field->rawvalue = $field->value;
-        //
-        //                // If boolean prepare, if int, it is the event type: 1 - After Title, 2 - Before Display Content, 3 - After Display Content, 0 - Do not prepare
-        //                if ($prepareValue && (\is_bool($prepareValue) || $prepareValue === (int) $field->params->get('display', '2'))) {
-        //                    /*
-        //                     * On before field prepare
-        //                     * Event allow plugins to modify the output of the field before it is prepared
-        //                     */
-        //                    $dispatcher->dispatch('onCustomFieldsBeforePrepareField', new BeforePrepareFieldEvent('onCustomFieldsBeforePrepareField', [
-        //                        'context' => $context,
-        //                        'item'    => $item,
-        //                        'subject' => $field,
-        //                    ]));
-        //
-        //                    // Gathering the value for the field
-        //                    $value = $dispatcher->dispatch('onCustomFieldsPrepareField', new PrepareFieldEvent('onCustomFieldsPrepareField', [
-        //                        'context' => $context,
-        //                        'item'    => $item,
-        //                        'subject' => $field,
-        //                    ]))->getArgument('result', []);
-        //
-        //                    if (\is_array($value)) {
-        //                        $value = array_filter($value, function ($v) {
-        //                            return $v !== '' && $v !== null;
-        //                        });
-        //                        $value = $value ? implode(' ', $value) : '';
-        //                    }
-        //
-        //                    /*
-        //                     * On after field render
-        //                     * Event allows plugins to modify the output of the prepared field
-        //                     */
-        //                    $eventAfter = new AfterPrepareFieldEvent('onCustomFieldsAfterPrepareField', [
-        //                        'context' => $context,
-        //                        'item'    => $item,
-        //                        'subject' => $field,
-        //                        'value'   => &$value, // @todo: Remove reference in Joomla 6, see AfterPrepareFieldEvent::__constructor()
-        //                    ]);
-        //                    $dispatcher->dispatch('onCustomFieldsAfterPrepareField', $eventAfter);
-        //                    $value = $eventAfter->getValue();
-        //
-        //                    // Assign the value
-        //                    $field->value = $value;
-        //                }
-        //
-        //                $new[$key] = $field;
-        //            }
-        //
-        //            $fields = $new;
-        //        }
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $query = $db->getQuery(true)
+            ->select('id, title, description, state, ordering')
+            ->from($db->quoteName('#__alfa_form_field_groups'))
+            ->whereIn($db->quoteName('id'), array_map('intval', $ids))
+            ->order('ordering ASC');
 
-        //        echo "<pre>";
-        //        print_r($fields);
-        //        echo "</pre>";
-        //        exit;
+        $db->setQuery($query);
 
-        return $fields;
+        return $db->loadObjectList('id') ?: [];
+    }
+
+    /**
+     * Boot the alfa-fields plugin for this field type. Returns null if the plugin is
+     * missing, disabled, or not a FieldsPlugin instance.
+     */
+    private static function boot(string $type): ?FieldsPlugin
+    {
+        if ($type === '' || !PluginHelper::getPlugin('alfa-fields', $type)) {
+            return null;
+        }
+
+        $app = Factory::getApplication();
+        $plugin = $app->bootPlugin($type, 'alfa-fields');
+
+        if ($plugin instanceof FieldsPlugin) {
+            $app->getDispatcher()->addSubscriber($plugin);
+
+            return $plugin;
+        }
+
+        return null;
     }
 }
-
-//
-//    /**
-//     * Return a boolean if the actual logged in user can edit the given field value.
-//     *
-//     * @param   \stdClass  $field  The field
-//     *
-//     * @return  boolean
-//     *
-//     * @since   3.7.0
-//     */
-//    public static function canEditFieldValue($field)
-//    {
-//        $parts = self::extract($field->context);
-//
-//        return Factory::getUser()->authorise('core.edit.value', $parts[0] . '.field.' . (int) $field->id);
-//    }
-//
-//    /**
-//     * Return a boolean based on field (and field group) display / show_on settings
-//     *
-//     * @param   \stdClass  $field  The field
-//     *
-//     * @return  boolean
-//     *
-//     * @since   3.8.7
-//     */
-//    public static function displayFieldOnForm($field)
-//    {
-//        $app = Factory::getApplication();
-//
-//        // Detect if the field should be shown at all
-//        if ($field->params->get('show_on') == 1 && $app->isClient('administrator')) {
-//            return false;
-//        }
-//
-//        if ($field->params->get('show_on') == 2 && $app->isClient('site')) {
-//            return false;
-//        }
-//
-//        if (!self::canEditFieldValue($field)) {
-//            $fieldDisplayReadOnly = $field->params->get('display_readonly', '2');
-//
-//            if ($fieldDisplayReadOnly == '2') {
-//                // Inherit from field group display read-only setting
-//                $groupModel = $app->bootComponent('com_fields')
-//                    ->getMVCFactory()->createModel('Group', 'Administrator', ['ignore_request' => true]);
-//                $groupDisplayReadOnly = $groupModel->getItem($field->group_id)->params->get('display_readonly', '1');
-//                $fieldDisplayReadOnly = $groupDisplayReadOnly;
-//            }
-//
-//            if ($fieldDisplayReadOnly == '0') {
-//                // Do not display field on form when field is read-only
-//                return false;
-//            }
-//        }
-//
-//        // Display field on form
-//        return true;
-//    }
-
-///**
-// * @package    Alfa Commerce
-// * @author     Agamemnon Fakas <info@easylogic.gr>
-// *
-// * @copyright   (C) 2018 Open Source Matters, Inc. <https://www.joomla.org>
-// * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
-// * @license    GNU General Public License version 3 or later; see LICENSE
-// */
-//
-//namespace Alfa\Component\Alfa\Administrator\Helper;
-//
-//use Joomla\CMS\Event\CustomFields\AfterPrepareFieldEvent;
-//use Joomla\CMS\Event\CustomFields\BeforePrepareFieldEvent;
-//use Joomla\CMS\Event\CustomFields\GetTypesEvent;
-//use Joomla\CMS\Event\CustomFields\PrepareDomEvent;
-//use Joomla\CMS\Event\CustomFields\PrepareFieldEvent;
-//use Joomla\CMS\Factory;
-//use Joomla\CMS\Fields\FieldsServiceInterface;
-//use Joomla\CMS\Form\Form;
-//use Joomla\CMS\Form\FormHelper;
-//use Joomla\CMS\Language\Multilanguage;
-//use Joomla\CMS\Layout\LayoutHelper;
-//use Joomla\CMS\Plugin\PluginHelper;
-//use Joomla\Component\Fields\Administrator\Model\FieldModel;
-//use Joomla\Component\Fields\Administrator\Model\FieldsModel;
-//use Joomla\Database\ParameterType;
-//use Joomla\Event\DispatcherInterface;
-//
-//// phpcs:disable PSR1.Files.SideEffects
-//\defined('_JEXEC') or die;
-//// phpcs:enable PSR1.Files.SideEffects
-//
-///**
-// * FieldsHelper
-// *
-// * @since  3.7.0
-// */
-//class FieldsHelper
-//{
-//    /**
-//     * @var    FieldsModel
-//     */
-//    private static $fieldsCache = null;
-//
-//    /**
-//     * @var    FieldModel
-//     */
-//    private static $fieldCache = null;
-//
-//    /**
-//     * Extracts the component and section from the context string which has to
-//     * be in the format component.context.
-//     *
-//     * @param   string  $contextString  contextString
-//     * @param   object  $item           optional item object
-//     *
-//     * @return  array|null
-//     *
-//     * @since   3.7.0
-//     */
-//    public static function extract($contextString, $item = null)
-//    {
-//        if ($contextString === null) {
-//            return null;
-//        }
-//
-//        $parts = explode('.', $contextString, 2);
-//
-//        if (\count($parts) < 2) {
-//            return null;
-//        }
-//
-//        $newSection = '';
-//
-//        $component = Factory::getApplication()->bootComponent($parts[0]);
-//
-//        if ($component instanceof FieldsServiceInterface) {
-//            $newSection = $component->validateSection($parts[1], $item);
-//        }
-//
-//        if ($newSection) {
-//            $parts[1] = $newSection;
-//        }
-//
-//        return $parts;
-//    }
-//
-//    /**
-//     * Returns the fields for the given context.
-//     * If the item is an object the returned fields do have an additional field
-//     * "value" which represents the value for the given item. If the item has an
-//     * assigned_cat_ids field, then additionally fields which belong to that
-//     * category will be returned.
-//     * Should the value being prepared to be shown in an HTML context then
-//     * prepareValue must be set to true. No further escaping needs to be done.
-//     * The values of the fields can be overridden by an associative array where the keys
-//     * have to be a name and its corresponding value.
-//     *
-//     * @param   string             $context              The context of the content passed to the helper
-//     * @param   object|array|null  $item                 The item being edited in the form
-//     * @param   int|bool           $prepareValue         (if int is display event): 1 - AfterTitle, 2 - BeforeDisplay, 3 - AfterDisplay, 0 - OFF
-//     * @param   ?array             $valuesToOverride     The values to override
-//     * @param   bool               $includeSubformFields Should I include fields marked as Only Use In Subform?
-//     *
-//     * @return  array
-//     *
-//     * @throws \Exception
-//     * @since   3.7.0
-//     */
-//    public static function getFields(
-//        $context,
-//        $item = null,
-//        $prepareValue = false,
-//        ?array $valuesToOverride = null,
-//        bool $includeSubformFields = false
-//    ) {
-//        if (self::$fieldsCache === null) {
-//            // Load the model
-//            self::$fieldsCache = Factory::getApplication()->bootComponent('com_fields')
-//                ->getMVCFactory()->createModel('Fields', 'Administrator', ['ignore_request' => true]);
-//
-//            self::$fieldsCache->setState('filter.state', 1);
-//            self::$fieldsCache->setState('list.limit', 0);
-//        }
-//
-//        if ($includeSubformFields) {
-//            self::$fieldsCache->setState('filter.only_use_in_subform', '');
-//        } else {
-//            self::$fieldsCache->setState('filter.only_use_in_subform', 0);
-//        }
-//
-//        if (\is_array($item)) {
-//            $item = (object) $item;
-//        }
-//
-//        if (Multilanguage::isEnabled() && isset($item->language) && $item->language != '*') {
-//            self::$fieldsCache->setState('filter.language', ['*', $item->language]);
-//        }
-//
-//        self::$fieldsCache->setState('filter.context', $context);
-//        self::$fieldsCache->setState('filter.assigned_cat_ids', []);
-//
-//        /*
-//         * If item has assigned_cat_ids parameter display only fields which
-//         * belong to the category
-//         */
-//        if ($item && (isset($item->catid) || isset($item->fieldscatid))) {
-//            $assignedCatIds = $item->catid ?? $item->fieldscatid;
-//
-//            if (!\is_array($assignedCatIds)) {
-//                $assignedCatIds = explode(',', $assignedCatIds);
-//            }
-//
-//            // Fields without any category assigned should show as well
-//            $assignedCatIds[] = 0;
-//
-//            self::$fieldsCache->setState('filter.assigned_cat_ids', $assignedCatIds);
-//        }
-//
-//        $fields = self::$fieldsCache->getItems();
-//
-//        if ($fields === false) {
-//            return [];
-//        }
-//
-//        if ($item && isset($item->id)) {
-//            if (self::$fieldCache === null) {
-//                self::$fieldCache = Factory::getApplication()->bootComponent('com_fields')
-//                    ->getMVCFactory()->createModel('Field', 'Administrator', ['ignore_request' => true]);
-//            }
-//
-//            /** @var DispatcherInterface $dispatcher */
-//            $dispatcher = Factory::getContainer()->get(DispatcherInterface::class);
-//            PluginHelper::importPlugin('fields', null, true, $dispatcher);
-//
-//            $fieldIds = array_map(
-//                function ($f) {
-//                    return $f->id;
-//                },
-//                $fields
-//            );
-//
-//            $fieldValues = self::$fieldCache->getFieldValues($fieldIds, $item->id);
-//
-//            $new = [];
-//
-//            foreach ($fields as $key => $original) {
-//                /*
-//                 * Doing a clone, otherwise fields for different items will
-//                 * always reference to the same object
-//                 */
-//                $field = clone $original;
-//
-//                if ($valuesToOverride && \array_key_exists($field->name, $valuesToOverride)) {
-//                    $field->value = $valuesToOverride[$field->name];
-//                } elseif ($valuesToOverride && \array_key_exists($field->id, $valuesToOverride)) {
-//                    $field->value = $valuesToOverride[$field->id];
-//                } elseif (\array_key_exists($field->id, $fieldValues)) {
-//                    $field->value = $fieldValues[$field->id];
-//                }
-//
-//                if (!isset($field->value) || $field->value === '') {
-//                    $field->value = $field->default_value;
-//                }
-//
-//                $field->rawvalue = $field->value;
-//
-//                // If boolean prepare, if int, it is the event type: 1 - After Title, 2 - Before Display Content, 3 - After Display Content, 0 - Do not prepare
-//                if ($prepareValue && (\is_bool($prepareValue) || $prepareValue === (int) $field->params->get('display', '2'))) {
-//                    /*
-//                     * On before field prepare
-//                     * Event allow plugins to modify the output of the field before it is prepared
-//                     */
-//                    $dispatcher->dispatch('onCustomFieldsBeforePrepareField', new BeforePrepareFieldEvent('onCustomFieldsBeforePrepareField', [
-//                        'context' => $context,
-//                        'item'    => $item,
-//                        'subject' => $field,
-//                    ]));
-//
-//                    // Gathering the value for the field
-//                    $value = $dispatcher->dispatch('onCustomFieldsPrepareField', new PrepareFieldEvent('onCustomFieldsPrepareField', [
-//                        'context' => $context,
-//                        'item'    => $item,
-//                        'subject' => $field,
-//                    ]))->getArgument('result', []);
-//
-//                    if (\is_array($value)) {
-//                        $value = array_filter($value, function ($v) {
-//                            return $v !== '' && $v !== null;
-//                        });
-//                        $value = $value ? implode(' ', $value) : '';
-//                    }
-//
-//                    /*
-//                     * On after field render
-//                     * Event allows plugins to modify the output of the prepared field
-//                     */
-//                    $eventAfter = new AfterPrepareFieldEvent('onCustomFieldsAfterPrepareField', [
-//                        'context' => $context,
-//                        'item'    => $item,
-//                        'subject' => $field,
-//                        'value'   => &$value, // @todo: Remove reference in Joomla 6, see AfterPrepareFieldEvent::__constructor()
-//                    ]);
-//                    $dispatcher->dispatch('onCustomFieldsAfterPrepareField', $eventAfter);
-//                    $value = $eventAfter->getValue();
-//
-//                    // Assign the value
-//                    $field->value = $value;
-//                }
-//
-//                $new[$key] = $field;
-//            }
-//
-//            $fields = $new;
-//        }
-//
-//        return $fields;
-//    }
-//
-//    /**
-//     * Renders the layout file and data on the context and does a fall back to
-//     * Fields afterwards.
-//     *
-//     * @param   string  $context      The context of the content passed to the helper
-//     * @param   string  $layoutFile   layoutFile
-//     * @param   array   $displayData  displayData
-//     *
-//     * @return  NULL|string
-//     *
-//     * @since  3.7.0
-//     */
-//    public static function render($context, $layoutFile, $displayData)
-//    {
-//        $value = '';
-//
-//        /*
-//         * Because the layout refreshes the paths before the render function is
-//         * called, so there is no way to load the layout overrides in the order
-//         * template -> context -> fields.
-//         * If there is no override in the context then we need to call the
-//         * layout from Fields.
-//         */
-//        if ($parts = self::extract($context)) {
-//            // Trying to render the layout on the component from the context
-//            $value = LayoutHelper::render($layoutFile, $displayData, null, ['component' => $parts[0], 'client' => 0]);
-//        }
-//
-//        if ($value == '') {
-//            // Trying to render the layout on Fields itself
-//            $value = LayoutHelper::render($layoutFile, $displayData, null, ['component' => 'com_fields','client' => 0]);
-//        }
-//
-//        return $value;
-//    }
-//
-//    /**
-//     * PrepareForm
-//     *
-//     * @param   string  $context  The context of the content passed to the helper
-//     * @param   Form    $form     form
-//     * @param   object  $data     data.
-//     *
-//     * @return  boolean
-//     *
-//     * @since   3.7.0
-//     */
-//    public static function prepareForm($context, Form $form, $data)
-//    {
-//        // Extracting the component and section
-//        $parts = self::extract($context);
-//
-//        if (! $parts) {
-//            return true;
-//        }
-//
-//        $context = $parts[0] . '.' . $parts[1];
-//
-//        // When no fields available return here
-//        $fields = self::getFields($parts[0] . '.' . $parts[1]);
-//
-//        if (! $fields) {
-//            return true;
-//        }
-//
-//        $component = $parts[0];
-//        $section   = $parts[1];
-//
-//        $assignedCatids = $data->catid ?? $data->fieldscatid ?? $form->getValue('catid');
-//
-//        // Account for case that a submitted form has a multi-value category id field (e.g. a filtering form), just use the first category
-//        $assignedCatids = \is_array($assignedCatids)
-//            ? (int) reset($assignedCatids)
-//            : (int) $assignedCatids;
-//
-//        if (!$assignedCatids && $formField = $form->getField('catid')) {
-//            $assignedCatids = $formField->getAttribute('default', null);
-//
-//            if (!$assignedCatids) {
-//                // Choose the first category available
-//                $catOptions = $formField->options;
-//
-//                if ($catOptions && !empty($catOptions[0]->value)) {
-//                    $assignedCatids = (int) $catOptions[0]->value;
-//                }
-//            }
-//
-//            $data->fieldscatid = $assignedCatids;
-//        }
-//
-//        /*
-//         * If there is a catid field we need to reload the page when the catid
-//         * is changed
-//         */
-//        if ($form->getField('catid') && $parts[0] != 'com_fields') {
-//            /*
-//             * Setting some parameters for the category field
-//             */
-//            $form->setFieldAttribute('catid', 'refresh-enabled', true);
-//            $form->setFieldAttribute('catid', 'refresh-cat-id', $assignedCatids);
-//            $form->setFieldAttribute('catid', 'refresh-section', $section);
-//        }
-//
-//        // Getting the fields
-//        $fields = self::getFields($parts[0] . '.' . $parts[1], $data);
-//
-//        if (!$fields) {
-//            return true;
-//        }
-//
-//        $fieldTypes = self::getFieldTypes();
-//
-//        // Creating the dom
-//        $xml        = new \DOMDocument('1.0', 'UTF-8');
-//        $fieldsNode = $xml->appendChild(new \DOMElement('form'))->appendChild(new \DOMElement('fields'));
-//        $fieldsNode->setAttribute('name', 'com_fields');
-//
-//        // Organizing the fields according to their group
-//        $fieldsPerGroup = [0 => []];
-//
-//        foreach ($fields as $field) {
-//            if (!\array_key_exists($field->type, $fieldTypes)) {
-//                // Field type is not available
-//                continue;
-//            }
-//
-//            if (!\array_key_exists($field->group_id, $fieldsPerGroup)) {
-//                $fieldsPerGroup[$field->group_id] = [];
-//            }
-//
-//            if ($path = $fieldTypes[$field->type]['path']) {
-//                // Add the lookup path for the field
-//                FormHelper::addFieldPath($path);
-//            }
-//
-//            if ($path = $fieldTypes[$field->type]['rules']) {
-//                // Add the lookup path for the rule
-//                FormHelper::addRulePath($path);
-//            }
-//
-//            $fieldsPerGroup[$field->group_id][] = $field;
-//        }
-//
-//        $model = Factory::getApplication()->bootComponent('com_fields')
-//            ->getMVCFactory()->createModel('Groups', 'Administrator', ['ignore_request' => true]);
-//        $model->setState('filter.context', $context);
-//        /** @var DispatcherInterface $dispatcher */
-//        $dispatcher = Factory::getContainer()->get(DispatcherInterface::class);
-//
-//        /**
-//         * $model->getItems() would only return existing groups, but we also
-//         * have the 'default' group with id 0 which is not in the database,
-//         * so we create it virtually here.
-//         */
-//        $defaultGroup              = new \stdClass();
-//        $defaultGroup->id          = 0;
-//        $defaultGroup->title       = '';
-//        $defaultGroup->description = '';
-//        $iterateGroups             = array_merge([$defaultGroup], $model->getItems());
-//
-//        // Looping through the groups
-//        foreach ($iterateGroups as $group) {
-//            if (empty($fieldsPerGroup[$group->id])) {
-//                continue;
-//            }
-//
-//            // Defining the field set
-//            /** @var \DOMElement $fieldset */
-//            $fieldset = $fieldsNode->appendChild(new \DOMElement('fieldset'));
-//            $fieldset->setAttribute('name', 'fields-' . $group->id);
-//            $fieldset->setAttribute('addfieldpath', '/administrator/components/' . $component . '/models/fields');
-//            $fieldset->setAttribute('addrulepath', '/administrator/components/' . $component . '/models/rules');
-//
-//            $label       = $group->title;
-//            $description = $group->description;
-//
-//            if (!$label) {
-//                $key = strtoupper($component . '_FIELDS_' . $section . '_LABEL');
-//
-//                if (!Factory::getLanguage()->hasKey($key)) {
-//                    $key = 'JGLOBAL_FIELDS';
-//                }
-//
-//                $label = $key;
-//            }
-//
-//            if (!$description) {
-//                $key = strtoupper($component . '_FIELDS_' . $section . '_DESC');
-//
-//                if (Factory::getLanguage()->hasKey($key)) {
-//                    $description = $key;
-//                }
-//            }
-//
-//            $fieldset->setAttribute('label', $label);
-//            $fieldset->setAttribute('description', strip_tags($description));
-//
-//            // Looping through the fields for that context
-//            foreach ($fieldsPerGroup[$group->id] as $field) {
-//                try {
-//                    $dispatcher->dispatch('onCustomFieldsPrepareDom', new PrepareDomEvent('onCustomFieldsPrepareDom', [
-//                        'subject'  => $field,
-//                        'fieldset' => $fieldset,
-//                        'form'     => $form,
-//                    ]));
-//
-//                    /*
-//                     * If the field belongs to an assigned_cat_id but the assigned_cat_ids in the data
-//                     * is not known, set the required flag to false on any circumstance.
-//                     */
-//                    if (!$assignedCatids && !empty($field->assigned_cat_ids) && $form->getField($field->name)) {
-//                        $form->setFieldAttribute($field->name, 'required', 'false');
-//                    }
-//                } catch (\Exception $e) {
-//                    Factory::getApplication()->enqueueMessage($e->getMessage(), 'error');
-//                }
-//            }
-//
-//            // When the field set is empty, then remove it
-//            if (!$fieldset->hasChildNodes()) {
-//                $fieldsNode->removeChild($fieldset);
-//            }
-//        }
-//
-//        // Loading the XML fields string into the form
-//        $form->load($xml->saveXML());
-//
-//        // Looping through the fields again to set the value
-//        if (!isset($data->id) || !$data->id) {
-//            return true;
-//        }
-//
-//        foreach ($fields as $field) {
-//            // Get the value already loaded by static::getFields()
-//            $value = $field->rawvalue;
-//
-//            if ($value === null) {
-//                continue;
-//            }
-//
-//            if (!\is_array($value) && $value !== '') {
-//                // Function getField doesn't cache the fields, so we try to do it only when necessary
-//                $formField = $form->getField($field->name, 'com_fields');
-//
-//                if ($formField && $formField->forceMultiple) {
-//                    $value = (array) $value;
-//                }
-//            }
-//
-//            // Setting the value on the field
-//            $form->setValue($field->name, 'com_fields', $value);
-//        }
-//
-//        return true;
-//    }
-//
-//    /**
-//     * Return a boolean if the actual logged in user can edit the given field value.
-//     *
-//     * @param   \stdClass  $field  The field
-//     *
-//     * @return  boolean
-//     *
-//     * @since   3.7.0
-//     */
-//    public static function canEditFieldValue($field)
-//    {
-//        $parts = self::extract($field->context);
-//
-//        return Factory::getUser()->authorise('core.edit.value', $parts[0] . '.field.' . (int) $field->id);
-//    }
-//
-//    /**
-//     * Return a boolean based on field (and field group) display / show_on settings
-//     *
-//     * @param   \stdClass  $field  The field
-//     *
-//     * @return  boolean
-//     *
-//     * @since   3.8.7
-//     */
-//    public static function displayFieldOnForm($field)
-//    {
-//        $app = Factory::getApplication();
-//
-//        // Detect if the field should be shown at all
-//        if ($field->params->get('show_on') == 1 && $app->isClient('administrator')) {
-//            return false;
-//        }
-//
-//        if ($field->params->get('show_on') == 2 && $app->isClient('site')) {
-//            return false;
-//        }
-//
-//        if (!self::canEditFieldValue($field)) {
-//            $fieldDisplayReadOnly = $field->params->get('display_readonly', '2');
-//
-//            if ($fieldDisplayReadOnly == '2') {
-//                // Inherit from field group display read-only setting
-//                $groupModel = $app->bootComponent('com_fields')
-//                    ->getMVCFactory()->createModel('Group', 'Administrator', ['ignore_request' => true]);
-//                $groupDisplayReadOnly = $groupModel->getItem($field->group_id)->params->get('display_readonly', '1');
-//                $fieldDisplayReadOnly = $groupDisplayReadOnly;
-//            }
-//
-//            if ($fieldDisplayReadOnly == '0') {
-//                // Do not display field on form when field is read-only
-//                return false;
-//            }
-//        }
-//
-//        // Display field on form
-//        return true;
-//    }
-//
-//    /**
-//     * Gets assigned categories ids for a field
-//     *
-//     * @param   \stdClass[]  $fieldId  The field ID
-//     *
-//     * @return  array  Array with the assigned category ids
-//     *
-//     * @since   4.0.0
-//     */
-//    public static function getAssignedCategoriesIds($fieldId)
-//    {
-//        $fieldId = (int) $fieldId;
-//
-//        if (!$fieldId) {
-//            return [];
-//        }
-//
-//        $db    = Factory::getDbo();
-//        $query = $db->getQuery(true);
-//
-//        $query->select($db->quoteName('a.category_id'))
-//            ->from($db->quoteName('#__fields_categories', 'a'))
-//            ->where('a.field_id = ' . $fieldId);
-//
-//        $db->setQuery($query);
-//
-//        return $db->loadColumn();
-//    }
-//
-//    /**
-//     * Gets assigned categories titles for a field
-//     *
-//     * @param   \stdClass[]  $fieldId  The field ID
-//     *
-//     * @return  array  Array with the assigned categories
-//     *
-//     * @since   3.7.0
-//     */
-//    public static function getAssignedCategoriesTitles($fieldId)
-//    {
-//        $fieldId = (int) $fieldId;
-//
-//        if (!$fieldId) {
-//            return [];
-//        }
-//
-//        $db    = Factory::getDbo();
-//        $query = $db->getQuery(true);
-//
-//        $query->select($db->quoteName('c.title'))
-//            ->from($db->quoteName('#__fields_categories', 'a'))
-//            ->join('INNER', $db->quoteName('#__categories', 'c') . ' ON a.category_id = c.id')
-//            ->where($db->quoteName('field_id') . ' = :fieldid')
-//            ->bind(':fieldid', $fieldId, ParameterType::INTEGER);
-//
-//        $db->setQuery($query);
-//
-//        return $db->loadColumn();
-//    }
-//
-//    /**
-//     * Gets the fields system plugin extension id.
-//     *
-//     * @return  integer  The fields system plugin extension id.
-//     *
-//     * @since   3.7.0
-//     */
-//    public static function getFieldsPluginId()
-//    {
-//        $db    = Factory::getDbo();
-//        $query = $db->getQuery(true)
-//            ->select($db->quoteName('extension_id'))
-//            ->from($db->quoteName('#__extensions'))
-//            ->where($db->quoteName('folder') . ' = ' . $db->quote('system'))
-//            ->where($db->quoteName('element') . ' = ' . $db->quote('fields'));
-//        $db->setQuery($query);
-//
-//        try {
-//            $result = (int) $db->loadResult();
-//        } catch (\RuntimeException $e) {
-//            Factory::getApplication()->enqueueMessage($e->getMessage(), 'error');
-//            $result = 0;
-//        }
-//
-//        return $result;
-//    }
-//
-//    /**
-//     * Loads the fields plugins and returns an array of field types from the plugins.
-//     *
-//     * The returned array contains arrays with the following keys:
-//     * - label: The label of the field
-//     * - type:  The type of the field
-//     * - path:  The path of the folder where the field can be found
-//     *
-//     * @return  array
-//     *
-//     * @since   3.7.0
-//     */
-//    public static function getFieldTypes()
-//    {
-//        /** @var DispatcherInterface $dispatcher */
-//        $dispatcher = Factory::getContainer()->get(DispatcherInterface::class);
-//        PluginHelper::importPlugin('/**/fields', null, true, $dispatcher);
-//        $eventData = $dispatcher->dispatch('onCustomFieldsGetTypes', new GetTypesEvent('onCustomFieldsGetTypes'))->getArgument('result', []);
-//
-//        $data = [];
-//
-//        foreach ($eventData as $fields) {
-//            foreach ($fields as $fieldDescription) {
-//                if (!\array_key_exists('path', $fieldDescription)) {
-//                    $fieldDescription['path'] = null;
-//                }
-//
-//                if (!\array_key_exists('rules', $fieldDescription)) {
-//                    $fieldDescription['rules'] = null;
-//                }
-//
-//                $data[$fieldDescription['type']] = $fieldDescription;
-//            }
-//        }
-//
-//        return $data;
-//    }
-//
-//    /**
-//     * Clears the internal cache for the custom fields.
-//     *
-//     * @return  void
-//     *
-//     * @since   3.8.0
-//     */
-//    public static function clearFieldsCache()
-//    {
-//        self::$fieldCache  = null;
-//        self::$fieldsCache = null;
-//    }
-//}

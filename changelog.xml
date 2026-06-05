@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<changelogs>
+    <changelog>
+        <element>com_alfa</element>
+        <type>component</type>
+        <version>1.0.5</version>
+
+        <addition>
+            <item>Backend notification centre: a toolbar bell with a quick panel and a full history view, backed by a generic notification store that any part of the component (or the API) can push into.</item>
+            <item>File-integrity verification: Tools &gt; Security checks the installed files against the official, ed25519-signed checksums on the CDN and reports any modified, missing or unexpected files.</item>
+            <item>Package export tool (Tools): builds a repo-layout zip of the component for packaging and pull requests.</item>
+        </addition>
+
+        <fix>
+            <item>Notifications: the sort dropdown showed raw language keys; the labels now translate correctly.</item>
+            <item>Notifications: the toolbar count badge now shows and hides correctly and is no longer overridden by the admin template styles.</item>
+            <item>Back-end menu: Tools is now the last item, after Notifications.</item>
+        </fix>
+    </changelog>
+
+    <changelog>
+        <element>com_alfa</element>
+        <type>component</type>
+        <version>1.0.4</version>
+
+        <addition>
+            <item>Items list (back end): new Categories and Manufacturers columns showing every related entry per item, with translated names.</item>
+            <item>Items list (back end): working Categories and Manufacturers filters (multi-select) in the search toolbar.</item>
+            <item>Order statuses: role-flag taxonomy (Initial / Cancellation / Completed) replacing the legacy is_default column, with save/publish/delete invariants.</item>
+            <item>Order statuses: status-change email notifications — per-status customer and admin emails, admin recipient picker, notify_customer toggle.</item>
+            <item>Order-status emails: selectable per-recipient email wrapper layout, position-based editors discovered from the chosen layout, token picker and live test-send.</item>
+            <item>Order-status emails: custom layouts are auto-discovered from the emails/order/ folder (component or admin-template override); their positions, labels and Restore-defaults content are driven by COM_ALFA_ORDEREMAIL_* language constants.</item>
+            <item>Update server configured so future releases are delivered via Joomla's extension updater.</item>
+        </addition>
+
+        <fix>
+            <item>Added the missing #__alfa_form_field_groups table to install, uninstall and the update schema — form field group screens no longer error on a clean install.</item>
+            <item>Update SQL moved to sql/updates/mysql/ (with the manifest schemapath) so the System &gt; Database "Fix" tool recognises com_alfa instead of silently skipping it.</item>
+            <item>Order-status email "Restore defaults" now fills every position (Subject, Header, Intro, Outro, Legal) instead of only the intro.</item>
+            <item>Items category filter form (filter_categories.xml): removed a broken PHP fragment embedded in an XML attribute.</item>
+            <item>Back-end Tools menu label (COM_ALFA_TITLE_TOOLS) now resolves in the Components menu (was missing from the system language file).</item>
+            <item>Cart menu item type: corrected the description language key and wording.</item>
+            <item>Manufacturer menu item type: replaced leftover COM_TEST_* skeleton language keys with COM_ALFA_* keys.</item>
+            <item>Order-status engine converted to InnoDB along with the remaining MyISAM tables for transaction and FK support.</item>
+        </fix>
+
+        <language>
+            <item>Reorganised and de-duplicated the administrator language files; removed ~586 unused keys and grouped the rest into clearly labelled sections.</item>
+            <item>Cleaned the system language file: removed dead legacy-updater keys, added the Tools menu label, normalised menu-item-type titles and descriptions.</item>
+            <item>Replaced the borrowed com_content batch label with the component's own COM_ALFA_BATCH_OPTIONS, removing a cross-component dependency.</item>
+            <item>Extended the order-status email help note with guidance on creating custom layouts, positions and their language constants.</item>
+        </language>
+
+        <note>
+            <item>Existing sites can apply the new #__alfa_form_field_groups table via System &gt; Database &gt; Fix; fresh installs get it automatically.</item>
+        </note>
+    </changelog>
+</changelogs>

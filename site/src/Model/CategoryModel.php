@@ -15,7 +15,10 @@ namespace Alfa\Component\Alfa\Site\Model;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Exception;
+use Joomla\CMS\Factory;
 use Joomla\CMS\MVC\Model\ItemModel as BaseItemModel;
 use Joomla\CMS\Router\Route;
 use Joomla\Database\ParameterType;
@@ -31,6 +34,25 @@ class CategoryModel extends BaseItemModel
     protected $_context = 'com_alfa.category';
 
     /**
+     * Method to auto-populate the model state.
+     *
+     * Note. Calling getState in this method will result in recursion.
+     *
+     *
+     * @throws Exception
+     * @since  1.0.1
+     */
+    protected function populateState(): void
+    {
+        $app = Factory::getApplication();
+
+        $id = $app->input->getInt('id', 0);
+        $this->setState('category.id', $id);
+
+        parent::populateState();
+    }
+
+    /**
      * Get category item
      *
      * @param int|null $pk Category ID
@@ -39,6 +61,8 @@ class CategoryModel extends BaseItemModel
      */
     public function getItem($pk = null)
     {
+        $pk = (!empty($pk)) ? $pk : (int) $this->getState('category.id');
+
         // Return cached
         if (isset($this->_item[$pk])) {
             return $this->_item[$pk];
@@ -48,8 +72,20 @@ class CategoryModel extends BaseItemModel
             $db = $this->getDatabase();
             $query = $db->getQuery(true)
                 ->select('a.*')
-                ->from($db->quoteName('#__alfa_categories', 'a'))
-                ->where($db->quoteName('a.id') . ' = :pk')
+                ->from($db->quoteName('#__alfa_categories', 'a'));
+
+            // Resolve translatable fields in the active language (current →
+            // default → '') from the per-language tables. No main-table fallback.
+            MultilingualHelper::addMultilingualJoinToQuery(
+                query:             $query,
+                mainAlias:         'a',
+                mainPrimaryColumn: 'id',
+                langTableBase:     '#__alfa_categories',
+                langPrimaryColumn: 'id_category',
+                fields:            ['name', 'alias', 'desc', 'meta_title', 'meta_desc'],
+            );
+
+            $query->where($db->quoteName('a.id') . ' = :pk')
                 ->bind(':pk', $pk, ParameterType::INTEGER);
 
             $db->setQuery($query);
@@ -60,8 +96,14 @@ class CategoryModel extends BaseItemModel
                 return false;
             }
 
-            // Add link
+            // Add links
             $data->link = Route::_('index.php?option=com_alfa&view=items&category_id=' . (int) $data->id);
+
+            // Get category media
+            $data->medias = MediaHelper::getMediaData(
+                origin: 'category',
+                itemIDs: (int) $data->id,
+            );
 
             $this->_item[$pk] = $data;
 

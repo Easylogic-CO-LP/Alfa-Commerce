@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Exception;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 use Joomla\CMS\MVC\Model\ListModel;
@@ -39,19 +40,19 @@ class ItemsModel extends ListModel
                 'ordering', 'a.ordering',
                 'created_by', 'a.created_by',
                 'modified_by', 'a.modified_by',
-                'name', 'a.name',
                 'id', 'a.id',
-                'short_desc', 'a.short_desc',
-                'full_desc', 'a.full_desc',
                 'sku', 'a.sku',
                 'gtin', 'a.gtin',
                 'mpn', 'a.mpn',
                 'stock', 'a.stock',
                 'stock_action', 'a.stock_action',
                 'manage_stock', 'a.manage_stock',
-                'alias', 'a.alias',
-                'meta_title', 'a.meta_title',
-                'meta_desc', 'a.meta_desc',
+                // Translatable — resolved via the lang-table COALESCE alias.
+                'name',
+                'alias',
+                // Relational filters (many-to-many junctions).
+                'category',
+                'manufacturer',
             ];
         }
 
@@ -93,6 +94,8 @@ class ItemsModel extends ListModel
         // Compile the store id.
         $id .= ':' . $this->getState('filter.search');
         $id .= ':' . $this->getState('filter.state');
+        $id .= ':' . implode(',', (array) $this->getState('filter.category'));
+        $id .= ':' . implode(',', (array) $this->getState('filter.manufacturer'));
 
         return parent::getStoreId($id);
     }
@@ -129,6 +132,39 @@ class ItemsModel extends ListModel
         $query->select('`modified_by`.name AS `modified_by`');
         $query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
 
+        // MULTILINGUAL: resolve name / alias in the active language from the
+        // per-language tables (LEFT JOIN + COALESCE keeps untranslated rows).
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'a',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_items',
+            langPrimaryColumn: 'id_item',
+            fields:            ['name', 'alias'],
+        );
+
+        // RELATIONS: comma-separated category / manufacturer ids per item via
+        // correlated subqueries (no JOIN, so DISTINCT a.* row count is untouched).
+        // getItems() resolves these ids to translated names.
+        MultilingualHelper::addRelatedIdsToQuery(
+            query:         $query,
+            mainAlias:     'a',
+            mainPk:        'id',
+            junctionTable: '#__alfa_items_categories',
+            junctionFk:    'item_id',
+            junctionValue: 'category_id',
+            selectAlias:   'category_ids',
+        );
+        MultilingualHelper::addRelatedIdsToQuery(
+            query:         $query,
+            mainAlias:     'a',
+            mainPk:        'id',
+            junctionTable: '#__alfa_items_manufacturers',
+            junctionFk:    'item_id',
+            junctionValue: 'manufacturer_id',
+            selectAlias:   'manufacturer_ids',
+        );
+
         // Filter by published state
         $published = $this->getState('filter.state');
 
@@ -136,6 +172,30 @@ class ItemsModel extends ListModel
             $query->where('a.state = ' . (int) $published);
         } elseif (empty($published)) {
             $query->where('(a.state IN (0, 1))');
+        }
+
+        // Filter by category (multi-select, many-to-many). Matches the selected
+        // categories exactly — no subcategory expansion. Subquery keeps the main
+        // query shape (no JOIN, no GROUP BY needed).
+        $categories = array_filter(array_map('intval', (array) $this->getState('filter.category')));
+
+        if (!empty($categories)) {
+            $query->where(
+                'a.id IN (SELECT ' . $db->quoteName('item_id')
+                . ' FROM ' . $db->quoteName('#__alfa_items_categories')
+                . ' WHERE ' . $db->quoteName('category_id') . ' IN (' . implode(',', $categories) . '))',
+            );
+        }
+
+        // Filter by manufacturer (multi-select, many-to-many).
+        $manufacturers = array_filter(array_map('intval', (array) $this->getState('filter.manufacturer')));
+
+        if (!empty($manufacturers)) {
+            $query->where(
+                'a.id IN (SELECT ' . $db->quoteName('item_id')
+                . ' FROM ' . $db->quoteName('#__alfa_items_manufacturers')
+                . ' WHERE ' . $db->quoteName('manufacturer_id') . ' IN (' . implode(',', $manufacturers) . '))',
+            );
         }
 
         // Filter by search in title
@@ -146,7 +206,15 @@ class ItemsModel extends ListModel
                 $query->where('a.id = ' . (int) substr($search, 3));
             } else {
                 $search = $db->Quote('%' . $db->escape($search, true) . '%');
-                $query->where('( a.name LIKE ' . $search . ' )');
+                // HAVING — `name` is the COALESCE alias from the lang join; sku/gtin/mpn
+                // are real columns (selected via a.*). Match any of them.
+                $query->having(
+                    '(' . $db->quoteName('name') . ' LIKE ' . $search
+                    . ' OR ' . $db->quoteName('a.sku') . ' LIKE ' . $search
+                    . ' OR ' . $db->quoteName('a.gtin') . ' LIKE ' . $search
+                    . ' OR ' . $db->quoteName('a.mpn') . ' LIKE ' . $search
+                    . ')',
+                );
             }
         }
 
@@ -169,6 +237,34 @@ class ItemsModel extends ListModel
     public function getItems()
     {
         $items = parent::getItems();
+
+        if (empty($items)) {
+            return $items;
+        }
+
+        // Resolve the comma-separated category / manufacturer ids (from the
+        // correlated subqueries) into translated records for display. Each bound
+        // value is a map [relatedId => ['id' => …, 'name' => …]].
+        $db = $this->getDatabase();
+
+        MultilingualHelper::loadRelated(
+            db:                $db,
+            items:             $items,
+            idsProperty:       'category_ids',
+            bindTo:            'categories',
+            table:             '#__alfa_categories',
+            langTableBase:     '#__alfa_categories',
+            langPrimaryColumn: 'id_category',
+        );
+        MultilingualHelper::loadRelated(
+            db:                $db,
+            items:             $items,
+            idsProperty:       'manufacturer_ids',
+            bindTo:            'manufacturers',
+            table:             '#__alfa_manufacturers',
+            langTableBase:     '#__alfa_manufacturers',
+            langPrimaryColumn: 'id_manufacturer',
+        );
 
         return $items;
     }

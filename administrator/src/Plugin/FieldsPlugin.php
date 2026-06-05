@@ -3,385 +3,141 @@
 /**
  * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
- *
- * @copyright   (C) 2017 Open Source Matters, Inc. <https://www.joomla.org>
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
 namespace Alfa\Component\Alfa\Administrator\Plugin;
 
-// use Joomla\CMS\Event\CustomFields\GetTypesEvent;
-// use Joomla\CMS\Event\CustomFields\PrepareDomEvent;
-// use Joomla\CMS\Event\CustomFields\PrepareFieldEvent;
-// use Joomla\CMS\Event\Model\PrepareFormEvent;
+use Alfa\Component\Alfa\Administrator\Event\Fields\PrepareDomEvent;
+use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use DOMCdataSection;
 use DOMElement;
-use Joomla\CMS\Form\Form;
-use Joomla\CMS\Language\Text;
 use Joomla\CMS\Plugin\CMSPlugin;
-use Joomla\CMS\Plugin\PluginHelper;
-use Joomla\Component\Fields\Administrator\Helper\FieldsHelper;
-use Joomla\Filesystem\Folder;
-use stdClass;
+use Joomla\Event\SubscriberInterface;
+use Joomla\Registry\Registry;
 
-// phpcs:disable PSR1.Files.SideEffects
-\defined('_JEXEC') or die;
-// phpcs:enable PSR1.Files.SideEffects
+defined('_JEXEC') or die;
 
 /**
- * Abstract Fields Plugin
+ * Abstract base for alfa-fields plugins.
  *
- * @since  3.7.0
+ * One plugin per field type (plugin name == type name by convention).
+ * Default prepareDom() builds a standard <field> DOM node; subclasses override
+ * to set type-specific attributes (inputmode, autocomplete, validate, etc.).
+ *
+ * Joomla 7-ready: implements SubscriberInterface so the dispatcher auto-wires
+ * events from getSubscribedEvents(). Subclasses needing extra events (e.g.
+ * onBeforeCompileHead) override getSubscribedEvents() — service providers
+ * MUST NOT call addListener (deprecated in Joomla 7).
+ *
+ * Note: prepareDom() is invoked DIRECTLY by FieldsHelper::prepareForm(), not
+ * dispatched, so it does NOT belong in getSubscribedEvents().
  */
-abstract class FieldsPlugin extends CMSPlugin
+abstract class FieldsPlugin extends CMSPlugin implements SubscriberInterface
 {
-    /**
-     * Affects constructor behavior. If true, language files will be loaded automatically.
-     *
-     * @var bool
-     * @since  3.7.0
-     */
     protected $autoloadLanguage = true;
 
     /**
-     * Application object.
-     *
-     * @var \Joomla\CMS\Application\CMSApplication
-     * @since  4.0.0
-     */
-    protected $app;
-
-    /**
-     * Returns an array of events this subscriber will listen to.
-     *
-     *
-     * @since   5.0.0
+     * Subscribed events. Base default is empty — subclasses override to add
+     * events specific to their plugin. Merge via array_merge with parent
+     * to inherit any future base events without redeclaring.
      */
     public static function getSubscribedEvents(): array
     {
-        return [
-            // 'onCustomFieldsGetTypes'     => 'getFieldTypes',
-            // 'onCustomFieldsPrepareField' => 'prepareField',
-            'onAlfaFieldsPrepareDom' => 'prepareDom',
-            // 'onContentPrepareForm'       => 'prepareForm',
-        ];
-    }
-
-    public function onFormFieldValidate($event)
-    {
-        $field = $event->setValid(true);
+        return [];
     }
 
     /**
-     * Returns the custom fields types.
-     *
-     * @return void
-     *
-     * @since   5.0.0
+     * Build a <field> node for $event->getField() and append it to $event->getFieldset().
+     * Subclasses override to tweak; call parent::prepareDom($event) first, then mutate the node.
      */
-    // public function getFieldTypes(GetTypesEvent $event)
-    // {
-    //     $result = $this->onCustomFieldsGetTypes();
-
-    //     if ($result) {
-    //         $event->addResult($result);
-    //     }
-    // }
-
-    /**
-     * Prepares the field value.
-     *
-     * @return void
-     *
-     * @since   5.0.0
-     */
-    // public function prepareField(PrepareFieldEvent $event)
-    // {
-    //     $result = $this->onCustomFieldsPrepareField($event->getContext(), $event->getItem(), $event->getField());
-
-    //     if ($result !== '' && $result !== null) {
-    //         $event->addResult($result);
-    //     }
-    // }
-
-    /**
-     * The form event. Load additional parameters when available into the field form.
-     * Only when the type of the form is of interest.
-     *
-     * @return void
-     *
-     * @since   5.0.0
-     */
-    // public function prepareForm(PrepareFormEvent $event)
-    // {
-    //     $this->onContentPrepareForm($event->getForm(), $event->getData());
-    // }
-
-    /**
-     * Returns the custom fields types.
-     *
-     * @return string[][]
-     *
-     * @since   3.7.0
-     */
-    // public function onCustomFieldsGetTypes()
-    // {
-    //     // Cache filesystem access / checks
-    //     static $types_cache = [];
-
-    //     if (isset($types_cache[$this->_type . $this->_name])) {
-    //         return $types_cache[$this->_type . $this->_name];
-    //     }
-
-    //     $types = [];
-
-    //     // The root of the plugin
-    //     $root = JPATH_PLUGINS . '/' . $this->_type . '/' . $this->_name;
-
-    //     foreach (Folder::files($root . '/tmpl', '.php') as $layout) {
-    //         // Strip the extension
-    //         $layout = str_replace('.php', '', $layout);
-
-    //         // The data array
-    //         $data = [];
-
-    //         // The language key
-    //         $key = strtoupper($layout);
-
-    //         if ($key != strtoupper($this->_name)) {
-    //             $key = strtoupper($this->_name) . '_' . $layout;
-    //         }
-
-    //         // Needed attributes
-    //         $data['type'] = $layout;
-
-    //         if ($this->app->getLanguage()->hasKey('PLG_FIELDS_' . $key . '_LABEL')) {
-    //             $data['label'] = Text::sprintf('PLG_FIELDS_' . $key . '_LABEL', strtolower($key));
-
-    //             // Fix wrongly set parentheses in RTL languages
-    //             if ($this->app->getLanguage()->isRtl()) {
-    //                 $data['label'] .= '&#x200E;';
-    //             }
-    //         } else {
-    //             $data['label'] = $key;
-    //         }
-
-    //         $path = $root . '/fields';
-
-    //         // Add the path when it exists
-    //         if (file_exists($path)) {
-    //             $data['path'] = $path;
-    //         }
-
-    //         $path = $root . '/rules';
-
-    //         // Add the path when it exists
-    //         if (file_exists($path)) {
-    //             $data['rules'] = $path;
-    //         }
-
-    //         $types[] = $data;
-    //     }
-
-    //     // Add to cache and return the data
-    //     $types_cache[$this->_type . $this->_name] = $types;
-
-    //     return $types;
-    // }
-
-    /**
-     * Prepares the field value.
-     *
-     *
-     * @return ?string
-     *
-     * @since   3.7.0
-     */
-    // public function onCustomFieldsPrepareField($context, $item, $field)
-    // {
-    //     // Check if the field should be processed by us
-    //     if (!$this->isTypeSupported($field->type)) {
-    //         return '';
-    //     }
-
-    //     // Merge the params from the plugin and field which has precedence
-    //     $fieldParams = clone $this->params;
-    //     $fieldParams->merge($field->fieldparams);
-
-    //     // Get the path for the layout file
-    //     $path = PluginHelper::getLayoutPath('fields', $this->_name, $field->type);
-
-    //     // Render the layout
-    //     ob_start();
-    //     include $path;
-    //     $output = ob_get_clean();
-
-    //     // Return the output
-    //     return $output;
-    // }
-
-    /**
-     * Transforms the field into a DOM XML element and appends it as a child on the given parent.
-     *
-     * @return void
-     *
-     * @since   5.0.0
-     */
-    public function prepareDom($event)
+    public function prepareDom(PrepareDomEvent $event): ?DOMElement
     {
         $field = $event->getField();
-        $parent = $event->getFieldset();
-        $form = $event->getForm();
+        $fieldset = $event->getFieldset();
 
-        // Check if the field should be processed by us
-        //        if (!$this->isTypeSupported($field->type)) {
-        //            return null;
-        //        }
-        //
-        //        // Detect if the field is configured to be displayed on the form
-        //        if (!FieldsHelper::displayFieldOnForm($field)) {
-        //            return null;
-        //        }
+        if (!FieldsHelper::displayFieldOnForm($field)) {
+            return null;
+        }
 
-        // Create the node
-        $node = $parent->appendChild(new DOMElement('field'));
+        // Resolve inline {lang: value} maps in the params to the CURRENT language
+        // (value/JSON-mode MultilingualText — e.g. choice option labels) so the
+        // render, and any option-based subclass reading $field->params, sees plain
+        // current-language strings. The admin definition editor uses a different
+        // path and keeps the full per-language maps untouched.
+        $field->params = json_encode(
+            MultilingualHelper::collapseToCurrent(
+                is_string($field->params) ? (json_decode($field->params, true) ?: []) : (array) ($field->params ?? []),
+            ),
+        );
 
-        // Set the attributes
+        $params = new Registry($field->params);
+
+        $node = $fieldset->appendChild(new DOMElement('field'));
         $node->setAttribute('name', $field->field_name);
         $node->setAttribute('type', $field->type);
         $node->setAttribute('label', $field->field_label);
-        //        $node->setAttribute('labelclass', $field->params->get('label_class', ''));
-        $node->setAttribute('description', $field->field_description);
-        //        $node->setAttribute('class', $field->params->get('class', ''));
-        //        $node->setAttribute('hint', $field->params->get('hint', ''));
+        $node->setAttribute('description', $field->field_description ?? '');
         $node->setAttribute('required', $field->required ? 'true' : 'false');
 
-        //        $showon_attribute = $field->params->get('showon', '');
-        //        if ($showon_attribute) {
-        //            $node->setAttribute('showon', $showon_attribute);
-        //        }
+        if (isset($field->default_value) && $field->default_value !== '') {
+            $defaultNode = $node->appendChild(new DOMElement('default'));
+            $defaultNode->appendChild(new DOMCdataSection((string) $field->default_value));
+        }
 
-        //        if ($field->default_value !== '') {
-        //            $defaultNode = $node->appendChild(new \DOMElement('default'));
-        //            $defaultNode->appendChild(new \DOMCdataSection($field->default_value));
-        //        }
+        // SHOWON: βγάλαμε το 'showon' από εδώ ώστε να ΜΗΝ γίνει Joomla attribute.
+        $alwaysForward = ['class', 'labelclass', 'hint', 'layout'];
+        foreach ($alwaysForward as $key) {
+            $val = $params->get($key, '');
+            if ($val !== '' && $val !== null) {
+                $node->setAttribute($key, (string) $val);
+            }
+        }
 
-        // Combine the two params
-        //        $params = clone $this->params;
-        //        $params->merge($field->fieldparams);
+        // SHOWON: αυτά τα params τα διαχειρίζεται η μηχανή showon — όχι attributes.
+        // 'showon_builder' is dead legacy data (old subform) still present in
+        // pre-migration rows — never an attribute, always skip it.
+        $showonParamKeys = ['showon', 'showon_builder'];
 
-        //        $layout = $field->params->get('form_layout', $this->params->get('form_layout', ''));
-        //
-        //        if ($layout) {
-        //            $node->setAttribute('layout', $layout);
-        //        }
+        foreach ($params->toArray() as $key => $param) {
+            if (in_array($key, $alwaysForward, true) || in_array($key, $showonParamKeys, true)) {
+                continue;
+            }
 
-        // Set the specific field parameters
-        //        foreach ($params->toArray() as $key => $param) {
-        //            if (\is_array($param)) {
-        //                // Multidimensional arrays (eg. list options) can't be transformed properly
-        //                $param = \count($param) == \count($param, COUNT_RECURSIVE) ? implode(',', $param) : '';
-        //            }
-        //
-        //            if ($param === '' || (!\is_string($param) && !is_numeric($param))) {
-        //                continue;
-        //            }
-        //
-        //            $node->setAttribute($key, $param);
-        //        }
+            if (is_array($param)) {
+                // Only a non-empty flat list of scalars can become one
+                // attribute; anything else (nested/empty) -> drop. Avoids
+                // "Array to string conversion" on implode.
+                $param = ($param && count($param) === count(array_filter($param, 'is_scalar')))
+                    ? implode(',', $param)
+                    : '';
+            }
 
-        // Check if it is allowed to edit the field
-        //        if (!FieldsHelper::canEditFieldValue($field)) {
-        //            $node->setAttribute('disabled', 'true');
-        //        }
+            if ($param === '' || $param === null || (!is_string($param) && !is_numeric($param))) {
+                continue;
+            }
 
-        //        print_r($node);
-        // Return the node
+            $node->setAttribute($key, (string) $param);
+        }
+
+        if (!FieldsHelper::canEditFieldValue($field)) {
+            $node->setAttribute('disabled', 'true');
+            $node->setAttribute('readonly', 'true');
+        }
+
+        // SHOWON: σταθερά attributes που διαβάζει το media/com_alfa/js/showon.js.
+        // - showonname/showontype: ΚΑΘΕ πεδίο (για να μπορεί να είναι «διακόπτης»)
+        // - showonrule: μόνο αν το πεδίο έχει κανόνα (είναι «λάμπα»)
+        $node->setAttribute('showonname', (string) $field->field_name);
+        $node->setAttribute('showontype', (string) $field->type);
+
+        $showonRule = (string) $params->get('showon', '');
+        if ($showonRule !== '') {
+            $node->setAttribute('showonrule', $showonRule);
+        }
+
         return $node;
     }
-
-    /**
-     * The form event. Load additional parameters when available into the field form.
-     * Only when the type of the form is of interest.
-     *
-     * @param Form $form The form
-     * @param stdClass $data The data
-     *
-     * @return void
-     *
-     * @since   3.7.0
-     */
-    // public function onContentPrepareForm(Form $form, $data)
-    // {
-    //     $path = $this->getFormPath($form, $data);
-
-    //     if ($path === null) {
-    //         return;
-    //     }
-
-    //     // Load the specific plugin parameters
-    //     $form->load(file_get_contents($path), true, '/form/*');
-    // }
-
-    /**
-     * Returns the path of the XML definition file for the field parameters
-     *
-     * @param Form $form The form
-     * @param stdClass $data The data
-     *
-     * @return string
-     *
-     * @since   4.0.0
-     */
-    // protected function getFormPath(Form $form, $data)
-    // {
-    //     // Check if the field form is calling us
-    //     if (!str_starts_with($form->getName(), 'com_fields.field')) {
-    //         return null;
-    //     }
-
-    //     // Ensure it is an object
-    //     $formData = (object) $data;
-
-    //     // Gather the type
-    //     $type = $form->getValue('type');
-
-    //     if (!empty($formData->type)) {
-    //         $type = $formData->type;
-    //     }
-
-    //     // Not us
-    //     if (!$this->isTypeSupported($type)) {
-    //         return null;
-    //     }
-
-    //     $path = JPATH_PLUGINS . '/' . $this->_type . '/' . $this->_name . '/params/' . $type . '.xml';
-
-    //     // Check if params file exists
-    //     if (!file_exists($path)) {
-    //         return null;
-    //     }
-
-    //     return $path;
-    // }
-
-    /**
-     * Returns true if the given type is supported by the plugin.
-     *
-     * @param string $type The type
-     *
-     * @return bool
-     *
-     * @since   3.7.0
-     */
-    // protected function isTypeSupported($type)
-    // {
-    //     foreach ($this->onCustomFieldsGetTypes() as $typeSpecification) {
-    //         if ($type == $typeSpecification['type']) {
-    //             return true;
-    //         }
-    //     }
-
-    //     return false;
-    // }
 }

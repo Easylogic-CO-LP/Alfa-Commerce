@@ -16,6 +16,8 @@ defined('_JEXEC') or die;
 	// TODO: Error handling for missing template.
 	use Alfa\Component\Alfa\Site\Helper\PluginLayoutHelper;
 
+	// Safe to call unconditionally: PluginLayoutHelper returns a no-output layout
+	// when the type/name/layout is empty (e.g. an order with no payment method).
 	echo PluginLayoutHelper::pluginLayout(
 		$this->event->onOrderCompleteView->getLayoutPluginType(),
 		$this->event->onOrderCompleteView->getLayoutPluginName(),
