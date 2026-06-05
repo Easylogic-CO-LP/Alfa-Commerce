@@ -2,20 +2,22 @@
 
 A full-featured eCommerce component for Joomla 4.x / 5.x / 6.x, developed by [Easylogic](https://easylogic.gr).
 
-> **Status:** Pre-alpha — the core is being actively built and tested.
+> **Beta** – actively developed; features and APIs may still change.
+
+> **Status:** Pre-alpha â the core is being actively built and tested.
 
 ## Features
 
-- **Product Catalog** — Items, categories, manufacturers, custom fields
-- **Cart & Checkout** — Full shopping cart with multi-step checkout
-- **Orders Management** — Order lifecycle, statuses, history tracking
-- **Payments** — Pluggable payment gateways (Standard, Revolut, Viva Wallet)
-- **Shipping** — Pluggable shipment methods (Standard, BoxNow)
-- **Pricing Engine** — Taxes, discounts, coupons, multi-currency support
-- **Users & Groups** — Customer management with user group pricing
-- **REST API** — 18 JSON-API endpoints for third-party integrations
-- **SEO** — SEF URLs, metadata management
-- **Multilingual** — Full i18n support (en-GB, el-GR)
+- **Product Catalog** â Items, categories, manufacturers, custom fields
+- **Cart & Checkout** â Full shopping cart with multi-step checkout
+- **Orders Management** â Order lifecycle, statuses, history tracking
+- **Payments** â Pluggable payment gateways (Standard, Revolut, Viva Wallet)
+- **Shipping** â Pluggable shipment methods (Standard, BoxNow)
+- **Pricing Engine** â Taxes, discounts, coupons, multi-currency support
+- **Users & Groups** â Customer management with user group pricing
+- **REST API** â 18 JSON-API endpoints for third-party integrations
+- **SEO** â SEF URLs, metadata management
+- **Multilingual** â Full i18n support (en-GB, el-GR)
 
 ## Requirements
 
