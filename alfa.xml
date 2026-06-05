@@ -7,7 +7,7 @@
     <author>Agamemnon Fakas</author>
     <authorEmail>info@easylogic.gr</authorEmail>
     <authorUrl>https://easylogic.gr</authorUrl>
-    <version>1.0.4</version>
+    <version>1.0.5</version>
     <description>The smartest,fastest and easiest ecommerce solution for companies developed with love by Easylogic.</description>
     <namespace path="src">Alfa\Component\Alfa</namespace>
 
@@ -88,10 +88,13 @@
 
             <menu link="option=com_alfa&amp;view=tools" view="tools" alt="Alfa/Tools">COM_ALFA_TITLE_TOOLS</menu>
 
+            <menu link="option=com_alfa&amp;view=notifications" view="notifications" alt="Alfa/Notifications">COM_ALFA_NOTIFY_HISTORY_TITLE</menu>
+
         </submenu>
         <files folder="administrator">
             <filename>access.xml</filename>
             <filename>config.xml</filename>
+            <folder>files</folder>
             <folder>forms</folder>
             <folder>src</folder>
             <folder>tmpl</folder>
@@ -116,18 +119,15 @@
 		<plugin group="webservices" plugin="alfa"/>
 
         <plugin group="alfa-payments" plugin="standard"/>
-        <plugin group="alfa-payments" plugin="revolut"/>
-        <plugin group="alfa-payments" plugin="viva"/>
 
         <plugin group="alfa-shipments" plugin="standard"/>
-        <plugin group="alfa-shipments" plugin="boxnow"/>
 
         <plugin group="alfa-fields" plugin="tel"/>
         <plugin group="alfa-fields" plugin="text"/>
         <plugin group="alfa-fields" plugin="textarea"/>
         <plugin group="alfa-fields" plugin="choice"/>
-        <plugin  group="system" plugin="alfasync"/>    
-        
+        <plugin  group="system" plugin="alfasync"/>
+
     </plugins>
 
     <modules>

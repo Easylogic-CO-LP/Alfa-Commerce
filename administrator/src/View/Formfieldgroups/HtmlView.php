@@ -86,5 +86,6 @@ class HtmlView extends BaseHtmlView
         $toolbar->linkButton('back', Text::_('COM_ALFA_TOOLBAR_BACK_TO_FORMFIELDS'))
             ->url('index.php?option=com_alfa&view=formfields')
             ->icon('icon-arrow-left');
+        \Alfa\Component\Alfa\Administrator\Helper\NotificationHelper::toolbarBadge($toolbar);
     }
 }

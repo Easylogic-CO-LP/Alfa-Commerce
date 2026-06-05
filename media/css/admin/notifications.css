@@ -1,0 +1,111 @@
+/**
+ * Alfa Admin — Notification Center (toolbar badge + quick panel).
+ * Loaded by layouts/notifications/badge.php. Refined, minimal, professional:
+ * monochrome base, semantic severity accents, animated popover.
+ *
+ * All selectors are `alfa-notify-*` namespaced on purpose — the admin DOM is full of
+ * Bootstrap/Atum classes (.badge, .dropdown, .count, .item); prefixing avoids both
+ * inheriting their styles and leaking onto other extensions.
+ *
+ * @package  Com_Alfa
+ * @since    1.0.5
+ */
+
+/* The component wrapper — the button sits inline in the toolbar; the panel inside is
+   position:fixed (out of flow), so the wrapper hugs just the button. The gap from the
+   previous toolbar button lives here, on our OWN element — no override, no !important. */
+.alfa-notify { display: inline-flex; align-items: center; margin-inline-start: .5rem; }
+/* On the collapsed (stacked) toolbar the bell is full-width per line — drop the gap. */
+@media (width <= 575.98px) {
+    .alfa-notify { margin-inline-start: 0; }
+}
+
+/* The bell is a real Joomla toolbar button (btn btn-action) — it inherits the toolbar
+   button look + the mobile collapse (icon + label per line). We only add the inline
+   count pill and its severity colour. */
+.alfa-notify-btn { position: relative; display: inline-flex; align-items: center; gap: 6px; }
+.alfa-notify-btn:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+/* Atum adds a ::after separator to .btn-action toolbar buttons — drop it for the bell. */
+.subhead .btn.btn-action.alfa-notify-btn::after { display: none; content: none; }
+
+/* Count pill — scoped under the button (.alfa-notify-btn .alfa-notify-count = 0,2,0) so
+   it beats Atum's generic `.btn span` (0,1,1) by SPECIFICITY, not !important. Crucially,
+   leaving `display` un-!important lets the inline `display:none` (rendered when count is
+   0) actually hide the pill. */
+.alfa-notify-btn .alfa-notify-count {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+    font-size: 11px; font-weight: 700; line-height: 1; color: #fff; background: #64748b;
+}
+.alfa-notify-btn[data-severity="info"]    .alfa-notify-count { background: #0ea5e9; }
+.alfa-notify-btn[data-severity="success"] .alfa-notify-count { background: #16a34a; }
+.alfa-notify-btn[data-severity="warning"] .alfa-notify-count { background: #d97706; color: #1a1206; }
+.alfa-notify-btn[data-severity="danger"]  .alfa-notify-count { background: #dc2626; animation: alfa-notify-pulse 2.2s ease-in-out infinite; }
+
+@keyframes alfa-notify-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(220, 38, 38, .45); }
+    70%  { box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+
+/* Popover — rendered in place inside the component but position:fixed, anchored +
+   viewport-clamped by JS (top/left/width set inline) so it floats above everything. */
+.alfa-notify-dropdown {
+    position: fixed; top: 0; left: 0;
+    width: 380px; max-width: calc(100vw - 16px); background: #fff; color: #0f172a;
+    border: 1px solid #e0e5ea; border-radius: 12px;
+    box-shadow: 0 10px 15px -3px rgba(15, 23, 42, .12), 0 4px 6px -4px rgba(15, 23, 42, .1);
+    z-index: 1100; overflow: hidden;
+    opacity: 0; transform: translateY(-6px) scale(.98); transform-origin: top right; pointer-events: none;
+    transition: opacity .16s ease, transform .16s ease;
+}
+.alfa-notify-dropdown.show { opacity: 1; transform: none; pointer-events: auto; }
+
+.alfa-notify-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 12px 16px; border-bottom: 1px solid #e0e5ea;
+    font-weight: 600; font-size: 13px; letter-spacing: .01em;
+}
+.alfa-notify-head small { font-weight: 500; color: #64748b; font-size: 11px; }
+
+.alfa-notify-list { list-style: none; margin: 0; padding: 4px; max-height: 60vh; overflow-y: auto; }
+.alfa-notify-item { display: flex; gap: 10px; padding: 10px 12px; border-radius: 8px; transition: background-color .12s ease; }
+.alfa-notify-item:hover { background: rgba(15, 23, 42, .04); }
+.alfa-notify-item.is-unread { background: rgba(37, 99, 235, .05); }
+.alfa-notify-item.is-unread:hover { background: rgba(37, 99, 235, .08); }
+
+.alfa-notify-dot { flex: 0 0 auto; width: 8px; height: 8px; margin-top: 5px; border-radius: 50%; background: #64748b; }
+.alfa-notify-dot.sev-info { background: #0ea5e9; }
+.alfa-notify-dot.sev-success { background: #16a34a; }
+.alfa-notify-dot.sev-warning { background: #d97706; }
+.alfa-notify-dot.sev-danger { background: #dc2626; }
+
+.alfa-notify-body { min-width: 0; flex: 1 1 auto; }
+.alfa-notify-title { font-size: 13px; font-weight: 600; line-height: 1.3; color: #0f172a; word-break: break-word; }
+.alfa-notify-msg { font-size: 12px; line-height: 1.45; color: #475569; margin-top: 2px; word-break: break-word; }
+.alfa-notify-meta { display: flex; gap: 10px; align-items: center; margin-top: 5px; }
+.alfa-notify-link { font-size: 11.5px; font-weight: 600; color: #2563eb; text-decoration: none; }
+.alfa-notify-link:hover { text-decoration: underline; }
+.alfa-notify-time { font-size: 11px; color: #94a3b8; }
+
+.alfa-notify-actions { flex: 0 0 auto; display: flex; gap: 2px; align-items: flex-start; opacity: 0; transition: opacity .12s ease; }
+.alfa-notify-item:hover .alfa-notify-actions,
+.alfa-notify-item:focus-within .alfa-notify-actions { opacity: 1; }
+.alfa-notify-act {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border: 0; border-radius: 6px; background: transparent;
+    color: #64748b; cursor: pointer; font-size: 12px;
+    transition: background-color .12s ease, color .12s ease;
+}
+.alfa-notify-act:hover { background: rgba(15, 23, 42, .08); color: #0f172a; }
+
+.alfa-notify-empty { padding: 28px 16px; text-align: center; color: #94a3b8; font-size: 12.5px; }
+.alfa-notify-empty .alfa-notify-empty-ico { display: block; font-size: 22px; color: #cbd5e1; margin-bottom: 6px; }
+
+.alfa-notify-foot { padding: 8px; border-top: 1px solid #e0e5ea; text-align: center; }
+.alfa-notify-foot a { font-size: 12px; font-weight: 600; color: #334155; text-decoration: none; }
+.alfa-notify-foot a:hover { color: #0f172a; text-decoration: underline; }
+
+@media (prefers-reduced-motion: reduce) {
+    .alfa-notify-dropdown, .alfa-notify-count, .alfa-notify-btn, .alfa-notify-item, .alfa-notify-act { transition: none; animation: none; }
+}

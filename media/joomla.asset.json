@@ -32,6 +32,25 @@
       "dependencies": ["core"]
     },
     {
+      "name": "com_alfa.notifications",
+      "type": "style",
+      "uri": "com_alfa/admin/notifications.css"
+    },
+    {
+      "name": "com_alfa.notifications",
+      "type": "script",
+      "uri": "com_alfa/admin/notifications.js",
+      "dependencies": ["core"],
+      "attributes": { "async": true }
+    },
+    {
+      "name": "com_alfa.integrity-check",
+      "type": "script",
+      "uri": "com_alfa/admin/integrity-check.js",
+      "dependencies": ["core"],
+      "attributes": { "async": true }
+    },
+    {
       "name": "com_alfa.list",
       "type": "style",
       "uri": "com_alfa/site/list.css"
@@ -174,22 +193,22 @@
       ]
     },
     {
-      "name": "com_alfa.admin.notifications",
+      "name": "com_alfa.toast",
       "type": "script",
-      "uri": "com_alfa/admin/admin-notifications.js",
+      "uri": "com_alfa/admin/toast.js",
       "attributes": { "defer": true }
     },
     {
-      "name": "com_alfa.admin.notifications",
+      "name": "com_alfa.toast",
       "type": "style",
-      "uri": "com_alfa/admin/admin-notifications.css"
+      "uri": "com_alfa/admin/toast.css"
     },
     {
-      "name": "com_alfa.notifications",
+      "name": "com_alfa.toast",
       "type": "preset",
       "dependencies": [
-        "com_alfa.admin.notifications#style",
-        "com_alfa.admin.notifications#script"
+        "com_alfa.toast#style",
+        "com_alfa.toast#script"
       ]
     },
     {

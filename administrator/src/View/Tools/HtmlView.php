@@ -11,7 +11,9 @@ namespace Alfa\Component\Alfa\Administrator\View\Tools;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\IntegrityHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PackageHelper;
+use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -37,6 +39,53 @@ class HtmlView extends BaseHtmlView
     public array $libraries = [];
 
     /**
+     * Manifest⇄disk drift detected for the live install, surfaced as a pre-export
+     * warning. Shape: ['missing' => string[], 'undeclared' => string[]]. "missing"
+     * = declared but absent (breaks install); "undeclared" = present on disk but
+     * not declared (silently left out of the package/install).
+     *
+     * @var array{missing: string[], undeclared: string[]}
+     * @since  1.0.3
+     */
+    public array $drift = ['missing' => [], 'undeclared' => []];
+
+    /**
+     * Suggested next version (current manifest version + 1 patch, e.g. 1.0.4 →
+     * 1.0.5), so the contribution guide's SQL-update / version-bump examples match
+     * this install instead of a hard-coded number.
+     *
+     * @var string
+     * @since  1.0.4
+     */
+    public string $nextVersion = '';
+
+    /**
+     * Release-artifact readiness for the current manifest version — whether the
+     * schema update and the removed-files list exist — so the guide can remind the
+     * developer to add whichever is missing. Shape: ['version' => string,
+     * 'sqlFile' => string, 'removedFile' => string, 'hasSqlUpdate' => bool,
+     * 'hasRemovedJson' => bool].
+     *
+     * @var array{version: string, sqlFile: string, removedFile: string, hasSqlUpdate: bool, hasRemovedJson: bool}
+     * @since  1.0.4
+     */
+    public array $release = ['version' => '', 'sqlFile' => '', 'removedFile' => '', 'hasSqlUpdate' => true, 'hasRemovedJson' => true];
+
+    /**
+     * Verification against the SIGNED canonical checksums on the CDN (see
+     * {@see IntegrityHelper::verifyAgainstOfficial()}). `status` is the single source
+     * of truth: `official` = verified pristine release (green); `modified` = real
+     * deviation from the matched official version (alarm); `ahead` = install is ahead
+     * of / customised from the published catalog (calm, expected when developing);
+     * `unreachable` = CDN not reachable (network state, not tamper); `bad_signature`
+     * = fetched a reference that isn't signed by us (do not trust).
+     *
+     * @var array{status: string}
+     * @since  1.0.5
+     */
+    public array $official = ['status' => 'unreachable'];
+
+    /**
      * Render the Tools page.
      *
      * @param string|null $tpl The template name.
@@ -51,7 +100,17 @@ class HtmlView extends BaseHtmlView
             throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
         }
 
-        $this->libraries = PackageHelper::describeLibraries(installRoot: JPATH_ROOT);
+        $this->libraries   = PackageHelper::describeLibraries(installRoot: JPATH_ROOT);
+        $this->drift       = PackageHelper::detectDrift(installRoot: JPATH_ROOT);
+        $this->nextVersion = PackageHelper::nextVersion(installRoot: JPATH_ROOT);
+        $this->release     = PackageHelper::releaseReadiness(installRoot: JPATH_ROOT);
+        $this->official    = IntegrityHelper::verifyAgainstOfficial();
+
+        // A fresh Tools check is authoritative: refresh the cached verdict (so the
+        // badge's 24h sync doesn't overwrite this with a stale one) and apply it to the
+        // Security notification now, so opening Tools updates the badge immediately.
+        IntegrityHelper::clearVerdictCache();
+        SyncHelper::applyIntegrityVerdict($this->official);
 
         $this->addToolbar();
 

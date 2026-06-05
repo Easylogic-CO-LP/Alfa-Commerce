@@ -33,7 +33,7 @@ use Joomla\CMS\Language\Text;
 $wa = $this->getDocument()->getWebAssetManager();
 $wa->useStyle('com_alfa.admin')
 	->useScript('com_alfa.admin')
-	->usePreset('com_alfa.notifications')
+	->usePreset('com_alfa.toast')
 	->useStyle('com_alfa.admin.orders-list')
 	->useScript('com_alfa.admin.orders-list')
 	->useScript('com_alfa.order-actions');

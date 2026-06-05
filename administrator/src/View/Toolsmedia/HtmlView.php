@@ -123,5 +123,6 @@ class HtmlView extends BaseHtmlView
             ->modalWidth('600px')
             ->modalHeight('fit-content')
             ->listCheck(true);
+        \Alfa\Component\Alfa\Administrator\Helper\NotificationHelper::toolbarBadge($toolbar);
     }
 }

@@ -13,7 +13,11 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 defined('_JEXEC') or die;
 
 use Exception;
+use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Component\ComponentHelper;
+use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
+use Joomla\CMS\Router\Route;
 use Joomla\Database\DatabaseInterface;
 use stdClass;
 
@@ -542,5 +546,99 @@ final class SyncHelper
         }
 
         return $schema;
+    }
+
+    /**
+     * Keep the Security notification in sync with the integrity verdict. Designed to
+     * be called on every admin load (by PlgSystemAlfasync) — the expensive work is
+     * throttled to once per 24h here via Joomla's cache (same `com_alfa.integrity`
+     * group as {@see IntegrityHelper::cachedVerdict()}), so callers don't worry about
+     * scheduling. The actual push/clear runs only on a cache miss.
+     *
+     * @return void
+     *
+     * @since   1.0.5
+     */
+    public static function syncIntegrity(): void
+    {
+        try {
+            $cache = Factory::getContainer()
+                ->get(CacheControllerFactoryInterface::class)
+                ->createCacheController('callback', [
+                    'defaultgroup' => 'com_alfa.integrity',
+                    'lifetime'     => 1440, // 24h, in minutes
+                    'caching'      => true,
+                ]);
+
+            $cache->get([self::class, 'doSyncIntegrity'], [], 'sync');
+        } catch (\Throwable) {
+            // Cache unavailable → just do it (correct, only less throttled).
+            self::doSyncIntegrity();
+        }
+    }
+
+    /**
+     * Push the Security notification while the integrity check isn't clean, or clear
+     * it (hard — a fluctuating live state shouldn't fill history) when it is. Public
+     * so it can be the cache callback for {@see self::syncIntegrity()}.
+     *
+     * @return bool Always true (so the cache stores a hit).
+     *
+     * @since   1.0.5
+     */
+    public static function doSyncIntegrity(): bool
+    {
+        self::applyIntegrityVerdict(IntegrityHelper::cachedVerdict());
+
+        return true;
+    }
+
+    /**
+     * Push/clear the Security notification to match a verdict. Split out so a FRESH
+     * check (the Tools Security tab) can update the badge IMMEDIATELY instead of waiting
+     * for the next 24h sync — and so the tab and the badge never disagree.
+     *
+     * @param array $verdict A verdict from IntegrityHelper (verifyAgainstOfficial/cachedVerdict).
+     *
+     * @return void
+     *
+     * @since   1.0.5
+     */
+    public static function applyIntegrityVerdict(array $verdict): void
+    {
+        $status = $verdict['status'] ?? 'unreachable';
+
+        if ($status === 'official') {
+            NotificationHelper::clear(dedupKey: 'alfa.integrity', hard: true);
+
+            return;
+        }
+
+        $map = [
+            'modified'      => ['danger',  'COM_ALFA_NOTIFY_INTEGRITY_MODIFIED'],
+            'ahead'         => ['info',    'COM_ALFA_NOTIFY_INTEGRITY_AHEAD'],
+            'unreachable'   => ['warning', 'COM_ALFA_NOTIFY_INTEGRITY_UNVERIFIED'],
+            'bad_signature' => ['danger',  'COM_ALFA_NOTIFY_INTEGRITY_BADSIG'],
+        ];
+
+        [$severity, $messageKey] = $map[$status] ?? ['warning', 'COM_ALFA_NOTIFY_INTEGRITY_UNVERIFIED'];
+
+        NotificationHelper::push(
+            dedupKey: 'alfa.integrity',
+            title: Text::_('COM_ALFA_NOTIFY_INTEGRITY_TITLE'),
+            options: [
+                'group'       => Text::_('COM_ALFA_NOTIFY_GROUP_SECURITY'),
+                'severity'    => $severity,
+                'message'     => Text::_($messageKey),
+                // Raw URL (no &amp;) — output encoding adds the entities once, not twice.
+                'url'         => Route::_('index.php?option=com_alfa&view=tools', false),
+                'dismissible' => false,
+                // Constant: while the install isn't clean, re-alert each 24h sync even if read.
+                'constant'    => true,
+                // Everyone SEES the integrity state (awareness), but only admins with
+                // alfa.tools get the clickable link to Tools (others see it link-less).
+                'link'        => ['action' => 'alfa.tools', 'asset' => 'com_alfa'],
+            ]
+        );
     }
 }

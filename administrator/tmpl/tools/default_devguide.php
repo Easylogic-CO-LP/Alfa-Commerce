@@ -36,7 +36,18 @@ $downloadButton = '<a class="btn btn-primary mb-2" href="' . $this->escape($expo
     . '<span class="icon-download" aria-hidden="true"></span> '
     . Text::_('COM_ALFA_TOOLS_PACKAGE_BTN') . '</a>';
 
-$structuralChanges = <<<'HTML'
+// Changed-only export: same task with &changed=1, so the server restricts the zip
+// to the verified-changed files from the integrity baseline.
+$changedButton = '<a class="btn btn-outline-primary mb-2 ms-2" href="' . $this->escape($exportUrl . '&changed=1') . '">'
+    . '<span class="icon-download" aria-hidden="true"></span> '
+    . Text::_('COM_ALFA_TOOLS_CHANGED_BTN') . '</a>';
+
+// Concrete version example for the SQL-update / version-bump steps: the next
+// version after this install's current one (PackageHelper::nextVersion via the
+// view). Falls back to the generic placeholder when it can't be determined.
+$nextVersion = $this->nextVersion !== '' ? $this->escape($this->nextVersion) : '&lt;new-version&gt;';
+
+$structuralChanges = <<<HTML
 <div class="alert alert-success small mb-2">
     <strong>First — structural changes.</strong> If your change adds or alters structure, do these <em>before</em> you download (the export only ships what's declared):
     <ul class="mb-0 mt-2">
@@ -45,14 +56,19 @@ $structuralChanges = <<<'HTML'
             The export <em>only includes what's declared there</em>, so an undeclared plugin or module is
             <strong>silently left out of the zip and won't install</strong>.</li>
         <li><strong>Changed the database?</strong> Put your <code>ALTER</code> / <code>CREATE</code> statements in a new
-            update file <code>administrator/sql/updates/&lt;new-version&gt;.sql</code> (e.g. <code>1.0.4.sql</code>), and add
-            the same statements to <code>administrator/sql/install.mysql.utf8.sql</code> so fresh installs get them. On
+            update file <code>sql/updates/mysql/&lt;new-version&gt;.sql</code> (e.g. <code>{$nextVersion}.sql</code>), and add
+            the same statements to <code>sql/install.mysql.utf8.sql</code> so fresh installs get them. On
             update, Joomla runs every update file whose version is newer than the site's installed schema.
             <strong>Always use the <code>#__</code> table prefix</strong> — Joomla swaps in the site's real prefix when it
             runs the SQL — never the literal prefix from your own install (write <code>#__alfa_items</code>, not
             <code>jos_alfa_items</code>).</li>
+        <li><strong>Deleted or moved a file?</strong> List the old paths in a new
+            <code>files/removed/&lt;new-version&gt;.json</code> (e.g. <code>{$nextVersion}.json</code>) — shaped
+            <code>{"files":[…],"folders":[…]}</code> with root-relative paths. On update the installer removes them,
+            because Joomla never deletes files dropped between versions on its own. List only files you actually removed.</li>
         <li><strong>Bump the version.</strong> Set <code>&lt;version&gt;</code> in <code>alfa.xml</code> to the new number
-            (match the update file's name, e.g. <code>1.0.4</code>) — that is what triggers the update SQL to run.</li>
+            (match the file names above, e.g. <code>{$nextVersion}</code>) — that is what triggers the update SQL
+            <em>and</em> the file cleanup to run.</li>
     </ul>
 </div>
 HTML;
@@ -117,9 +133,90 @@ $cautionLibraries = ob_get_clean();
 ob_start(); ?>
 <h4 class="h6 mt-3">3. Get your changed files into the branch</h4>
 <?php echo $structuralChanges; ?>
+
+<?php /* ---------- Manifest⇄disk drift (pre-export sanity check) ---------- */ ?>
+<?php if (!empty($this->drift['missing'])) : ?>
+    <div class="alert alert-danger" role="alert">
+        <strong><?php echo Text::_('COM_ALFA_TOOLS_DRIFT_MISSING_TITLE'); ?></strong>
+        <p class="mb-2"><?php echo Text::_('COM_ALFA_TOOLS_DRIFT_MISSING_DESC'); ?></p>
+        <ul class="mb-0">
+            <?php foreach ($this->drift['missing'] as $item) : ?>
+                <li><code><?php echo $this->escape($item); ?></code></li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
+<?php endif; ?>
+
+<?php if (!empty($this->drift['undeclared'])) : ?>
+    <div class="alert alert-warning" role="alert">
+        <strong><?php echo Text::_('COM_ALFA_TOOLS_DRIFT_UNDECLARED_TITLE'); ?></strong>
+        <p class="mb-2"><?php echo Text::_('COM_ALFA_TOOLS_DRIFT_UNDECLARED_DESC'); ?></p>
+        <ul class="mb-0">
+            <?php foreach ($this->drift['undeclared'] as $item) : ?>
+                <li><code><?php echo $this->escape($item); ?></code></li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
+<?php endif; ?>
+
+<?php if (empty($this->drift['missing']) && empty($this->drift['undeclared'])) : ?>
+    <p class="small text-success mb-3">
+        <span class="icon-checkmark-circle" aria-hidden="true"></span>
+        <?php echo Text::_('COM_ALFA_TOOLS_DRIFT_OK'); ?>
+    </p>
+<?php endif; ?>
+
+<?php /* Release-artifact reminders for the current version — compact lines mirroring the drift-OK note; what each file does is explained in the structural-changes block above. Shown independently. */ ?>
+<?php if (!empty($this->release['version']) && !$this->release['hasSqlUpdate']) : ?>
+    <p class="small mb-2" style="color: #c2410c;">
+        <span class="icon-warning" aria-hidden="true"></span>
+        <?php echo Text::sprintf('COM_ALFA_TOOLS_RELEASE_SQL', $this->escape($this->release['version'])); ?>
+    </p>
+<?php endif; ?>
+
+<?php if (!empty($this->release['version']) && !$this->release['hasRemovedJson']) : ?>
+    <p class="small mb-2" style="color: #c2410c;">
+        <span class="icon-warning" aria-hidden="true"></span>
+        <?php echo Text::sprintf('COM_ALFA_TOOLS_RELEASE_REMOVED', $this->escape($this->release['version'])); ?>
+    </p>
+<?php endif; ?>
+
+<?php /* Bump-awareness (official check): 'modified' = files differ but still on the
+         released version number → bump it; 'ahead' = version already past the catalog. */ ?>
+<?php if (($this->official['status'] ?? '') === 'modified') : ?>
+    <p class="small mb-2" style="color: #c2410c;">
+        <span class="icon-warning" aria-hidden="true"></span>
+        <?php echo Text::sprintf('COM_ALFA_TOOLS_BUMP_REMINDER', $this->escape($this->official['officialVersion'] ?? '')); ?>
+    </p>
+<?php elseif (($this->official['status'] ?? '') === 'ahead') : ?>
+    <p class="small text-success mb-2">
+        <span class="icon-checkmark-circle" aria-hidden="true"></span>
+        <?php echo Text::_('COM_ALFA_TOOLS_BUMP_OK'); ?>
+    </p>
+<?php endif; ?>
+
 <?php echo $downloadButton; ?>
+<?php
+// Changed-only export — enabled when the official check reports real differences
+// ('modified' = deviation from the matched version, 'ahead' = customised/off-catalog);
+// otherwise a disabled button with the reason as a tooltip + a visible note.
+$changedStatus = $this->official['status'] ?? '';
+?>
+<?php if ($changedStatus === 'modified' || $changedStatus === 'ahead') : ?>
+    <?php echo $changedButton; ?>
+<?php else : ?>
+    <?php $changedWhy = $changedStatus === 'official' ? Text::_('COM_ALFA_TOOLS_CHANGED_NONE') : Text::_('COM_ALFA_TOOLS_CHANGED_UNVERIFIED'); ?>
+    <?php /* pointer-events:auto overrides Bootstrap's .disabled (which would otherwise suppress both the not-allowed cursor and the tooltip). */ ?>
+    <span class="btn btn-outline-primary mb-2 ms-2 disabled" aria-disabled="true" tabindex="-1"
+          style="cursor: not-allowed; pointer-events: auto;"
+          title="<?php echo $this->escape($changedWhy); ?>">
+        <span class="icon-download" aria-hidden="true"></span>
+        <?php echo Text::_('COM_ALFA_TOOLS_CHANGED_BTN'); ?>
+    </span>
+    <span class="small text-muted ms-2"><?php echo $changedWhy; ?></span>
+<?php endif; ?>
 <p class="small mb-2">
-    This downloads <strong>your changed files in the repo layout</strong> — built for this pull request, <strong>not</strong>
+    This downloads <strong>the files in the repo layout</strong> — built for this pull request, <strong>not</strong>
     a site export or backup (no database data, only the schema / SQL files that ship with the code). Extract it
     <em>over</em> the repo folder.
 </p>
@@ -169,7 +266,7 @@ HTML;
                     <tbody>
                         <tr><td><code>main</code></td><td>Stable releases. <strong>Never</strong> commit or PR directly.</td></tr>
                         <tr><td><code>developer</code></td><td>Active development. Base every branch here, and target it with PRs.</td></tr>
-                        <tr><td><code>feature/*</code></td><td>New features, e.g. <code>feature/free-shipping-threshold</code>.</td></tr>
+                        <tr><td><code>feat/*</code></td><td>New features, e.g. <code>feat/free-shipping-threshold</code>.</td></tr>
                         <tr><td><code>fix/*</code></td><td>Bug fixes, e.g. <code>fix/cart-total-rounding</code>.</td></tr>
                     </tbody>
                 </table>
@@ -200,7 +297,7 @@ HTML;
                     <h4 class="h6 mt-3">2. Branch off <code>developer</code></h4>
                     <p class="small mb-3">Click <strong>Current Branch</strong> (top bar) → select <code>developer</code>, then
                         <strong>Fetch origin</strong> for the latest. Click <strong>Current Branch → New Branch</strong>, name it
-                        <code>feature/short-description</code>, set <strong>Create branch based on…</strong> to <code>developer</code>,
+                        <code>feat/short-description</code>, set <strong>Create branch based on…</strong> to <code>developer</code>,
                         and click <strong>Create Branch</strong> → then <strong>Publish branch</strong>.</p>
 
                     <?php echo $step3; echo $cautionDeletionsDesktop; echo $cautionLibraries; ?>
@@ -212,11 +309,11 @@ HTML;
 
                     <h4 class="h6 mt-3">5. Commit</h4>
                     <p class="small mb-3">Bottom-left, fill the <strong>Summary</strong> (short, imperative — "Add…", "Fix…") and the
-                        optional <strong>Description</strong>, then click <strong>Commit to feature/short-description</strong>.</p>
+                        optional <strong>Description</strong>, then click <strong>Commit to feat/short-description</strong>.</p>
 
                     <h4 class="h6 mt-3">6. Catch up to <code>developer</code> before the PR</h4>
-                    <p class="small mb-3">Click <strong>Current Branch → Choose a branch to merge into feature/short-description</strong>,
-                        pick <code>developer</code>, then <strong>Merge developer into feature/short-description</strong>. Resolve any
+                    <p class="small mb-3">Click <strong>Current Branch → Choose a branch to merge into feat/short-description</strong>,
+                        pick <code>developer</code>, then <strong>Merge developer into feat/short-description</strong>. Resolve any
                         conflicts now, not inside the PR.</p>
 
                     <h4 class="h6 mt-3">7. Push your branch</h4>
@@ -246,7 +343,7 @@ cd Alfa-Commerce
 git remote add upstream https://github.com/Easylogic-CO-LP/Alfa-Commerce.git</pre>
                             <p class="mb-1"><strong>Step 2</strong> — branch off the upstream <code>developer</code>:</p>
 <pre class="bg-light border rounded overflow-auto p-2 mb-2">git fetch upstream
-git checkout -b feature/short-description upstream/developer</pre>
+git checkout -b feat/short-description upstream/developer</pre>
                             <p class="mb-1"><strong>Step 6</strong> — catch up from upstream:</p>
 <pre class="bg-light border rounded overflow-auto p-2 mb-2">git fetch upstream
 git merge upstream/developer</pre>
@@ -263,7 +360,7 @@ cd Alfa-Commerce</pre>
                     <h4 class="h6 mt-3">2. Branch off <code>developer</code></h4>
 <pre class="bg-light border rounded overflow-auto p-3 mb-3">git checkout developer
 git pull                                     # latest developer
-git checkout -b feature/short-description     # or fix/short-description</pre>
+git checkout -b feat/short-description     # or fix/short-description</pre>
 
                     <?php echo $step3; echo $cautionDeletionsCli; echo $cautionLibraries; ?>
 
@@ -275,7 +372,7 @@ git checkout -b feature/short-description     # or fix/short-description</pre>
 git merge origin/developer  # fold it into your branch</pre>
 
                     <h4 class="h6 mt-3">7. Push your branch</h4>
-<pre class="bg-light border rounded overflow-auto p-3 mb-3">git push -u origin feature/short-description</pre>
+<pre class="bg-light border rounded overflow-auto p-3 mb-3">git push -u origin feat/short-description</pre>
 
                     <h4 class="h6 mt-3">8. Open the pull request</h4>
                     <p class="small mb-1">On GitHub, click <em>Compare &amp; pull request</em>, then set:</p>
