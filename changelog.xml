@@ -3,6 +3,16 @@
     <changelog>
         <element>com_alfa</element>
         <type>component</type>
+        <version>1.0.6</version>
+
+        <fix>
+            <item>File-integrity verification no longer flags optional (non-en-GB) language packs as drift — installs without a given language pack now verify cleanly.</item>
+        </fix>
+    </changelog>
+
+    <changelog>
+        <element>com_alfa</element>
+        <type>component</type>
         <version>1.0.5</version>
 
         <addition>
