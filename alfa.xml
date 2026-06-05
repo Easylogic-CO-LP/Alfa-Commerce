@@ -86,9 +86,9 @@
 
 			<menu link="option=com_alfa&amp;view=currencies" view="currencies" alt="Alfa/Currencies">COM_ALFA_TITLE_CURRENCIES</menu>
 
-            <menu link="option=com_alfa&amp;view=tools" view="tools" alt="Alfa/Tools">COM_ALFA_TITLE_TOOLS</menu>
-
             <menu link="option=com_alfa&amp;view=notifications" view="notifications" alt="Alfa/Notifications">COM_ALFA_NOTIFY_HISTORY_TITLE</menu>
+
+            <menu link="option=com_alfa&amp;view=tools" view="tools" alt="Alfa/Tools">COM_ALFA_TITLE_TOOLS</menu>
 
         </submenu>
         <files folder="administrator">

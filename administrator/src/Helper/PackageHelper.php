@@ -168,9 +168,26 @@ class PackageHelper
      */
     public static function hashShippedFiles(string $installRoot): array
     {
+        return self::hashEntries(entries: self::enumerateShippedFiles(installRoot: $installRoot));
+    }
+
+    /**
+     * SHA-256 every entry of an enumeration ({@see enumerateShippedFiles} or
+     * {@see enumerateFromPackage}), keyed by its live root-relative path. The single
+     * hashing path both the install-hash and the installable-hash run through, so a
+     * checksum signed from a zip is byte-identical to one signed from a live install.
+     *
+     * @param array<string, array{abs: string, repo: string}> $entries liveRel => {abs, …}.
+     *
+     * @return array<string, array{h: string, s: int, m: int}> liveRel => {sha256, size, mtime}.
+     *
+     * @since   1.0.5
+     */
+    private static function hashEntries(array $entries): array
+    {
         $out = [];
 
-        foreach (self::enumerateShippedFiles(installRoot: $installRoot) as $rel => $entry) {
+        foreach ($entries as $rel => $entry) {
             $abs = $entry['abs'];
 
             if (!is_file($abs) || !is_readable($abs)) {
@@ -191,6 +208,267 @@ class PackageHelper
         }
 
         return $out;
+    }
+
+    /**
+     * Hash an INSTALLABLE zip into the same live-keyed checksum map a real install
+     * produces — so a release can be signed straight from its package, with no throwaway
+     * Joomla install. The zip is extracted to a temp dir and walked by
+     * {@see enumerateFromPackage} (which keys every file by its post-install path via the
+     * SAME manifest mapping the verifier uses); files are then SHA-256'd in place by the
+     * shared {@see hashEntries}. Because Joomla's installer copies files verbatim,
+     * hash(package file) == hash(installed file), so the result is identical to
+     * {@see hashShippedFiles} on the installed component.
+     *
+     * @param string $zipPath Absolute path to the installable com_alfa zip (repo layout).
+     *
+     * @return array<string, array{h: string, s: int, m: int}> liveRel => {sha256, size, mtime}.
+     *
+     * @throws RuntimeException If zip support is missing or the package can't be read.
+     *
+     * @since   1.0.5
+     */
+    public static function hashInstallable(string $zipPath): array
+    {
+        if (!class_exists(ZipArchive::class)) {
+            throw new RuntimeException('The PHP zip extension is required to hash an installable.');
+        }
+
+        if (!is_file($zipPath)) {
+            throw new RuntimeException('Installable not found: ' . $zipPath);
+        }
+
+        $tmp = sys_get_temp_dir() . '/alfa_pkg_' . bin2hex(random_bytes(6));
+
+        try {
+            $zip = new ZipArchive();
+
+            if ($zip->open($zipPath) !== true) {
+                throw new RuntimeException('Cannot open installable: ' . $zipPath);
+            }
+
+            if (!@mkdir($tmp, 0o775, true) && !is_dir($tmp)) {
+                throw new RuntimeException('Cannot create temp dir: ' . $tmp);
+            }
+
+            $zip->extractTo($tmp);
+            $zip->close();
+
+            return self::hashEntries(entries: self::enumerateFromPackage(packageRoot: $tmp));
+        } finally {
+            self::rrmdir(dir: $tmp);
+        }
+    }
+
+    /**
+     * The package-layout twin of {@see enumerateShippedFiles}: walks an extracted
+     * installable (repo layout) and returns the SAME liveRel keys, with `abs` pointing
+     * at the file inside the package. Every area is mapped to its post-install path with
+     * the identical manifest logic, so the two enumerations agree file-for-file.
+     *
+     * @param string $packageRoot Absolute path to the extracted package root (contains alfa.xml).
+     *
+     * @return array<string, array{abs: string, repo: string}> liveRel => {abs: package path, repo}.
+     *
+     * @throws RuntimeException If the manifest is missing or invalid.
+     *
+     * @since   1.0.5
+     */
+    public static function enumerateFromPackage(string $packageRoot): array
+    {
+        $component = 'com_alfa';
+        $m = self::parseManifest(manifestPath: $packageRoot . '/alfa.xml');
+
+        $out = [];
+
+        // --- Component code: package <folder> → live components/administrator/api ---
+        self::collectDeclaredItems(
+            items:    $m['siteItems'],
+            absRoot:  $packageRoot . '/' . $m['siteFolder'],
+            relRoot:  'components/' . $component,
+            repoRoot: $m['siteFolder'],
+            out:      $out,
+        );
+
+        self::collectDeclaredItems(
+            items:    $m['adminItems'],
+            absRoot:  $packageRoot . '/' . $m['adminFolder'],
+            relRoot:  'administrator/components/' . $component,
+            repoRoot: $m['adminFolder'],
+            out:      $out,
+        );
+
+        if ($m['hasApi']) {
+            self::collectDeclaredItems(
+                items:    $m['apiItems'],
+                absRoot:  $packageRoot . '/' . $m['apiFolder'],
+                relRoot:  'api/components/' . $component,
+                repoRoot: $m['apiFolder'],
+                out:      $out,
+            );
+        }
+
+        // --- Manifest XML + scriptfile: package ROOT → live admin component folder ---
+        self::collectFile(
+            abs:  $packageRoot . '/' . $m['manifestFilename'],
+            rel:  'administrator/components/' . $component . '/' . $m['manifestFilename'],
+            repo: $m['manifestFilename'],
+            out:  $out,
+        );
+
+        if ($m['scriptfile'] !== '') {
+            self::collectFile(
+                abs:  $packageRoot . '/' . $m['scriptfile'],
+                rel:  'administrator/components/' . $component . '/' . $m['scriptfile'],
+                repo: $m['scriptfile'],
+                out:  $out,
+            );
+        }
+
+        // --- Component media: package <mediaFolder> → live media/<dest> ---
+        if ($m['hasMedia']) {
+            self::collectDeclaredItems(
+                items:    $m['mediaItems'],
+                absRoot:  $packageRoot . '/' . $m['mediaFolder'],
+                relRoot:  'media/' . $m['mediaDest'],
+                repoRoot: $m['mediaFolder'],
+                out:      $out,
+            );
+        }
+
+        // --- Component languages: package <langFolder>/<rel> → live (administrator/)language ---
+        foreach ($m['siteLangs'] as [$tag, $rel]) {
+            self::collectFile(
+                abs:  $packageRoot . '/' . ($m['siteLangFolder'] !== '' ? $m['siteLangFolder'] . '/' : '') . $rel,
+                rel:  'language/' . $tag . '/' . basename($rel),
+                repo: ($m['siteLangFolder'] !== '' ? $m['siteLangFolder'] . '/' : '') . $rel,
+                out:  $out,
+            );
+        }
+
+        foreach ($m['adminLangs'] as [$tag, $rel]) {
+            self::collectFile(
+                abs:  $packageRoot . '/' . ($m['adminLangFolder'] !== '' ? $m['adminLangFolder'] . '/' : '') . $rel,
+                rel:  'administrator/language/' . $tag . '/' . basename($rel),
+                repo: ($m['adminLangFolder'] !== '' ? $m['adminLangFolder'] . '/' : '') . $rel,
+                out:  $out,
+            );
+        }
+
+        // --- Sub-extensions: plugins (admin-lang preference) + modules (site-lang) ---
+        foreach ($m['plugins'] as [$group, $name]) {
+            self::collectSubExtensionFromPackage(
+                packageRoot: $packageRoot,
+                relDir:      'plugins/' . $group . '/' . $name,
+                preferred:   $name,
+                langRoots:   ['administrator/language', 'language'],
+                out:         $out,
+            );
+        }
+
+        foreach ($m['modules'] as $module) {
+            self::collectSubExtensionFromPackage(
+                packageRoot: $packageRoot,
+                relDir:      'modules/' . $module,
+                preferred:   $module,
+                langRoots:   ['language', 'administrator/language'],
+                out:         $out,
+            );
+        }
+
+        return $out;
+    }
+
+    /**
+     * Package-layout twin of {@see collectSubExtension}: a sub-extension's files are
+     * co-located inside its package folder; map them to the scattered live paths the
+     * installer creates — code stays put, media → media/<destination>, language INIs →
+     * the FIRST of $langRoots (matching the export's search preference, i.e. plugins land
+     * in administrator/language, site modules in language).
+     *
+     * @param string $packageRoot Extracted package root.
+     * @param string $relDir Sub-extension dir, e.g. plugins/system/alfasync.
+     * @param string $preferred Preferred manifest basename.
+     * @param array<int, string> $langRoots Live language roots, most-preferred first.
+     * @param array<string, array{abs: string, repo: string}> $out Accumulator (by ref).
+     *
+     *
+     * @since   1.0.5
+     */
+    private static function collectSubExtensionFromPackage(string $packageRoot, string $relDir, string $preferred, array $langRoots, array &$out): void
+    {
+        $pkgDir = $packageRoot . '/' . $relDir;
+        $manifestPath = self::findSubManifest(dir: $pkgDir, preferredName: $preferred);
+
+        if ($manifestPath === null) {
+            return;
+        }
+
+        $xml = @simplexml_load_file($manifestPath);
+
+        if ($xml === false) {
+            return;
+        }
+
+        // Code: declared <files> — same relative path in package and install.
+        foreach ($xml->files as $files) {
+            $sub = trim((string) $files['folder']);
+            $absSub = $sub !== '' ? $pkgDir . '/' . $sub : $pkgDir;
+            $relSub = $sub !== '' ? $relDir . '/' . $sub : $relDir;
+
+            self::collectDeclaredItems(
+                items:    self::parseFilesItems(node: $files),
+                absRoot:  $absSub,
+                relRoot:  $relSub,
+                repoRoot: $relSub,
+                out:      $out,
+            );
+        }
+
+        // The sub-extension's own manifest (same path in package and install).
+        self::collectFile(
+            abs:  $manifestPath,
+            rel:  $relDir . '/' . basename($manifestPath),
+            repo: $relDir . '/' . basename($manifestPath),
+            out:  $out,
+        );
+
+        // Media: package <relDir>/<folder> → live media/<destination>.
+        foreach ($xml->media as $media) {
+            $destination = trim((string) $media['destination']);
+            $folder = trim((string) $media['folder']) ?: 'media';
+
+            if ($destination !== '') {
+                self::collectFiles(
+                    absDir:  $pkgDir . '/' . $folder,
+                    relDir:  'media/' . $destination,
+                    repoDir: $relDir . '/' . $folder,
+                    out:     $out,
+                );
+            }
+        }
+
+        // Languages: package <relDir>/<langFolder>/<rel> → live <langRoots[0]>/<tag>/<file>.
+        if (isset($xml->languages)) {
+            $langFolder = trim((string) $xml->languages['folder']);
+            $liveRoot = $langRoots[0];
+
+            foreach ($xml->languages->language as $language) {
+                $tag = trim((string) $language['tag']);
+                $rel = trim((string) $language);
+
+                if ($tag === '' || $rel === '') {
+                    continue;
+                }
+
+                self::collectFile(
+                    abs:  $pkgDir . '/' . ($langFolder !== '' ? $langFolder . '/' : '') . $rel,
+                    rel:  $liveRoot . '/' . $tag . '/' . basename($rel),
+                    repo: $relDir . '/' . ($langFolder !== '' ? $langFolder . '/' : '') . $rel,
+                    out:  $out,
+                );
+            }
+        }
     }
 
     /**
