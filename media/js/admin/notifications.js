@@ -264,6 +264,15 @@
         window.alfaNotifications = { refresh: refresh };
         window.addEventListener('alfa-notifications-changed', refresh);
         window.addEventListener('message', function (e) {
+            // Only trust same-origin messages (or a same-window post) — never act on a
+            // refresh request from an arbitrary origin.
+            var sameOrigin = e.origin === window.location.origin;
+            var sameWindow = !e.origin && e.source === window;
+
+            if (!sameOrigin && !sameWindow) {
+                return;
+            }
+
             if (e.data && e.data.alfaNotifications === 'refresh') {
                 refresh();
             }
