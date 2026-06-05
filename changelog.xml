@@ -3,6 +3,16 @@
     <changelog>
         <element>com_alfa</element>
         <type>component</type>
+        <version>1.0.7</version>
+
+        <fix>
+            <item>The file-integrity check now refreshes immediately after an update, instead of waiting for its cache to expire.</item>
+        </fix>
+    </changelog>
+
+    <changelog>
+        <element>com_alfa</element>
+        <type>component</type>
         <version>1.0.6</version>
 
         <fix>
