@@ -60,14 +60,14 @@ cd Alfa-Commerce
 
 # Create a branch from developer
 git checkout developer
-git checkout -b feature/my-new-feature
+git checkout -b feat/my-new-feature
 
 # Make your changes...
 
 # Commit and push
 git add .
 git commit -m "Add my new feature"
-git push origin feature/my-new-feature
+git push origin feat/my-new-feature
 
 # Then go to GitHub and open a Pull Request
 ```
@@ -80,7 +80,7 @@ git push origin feature/my-new-feature
 |--------|---------|
 | `main` | Stable releases only. Never commit directly to main. |
 | `developer` | Active development branch. Create your branches from here. |
-| `feature/*` | New features (e.g., `feature/paypal-payment`) |
+| `feat/*` | New features (e.g., `feat/paypal-payment`) |
 | `fix/*` | Bug fixes (e.g., `fix/cart-total-calculation`) |
 
 **Always target your Pull Requests to the `developer` branch**, unless you're told otherwise.
