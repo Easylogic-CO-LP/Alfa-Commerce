@@ -111,7 +111,7 @@ class HtmlView extends BaseHtmlView
             $title = $this->item->meta_title;
         }
 
-        $this->document->setTitle($title);
+        $this->getDocument()->setTitle($title);
 
         // Meta Description: item-level overrides menu-level
         $metaDescription = $this->params->get('menu-meta_description', '');
@@ -128,11 +128,11 @@ class HtmlView extends BaseHtmlView
         }
 
         if (!empty($metaDescription)) {
-            $this->document->setDescription($metaDescription);
+            $this->getDocument()->setDescription($metaDescription);
         }
 
         if ($this->params->get('menu-meta_keywords')) {
-            $this->document->setMetadata('keywords', $this->params->get('menu-meta_keywords'));
+            $this->getDocument()->setMetadata('keywords', $this->params->get('menu-meta_keywords'));
         }
 
         // Robots: item-level meta_data overrides menu-level
@@ -147,7 +147,7 @@ class HtmlView extends BaseHtmlView
         }
 
         if (!empty($metaRobots)) {
-            $this->document->setMetadata('robots', $metaRobots);
+            $this->getDocument()->setMetadata('robots', $metaRobots);
         }
 
         // Add Breadcrumbs

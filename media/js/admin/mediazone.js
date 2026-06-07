@@ -122,7 +122,7 @@
                             e.stopPropagation();
 
                             if (evt === 'drop') {
-                                this.showError('Media type is not allowed!');
+                                this.showError(this.getText('COM_ALFA_MEDIA_TYPE_NOT_ALLOWED', 'This media type is not allowed.'));
                             }
                         }, false);
                     });
@@ -259,7 +259,7 @@
 
         validateFile(file) {
             if (this.config.allowedMimes === null || !this.config.allowedMimes.includes(file.type)) {
-                alert(`MIME ${file.type} is not supported!`);
+                alert(this.getText('COM_ALFA_MEDIA_MIME_NOT_SUPPORTED', 'The file type %s is not supported.').replace('%s', file.type));
                 return false;
             }
             return file.size <= this.config.maxFileSize;
@@ -557,7 +557,7 @@
             const availableSlots= maxAllowed - currentTotal;
 
             if (availableSlots <= 0) {
-                this.showError('Maximum media limit reached. Cannot add more files.');
+                this.showError(this.getText('COM_ALFA_MEDIA_LIMIT_REACHED', 'Maximum media limit reached. Cannot add more files.'));
                 return 0;
             }
 

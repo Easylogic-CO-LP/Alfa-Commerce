@@ -40,7 +40,7 @@ $itemsCount = count($items);
                 <?php echo Text::plural('MOD_ALFA_CART_NUMBER_OF_ITEMS', $itemsCount); ?>
             </span>
         </div>
-        <button class="close-btn" aria-label="Close">
+        <button class="close-btn" aria-label="<?php echo Text::_('MOD_ALFA_CART_CLOSE'); ?>">
             <svg
                     fill="currentColor"
                     height="24"

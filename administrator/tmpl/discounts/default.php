@@ -182,16 +182,16 @@ if ($saveOrder && !empty($this->items)) {
 							</td>
 
                             <td>
-                                <?php echo $item->show_tag ? "Yes" : "No";?>
+                                <?php echo $item->show_tag ? Text::_('JYES') : Text::_('JNO');?>
                             </td>
 
                             <td>
                                 <?php if($item->behavior == 0)
-                                        echo "Only this tax";
+                                        echo Text::_('COM_ALFA_TAX_BEHAVIOR_ONLY_THIS_DISCOUNT');
                                     else if($item->behavior == 1)
-                                        echo "Combined";
+                                        echo Text::_('COM_ALFA_TAX_BEHAVIOR_COMBINED');
                                     else
-                                        echo "One after another";
+                                        echo Text::_('COM_ALFA_TAX_BEHAVIOR_ONE_AFTER_ANOTHER');
                                 ?>
                             </td>
 
@@ -201,7 +201,7 @@ if ($saveOrder && !empty($this->items)) {
                             </td>
 
                             <td>
-                                <?php echo $item->apply_before_tax ? "Yes" : "No";?>
+                                <?php echo $item->apply_before_tax ? Text::_('JYES') : Text::_('JNO');?>
                             </td>
 
                             <td>

@@ -18,6 +18,7 @@ use FilesystemIterator;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\OutputFilter;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Filesystem\File;
@@ -932,7 +933,7 @@ class MediaHelper
 
         // Safety check for file existence
         if (!file_exists($source_image_path)) {
-            $app->enqueueMessage('Error finding uploaded file', 'error');
+            $app->enqueueMessage(Text::_('COM_ALFA_MEDIA_FILE_NOT_FOUND'), 'error');
             return false;
         }
 
@@ -949,7 +950,7 @@ class MediaHelper
         // Check if image MIME is allowed
         if (!in_array($mime, $allowedMimes)) {
             $mime = explode('/', strtoupper($mime))[1];
-            $app->enqueueMessage("Image format ($mime) is not supported.", 'error');
+            $app->enqueueMessage(Text::sprintf('COM_ALFA_MEDIA_FORMAT_NOT_SUPPORTED', $mime), 'error');
             return false;
         }
 
@@ -965,7 +966,7 @@ class MediaHelper
             $targetRatio = floatval(sprintf('%0.2f', intval($aspectratioExploded[0]) / intval($aspectratioExploded[1])));
 
             if ($srcRatio != $targetRatio) {
-                $app->enqueueMessage('Image should have the exact aspect ratio ' . $aspectratio, 'warning');
+                $app->enqueueMessage(Text::sprintf('COM_ALFA_MEDIA_ASPECT_RATIO_ERROR', $aspectratio), 'warning');
                 return false;
             }
         }
@@ -989,14 +990,14 @@ class MediaHelper
 
         if (!function_exists($loaderFunction)) {
             $formatName = strtoupper(str_replace('imagecreatefrom', '', $loaderFunction));
-            $app->enqueueMessage("Error: Server missing $formatName support (GD)", 'error');
+            $app->enqueueMessage(Text::sprintf('COM_ALFA_MEDIA_SERVER_FORMAT_MISSING', $formatName), 'error');
             return false;
         }
 
         $source_gd_image = @$loaderFunction($source_image_path);
 
         if (!$source_gd_image) {
-            $app->enqueueMessage('Error: File is corrupt or unreadable', 'error');
+            $app->enqueueMessage(Text::_('COM_ALFA_MEDIA_FILE_CORRUPT'), 'error');
             return false;
         }
 

@@ -1,0 +1,10 @@
+{
+    "files": [
+        "components/com_alfa/src/Controller/EmptiesController.php",
+        "components/com_alfa/src/Model/EmptiesModel.php",
+        "language/el-GR/mod_alfa_cart.ini",
+        "language/el-GR/mod_alfa_cart.sys.ini",
+        "language/el-GR/mod_alfa_filters.ini",
+        "language/el-GR/mod_alfa_filters.sys.ini"
+    ]
+}

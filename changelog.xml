@@ -3,6 +3,24 @@
     <changelog>
         <element>com_alfa</element>
         <type>component</type>
+        <version>1.0.8</version>
+
+        <fix>
+            <item>The component Options screen now shows "Alfa Commerce: Options" instead of a raw text key.</item>
+            <item>Interface text that was previously fixed in English — labels, buttons, headings and messages across the administrator, the storefront and the Cart and Filters modules — is now fully translatable.</item>
+            <item>Updated deprecated Joomla document API calls so the storefront stays compatible with current and upcoming Joomla versions.</item>
+        </fix>
+
+        <change>
+            <item>Tidied the language files: removed duplicate entries and an unused Greek translation, and grouped the strings into clear sections.</item>
+            <item>Removed leftover example fields from the component configuration; the currency and subcategory options are now translatable.</item>
+            <item>Removed an unused internal model and controller behind the Search Results page.</item>
+        </change>
+    </changelog>
+
+    <changelog>
+        <element>com_alfa</element>
+        <type>component</type>
         <version>1.0.7</version>
 
         <fix>

@@ -18,8 +18,8 @@
                 type="radio"
                 default="1"
                 layout="joomla.form.field.radio.switcher"
-                label="Include Subcategories"
-                description="Category show also subcategories items"
+                label="COM_ALFA_CONFIG_INCLUDE_SUBCATEGORIES"
+                description="COM_ALFA_CONFIG_INCLUDE_SUBCATEGORIES_DESC"
         >
             <option value="0">JNO</option>
             <option value="1">JYES</option>
@@ -253,12 +253,12 @@
 
     </fieldset>
 
-    <fieldset name="currencies" label="Currency Settings">
+    <fieldset name="currencies" label="COM_ALFA_CONFIG_CURRENCIES_LABEL">
         <field
                 name="default_currency"
                 type="sql"
                 default="978"
-                label="Default Currency"
+                label="COM_ALFA_CONFIG_DEFAULT_CURRENCY_LABEL"
                 query="SELECT number, name FROM #__alfa_currencies ORDER BY name ASC" key_field="number"
                 value_field="name"
         />
@@ -461,77 +461,3 @@
     </fieldset>
 
 </config>
-        <!--
-        ########################################################################################
-        The following are a list of all the different types of fields you can add to this file
-        They are here for copy pasting - neat eh?
-        ########################################################################################
-
-        https://docs.joomla.org/Standard_form_field_types
-        <field name="mycalendar" type="calendar" default="5-10-2008" label="Select a date" description="" format="%d-%m-%Y" />
-
-        https://docs.joomla.org/Standard_form_field_types
-        <field name="mycategory" type="category" label="Select a category" description="" section="3" />
-
-        https://docs.joomla.org/Standard_form_field_types
-        <field name="myeditor" type="editors" default="none" label="Select an editor" />
-
-        https://docs.joomla.org/Standard_form_field_types
-        <field name="myfile" type="filelist" default="" label="Select a file" description="" directory="administrator" filter="" exclude="" stripext="" />
-
-        https://docs.joomla.org/Standard_form_field_types
-        <field name="myfolder" type="folderlist" default="" label="Select a folder" directory="administrator" filter="" exclude="" stripext="" />
-
-        https://docs.joomla.org/Standard_form_field_types
-        <field name="myhelpsite" type="helpsites" default="" label="Select a help site" description="" />
-
-        https://docs.joomla.org/Standard_form_field_types
-        <field name="mysecretvariable" type="hidden" default="" />
-
-        https://docs.joomla.org/Standard_form_field_types
-        <field name="myimage" type="imagelist" default="" label="Select an image" description="" directory="" exclude="" stripext="" />
-
-        https://docs.joomla.org/Standard_form_field_types
-        <field name="mylanguage" type="languages" client="site" default="en-GB" label="Select a language" description="" />
-
-        https://docs.joomla.org/Standard_form_field_types
-        <field name="mylistvalue" type="list" default="" label="Select an option" description="">
-          <option value="0">Option 1</option>
-          <option value="1">Option 2</option>
-        </field>
-
-        https://docs.joomla.org/Standard_form_field_types
-        <field name="mymenu" type="menu" default="mainmenu" label="Select a menu" description="Select a menu" />
-
-        https://docs.joomla.org/Standard_form_field_types
-        <field name="mymenuitem" type="menuitem" default="45" label="Select a menu item" description="Select a menu item" />
-
-        https://docs.joomla.org/Standard_form_field_types
-        <field name="mypassword" type="password" default="secret" label="Enter a password" description="" size="5" />
-
-        https://docs.joomla.org/Standard_form_field_types
-        <field name="myradiovalue" type="radio" default="0" label="Select an option" description="">
-          <option value="0">1</option>
-          <option value="1">2</option>
-        </field>
-
-        https://docs.joomla.org/Standard_form_field_types
-        <field type="spacer" default="&lt;b&gt;Advanced parameters&lt;/b&gt;" />
-
-        https://docs.joomla.org/Standard_form_field_types
-        <field name="myfield" type="sql" default="10" label="Select an article" query="SELECT id, title FROM #__content" key_field=”id” value_field=”title” />
-
-        https://docs.joomla.org/Standard_form_field_types
-        <field name="mytextvalue" type="text" default="Some text" label="Enter some text" description="" size="10" />
-
-        https://docs.joomla.org/Standard_form_field_types
-        <field name="mytextarea" type="textarea" default="default" label="Enter some text" description="" rows="10" cols="5" />
-
-        https://docs.joomla.org/Standard_form_field_types
-        <field name="mytimezone" type="timezones" default="-10" label="Select a timezone" description="" />
-
-        https://docs.joomla.org/Standard_form_field_types
-        <field name="myusergroups" type="usergroup" default="" label="Select a user group" description="" />
-
-
-        -->

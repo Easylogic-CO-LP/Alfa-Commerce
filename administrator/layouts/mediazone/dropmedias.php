@@ -66,6 +66,14 @@
 	Text::script('JCANCEL');
 	Text::script('COM_ALFA_MEDIA_THUMBNAIL_ERROR_ALERT');
     Text::script('COM_ALFA_MEDIA_LIMIT_REACHED_ERROR');
+	Text::script('COM_ALFA_MEDIA_DELETE_CONFIRM');
+	Text::script('COM_ALFA_MEDIA_NO_VALID_FILES');
+	Text::script('COM_ALFA_MEDIA_SOME_INVALID');
+	Text::script('COM_ALFA_MEDIA_LOAD_PREVIEW_ERROR');
+	Text::script('COM_ALFA_MEDIA_NO_ITEMS');
+	Text::script('COM_ALFA_MEDIA_TYPE_NOT_ALLOWED');
+	Text::script('COM_ALFA_MEDIA_MIME_NOT_SUPPORTED');
+	Text::script('COM_ALFA_MEDIA_LIMIT_REACHED');
 
 	// ── Toolbar ──
 	$mediaToolbar = new Toolbar('media-actions-toolbar');

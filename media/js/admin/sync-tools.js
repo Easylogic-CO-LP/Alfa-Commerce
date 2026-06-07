@@ -151,7 +151,10 @@
         ctx.bar.classList.remove('progress-bar-striped', 'progress-bar-animated');
         ctx.bar.classList.add('bg-danger');
         ctx.status.classList.add('text-danger');
-        ctx.status.textContent = 'Error: ' + err.message;
+        const errPrefix = (window.Joomla && Joomla.Text)
+            ? Joomla.Text._('COM_ALFA_SYNC_ERROR_PREFIX', 'Error: %s').replace('%s', err.message)
+            : 'Error: ' + err.message;
+        ctx.status.textContent = errPrefix;
         ctx.btn.disabled = false; // allow a retry
     }
 

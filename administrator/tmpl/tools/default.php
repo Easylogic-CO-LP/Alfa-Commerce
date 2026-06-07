@@ -20,6 +20,7 @@ $wa->useScript('com_alfa.sync-tools');
 
 // Generic completion label for actions whose server reply carries no message (backfill).
 Text::script('COM_ALFA_TOOLS_BACKFILL_DONE');
+Text::script('COM_ALFA_SYNC_ERROR_PREFIX');
 
 // CSRF token carried in the AJAX URLs (validated server-side via Session::checkToken).
 $token    = Session::getFormToken();
