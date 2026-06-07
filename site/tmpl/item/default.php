@@ -59,7 +59,7 @@
 
         <?php if (!empty($this->item->payment_methods)): ?>
         <div class="item-payment-methods">
-            <span class="item-payment-method-title">Payment Methods:</span>
+            <span class="item-payment-method-title"><?php echo Text::_('COM_ALFA_ITEM_PAYMENT_METHODS'); ?>:</span>
 
             <div class="item-payment-method-inner">
 			    <?php
@@ -86,7 +86,7 @@
 
         <?php if (!empty($this->item->shipment_methods)): ?>
         <div class="item-shipment-methods">
-            Shipment Methods :
+            <span class="item-shipment-method-title"><?php echo Text::_('COM_ALFA_ITEM_SHIPMENT_METHODS'); ?>:</span>
 
             <?php
                 if (!empty($this->item->shipment_methods))

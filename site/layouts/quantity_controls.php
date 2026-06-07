@@ -7,6 +7,8 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
+use Joomla\CMS\Language\Text;
+
 $item = $displayData;
 
 // HTML structure of Quantity Controls
@@ -18,7 +20,7 @@ $item = $displayData;
     <button
             class="item-quantity-controls decrement"
             data-action="decrement"
-            aria-label="Decrement quantity"
+            aria-label="<?php echo Text::_('COM_ALFA_QUANTITY_DECREMENT'); ?>"
     >
         -
     </button>
@@ -27,7 +29,7 @@ $item = $displayData;
             class="item-quantity"
             type="number"
             name="quantity"
-            aria-label="Quantity"
+            aria-label="<?php echo Text::_('COM_ALFA_QUANTITY_LABEL'); ?>"
             value="<?php echo $item->quantity_min ?>"
             min="<?php echo $item->quantity_min ?>"
             max="<?php echo $item->quantity_max; ?>"
@@ -37,7 +39,7 @@ $item = $displayData;
     <button
             class="item-quantity-controls increment"
             data-action="increment"
-            aria-label="Increment quantity"
+            aria-label="<?php echo Text::_('COM_ALFA_QUANTITY_INCREMENT'); ?>"
     >
         +
     </button>

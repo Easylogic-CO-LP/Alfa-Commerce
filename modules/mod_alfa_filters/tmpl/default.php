@@ -47,9 +47,9 @@ $moduleId = $module->id;
                 <button type="button" class="af-reset-all">
                     <?= Text::_('MOD_ALFAFILTERS_FILTER_RESET_ALL_BTN') ?>
                 </button>
-                <button type="button" class="alfa-filters-close-btn" aria-label="Close">
+                <button type="button" class="alfa-filters-close-btn" aria-label="<?= Text::_('MOD_ALFAFILTERS_CLOSE_BTN_LABEL') ?>">
 					<?php if ($imageType === 'image'):?>
-                        <img src="<?=htmlspecialchars($imageFile, ENT_QUOTES, 'UTF-8')?>" alt="Filter Menu Close Button">
+                        <img src="<?=htmlspecialchars($imageFile, ENT_QUOTES, 'UTF-8')?>" alt="<?= Text::_('MOD_ALFAFILTERS_CLOSE_BTN_ALT') ?>">
 					<?php elseif ($imageType === 'svg' && !empty($svg_close_button)):?>
 						<?= $svg_close_button ?>
 					<?php else:?>
@@ -77,7 +77,7 @@ $moduleId = $module->id;
     <div class="alfa-filters-loading-overlay" aria-hidden="true">
         <?php if ($loadingImg === 'image'): ?>
             <div class="af-loading-anim">
-                <img src="<?=htmlspecialchars($loadingImageFile, ENT_QUOTES, 'UTF-8')?>" alt="Loading Icon">
+                <img src="<?=htmlspecialchars($loadingImageFile, ENT_QUOTES, 'UTF-8')?>" alt="<?= Text::_('MOD_ALFAFILTERS_LOADING_ICON_ALT') ?>">
             </div>
         <?php elseif ($loadingImg === 'svg' && !empty($svg_loading_icon)) : ?>
             <div class="af-loading-anim">

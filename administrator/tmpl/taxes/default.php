@@ -172,11 +172,11 @@ if ($saveOrder && !empty($this->items)) {
                             <td>
                                 <?php
                                     if($item->behavior == 0)
-                                        echo "Only this tax";
+                                        echo Text::_('COM_ALFA_TAX_BEHAVIOR_ONLY_THIS_TAX');
                                     else if($item->behavior == 1)
-                                        echo "Combined";
+                                        echo Text::_('COM_ALFA_TAX_BEHAVIOR_COMBINED');
                                     else
-                                        echo "One after another"
+                                        echo Text::_('COM_ALFA_TAX_BEHAVIOR_ONE_AFTER_ANOTHER');
                                 ?>
                             </td>
 

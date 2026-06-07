@@ -44,7 +44,7 @@ $arrowSvg = ob_get_clean();
                     ?>
                     <span class="af-price-bar"
                           style="height: <?= $heightPercent ?>%;"
-                          title="<?= (int) $bucket['count'] ?> products"></span>
+                          title="<?= Text::sprintf('MOD_ALFAFILTERS_HISTOGRAM_BUCKET_TITLE', (int) $bucket['count']) ?>"></span>
                 <?php endforeach;
             endif; ?>
 

@@ -13,7 +13,6 @@ namespace Alfa\Component\Alfa\Site\View\Empties;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Site\View\HtmlView as BaseHtmlView;
-use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 
@@ -24,104 +23,73 @@ use Joomla\CMS\Language\Text;
  */
 class HtmlView extends BaseHtmlView
 {
-    protected $items;
-
-    protected $pagination;
-
-    protected $state;
-
     protected $params;
 
     /**
-     * Display the view
+     * Display the view.
      *
-     * @param string $tpl Template name
+     * @param   string|null  $tpl  The name of the template file to parse.
      *
-     * @return void
-     *
-     * @throws Exception
+     * @return  void
      */
     public function display($tpl = null)
     {
-        $app = Factory::getApplication();
-
-        $this->state = $this->get('State');
-        $this->params = $app->getParams('com_alfa');
-
-        // Check for errors.
-        if (count($errors = $this->get('Errors'))) {
-            throw new Exception(implode("\n", $errors));
-        }
+        // This is a content-less landing view (e.g. "Search Results"); it has no
+        // model. Pull the merged component/menu params straight from the application.
+        $this->params = Factory::getApplication()->getParams('com_alfa');
 
         $this->_prepareDocument();
+
         parent::display($tpl);
     }
 
     /**
-     * Prepares the document
+     * Set the document title, metadata and breadcrumb for this content-less landing
+     * view (e.g. "Search Results"). It has no model/item, so everything derives from
+     * the active menu item and the merged component params.
      *
-     * @return void
-     *
-     * @throws Exception
+     * @return  void
      */
     protected function _prepareDocument()
     {
-        $app = Factory::getApplication();
-        $menus = $app->getMenu();
-        $title = null;
+        $app  = Factory::getApplication();
+        $menu = $app->getMenu()->getActive();
 
-        // Because the application sets a default page title,
-        // we need to get it from the menu item itself
-        $menu = $menus->getActive();
-
-        if ($menu) {
-            $this->params->def('page_heading', $this->params->get('page_title', $menu->title));
-        } else {
-            $this->params->def('page_heading', Text::_('COM_ALFA_DEFAULT_PAGE_TITLE'));
-        }
-
-        $title = $this->params->get('page_title', '');
+        // Page title: the menu's page_title param, else the menu title, else the site name.
+        $title           = $this->params->get('page_title', $menu ? $menu->title : '');
+        $siteName        = $app->get('sitename');
+        $siteNameInTitle = (int) $app->get('sitename_pagetitles', 0);
 
         if (empty($title)) {
-            $title = $app->get('sitename');
-        } elseif ($app->get('sitename_pagetitles', 0) == 1) {
-            $title = Text::sprintf('JPAGETITLE', $app->get('sitename'), $title);
-        } elseif ($app->get('sitename_pagetitles', 0) == 2) {
-            $title = Text::sprintf('JPAGETITLE', $title, $app->get('sitename'));
+            $title = $siteName;
+        } elseif ($siteNameInTitle === 1) {
+            $title = Text::sprintf('JPAGETITLE', $siteName, $title);
+        } elseif ($siteNameInTitle === 2) {
+            $title = Text::sprintf('JPAGETITLE', $title, $siteName);
         }
 
-        $this->document->setTitle($title);
+        $document = $this->getDocument();
+        $document->setTitle($title);
 
         if ($this->params->get('menu-meta_description')) {
-            $this->document->setDescription($this->params->get('menu-meta_description'));
+            $document->setDescription($this->params->get('menu-meta_description'));
         }
 
         if ($this->params->get('menu-meta_keywords')) {
-            $this->document->setMetadata('keywords', $this->params->get('menu-meta_keywords'));
+            $document->setMetadata('keywords', $this->params->get('menu-meta_keywords'));
         }
 
         if ($this->params->get('robots')) {
-            $this->document->setMetadata('robots', $this->params->get('robots'));
+            $document->setMetadata('robots', $this->params->get('robots'));
         }
 
-        // Add Breadcrumbs
-        $pathway = $app->getPathway();
+        // Breadcrumb.
+        $pathway         = $app->getPathway();
         $breadcrumbTitle = Text::_('COM_ALFA_TITLE_EMPTIES');
 
-        if (!in_array($breadcrumbTitle, $pathway->getPathwayNames())) {
+        if (!in_array($breadcrumbTitle, $pathway->getPathwayNames(), true)) {
             $pathway->addItem($breadcrumbTitle);
         }
     }
 
-    /**
-     * Check if state is set
-     *
-     * @param mixed $state State
-     *
-     * @return bool
-     */
-    public function getState($state)
-    {
-        return $this->state->{$state} ?? false;
-    }
 }
