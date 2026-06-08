@@ -73,7 +73,9 @@ $priceSettings = $this->priceSettings;
 
 <?php echo $this->loadTemplate('categories'); ?>
 
+<?php if ($this->showFilters): ?>
 <?php echo LayoutHelper::render('filter_form', ['view' => $this]); ?>
+<?php endif; ?>
 
 <section>
     <?php echo $this->pagination->getListFooter(); ?>

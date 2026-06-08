@@ -11,11 +11,27 @@ namespace Alfa\Component\Alfa\Administrator\Event\Shipments;
 
 class OrderPlaceEvent extends ShipmentsEvent
 {
+    /**
+     * Get the cart subject carried by the event.
+     *
+     * @return mixed The cart object
+     *
+     * @since  5.0.0
+     */
     public function getCart()
     {
         return $this->getSubject();
     }
 
+    /**
+     * Replace the cart subject carried by the event.
+     *
+     * @param mixed $cart The cart object
+     *
+     * @return void
+     *
+     * @since  5.0.0
+     */
     public function setCart($cart)
     {
         $this->setArgument('subject', $cart);

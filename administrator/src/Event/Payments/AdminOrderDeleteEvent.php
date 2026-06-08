@@ -23,21 +23,52 @@ namespace Alfa\Component\Alfa\Administrator\Event\Payments;
  */
 class AdminOrderDeleteEvent extends PaymentsLayoutEvent
 {
+    /**
+     * Get the order/cart subject carried by the event.
+     *
+     * @return mixed The order or cart object
+     *
+     * @since  5.0.0
+     */
     public function getOrder()
     {
         return $this->getSubject();
     }
 
+    /**
+     * Joomla event setter hook for 'result'; returns the current stored result.
+     *
+     * @param bool $result Incoming value (ignored; current result is returned)
+     *
+     * @return bool The currently stored result flag
+     *
+     * @since  5.0.0
+     */
     public function onSetResult(bool $result): bool
     {
         return $this->getResult();
     }
 
+    /**
+     * Store the result flag reported back by the handling plugin.
+     *
+     * @param bool $result The result of the operation
+     *
+     *
+     * @since  5.0.0
+     */
     public function setResult(bool $result): void
     {
         $this->arguments['result'] = $result;
     }
 
+    /**
+     * Get the result flag reported by the handling plugin.
+     *
+     * @return bool The operation result
+     *
+     * @since  5.0.0
+     */
     public function getResult(): bool
     {
         return $this->arguments['result'];

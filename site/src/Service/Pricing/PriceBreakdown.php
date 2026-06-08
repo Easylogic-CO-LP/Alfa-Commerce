@@ -33,6 +33,9 @@ class PriceBreakdown
         ];
     }
 
+    /**
+     * Export the breakdown steps as a plain array.
+     */
     public function toArray(): array
     {
         return [

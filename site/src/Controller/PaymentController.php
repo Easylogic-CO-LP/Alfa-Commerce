@@ -25,6 +25,15 @@ use Joomla\CMS\Router\Route;
  */
 class PaymentController extends BaseController
 {
+    /**
+     * Handle the payment gateway return: load the order stored in the session, dispatch the
+     * onPaymentResponse event to the order's payment plugin, and follow any redirect it requests.
+     * Redirects to the home page when the order id is missing or the order cannot be loaded.
+     *
+     * @return void
+     *
+     * @since   1.6.0
+     */
     public function response()
     {
         $app = $this->app;

@@ -109,18 +109,13 @@ class com_alfaInstallerScript extends InstallerScript
         // Currency
         'default_currency'                     => 978,  // EUR
 
-        // Media
-        'media_file_format'                    => 'webp',
-        'media_image_quality'                  => 85,
-        'media_image_width'                    => 1920,
-        'media_image_height'                   => 1080,
+        // Media (main-image format/quality/dimensions live in the optimizer plugin)
         'media_thumbnail_width'                => 200,
         'media_thumbnail_height'               => 200,
-        'media_save_location'                  => '/images/media-zone',
-        'media_placeholder'                    => 'media/com_alfa/images/placeholder_600x.webp',
-        'media_url_thumbnail'                  => 'media/com_alfa/images/url_thumbnail.jpg',
-        'media_name_from_alias'                => 0,
-        'media_full_deletion'                  => 0,
+        'media_save_location'                  => '/images/commerce',
+        'media_placeholder'                    => 'media/com_alfa/images/placeholders/no-image.webp',
+        'media_url_thumbnail'                  => 'media/com_alfa/images/placeholders/url.webp',
+        'media_full_deletion'                  => 1,
         'media_mime'                           => [
             'image/jpeg',
             'image/png',
@@ -724,6 +719,14 @@ class com_alfaInstallerScript extends InstallerScript
         }
     }
 
+    /**
+     * Uninstall every plugin declared in the package manifest by looking up its
+     * extension id and running the Joomla installer for each.
+     *
+     * @param   mixed  $parent  The installer adapter providing the package manifest
+     *
+     * @return  void
+     */
     private function uninstallPlugins($parent): void
     {
         $app = Factory::getApplication();
@@ -815,6 +818,14 @@ class com_alfaInstallerScript extends InstallerScript
         }
     }
 
+    /**
+     * Uninstall every module declared in the package manifest by looking up its
+     * extension id and running the Joomla installer for each.
+     *
+     * @param   mixed  $parent  The installer adapter providing the package manifest
+     *
+     * @return  void
+     */
     private function uninstallModules($parent): void
     {
         $app = Factory::getApplication();

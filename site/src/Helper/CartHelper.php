@@ -79,26 +79,53 @@ class CartHelper
         return $this->cartId;
     }
 
+    /**
+     * Get the loaded cart object (including its items).
+     *
+     * @return object The cart data object.
+     */
     public function getData()
     {
         return $this->cart;
     }
 
+    /**
+     * Get the current user (cart owner / identity).
+     *
+     * @return \Joomla\CMS\User\User The current user.
+     */
     public function getUser()
     {
         return $this->user;
     }
 
+    /**
+     * Get the payment methods available for this cart's items and user.
+     *
+     * @return array The filtered payment methods keyed by id.
+     */
     public function getPaymentMethods()
     {
         return $this->payment_methods;
     }
 
+    /**
+     * Get the shipment methods available for this cart's items and user.
+     *
+     * @return array The filtered shipment methods keyed by id.
+     */
     public function getShipmentMethods()
     {
         return $this->shipment_methods;
     }
 
+    /**
+     * Load the full shipment-method record for a given id, defaulting to the cart's selected shipment.
+     *
+     * @param int $shipmentMethodId The shipment method id; 0 uses the cart's id_shipment.
+     *
+     * @return object|null The shipment method item, or null when none is selected.
+     */
     public function getShipmentMethodData($shipmentMethodId = 0)
     {
         if ($shipmentMethodId == 0) {
@@ -723,7 +750,7 @@ class CartHelper
      */
     protected function getCurrency(): Currency
     {
-        // TODO: CHECK IF WE HAVE TO LET IT LIKE THIS OR FETCH IT FROM SETTINGS THAT USER SETTED
+        // TODO: consider sourcing the currency from component settings instead of the first cart item.
         if (!empty($this->cart->items)) {
             $firstItem = reset($this->cart->items);
             if (isset($firstItem->data->price) && is_object($firstItem->data->price)) {

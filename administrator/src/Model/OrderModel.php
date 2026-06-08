@@ -147,6 +147,18 @@ class OrderModel extends AdminModel
         return $form;
     }
 
+    /**
+     * Build the order-payment edit form (order_payments), injecting the
+     * payment_type, transaction_status and refund_type list options from
+     * OrderPaymentHelper, then binding the supplied data (with the order/payment ids).
+     *
+     * @param array|object $data Data for the form (objects are normalised via objectToFormData).
+     * @param bool $loadData True to load form data from the model state.
+     *
+     * @return \Joomla\CMS\Form\Form|false The Form object on success, false on failure.
+     *
+     * @since   3.5.0
+     */
     public function getPaymentForm($data = [], $loadData = true)
     {
         $form = $this->loadForm('com_alfa.order', 'order_payments', [
@@ -226,6 +238,19 @@ class OrderModel extends AdminModel
         return $form;
     }
 
+    /**
+     * Build the order edit form. On a new order the user_email/user_name fields
+     * are made editable; the custom cart fields (user_details) are prepared and
+     * prefilled from user state (preserving resubmitted input) or the order's
+     * stored user_info row.
+     *
+     * @param array $data Data for the form.
+     * @param bool $loadData True to load form data from the model state.
+     *
+     * @return \Joomla\CMS\Form\Form|false The Form object on success, false on failure.
+     *
+     * @since   3.5.0
+     */
     public function getForm($data = [], $loadData = true)
     {
         $app = Factory::getApplication();
@@ -537,6 +562,15 @@ class OrderModel extends AdminModel
         return $payment;
     }
 
+    /**
+     * Load all payment rows for an order from #__alfa_order_payments.
+     *
+     * @param int $orderId The order id.
+     *
+     * @return array An array of payment row objects.
+     *
+     * @since   3.5.0
+     */
     public function getOrderPayments($orderId)
     {
         $db = $this->getDatabase();
@@ -619,6 +653,15 @@ class OrderModel extends AdminModel
         return OrderPaymentHelper::delete((int) $id, (int) $id_order);
     }
 
+    /**
+     * Load a single payment row by its primary key from #__alfa_order_payments.
+     *
+     * @param int $id The payment row id.
+     *
+     * @return object|null The payment row object, or null if not found.
+     *
+     * @since   3.5.0
+     */
     protected function getOrderPayment($id)
     {
         $db = $this->getDatabase();
@@ -665,6 +708,15 @@ class OrderModel extends AdminModel
         return $shipment;
     }
 
+    /**
+     * Load all shipment rows for an order from #__alfa_order_shipments.
+     *
+     * @param int $orderId The order id.
+     *
+     * @return array An array of shipment row objects.
+     *
+     * @since   3.5.0
+     */
     public function getOrderShipments($orderId)
     {
         $db = $this->getDatabase();
@@ -1832,6 +1884,18 @@ class OrderModel extends AdminModel
         self::logOrderActivity($orderId, 'order.edited', $summary, $changes);
     }
 
+    /**
+     * Delete the selected orders. Each order's payment and shipment plugins get
+     * the onAdminOrderDelete event first; if any plugin vetoes (returns false)
+     * that order is skipped. Surviving orders have their related rows removed
+     * (deleteRelatedData) before parent::delete runs.
+     *
+     * @param array &$pks The order ids to delete (vetoed ids are removed in place).
+     *
+     * @return bool True on success.
+     *
+     * @since   3.5.1
+     */
     public function delete(&$pks)
     {
         $app = Factory::getApplication();
@@ -1893,6 +1957,15 @@ class OrderModel extends AdminModel
         return parent::delete($pks);
     }
 
+    /**
+     * Remove all rows belonging to the given orders: items, payments, shipments,
+     * activity log, and the guest (id_user = 0) delivery/invoice user_info records.
+     *
+     * @param array $pks The order ids whose related data should be deleted.
+     *
+     *
+     * @since   3.5.1
+     */
     protected function deleteRelatedData(array $pks): void
     {
         $db = $this->getDatabase();
@@ -2350,6 +2423,14 @@ class OrderModel extends AdminModel
         }
     }
 
+    /**
+     * Populate the model state, additionally seeding the record id from the
+     * `id_order` request variable when present.
+     *
+     * @return void
+     *
+     * @since   3.5.1
+     */
     protected function populateState()
     {
         parent::populateState();

@@ -12,7 +12,6 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 // No direct access
 defined('_JEXEC') or die;
 
-use Exception;
 use Joomla\CMS\Access\Access;
 //use \Joomla\CMS\Object\CMSObject;
 use Joomla\CMS\Factory;
@@ -122,6 +121,19 @@ class AlfaHelper
         return $tree;
     }
 
+    /**
+     * usort/uasort comparator for two objects on a property, comparing
+     * numerically when both values are numeric and case-insensitively otherwise.
+     *
+     * @param object $object1 First object
+     * @param object $object2 Second object
+     * @param string $property Property name to compare on
+     * @param string $order Sort direction, 'asc' or 'desc'
+     *
+     * @return int Negative, zero or positive per the comparison and direction
+     *
+     * @since  1.0.1
+     */
     public static function sort_items($object1, $object2, $property, $order = 'asc')
     {
         if (is_numeric($object1->$property) && is_numeric($object2->$property)) {
@@ -132,6 +144,19 @@ class AlfaHelper
         return (strtolower($order) == 'asc') ? $result : -$result;
     }
 
+    /**
+     * Recursively sort a nested item tree in place, sorting each level and its
+     * children by the given property using sort_items() as the comparator.
+     *
+     * @param array $items The item tree, passed by reference
+     * @param string $property Property to sort on
+     * @param string $order Sort direction, 'asc' or 'desc'
+     * @param string $childrenField Property holding each node's children
+     *
+     * @return void
+     *
+     * @since  1.0.1
+     */
     public static function sort_nested_items(&$items, $property = 'name', $order = 'asc', $childrenField = 'children')
     {
         // Sort the current level of items
@@ -147,6 +172,21 @@ class AlfaHelper
         }
     }
 
+    /**
+     * Flatten a nested item tree into a single list, cloning each node, dropping
+     * its children property and (when $pathField is set) stamping a breadcrumb
+     * 'path' built from the ancestor chain.
+     *
+     * @param array $items The item tree
+     * @param string|null $pathField Node property used to build the path, or null to skip
+     * @param string $pathSeparator Separator between path segments
+     * @param string $childrenField Property holding each node's children
+     * @param string $parentPath Accumulated parent path (recursion)
+     *
+     * @return array The flattened list of cloned nodes
+     *
+     * @since  1.0.1
+     */
     public static function flatten_nested_items($items, $pathField = 'name', $pathSeparator = '/', $childrenField = 'children', $parentPath = '')
     {
         $flatArray = [];
@@ -179,6 +219,22 @@ class AlfaHelper
         return $flatArray;
     }
 
+    /**
+     * Flatten a flat parent_id list into a depth-first ordered list, stamping
+     * each row with its 'depth' and a breadcrumb 'path' by recursively walking
+     * children of the given parent.
+     *
+     * @param array $items Flat list of rows with id/parent_id
+     * @param string|null $pathField Row property used to build the path, or null
+     * @param string $pathSeparator Separator between path segments
+     * @param string $parentPath Accumulated parent path (recursion)
+     * @param int $parentId Parent id to start from
+     * @param int $depth Current depth level (recursion)
+     *
+     * @return array Depth-first ordered list with depth/path stamped
+     *
+     * @since  1.0.1
+     */
     public static function addHierarchyData($items, $pathField = 'name', $pathSeparator = '/', $parentPath = '', $parentId = 0, $depth = 0)
     {
         $hierarchyData = [];
@@ -500,6 +556,21 @@ class AlfaHelper
         return $plugin_types;
     }
 
+    /**
+     * Merge the active plugin's params.xml into the form and seed its fieldset
+     * with the stored params. Resolves the plugin name from posted data or the
+     * form value, defaulting to 'text' (fields) or 'standard' (shipments/payments)
+     * for new entries, and loads its language file.
+     *
+     * @param \Joomla\CMS\Form\Form $form The form to augment (by reference)
+     * @param array $data Posted data; may carry the selected 'type'
+     * @param object $item The stored record whose ->params seed the fieldset
+     * @param string $type Plugin family: 'payments', 'shipments', 'fields', …
+     *
+     * @return void
+     *
+     * @since  1.0.1
+     */
     public static function addPluginForm(&$form, $data, $item, $type)
     {
         $app = Factory::getApplication();
@@ -548,92 +619,4 @@ class AlfaHelper
             $form->setValue($index, $fieldSetName, $param);
         }
     }
-
-    /**
-     * Triggers a specified plugin function with proper validation and error handling
-     *
-     * @return mixed The result of the plugin function or false on failure
-     * @throws Exception When required parameters are missing or plugin fails to load
-     */
-    // public static function triggerPlugin($type='',$name='',$func='')
-    // {
-    //     $app = Factory::getApplication();
-    //     $input = $app->input;
-
-    //     $response_error = false;
-    //     $response_data = null;
-    //     $response_message = '';
-
-    //     try {
-    //         // Get and validate required parameters
-    //         $requiredParams = [
-    //             'type' => !empty($type)? $type : $input->getString('type', ''),
-    //             'name' => !empty($name)? $name : $input->getString('name', ''),
-    //             'func' => !empty($func)? $func : $input->getString('func', ''),
-    //         ];
-
-    //         // Check for empty required parameters
-    //         $missingParams = array_filter($requiredParams, function($value) {
-    //             return empty($value);
-    //         });
-
-    //         if (!empty($missingParams)) {
-    //             throw new \Exception(
-    //                 'Missing required parameters: ' . implode(', ', array_keys($missingParams)),
-    //                 400
-    //             );
-    //         }
-
-    //         // Boot the plugin
-    //         $plugin = $app->bootPlugin($requiredParams['name'], $requiredParams['type']);
-    //         // var_dump($plugin); exit;
-    //         // if (!$plugin) {
-    //         //     throw new \Exception(
-    //         //         sprintf('Plugin %s of type %s not found', $requiredParams['name'], $requiredParams['type']),
-    //         //         404
-    //         //     );
-    //         // }
-
-    //         // Check if the method exists and is callable
-    //         if (!method_exists($plugin, $requiredParams['func']) || !is_callable([$plugin, $requiredParams['func']])) {
-    //             throw new \Exception(
-    //                 "Plugin type {$requiredParams['type']}, name {$requiredParams['name']} or Method {$requiredParams['func']} not found or method not callable in plugin",
-    //                 405
-    //             );
-    //         }
-
-    //         // Call the plugin function
-    //         $response_data = $plugin->{$requiredParams['func']}();
-
-    //     } catch (\Exception $e) {
-    //         // Log the error
-    //         // $app->getLogger()->error($e->getMessage(), ['trace' => $e->getTrace()]);
-
-    //         $app->enqueueMessage($e->getMessage(), 'error');
-    //         $response_error = true;
-
-    //     }
-
-    //     $response = new \Joomla\CMS\Response\JsonResponse($response_data, $response_message, $response_error);
-    //     return $response;
-    // }
-
-    /*
-        public static function addXMLToForm($xmlPath, &$form, $fieldGroup, $fieldValues = null){
-
-            if (file_exists($xmlPath))
-                $form->loadFile($xmlPath, false);
-            else
-                return false;
-
-            if(empty($fieldValues))
-                return true;
-
-            foreach($fieldValues as $index => $value){
-                $form->setValue($index, $fieldGroup, $value);
-            }
-
-            return true;
-        }
-    */
 }

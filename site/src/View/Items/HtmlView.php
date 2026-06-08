@@ -33,6 +33,7 @@ class HtmlView extends BaseHtmlView
     protected $state;
     protected $params;
     protected $category;
+    protected $showFilters;
 
     /**
      * Constructor
@@ -55,6 +56,9 @@ class HtmlView extends BaseHtmlView
     public function display($tpl = null)
     {
         $this->params = $this->app->getParams('com_alfa');
+
+        // Whether the filter panel shows here (global default, overridable per menu item).
+        $this->showFilters = (bool) $this->params->get('show_items_filters', 1);
 
         $itemsModel = $this->getModel();
 

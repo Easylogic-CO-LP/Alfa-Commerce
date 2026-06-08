@@ -82,6 +82,15 @@ abstract class GeneralEvent extends AbstractImmutableEvent
     {
         $this->setRedirectUrl($url);
     }
+
+    /**
+     * Store the redirect URL raw (unrouted); SEF routing is deferred to getRedirectUrl().
+     *
+     * @param string $url The URL to redirect to
+     *
+     *
+     * @since  5.0.0
+     */
     public function setRedirectUrl(string $url): void
     {
         // Store exactly what the plugin passes (raw). Routing to SEF happens lazily
@@ -136,20 +145,44 @@ abstract class GeneralEvent extends AbstractImmutableEvent
         return !empty($this->arguments['redirectUrl']);
     }
 
-    // 301	Moved Permanently
-    // 302	Found
-    // 303	See Other
-    // 307	Temporary Redirect
-    // 308	Permanent Redirect
+    /**
+     * Joomla event setter hook for the redirect HTTP status code — delegates to setRedirectCode().
+     *
+     * Common codes: 301 Moved Permanently, 302 Found, 303 See Other,
+     * 307 Temporary Redirect, 308 Permanent Redirect.
+     *
+     * @param int $code The HTTP status code to use for the redirect
+     *
+     * @return void
+     *
+     * @since  5.0.0
+     */
     public function onSetRedirectCode(int $code)
     {
         $this->setRedirectCode($code);
     }
+
+    /**
+     * Store the HTTP status code to use when the redirect is performed.
+     *
+     * @param int $code The HTTP status code
+     *
+     * @return void
+     *
+     * @since  5.0.0
+     */
     public function setRedirectCode(int $code)
     {
         $this->arguments['redirectCode'] = $code;
     }
 
+    /**
+     * Get the redirect HTTP status code if one was set.
+     *
+     * @return int|null The status code, or null when none was set
+     *
+     * @since  5.0.0
+     */
     public function getRedirectCode(): ?int
     {
         return $this->arguments['redirectCode'] ?? null;

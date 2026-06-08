@@ -94,8 +94,8 @@ class CartController extends FormController implements UserFactoryAwareInterface
         $userGroupId = 1;
         $currencyId = 1;
 
-        // TODO: somewhow cache the item here or inside the model but the quantity changes so we should take this in count
-        // get all the item data
+        // TODO: cache the item here or in the model, accounting for the varying quantity.
+        // Load the full item data.
         $model = $this->getModel('Item');
 
         // Set state in the model
@@ -134,6 +134,14 @@ class CartController extends FormController implements UserFactoryAwareInterface
         $this->app->close();
     }
 
+    /**
+     * AJAX task: add an item (with quantity) to the cart via CartHelper and return a JSON response.
+     * Requires a valid POST CSRF token; closes the application after emitting JSON.
+     *
+     * @return void
+     *
+     * @since   1.6.0
+     */
     public function addToCart()
     {
         $errorOccurred = true;
@@ -165,6 +173,14 @@ class CartController extends FormController implements UserFactoryAwareInterface
         $this->app->close();
     }
 
+    /**
+     * AJAX task: clear the cart items via CartHelper and return the rendered empty-cart layout as JSON.
+     * Requires a valid POST CSRF token; closes the application after emitting JSON.
+     *
+     * @return void
+     *
+     * @since   1.6.0
+     */
     public function clearCart()
     {
         $errorOccurred = false;
@@ -199,6 +215,14 @@ class CartController extends FormController implements UserFactoryAwareInterface
         $this->app->close();
     }
 
+    /**
+     * AJAX task: set an item's quantity in the cart and, on success, return the re-rendered items layout as JSON.
+     * Requires a valid POST CSRF token; closes the application after emitting JSON.
+     *
+     * @return void
+     *
+     * @since   1.6.0
+     */
     public function updateQuantity()
     {
         $input = $this->app->input;
@@ -232,6 +256,16 @@ class CartController extends FormController implements UserFactoryAwareInterface
         $this->app->close();
     }
 
+    /**
+     * Validate and submit the checkout form, then place the order through OrderPlaceHelper.
+     * Checks the CSRF token and session state, validates the cart form, and on success stores the
+     * new order id in the session and redirects to the order-process page; otherwise redirects back
+     * to the cart with enqueued error messages.
+     *
+     * @return bool True when the order is placed, false on validation/session/placement failure.
+     *
+     * @since   1.6.0
+     */
     public function placeOrder()
     {
         $isValid = $this->checkToken();//'post',false  this functions uses the Session:checkToken inside
@@ -288,23 +322,20 @@ class CartController extends FormController implements UserFactoryAwareInterface
         try {
             $orderHelper = new OrderPlaceHelper();
 
-            // FIXED: This returns TRUE on success, FALSE on failure
+            // placeOrder() returns true on success, false on failure.
             $orderPlacedSuccessfully = $orderHelper->placeOrder($data[FieldsHelper::FIELDS_KEY]);
 
-            // 7. Handle success
             if ($orderPlacedSuccessfully) {
-                // Get the created order
                 $order = $orderHelper->getOrder();
 
-                // NEW V3: Null safety check
+                // Guard against a placed-but-unloadable order.
                 if ($order && isset($order->id)) {
                     $orderId = $order->id;
 
-                    // Store order ID in session for success page
+                    // Store order id in the session for the success page.
                     $this->app->setUserState('com_alfa.order_id', $orderId);
 
-                    // Clear cart-related session data
-                    // TODO: CHECK THIS
+                    // Clear cart-related session data.
                     $this->app->setUserState('com_alfa.cart.data', null);
 
                     // Success message
@@ -334,10 +365,8 @@ class CartController extends FormController implements UserFactoryAwareInterface
                     return true;
                 }
             } else {
-                // 8. Handle failure
-                // Error messages already enqueued by OrderPlaceHelper
-
-                // Additional fallback message
+                // Placement failed; OrderPlaceHelper has already enqueued the specific errors.
+                // Add a fallback message.
                 $this->app->enqueueMessage(
                     Text::_('COM_ALFA_ORDER_PLACEMENT_FAILED'),
                     'error',
@@ -349,7 +378,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
                 return false;
             }
         } catch (Exception $e) {
-            // 9. Catch any unexpected errors
+            // Unexpected error during placement.
             $this->app->enqueueMessage(
                 Text::sprintf('COM_ALFA_ORDER_ERROR', $e->getMessage()),
                 'error',
@@ -418,6 +447,15 @@ class CartController extends FormController implements UserFactoryAwareInterface
         $this->app->close();
     }
 
+    /**
+     * AJAX task: set the cart's payment method and, on success, return the re-rendered items, payments
+     * and shipments layouts (plus the empty flag) as JSON.
+     * Requires a valid POST CSRF token; closes the application after emitting JSON.
+     *
+     * @return void
+     *
+     * @since   1.6.0
+     */
     public function updatePayment()
     {
         $input = $this->app->input;
@@ -447,6 +485,15 @@ class CartController extends FormController implements UserFactoryAwareInterface
         $this->app->close();
     }
 
+    /**
+     * Render the cart items layout, falling back to the empty-cart layout when the cart has no items.
+     *
+     * @param CartHelper $cart The cart helper holding the current cart state.
+     *
+     * @return array ['tmpl' => rendered HTML, 'isEmpty' => bool].
+     *
+     * @since   1.6.0
+     */
     protected function getItemsLayout($cart)
     {
         // TODO : support template ovverides
@@ -469,6 +516,16 @@ class CartController extends FormController implements UserFactoryAwareInterface
         return $layoutData;
     }
 
+    /**
+     * Render the payment-method selection layout, attaching payment plugin events first.
+     * Returns an empty template when the cart has no items.
+     *
+     * @param CartHelper $cart The cart helper holding the current cart state.
+     *
+     * @return array ['tmpl' => rendered HTML, 'isEmpty' => bool].
+     *
+     * @since   1.6.0
+     */
     protected function getPaymentsLayout($cart)
     {
         $layoutData = [];
@@ -490,6 +547,16 @@ class CartController extends FormController implements UserFactoryAwareInterface
         return $layoutData;
     }
 
+    /**
+     * Render the shipment-method selection layout, attaching shipment plugin events first.
+     * Returns an empty template when the cart has no items.
+     *
+     * @param CartHelper $cart The cart helper holding the current cart state.
+     *
+     * @return array ['tmpl' => rendered HTML, 'isEmpty' => bool].
+     *
+     * @since   1.6.0
+     */
     protected function getShipmentsLayout($cart)
     {
         $layoutData = [];

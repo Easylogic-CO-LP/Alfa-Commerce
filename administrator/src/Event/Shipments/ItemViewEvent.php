@@ -23,6 +23,13 @@ namespace Alfa\Component\Alfa\Administrator\Event\Shipments;
  */
 class ItemViewEvent extends ShipmentsLayoutEvent
 {
+    /**
+     * Get the item/product subject carried by the event.
+     *
+     * @return mixed The item object
+     *
+     * @since  5.0.0
+     */
     public function getItem()
     {
         return $this->getSubject();

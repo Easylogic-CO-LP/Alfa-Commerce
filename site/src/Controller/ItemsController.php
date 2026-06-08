@@ -20,6 +20,17 @@ use Joomla\CMS\MVC\Controller\FormController;
  */
 class ItemsController extends FormController
 {
+    /**
+     * Display the items view, resolving the requested format and view from the request before delegating
+     * to the parent controller.
+     *
+     * @param bool $cachable Whether the view output is cacheable.
+     * @param array $urlparams Safe URL parameters and their filter rules.
+     *
+     * @return ItemsController This object to support chaining.
+     *
+     * @since   1.0.1
+     */
     public function display($cachable = false, $urlparams = [])
     {
         $viewType = $this->input->get('format', 'html');

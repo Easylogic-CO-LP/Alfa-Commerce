@@ -109,6 +109,21 @@ class IntegrityHelper
      */
     public static function verifyAgainstOfficial(): array
     {
+        $verdict = self::computeVerdict();
+        $verdict['checkedAt'] = time();
+
+        return $verdict;
+    }
+
+    /**
+     * Compute a fresh verdict — CDN fetch, detached-signature verify, then hash every
+     * listed file. {@see self::verifyAgainstOfficial()} wraps this to stamp the time.
+     *
+     *
+     * @since   1.0.9
+     */
+    private static function computeVerdict(): array
+    {
         if (!\function_exists('sodium_crypto_sign_verify_detached')) {
             return ['status' => 'unreachable', 'reason' => 'no_sodium'];
         }

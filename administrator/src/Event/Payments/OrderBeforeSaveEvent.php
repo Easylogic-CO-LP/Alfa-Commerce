@@ -11,6 +11,13 @@ namespace Alfa\Component\Alfa\Administrator\Event\Payments;
 
 class OrderBeforeSaveEvent extends PaymentsEvent
 {
+    /**
+     * Get the cart subject carried by the event.
+     *
+     * @return mixed The cart object
+     *
+     * @since  5.0.0
+     */
     public function getCart()
     {
         return $this->getSubject();

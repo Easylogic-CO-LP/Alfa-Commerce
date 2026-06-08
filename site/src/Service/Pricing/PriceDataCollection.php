@@ -24,16 +24,37 @@ class PriceDataCollection
         $this->taxes = $taxes;
     }
 
+    /**
+     * Get the price rows for a product.
+     *
+     * @param int $productId The product id.
+     *
+     * @return array The price rows (empty when none loaded).
+     */
     public function getPricesFor(int $productId): array
     {
         return $this->prices[$productId] ?? [];
     }
 
+    /**
+     * Get the discount rows for a product.
+     *
+     * @param int $productId The product id.
+     *
+     * @return array The discount rows (empty when none loaded).
+     */
     public function getDiscountsFor(int $productId): array
     {
         return $this->discounts[$productId] ?? [];
     }
 
+    /**
+     * Get the tax rows for a product.
+     *
+     * @param int $productId The product id.
+     *
+     * @return array The tax rows (empty when none loaded).
+     */
     public function getTaxesFor(int $productId): array
     {
         return $this->taxes[$productId] ?? [];

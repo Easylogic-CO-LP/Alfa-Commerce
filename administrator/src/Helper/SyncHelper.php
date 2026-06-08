@@ -640,4 +640,30 @@ final class SyncHelper
             ],
         );
     }
+
+    /**
+     * Cheap, NON-blocking read of the last persisted integrity verdict's alarm state.
+     * The 24h sync stores the verdict as the `alfa.integrity` notification; this just
+     * reads that row (no CDN fetch, no hashing), returning true only for the genuine
+     * tamper alarms (severity `danger`: modified / bad signature). Lets the dispatcher
+     * raise a global, override-proof banner without ever running the real check.
+     *
+     *
+     * @since   1.0.9
+     */
+    public static function hasIntegrityAlarm(): bool
+    {
+        try {
+            $db = Factory::getContainer()->get(DatabaseInterface::class);
+            $query = $db->getQuery(true)
+                ->select($db->quoteName('severity'))
+                ->from($db->quoteName('#__alfa_notifications'))
+                ->where($db->quoteName('dedup_key') . ' = ' . $db->quote('alfa.integrity'));
+            $db->setQuery($query, 0, 1);
+
+            return $db->loadResult() === 'danger';
+        } catch (Throwable) {
+            return false;
+        }
+    }
 }
