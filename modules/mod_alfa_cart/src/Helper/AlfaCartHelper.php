@@ -66,6 +66,14 @@ class AlfaCartHelper
 
         $app->close();
     }
+    /**
+     * AJAX endpoint: add the requested item/quantity to the cart, then return the re-rendered cart-items
+     * layout plus totals as JSON. Closes the application after responding.
+     *
+     * @return  void
+     *
+     * @throws  Exception
+     */
     public static function getAjax()
     {
         if (!$module = ModuleHelper::getModule('mod_alfa_cart')) {
@@ -123,6 +131,14 @@ class AlfaCartHelper
         $app->close();
     }
 
+    /**
+     * Build the price-display settings array from the module parameters, toggling each price component
+     * (and its label) according to the corresponding _show / _show_label params.
+     *
+     * @param   Registry  $params  The module parameters.
+     *
+     * @return  array  The resolved price settings for the cart layout.
+     */
     public static function buildPriceSettings(Registry $params): array
     {
         $builder = PriceSettings::make();

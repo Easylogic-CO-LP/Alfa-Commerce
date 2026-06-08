@@ -112,92 +112,10 @@ $progress = '<div class="alfa-progress mt-3" style="display:none;">'
                  'modified' = exact-version deviation (alarm); 'ahead' = off-catalog
                  / customised (calm); 'unreachable' = network state; 'bad_signature'
                  = do not trust the reference. */ ?>
-        <div class="card mb-3">
-            <div class="card-header"><?php echo Text::_('COM_ALFA_TOOLS_OFFICIAL_TITLE'); ?></div>
-            <div class="card-body">
-                <?php $ostatus = $this->official['status'] ?? 'unreachable'; ?>
+        <?php /* Verdict card is built in the View from a fixed-path partial (NOT the
+                 overridable layout system), so a template override cannot fake it. */ ?>
+        <?php echo $this->integrityHtml; ?>
 
-                <?php if ($ostatus === 'official') : ?>
-                    <div class="alert alert-success mb-0" role="alert">
-                        <span class="icon-checkmark-circle" aria-hidden="true"></span>
-                        <?php echo Text::sprintf('COM_ALFA_TOOLS_OFFICIAL_OK', $this->escape($this->official['officialVersion'] ?? '')); ?>
-                    </div>
-
-                <?php elseif ($ostatus === 'unreachable') : ?>
-                    <p class="small text-muted mb-0">
-                        <span class="icon-info-circle" aria-hidden="true"></span>
-                        <?php echo Text::_('COM_ALFA_TOOLS_OFFICIAL_UNREACHABLE'); ?>
-                    </p>
-
-                <?php elseif ($ostatus === 'bad_signature') : ?>
-                    <div class="alert alert-danger mb-0" role="alert">
-                        <span class="icon-warning" aria-hidden="true"></span>
-                        <?php echo Text::_('COM_ALFA_TOOLS_OFFICIAL_BAD_SIG'); ?>
-                    </div>
-
-                <?php elseif ($ostatus === 'ahead' || $ostatus === 'modified') : ?>
-                    <?php
-                    // Graded severity (no blanket red): injected = the one true red
-                    // (web-shell shape); modified/missing = amber (review); ahead = calm.
-                    $alarm       = ($ostatus === 'modified');
-                    $hasInjected = !empty($this->official['injected']);
-                    ?>
-                    <?php if ($alarm) : ?>
-                        <?php /* "This is NOT the official release" is the real alarm → always red.
-                                 The per-type lists below are graded (injected red, modified/missing amber). */ ?>
-                        <div class="alert alert-danger" role="alert">
-                            <strong><?php echo Text::sprintf('COM_ALFA_TOOLS_OFFICIAL_MODIFIED', $this->escape($this->official['officialVersion'] ?? '')); ?></strong>
-                        </div>
-                    <?php else : ?>
-                        <div class="alert alert-info" role="alert">
-                            <?php echo Text::sprintf('COM_ALFA_TOOLS_OFFICIAL_AHEAD', $this->escape($this->official['officialVersion'] ?? '')); ?>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if ($hasInjected) : ?>
-                        <?php /* Injected: red on an exact-version install; calm (info) when just ahead/customised. */ ?>
-                        <div class="alert <?php echo $alarm ? 'alert-danger' : 'alert-info'; ?>" role="alert">
-                            <strong><?php echo Text::_('COM_ALFA_TOOLS_INTEGRITY_ADDED'); ?></strong>
-                            <ul class="mb-0 mt-2">
-                                <?php foreach ($this->official['injected'] as $path) : ?>
-                                    <li><code><?php echo $this->escape($path); ?></code></li>
-                                <?php endforeach; ?>
-                            </ul>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if (!empty($this->official['modified'])) : ?>
-                        <div class="alert <?php echo $alarm ? 'alert-warning' : 'alert-secondary'; ?>" role="alert">
-                            <strong><?php echo Text::_('COM_ALFA_TOOLS_INTEGRITY_MODIFIED'); ?></strong>
-                            <ul class="mb-0 mt-2">
-                                <?php foreach ($this->official['modified'] as $path) : ?>
-                                    <li><code><?php echo $this->escape($path); ?></code></li>
-                                <?php endforeach; ?>
-                            </ul>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if (!empty($this->official['missing'])) : ?>
-                        <div class="alert <?php echo $alarm ? 'alert-warning' : 'alert-secondary'; ?>" role="alert">
-                            <strong><?php echo Text::_('COM_ALFA_TOOLS_INTEGRITY_MISSING'); ?></strong>
-                            <ul class="mb-0 mt-2">
-                                <?php foreach ($this->official['missing'] as $path) : ?>
-                                    <li><code><?php echo $this->escape($path); ?></code></li>
-                                <?php endforeach; ?>
-                            </ul>
-                        </div>
-                    <?php endif; ?>
-                <?php endif; ?>
-
-                <?php /* Standing honesty note — an on-box check can't beat a fully
-                         compromised server (it could neuter the check or block the CDN);
-                         an external off-box monitor is the real backstop. */ ?>
-                <p class="small text-muted mt-3 mb-0">
-                    <span class="icon-info-circle" aria-hidden="true"></span>
-                    <?php echo Text::_('COM_ALFA_TOOLS_INTEGRITY_CAVEAT'); ?>
-                </p>
-            </div>
-        </div>
     <?php echo HTMLHelper::_('uitab.endTab'); ?>
 
     <?php echo HTMLHelper::_('uitab.endTabSet'); ?>

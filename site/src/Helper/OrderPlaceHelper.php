@@ -109,6 +109,13 @@ class OrderPlaceHelper
         }
     }
 
+    /**
+     * Register the file logger for the com_alfa.orders category; failures are sent to error_log.
+     *
+     * @return  void
+     *
+     * @since   3.5.1
+     */
     protected function configureLogging(): void
     {
         try {
@@ -118,10 +125,25 @@ class OrderPlaceHelper
         }
     }
 
+    /**
+     * Get the placed order object loaded after a successful placement.
+     *
+     * @return  object|null  The order, or null if no order has been placed.
+     *
+     * @since   3.5.1
+     */
     public function getOrder(): ?object
     {
         return $this->order;
     }
+
+    /**
+     * Get the cart helper backing this order placement.
+     *
+     * @return  CartHelper|null  The cart helper, or null if not set.
+     *
+     * @since   3.5.1
+     */
     public function getCart(): ?CartHelper
     {
         return $this->cart;
@@ -293,6 +315,14 @@ class OrderPlaceHelper
         }
     }
 
+    /**
+     * Validate that the order can be placed: non-empty cart plus valid payment and shipment methods.
+     * Stores the resolved shipment id on the cart on success and enqueues a message on each failure.
+     *
+     * @return  bool  True when all prerequisites pass, false otherwise.
+     *
+     * @since   3.5.1
+     */
     protected function validateOrderPrerequisites(): bool
     {
         try {
@@ -324,6 +354,17 @@ class OrderPlaceHelper
         }
     }
 
+    /**
+     * Fire the onOrderBeforePlace event on the selected payment and shipment plugins, refreshing the
+     * cart from each event. Individual plugin errors are logged and swallowed.
+     *
+     * @param   int  $paymentMethodId   The selected payment method id.
+     * @param   int  $shipmentMethodId  The selected shipment method id.
+     *
+     * @return  bool  True unless an unexpected top-level error occurs.
+     *
+     * @since   3.5.1
+     */
     protected function triggerBeforePlaceEvents(int $paymentMethodId, int $shipmentMethodId): bool
     {
         try {
@@ -362,6 +403,14 @@ class OrderPlaceHelper
         }
     }
 
+    /**
+     * Fire the onOrderAfterPlace event on the selected payment and shipment plugins (which create the
+     * payment/shipment records) for the placed order. All errors are logged and swallowed.
+     *
+     * @return  void
+     *
+     * @since   3.5.1
+     */
     protected function triggerAfterPlaceEvents(): void
     {
         try {
@@ -802,6 +851,16 @@ class OrderPlaceHelper
         return false;
     }
 
+    /**
+     * Validate the chosen shipment method id against the methods available for the cart.
+     * When no methods are offered, shipment is treated as not required and validation passes.
+     *
+     * @param   int|null  $id  The selected shipment method id.
+     *
+     * @return  bool  True if no methods are offered or the id matches an available method.
+     *
+     * @since   3.5.1
+     */
     protected function checkShipmentMethod(?int $id): bool
     {
         $methods = $this->cart->getShipmentMethods();
@@ -825,6 +884,17 @@ class OrderPlaceHelper
         return false;
     }
 
+    /**
+     * Persist the customer's order/address form data to the user-info table.
+     * Array/object values are JSON-encoded, unique form fields are enforced, and the current user id
+     * is attached before insert.
+     *
+     * @param   array  $data  The submitted form field values.
+     *
+     * @return  object|null  The inserted info object (with id), or null on validation failure/error.
+     *
+     * @since   3.5.1
+     */
     protected function saveUserInfo(array $data): ?object
     {
         try {
@@ -892,6 +962,17 @@ class OrderPlaceHelper
         }
     }
 
+    /**
+     * Detect which unique form fields already hold the submitted value for a different user.
+     * Runs a single UNION ALL query across the candidate fields; guests (user id 0) are skipped.
+     *
+     * @param   array  $data          The submitted field values.
+     * @param   array  $uniqueFields  The field names marked unique.
+     *
+     * @return  array  Map of violating field name => submitted value (empty when none).
+     *
+     * @since   3.5.1
+     */
     protected function checkUniqueFieldViolations(array $data, array $uniqueFields): array
     {
         Log::add('checkUniqueFieldViolations - data values: ' . json_encode($data), Log::DEBUG, 'com_alfa.orders');
@@ -943,6 +1024,16 @@ class OrderPlaceHelper
         return $violations;
     }
 
+    /**
+     * Resolve and cache the payment plugin type for a payment method id into $this->payment_type.
+     * An empty string is stored for id <= 0 or on error.
+     *
+     * @param   int  $id  The payment method id.
+     *
+     * @return  void
+     *
+     * @since   3.5.1
+     */
     protected function getPaymentType(int $id): void
     {
         // No payment method (0) → nothing to resolve; skip the query.
@@ -964,6 +1055,16 @@ class OrderPlaceHelper
         }
     }
 
+    /**
+     * Resolve and cache the shipment plugin type for a shipment method id into $this->shipment_type.
+     * An empty string is stored for id <= 0 or on error.
+     *
+     * @param   int  $id  The shipment method id.
+     *
+     * @return  void
+     *
+     * @since   3.5.1
+     */
     protected function getShipmentType(int $id): void
     {
         // No shipment method (0) → nothing to resolve; skip the query.
@@ -985,6 +1086,16 @@ class OrderPlaceHelper
         }
     }
 
+    /**
+     * Get the payment method name translated into the customer's language.
+     * Returns an empty string for id <= 0, or a "Payment Method <id>" fallback when no translation exists.
+     *
+     * @param   int  $id  The payment method id.
+     *
+     * @return  string  The translated payment method name.
+     *
+     * @since   3.5.1
+     */
     protected function getPaymentMethodName(int $id): string
     {
         // No payment method (0) → empty name (avoids a needless query and the
@@ -1002,6 +1113,16 @@ class OrderPlaceHelper
         ) ?: 'Payment Method ' . $id;
     }
 
+    /**
+     * Get the shipment method name translated into the customer's language.
+     * Returns an empty string for id <= 0, or a "Shipment Method <id>" fallback when no translation exists.
+     *
+     * @param   int  $id  The shipment method id.
+     *
+     * @return  string  The translated shipment method name.
+     *
+     * @since   3.5.1
+     */
     protected function getShipmentMethodName(int $id): string
     {
         // No shipment method (0) → empty name (avoids a needless query and the
@@ -1019,6 +1140,15 @@ class OrderPlaceHelper
         ) ?: 'Shipment Method ' . $id;
     }
 
+    /**
+     * Resolve the internal currency id from an ISO 4217 numeric currency code.
+     *
+     * @param   int  $number  The ISO 4217 numeric currency code.
+     *
+     * @return  int|null  The currency id, or null when not found / on error.
+     *
+     * @since   3.5.1
+     */
     protected function getCurrencyID(int $number): ?int
     {
         try {
@@ -1034,6 +1164,13 @@ class OrderPlaceHelper
         }
     }
 
+    /**
+     * Sum the total weight of the cart (each item's weight multiplied by its quantity).
+     *
+     * @return  float  The aggregate cart weight; 0 on error.
+     *
+     * @since   3.5.1
+     */
     protected function calculateTotalWeight(): float
     {
         try {

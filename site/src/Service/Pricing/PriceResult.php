@@ -205,21 +205,41 @@ class PriceResult
         return $this->quantity;
     }
 
+    /**
+     * Get the currency of this result (derived from the total).
+     *
+     * @return Currency
+     */
     public function getCurrency(): Currency
     {
         return $this->total->getCurrency();
     }
 
+    /**
+     * Get the applied-discounts summary.
+     *
+     * @return DiscountSummary
+     */
     public function getDiscounts(): DiscountSummary
     {
         return $this->discounts;
     }
 
+    /**
+     * Get the applied-taxes summary.
+     *
+     * @return TaxSummary
+     */
     public function getTaxes(): TaxSummary
     {
         return $this->taxes;
     }
 
+    /**
+     * Get the step-by-step calculation breakdown.
+     *
+     * @return PriceBreakdown
+     */
     public function getBreakdown(): PriceBreakdown
     {
         return $this->breakdown;

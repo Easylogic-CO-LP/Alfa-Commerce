@@ -21,6 +21,6 @@ namespace Alfa\Component\Alfa\Administrator\Event\Shipments;
  *
  * @since  5.0.0
  */
-abstract class ShipmentsEvent extends \Alfa\Component\Alfa\Administrator\Event\General\Fo
+abstract class ShipmentsEvent extends \Alfa\Component\Alfa\Administrator\Event\General\FormEvent
 {
 }

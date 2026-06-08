@@ -340,7 +340,7 @@ class Money
         }
 
         // ========================================================================
-        // STEP 7: Convert to minor units using BCMath (PERFECT PRECISION)
+        // STEP 7: Convert to minor units using BCMath for exact precision
         // ========================================================================
 
         // This is the key improvement: We never use float arithmetic

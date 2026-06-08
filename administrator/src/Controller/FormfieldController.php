@@ -23,6 +23,16 @@ class FormfieldController extends FormController
 {
     protected $view_list = 'formfields';
 
+    /**
+     * Run a batch operation, forcing the Formfield model and redirecting back
+     * to the form-fields list afterwards.
+     *
+     * @param   object|null  $model  Unused; the Formfield model is always loaded internally
+     *
+     * @return  bool  True on success
+     *
+     * @since  1.0.1
+     */
     public function batch($model = null)
     {
         $this->checkToken();

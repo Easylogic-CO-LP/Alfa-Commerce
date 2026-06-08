@@ -109,6 +109,15 @@ class LayoutEvent extends GeneralEvent //implements ResultAwareInterface
         $this->setLayoutPluginType($value);
     }
 
+    /**
+     * Store the layout plugin type argument.
+     *
+     * @param   string  $value  The plugin type to set
+     *
+     * @return  void
+     *
+     * @since  5.0.0
+     */
     public function setLayoutPluginType($value): void
     {
         $this->arguments['layoutPluginType'] = $value;
@@ -138,6 +147,15 @@ class LayoutEvent extends GeneralEvent //implements ResultAwareInterface
         $this->setLayoutPluginName($value);
     }
 
+    /**
+     * Store the layout plugin name argument.
+     *
+     * @param   string  $value  The plugin name to set
+     *
+     * @return  void
+     *
+     * @since  5.0.0
+     */
     public function setLayoutPluginName($value): void
     {
         $this->arguments['layoutPluginName'] = $value;
@@ -168,6 +186,15 @@ class LayoutEvent extends GeneralEvent //implements ResultAwareInterface
         $this->setLayout($value);
     }
 
+    /**
+     * Store the layout argument.
+     *
+     * @param   string  $value  The layout value to set
+     *
+     * @return  void
+     *
+     * @since  5.0.0
+     */
     public function setLayout($value): void
     {
         $this->arguments['layout'] = $value;
@@ -197,6 +224,15 @@ class LayoutEvent extends GeneralEvent //implements ResultAwareInterface
         $this->onSetLayoutData($value);
     }
 
+    /**
+     * Store the layout data argument passed to the resolved layout.
+     *
+     * @param   array  $value  The layout data to set
+     *
+     * @return  void
+     *
+     * @since  5.0.0
+     */
     public function setLayoutData($value): void
     {
         $this->arguments['layoutData'] = $value;

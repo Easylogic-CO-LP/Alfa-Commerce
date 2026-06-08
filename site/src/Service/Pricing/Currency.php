@@ -117,6 +117,15 @@ class Currency
         return $currency;
     }
 
+    /**
+     * Load a currency by its database id (cached across id/number/code keys).
+     *
+     * @param int $id Currency id.
+     *
+     * @return self The loaded currency.
+     *
+     * @throws RuntimeException When no currency with the given id exists.
+     */
     public static function loadById(int $id): self
     {
         $cacheKey = "id_{$id}";
@@ -208,46 +217,91 @@ class Currency
         return $this->id;
     }
 
+    /**
+     * Get the currency display name.
+     *
+     * @return string
+     */
     public function getName(): string
     {
         return $this->name;
     }
 
+    /**
+     * Get the ISO 4217 alphabetic code (e.g. EUR, USD).
+     *
+     * @return string
+     */
     public function getCode(): string
     {
         return $this->code;
     }
 
+    /**
+     * Get the ISO 4217 numeric code (e.g. 978 for EUR).
+     *
+     * @return int
+     */
     public function getNumber(): int
     {
         return $this->number;
     }
 
+    /**
+     * Get the currency symbol (e.g. €, $).
+     *
+     * @return string
+     */
     public function getSymbol(): string
     {
         return $this->symbol;
     }
 
+    /**
+     * Get the number of decimal places used for formatting amounts.
+     *
+     * @return int
+     */
     public function getDecimalPlaces(): int
     {
         return $this->decimalPlaces;
     }
 
+    /**
+     * Get the decimal symbol (mantissa marker) used for formatting.
+     *
+     * @return string
+     */
     public function getDecimalSymbol(): string
     {
         return $this->decimalSymbol;
     }
 
+    /**
+     * Get the decimal separator used for formatting.
+     *
+     * @return string
+     */
     public function getDecimalSeparator(): string
     {
         return $this->decimalSeparator;
     }
 
+    /**
+     * Get the thousands separator used for formatting.
+     *
+     * @return string
+     */
     public function getThousandSeparator(): string
     {
         return $this->thousandSeparator;
     }
 
+    /**
+     * Get the format pattern controlling symbol/amount placement.
+     *
+     * @return string
+     */
     public function getFormatPattern(): string
     {
         return $this->formatPattern;

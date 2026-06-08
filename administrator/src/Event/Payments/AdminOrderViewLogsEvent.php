@@ -23,6 +23,13 @@ namespace Alfa\Component\Alfa\Administrator\Event\Payments;
  */
 class AdminOrderViewLogsEvent extends PaymentsLayoutEvent
 {
+    /**
+     * Get the order/cart subject carried by the event.
+     *
+     * @return  mixed  The order or cart object
+     *
+     * @since  5.0.0
+     */
     public function getOrder()
     {
         return $this->getSubject();
@@ -42,6 +49,15 @@ class AdminOrderViewLogsEvent extends PaymentsLayoutEvent
         return $this->arguments['layout_type'];
     }
 
+    /**
+     * Set the log layout type, accepting only the 'base' or 'derived' values.
+     *
+     * @param   string  $type  Either 'base' (base plugin layout) or 'derived' (plugin-provided layout)
+     *
+     * @return  void
+     *
+     * @since  5.0.0
+     */
     public function setLayoutType($type)
     {
         // Excluding invalid values.

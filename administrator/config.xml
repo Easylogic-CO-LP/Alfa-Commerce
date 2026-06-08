@@ -1,62 +1,96 @@
 <?xml version="1.0" encoding="utf-8"?>
 <config>
-    <fieldset label="COM_ALFA" name="alfa">
+    <fieldset name="general" label="COM_ALFA_CONFIG_TAB_GENERAL">
 
-        <field
-                name="notifications_history_days"
-                type="number"
-                default="7"
-                min="1"
-                max="365"
-                filter="integer"
-                label="COM_ALFA_CONFIG_NOTIFY_HISTORY_DAYS"
-                description="COM_ALFA_CONFIG_NOTIFY_HISTORY_DAYS_DESC"
-        />
+        <fieldset name="general_catalog" label="COM_ALFA_CONFIG_FIELDSET_CATALOG">
 
-        <field
-                name="include_subcategories"
-                type="radio"
-                default="1"
-                layout="joomla.form.field.radio.switcher"
-                label="COM_ALFA_CONFIG_INCLUDE_SUBCATEGORIES"
-                description="COM_ALFA_CONFIG_INCLUDE_SUBCATEGORIES_DESC"
-        >
-            <option value="0">JNO</option>
-            <option value="1">JYES</option>
-        </field>
+            <field
+                    name="include_subcategories"
+                    type="radio"
+                    default="1"
+                    layout="joomla.form.field.radio.switcher"
+                    label="COM_ALFA_CONFIG_INCLUDE_SUBCATEGORIES"
+                    description="COM_ALFA_CONFIG_INCLUDE_SUBCATEGORIES_DESC"
+            >
+                <option value="0">JNO</option>
+                <option value="1">JYES</option>
+            </field>
 
-        <field name="spacer_stock" type="spacer" hr="true" />
+            <field
+                    name="show_items_filters"
+                    type="radio"
+                    default="1"
+                    layout="joomla.form.field.radio.switcher"
+                    label="COM_ALFA_CONFIG_SHOW_ITEMS_FILTERS"
+                    description="COM_ALFA_CONFIG_SHOW_ITEMS_FILTERS_DESC"
+            >
+                <option value="0">JNO</option>
+                <option value="1">JYES</option>
+            </field>
 
-        <field name="stock_action" type="list"
-               label="COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION"
-               description="COM_ALFA_FORM_DESC_ITEM_STOCK_ACTION"
-               multiple="false"
-               default="0">
-            <option value="0">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_NO_ACTION</option>
-            <option value="1">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_NOTIFY</option>
-            <option value="2">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_HIDE_OUT_OF_STOCK</option>
-        </field>
+            <field
+                    name="show_manufacturers_filters"
+                    type="radio"
+                    default="1"
+                    layout="joomla.form.field.radio.switcher"
+                    label="COM_ALFA_CONFIG_SHOW_MANUFACTURERS_FILTERS"
+                    description="COM_ALFA_CONFIG_SHOW_MANUFACTURERS_FILTERS_DESC"
+            >
+                <option value="0">JNO</option>
+                <option value="1">JYES</option>
+            </field>
 
-        <field
-                name="stock_low"
-                type="number"
-                label="COM_ALFA_FORM_LBL_ITEM_LOW_STOCK_VALUE"
-                description="COM_ALFA_FORM_DESC_ITEM_LOW_STOCK_VALUE"
-                min="1"
-        />
+        </fieldset>
 
-        <field name="stock_low_message"
-               label="COM_ALFA_FORM_LBL_ITEM_LOW_STOCK_MESSAGE"
-               description="COM_ALFA_FORM_DESC_ITEM_LOW_STOCK_MESSAGE"
-               type="editor"
-               showon="stock_low!:"
-        />
+        <fieldset name="general_stock" label="COM_ALFA_CONFIG_FIELDSET_STOCK">
 
-        <field name="stock_zero_message"
-               label="COM_ALFA_FORM_LBL_ITEM_STOCK_AVAILABILITY"
-               description="COM_ALFA_FORM_DESC_ITEM_STOCK_AVAILABILITY"
-               type="editor"
-        />
+            <field name="stock_action" type="list"
+                   label="COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION"
+                   description="COM_ALFA_FORM_DESC_ITEM_STOCK_ACTION"
+                   multiple="false"
+                   default="0">
+                <option value="0">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_NO_ACTION</option>
+                <option value="1">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_NOTIFY</option>
+                <option value="2">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_HIDE_OUT_OF_STOCK</option>
+            </field>
+
+            <field
+                    name="stock_low"
+                    type="number"
+                    label="COM_ALFA_FORM_LBL_ITEM_LOW_STOCK_VALUE"
+                    description="COM_ALFA_FORM_DESC_ITEM_LOW_STOCK_VALUE"
+                    min="1"
+            />
+
+            <field name="stock_low_message"
+                   label="COM_ALFA_FORM_LBL_ITEM_LOW_STOCK_MESSAGE"
+                   description="COM_ALFA_FORM_DESC_ITEM_LOW_STOCK_MESSAGE"
+                   type="editor"
+                   showon="stock_low!:"
+            />
+
+            <field name="stock_zero_message"
+                   label="COM_ALFA_FORM_LBL_ITEM_STOCK_AVAILABILITY"
+                   description="COM_ALFA_FORM_DESC_ITEM_STOCK_AVAILABILITY"
+                   type="editor"
+            />
+
+        </fieldset>
+
+        <fieldset name="general_notifications" label="COM_ALFA_CONFIG_FIELDSET_NOTIFICATIONS">
+
+            <field
+                    name="notifications_history_days"
+                    type="number"
+                    default="7"
+                    min="1"
+                    max="365"
+                    filter="integer"
+                    label="COM_ALFA_CONFIG_NOTIFY_HISTORY_DAYS"
+                    description="COM_ALFA_CONFIG_NOTIFY_HISTORY_DAYS_DESC"
+            />
+
+        </fieldset>
 
     </fieldset>
 
@@ -265,150 +299,96 @@
     </fieldset>
 
     <fieldset name="mediazone" label="COM_ALFA_MEDIA_CONFIG_LABEL">
-        <field
-                name="media_file_format"
-                type="list"
-                label="COM_ALFA_MEDIA_CONFIG_CONVERT_LABEL"
-                description=""
-        >
-            <option value="">Don't Convert</option>
-            <option value="jpg">JPG</option>
-            <option value="png">PNG</option>
-            <option value="webp">WEBP</option>
-            <option value="gif">GIF</option>
-        </field>
 
-        <field
-                name="media_image_quality"
-                type="number"
-                label="COM_ALFA_MEDIA_CONFIG_QUALITY_LABEL"
-                min="1"
-                default="80"
-                max="100"
-                description=""
-        />
+        <fieldset name="mediazone_storage" label="COM_ALFA_MEDIA_CONFIG_FIELDSET_STORAGE">
+            <field
+                    name="media_save_location"
+                    type="text"
+                    default="/images/commerce"
+                    hint="/images/example-folder"
+                    label="COM_ALFA_MEDIA_CONFIG_SAVE_LABEL"
+                    description="COM_ALFA_MEDIA_CONFIG_SAVE_DESC"
+                    size="150"
+            />
+        </fieldset>
 
-        <field
-                name="media_image_width"
-                type="int"
-                label="COM_ALFA_MEDIA_CONFIG_WIDTH_LABEL"
-                min="1"
-                default="1920"
-                max="5000"
-                description=""
-        />
+        <fieldset name="mediazone_uploads" label="COM_ALFA_MEDIA_CONFIG_FIELDSET_UPLOADS">
+            <field
+                    name="media_mime"
+                    type="list"
+                    multiple="true"
+                    layout="joomla.form.field.list-fancy-select"
+                    label="COM_ALFA_MEDIA_CONFIG_TYPES_LABEL"
+                    description="COM_ALFA_MEDIA_CONFIG_TYPES_DESC"
+                    default=""
+            >
+                <option value="image/jpeg">Jpeg</option>
+                <option value="image/gif">Gif</option>
+                <option value="image/png">Png</option>
+                <option value="image/bmp">Bmp</option>
+                <option value="image/webp">WebP</option>
+                <option value="image/avif">Avif</option>
+            </field>
+        </fieldset>
 
-        <field
-                name="media_image_height"
-                type="int"
-                label="COM_ALFA_MEDIA_CONFIG_HEIGHT_LABEL"
-                min="1"
-                default="1080"
-                max="5000"
-                description=""
-        />
+        <fieldset name="mediazone_thumbnails" label="COM_ALFA_MEDIA_CONFIG_FIELDSET_THUMBNAILS">
+            <field
+                    name="media_thumbnail_width"
+                    type="int"
+                    label="COM_ALFA_MEDIA_CONFIG_THUMBNAIL_WIDTH_LABEL"
+                    min="50"
+                    default="200"
+                    max="500"
+                    description=""
+            />
 
-        <field
-                name="media_save_location"
-                type="text"
-                default="/images/media-zone"
-                hint="/images/example-folder"
-                label="COM_ALFA_MEDIA_CONFIG_SAVE_LABEL"
-                description="COM_ALFA_MEDIA_CONFIG_SAVE_DESC"
-                size="150"
-        />
+            <field
+                    name="media_thumbnail_height"
+                    type="int"
+                    label="COM_ALFA_MEDIA_CONFIG_THUMBNAIL_HEIGHT_LABEL"
+                    min="50"
+                    default="200"
+                    max="500"
+                    description=""
+            />
+        </fieldset>
 
-        <field
-                name="media_mime"
-                type="list"
-                multiple="true"
-                layout="joomla.form.field.list-fancy-select"
-                label="COM_ALFA_MEDIA_CONFIG_TYPES_LABEL"
-                default=""
-        >
-            <option value="image/jpeg">Jpeg</option>
-            <option value="image/gif">Gif</option>
-            <option value="image/png">Png</option>
-            <option value="image/bmp">Bmp</option>
-            <option value="image/webp">WebP</option>
-            <option value="image/avif">Avif</option>
-        </field>
+        <fieldset name="mediazone_display" label="COM_ALFA_MEDIA_CONFIG_FIELDSET_DISPLAY">
+            <field
+                    name="media_placeholder"
+                    type="text"
+                    default=""
+                    hint="media/com_alfa/images/placeholders/no-image.webp"
+                    label="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_LABEL"
+                    description="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_DESC"
+                    size="150"
+            />
 
-        <field
-                name="media_placeholder"
-                type="text"
-                default=""
-                hint="media/com_alfa/images/placeholder_600x.webp"
-                label="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_LABEL"
-                description="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_DESC"
-                size="150"
-        />
+            <field
+                    name="media_url_thumbnail"
+                    type="text"
+                    default="media/com_alfa/images/placeholders/url.webp"
+                    hint="media/com_alfa/images/placeholders/url.webp"
+                    label="COM_ALFA_MEDIA_CONFIG_URL_THUMBNAIL_LABEL"
+                    description="COM_ALFA_MEDIA_CONFIG_URL_THUMBNAIL_DESC"
+                    size="150"
+            />
+        </fieldset>
 
-        <field
-                name="media_url_thumbnail"
-                type="text"
-                default="media/com_alfa/images/url_thumbnail.jpg"
-                hint="media/com_alfa/images/url_thumbnail"
-                label="COM_ALFA_MEDIA_CONFIG_URL_THUMBNAIL_LABEL"
-                description="COM_ALFA_MEDIA_CONFIG_URL_THUMBNAIL_DESC"
-                size="150"
-        />
+        <fieldset name="mediazone_deletion" label="COM_ALFA_MEDIA_CONFIG_FIELDSET_DELETION">
+            <field
+                    name="media_full_deletion"
+                    type="radio"
+                    default="1"
+                    label="COM_ALFA_MEDIA_CONFIG_FULL_DELETE_LABEL"
+                    description="COM_ALFA_MEDIA_CONFIG_FULL_DELETE_DESC"
+                    layout="joomla.form.field.radio.switcher"
+            >
+                <option value="0">JNO</option>
+                <option value="1">JYES</option>
+            </field>
+        </fieldset>
 
-        <field
-                name="media_thumbnail_width"
-                type="int"
-                label="COM_ALFA_MEDIA_CONFIG_THUMBNAIL_WIDTH_LABEL"
-                min="50"
-                default="200"
-                max="500"
-                description=""
-        />
-
-        <field
-                name="media_thumbnail_height"
-                type="int"
-                label="COM_ALFA_MEDIA_CONFIG_THUMBNAIL_HEIGHT_LABEL"
-                min="50"
-                default="200"
-                max="500"
-                description=""
-        />
-
-        <field
-                name="media_full_deletion"
-                type="radio"
-                default="0"
-                label="COM_ALFA_MEDIA_CONFIG_FULL_DELETE_LABEL"
-                description="COM_ALFA_MEDIA_CONFIG_FULL_DELETE_DESC"
-                layout="joomla.form.field.radio.switcher"
-        >
-            <option value="0">JNO</option>
-            <option value="1">JYES</option>
-        </field>
-
-        <field
-                name="media_delete_with_item"
-                type="radio"
-                default="1"
-                label="COM_ALFA_MEDIA_CONFIG_DELETE_WITH_ITEM_LABEL"
-                description="COM_ALFA_MEDIA_CONFIG_DELETE_WITH_ITEM_DESC"
-                layout="joomla.form.field.radio.switcher"
-        >
-            <option value="0">JNO</option>
-            <option value="1">JYES</option>
-        </field>
-
-        <field
-                name="media_name_from_alias"
-                type="radio"
-                default="0"
-                label="COM_ALFA_MEDIA_CONFIG_ALIAS_NAME_LABEL"
-                description="COM_ALFA_MEDIA_CONFIG_ALIAS_NAME_DESC"
-                layout="joomla.form.field.radio.switcher"
-        >
-            <option value="0">JNO</option>
-            <option value="1">JYES</option>
-        </field>
     </fieldset>
 
     <fieldset

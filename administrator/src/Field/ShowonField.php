@@ -72,6 +72,16 @@ class ShowonField extends FormField
     /** Switchable-field options — fetched once per render in getInput(). */
     private array $fieldOptions = [];
 
+    /**
+     * Server-render the visibility-rule builder: load its web assets, decode the
+     * stored per-glue JSON into the root group, emit the hidden store input plus
+     * the recursively rendered tree, and append the rule/group <template> blocks
+     * the JS clones for new rows.
+     *
+     * @return  string  The builder HTML
+     *
+     * @since 1.0.1
+     */
     protected function getInput()
     {
         $wa = Factory::getApplication()->getDocument()->getWebAssetManager();
@@ -241,6 +251,16 @@ class ShowonField extends FormField
         return htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
     }
 
+    /**
+     * JSON-encode an array (unescaped unicode/slashes) and HTML-escape it for
+     * safe use inside a double-quoted HTML attribute.
+     *
+     * @param   array  $v  The value to encode
+     *
+     * @return  string  The attribute-safe JSON string
+     *
+     * @since 1.0.1
+     */
     private function escAttrJson(array $v): string
     {
         return htmlspecialchars(

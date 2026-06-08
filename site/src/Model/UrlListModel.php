@@ -123,6 +123,16 @@ abstract class UrlListModel extends ListModel
         return $data;
     }
 
+    /**
+     * Get the filter form, registering the site component forms path before delegating to the parent.
+     *
+     * @param   array  $data      Data for the form.
+     * @param   bool   $loadData  Whether to load the form data.
+     *
+     * @return  \Joomla\CMS\Form\Form|null  The filter form, or null when no filter form is defined.
+     *
+     * @since   1.0.1
+     */
     public function getFilterForm($data = [], $loadData = true)
     {
         \Joomla\CMS\Form\Form::addFormPath(JPATH_SITE . '/components/com_alfa/forms');

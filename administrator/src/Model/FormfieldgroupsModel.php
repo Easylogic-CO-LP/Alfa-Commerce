@@ -30,11 +30,26 @@ class FormfieldgroupsModel extends ListModel
         parent::__construct($config, $factory);
     }
 
+    /**
+     * Populate the model state, defaulting the ordering to the group ordering column.
+     *
+     * @param   string  $ordering   The default ordering column.
+     * @param   string  $direction  The default ordering direction.
+     *
+     * @return  void
+     */
     protected function populateState($ordering = 'a.ordering', $direction = 'ASC')
     {
         parent::populateState($ordering, $direction);
     }
 
+    /**
+     * Build the cache store id, folding the search and state filters into the key.
+     *
+     * @param   string  $id  An identifier string to prefix the store id.
+     *
+     * @return  string  A store id reflecting the active filters.
+     */
     protected function getStoreId($id = '')
     {
         $id .= ':' . $this->getState('filter.search');
@@ -42,6 +57,12 @@ class FormfieldgroupsModel extends ListModel
         return parent::getStoreId($id);
     }
 
+    /**
+     * Build the list query for form-field groups, adding a per-group field_count
+     * subquery and applying the state and search (id: / title LIKE) filters.
+     *
+     * @return  \Joomla\Database\QueryInterface  The query to list the groups.
+     */
     protected function getListQuery()
     {
         $db = $this->getDatabase();

@@ -107,6 +107,18 @@
                 this.config = this.deepMerge(this.config, window.MediaManagerConfig);
             }
 
+            // The config object literal reads Joomla.getOptions at script-parse time,
+            // which can run before the joomla-script-options JSON is in the DOM (=> null).
+            // Re-read here, on init (DOM ready), so the values are always populated.
+            this.config.allowedMimes = Joomla.getOptions('com_alfa.mimes', this.config.allowedMimes);
+
+            // Align the client size cap to the server's real upload limit (the smaller of
+            // PHP upload_max_filesize / post_max_size). Falls back to the literal default.
+            const serverMaxUpload = Joomla.getOptions('com_alfa.maxUploadSize', 0);
+            if (serverMaxUpload > 0) {
+                this.config.maxFileSize = serverMaxUpload;
+            }
+
             this.basePath = Joomla.getOptions('system.paths').base || '';
 
             const allowedTypes = this.config.allowedTypes;
@@ -177,6 +189,13 @@
             return defaultText;
         },
 
+        formatBytes(bytes) {
+            if (!bytes) return '0 B';
+            const units = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+            return (bytes / Math.pow(1024, i)).toFixed(i ? 1 : 0) + ' ' + units[i];
+        },
+
         showError(message) {
             if (typeof Joomla !== 'undefined' && Joomla.renderMessages) {
                 Joomla.renderMessages({ error: [message] });
@@ -240,10 +259,10 @@
             const availableSlots = this.checkMediaSlotAvailability();
             if (availableSlots === 0) return;
 
+            // validateFile shows a specific reason (type / size) for each rejected file.
             let validFiles = files.filter(file => this.validateFile(file));
 
             if (validFiles.length === 0) {
-                this.showError(this.getText(this.config.messages.noValidFiles, 'No valid image files found'));
                 return;
             }
 
@@ -258,11 +277,31 @@
         },
 
         validateFile(file) {
-            if (this.config.allowedMimes === null || !this.config.allowedMimes.includes(file.type)) {
-                alert(this.getText('COM_ALFA_MEDIA_MIME_NOT_SUPPORTED', 'The file type %s is not supported.').replace('%s', file.type));
+            const mimes = this.config.allowedMimes;
+            // Tolerate array (normal), CSV string, or object (defensive).
+            const mimeList = Array.isArray(mimes) ? mimes
+                           : (typeof mimes === 'string' && mimes.length ? mimes.split(',')
+                           : (mimes && typeof mimes === 'object' ? Object.values(mimes) : []));
+
+            if (!mimeList.includes(file.type)) {
+                this.showError(
+                    this.getText('COM_ALFA_MEDIA_MIME_NOT_SUPPORTED', 'The file type "%s" is not supported.')
+                        .replace('%s', file.type || file.name),
+                );
                 return false;
             }
-            return file.size <= this.config.maxFileSize;
+
+            if (file.size > this.config.maxFileSize) {
+                this.showError(
+                    this.getText('COM_ALFA_MEDIA_FILE_TOO_LARGE', 'The file "%s" is too large (%s). The maximum upload size is %s.')
+                        .replace('%s', file.name)
+                        .replace('%s', this.formatBytes(file.size))
+                        .replace('%s', this.formatBytes(this.config.maxFileSize)),
+                );
+                return false;
+            }
+
+            return true;
         },
 
         addDroppedFile(file) {
@@ -592,7 +631,6 @@
                     }
                 })
                 .catch(error => {
-                    console.error('[MediaManager] Fetch error:', error);
                     this.showError(this.getText(this.config.messages.loadPreviewError, 'Error'));
                 });
         },

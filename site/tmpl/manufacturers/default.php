@@ -17,7 +17,9 @@ $wa = $this->document->getWebAssetManager();
 $wa->useStyle('com_alfa.list');
 ?>
 
+<?php if ($this->showFilters): ?>
 <?php echo LayoutHelper::render('filter_form', ['view' => $this]); ?>
+<?php endif; ?>
 
 <section>
     <div class="manufacturer-list list-container">

@@ -94,7 +94,7 @@ class HtmlView extends BaseHtmlView
         // all pages); they make no sense for the filesystem listing.
         if ($this->mode === 'rows') {
             $toolbar->popupButton('delete-orphans', 'COM_ALFA_TOOLSMEDIA_DELETE_ALL_ORPHANS')
-                ->icon('icon-unlink')
+                ->icon('icon-link')
                 ->buttonClass('btn btn-warning')
                 ->textHeader(Text::_('COM_ALFA_TOOLSMEDIA_DELETE_ORPHANS_HEADER'))
                 ->popupType('inline')
@@ -108,6 +108,19 @@ class HtmlView extends BaseHtmlView
                 ->textHeader(Text::_('COM_ALFA_TOOLSMEDIA_DELETE_MISSING_HEADER'))
                 ->popupType('inline')
                 ->url('#joomla-dialog-delete-missing')
+                ->modalWidth('600px')
+                ->modalHeight('fit-content');
+        }
+
+        // Untracked-file cleanup applies to the filesystem listing only: delete
+        // every disk file with no #__alfa_media row, across all pages.
+        if ($this->mode === 'files') {
+            $toolbar->popupButton('delete-untracked', 'COM_ALFA_TOOLSMEDIA_DELETE_ALL_UNTRACKED')
+                ->icon('icon-file')
+                ->buttonClass('btn btn-warning')
+                ->textHeader(Text::_('COM_ALFA_TOOLSMEDIA_DELETE_UNTRACKED_HEADER'))
+                ->popupType('inline')
+                ->url('#joomla-dialog-delete-untracked')
                 ->modalWidth('600px')
                 ->modalHeight('fit-content');
         }

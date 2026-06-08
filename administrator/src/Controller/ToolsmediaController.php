@@ -91,6 +91,39 @@ class ToolsmediaController extends BaseController
     }
 
     /**
+     * Delete every untracked upload file (a file on disk with no #__alfa_media
+     * row) across all pages. Unlike the orphan/missing actions this works on
+     * file paths, not row ids — deleteUntrackedFiles() re-validates each path is
+     * inside the upload root and still untracked before removing it. Gated by the
+     * alfa.tools permission.
+     *
+     *
+     * @since   1.0.8
+     */
+    public function deleteAllUntracked(): void
+    {
+        $this->checkToken();
+
+        if (!$this->app->getIdentity()->authorise('alfa.tools', 'com_alfa')) {
+            throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
+        }
+
+        try {
+            $paths = array_map(
+                static fn (object $file): string => $file->path,
+                MediaHelper::findUntrackedFiles(),
+            );
+
+            $deleted = MediaHelper::deleteUntrackedFiles($paths);
+            $this->setMessage(Text::sprintf('COM_ALFA_TOOLSMEDIA_N_FILES_DELETED', $deleted));
+        } catch (Throwable $e) {
+            $this->setMessage($e->getMessage(), 'error');
+        }
+
+        $this->setRedirect(Route::_('index.php?option=com_alfa&view=toolsmedia', false));
+    }
+
+    /**
      * Shared driver for the "delete all" maintenance actions: resolve the full
      * id set via the given finder, then delete it (the helper slices internally).
      *

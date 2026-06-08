@@ -23,17 +23,31 @@ class UsergroupsModel extends ListModel
         parent::__construct($config, $factory);
     }
 
+    /**
+     * Populate the model state, defaulting the ordering to the core usergroup title.
+     *
+     * @param   string  $ordering   The default ordering column.
+     * @param   string  $direction  The default ordering direction.
+     *
+     * @return  void
+     */
     protected function populateState($ordering = 'ug.title', $direction = 'ASC')
     {
         parent::populateState($ordering, $direction);
     }
 
+    /**
+     * Build the list query, joining the Alfa usergroup settings rows to the core
+     * #__usergroups table (on usergroup_id) and applying the id: / title LIKE search filter.
+     *
+     * @return  \Joomla\Database\QueryInterface  The query to list the usergroup settings.
+     */
     protected function getListQuery()
     {
         $db = $this->getDatabase();
         $query = $db->getQuery(true);
 
-        // 1. Select the columns that ACTUALLY exist in your table now
+        // Select the Alfa settings columns plus the core usergroup title.
         $query->select(
             $this->getState(
                 'list.select',
@@ -42,10 +56,10 @@ class UsergroupsModel extends ListModel
         );
         $query->from($db->quoteName('#__alfa_usergroups', 'a'));
 
-        // 2. JOIN using usergroup_id instead of a.id
+        // Join the core usergroups on usergroup_id (not a.id) for the title.
         $query->join('INNER', $db->quoteName('#__usergroups', 'ug') . ' ON ug.id = a.usergroup_id');
 
-        // 3. Filter by Search (Cleaned up - removed a.name)
+        // Search filter: id:<n> matches the row id, otherwise LIKE on the title.
         $search = $this->getState('filter.search');
         if (!empty($search)) {
             if (stripos($search, 'id:') === 0) {
@@ -56,7 +70,7 @@ class UsergroupsModel extends ListModel
             }
         }
 
-        // 4. Ordering
+        // Ordering.
         $orderCol = $this->state->get('list.ordering', 'ug.title');
         $orderDirn = $this->state->get('list.direction', 'ASC');
 

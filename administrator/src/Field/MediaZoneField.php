@@ -5,6 +5,7 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Controller\MediaController;
+use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Form\FormField;
 use Joomla\CMS\Layout\LayoutHelper;
@@ -66,11 +67,11 @@ class MediaZoneField extends FormField
         $params = ComponentHelper::getParams('com_alfa');
         $medias = $this->prepareMediaObjects($this->value);
 
-        $allowedMimes = $params->get('media_mime');
+        $allowedMimes = MediaHelper::resolveAllowedMimes($params->get('media_mime'));
         $supportedExtensions = $this->getSupportedExtensions($allowedMimes);
 
         // Pass prepared data to layout
-        return LayoutHelper::render('mediazone.dropmedias', [
+        return LayoutHelper::render('mediazone.grid', [
             'data' => $medias,
             'mimes' => $allowedMimes,
             'supportedExtensions' => $supportedExtensions,

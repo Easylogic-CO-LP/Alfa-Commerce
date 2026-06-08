@@ -7,7 +7,7 @@
     <author>Agamemnon Fakas</author>
     <authorEmail>info@easylogic.gr</authorEmail>
     <authorUrl>https://easylogic.gr</authorUrl>
-    <version>1.0.8</version>
+    <version>1.0.9</version>
     <description>The smartest,fastest and easiest ecommerce solution for companies developed with love by Easylogic.</description>
     <namespace path="src">Alfa\Component\Alfa</namespace>
 
@@ -133,7 +133,6 @@
     <modules>
         <module module="mod_alfa_cart" />
 		<module module="mod_alfa_search" />
-        <module module="mod_alfa_filters" />
 	</modules>
 
     <libraries>

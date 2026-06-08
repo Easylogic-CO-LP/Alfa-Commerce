@@ -593,6 +593,19 @@ class EmailPositionsField extends EditorField
         return true;
     }
 
+    /**
+     * Render a structural (non-positioned) email block: a title derived from the
+     * layout id, a hint, and an eye toggle whose data-slug links every per-language
+     * copy of the block to the single shared visibility flag. With multiple
+     * languages the toggle gains an "all languages" note to signal it isn't per-language.
+     *
+     * @param   string  $layoutId  Layout/partial id, e.g. 'emails.partials.order_items'
+     * @param   bool    $enabled   Whether the block is currently shown
+     *
+     * @return  string  The block HTML
+     *
+     * @since   1.0.4
+     */
     private function renderStruct(string $layoutId = '', bool $enabled = true): string
     {
         // Label derived from the rendered partial id itself — no hardcoded

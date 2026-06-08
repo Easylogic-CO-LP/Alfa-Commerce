@@ -25,6 +25,14 @@ class HtmlView extends BaseHtmlView
     public $filterForm;
     public $activeFilters;
 
+    /**
+     * Render the form-field groups list: load items, pagination, state and the
+     * filter form from the model, build the toolbar, then delegate to the parent.
+     *
+     * @param   string|null  $tpl  The name of the template file to parse
+     *
+     * @return  void
+     */
     public function display($tpl = null)
     {
         $model = $this->getModel();
@@ -44,6 +52,13 @@ class HtmlView extends BaseHtmlView
         parent::display($tpl);
     }
 
+    /**
+     * Build the list toolbar: title, New button, a Change-Status dropdown
+     * (publish/unpublish/trash/checkin or empty-trash when viewing trashed),
+     * a Back-to-Fields link and the notification badge, gated by permissions.
+     *
+     * @return  void
+     */
     protected function addToolbar()
     {
         $canDo = ContentHelper::getActions('com_alfa');

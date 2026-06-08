@@ -22,6 +22,18 @@ defined('_JEXEC') or die;
  */
 class PluginLayoutHelper
 {
+    /**
+     * Resolve a layout shipped by a plugin, falling back to the component default (or an empty layout)
+     * when arguments are missing or the plugin layout file does not exist.
+     *
+     * @param   string  $pluginType  The plugin group/type (e.g. alfa-payments).
+     * @param   string  $pluginName  The plugin element name.
+     * @param   string  $fileName    The layout file name (without extension).
+     *
+     * @return  FileLayout  The resolved file layout.
+     *
+     * @since   1.0.1
+     */
     public static function pluginLayout($pluginType, $pluginName, $fileName): FileLayout
     {
         if (empty($pluginType) || empty($pluginName) || empty($fileName)) {
@@ -44,6 +56,16 @@ class PluginLayoutHelper
         }
     }
 
+    /**
+     * Build the component-level default layout for a plugin type, derived from the type suffix
+     * (e.g. alfa-payments → payments) and the current view's default filename.
+     *
+     * @param   string  $type  The plugin group/type (e.g. alfa-payments).
+     *
+     * @return  FileLayout  The default component layout, or an empty layout when it cannot be resolved.
+     *
+     * @since   1.0.1
+     */
     public static function getDefaultPluginLayout($type): FileLayout
     {
         $layoutType = explode('-', $type)[1] ?? '';
@@ -58,6 +80,13 @@ class PluginLayoutHelper
         return $layout;
     }
 
+    /**
+     * Determine the default layout filename for the current request view (currently only the cart view).
+     *
+     * @return  string  The default layout filename, or an empty string when none applies.
+     *
+     * @since   1.0.1
+     */
     public static function getLayoutDefaultFilename(): string
     {
         $app = Factory::getApplication();
@@ -73,6 +102,13 @@ class PluginLayoutHelper
         return $layoutFile;
     }
 
+    /**
+     * Build a no-op layout that renders to an empty string (no include paths, non-existent layout id).
+     *
+     * @return  FileLayout  A dummy layout whose render() output is ''.
+     *
+     * @since   1.0.1
+     */
     public static function getEmptyLayout(): FileLayout
     {
         $empty_layout = new FileLayout('non.existing.layout'); // Or any layout ID that doesn’t exist

@@ -19,6 +19,14 @@ class CategoriesField extends ListField
     protected $type = 'categories';
     protected $options = [];
 
+    /**
+     * Build the category options from the configured model (default 'categories'),
+     * rendered as a depth-indented or full-path tree. When 'disableDescendants'
+     * is set on a self-referential picker, disables the current node and its
+     * descendants to prevent a category from becoming its own parent (cycle).
+     *
+     * @return  array  The option set keyed by 'cat-<id>'
+     */
     protected function getOptions()
     {
         // `disableDescendants` is the single switch for self-parent prevention.

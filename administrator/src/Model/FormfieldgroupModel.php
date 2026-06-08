@@ -21,6 +21,14 @@ class FormfieldgroupModel extends AdminModel
 
     protected $formName = 'formfieldgroup';
 
+    /**
+     * Build the form for the form-field group edit screen.
+     *
+     * @param   array    $data      Data for the form.
+     * @param   boolean  $loadData  True to load form data from the model state.
+     *
+     * @return  \Joomla\CMS\Form\Form|false  The Form object on success, false on failure.
+     */
     public function getForm($data = [], $loadData = true)
     {
         return $this->loadForm(
@@ -30,6 +38,12 @@ class FormfieldgroupModel extends AdminModel
         ) ?: false;
     }
 
+    /**
+     * Provide the data for the form, preferring any session-stored edit data
+     * and falling back to the loaded item.
+     *
+     * @return  mixed  The data for the form.
+     */
     protected function loadFormData()
     {
         $data = Factory::getApplication()->getUserState('com_alfa.edit.formfieldgroup.data', []);
@@ -41,6 +55,14 @@ class FormfieldgroupModel extends AdminModel
         return $data;
     }
 
+    /**
+     * Stamp created_by on new records and modified_by on every save before
+     * the table is stored.
+     *
+     * @param   \Joomla\CMS\Table\Table  $table  The table object.
+     *
+     * @return  void
+     */
     protected function prepareTable($table)
     {
         $user = $this->getCurrentUser();

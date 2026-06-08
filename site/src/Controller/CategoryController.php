@@ -98,7 +98,7 @@ class CategoryController extends BaseController
 
             if (!$item) {
                 // If there isn't any menu item active, redirect to list view
-                $this->setRedirect(Route::_('index.php?option=com_alfa&view=categories', false));
+                $this->setRedirect(Route::_('index.php?option=com_alfa&view=items', false));
             } else {
                 $this->setRedirect(Route::_('index.php?Itemid=' . $item->id, false));
             }
@@ -181,7 +181,7 @@ class CategoryController extends BaseController
                 $this->app->setUserState('com_alfa.edit.category.data', null);
 
                 $this->app->enqueueMessage(Text::_('COM_ALFA_ITEM_DELETED_SUCCESSFULLY'), 'success');
-                $this->app->redirect(Route::_('index.php?option=com_alfa&view=categories', false));
+                $this->app->redirect(Route::_('index.php?option=com_alfa&view=items', false));
             }
 
             // Redirect to the list screen.
