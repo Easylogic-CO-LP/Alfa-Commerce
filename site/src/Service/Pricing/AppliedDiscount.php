@@ -46,8 +46,6 @@ class AppliedDiscount
 
     /**
      * Export the applied discount as a plain array (formatting the amount when present).
-     *
-     * @return array
      */
     public function toArray(): array
     {

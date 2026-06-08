@@ -35,8 +35,6 @@ class AppliedTax
 
     /**
      * Export the applied tax as a plain array.
-     *
-     * @return array
      */
     public function toArray(): array
     {

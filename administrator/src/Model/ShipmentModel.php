@@ -133,9 +133,9 @@ class ShipmentModel extends AdminModel
      * the per-language translations, and sync the category, manufacturer, place,
      * user and usergroup associations.
      *
-     * @param   array  $data  The form data.
+     * @param array $data The form data.
      *
-     * @return  boolean  True on success, false on failure.
+     * @return bool True on success, false on failure.
      *
      * @since   1.0.1
      */

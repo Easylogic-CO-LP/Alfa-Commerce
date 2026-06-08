@@ -29,9 +29,9 @@ class HtmlView extends BaseHtmlView
      * Render the form-field groups list: load items, pagination, state and the
      * filter form from the model, build the toolbar, then delegate to the parent.
      *
-     * @param   string|null  $tpl  The name of the template file to parse
+     * @param string|null $tpl The name of the template file to parse
      *
-     * @return  void
+     * @return void
      */
     public function display($tpl = null)
     {
@@ -57,7 +57,7 @@ class HtmlView extends BaseHtmlView
      * (publish/unpublish/trash/checkin or empty-trash when viewing trashed),
      * a Back-to-Fields link and the notification badge, gated by permissions.
      *
-     * @return  void
+     * @return void
      */
     protected function addToolbar()
     {

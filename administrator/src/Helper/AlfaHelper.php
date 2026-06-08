@@ -12,7 +12,6 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 // No direct access
 defined('_JEXEC') or die;
 
-use Exception;
 use Joomla\CMS\Access\Access;
 //use \Joomla\CMS\Object\CMSObject;
 use Joomla\CMS\Factory;
@@ -126,12 +125,12 @@ class AlfaHelper
      * usort/uasort comparator for two objects on a property, comparing
      * numerically when both values are numeric and case-insensitively otherwise.
      *
-     * @param   object  $object1   First object
-     * @param   object  $object2   Second object
-     * @param   string  $property  Property name to compare on
-     * @param   string  $order     Sort direction, 'asc' or 'desc'
+     * @param object $object1 First object
+     * @param object $object2 Second object
+     * @param string $property Property name to compare on
+     * @param string $order Sort direction, 'asc' or 'desc'
      *
-     * @return  int  Negative, zero or positive per the comparison and direction
+     * @return int Negative, zero or positive per the comparison and direction
      *
      * @since  1.0.1
      */
@@ -149,12 +148,12 @@ class AlfaHelper
      * Recursively sort a nested item tree in place, sorting each level and its
      * children by the given property using sort_items() as the comparator.
      *
-     * @param   array   $items          The item tree, passed by reference
-     * @param   string  $property       Property to sort on
-     * @param   string  $order          Sort direction, 'asc' or 'desc'
-     * @param   string  $childrenField  Property holding each node's children
+     * @param array $items The item tree, passed by reference
+     * @param string $property Property to sort on
+     * @param string $order Sort direction, 'asc' or 'desc'
+     * @param string $childrenField Property holding each node's children
      *
-     * @return  void
+     * @return void
      *
      * @since  1.0.1
      */
@@ -178,13 +177,13 @@ class AlfaHelper
      * its children property and (when $pathField is set) stamping a breadcrumb
      * 'path' built from the ancestor chain.
      *
-     * @param   array        $items          The item tree
-     * @param   string|null  $pathField      Node property used to build the path, or null to skip
-     * @param   string       $pathSeparator  Separator between path segments
-     * @param   string       $childrenField  Property holding each node's children
-     * @param   string       $parentPath     Accumulated parent path (recursion)
+     * @param array $items The item tree
+     * @param string|null $pathField Node property used to build the path, or null to skip
+     * @param string $pathSeparator Separator between path segments
+     * @param string $childrenField Property holding each node's children
+     * @param string $parentPath Accumulated parent path (recursion)
      *
-     * @return  array  The flattened list of cloned nodes
+     * @return array The flattened list of cloned nodes
      *
      * @since  1.0.1
      */
@@ -225,14 +224,14 @@ class AlfaHelper
      * each row with its 'depth' and a breadcrumb 'path' by recursively walking
      * children of the given parent.
      *
-     * @param   array        $items          Flat list of rows with id/parent_id
-     * @param   string|null  $pathField      Row property used to build the path, or null
-     * @param   string       $pathSeparator  Separator between path segments
-     * @param   string       $parentPath     Accumulated parent path (recursion)
-     * @param   int          $parentId       Parent id to start from
-     * @param   int          $depth          Current depth level (recursion)
+     * @param array $items Flat list of rows with id/parent_id
+     * @param string|null $pathField Row property used to build the path, or null
+     * @param string $pathSeparator Separator between path segments
+     * @param string $parentPath Accumulated parent path (recursion)
+     * @param int $parentId Parent id to start from
+     * @param int $depth Current depth level (recursion)
      *
-     * @return  array  Depth-first ordered list with depth/path stamped
+     * @return array Depth-first ordered list with depth/path stamped
      *
      * @since  1.0.1
      */
@@ -563,12 +562,12 @@ class AlfaHelper
      * form value, defaulting to 'text' (fields) or 'standard' (shipments/payments)
      * for new entries, and loads its language file.
      *
-     * @param   \Joomla\CMS\Form\Form  $form  The form to augment (by reference)
-     * @param   array                  $data  Posted data; may carry the selected 'type'
-     * @param   object                 $item  The stored record whose ->params seed the fieldset
-     * @param   string                 $type  Plugin family: 'payments', 'shipments', 'fields', …
+     * @param \Joomla\CMS\Form\Form $form The form to augment (by reference)
+     * @param array $data Posted data; may carry the selected 'type'
+     * @param object $item The stored record whose ->params seed the fieldset
+     * @param string $type Plugin family: 'payments', 'shipments', 'fields', …
      *
-     * @return  void
+     * @return void
      *
      * @since  1.0.1
      */

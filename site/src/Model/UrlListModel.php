@@ -126,10 +126,10 @@ abstract class UrlListModel extends ListModel
     /**
      * Get the filter form, registering the site component forms path before delegating to the parent.
      *
-     * @param   array  $data      Data for the form.
-     * @param   bool   $loadData  Whether to load the form data.
+     * @param array $data Data for the form.
+     * @param bool $loadData Whether to load the form data.
      *
-     * @return  \Joomla\CMS\Form\Form|null  The filter form, or null when no filter form is defined.
+     * @return \Joomla\CMS\Form\Form|null The filter form, or null when no filter form is defined.
      *
      * @since   1.0.1
      */

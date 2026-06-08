@@ -43,7 +43,6 @@ class AfterProcessEvent extends MediaEvent
     /**
      * Get the dominant colour computed for the stored file (e.g. 'rgb(r,g,b)').
      *
-     * @return  string
      *
      * @since   1.0.2
      */
@@ -55,7 +54,6 @@ class AfterProcessEvent extends MediaEvent
     /**
      * Whether a plugin actually processed the image upstream.
      *
-     * @return  bool
      *
      * @since   1.0.2
      */

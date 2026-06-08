@@ -23,10 +23,10 @@ use FilesystemIterator;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\OutputFilter;
-use Joomla\CMS\Language\Text;
 use Joomla\CMS\HTML\HTMLHelper;
-use Joomla\CMS\Uri\Uri;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Plugin\PluginHelper;
+use Joomla\CMS\Uri\Uri;
 use Joomla\Filesystem\File;
 use Joomla\Filesystem\Folder;
 use Joomla\String\StringHelper;
@@ -45,7 +45,7 @@ class MediaHelper
      * by the upload gate (MediaZoneField / grid layout → client validation) and
      * server-side handling so both ends agree.
      *
-     * @var    string[]
+     * @var string[]
      * @since  1.0.8
      */
     public const DEFAULT_IMAGE_MIMES = [
@@ -64,9 +64,9 @@ class MediaHelper
      * {@see self::DEFAULT_IMAGE_MIMES} set, so uploads work without requiring the
      * admin to pre-select every type.
      *
-     * @param   mixed  $configured  The raw media_mime config value (array|string|null).
+     * @param mixed $configured The raw media_mime config value (array|string|null).
      *
-     * @return  string[]  The effective allowed MIME types.
+     * @return string[] The effective allowed MIME types.
      *
      * @since   1.0.8
      */
@@ -86,7 +86,7 @@ class MediaHelper
      * this returns 0. Used to keep the client-side drop gate aligned with what the
      * server can really accept, instead of an arbitrary hard-coded cap.
      *
-     * @return  int  Effective max upload size in bytes (0 = unlimited).
+     * @return int Effective max upload size in bytes (0 = unlimited).
      *
      * @since   1.0.8
      */
@@ -100,12 +100,12 @@ class MediaHelper
             }
 
             $number = (int) $value;
-            $unit   = strtolower($value[\strlen($value) - 1]);
+            $unit = strtolower($value[\strlen($value) - 1]);
 
             return match ($unit) {
-                'g'     => $number * 1024 * 1024 * 1024,
-                'm'     => $number * 1024 * 1024,
-                'k'     => $number * 1024,
+                'g' => $number * 1024 * 1024 * 1024,
+                'm' => $number * 1024 * 1024,
+                'k' => $number * 1024,
                 default => (int) $value,
             };
         };
@@ -675,9 +675,9 @@ class MediaHelper
 
                         // Use the final path the plugin wrote (falls back to the
                         // proposed dest when nothing was processed/rewritten).
-                        $dest        = $result['dest'];
+                        $dest = $result['dest'];
                         $relativeDest = ltrim(str_replace(JPATH_ROOT . '/', '', $dest), '/');
-                        $storeOk      = true;
+                        $storeOk = true;
 
                         if (!$result['processed']) {
                             // No plugin processed the image → store the original unchanged.
@@ -1027,13 +1027,13 @@ class MediaHelper
      * Per-MIME GD loader functions, keyed by source MIME type. Used by
      * {@see self::dominantColor()} to open the final file for colour sampling.
      *
-     * @var    array<string, string>
+     * @var array<string, string>
      * @since  1.0.2
      */
     private const COLOR_LOADERS = [
         'image/jpeg' => 'imagecreatefromjpeg',
-        'image/png'  => 'imagecreatefrompng',
-        'image/gif'  => 'imagecreatefromgif',
+        'image/png' => 'imagecreatefrompng',
+        'image/gif' => 'imagecreatefromgif',
         'image/webp' => 'imagecreatefromwebp',
         'image/avif' => 'imagecreatefromavif',
     ];
@@ -1127,10 +1127,10 @@ class MediaHelper
      * loader/encoder for the format, or the write fails — the caller then copies
      * the original as a last resort.
      *
-     * @param string $src  Absolute source image path.
+     * @param string $src Absolute source image path.
      * @param string $dest Absolute destination path (extension matches source).
-     * @param int    $maxW Maximum thumbnail width.
-     * @param int    $maxH Maximum thumbnail height.
+     * @param int $maxW Maximum thumbnail width.
+     * @param int $maxH Maximum thumbnail height.
      *
      * @return bool True when a resized thumbnail was written, false otherwise.
      *
@@ -1171,8 +1171,8 @@ class MediaHelper
 
         // Scale to fit inside the box, preserving aspect ratio; never upscale.
         $scale = min($maxW / $srcW, $maxH / $srcH, 1);
-        $newW  = max(1, (int) round($srcW * $scale));
-        $newH  = max(1, (int) round($srcH * $scale));
+        $newW = max(1, (int) round($srcW * $scale));
+        $newH = max(1, (int) round($srcH * $scale));
 
         $dstGd = imagecreatetruecolor($newW, $newH);
 
@@ -1189,11 +1189,11 @@ class MediaHelper
         // Encode in the SAME format as the source (no conversion here).
         $result = match ($info['mime']) {
             'image/jpeg' => imagejpeg($dstGd, $dest),
-            'image/png'  => imagepng($dstGd, $dest),
-            'image/gif'  => imagegif($dstGd, $dest),
+            'image/png' => imagepng($dstGd, $dest),
+            'image/gif' => imagegif($dstGd, $dest),
             'image/webp' => function_exists('imagewebp') ? imagewebp($dstGd, $dest) : false,
             'image/avif' => function_exists('imageavif') ? imageavif($dstGd, $dest) : false,
-            default      => false,
+            default => false,
         };
 
         imagedestroy($srcGd);
@@ -1205,10 +1205,10 @@ class MediaHelper
     /**
      * Dispatch the pre-process validation event so a plugin can veto a file.
      *
-     * @param string $source       Absolute source path of the upload.
-     * @param string $origin       Media origin (item|category|manufacturer).
-     * @param string $field        Logical field name ('image' | 'thumbnail').
-     * @param array  $allowedMimes Allowed source MIME types.
+     * @param string $source Absolute source path of the upload.
+     * @param string $origin Media origin (item|category|manufacturer).
+     * @param string $field Logical field name ('image' | 'thumbnail').
+     * @param array $allowedMimes Allowed source MIME types.
      *
      * @return bool True when valid (or unhandled), false when a plugin vetoed it
      *              (the plugin's error message is enqueued here).
@@ -1220,9 +1220,9 @@ class MediaHelper
         PluginHelper::importPlugin('alfa-media');
 
         $event = new ValidateEvent('onAlfaMediaValidate', [
-            'source'       => $source,
-            'origin'       => $origin,
-            'field'        => $field,
+            'source' => $source,
+            'origin' => $origin,
+            'field' => $field,
             'allowedMimes' => $allowedMimes,
         ]);
 
@@ -1257,14 +1257,14 @@ class MediaHelper
      * maxWidth/maxHeight (component owns thumbnail SIZE), and the plugin applies
      * its own FORMAT/QUALITY.
      *
-     * @param string $eventName    Event name to dispatch.
-     * @param string $source       Absolute source path.
-     * @param string $dest         Absolute destination path (plugin may rewrite).
-     * @param string $origin       Media origin / context.
-     * @param string $field        Logical field name.
-     * @param array  $allowedMimes Allowed source MIME types.
-     * @param int    $maxWidth     Thumbnail target max width (thumbnail path only).
-     * @param int    $maxHeight    Thumbnail target max height (thumbnail path only).
+     * @param string $eventName Event name to dispatch.
+     * @param string $source Absolute source path.
+     * @param string $dest Absolute destination path (plugin may rewrite).
+     * @param string $origin Media origin / context.
+     * @param string $field Logical field name.
+     * @param array $allowedMimes Allowed source MIME types.
+     * @param int $maxWidth Thumbnail target max width (thumbnail path only).
+     * @param int $maxHeight Thumbnail target max height (thumbnail path only).
      *
      * @return array{dest:string, processed:bool}
      *
@@ -1283,12 +1283,12 @@ class MediaHelper
         PluginHelper::importPlugin('alfa-media');
 
         $arguments = [
-            'source'       => $source,
-            'dest'         => $dest,
-            'origin'       => $origin,
-            'field'        => $field,
-            'maxWidth'     => $maxWidth,
-            'maxHeight'    => $maxHeight,
+            'source' => $source,
+            'dest' => $dest,
+            'origin' => $origin,
+            'field' => $field,
+            'maxWidth' => $maxWidth,
+            'maxHeight' => $maxHeight,
             'allowedMimes' => $allowedMimes,
         ];
 
@@ -1303,7 +1303,7 @@ class MediaHelper
         return [
             // getFinalPath() falls back to the proposed dest when the plugin
             // did not rewrite the path; dest itself is never mutated.
-            'dest'      => $event->getFinalPath(),
+            'dest' => $event->getFinalPath(),
             'processed' => $event->isProcessed(),
         ];
     }
@@ -1311,14 +1311,13 @@ class MediaHelper
     /**
      * Dispatch the post-process notification event (side-effects only).
      *
-     * @param string $source    Absolute source path.
-     * @param string $dest      Absolute destination path that was stored.
-     * @param string $origin    Media origin / context.
-     * @param string $field     Logical field name.
-     * @param string $color     Dominant colour computed for the stored file.
-     * @param bool   $processed Whether a plugin actually processed the image.
+     * @param string $source Absolute source path.
+     * @param string $dest Absolute destination path that was stored.
+     * @param string $origin Media origin / context.
+     * @param string $field Logical field name.
+     * @param string $color Dominant colour computed for the stored file.
+     * @param bool $processed Whether a plugin actually processed the image.
      *
-     * @return void
      *
      * @since   1.0.2
      */
@@ -1327,11 +1326,11 @@ class MediaHelper
         PluginHelper::importPlugin('alfa-media');
 
         $event = new AfterProcessEvent('onAlfaMediaAfterProcess', [
-            'source'    => $source,
-            'dest'      => $dest,
-            'origin'    => $origin,
-            'field'     => $field,
-            'color'     => $color,
+            'source' => $source,
+            'dest' => $dest,
+            'origin' => $origin,
+            'field' => $field,
+            'color' => $color,
             'processed' => $processed,
         ]);
 
@@ -1342,9 +1341,8 @@ class MediaHelper
      * Dispatch the pre-delete cleanup event so a plugin can purge derivatives
      * before the component removes the media rows/files.
      *
-     * @param object[] $rows  Media rows about to be deleted (path, thumbnail, ...).
+     * @param object[] $rows Media rows about to be deleted (path, thumbnail, ...).
      *
-     * @return void
      *
      * @since   1.0.2
      */
@@ -1369,7 +1367,7 @@ class MediaHelper
         }
 
         $event = new BeforeDeleteEvent('onAlfaMediaBeforeDelete', [
-            'rows'  => $rows,
+            'rows' => $rows,
             'paths' => $paths,
         ]);
 

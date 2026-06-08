@@ -87,11 +87,11 @@ class ItemModel extends AdminModel
      * Batch command: set the allowed users for each selected item in the
      * #__alfa_items_users join table.
      *
-     * @param   array  $value     The user ids to assign (single empty value = no change).
-     * @param   array  $pks       The item ids being processed.
-     * @param   array  $contexts  The context for each item.
+     * @param array $value The user ids to assign (single empty value = no change).
+     * @param array $pks The item ids being processed.
+     * @param array $contexts The context for each item.
      *
-     * @return  boolean  True on success.
+     * @return bool True on success.
      *
      * @since   1.0.1
      */
@@ -119,11 +119,11 @@ class ItemModel extends AdminModel
      * Batch command: set the allowed user groups for each selected item in the
      * #__alfa_items_usergroups join table.
      *
-     * @param   array  $value     The usergroup ids to assign (single empty value = no change).
-     * @param   array  $pks       The item ids being processed.
-     * @param   array  $contexts  The context for each item.
+     * @param array $value The usergroup ids to assign (single empty value = no change).
+     * @param array $pks The item ids being processed.
+     * @param array $contexts The context for each item.
      *
-     * @return  boolean  True on success.
+     * @return bool True on success.
      *
      * @since   1.0.1
      */
@@ -150,11 +150,11 @@ class ItemModel extends AdminModel
      * Batch command: set the manufacturers for each selected item in the
      * #__alfa_items_manufacturers join table.
      *
-     * @param   array  $value     The manufacturer ids to assign (single empty value = no change).
-     * @param   array  $pks       The item ids being processed.
-     * @param   array  $contexts  The context for each item.
+     * @param array $value The manufacturer ids to assign (single empty value = no change).
+     * @param array $pks The item ids being processed.
+     * @param array $contexts The context for each item.
      *
-     * @return  boolean  True on success.
+     * @return bool True on success.
      *
      * @since   1.0.1
      */
@@ -182,11 +182,11 @@ class ItemModel extends AdminModel
      * #__alfa_items_categories join table, then clear the cache for every
      * category affected (both the previously assigned and the newly assigned ones).
      *
-     * @param   array  $value     The category ids to assign (single empty value = no change).
-     * @param   array  $pks       The item ids being processed.
-     * @param   array  $contexts  The context for each item.
+     * @param array $value The category ids to assign (single empty value = no change).
+     * @param array $pks The item ids being processed.
+     * @param array $contexts The context for each item.
      *
-     * @return  boolean  True on success.
+     * @return bool True on success.
      *
      * @since   1.0.1
      */
@@ -223,10 +223,10 @@ class ItemModel extends AdminModel
     /**
      * Build the item edit form (com_alfa.item).
      *
-     * @param   array    $data      Data for the form.
-     * @param   boolean  $loadData  True to load form data from the model state.
+     * @param array $data Data for the form.
+     * @param bool $loadData True to load form data from the model state.
      *
-     * @return  \Joomla\CMS\Form\Form|false  The Form object on success, false on failure.
+     * @return \Joomla\CMS\Form\Form|false The Form object on success, false on failure.
      *
      * @since   1.0.1
      */
@@ -605,9 +605,9 @@ class ItemModel extends AdminModel
     /**
      * Load all price rows for an item from #__alfa_items_prices.
      *
-     * @param   integer  $id  The item id.
+     * @param int $id The item id.
      *
-     * @return  array  An array of price rows (associative), empty if id is invalid.
+     * @return array An array of price rows (associative), empty if id is invalid.
      *
      * @since   1.0.1
      */
@@ -640,10 +640,10 @@ class ItemModel extends AdminModel
      * longer present in $prices, update existing rows (nulls included so
      * nullable fields can be cleared), and insert any new rows.
      *
-     * @param   integer  $productId  The item id the prices belong to.
-     * @param   array    $prices     The incoming price rows.
+     * @param int $productId The item id the prices belong to.
+     * @param array $prices The incoming price rows.
      *
-     * @return  boolean  True on success, false if input is invalid.
+     * @return bool True on success, false if input is invalid.
      *
      * @since   1.0.1
      */

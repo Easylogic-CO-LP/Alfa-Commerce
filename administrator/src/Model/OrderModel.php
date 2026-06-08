@@ -152,10 +152,10 @@ class OrderModel extends AdminModel
      * payment_type, transaction_status and refund_type list options from
      * OrderPaymentHelper, then binding the supplied data (with the order/payment ids).
      *
-     * @param   array|object  $data      Data for the form (objects are normalised via objectToFormData).
-     * @param   boolean       $loadData  True to load form data from the model state.
+     * @param array|object $data Data for the form (objects are normalised via objectToFormData).
+     * @param bool $loadData True to load form data from the model state.
      *
-     * @return  \Joomla\CMS\Form\Form|false  The Form object on success, false on failure.
+     * @return \Joomla\CMS\Form\Form|false The Form object on success, false on failure.
      *
      * @since   3.5.0
      */
@@ -244,10 +244,10 @@ class OrderModel extends AdminModel
      * prefilled from user state (preserving resubmitted input) or the order's
      * stored user_info row.
      *
-     * @param   array    $data      Data for the form.
-     * @param   boolean  $loadData  True to load form data from the model state.
+     * @param array $data Data for the form.
+     * @param bool $loadData True to load form data from the model state.
      *
-     * @return  \Joomla\CMS\Form\Form|false  The Form object on success, false on failure.
+     * @return \Joomla\CMS\Form\Form|false The Form object on success, false on failure.
      *
      * @since   3.5.0
      */
@@ -565,9 +565,9 @@ class OrderModel extends AdminModel
     /**
      * Load all payment rows for an order from #__alfa_order_payments.
      *
-     * @param   integer  $orderId  The order id.
+     * @param int $orderId The order id.
      *
-     * @return  array  An array of payment row objects.
+     * @return array An array of payment row objects.
      *
      * @since   3.5.0
      */
@@ -656,9 +656,9 @@ class OrderModel extends AdminModel
     /**
      * Load a single payment row by its primary key from #__alfa_order_payments.
      *
-     * @param   integer  $id  The payment row id.
+     * @param int $id The payment row id.
      *
-     * @return  object|null  The payment row object, or null if not found.
+     * @return object|null The payment row object, or null if not found.
      *
      * @since   3.5.0
      */
@@ -711,9 +711,9 @@ class OrderModel extends AdminModel
     /**
      * Load all shipment rows for an order from #__alfa_order_shipments.
      *
-     * @param   integer  $orderId  The order id.
+     * @param int $orderId The order id.
      *
-     * @return  array  An array of shipment row objects.
+     * @return array An array of shipment row objects.
      *
      * @since   3.5.0
      */
@@ -1890,9 +1890,9 @@ class OrderModel extends AdminModel
      * that order is skipped. Surviving orders have their related rows removed
      * (deleteRelatedData) before parent::delete runs.
      *
-     * @param   array  &$pks  The order ids to delete (vetoed ids are removed in place).
+     * @param array &$pks The order ids to delete (vetoed ids are removed in place).
      *
-     * @return  boolean  True on success.
+     * @return bool True on success.
      *
      * @since   3.5.1
      */
@@ -1961,9 +1961,8 @@ class OrderModel extends AdminModel
      * Remove all rows belonging to the given orders: items, payments, shipments,
      * activity log, and the guest (id_user = 0) delivery/invoice user_info records.
      *
-     * @param   array  $pks  The order ids whose related data should be deleted.
+     * @param array $pks The order ids whose related data should be deleted.
      *
-     * @return  void
      *
      * @since   3.5.1
      */
@@ -2428,7 +2427,7 @@ class OrderModel extends AdminModel
      * Populate the model state, additionally seeding the record id from the
      * `id_order` request variable when present.
      *
-     * @return  void
+     * @return void
      *
      * @since   3.5.1
      */

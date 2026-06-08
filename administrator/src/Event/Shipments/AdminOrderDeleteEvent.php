@@ -26,7 +26,7 @@ class AdminOrderDeleteEvent extends ShipmentsEvent
     /**
      * Get the order/cart subject carried by the event.
      *
-     * @return  mixed  The order or cart object
+     * @return mixed The order or cart object
      *
      * @since  5.0.0
      */
@@ -38,9 +38,9 @@ class AdminOrderDeleteEvent extends ShipmentsEvent
     /**
      * Joomla event setter hook for 'result'; returns the current stored result.
      *
-     * @param   bool  $result  Incoming value (ignored; current result is returned)
+     * @param bool $result Incoming value (ignored; current result is returned)
      *
-     * @return  bool  The currently stored result flag
+     * @return bool The currently stored result flag
      *
      * @since  5.0.0
      */
@@ -52,9 +52,8 @@ class AdminOrderDeleteEvent extends ShipmentsEvent
     /**
      * Store the result flag reported back by the handling plugin.
      *
-     * @param   bool  $result  The result of the operation
+     * @param bool $result The result of the operation
      *
-     * @return  void
      *
      * @since  5.0.0
      */
@@ -66,7 +65,7 @@ class AdminOrderDeleteEvent extends ShipmentsEvent
     /**
      * Get the result flag reported by the handling plugin.
      *
-     * @return  bool  The operation result
+     * @return bool The operation result
      *
      * @since  5.0.0
      */

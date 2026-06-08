@@ -26,7 +26,7 @@ class AdminOrderBeforeSaveEvent extends PaymentsEvent
     /**
      * Get the order/cart subject carried by the event.
      *
-     * @return  mixed  The order or cart object
+     * @return mixed The order or cart object
      *
      * @since  5.0.0
      */
@@ -38,9 +38,9 @@ class AdminOrderBeforeSaveEvent extends PaymentsEvent
     /**
      * Joomla event setter hook for 'can_save'; returns the current stored flag.
      *
-     * @param   bool  $canSave  Incoming value (ignored; current flag is returned)
+     * @param bool $canSave Incoming value (ignored; current flag is returned)
      *
-     * @return  bool  The currently stored can-save flag
+     * @return bool The currently stored can-save flag
      *
      * @since  5.0.0
      */
@@ -52,9 +52,8 @@ class AdminOrderBeforeSaveEvent extends PaymentsEvent
     /**
      * Store the can-save flag that tells the caller whether the order may be persisted.
      *
-     * @param   bool  $canSave  Whether the order may be saved
+     * @param bool $canSave Whether the order may be saved
      *
-     * @return  void
      *
      * @since  5.0.0
      */
@@ -66,7 +65,7 @@ class AdminOrderBeforeSaveEvent extends PaymentsEvent
     /**
      * Get the can-save flag.
      *
-     * @return  bool  Whether the order may be saved
+     * @return bool Whether the order may be saved
      *
      * @since  5.0.0
      */

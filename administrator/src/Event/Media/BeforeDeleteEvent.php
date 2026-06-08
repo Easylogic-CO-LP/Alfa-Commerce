@@ -43,7 +43,6 @@ class BeforeDeleteEvent extends AbstractImmutableEvent
     /**
      * Get the media rows about to be deleted.
      *
-     * @return  array
      *
      * @since   1.0.2
      */
@@ -55,7 +54,6 @@ class BeforeDeleteEvent extends AbstractImmutableEvent
     /**
      * Get the flattened relative path strings of the rows about to be deleted.
      *
-     * @return  array
      *
      * @since   1.0.2
      */

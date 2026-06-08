@@ -34,9 +34,9 @@ class PriceCalculator
     /**
      * Calculate prices for one or many products, batch-loading their pricing data and computing a result each.
      *
-     * @param int|int[]       $productIds One product id or an array of product ids.
-     * @param int|int[]       $quantities A single quantity applied to all, or a per-product-id quantity map.
-     * @param PriceContext|null $context  The pricing context; resolved from session when null.
+     * @param int|int[] $productIds One product id or an array of product ids.
+     * @param int|int[] $quantities A single quantity applied to all, or a per-product-id quantity map.
+     * @param PriceContext|null $context The pricing context; resolved from session when null.
      *
      * @return PriceResult|PriceResult[] A single result when a scalar id was passed, otherwise a map keyed by product id.
      */
@@ -67,7 +67,7 @@ class PriceCalculator
     /**
      * Expand a quantity argument into a per-product-id quantity map.
      *
-     * @param int[]     $productIds The product ids.
+     * @param int[] $productIds The product ids.
      * @param int|int[] $quantities A single quantity for all ids, or an existing per-id map (returned as-is).
      *
      * @return array The quantity map keyed by product id.

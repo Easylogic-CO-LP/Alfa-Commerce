@@ -39,7 +39,6 @@ class ToolsController extends BaseController
      * recomputes it against the signed CDN checksums. Token-guarded and cheap, so the
      * Security tab can no longer be spammed into re-scanning on every page load.
      *
-     * @return  void
      *
      * @since   1.0.9
      */

@@ -207,8 +207,6 @@ class PriceResult
 
     /**
      * Get the currency of this result (derived from the total).
-     *
-     * @return Currency
      */
     public function getCurrency(): Currency
     {
@@ -217,8 +215,6 @@ class PriceResult
 
     /**
      * Get the applied-discounts summary.
-     *
-     * @return DiscountSummary
      */
     public function getDiscounts(): DiscountSummary
     {
@@ -227,8 +223,6 @@ class PriceResult
 
     /**
      * Get the applied-taxes summary.
-     *
-     * @return TaxSummary
      */
     public function getTaxes(): TaxSummary
     {
@@ -237,8 +231,6 @@ class PriceResult
 
     /**
      * Get the step-by-step calculation breakdown.
-     *
-     * @return PriceBreakdown
      */
     public function getBreakdown(): PriceBreakdown
     {

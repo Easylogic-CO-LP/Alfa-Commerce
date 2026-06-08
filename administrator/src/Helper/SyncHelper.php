@@ -648,7 +648,6 @@ final class SyncHelper
      * tamper alarms (severity `danger`: modified / bad signature). Lets the dispatcher
      * raise a global, override-proof banner without ever running the real check.
      *
-     * @return  bool
      *
      * @since   1.0.9
      */

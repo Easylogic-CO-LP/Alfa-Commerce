@@ -25,7 +25,7 @@ class AlfaHelper
     /**
      * Return the com_alfa component global parameters/settings.
      *
-     * @return  \Joomla\Registry\Registry  The component parameters.
+     * @return \Joomla\Registry\Registry The component parameters.
      *
      * @since   1.0.1
      */
@@ -139,12 +139,12 @@ class AlfaHelper
      * replaces disallowed characters with spaces, optionally drops isolated punctuation, then collapses
      * whitespace.
      *
-     * @param   string  $html                       The HTML/text to clean.
-     * @param   bool    $removeTags                 Strip remaining HTML tags when true.
-     * @param   bool    $removeScripts              Strip <script>/<style> blocks and HTML comments when true.
-     * @param   bool    $removeIsolatedPunctuation  Remove standalone punctuation characters when true.
+     * @param string $html The HTML/text to clean.
+     * @param bool $removeTags Strip remaining HTML tags when true.
+     * @param bool $removeScripts Strip <script>/<style> blocks and HTML comments when true.
+     * @param bool $removeIsolatedPunctuation Remove standalone punctuation characters when true.
      *
-     * @return  string  The cleaned, whitespace-collapsed text.
+     * @return string The cleaned, whitespace-collapsed text.
      *
      * @since   1.0.1
      */

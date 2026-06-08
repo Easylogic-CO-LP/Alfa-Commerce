@@ -119,7 +119,6 @@ class IntegrityHelper
      * Compute a fresh verdict — CDN fetch, detached-signature verify, then hash every
      * listed file. {@see self::verifyAgainstOfficial()} wraps this to stamp the time.
      *
-     * @return  array
      *
      * @since   1.0.9
      */

@@ -32,7 +32,7 @@ class ModelField extends ListField
      * component / model / column_value / column_text / orderBy / orderDir XML
      * attributes. Results are cached per attribute combination for the request.
      *
-     * @return  array  The option set keyed by '<model>-<value>'
+     * @return array The option set keyed by '<model>-<value>'
      */
     protected function getOptions()
     {
@@ -62,14 +62,14 @@ class ModelField extends ListField
      * Boot the given component, load its list model with state forced to return
      * every record unfiltered and ordered, and map each row to a value/text/disable option.
      *
-     * @param   string  $componentName  The component to boot (e.g. 'com_alfa')
-     * @param   string  $modelName      The list model name to instantiate
-     * @param   string  $columnValue    Record property used as the option value
-     * @param   string  $columnText     Record property used as the option label
-     * @param   string  $orderBy        Column to order by
-     * @param   string  $orderDir       Order direction ('ASC' or 'DESC')
+     * @param string $componentName The component to boot (e.g. 'com_alfa')
+     * @param string $modelName The list model name to instantiate
+     * @param string $columnValue Record property used as the option value
+     * @param string $columnText Record property used as the option label
+     * @param string $orderBy Column to order by
+     * @param string $orderDir Order direction ('ASC' or 'DESC')
      *
-     * @return  array  List of ['value' => ..., 'text' => ..., 'disable' => false]
+     * @return array List of ['value' => ..., 'text' => ..., 'disable' => false]
      */
     protected function loadItems(string $componentName, string $modelName, string $columnValue, string $columnText, string $orderBy, string $orderDir): array
     {

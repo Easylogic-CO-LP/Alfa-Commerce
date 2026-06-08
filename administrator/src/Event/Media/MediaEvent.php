@@ -44,7 +44,6 @@ abstract class MediaEvent extends AbstractImmutableEvent
     /**
      * Get the absolute source path of the upload.
      *
-     * @return  string
      *
      * @since   1.0.2
      */
@@ -56,7 +55,6 @@ abstract class MediaEvent extends AbstractImmutableEvent
     /**
      * Get the absolute destination path the component proposes for the file.
      *
-     * @return  string
      *
      * @since   1.0.2
      */
@@ -69,7 +67,6 @@ abstract class MediaEvent extends AbstractImmutableEvent
      * Get the media origin / context ('item' | 'category' | 'manufacturer' |
      * 'thumbnail' | ...).
      *
-     * @return  string
      *
      * @since   1.0.2
      */
@@ -81,7 +78,6 @@ abstract class MediaEvent extends AbstractImmutableEvent
     /**
      * Get the logical field name ('image' | 'thumbnail').
      *
-     * @return  string
      *
      * @since   1.0.2
      */

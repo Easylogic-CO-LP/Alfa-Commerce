@@ -91,9 +91,9 @@ abstract class FormEvent extends AbstractImmutableEvent
     /**
      * Replace the Form instance carried by the event (stored as the 'subject' argument).
      *
-     * @param   Form  $form  The form to set
+     * @param Form $form The form to set
      *
-     * @return  void
+     * @return void
      *
      * @since  5.0.0
      */
@@ -140,9 +140,9 @@ abstract class FormEvent extends AbstractImmutableEvent
     /**
      * Replace the data payload carried by the event.
      *
-     * @param   object|array  $data  The data to set
+     * @param object|array $data The data to set
      *
-     * @return  void
+     * @return void
      *
      * @since  5.0.0
      */

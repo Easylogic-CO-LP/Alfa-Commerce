@@ -45,7 +45,6 @@ class ValidateEvent extends MediaEvent
     /**
      * Get the allowed source MIME types.
      *
-     * @return  array
      *
      * @since   1.0.2
      */
@@ -64,9 +63,8 @@ class ValidateEvent extends MediaEvent
      * Written directly to the arguments store (NOT via setArgument) so the
      * immutability lock is bypassed exactly like ExecuteShipmentActionEvent.
      *
-     * @param   bool  $valid  True to allow, false to veto.
+     * @param bool $valid True to allow, false to veto.
      *
-     * @return  void
      *
      * @since   1.0.2
      */
@@ -78,7 +76,6 @@ class ValidateEvent extends MediaEvent
     /**
      * Whether the file passed validation. Defaults to true when unset.
      *
-     * @return  bool
      *
      * @since   1.0.2
      */
@@ -90,9 +87,8 @@ class ValidateEvent extends MediaEvent
     /**
      * Set the error message to enqueue when the file is vetoed.
      *
-     * @param   string  $error  Human-readable error message.
+     * @param string $error Human-readable error message.
      *
-     * @return  void
      *
      * @since   1.0.2
      */
@@ -104,7 +100,6 @@ class ValidateEvent extends MediaEvent
     /**
      * Get the error message set by the plugin.
      *
-     * @return  string
      *
      * @since   1.0.2
      */

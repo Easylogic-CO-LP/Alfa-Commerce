@@ -219,8 +219,6 @@ class Currency
 
     /**
      * Get the currency display name.
-     *
-     * @return string
      */
     public function getName(): string
     {
@@ -229,8 +227,6 @@ class Currency
 
     /**
      * Get the ISO 4217 alphabetic code (e.g. EUR, USD).
-     *
-     * @return string
      */
     public function getCode(): string
     {
@@ -239,8 +235,6 @@ class Currency
 
     /**
      * Get the ISO 4217 numeric code (e.g. 978 for EUR).
-     *
-     * @return int
      */
     public function getNumber(): int
     {
@@ -249,8 +243,6 @@ class Currency
 
     /**
      * Get the currency symbol (e.g. €, $).
-     *
-     * @return string
      */
     public function getSymbol(): string
     {
@@ -259,8 +251,6 @@ class Currency
 
     /**
      * Get the number of decimal places used for formatting amounts.
-     *
-     * @return int
      */
     public function getDecimalPlaces(): int
     {
@@ -269,8 +259,6 @@ class Currency
 
     /**
      * Get the decimal symbol (mantissa marker) used for formatting.
-     *
-     * @return string
      */
     public function getDecimalSymbol(): string
     {
@@ -279,8 +267,6 @@ class Currency
 
     /**
      * Get the decimal separator used for formatting.
-     *
-     * @return string
      */
     public function getDecimalSeparator(): string
     {
@@ -289,8 +275,6 @@ class Currency
 
     /**
      * Get the thousands separator used for formatting.
-     *
-     * @return string
      */
     public function getThousandSeparator(): string
     {
@@ -299,8 +283,6 @@ class Currency
 
     /**
      * Get the format pattern controlling symbol/amount placement.
-     *
-     * @return string
      */
     public function getFormatPattern(): string
     {

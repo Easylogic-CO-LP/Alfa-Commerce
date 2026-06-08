@@ -42,7 +42,7 @@ class FieldLayoutField extends FormField
      * per-template override layouts ("<template>:<layout>") for every enabled
      * frontend template.
      *
-     * @return  string  The grouped-list select HTML
+     * @return string The grouped-list select HTML
      */
     protected function getInput(): string
     {

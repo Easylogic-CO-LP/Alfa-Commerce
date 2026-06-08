@@ -78,7 +78,7 @@ class ShowonField extends FormField
      * the recursively rendered tree, and append the rule/group <template> blocks
      * the JS clones for new rows.
      *
-     * @return  string  The builder HTML
+     * @return string The builder HTML
      *
      * @since 1.0.1
      */
@@ -255,9 +255,9 @@ class ShowonField extends FormField
      * JSON-encode an array (unescaped unicode/slashes) and HTML-escape it for
      * safe use inside a double-quoted HTML attribute.
      *
-     * @param   array  $v  The value to encode
+     * @param array $v The value to encode
      *
-     * @return  string  The attribute-safe JSON string
+     * @return string The attribute-safe JSON string
      *
      * @since 1.0.1
      */

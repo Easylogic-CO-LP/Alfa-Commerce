@@ -86,9 +86,8 @@ abstract class GeneralEvent extends AbstractImmutableEvent
     /**
      * Store the redirect URL raw (unrouted); SEF routing is deferred to getRedirectUrl().
      *
-     * @param   string  $url  The URL to redirect to
+     * @param string $url The URL to redirect to
      *
-     * @return  void
      *
      * @since  5.0.0
      */
@@ -152,9 +151,9 @@ abstract class GeneralEvent extends AbstractImmutableEvent
      * Common codes: 301 Moved Permanently, 302 Found, 303 See Other,
      * 307 Temporary Redirect, 308 Permanent Redirect.
      *
-     * @param   int  $code  The HTTP status code to use for the redirect
+     * @param int $code The HTTP status code to use for the redirect
      *
-     * @return  void
+     * @return void
      *
      * @since  5.0.0
      */
@@ -166,9 +165,9 @@ abstract class GeneralEvent extends AbstractImmutableEvent
     /**
      * Store the HTTP status code to use when the redirect is performed.
      *
-     * @param   int  $code  The HTTP status code
+     * @param int $code The HTTP status code
      *
-     * @return  void
+     * @return void
      *
      * @since  5.0.0
      */
@@ -180,7 +179,7 @@ abstract class GeneralEvent extends AbstractImmutableEvent
     /**
      * Get the redirect HTTP status code if one was set.
      *
-     * @return  int|null  The status code, or null when none was set
+     * @return int|null The status code, or null when none was set
      *
      * @since  5.0.0
      */

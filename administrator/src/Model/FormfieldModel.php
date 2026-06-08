@@ -158,10 +158,10 @@ class FormfieldModel extends AdminModel
      * attributes on edit. Once a field has an id, `type` and `sql_type` are made
      * readonly because changing them would alter the backing #__alfa_user_info column.
      *
-     * @param   array    $data      Data for the form.
-     * @param   boolean  $loadData  True to load form data from the model state.
+     * @param array $data Data for the form.
+     * @param bool $loadData True to load form data from the model state.
      *
-     * @return  \Joomla\CMS\Form\Form|false  The Form object on success, false on failure.
+     * @return \Joomla\CMS\Form\Form|false The Form object on success, false on failure.
      *
      * @since   1.0.1
      */
@@ -243,9 +243,9 @@ class FormfieldModel extends AdminModel
      * Load a form field and attach its assigned user and usergroup ids
      * (read from the #__alfa_form_fields_users / _usergroups join tables).
      *
-     * @param   integer  $pk  The id of the field to load (null = state id).
+     * @param int $pk The id of the field to load (null = state id).
      *
-     * @return  object|boolean  The populated field object, or false on failure.
+     * @return object|bool The populated field object, or false on failure.
      *
      * @since   1.0.1
      */
@@ -401,9 +401,9 @@ class FormfieldModel extends AdminModel
      * Delete the selected form fields, dropping their backing columns from the
      * #__alfa_user_info table and removing their per-language translation rows.
      *
-     * @param   array  &$pks  The ids of the fields to delete.
+     * @param array &$pks The ids of the fields to delete.
      *
-     * @return  void
+     * @return void
      *
      * @since   1.0.1
      */
@@ -574,9 +574,9 @@ class FormfieldModel extends AdminModel
      * Drop the given columns from the #__alfa_user_info table in a single
      * ALTER TABLE statement. Errors are caught and surfaced as messages.
      *
-     * @param   array  $columnNames  Column names to drop.
+     * @param array $columnNames Column names to drop.
      *
-     * @return  void
+     * @return void
      *
      * @since   1.0.1
      */
@@ -610,10 +610,10 @@ class FormfieldModel extends AdminModel
      * Produce a unique value for the given column by appending/incrementing a
      * dash suffix until no existing row matches.
      *
-     * @param   string  $name        The starting value.
-     * @param   string  $columnName  The column the value must be unique within.
+     * @param string $name The starting value.
+     * @param string $columnName The column the value must be unique within.
      *
-     * @return  string  A value not currently used in that column.
+     * @return string A value not currently used in that column.
      *
      * @since   1.0.1
      */

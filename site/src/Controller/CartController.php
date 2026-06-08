@@ -138,7 +138,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      * AJAX task: add an item (with quantity) to the cart via CartHelper and return a JSON response.
      * Requires a valid POST CSRF token; closes the application after emitting JSON.
      *
-     * @return  void
+     * @return void
      *
      * @since   1.6.0
      */
@@ -177,7 +177,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      * AJAX task: clear the cart items via CartHelper and return the rendered empty-cart layout as JSON.
      * Requires a valid POST CSRF token; closes the application after emitting JSON.
      *
-     * @return  void
+     * @return void
      *
      * @since   1.6.0
      */
@@ -219,7 +219,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      * AJAX task: set an item's quantity in the cart and, on success, return the re-rendered items layout as JSON.
      * Requires a valid POST CSRF token; closes the application after emitting JSON.
      *
-     * @return  void
+     * @return void
      *
      * @since   1.6.0
      */
@@ -262,7 +262,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      * new order id in the session and redirects to the order-process page; otherwise redirects back
      * to the cart with enqueued error messages.
      *
-     * @return  bool  True when the order is placed, false on validation/session/placement failure.
+     * @return bool True when the order is placed, false on validation/session/placement failure.
      *
      * @since   1.6.0
      */
@@ -452,7 +452,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      * and shipments layouts (plus the empty flag) as JSON.
      * Requires a valid POST CSRF token; closes the application after emitting JSON.
      *
-     * @return  void
+     * @return void
      *
      * @since   1.6.0
      */
@@ -488,9 +488,9 @@ class CartController extends FormController implements UserFactoryAwareInterface
     /**
      * Render the cart items layout, falling back to the empty-cart layout when the cart has no items.
      *
-     * @param   CartHelper  $cart  The cart helper holding the current cart state.
+     * @param CartHelper $cart The cart helper holding the current cart state.
      *
-     * @return  array  ['tmpl' => rendered HTML, 'isEmpty' => bool].
+     * @return array ['tmpl' => rendered HTML, 'isEmpty' => bool].
      *
      * @since   1.6.0
      */
@@ -520,9 +520,9 @@ class CartController extends FormController implements UserFactoryAwareInterface
      * Render the payment-method selection layout, attaching payment plugin events first.
      * Returns an empty template when the cart has no items.
      *
-     * @param   CartHelper  $cart  The cart helper holding the current cart state.
+     * @param CartHelper $cart The cart helper holding the current cart state.
      *
-     * @return  array  ['tmpl' => rendered HTML, 'isEmpty' => bool].
+     * @return array ['tmpl' => rendered HTML, 'isEmpty' => bool].
      *
      * @since   1.6.0
      */
@@ -551,9 +551,9 @@ class CartController extends FormController implements UserFactoryAwareInterface
      * Render the shipment-method selection layout, attaching shipment plugin events first.
      * Returns an empty template when the cart has no items.
      *
-     * @param   CartHelper  $cart  The cart helper holding the current cart state.
+     * @param CartHelper $cart The cart helper holding the current cart state.
      *
-     * @return  array  ['tmpl' => rendered HTML, 'isEmpty' => bool].
+     * @return array ['tmpl' => rendered HTML, 'isEmpty' => bool].
      *
      * @since   1.6.0
      */

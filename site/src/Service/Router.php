@@ -88,7 +88,6 @@ class Router extends RouterView
         $manufacturer->setKey('id')->setParent($manufacturers);
         $this->registerView($manufacturer);
 
-
         // Register items view (nestable by category)
         $items = new RouterViewConfiguration('items');
         $items->setKey('category_id')->setNestable();

@@ -25,7 +25,7 @@ class CategoriesField extends ListField
      * is set on a self-referential picker, disables the current node and its
      * descendants to prevent a category from becoming its own parent (cycle).
      *
-     * @return  array  The option set keyed by 'cat-<id>'
+     * @return array The option set keyed by 'cat-<id>'
      */
     protected function getOptions()
     {

@@ -48,11 +48,11 @@ class HtmlView extends BaseHtmlView
      * dedicated toolbar; otherwise the main order is loaded, checked out for
      * editing and its activity log fetched for the History tab.
      *
-     * @param   string|null  $tpl  The name of the template file to parse
+     * @param string|null $tpl The name of the template file to parse
      *
-     * @return  void
+     * @return void
      *
-     * @throws  Exception  When a requested shipment/payment/order item or order is missing, or an id is required
+     * @throws Exception When a requested shipment/payment/order item or order is missing, or an id is required
      *
      * @since  1.0.1
      */
@@ -174,9 +174,9 @@ class HtmlView extends BaseHtmlView
      *
      * Currently a no-op: the body is retained, commented out, pending re-enable.
      *
-     * @param   object  $payment  The payment record (passed by reference)
+     * @param object $payment The payment record (passed by reference)
      *
-     * @return  void
+     * @return void
      *
      * @since  1.0.1
      */
@@ -222,9 +222,9 @@ class HtmlView extends BaseHtmlView
      *
      * Currently a no-op: the body is retained, commented out, pending re-enable.
      *
-     * @param   object  $shipment  The shipment record (passed by reference)
+     * @param object $shipment The shipment record (passed by reference)
      *
-     * @return  void
+     * @return void
      *
      * @since  1.0.1
      */

@@ -26,7 +26,7 @@ class AdminOrderAfterSaveEvent extends ShipmentsEvent
     /**
      * Get the order/cart subject carried by the event.
      *
-     * @return  mixed  The order or cart object
+     * @return mixed The order or cart object
      *
      * @since  5.0.0
      */

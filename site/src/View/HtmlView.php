@@ -24,9 +24,9 @@ class HtmlView extends BaseHtmlView
     /**
      * Render the view wrapped in the #alfa-app container element tagged with the lowercased view name.
      *
-     * @param   string|null  $tpl  The name of the template file to parse.
+     * @param string|null $tpl The name of the template file to parse.
      *
-     * @return  void
+     * @return void
      *
      * @since   1.0.1
      */

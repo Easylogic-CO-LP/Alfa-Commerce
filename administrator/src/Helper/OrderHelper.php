@@ -848,10 +848,10 @@ class OrderHelper
      * the default currency. The first matching row per product wins (lowest
      * ordering), preferring its overwritten value over the base value.
      *
-     * @param   int[]      $productIds  Item ids to fetch prices for
-     * @param   int|null   $currencyId  Currency id to match, or null/0 for default only
+     * @param int[] $productIds Item ids to fetch prices for
+     * @param int|null $currencyId Currency id to match, or null/0 for default only
      *
-     * @return  array  Map of item_id => price (float)
+     * @return array Map of item_id => price (float)
      */
     protected static function getBaseProductPrices(array $productIds, ?int $currencyId = null): array
     {

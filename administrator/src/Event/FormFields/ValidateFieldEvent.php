@@ -26,7 +26,7 @@ class ValidateFieldEvent extends FormFieldsEvent
     /**
      * Get the form being validated (the event subject).
      *
-     * @return  mixed  The form instance
+     * @return mixed The form instance
      *
      * @since  5.0.0
      */
@@ -38,7 +38,7 @@ class ValidateFieldEvent extends FormFieldsEvent
     /**
      * Get the field definition being validated.
      *
-     * @return  mixed  The field object
+     * @return mixed The field object
      *
      * @since  5.0.0
      */
@@ -50,9 +50,9 @@ class ValidateFieldEvent extends FormFieldsEvent
     /**
      * Set the field definition being validated.
      *
-     * @param   mixed  $field  The field object
+     * @param mixed $field The field object
      *
-     * @return  void
+     * @return void
      *
      * @since  5.0.0
      */
@@ -64,7 +64,7 @@ class ValidateFieldEvent extends FormFieldsEvent
     /**
      * Get the current validation result for the field.
      *
-     * @return  mixed  Truthy when the field value is valid
+     * @return mixed Truthy when the field value is valid
      *
      * @since  5.0.0
      */
@@ -76,9 +76,9 @@ class ValidateFieldEvent extends FormFieldsEvent
     /**
      * Set the validation result for the field.
      *
-     * @param   mixed  $valid  Truthy when the field value is valid
+     * @param mixed $valid Truthy when the field value is valid
      *
-     * @return  void
+     * @return void
      *
      * @since  5.0.0
      */

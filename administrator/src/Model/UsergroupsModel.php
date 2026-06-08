@@ -26,10 +26,10 @@ class UsergroupsModel extends ListModel
     /**
      * Populate the model state, defaulting the ordering to the core usergroup title.
      *
-     * @param   string  $ordering   The default ordering column.
-     * @param   string  $direction  The default ordering direction.
+     * @param string $ordering The default ordering column.
+     * @param string $direction The default ordering direction.
      *
-     * @return  void
+     * @return void
      */
     protected function populateState($ordering = 'ug.title', $direction = 'ASC')
     {
@@ -40,7 +40,7 @@ class UsergroupsModel extends ListModel
      * Build the list query, joining the Alfa usergroup settings rows to the core
      * #__usergroups table (on usergroup_id) and applying the id: / title LIKE search filter.
      *
-     * @return  \Joomla\Database\QueryInterface  The query to list the usergroup settings.
+     * @return \Joomla\Database\QueryInterface The query to list the usergroup settings.
      */
     protected function getListQuery()
     {

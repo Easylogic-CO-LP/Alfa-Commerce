@@ -67,7 +67,7 @@ $ostatus = $this->official['status'] ?? 'unreachable';
             <?php
             // Graded severity (no blanket red): injected = the one true red
             // (web-shell shape); modified/missing = amber (review); ahead = calm.
-            $alarm       = ($ostatus === 'modified');
+            $alarm = ($ostatus === 'modified');
             $hasInjected = !empty($this->official['injected']);
             ?>
             <?php if ($alarm) : ?>

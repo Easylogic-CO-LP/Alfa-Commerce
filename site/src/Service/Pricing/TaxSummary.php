@@ -29,8 +29,6 @@ class TaxSummary
 
     /**
      * Get the total tax amount.
-     *
-     * @return Money
      */
     public function getTotal(): Money
     {
@@ -39,8 +37,6 @@ class TaxSummary
 
     /**
      * Get the effective (blended) tax rate.
-     *
-     * @return float
      */
     public function getEffectiveRate(): float
     {
@@ -59,8 +55,6 @@ class TaxSummary
 
     /**
      * Whether any positive tax was applied.
-     *
-     * @return bool
      */
     public function hasTaxes(): bool
     {
@@ -69,8 +63,6 @@ class TaxSummary
 
     /**
      * Get the number of applied taxes.
-     *
-     * @return int
      */
     public function getCount(): int
     {
@@ -79,8 +71,6 @@ class TaxSummary
 
     /**
      * Export the tax summary (total, effective rate, count, applied taxes) as a plain array.
-     *
-     * @return array
      */
     public function toArray(): array
     {

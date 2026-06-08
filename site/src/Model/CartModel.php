@@ -28,9 +28,9 @@ class CartModel extends FormModel   // Should this extend FormModel? Contact mod
     /**
      * Return the cart as a CartHelper instance for the given cart id.
      *
-     * @param   int|null  $pk  The cart primary key; falsy values resolve the current user's/guest cart.
+     * @param int|null $pk The cart primary key; falsy values resolve the current user's/guest cart.
      *
-     * @return  CartHelper  The cart helper.
+     * @return CartHelper The cart helper.
      *
      * @since   1.0.1
      */
@@ -49,10 +49,10 @@ class CartModel extends FormModel   // Should this extend FormModel? Contact mod
     /**
      * Load the cart checkout form (control name "cartform") and apply the custom Alfa form fields.
      *
-     * @param   array  $data      Data to bind to the form.
-     * @param   bool   $loadData  Whether to load the form data from getData().
+     * @param array $data Data to bind to the form.
+     * @param bool $loadData Whether to load the form data from getData().
      *
-     * @return  \Joomla\CMS\Form\Form|false  The prepared form, or false on failure.
+     * @return \Joomla\CMS\Form\Form|false The prepared form, or false on failure.
      *
      * @since   1.0.1
      */

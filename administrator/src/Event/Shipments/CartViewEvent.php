@@ -26,7 +26,7 @@ class CartViewEvent extends ShipmentsLayoutEvent
     /**
      * Get the cart subject carried by the event.
      *
-     * @return  mixed  The cart object
+     * @return mixed The cart object
      *
      * @since  5.0.0
      */

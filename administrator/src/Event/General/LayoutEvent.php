@@ -112,9 +112,8 @@ class LayoutEvent extends GeneralEvent //implements ResultAwareInterface
     /**
      * Store the layout plugin type argument.
      *
-     * @param   string  $value  The plugin type to set
+     * @param string $value The plugin type to set
      *
-     * @return  void
      *
      * @since  5.0.0
      */
@@ -150,9 +149,8 @@ class LayoutEvent extends GeneralEvent //implements ResultAwareInterface
     /**
      * Store the layout plugin name argument.
      *
-     * @param   string  $value  The plugin name to set
+     * @param string $value The plugin name to set
      *
-     * @return  void
      *
      * @since  5.0.0
      */
@@ -189,9 +187,8 @@ class LayoutEvent extends GeneralEvent //implements ResultAwareInterface
     /**
      * Store the layout argument.
      *
-     * @param   string  $value  The layout value to set
+     * @param string $value The layout value to set
      *
-     * @return  void
      *
      * @since  5.0.0
      */
@@ -227,9 +224,8 @@ class LayoutEvent extends GeneralEvent //implements ResultAwareInterface
     /**
      * Store the layout data argument passed to the resolved layout.
      *
-     * @param   array  $value  The layout data to set
+     * @param array $value The layout data to set
      *
-     * @return  void
      *
      * @since  5.0.0
      */

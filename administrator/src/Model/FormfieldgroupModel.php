@@ -24,10 +24,10 @@ class FormfieldgroupModel extends AdminModel
     /**
      * Build the form for the form-field group edit screen.
      *
-     * @param   array    $data      Data for the form.
-     * @param   boolean  $loadData  True to load form data from the model state.
+     * @param array $data Data for the form.
+     * @param bool $loadData True to load form data from the model state.
      *
-     * @return  \Joomla\CMS\Form\Form|false  The Form object on success, false on failure.
+     * @return \Joomla\CMS\Form\Form|false The Form object on success, false on failure.
      */
     public function getForm($data = [], $loadData = true)
     {
@@ -42,7 +42,7 @@ class FormfieldgroupModel extends AdminModel
      * Provide the data for the form, preferring any session-stored edit data
      * and falling back to the loaded item.
      *
-     * @return  mixed  The data for the form.
+     * @return mixed The data for the form.
      */
     protected function loadFormData()
     {
@@ -59,9 +59,9 @@ class FormfieldgroupModel extends AdminModel
      * Stamp created_by on new records and modified_by on every save before
      * the table is stored.
      *
-     * @param   \Joomla\CMS\Table\Table  $table  The table object.
+     * @param \Joomla\CMS\Table\Table $table The table object.
      *
-     * @return  void
+     * @return void
      */
     protected function prepareTable($table)
     {

@@ -1065,9 +1065,9 @@ class OrderShipmentHelper
      * Coerce a value to a float amount, unwrapping a Money object via getAmount()
      * and treating null as zero.
      *
-     * @param   mixed  $value  A Money instance, numeric value or null
+     * @param mixed $value A Money instance, numeric value or null
      *
-     * @return  float  The amount as a float
+     * @return float The amount as a float
      */
     private static function moneyToFloat(mixed $value): float
     {
@@ -1081,10 +1081,10 @@ class OrderShipmentHelper
      * Look up the display name of a shipment method by id via the given model,
      * returning '' for a non-positive id or on any failure.
      *
-     * @param   string  $modelName  The model used to load the method
-     * @param   int     $methodId   The method id to resolve
+     * @param string $modelName The model used to load the method
+     * @param int $methodId The method id to resolve
      *
-     * @return  string  The method name, or '' when unavailable
+     * @return string The method name, or '' when unavailable
      */
     private static function resolveMethodName(string $modelName, int $methodId): string
     {
@@ -1104,9 +1104,9 @@ class OrderShipmentHelper
     /**
      * Boot com_alfa and create one of its admin models with request data ignored.
      *
-     * @param   string  $name  The model name to instantiate
+     * @param string $name The model name to instantiate
      *
-     * @return  object  The model instance
+     * @return object The model instance
      */
     private static function getRelatedModel(string $name)
     {
@@ -1119,9 +1119,9 @@ class OrderShipmentHelper
     /**
      * Read the currency id assigned to an order, defaulting to 1 when not found.
      *
-     * @param   int  $orderId  The order id
+     * @param int $orderId The order id
      *
-     * @return  int  The order's currency id, or 1 as fallback
+     * @return int The order's currency id, or 1 as fallback
      */
     private static function getOrderCurrencyId(int $orderId): int
     {
@@ -1138,7 +1138,7 @@ class OrderShipmentHelper
     /**
      * Get the current user's id, returning 0 when no identity is available.
      *
-     * @return  int  The current user id, or 0
+     * @return int The current user id, or 0
      */
     private static function getCurrentUserId(): int
     {
@@ -1153,9 +1153,7 @@ class OrderShipmentHelper
      * Log a warning to the com_alfa.orders category and surface it to the user
      * as an error message (silently ignored under CLI or early boot).
      *
-     * @param   string  $message  The warning message
-     *
-     * @return  void
+     * @param string $message The warning message
      */
     private static function warn(string $message): void
     {

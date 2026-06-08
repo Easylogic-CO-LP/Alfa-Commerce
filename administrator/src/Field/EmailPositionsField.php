@@ -599,10 +599,10 @@ class EmailPositionsField extends EditorField
      * copy of the block to the single shared visibility flag. With multiple
      * languages the toggle gains an "all languages" note to signal it isn't per-language.
      *
-     * @param   string  $layoutId  Layout/partial id, e.g. 'emails.partials.order_items'
-     * @param   bool    $enabled   Whether the block is currently shown
+     * @param string $layoutId Layout/partial id, e.g. 'emails.partials.order_items'
+     * @param bool $enabled Whether the block is currently shown
      *
-     * @return  string  The block HTML
+     * @return string The block HTML
      *
      * @since   1.0.4
      */

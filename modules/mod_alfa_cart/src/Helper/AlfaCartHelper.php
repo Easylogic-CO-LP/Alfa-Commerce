@@ -70,9 +70,9 @@ class AlfaCartHelper
      * AJAX endpoint: add the requested item/quantity to the cart, then return the re-rendered cart-items
      * layout plus totals as JSON. Closes the application after responding.
      *
-     * @return  void
+     * @return void
      *
-     * @throws  Exception
+     * @throws Exception
      */
     public static function getAjax()
     {
@@ -135,9 +135,9 @@ class AlfaCartHelper
      * Build the price-display settings array from the module parameters, toggling each price component
      * (and its label) according to the corresponding _show / _show_label params.
      *
-     * @param   Registry  $params  The module parameters.
+     * @param Registry $params The module parameters.
      *
-     * @return  array  The resolved price settings for the cart layout.
+     * @return array The resolved price settings for the cart layout.
      */
     public static function buildPriceSettings(Registry $params): array
     {

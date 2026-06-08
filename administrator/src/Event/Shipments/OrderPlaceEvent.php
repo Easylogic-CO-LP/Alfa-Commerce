@@ -14,7 +14,7 @@ class OrderPlaceEvent extends ShipmentsEvent
     /**
      * Get the cart subject carried by the event.
      *
-     * @return  mixed  The cart object
+     * @return mixed The cart object
      *
      * @since  5.0.0
      */
@@ -26,9 +26,9 @@ class OrderPlaceEvent extends ShipmentsEvent
     /**
      * Replace the cart subject carried by the event.
      *
-     * @param   mixed  $cart  The cart object
+     * @param mixed $cart The cart object
      *
-     * @return  void
+     * @return void
      *
      * @since  5.0.0
      */

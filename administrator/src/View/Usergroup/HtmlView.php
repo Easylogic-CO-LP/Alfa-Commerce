@@ -29,9 +29,9 @@ class HtmlView extends FormView
     /**
      * Render the edit form view.
      *
-     * @param   string|null  $tpl  The name of the template file to parse
+     * @param string|null $tpl The name of the template file to parse
      *
-     * @return  void
+     * @return void
      *
      * @since  1.0.1
      */
@@ -44,7 +44,7 @@ class HtmlView extends FormView
      * Prepare the view: load the com_alfa permission set and add the 'task' and
      * base64 'return' control fields to the form.
      *
-     * @return  void
+     * @return void
      *
      * @since  1.0.1
      */
@@ -66,7 +66,7 @@ class HtmlView extends FormView
      * Build the edit toolbar: lock the main menu and add Apply/Save, Save & New,
      * Save as Copy and Cancel buttons according to the current user permissions.
      *
-     * @return  void
+     * @return void
      *
      * @since  1.0.1
      */

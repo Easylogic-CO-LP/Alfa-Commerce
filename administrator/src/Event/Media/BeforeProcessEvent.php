@@ -57,7 +57,6 @@ class BeforeProcessEvent extends MediaEvent
     /**
      * Get the requested output format ('' = keep the original extension).
      *
-     * @return  string
      *
      * @since   1.0.2
      */
@@ -69,7 +68,6 @@ class BeforeProcessEvent extends MediaEvent
     /**
      * Get the target maximum width in pixels.
      *
-     * @return  int
      *
      * @since   1.0.2
      */
@@ -81,7 +79,6 @@ class BeforeProcessEvent extends MediaEvent
     /**
      * Get the target maximum height in pixels.
      *
-     * @return  int
      *
      * @since   1.0.2
      */
@@ -93,7 +90,6 @@ class BeforeProcessEvent extends MediaEvent
     /**
      * Get the compression strength (1-100).
      *
-     * @return  int
      *
      * @since   1.0.2
      */
@@ -105,7 +101,6 @@ class BeforeProcessEvent extends MediaEvent
     /**
      * Get the allowed source MIME types.
      *
-     * @return  array
      *
      * @since   1.0.2
      */
@@ -125,9 +120,8 @@ class BeforeProcessEvent extends MediaEvent
      * Written directly to the arguments store (NOT via setArgument) so the
      * immutability lock is bypassed exactly like ExecuteShipmentActionEvent.
      *
-     * @param   bool  $processed  True when the plugin wrote the file.
+     * @param bool $processed True when the plugin wrote the file.
      *
-     * @return  void
      *
      * @since   1.0.2
      */
@@ -139,7 +133,6 @@ class BeforeProcessEvent extends MediaEvent
     /**
      * Whether a plugin processed the file. Defaults to false when unset.
      *
-     * @return  bool
      *
      * @since   1.0.2
      */
@@ -155,9 +148,8 @@ class BeforeProcessEvent extends MediaEvent
      * This is a DISTINCT output key (`finalPath`) — it never overwrites the
      * `dest` input.
      *
-     * @param   string  $finalPath  Absolute path of the written file.
+     * @param string $finalPath Absolute path of the written file.
      *
-     * @return  void
      *
      * @since   1.0.2
      */
@@ -170,7 +162,6 @@ class BeforeProcessEvent extends MediaEvent
      * Get the final written path. Falls back to the proposed dest when the
      * plugin did not rewrite it.
      *
-     * @return  string
      *
      * @since   1.0.2
      */

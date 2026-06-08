@@ -19,11 +19,11 @@ class FormfieldgroupsController extends AdminController
      * Get the model instance, defaulting to the singular Formfieldgroup model
      * with request data ignored.
      *
-     * @param   string  $name    The model name; defaults to 'Formfieldgroup'
-     * @param   string  $prefix  The class prefix; defaults to 'Administrator'
-     * @param   array   $config  Model configuration; defaults to ignoring request data
+     * @param string $name The model name; defaults to 'Formfieldgroup'
+     * @param string $prefix The class prefix; defaults to 'Administrator'
+     * @param array $config Model configuration; defaults to ignoring request data
      *
-     * @return  object  The model instance
+     * @return object The model instance
      */
     public function getModel($name = 'Formfieldgroup', $prefix = 'Administrator', $config = ['ignore_request' => true]): object
     {

@@ -61,8 +61,8 @@ class MediaController extends FormController
         // component's layouts/ folder the way it does during a full page render, so
         // without this the layout silently renders to an empty string.
         $displayData = ['media' => $media];
-        $layoutBase  = JPATH_ADMINISTRATOR . '/components/com_alfa/layouts';
-        $html        = LayoutHelper::render('mediazone.item', $displayData, $layoutBase);
+        $layoutBase = JPATH_ADMINISTRATOR . '/components/com_alfa/layouts';
+        $html = LayoutHelper::render('mediazone.item', $displayData, $layoutBase);
 
         echo json_encode([
             'success' => true,
@@ -129,9 +129,9 @@ class MediaController extends FormController
      * Normalise an existing media record for the picker: copy its path into the
      * 'source' property and mark it as not new.
      *
-     * @param   object  $object  The stored media record
+     * @param object $object The stored media record
      *
-     * @return  object  The prepared media object
+     * @return object The prepared media object
      */
     public function prepareExistingMedia($object)
     {
@@ -148,9 +148,9 @@ class MediaController extends FormController
      * Validate a remote media URL: check the format, enforce an http/https
      * scheme, then issue a HEAD request and treat a 2xx/3xx status as accessible.
      *
-     * @param   string  $url  The URL to validate
+     * @param string $url The URL to validate
      *
-     * @return  array  Result with 'valid' (bool), 'message' (string) and 'http_code' (int|null)
+     * @return array Result with 'valid' (bool), 'message' (string) and 'http_code' (int|null)
      */
     public function validateUrl(string $url): array
     {

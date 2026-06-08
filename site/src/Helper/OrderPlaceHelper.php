@@ -112,7 +112,6 @@ class OrderPlaceHelper
     /**
      * Register the file logger for the com_alfa.orders category; failures are sent to error_log.
      *
-     * @return  void
      *
      * @since   3.5.1
      */
@@ -128,7 +127,7 @@ class OrderPlaceHelper
     /**
      * Get the placed order object loaded after a successful placement.
      *
-     * @return  object|null  The order, or null if no order has been placed.
+     * @return object|null The order, or null if no order has been placed.
      *
      * @since   3.5.1
      */
@@ -140,7 +139,7 @@ class OrderPlaceHelper
     /**
      * Get the cart helper backing this order placement.
      *
-     * @return  CartHelper|null  The cart helper, or null if not set.
+     * @return CartHelper|null The cart helper, or null if not set.
      *
      * @since   3.5.1
      */
@@ -319,7 +318,7 @@ class OrderPlaceHelper
      * Validate that the order can be placed: non-empty cart plus valid payment and shipment methods.
      * Stores the resolved shipment id on the cart on success and enqueues a message on each failure.
      *
-     * @return  bool  True when all prerequisites pass, false otherwise.
+     * @return bool True when all prerequisites pass, false otherwise.
      *
      * @since   3.5.1
      */
@@ -358,10 +357,10 @@ class OrderPlaceHelper
      * Fire the onOrderBeforePlace event on the selected payment and shipment plugins, refreshing the
      * cart from each event. Individual plugin errors are logged and swallowed.
      *
-     * @param   int  $paymentMethodId   The selected payment method id.
-     * @param   int  $shipmentMethodId  The selected shipment method id.
+     * @param int $paymentMethodId The selected payment method id.
+     * @param int $shipmentMethodId The selected shipment method id.
      *
-     * @return  bool  True unless an unexpected top-level error occurs.
+     * @return bool True unless an unexpected top-level error occurs.
      *
      * @since   3.5.1
      */
@@ -407,7 +406,6 @@ class OrderPlaceHelper
      * Fire the onOrderAfterPlace event on the selected payment and shipment plugins (which create the
      * payment/shipment records) for the placed order. All errors are logged and swallowed.
      *
-     * @return  void
      *
      * @since   3.5.1
      */
@@ -855,9 +853,9 @@ class OrderPlaceHelper
      * Validate the chosen shipment method id against the methods available for the cart.
      * When no methods are offered, shipment is treated as not required and validation passes.
      *
-     * @param   int|null  $id  The selected shipment method id.
+     * @param int|null $id The selected shipment method id.
      *
-     * @return  bool  True if no methods are offered or the id matches an available method.
+     * @return bool True if no methods are offered or the id matches an available method.
      *
      * @since   3.5.1
      */
@@ -889,9 +887,9 @@ class OrderPlaceHelper
      * Array/object values are JSON-encoded, unique form fields are enforced, and the current user id
      * is attached before insert.
      *
-     * @param   array  $data  The submitted form field values.
+     * @param array $data The submitted form field values.
      *
-     * @return  object|null  The inserted info object (with id), or null on validation failure/error.
+     * @return object|null The inserted info object (with id), or null on validation failure/error.
      *
      * @since   3.5.1
      */
@@ -966,10 +964,10 @@ class OrderPlaceHelper
      * Detect which unique form fields already hold the submitted value for a different user.
      * Runs a single UNION ALL query across the candidate fields; guests (user id 0) are skipped.
      *
-     * @param   array  $data          The submitted field values.
-     * @param   array  $uniqueFields  The field names marked unique.
+     * @param array $data The submitted field values.
+     * @param array $uniqueFields The field names marked unique.
      *
-     * @return  array  Map of violating field name => submitted value (empty when none).
+     * @return array Map of violating field name => submitted value (empty when none).
      *
      * @since   3.5.1
      */
@@ -1028,9 +1026,8 @@ class OrderPlaceHelper
      * Resolve and cache the payment plugin type for a payment method id into $this->payment_type.
      * An empty string is stored for id <= 0 or on error.
      *
-     * @param   int  $id  The payment method id.
+     * @param int $id The payment method id.
      *
-     * @return  void
      *
      * @since   3.5.1
      */
@@ -1059,9 +1056,8 @@ class OrderPlaceHelper
      * Resolve and cache the shipment plugin type for a shipment method id into $this->shipment_type.
      * An empty string is stored for id <= 0 or on error.
      *
-     * @param   int  $id  The shipment method id.
+     * @param int $id The shipment method id.
      *
-     * @return  void
      *
      * @since   3.5.1
      */
@@ -1090,9 +1086,9 @@ class OrderPlaceHelper
      * Get the payment method name translated into the customer's language.
      * Returns an empty string for id <= 0, or a "Payment Method <id>" fallback when no translation exists.
      *
-     * @param   int  $id  The payment method id.
+     * @param int $id The payment method id.
      *
-     * @return  string  The translated payment method name.
+     * @return string The translated payment method name.
      *
      * @since   3.5.1
      */
@@ -1117,9 +1113,9 @@ class OrderPlaceHelper
      * Get the shipment method name translated into the customer's language.
      * Returns an empty string for id <= 0, or a "Shipment Method <id>" fallback when no translation exists.
      *
-     * @param   int  $id  The shipment method id.
+     * @param int $id The shipment method id.
      *
-     * @return  string  The translated shipment method name.
+     * @return string The translated shipment method name.
      *
      * @since   3.5.1
      */
@@ -1143,9 +1139,9 @@ class OrderPlaceHelper
     /**
      * Resolve the internal currency id from an ISO 4217 numeric currency code.
      *
-     * @param   int  $number  The ISO 4217 numeric currency code.
+     * @param int $number The ISO 4217 numeric currency code.
      *
-     * @return  int|null  The currency id, or null when not found / on error.
+     * @return int|null The currency id, or null when not found / on error.
      *
      * @since   3.5.1
      */
@@ -1167,7 +1163,7 @@ class OrderPlaceHelper
     /**
      * Sum the total weight of the cart (each item's weight multiplied by its quantity).
      *
-     * @return  float  The aggregate cart weight; 0 on error.
+     * @return float The aggregate cart weight; 0 on error.
      *
      * @since   3.5.1
      */
