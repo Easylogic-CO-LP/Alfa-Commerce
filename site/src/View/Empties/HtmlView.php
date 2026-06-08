@@ -28,9 +28,9 @@ class HtmlView extends BaseHtmlView
     /**
      * Display the view.
      *
-     * @param   string|null  $tpl  The name of the template file to parse.
+     * @param string|null $tpl The name of the template file to parse.
      *
-     * @return  void
+     * @return void
      */
     public function display($tpl = null)
     {
@@ -48,16 +48,16 @@ class HtmlView extends BaseHtmlView
      * view (e.g. "Search Results"). It has no model/item, so everything derives from
      * the active menu item and the merged component params.
      *
-     * @return  void
+     * @return void
      */
     protected function _prepareDocument()
     {
-        $app  = Factory::getApplication();
+        $app = Factory::getApplication();
         $menu = $app->getMenu()->getActive();
 
         // Page title: the menu's page_title param, else the menu title, else the site name.
-        $title           = $this->params->get('page_title', $menu ? $menu->title : '');
-        $siteName        = $app->get('sitename');
+        $title = $this->params->get('page_title', $menu ? $menu->title : '');
+        $siteName = $app->get('sitename');
         $siteNameInTitle = (int) $app->get('sitename_pagetitles', 0);
 
         if (empty($title)) {
@@ -84,12 +84,11 @@ class HtmlView extends BaseHtmlView
         }
 
         // Breadcrumb.
-        $pathway         = $app->getPathway();
+        $pathway = $app->getPathway();
         $breadcrumbTitle = Text::_('COM_ALFA_TITLE_EMPTIES');
 
         if (!in_array($breadcrumbTitle, $pathway->getPathwayNames(), true)) {
             $pathway->addItem($breadcrumbTitle);
         }
     }
-
 }
