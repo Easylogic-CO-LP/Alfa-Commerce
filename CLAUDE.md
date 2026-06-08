@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Alfa Commerce (`com_alfa`) is a full-featured eCommerce component for Joomla 4.0+, built by Easylogic CO LP. It is distributed as a Joomla package containing a core component, plugins, and modules.
+Alfa Commerce (`com_alfa`) is a full-featured eCommerce component for Joomla 6/7, built by Easylogic CO LP. It is distributed as a Joomla package containing a core component, plugins, and modules.
 
 ## Architecture
 
@@ -19,7 +19,7 @@ Joomla component (type="component", method="upgrade") with bundled plugins and m
 /administrator/     - Backend admin interface (MVC, forms, SQL, services, events)
 /site/              - Frontend customer-facing views and logic
 /api/               - REST JSON-API controllers (18 endpoints)
-/plugins/           - Payment (standard, revolut, viva), shipment (standard, boxnow), field (text, textarea), webservices
+/plugins/           - payment, shipment, field (tel/text/textarea/choice), webservices, system
 /modules/           - mod_alfa_cart, mod_alfa_search
 /media/com_alfa/    - CSS, JS, images, joomla.asset.json
 /alfa.xml           - Package manifest
@@ -33,10 +33,10 @@ Joomla component (type="component", method="upgrade") with bundled plugins and m
 - **Database:** Joomla QueryBuilder; schema in `/administrator/sql/`; migrations in `/administrator/sql/updates/`
 - **Assets:** Registered via `joomla.asset.json`; managed with `$this->getWebAssetManager()`
 - **Forms:** XML-based definitions in `/forms/` directories with custom field plugins
-- **Languages:** en-GB (primary), el-GR; `.ini` and `.sys.ini` files
+- **Languages:** en-GB; `.ini` and `.sys.ini` files
 
 ## Coding Conventions
-- Follow Joomla 4 coding standards (PSR-4 autoloading, traits, DI)
+- Follow Joomla coding standards (PSR-4 autoloading, traits, DI)
 - Controllers: `{Name}Controller` — Models: `{Name}Model` — Views: `{Name}\HtmlView`
 - Events: `{Context}{Action}Event`
 - Use Joomla's built-in APIs (FormFactory, MVCFactory, RouterService, CategoryService)
@@ -49,11 +49,11 @@ Joomla component (type="component", method="upgrade") with bundled plugins and m
 
 ## Build & Deployment
 - No build step required — install directly as a ZIP via Joomla Extension Manager
-- Update server: `https://cdn.demosites.gr/alfa-updates.xml`
+- Update server: `https://cdn.alfacommerce.gr/com_alfa/update.xml` (generated; signed integrity checksums alongside)
 - `script.php` handles automatic plugin/module installation on component install
 
 ## Testing
-- No automated test suite yet (project is in pre-alpha)
+- No automated test suite yet; CI runs PHP CS Fixer + PHPStan + CodeQL/security scans on PRs
 
 ## Common Tasks
 - **Add a new admin view:** Create Controller, Model, View, Table, form XML under `/administrator/`, add menu entry in `alfa.xml`
