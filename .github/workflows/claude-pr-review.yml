@@ -41,10 +41,10 @@ jobs:
             Do NOT flag style/formatting (PHP CS Fixer handles it) or PHPStan-level issues.
             Acknowledge genuinely good work. If the PR is clean, say so briefly — don't invent issues.
 
-          # Read-only review: analyse + comment, never modify code.
+          # Model only. The action needs its default tools (incl. the inline-comment
+          # poster); the job is contents:read, so it still cannot modify the repo.
           claude_args: |
             --model claude-sonnet-4-6
-            --allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
 
           # Inline comments on the exact lines, with "Fix this" links.
           use_sticky_comment: false
