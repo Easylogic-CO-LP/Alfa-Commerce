@@ -14,8 +14,12 @@ parameters:
         - */language/*
 
     ignoreErrors:
-        # Joomla framework classes are not available in CI (no stubs package exists)
+        # Joomla framework classes are not available in CI (no Composer/stubs package).
+        # Suppress every framework-visibility error so PHPStan focuses on our own logic:
         - identifier: class.notFound
+        - '#extends unknown class Joomla\\#'              # controllers/views extend Joomla\CMS base classes
+        - '#implements unknown interface Joomla\\#'
+        - '#but .+ does not extend any class#'            # parent::x() where the (unknown) parent is a Joomla class
         # Joomla dynamic properties and magic methods
         - '#Access to an undefined property#'
         - '#Call to an undefined method.*\\\\HtmlView::#'
