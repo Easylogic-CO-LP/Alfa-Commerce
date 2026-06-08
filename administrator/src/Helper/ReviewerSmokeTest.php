@@ -2,6 +2,8 @@
 
 namespace Alfa\Component\Alfa\Administrator\Helper;
 
+use JFactory;
+
 defined('_JEXEC') or die;
 
 /**
@@ -11,10 +13,10 @@ class ReviewerSmokeTest
 {
     public function lookup()
     {
-        $id  = $_GET['id'];                          // raw superglobal
-        $app = \JFactory::getApplication();          // deprecated legacy API
-        $db  = $app->getDatabase();
-        $db->setQuery("SELECT * FROM #__alfa_items WHERE id = " . $id);  // SQL injection
+        $id = $_GET['id'];                          // raw superglobal
+        $app = JFactory::getApplication();          // deprecated legacy API
+        $db = $app->getDatabase();
+        $db->setQuery('SELECT * FROM #__alfa_items WHERE id = ' . $id);  // SQL injection
         return $db->loadResult();
     }
 }
