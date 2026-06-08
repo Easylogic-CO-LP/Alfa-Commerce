@@ -29,24 +29,21 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           trigger_phrase: "@claude"
+          track_progress: true
 
-          # The Alfa Commerce specialist review skill.
+          # Alfa Commerce specialist review skill.
           prompt: |
             You are the Alfa Commerce specialist reviewer for this pull request.
             First read `.github/review-guidelines.md` (the project review rulebook) and `CLAUDE.md`,
             then review ONLY the changes in this PR against those rules.
 
-            Post concise, INLINE, severity-tagged findings (🔴 / 🟡 / 🔵). Prioritise correctness,
-            security, Joomla-API misuse, data integrity, and release/migration completeness.
-            Do NOT flag style/formatting (PHP CS Fixer handles it) or PHPStan-level issues.
-            Acknowledge genuinely good work. If the PR is clean, say so briefly — don't invent issues.
+            Post findings as INLINE comments on the exact lines (severity-tagged 🔴 / 🟡 / 🔵), plus a
+            short top-level summary. Prioritise correctness, security, Joomla-API misuse, data integrity,
+            and release/migration completeness. Do NOT flag style/formatting (PHP CS Fixer handles it)
+            or PHPStan-level issues. Acknowledge genuinely good work; if the PR is clean, say so in the
+            summary — don't invent issues.
 
-          # Model only. The action needs its default tools (incl. the inline-comment
-          # poster); the job is contents:read, so it still cannot modify the repo.
+          # MUST include the inline-comment MCP tool, or findings can't be posted.
           claude_args: |
             --model claude-sonnet-4-6
-
-          # Inline comments on the exact lines, with "Fix this" links.
-          use_sticky_comment: false
-          classify_inline_comments: true
-          include_fix_links: true
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Read,Grep,Glob,Bash(git diff:*),Bash(git log:*)"
