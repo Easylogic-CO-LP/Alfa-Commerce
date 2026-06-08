@@ -128,6 +128,17 @@ class ShipmentModel extends AdminModel
         return $item;
     }
 
+    /**
+     * Save the shipment: fold the plugin params into the params JSON, persist
+     * the per-language translations, and sync the category, manufacturer, place,
+     * user and usergroup associations.
+     *
+     * @param array $data The form data.
+     *
+     * @return bool True on success, false on failure.
+     *
+     * @since   1.0.1
+     */
     public function save($data)
     {
         $app = Factory::getApplication();

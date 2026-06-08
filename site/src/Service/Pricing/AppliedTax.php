@@ -33,6 +33,9 @@ class AppliedTax
         $this->jurisdiction = $jurisdiction;
     }
 
+    /**
+     * Export the applied tax as a plain array.
+     */
     public function toArray(): array
     {
         return [

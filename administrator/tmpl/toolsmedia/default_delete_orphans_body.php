@@ -19,7 +19,7 @@ use Joomla\CMS\Language\Text;
 <div class="p-4">
     <div class="d-flex align-items-start gap-3">
         <div class="text-warning" style="font-size: 2.5rem; line-height: 1;">
-            <span class="icon-unlink" aria-hidden="true"></span>
+            <span class="icon-link" aria-hidden="true"></span>
         </div>
         <div>
             <h4 class="mb-2"><?php echo Text::_('COM_ALFA_TOOLSMEDIA_DELETE_ORPHANS_HEADER'); ?></h4>

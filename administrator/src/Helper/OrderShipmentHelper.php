@@ -1061,6 +1061,14 @@ class OrderShipmentHelper
         return Factory::getContainer()->get('DatabaseDriver');
     }
 
+    /**
+     * Coerce a value to a float amount, unwrapping a Money object via getAmount()
+     * and treating null as zero.
+     *
+     * @param mixed $value A Money instance, numeric value or null
+     *
+     * @return float The amount as a float
+     */
     private static function moneyToFloat(mixed $value): float
     {
         if ($value instanceof Money) {
@@ -1069,6 +1077,15 @@ class OrderShipmentHelper
         return (float) ($value ?? 0);
     }
 
+    /**
+     * Look up the display name of a shipment method by id via the given model,
+     * returning '' for a non-positive id or on any failure.
+     *
+     * @param string $modelName The model used to load the method
+     * @param int $methodId The method id to resolve
+     *
+     * @return string The method name, or '' when unavailable
+     */
     private static function resolveMethodName(string $modelName, int $methodId): string
     {
         if ($methodId <= 0) {
@@ -1084,6 +1101,13 @@ class OrderShipmentHelper
         }
     }
 
+    /**
+     * Boot com_alfa and create one of its admin models with request data ignored.
+     *
+     * @param string $name The model name to instantiate
+     *
+     * @return object The model instance
+     */
     private static function getRelatedModel(string $name)
     {
         return Factory::getApplication()
@@ -1092,6 +1116,13 @@ class OrderShipmentHelper
             ->createModel($name, 'Administrator', ['ignore_request' => true]);
     }
 
+    /**
+     * Read the currency id assigned to an order, defaulting to 1 when not found.
+     *
+     * @param int $orderId The order id
+     *
+     * @return int The order's currency id, or 1 as fallback
+     */
     private static function getOrderCurrencyId(int $orderId): int
     {
         $db = self::db();
@@ -1104,6 +1135,11 @@ class OrderShipmentHelper
         return (int) ($db->loadResult() ?? 1);
     }
 
+    /**
+     * Get the current user's id, returning 0 when no identity is available.
+     *
+     * @return int The current user id, or 0
+     */
     private static function getCurrentUserId(): int
     {
         try {
@@ -1113,6 +1149,12 @@ class OrderShipmentHelper
         }
     }
 
+    /**
+     * Log a warning to the com_alfa.orders category and surface it to the user
+     * as an error message (silently ignored under CLI or early boot).
+     *
+     * @param string $message The warning message
+     */
     private static function warn(string $message): void
     {
         Log::add('[OrderShipmentHelper] ' . $message, Log::WARNING, 'com_alfa.orders');

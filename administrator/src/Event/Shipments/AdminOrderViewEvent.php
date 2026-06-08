@@ -23,11 +23,27 @@ namespace Alfa\Component\Alfa\Administrator\Event\Shipments;
  */
 class AdminOrderViewEvent extends ShipmentsLayoutEvent
 {
+    /**
+     * Get the order/cart subject carried by the event.
+     *
+     * @return mixed The order or cart object
+     *
+     * @since  5.0.0
+     */
     public function getOrder()
     {
         return $this->getSubject();
     }
 
+    /**
+     * Replace the order subject carried by the event.
+     *
+     * @param mixed $order The order object
+     *
+     * @return void
+     *
+     * @since  5.0.0
+     */
     public function setOrder($order)
     {
         $this->setArgument('subject', $order);

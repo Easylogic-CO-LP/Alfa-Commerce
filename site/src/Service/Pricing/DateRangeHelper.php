@@ -15,6 +15,15 @@ use Joomla\CMS\Factory;
 
 class DateRangeHelper
 {
+    /**
+     * Build a SQL WHERE fragment that matches rows currently active within a [start, end] date window.
+     * Empty ('0000-00-00 00:00:00') start/end values are treated as open-ended.
+     *
+     * @param string $startField The quoted-or-unquoted start date column name.
+     * @param string $endField The quoted-or-unquoted end date column name.
+     *
+     * @return string The SQL condition.
+     */
     public function getActiveCondition(string $startField, string $endField): string
     {
         $db = Factory::getContainer()->get('DatabaseDriver');

@@ -27,31 +27,51 @@ class TaxSummary
         $this->applied = $applied;
     }
 
+    /**
+     * Get the total tax amount.
+     */
     public function getTotal(): Money
     {
         return $this->total;
     }
 
+    /**
+     * Get the effective (blended) tax rate.
+     */
     public function getEffectiveRate(): float
     {
         return $this->effectiveRate;
     }
 
+    /**
+     * Get the list of individually applied taxes.
+     *
+     * @return AppliedTax[]
+     */
     public function getApplied(): array
     {
         return $this->applied;
     }
 
+    /**
+     * Whether any positive tax was applied.
+     */
     public function hasTaxes(): bool
     {
         return $this->total->isPositive();
     }
 
+    /**
+     * Get the number of applied taxes.
+     */
     public function getCount(): int
     {
         return count($this->applied);
     }
 
+    /**
+     * Export the tax summary (total, effective rate, count, applied taxes) as a plain array.
+     */
     public function toArray(): array
     {
         return [

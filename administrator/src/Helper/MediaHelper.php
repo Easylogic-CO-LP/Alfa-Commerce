@@ -13,13 +13,19 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 // No direct access
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Event\Media\AfterProcessEvent;
+use Alfa\Component\Alfa\Administrator\Event\Media\BeforeDeleteEvent;
+use Alfa\Component\Alfa\Administrator\Event\Media\BeforeProcessEvent;
+use Alfa\Component\Alfa\Administrator\Event\Media\ThumbnailEvent;
+use Alfa\Component\Alfa\Administrator\Event\Media\ValidateEvent;
 use Exception;
 use FilesystemIterator;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\OutputFilter;
-use Joomla\CMS\Language\Text;
 use Joomla\CMS\HTML\HTMLHelper;
+use Joomla\CMS\Language\Text;
+use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Filesystem\File;
 use Joomla\Filesystem\Folder;
@@ -31,6 +37,88 @@ use Throwable;
 class MediaHelper
 {
     /**
+     * Standard image MIME types accepted out of the box.
+     *
+     * Single source of truth for the fallback used when the component's
+     * "Allowed Image Types" (media_mime) setting is left empty — an empty
+     * setting means "allow all standard image types", not "allow none". Shared
+     * by the upload gate (MediaZoneField / grid layout → client validation) and
+     * server-side handling so both ends agree.
+     *
+     * @var string[]
+     * @since  1.0.8
+     */
+    public const DEFAULT_IMAGE_MIMES = [
+        'image/jpeg',
+        'image/gif',
+        'image/png',
+        'image/bmp',
+        'image/webp',
+        'image/avif',
+    ];
+
+    /**
+     * Resolve the effective allowed image MIME types.
+     *
+     * Returns the configured types, or — when none are configured — the full
+     * {@see self::DEFAULT_IMAGE_MIMES} set, so uploads work without requiring the
+     * admin to pre-select every type.
+     *
+     * @param mixed $configured The raw media_mime config value (array|string|null).
+     *
+     * @return string[] The effective allowed MIME types.
+     *
+     * @since   1.0.8
+     */
+    public static function resolveAllowedMimes($configured): array
+    {
+        $mimes = array_values(array_filter((array) $configured));
+
+        return $mimes ?: self::DEFAULT_IMAGE_MIMES;
+    }
+
+    /**
+     * Maximum upload size the server will actually accept, in bytes.
+     *
+     * The effective ceiling is the smaller of PHP's upload_max_filesize and
+     * post_max_size (a single uploaded file must fit inside the whole POST body).
+     * A directive of 0 means "unlimited" and is ignored; if both are unlimited
+     * this returns 0. Used to keep the client-side drop gate aligned with what the
+     * server can really accept, instead of an arbitrary hard-coded cap.
+     *
+     * @return int Effective max upload size in bytes (0 = unlimited).
+     *
+     * @since   1.0.8
+     */
+    public static function maxUploadBytes(): int
+    {
+        $toBytes = static function ($value): int {
+            $value = trim((string) $value);
+
+            if ($value === '') {
+                return 0;
+            }
+
+            $number = (int) $value;
+            $unit = strtolower($value[\strlen($value) - 1]);
+
+            return match ($unit) {
+                'g' => $number * 1024 * 1024 * 1024,
+                'm' => $number * 1024 * 1024,
+                'k' => $number * 1024,
+                default => (int) $value,
+            };
+        };
+
+        $limits = array_filter([
+            $toBytes(\ini_get('upload_max_filesize')),
+            $toBytes(\ini_get('post_max_size')),
+        ]);
+
+        return $limits ? min($limits) : 0;
+    }
+
+    /**
      * Resolve a stored (relative) media path to a browser URL for display.
      *
      * Storage stays relative + portable (the `path` column, which the admin save
@@ -40,7 +128,7 @@ class MediaHelper
      * already absolute — external `type=url` media (http/https), protocol-relative
      * URLs, or data URIs — are returned untouched.
      *
-     * @param string|null $path Relative media path (e.g. "images/media-zone/x.webp").
+     * @param string|null $path Relative media path (e.g. "images/commerce/x.webp").
      *
      * @return string Absolute URL, or '' for an empty path.
      *
@@ -87,10 +175,10 @@ class MediaHelper
 
         $db = Factory::getContainer()->get('DatabaseDriver');
 
-        // When enabled (default), remove the files from disk before the rows.
-        // Distinct from media_full_deletion (which governs removing a single media
-        // from an item) — here the whole entity is gone, so cleanup defaults on.
-        if ((bool) ComponentHelper::getParams('com_alfa')->get('media_delete_with_item', 1)) {
+        // The single "Complete Media Deletion" setting (media_full_deletion) governs
+        // whether removing media also deletes the file from disk — both here (whole
+        // entity deleted) and in saveMedia (a single image removed). On by default.
+        if ((bool) ComponentHelper::getParams('com_alfa')->get('media_full_deletion', 1)) {
             $rows = $db->setQuery(
                 $db->getQuery(true)
                     ->select($db->quoteName(['path', 'thumbnail']))
@@ -177,6 +265,9 @@ class MediaHelper
                     ->from($db->quoteName('#__alfa_media'))
                     ->whereIn($db->quoteName('id'), $batch),
             )->loadObjectList();
+
+            // Let a plugin clean up derivatives before the rows/files go away.
+            self::dispatchBeforeDelete($rows);
 
             foreach ($rows as $row) {
                 foreach ([$row->path, $row->thumbnail] as $file) {
@@ -286,7 +377,7 @@ class MediaHelper
     public static function getUploadRoot(): string
     {
         $saveFolder = ltrim(
-            (string) ComponentHelper::getParams('com_alfa')->get('media_save_location', 'images/media-zone'),
+            (string) ComponentHelper::getParams('com_alfa')->get('media_save_location', 'images/commerce'),
             '/',
         );
 
@@ -434,7 +525,7 @@ class MediaHelper
      * @param array $droppedMedia The array for drag-and-dropped files.
      * @param int $itemId The ID of the parent item these media belong to.
      * @param string $mediaOrigin Identifier for the media origin based on model name (e.g., 'item', 'category').
-     * @param string $customFileName Alias-based filename to use when media_name_from_alias is enabled.
+     * @param string $customFileName Reserved (alias-based naming is no longer a component setting).
      *
      * @throws Exception
      */
@@ -445,7 +536,7 @@ class MediaHelper
         // configuration
         $params = ComponentHelper::getParams('com_alfa');
 
-        $saveFolder = ltrim($params->get('media_save_location', 'images/media-zone'), '/');
+        $saveFolder = ltrim($params->get('media_save_location', 'images/commerce'), '/');
         $absolutePath = JPATH_ROOT . '/' . $saveFolder;
 
         if (!Folder::exists($absolutePath)) {
@@ -453,12 +544,13 @@ class MediaHelper
         }
 
         $urlDefaultThumbnail = trim($params->get('media_url_thumbnail', ''));
-        $allowedMimes = $params->get('media_mime', []);
-        $outputFormat = $params->get('media_file_format', '');
-        $quality = $params->get('media_image_quality', 80);
-        $maxWidth = $params->get('media_image_width', 1920);
-        $maxHeight = $params->get('media_image_height', 1080);
-        $nameFromAlias = $params->get('media_name_from_alias', false) && !empty($customFileName);
+        $allowedMimes = self::resolveAllowedMimes($params->get('media_mime'));
+
+        // Main-image format/quality/dimensions are no longer a component concern —
+        // those settings now live per-context in the optimizer plugin. The
+        // destination filename keeps the source extension unless a plugin rewrites
+        // it (via the event's finalPath).
+        $outputFormat = '';
 
         $dropIndex = 0;
         $ordering = 0;
@@ -481,7 +573,6 @@ class MediaHelper
                     absolutePath:       $absolutePath,
                     saveFolder:         $saveFolder,
                     params:             $params,
-                    customFileName:     $customFileName,
                 );
             }
 
@@ -509,11 +600,6 @@ class MediaHelper
                         if ($noError) {
                             $src = $file['tmp_name'];
 
-                            // Check if file naming based on alias is enabled
-                            if ($nameFromAlias) {
-                                $file['name'] = $customFileName . '.' . $outputFormat;
-                            }
-
                             // Prevent errors and overwrites by setting a unique file name if it already exists in the directory
                             $nameForFile = self::getUniqueFilename(
                                 name:           $file['name'],
@@ -528,13 +614,7 @@ class MediaHelper
 
                     $src = JPATH_ROOT . '/' . $cleanPath;
 
-                    // Check if file naming based on alias is enabled
-                    if ($nameFromAlias) {
-                        $cleanPath = pathinfo($cleanPath);
-                        $cleanPath = $cleanPath['dirname'] . '/' . $customFileName . '.' . $cleanPath['extension'];
-                    }
-
-                    // If "Don't convert" is enabled from config, keep the original file extension
+                    // Keep the original file extension; a plugin may convert it.
                     if (empty($outputFormat)) {
                         $outputFormat = pathinfo($cleanPath)['extension'];
                     }
@@ -566,40 +646,71 @@ class MediaHelper
                     if ($srcExists) {
                         $dest = $absolutePath . '/' . $nameForFile;
 
-                        // Process image - configure extension, resize, compress, calculate dominant color. (based on user provided settings)
-                        $color = self::mediaImageGenerator(
-                            source_image_path:  $src,
-                            new_image_path:     $dest,
-                            output_type:        $outputFormat,
-                            max_width:          $maxWidth,
-                            max_height:         $maxHeight,
-                            resize_if_smaller:  true,
-                            quality:            $quality,
-                            allowedMimes:       $allowedMimes,
-                            aspectratio:        0,
+                        // Validation gate: a plugin may veto a file before processing.
+                        $valid = self::dispatchValidate(
+                            source:       $src,
+                            origin:       $mediaOrigin,
+                            field:        'image',
+                            allowedMimes: $allowedMimes,
                         );
+
+                        if ($valid === false) {
+                            // Skip this file; the error was already enqueued.
+                            $ordering++;
+                            continue;
+                        }
+
+                        // Hand processing to the plugin layer. The main-image event
+                        // carries NO format/quality/dimensions — the plugin reads its
+                        // own per-context settings. If no plugin handles the image it
+                        // is stored AS-IS with an empty dominant colour.
+                        $result = self::dispatchProcess(
+                            eventName:    'onAlfaMediaBeforeProcess',
+                            source:       $src,
+                            dest:         $dest,
+                            origin:       $mediaOrigin,
+                            field:        'image',
+                            allowedMimes: $allowedMimes,
+                        );
+
+                        // Use the final path the plugin wrote (falls back to the
+                        // proposed dest when nothing was processed/rewritten).
+                        $dest = $result['dest'];
+                        $relativeDest = ltrim(str_replace(JPATH_ROOT . '/', '', $dest), '/');
+                        $storeOk = true;
+
+                        if (!$result['processed']) {
+                            // No plugin processed the image → store the original unchanged.
+                            try {
+                                File::copy($src, $dest);
+                            } catch (Throwable $e) {
+                                $storeOk = false;
+                            }
+                        }
+
+                        // CORE concern: the dominant colour is the image-load placeholder
+                        // and must always be stored, plugin or not. Compute it from the
+                        // FINAL file now that $dest is settled (optimised or copied as-is).
+                        $color = $storeOk ? self::dominantColor($dest) : '';
 
                         // Blob URLs are browser-only and unreachable server-side, so on first save
                         // we generate the thumbnail from the main image. On subsequent saves the
                         // thumbnail is already a real path, so the processThumbnail() call at the
                         // top of the loop handles it instead and this block is skipped.
-                        if ((str_contains($media['thumbnail'], 'blob:')) && $isDrop) {
+                        if ($storeOk && (str_contains($media['thumbnail'], 'blob:')) && $isDrop) {
                             $finalThumbnail = self::processThumbnail(
-                                rawThumbnail:       $saveFolder . '/' . $nameForFile,
+                                rawThumbnail:       $relativeDest,
                                 defaultThumbPath:   $urlDefaultThumbnail,
                                 absolutePath:       $absolutePath,
                                 saveFolder:         $saveFolder,
                                 params:             $params,
-                                customFileName:     $customFileName,
                             );
                         }
 
-                        $colorExists = $color !== false;
-
-                        if ($colorExists) {
+                        if ($storeOk) {
                             $insertObject = (object) [
                                 'item_id' => $itemId,
-                                'path' => ltrim($saveFolder . '/' . $nameForFile, '/'),
+                                'path' => $relativeDest,
                                 'thumbnail' => $finalThumbnail,
                                 'color' => $color,
                                 'alt' => $media['alt'],
@@ -607,6 +718,16 @@ class MediaHelper
                                 'type' => $media['type'],
                                 'origin' => $mediaOrigin,
                             ];
+
+                            // Notify the plugin layer after a successful processing/insert prep.
+                            self::dispatchAfterProcess(
+                                source:    $src,
+                                dest:      $dest,
+                                origin:    $mediaOrigin,
+                                field:     'image',
+                                color:     $color,
+                                processed: $result['processed'],
+                            );
                         }
                     }
                 }
@@ -621,7 +742,7 @@ class MediaHelper
             // -------------------------------------------------------
             else {
                 $toDelete = isset($media['delete']) && $media['delete'] == 1;
-                $isFullDelete = $params->get('media_full_deletion', false);
+                $isFullDelete = (bool) $params->get('media_full_deletion', 1);
 
                 if ($toDelete) {
                     // If full delete is enabled, remove files from the server first
@@ -684,20 +805,19 @@ class MediaHelper
      * @param string $rawThumbnail Raw (relative) thumbnail path.
      * @param string $defaultThumbPath Path of the default placeholder thumbnail to compare against.
      * @param string $absolutePath Absolute filesystem path to the media save directory.
-     * @param string $saveFolder Relative path of the media save folder (e.g., 'images/media-zone').
+     * @param string $saveFolder Relative path of the media save folder (e.g., 'images/commerce').
      * @param object $params Component parameters object.
-     * @param string $customFileName Optional alias-based filename to use instead of the original.
      *
      * @return string Relative path of the saved thumbnail, or empty string if none.
      */
-    private static function processThumbnail(string $rawThumbnail, string $defaultThumbPath, string $absolutePath, string $saveFolder, object $params, string $customFileName): string
+    private static function processThumbnail(string $rawThumbnail, string $defaultThumbPath, string $absolutePath, string $saveFolder, object $params): string
     {
-        $outputFormat = $params->get('media_file_format', '');
-        $thumbnailWidth = $params->get('media_thumbnail_width', 200);
-        $thumbnailHeight = $params->get('media_thumbnail_height', 200);
-        $quality = $params->get('media_image_quality', 80);
-        $allowedMimes = $params->get('media_mime', []);
-        $nameFromAlias = $params->get('media_name_from_alias', false);
+        // Thumbnail SIZE is a component concern (a thumbnail must never be the
+        // full image). FORMAT/QUALITY are plugin concerns — applied only when a
+        // plugin handles the event; otherwise the always-on baseline resize runs.
+        $thumbnailWidth = (int) $params->get('media_thumbnail_width', 200);
+        $thumbnailHeight = (int) $params->get('media_thumbnail_height', 200);
+        $allowedMimes = self::resolveAllowedMimes($params->get('media_mime'));
 
         // Strip URL fragments (e.g., cache busters) and normalize leading slashes
         $cleanThumb = ltrim(strtok($rawThumbnail, '#'), '/');
@@ -718,19 +838,11 @@ class MediaHelper
         $sourcePath = JPATH_ROOT . '/' . $cleanThumb;
         $baseName = pathinfo($cleanThumb, PATHINFO_FILENAME); // Handle cases where there's no extension (e.g., "README")
 
-        // If "Don't convert" is enabled from config, keep the original file extension
-        if (empty($outputFormat)) {
-            $outputFormat = pathinfo($cleanThumb, PATHINFO_EXTENSION);
-            // Fallback to jpg if output format is empty
-            if (empty($outputFormat)) {
-                $outputFormat = 'jpg';
-            }
-        }
-
-        $name = $nameFromAlias && !empty($customFileName) ? $customFileName : $baseName;
+        // Keep the source extension for the thumbnail; a plugin may convert it.
+        $outputFormat = pathinfo($cleanThumb, PATHINFO_EXTENSION) ?: 'jpg';
 
         $uniqueName = self::getUniqueFilename(
-            name:           $name,
+            name:           $baseName,
             basePath:       $absolutePath,
             outputFormat:   $outputFormat,
             suffix:         '-thumb',
@@ -738,19 +850,35 @@ class MediaHelper
 
         $destPath = $absolutePath . '/' . $uniqueName;
 
-        self::mediaImageGenerator(
-            source_image_path:  $sourcePath,
-            new_image_path:     $destPath,
-            output_type:        $outputFormat,
-            max_width:          $thumbnailWidth,
-            max_height:         $thumbnailHeight,
-            resize_if_smaller:  true,
-            quality:            $quality,
-            allowedMimes:       $allowedMimes,
-            aspectratio:        0,
+        // Hand thumbnail processing to the plugin layer, carrying the component's
+        // thumbnail dimensions as the target size. The plugin owns FORMAT/QUALITY.
+        $result = self::dispatchProcess(
+            eventName:    'onAlfaMediaThumbnail',
+            source:       $sourcePath,
+            dest:         $destPath,
+            origin:       'thumbnail',
+            field:        'thumbnail',
+            maxWidth:     $thumbnailWidth,
+            maxHeight:    $thumbnailHeight,
+            allowedMimes: $allowedMimes,
         );
 
-        return ltrim($saveFolder . '/' . $uniqueName, '/');
+        if ($result['processed']) {
+            // Plugin resized/converted it — use the path it actually wrote.
+            return ltrim(str_replace(JPATH_ROOT . '/', '', $result['dest']), '/');
+        }
+
+        // No plugin → always-on baseline resize so the thumbnail is never the
+        // full image. Falls back to a plain copy only if GD resize fails.
+        if (!self::resizeThumbnail($sourcePath, $destPath, $thumbnailWidth, $thumbnailHeight)) {
+            try {
+                File::copy($sourcePath, $destPath);
+            } catch (Throwable $e) {
+                return '';
+            }
+        }
+
+        return ltrim(str_replace(JPATH_ROOT . '/', '', $destPath), '/');
     }
 
     /**
@@ -896,208 +1024,353 @@ class MediaHelper
     }
 
     /**
-     * Processes an image (resizes, converts, saves) and calculates its dominant color.
+     * Per-MIME GD loader functions, keyed by source MIME type. Used by
+     * {@see self::dominantColor()} to open the final file for colour sampling.
      *
-     * Detailed overview:
-     *
-     * The function validates the source image's format and aspect ratio,
-     * then calculates its dominant RGB color.
-     * It resizes the image if necessary while preserving transparency,
-     * and saves the converted file to the destination path in the
-     * target format before returning the color value.
-     *
-     * @param string $source_image_path Image origin path
-     * @param string $new_image_path Image destination path
-     * @param string $output_type Preferred new format (e.g jpg, png, webp, gif, etc...) for image
-     * @param int $max_width Image target width
-     * @param int $max_height Image target height
-     * @param bool $resize_if_smaller Enable/disable image resizing when smaller than max-width/height
-     * @param int $quality Image compression strength
-     * @param array $allowedMimes Allowed image MIME types set by user
-     * @param int $aspectratio Image target aspect ratio
-     *
-     * @return false|string Image dominant color in RGB value e.g rgb(192,221,165)
-     * @throws Exception
+     * @var array<string, string>
+     * @since  1.0.2
      */
-    private static function mediaImageGenerator(string $source_image_path, string $new_image_path, string $output_type, int $max_width, int $max_height, bool $resize_if_smaller, int $quality, array $allowedMimes, int $aspectratio = 0): false|string
+    private const COLOR_LOADERS = [
+        'image/jpeg' => 'imagecreatefromjpeg',
+        'image/png' => 'imagecreatefrompng',
+        'image/gif' => 'imagecreatefromgif',
+        'image/webp' => 'imagecreatefromwebp',
+        'image/avif' => 'imagecreatefromavif',
+    ];
+
+    /**
+     * Compute the dominant (average) colour of an image file as an rgb(r,g,b)
+     * string. This is a CORE component concern — the value populates the
+     * `color` column on #__alfa_media and is used as the image-load placeholder
+     * regardless of whether the optimizer plugin is installed. It must always be
+     * computed from the FINAL stored file (whether the plugin optimised it or it
+     * was copied as-is).
+     *
+     * Samples every 10th pixel for speed (same logic that previously lived in
+     * the processing engine). Returns '' when the file is missing/unreadable or
+     * the server lacks the GD loader for the file's format — the column then
+     * stays empty rather than blocking the save.
+     *
+     * @param string $imagePath Absolute path of the final image file.
+     *
+     * @return string Dominant colour as 'rgb(r,g,b)', or '' on failure.
+     *
+     * @since   1.0.2
+     */
+    private static function dominantColor(string $imagePath): string
     {
-        // Define constants if they aren't already defined
-        if (!defined('NEW_IMAGE_MAX_WIDTH')) {
-            define('NEW_IMAGE_MAX_WIDTH', $max_width);
-        }
-        if (!defined('NEW_IMAGE_MAX_HEIGHT')) {
-            define('NEW_IMAGE_MAX_HEIGHT', $max_height);
+        if ($imagePath === '' || !is_file($imagePath)) {
+            return '';
         }
 
-        $app = Factory::getApplication();
+        $info = @getimagesize($imagePath);
 
-        // Safety check for file existence
-        if (!file_exists($source_image_path)) {
-            $app->enqueueMessage(Text::_('COM_ALFA_MEDIA_FILE_NOT_FOUND'), 'error');
-            return false;
+        if ($info === false) {
+            return '';
         }
 
-        // Get actual image dimensions and type
-        $imageInfo = getimagesize($source_image_path);
-        if (!$imageInfo) {
-            return false;
+        $loaderFunction = self::COLOR_LOADERS[$info['mime']] ?? null;
+
+        if ($loaderFunction === null || !function_exists($loaderFunction)) {
+            return '';
         }
 
-        $source_image_width = $imageInfo[0];
-        $source_image_height = $imageInfo[1];
-        $mime = $imageInfo['mime'];
+        $gd = @$loaderFunction($imagePath);
 
-        // Check if image MIME is allowed
-        if (!in_array($mime, $allowedMimes)) {
-            $mime = explode('/', strtoupper($mime))[1];
-            $app->enqueueMessage(Text::sprintf('COM_ALFA_MEDIA_FORMAT_NOT_SUPPORTED', $mime), 'error');
-            return false;
+        if (!$gd) {
+            return '';
         }
 
-        // --- ASPECT RATIO CHECK ---
-        $checkAspectRatio = false;
-        $aspectratioExploded = explode(':', (string) $aspectratio);
-        if (count($aspectratioExploded) > 1 && intval($aspectratioExploded[0]) > 0 && intval($aspectratioExploded[1]) > 0) {
-            $checkAspectRatio = true;
+        if ($info['mime'] === 'image/png') {
+            imagepalettetotruecolor($gd);
+            imagealphablending($gd, true);
+            imagesavealpha($gd, true);
         }
 
-        if ($checkAspectRatio) {
-            $srcRatio = floatval(sprintf('%0.2f', $source_image_width / $source_image_height));
-            $targetRatio = floatval(sprintf('%0.2f', intval($aspectratioExploded[0]) / intval($aspectratioExploded[1])));
-
-            if ($srcRatio != $targetRatio) {
-                $app->enqueueMessage(Text::sprintf('COM_ALFA_MEDIA_ASPECT_RATIO_ERROR', $aspectratio), 'warning');
-                return false;
-            }
-        }
-
-        // --- RESIZE LOGIC ---
-        $resize = 1;
-        if (($max_width == 0 && $max_height == 0) || ($source_image_width == $max_width || $source_image_height == $max_height)) {
-            $resize = 0;
-        }
-
-        // --- LOAD IMAGE ---
-        $loaders = [
-            'image/jpeg' => 'imagecreatefromjpeg',
-            'image/png' => 'imagecreatefrompng',
-            'image/gif' => 'imagecreatefromgif',
-            'image/webp' => 'imagecreatefromwebp',
-            'image/avif' => 'imagecreatefromavif',
-        ];
-
-        $loaderFunction = $loaders[$mime]; // image/webp
-
-        if (!function_exists($loaderFunction)) {
-            $formatName = strtoupper(str_replace('imagecreatefrom', '', $loaderFunction));
-            $app->enqueueMessage(Text::sprintf('COM_ALFA_MEDIA_SERVER_FORMAT_MISSING', $formatName), 'error');
-            return false;
-        }
-
-        $source_gd_image = @$loaderFunction($source_image_path);
-
-        if (!$source_gd_image) {
-            $app->enqueueMessage(Text::_('COM_ALFA_MEDIA_FILE_CORRUPT'), 'error');
-            return false;
-        }
-
-        if ($mime === 'image/png') {
-            imagepalettetotruecolor($source_gd_image);
-            imagealphablending($source_gd_image, true);
-            imagesavealpha($source_gd_image, true);
-        }
-
-        // --- DOMINANT COLOR ---
         $r_total = $g_total = $b_total = $total = 0;
-        // Optimization: Sample every 10th pixel instead of every single one for speed
+
+        // Sample every 10th pixel instead of every single one for speed.
         $step = 10;
-        for ($x = 0; $x < imagesx($source_gd_image); $x += $step) {
-            for ($y = 0; $y < imagesy($source_gd_image); $y += $step) {
-                $rgb = imagecolorat($source_gd_image, $x, $y);
-                $r = ($rgb >> 16) & 0xFF;
-                $g = ($rgb >> 8) & 0xFF;
-                $b = $rgb & 0xFF;
-                $r_total += $r;
-                $g_total += $g;
-                $b_total += $b;
+
+        for ($x = 0; $x < imagesx($gd); $x += $step) {
+            for ($y = 0; $y < imagesy($gd); $y += $step) {
+                $rgb = imagecolorat($gd, $x, $y);
+                $r_total += ($rgb >> 16) & 0xFF;
+                $g_total += ($rgb >> 8) & 0xFF;
+                $b_total += $rgb & 0xFF;
                 $total++;
             }
         }
-        $r = $total ? round($r_total / $total) : 0;
-        $g = $total ? round($g_total / $total) : 0;
-        $b = $total ? round($b_total / $total) : 0;
-        $rgbColor = sprintf('rgb(%d,%d,%d)', $r, $g, $b);
 
-        $image_to_output = $source_gd_image;
-        $resize_gd_image = null;
+        imagedestroy($gd);
 
-        // --- PROCESS RESIZE ---
-        if ($resize) {
-            $source_aspect_ratio = $source_image_width / $source_image_height;
-            $resize_aspect_ratio = $max_width / $max_height;
+        if ($total === 0) {
+            return '';
+        }
 
-            if ($source_image_width <= $max_width && $source_image_height <= $max_height) {
-                if ($resize_if_smaller) {
-                    if (($max_width - $source_image_width) > ($max_height - $source_image_height)) {
-                        $newW = (int) ($max_height * $source_aspect_ratio);
-                        $newH = $max_height;
-                    } else {
-                        $newW = $max_width;
-                        $newH = (int) ($max_width / $source_aspect_ratio);
-                    }
-                } else {
-                    $newW = $source_image_width;
-                    $newH = $source_image_height;
+        return sprintf(
+            'rgb(%d,%d,%d)',
+            (int) round($r_total / $total),
+            (int) round($g_total / $total),
+            (int) round($b_total / $total),
+        );
+    }
+
+    /**
+     * Baseline thumbnail resize — the always-on component fallback used when no
+     * optimizer plugin handles {@see onAlfaMediaThumbnail}. Scales the source to
+     * FIT inside ($maxW × $maxH) preserving aspect ratio, and writes it in the
+     * SAME format as the source (no conversion, no fancy compression — that is
+     * the plugin's job). This guarantees a thumbnail is never the full image.
+     *
+     * Returns false when the file is missing/unreadable, the server lacks the GD
+     * loader/encoder for the format, or the write fails — the caller then copies
+     * the original as a last resort.
+     *
+     * @param string $src Absolute source image path.
+     * @param string $dest Absolute destination path (extension matches source).
+     * @param int $maxW Maximum thumbnail width.
+     * @param int $maxH Maximum thumbnail height.
+     *
+     * @return bool True when a resized thumbnail was written, false otherwise.
+     *
+     * @since   1.0.2
+     */
+    private static function resizeThumbnail(string $src, string $dest, int $maxW, int $maxH): bool
+    {
+        if ($src === '' || !is_file($src) || $maxW < 1 || $maxH < 1) {
+            return false;
+        }
+
+        $info = @getimagesize($src);
+
+        if ($info === false) {
+            return false;
+        }
+
+        $loaderFunction = self::COLOR_LOADERS[$info['mime']] ?? null;
+
+        if ($loaderFunction === null || !function_exists($loaderFunction)) {
+            return false;
+        }
+
+        $srcGd = @$loaderFunction($src);
+
+        if (!$srcGd) {
+            return false;
+        }
+
+        $srcW = imagesx($srcGd);
+        $srcH = imagesy($srcGd);
+
+        if ($srcW < 1 || $srcH < 1) {
+            imagedestroy($srcGd);
+
+            return false;
+        }
+
+        // Scale to fit inside the box, preserving aspect ratio; never upscale.
+        $scale = min($maxW / $srcW, $maxH / $srcH, 1);
+        $newW = max(1, (int) round($srcW * $scale));
+        $newH = max(1, (int) round($srcH * $scale));
+
+        $dstGd = imagecreatetruecolor($newW, $newH);
+
+        // Preserve transparency for formats that support it.
+        if (\in_array($info['mime'], ['image/png', 'image/gif', 'image/webp', 'image/avif'], true)) {
+            imagealphablending($dstGd, false);
+            imagesavealpha($dstGd, true);
+            $transparent = imagecolorallocatealpha($dstGd, 0, 0, 0, 127);
+            imagefill($dstGd, 0, 0, $transparent);
+        }
+
+        imagecopyresampled($dstGd, $srcGd, 0, 0, 0, 0, $newW, $newH, $srcW, $srcH);
+
+        // Encode in the SAME format as the source (no conversion here).
+        $result = match ($info['mime']) {
+            'image/jpeg' => imagejpeg($dstGd, $dest),
+            'image/png' => imagepng($dstGd, $dest),
+            'image/gif' => imagegif($dstGd, $dest),
+            'image/webp' => function_exists('imagewebp') ? imagewebp($dstGd, $dest) : false,
+            'image/avif' => function_exists('imageavif') ? imageavif($dstGd, $dest) : false,
+            default => false,
+        };
+
+        imagedestroy($srcGd);
+        imagedestroy($dstGd);
+
+        return (bool) $result;
+    }
+
+    /**
+     * Dispatch the pre-process validation event so a plugin can veto a file.
+     *
+     * @param string $source Absolute source path of the upload.
+     * @param string $origin Media origin (item|category|manufacturer).
+     * @param string $field Logical field name ('image' | 'thumbnail').
+     * @param array $allowedMimes Allowed source MIME types.
+     *
+     * @return bool True when valid (or unhandled), false when a plugin vetoed it
+     *              (the plugin's error message is enqueued here).
+     *
+     * @since   1.0.2
+     */
+    private static function dispatchValidate(string $source, string $origin, string $field, array $allowedMimes): bool
+    {
+        PluginHelper::importPlugin('alfa-media');
+
+        $event = new ValidateEvent('onAlfaMediaValidate', [
+            'source' => $source,
+            'origin' => $origin,
+            'field' => $field,
+            'allowedMimes' => $allowedMimes,
+        ]);
+
+        Factory::getApplication()->getDispatcher()->dispatch($event->getName(), $event);
+
+        if (!$event->isValid()) {
+            $error = $event->getError();
+
+            if ($error !== '') {
+                Factory::getApplication()->enqueueMessage($error, 'error');
+            }
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Dispatch an image-processing event (onAlfaMediaBeforeProcess for full-size
+     * media, onAlfaMediaThumbnail for thumbnails) and read the result back.
+     *
+     * The component performs NO processing itself: a plugin resizes/converts
+     * source -> dest and sets processed=true. When no plugin handles the file,
+     * processed stays false, and the caller stores the original unchanged. The
+     * dominant colour is NOT part of this contract — the component always
+     * computes it from the final file via {@see self::dominantColor()}.
+     *
+     * The main-image path (onAlfaMediaBeforeProcess) carries NO
+     * format/quality/dimensions — the plugin reads its own per-context settings.
+     * The thumbnail path (onAlfaMediaThumbnail) carries the component's thumbnail
+     * maxWidth/maxHeight (component owns thumbnail SIZE), and the plugin applies
+     * its own FORMAT/QUALITY.
+     *
+     * @param string $eventName Event name to dispatch.
+     * @param string $source Absolute source path.
+     * @param string $dest Absolute destination path (plugin may rewrite).
+     * @param string $origin Media origin / context.
+     * @param string $field Logical field name.
+     * @param array $allowedMimes Allowed source MIME types.
+     * @param int $maxWidth Thumbnail target max width (thumbnail path only).
+     * @param int $maxHeight Thumbnail target max height (thumbnail path only).
+     *
+     * @return array{dest:string, processed:bool}
+     *
+     * @since   1.0.2
+     */
+    private static function dispatchProcess(
+        string $eventName,
+        string $source,
+        string $dest,
+        string $origin,
+        string $field,
+        array $allowedMimes,
+        int $maxWidth = 0,
+        int $maxHeight = 0,
+    ): array {
+        PluginHelper::importPlugin('alfa-media');
+
+        $arguments = [
+            'source' => $source,
+            'dest' => $dest,
+            'origin' => $origin,
+            'field' => $field,
+            'maxWidth' => $maxWidth,
+            'maxHeight' => $maxHeight,
+            'allowedMimes' => $allowedMimes,
+        ];
+
+        // Thumbnails get their own distinct event class so listeners can target
+        // them separately; everything else is a full-size process event.
+        $event = $eventName === 'onAlfaMediaThumbnail'
+            ? new ThumbnailEvent($eventName, $arguments)
+            : new BeforeProcessEvent($eventName, $arguments);
+
+        Factory::getApplication()->getDispatcher()->dispatch($event->getName(), $event);
+
+        return [
+            // getFinalPath() falls back to the proposed dest when the plugin
+            // did not rewrite the path; dest itself is never mutated.
+            'dest' => $event->getFinalPath(),
+            'processed' => $event->isProcessed(),
+        ];
+    }
+
+    /**
+     * Dispatch the post-process notification event (side-effects only).
+     *
+     * @param string $source Absolute source path.
+     * @param string $dest Absolute destination path that was stored.
+     * @param string $origin Media origin / context.
+     * @param string $field Logical field name.
+     * @param string $color Dominant colour computed for the stored file.
+     * @param bool $processed Whether a plugin actually processed the image.
+     *
+     *
+     * @since   1.0.2
+     */
+    private static function dispatchAfterProcess(string $source, string $dest, string $origin, string $field, string $color, bool $processed): void
+    {
+        PluginHelper::importPlugin('alfa-media');
+
+        $event = new AfterProcessEvent('onAlfaMediaAfterProcess', [
+            'source' => $source,
+            'dest' => $dest,
+            'origin' => $origin,
+            'field' => $field,
+            'color' => $color,
+            'processed' => $processed,
+        ]);
+
+        Factory::getApplication()->getDispatcher()->dispatch($event->getName(), $event);
+    }
+
+    /**
+     * Dispatch the pre-delete cleanup event so a plugin can purge derivatives
+     * before the component removes the media rows/files.
+     *
+     * @param object[] $rows Media rows about to be deleted (path, thumbnail, ...).
+     *
+     *
+     * @since   1.0.2
+     */
+    private static function dispatchBeforeDelete(array $rows): void
+    {
+        if (empty($rows)) {
+            return;
+        }
+
+        PluginHelper::importPlugin('alfa-media');
+
+        $paths = [];
+
+        foreach ($rows as $row) {
+            foreach ([$row->path ?? '', $row->thumbnail ?? ''] as $p) {
+                $p = ltrim((string) $p, '/');
+
+                if ($p !== '') {
+                    $paths[] = $p;
                 }
-            } elseif ($resize_aspect_ratio > $source_aspect_ratio) {
-                $newW = (int) ($max_height * $source_aspect_ratio);
-                $newH = $max_height;
-            } else {
-                $newW = $max_width;
-                $newH = (int) ($max_width / $source_aspect_ratio);
             }
-
-            $resize_gd_image = imagecreatetruecolor($newW, $newH);
-
-            // Handle Transparency
-            if ($output_type == 'jpg' || $output_type == 'jpeg') {
-                $white = imagecolorallocate($resize_gd_image, 255, 255, 255);
-                imagefill($resize_gd_image, 0, 0, $white);
-            } else {
-                imagealphablending($resize_gd_image, false);
-                imagesavealpha($resize_gd_image, true);
-                $transparent = imagecolorallocatealpha($resize_gd_image, 0, 0, 0, 127);
-                imagefill($resize_gd_image, 0, 0, $transparent);
-            }
-
-            imagecopyresampled($resize_gd_image, $source_gd_image, 0, 0, 0, 0, $newW, $newH, $source_image_width, $source_image_height);
-            $image_to_output = $resize_gd_image;
         }
 
-        // --- SAVE IMAGE ---
-        switch ($output_type) {
-            case 'jpg':
-            case 'jpeg': $result = imagejpeg($image_to_output, $new_image_path, $quality);
-                break;
-            case 'png':
-                $pngQuality = (int) (9 - round(($quality / 100) * 9));
-                $result = imagepng($image_to_output, $new_image_path, $pngQuality);
-                break;
-            case 'gif': $result = imagegif($image_to_output, $new_image_path);
-                break;
-            case 'webp': $result = imagewebp($image_to_output, $new_image_path, $quality);
-                break;
-            case 'avif': $result = imageavif($image_to_output, $new_image_path);
-                break;
-            default: $result = imagejpeg($image_to_output, $new_image_path, $quality);
-        }
+        $event = new BeforeDeleteEvent('onAlfaMediaBeforeDelete', [
+            'rows' => $rows,
+            'paths' => $paths,
+        ]);
 
-        // Cleanup
-        imagedestroy($source_gd_image);
-        if ($resize_gd_image) {
-            imagedestroy($resize_gd_image);
-        }
-
-        return $result ? $rgbColor : false;
+        Factory::getApplication()->getDispatcher()->dispatch($event->getName(), $event);
     }
 }

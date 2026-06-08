@@ -9,6 +9,7 @@
 
 	\defined('_JEXEC') or die;
 
+	use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 	use Joomla\CMS\Component\ComponentHelper;
 	use Joomla\CMS\Factory;
 	use Joomla\CMS\Uri\Uri;
@@ -25,14 +26,15 @@
 	$user     = $app->getIdentity();
 	$medias   = $data ?? [];
 
-	// Get allowed MIME from config
-	$mimes = $params->get('media_mime');
+	// Get allowed MIME from config (empty = all standard image types)
+	$mimes = MediaHelper::resolveAllowedMimes($params->get('media_mime'));
 	$allowedTypes = explode(',', $allowedTypes[0]);
 
 	// Pass options to JS
 	$document->addScriptOptions('com_alfa.mimes', $mimes);
 	$document->addScriptOptions('com_alfa.multiple', $multiple);
 	$document->addScriptOptions('com_alfa.types', $allowedTypes);
+	$document->addScriptOptions('com_alfa.maxUploadSize', MediaHelper::maxUploadBytes());
 
 	// Set media-picker options required by joomla-field-media web component
 	$document->addScriptOptions('media-picker', $supportedExtensions);
@@ -73,6 +75,7 @@
 	Text::script('COM_ALFA_MEDIA_NO_ITEMS');
 	Text::script('COM_ALFA_MEDIA_TYPE_NOT_ALLOWED');
 	Text::script('COM_ALFA_MEDIA_MIME_NOT_SUPPORTED');
+	Text::script('COM_ALFA_MEDIA_FILE_TOO_LARGE');
 	Text::script('COM_ALFA_MEDIA_LIMIT_REACHED');
 
 	// ── Toolbar ──
@@ -180,7 +183,7 @@ HTML;
             <div id="media-grid" class="media-grid">
 				<?php if (!empty($medias)): ?>
 					<?php foreach ($medias as $media): ?>
-						<?= LayoutHelper::render('mediazone.dropmedia', ['media' => $media]); ?>
+						<?= LayoutHelper::render('mediazone.item', ['media' => $media]); ?>
 					<?php endforeach; ?>
 				<?php else: ?>
                     <div class="media-placeholder">

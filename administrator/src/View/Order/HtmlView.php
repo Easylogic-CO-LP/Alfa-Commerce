@@ -41,6 +41,21 @@ class HtmlView extends BaseHtmlView
     protected $onAdminOrderViewEventName = 'onAdminOrderView';
     protected $onAdminOrderViewLogsEventName = 'onAdminOrderViewLogs';
 
+    /**
+     * Render the order view, branching on the current layout: the
+     * edit_shipment / edit_payment / edit_order_item layouts (and their
+     * *_return variants) load the relevant sub-record plus its form and a
+     * dedicated toolbar; otherwise the main order is loaded, checked out for
+     * editing and its activity log fetched for the History tab.
+     *
+     * @param string|null $tpl The name of the template file to parse
+     *
+     * @return void
+     *
+     * @throws Exception When a requested shipment/payment/order item or order is missing, or an id is required
+     *
+     * @since  1.0.1
+     */
     public function display($tpl = null)
     {
         $model = $this->getModel();
@@ -154,6 +169,17 @@ class HtmlView extends BaseHtmlView
         parent::display($tpl);
     }
 
+    /**
+     * Dispatch the admin payment view events to the payment plugin.
+     *
+     * Currently a no-op: the body is retained, commented out, pending re-enable.
+     *
+     * @param object $payment The payment record (passed by reference)
+     *
+     * @return void
+     *
+     * @since  1.0.1
+     */
     protected function addPaymentEvents(&$payment)
     {
         //		$onAdminOrderViewEventName     = 'onAdminOrderPaymentView';
@@ -191,6 +217,17 @@ class HtmlView extends BaseHtmlView
         //		$payment->{$paymentOnAdminOrderViewLogsEvent->getName()} = $paymentOnAdminOrderViewLogsEvent;
     }
 
+    /**
+     * Dispatch the admin shipment view events to the shipment plugin.
+     *
+     * Currently a no-op: the body is retained, commented out, pending re-enable.
+     *
+     * @param object $shipment The shipment record (passed by reference)
+     *
+     * @return void
+     *
+     * @since  1.0.1
+     */
     protected function addShipmentEvents(&$shipment)
     {
         //		$onAdminOrderViewEventName     = 'onAdminOrderShipmentView';

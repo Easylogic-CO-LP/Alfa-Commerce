@@ -85,6 +85,15 @@ class HtmlView extends BaseHtmlView
     public array $official = ['status' => 'unreachable'];
 
     /**
+     * The integrity verdict card, pre-rendered in {@see self::display()} from a
+     * fixed-path partial (NOT the overridable layout system) so a template override
+     * cannot silently fake the result — the Tools template only echoes this string.
+     *
+     * @since   1.0.9
+     */
+    public string $integrityHtml = '';
+
+    /**
      * Render the Tools page.
      *
      * @param string|null $tpl The template name.
@@ -103,13 +112,17 @@ class HtmlView extends BaseHtmlView
         $this->drift = PackageHelper::detectDrift(installRoot: JPATH_ROOT);
         $this->nextVersion = PackageHelper::nextVersion(installRoot: JPATH_ROOT);
         $this->release = PackageHelper::releaseReadiness(installRoot: JPATH_ROOT);
-        $this->official = IntegrityHelper::verifyAgainstOfficial();
-
-        // A fresh Tools check is authoritative: refresh the cached verdict (so the
-        // badge's 24h sync doesn't overwrite this with a stale one) and apply it to the
-        // Security notification now, so opening Tools updates the badge immediately.
-        IntegrityHelper::clearVerdictCache();
+        // Use the cached verdict on open so repeatedly loading the page can't spam the
+        // CDN check; the "Recheck now" button clears the cache to force a fresh scan.
+        $this->official = IntegrityHelper::cachedVerdict();
         SyncHelper::applyIntegrityVerdict($this->official);
+
+        // Render the verdict card from a fixed-path partial — deliberately NOT the
+        // overridable layout system — so a template override can't silently fake the
+        // result. The Tools template only echoes the produced string.
+        ob_start();
+        include __DIR__ . '/_integrity.php';
+        $this->integrityHtml = ob_get_clean();
 
         $this->addToolbar();
 

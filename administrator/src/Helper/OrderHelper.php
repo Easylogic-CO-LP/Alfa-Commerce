@@ -842,6 +842,17 @@ class OrderHelper
         }
     }
 
+    /**
+     * Load the active base price for each product id from #__alfa_items_prices,
+     * scoped to the default user/country and (optionally) the given currency or
+     * the default currency. The first matching row per product wins (lowest
+     * ordering), preferring its overwritten value over the base value.
+     *
+     * @param int[] $productIds Item ids to fetch prices for
+     * @param int|null $currencyId Currency id to match, or null/0 for default only
+     *
+     * @return array Map of item_id => price (float)
+     */
     protected static function getBaseProductPrices(array $productIds, ?int $currencyId = null): array
     {
         if (empty($productIds)) {

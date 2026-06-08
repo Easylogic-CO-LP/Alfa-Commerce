@@ -88,6 +88,15 @@ abstract class FormEvent extends AbstractImmutableEvent
         return $value;
     }
 
+    /**
+     * Replace the Form instance carried by the event (stored as the 'subject' argument).
+     *
+     * @param Form $form The form to set
+     *
+     * @return void
+     *
+     * @since  5.0.0
+     */
     public function setForm($form)
     {
         $this->arguments['subject'] = $form;
@@ -128,6 +137,15 @@ abstract class FormEvent extends AbstractImmutableEvent
         return $this->arguments['data'];
     }
 
+    /**
+     * Replace the data payload carried by the event.
+     *
+     * @param object|array $data The data to set
+     *
+     * @return void
+     *
+     * @since  5.0.0
+     */
     public function setData($data)
     {
         $this->arguments['data'] = $data;

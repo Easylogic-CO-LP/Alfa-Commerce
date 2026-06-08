@@ -6,4 +6,33 @@
         </message>
     </layout>
 
+    <fields name="params">
+        <fieldset name="basic" label="COM_ALFA_MENU_DISPLAY_OPTIONS">
+            <field
+                    name="show_items_filters"
+                    type="list"
+                    useglobal="true"
+                    label="COM_ALFA_CONFIG_SHOW_ITEMS_FILTERS"
+                    description="COM_ALFA_CONFIG_SHOW_ITEMS_FILTERS_DESC"
+                    validate="options"
+            >
+                <option value="1">JYES</option>
+                <option value="0">JNO</option>
+            </field>
+
+            <field
+                    name="include_subcategories"
+                    type="list"
+                    useglobal="true"
+                    label="COM_ALFA_CONFIG_INCLUDE_SUBCATEGORIES"
+                    description="COM_ALFA_CONFIG_INCLUDE_SUBCATEGORIES_DESC"
+                    validate="options"
+            >
+                <option value="1">JYES</option>
+                <option value="0">JNO</option>
+            </field>
+        </fieldset>
+    </fields>
+
 </metadata>
+

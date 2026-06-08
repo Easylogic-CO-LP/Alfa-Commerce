@@ -35,6 +35,30 @@ use Throwable;
 class ToolsController extends BaseController
 {
     /**
+     * Force a fresh integrity scan: drop the cached verdict so the next Tools render
+     * recomputes it against the signed CDN checksums. Token-guarded and cheap, so the
+     * Security tab can no longer be spammed into re-scanning on every page load.
+     *
+     *
+     * @since   1.0.9
+     */
+    public function recheckIntegrity(): void
+    {
+        if (!$this->app->getIdentity()->authorise('alfa.tools', 'com_alfa')) {
+            throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
+        }
+
+        if (Session::checkToken('request')) {
+            IntegrityHelper::clearVerdictCache();
+            $this->setMessage(Text::_('COM_ALFA_TOOLS_INTEGRITY_RECHECKED'));
+        } else {
+            $this->setMessage(Text::_('JINVALID_TOKEN'), 'error');
+        }
+
+        $this->setRedirect(Route::_('index.php?option=com_alfa&view=tools', false));
+    }
+
+    /**
      * Build and download the extension package archive (repo layout, libraries
      * excluded — a source/PR package rather than a guaranteed-installable one).
      *

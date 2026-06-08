@@ -25,11 +25,28 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
  */
 class HtmlView extends FormView
 {
+    /**
+     * Render the edit form view.
+     *
+     * @param string|null $tpl The name of the template file to parse
+     *
+     * @return void
+     *
+     * @since  1.0.1
+     */
     public function display($tpl = null)
     {
         parent::display($tpl);
     }
 
+    /**
+     * Prepare the view: load the com_alfa permission set and add the 'task' and
+     * base64 'return' control fields to the form.
+     *
+     * @return void
+     *
+     * @since  1.0.1
+     */
     protected function initializeView()
     {
         parent::initializeView();

@@ -153,6 +153,8 @@ $colspan = $isFiles ? 5 : 7;
                 <?php if (!$isFiles) : ?>
                     <template id="joomla-dialog-delete-orphans"><?php echo $this->loadTemplate('delete_orphans_body'); ?></template>
                     <template id="joomla-dialog-delete-missing"><?php echo $this->loadTemplate('delete_missing_body'); ?></template>
+                <?php else : ?>
+                    <template id="joomla-dialog-delete-untracked"><?php echo $this->loadTemplate('delete_untracked_body'); ?></template>
                 <?php endif; ?>
 
                 <?php echo $this->filterForm->renderControlFields(); ?>

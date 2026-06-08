@@ -36,6 +36,14 @@ class FieldLayoutField extends FormField
 {
     protected $type = 'FieldLayout';
 
+    /**
+     * Render a grouped select listing the available layouts: a "use default"
+     * entry, the union of alfa-fields plugin tmpl layouts ("_:<layout>") and the
+     * per-template override layouts ("<template>:<layout>") for every enabled
+     * frontend template.
+     *
+     * @return string The grouped-list select HTML
+     */
     protected function getInput(): string
     {
         $groups = [];

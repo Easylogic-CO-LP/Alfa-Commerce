@@ -44,6 +44,9 @@ class AppliedDiscount
         $this->timing = $timing;
     }
 
+    /**
+     * Export the applied discount as a plain array (formatting the amount when present).
+     */
     public function toArray(): array
     {
         return [

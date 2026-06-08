@@ -31,6 +31,15 @@ class PriceCalculator
         $this->settings = ComponentHelper::getParams('com_alfa');
     }
 
+    /**
+     * Calculate prices for one or many products, batch-loading their pricing data and computing a result each.
+     *
+     * @param int|int[] $productIds One product id or an array of product ids.
+     * @param int|int[] $quantities A single quantity applied to all, or a per-product-id quantity map.
+     * @param PriceContext|null $context The pricing context; resolved from session when null.
+     *
+     * @return PriceResult|PriceResult[] A single result when a scalar id was passed, otherwise a map keyed by product id.
+     */
     public function calculate($productIds, $quantities = 1, ?PriceContext $context = null)
     {
         $isSingle = !is_array($productIds);
@@ -55,6 +64,14 @@ class PriceCalculator
         return $isSingle ? reset($results) : $results;
     }
 
+    /**
+     * Expand a quantity argument into a per-product-id quantity map.
+     *
+     * @param int[] $productIds The product ids.
+     * @param int|int[] $quantities A single quantity for all ids, or an existing per-id map (returned as-is).
+     *
+     * @return array The quantity map keyed by product id.
+     */
     protected function normalizeQuantities(array $productIds, $quantities): array
     {
         if (is_array($quantities)) {

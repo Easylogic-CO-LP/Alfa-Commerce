@@ -22,6 +22,13 @@ defined('_JEXEC') or die;
  */
 class AlfaHelper
 {
+    /**
+     * Return the com_alfa component global parameters/settings.
+     *
+     * @return \Joomla\Registry\Registry The component parameters.
+     *
+     * @since   1.0.1
+     */
     public static function getGeneralSettings()
     {
         // $cache = Factory::getCache('com_alfa','');
@@ -126,6 +133,21 @@ class AlfaHelper
         return $filteredMethods;
     }
 
+    /**
+     * Normalise an HTML string to plain, search-friendly text.
+     * Optionally strips scripts/styles/comments and remaining tags (block elements become spaces),
+     * replaces disallowed characters with spaces, optionally drops isolated punctuation, then collapses
+     * whitespace.
+     *
+     * @param string $html The HTML/text to clean.
+     * @param bool $removeTags Strip remaining HTML tags when true.
+     * @param bool $removeScripts Strip <script>/<style> blocks and HTML comments when true.
+     * @param bool $removeIsolatedPunctuation Remove standalone punctuation characters when true.
+     *
+     * @return string The cleaned, whitespace-collapsed text.
+     *
+     * @since   1.0.1
+     */
     public static function cleanContent(
         string $html,
         bool $removeTags = false,
