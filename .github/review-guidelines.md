@@ -1,8 +1,7 @@
 # Alfa Commerce — PR Review Skill
 
 Review PRs for **com_alfa** (Joomla 6/7 eCommerce component; PHP, no Composer deps) as a com_alfa
-**and** Joomla specialist. The rules below are this project's review rulebook — **extend it** by
-adding a directive under the right heading, or a new heading, as conventions evolve. Read `CLAUDE.md`
+**and** Joomla specialist. Read `CLAUDE.md`
 for architecture.
 
 **How to review** — comment inline, concise, severity-tagged: 🔴 breaks installs/data/security ·
@@ -67,7 +66,3 @@ Style/formatting (CS Fixer), PHPStan findings, or dev-box integrity "drift" (nor
 files). Premium gateways/modules (Revolut, Viva, BoxNow, Klarna, PayPal, filters, media optimizer) are
 **CDN-only by design** — never suggest bundling them or mention their removal publicly. PRs target
 `developer`, never `main`.
-
----
-*Extend this skill by adding a directive under the relevant heading (or a new heading) — keep each one
-a single, checkable command.*
