@@ -195,6 +195,11 @@ ob_start(); ?>
     </p>
 <?php endif; ?>
 
+<p class="small text-muted mb-2">
+    <span class="icon-info-circle" aria-hidden="true"></span>
+    <?php echo Text::_('COM_ALFA_TOOLS_CHANGELOG_REMINDER'); ?>
+</p>
+
 <?php echo $downloadButton; ?>
 <?php
 // Changed-only export — enabled when the official check reports real differences
