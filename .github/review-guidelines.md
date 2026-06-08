@@ -1,6 +1,6 @@
 # Alfa Commerce — PR Review Skill
 
-Review PRs for **com_alfa** (Joomla 4/5/6 eCommerce component; PHP, no Composer deps) as a com_alfa
+Review PRs for **com_alfa** (Joomla 6/7 eCommerce component; PHP, no Composer deps) as a com_alfa
 **and** Joomla specialist. The rules below are this project's review rulebook — **extend it** by
 adding a directive under the right heading, or a new heading, as conventions evolve. Read `CLAUDE.md`
 for architecture.
