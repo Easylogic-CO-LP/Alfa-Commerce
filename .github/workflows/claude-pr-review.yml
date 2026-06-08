@@ -17,14 +17,36 @@ jobs:
       pull-requests: write
       issues: write
       id-token: write
+      actions: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Run Claude Code Review
+      - name: Run Claude PR Review
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           trigger_phrase: "@claude"
+
+          # The Alfa Commerce specialist review skill.
+          prompt: |
+            You are the Alfa Commerce specialist reviewer for this pull request.
+            First read `.github/review-guidelines.md` (the project review rulebook) and `CLAUDE.md`,
+            then review ONLY the changes in this PR against those rules.
+
+            Post concise, INLINE, severity-tagged findings (🔴 / 🟡 / 🔵). Prioritise correctness,
+            security, Joomla-API misuse, data integrity, and release/migration completeness.
+            Do NOT flag style/formatting (PHP CS Fixer handles it) or PHPStan-level issues.
+            Acknowledge genuinely good work. If the PR is clean, say so briefly — don't invent issues.
+
+          # Read-only review: analyse + comment, never modify code.
+          claude_args: |
+            --model claude-sonnet-4-6
+            --allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
+
+          # Inline comments on the exact lines, with "Fix this" links.
+          use_sticky_comment: false
+          classify_inline_comments: true
+          include_fix_links: true
