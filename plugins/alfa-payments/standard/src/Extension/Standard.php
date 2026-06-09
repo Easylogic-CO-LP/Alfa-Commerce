@@ -272,12 +272,14 @@
  *      onExecuteAction()     — handle admin button clicks
  *
  *    OPTIONAL:
- *      onPaymentResponse()   — handle gateway webhook/callback
+ *      onPaymentResponse()   — customer return from the gateway (REDIRECT-ONLY; see below)
  *
  * 8. For gateway plugins, the key differences from Standard:
  *    - onOrderAfterPlace(): create as ->authorized() instead of ->pending()
  *    - onOrderProcessView(): redirect customer to gateway payment page
- *    - Add a webhook handler for onPaymentResponse()
+ *    - onPaymentResponse(): handle the customer's return from the gateway —
+ *      REDIRECT-ONLY (see the GATEWAY RETURN section below). The separate
+ *      server-to-server webhook is task=plugin.trigger&func=notify (no session).
  *    - handleCapture(): ->completed()->transactionId($id)->processedAt($now)
  *    - handleRefund(): add ->transactionId() and ->gatewayResponse()
  *    - logs.xml: add gateway-specific columns (e.g. stripe_event_id)
@@ -393,6 +395,9 @@ final class Standard extends PaymentsPlugin
      *       $event->setLayoutData([...]);
      *     The component's default_order_process template will render the
      *     plugin layout and show a retry button for failed payments.
+     *   - On the buyer's RETURN, onPaymentResponse() redirects back here with a
+     *     ?<plugin>_result= flag; read it and render default_order_process_cancelled
+     *     | error. (See the GATEWAY RETURN section after onOrderCompleteView.)
      *
      * Available on $event:
      *   $event->getSubject()  → Order object (with ->id, ->payments, etc.)
@@ -430,6 +435,47 @@ final class Standard extends PaymentsPlugin
             'method' => $event->getMethod(),
         ]);
     }
+
+    // =========================================================================
+    //
+    //  GATEWAY RETURN — onPaymentResponse()  (customer return from the gateway)
+    //
+    //  Fired by the site PaymentController (task=payment.response) when the buyer
+    //  returns from a hosted gateway. It runs in a CONTROLLER WITH NO VIEW, so it
+    //  is REDIRECT-ONLY — setLayout()/setLayoutData() are IGNORED here. Decide
+    //  where to send the buyer and call setRedirectUrl():
+    //
+    //      success    → the complete page : $this->getCompletePageUrl()
+    //      cancel/err → the process page  : $this->getProcessPageUrl()
+    //                                       . '&<plugin>_result=cancelled|error'
+    //
+    //  onOrderProcessView() then reads that ?<plugin>_result= flag and renders
+    //  default_order_process_cancelled|error (that hook HAS a view). To show a
+    //  result page you ALWAYS redirect to a view page — never render a layout
+    //  here. (This is distinct from the server webhook, which has no session:
+    //  task=plugin.trigger&type=alfa-payments&name=<plugin>&func=notify.)
+    //
+    //  Standard is offline (no hosted gateway, no return), so it does NOT
+    //  implement this hook. A gateway plugin (Stripe, Viva, Revolut, …) does —
+    //  uncomment and fill in:
+    //
+    //      public function onPaymentResponse($event): void
+    //      {
+    //          $order = $event->getOrder();
+    //          $input = Factory::getApplication()->getInput();
+    //
+    //          if (/* payment confirmed by the gateway */) {
+    //              $this->payment($order)->completed()->transactionId($txnId)->save();
+    //              $event->setRedirectUrl($this->getCompletePageUrl());      // success
+    //              return;
+    //          }
+    //
+    //          // cancelled / failed — bounce to the process page; onOrderProcessView
+    //          // reads &<plugin>_result= and renders the cancelled/error layout.
+    //          $event->setRedirectUrl($this->getProcessPageUrl() . '&<plugin>_result=cancelled');
+    //      }
+    //
+    // =========================================================================
 
     // =========================================================================
     //
