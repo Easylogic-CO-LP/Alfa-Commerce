@@ -89,6 +89,8 @@ abstract class RedirectEvent extends GeneralEvent
      * Use this when you need the original value (logging, or re-routing yourself
      * with custom flags such as Route::TLS_FORCE / absolute). For redirecting,
      * use getRedirectUrl(), which SEF-routes raw internal URLs.
+     *
+     * @since  5.0.0
      */
     public function getRawRedirectUrl(): ?string
     {

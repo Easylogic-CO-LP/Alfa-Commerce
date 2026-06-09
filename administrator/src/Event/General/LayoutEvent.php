@@ -221,7 +221,7 @@ class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
      */
     public function onSetLayoutData($value): void
     {
-        $this->onSetLayoutData($value);
+        $this->setLayoutData($value);
     }
 
     /**
