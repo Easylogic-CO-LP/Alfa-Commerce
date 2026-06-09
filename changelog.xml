@@ -12,6 +12,7 @@
         <change>
             <item>Internal housekeeping: removed stray developer backup files that were inadvertently included in the package.</item>
             <item>Refined the payment/shipment plugin event model so redirect and inline template rendering are available only where they apply — the checkout views and the gateway-return step; order place/save hooks are now strictly data hooks.</item>
+            <item>Expanded developer documentation in the bundled Standard payment plugin — the gateway-return (onPaymentResponse) contract is redirect-only, with a copy-paste example for gateway authors.</item>
         </change>
     </changelog>
 
