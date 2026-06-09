@@ -7,7 +7,7 @@
     <author>Agamemnon Fakas</author>
     <authorEmail>info@easylogic.gr</authorEmail>
     <authorUrl>https://easylogic.gr</authorUrl>
-    <version>1.0.11</version>
+    <version>1.1.0</version>
     <description>The smartest,fastest and easiest ecommerce solution for companies developed with love by Easylogic.</description>
     <namespace path="src">Alfa\Component\Alfa</namespace>
 
@@ -94,6 +94,7 @@
         <files folder="administrator">
             <filename>access.xml</filename>
             <filename>config.xml</filename>
+            <filename>LICENSE</filename>
             <folder>files</folder>
             <folder>forms</folder>
             <folder>src</folder>
