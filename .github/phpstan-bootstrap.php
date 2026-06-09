@@ -4,7 +4,7 @@
 // declared so the component code analyses cleanly under PHPStan.
 defined('_JEXEC') or define('_JEXEC', 1);
 defined('DS') or define('DS', DIRECTORY_SEPARATOR);
-defined('JPATH_ROOT') or define('JPATH_ROOT', __DIR__);
+defined('JPATH_ROOT') or define('JPATH_ROOT', dirname(__DIR__));
 defined('JPATH_BASE') or define('JPATH_BASE', JPATH_ROOT);
 defined('JPATH_SITE') or define('JPATH_SITE', JPATH_ROOT);
 defined('JPATH_ADMINISTRATOR') or define('JPATH_ADMINISTRATOR', JPATH_ROOT . '/administrator');

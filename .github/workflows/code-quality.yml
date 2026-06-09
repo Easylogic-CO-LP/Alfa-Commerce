@@ -54,7 +54,7 @@ jobs:
 
       - name: Fetch latest Joomla (PHPStan symbol resolution)
         run: |
-          url=$(curl -sL https://api.github.com/repos/joomla/joomla-cms/releases/latest | jq -r '.assets[] | select(.name | endswith("Full_Package.zip")) | .browser_download_url' | head -1)
+          url=$(curl -sL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/joomla/joomla-cms/releases/latest | jq -r '.assets[] | select(.name | endswith("Full_Package.zip")) | .browser_download_url' | head -1)
           echo "Latest Joomla package: $url"
           curl -sL -o /tmp/joomla.zip "$url"
           mkdir -p joomla && unzip -q /tmp/joomla.zip -d joomla

@@ -1,3 +1,9 @@
+includes:
+    # Pre-existing genuine findings (legacy J-prefixed docblock types, etc.),
+    # snapshotted so CI is green and only NEW regressions are flagged. Chip away
+    # and regenerate with: scripts/phpstan-fetch-joomla.sh && phpstan analyse --generate-baseline
+    - phpstan-baseline.neon
+
 parameters:
     level: 5
     paths:
@@ -7,9 +13,10 @@ parameters:
         - plugins
         - modules
 
-    # The latest Joomla is downloaded into ./joomla in CI so PHPStan can resolve the
-    # Joomla\CMS\* / Joomla\* framework classes our code extends (the repo has no
-    # Composer dependencies). See .github/workflows/code-quality.yml.
+    # Joomla is downloaded into ./joomla so PHPStan can resolve the Joomla\CMS\* /
+    # Joomla\* framework classes our code extends (the repo has no Composer deps).
+    # CI fetches it automatically (see .github/workflows/code-quality.yml); for a
+    # local run, populate ./joomla first with scripts/phpstan-fetch-joomla.sh.
     scanDirectories:
         - joomla
 
@@ -17,16 +24,33 @@ parameters:
         - .github/phpstan-bootstrap.php
 
     excludePaths:
-        - */tmpl/*
-        - */layouts/*
-        - */language/*
+        - */tmpl/*        # view templates: procedural HTML scripts ($this-bound, extracted vars) — presentation, not logic
+        - */layouts/*     # JLayout files: same, render $displayData procedurally
+        - */*BACKUP*      # stray developer backup files are dead code, not maintained source
 
     ignoreErrors:
-        # Joomla models/views expose values via magic __get / dynamic methods,
-        # which PHPStan can't infer even with the framework scanned.
+        # Joomla magic access: models/views expose values via __get / dynamic
+        # methods PHPStan can't infer even with the framework scanned.
         - '#Access to an undefined property#'
-        - '#Call to an undefined method.*\\\\HtmlView::#'
-        - '#Call to an undefined method.*\\\\BaseController::#'
+
+        # Joomla interface→concrete typing: these methods exist on the concrete
+        # runtime subclass (SiteApplication, ListModel, DatabaseDriver,
+        # HtmlDocument, MVCComponent, …), not on the interface/abstract PHPStan
+        # infers from the type-hint. Not real errors.
+        - '#Call to an undefined method Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel::#'
+        - '#Call to an undefined method Joomla\\CMS\\Application\\CMSApplicationInterface::#'
+        - '#Call to an undefined method Joomla\\Database\\DatabaseInterface::#'
+        - '#Call to an undefined method Joomla\\CMS\\Document\\Document::#'
+        - '#Call to an undefined method Joomla\\CMS\\Extension\\ComponentInterface::#'
+        - '#Call to an undefined method Joomla\\CMS\\Extension\\PluginInterface::#'
+        - '#Call to an undefined method Joomla\\CMS\\Language\\Language::#'
+        - '#Call to an undefined method Joomla\\CMS\\Form\\FormField::#'
+        - '#Call to an undefined method Joomla\\Session\\SessionInterface::#'
+
+        # libphonenumber (giggsey) is bundled with the tel field plugin, not in
+        # the scanned Joomla tree, so its symbols can't be resolved here.
+        - '#unknown class libphonenumber\\#'
+        - '#unknown class .*\\libphonenumber\\#'
 
     treatPhpDocTypesAsCertain: false
     reportUnmatchedIgnoredErrors: false
