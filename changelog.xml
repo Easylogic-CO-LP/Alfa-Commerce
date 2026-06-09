@@ -3,6 +3,15 @@
     <changelog>
         <element>com_alfa</element>
         <type>component</type>
+        <version>1.0.11</version>
+
+        <fix>
+            <item>Fixed bundled module and plugin names appearing as raw language keys (e.g. MOD_ALFA_SEARCH_NAME, PLG_SYSTEM_ALFASYNC_XML_NAME) in the User Actions Log and Extensions manager. Manifest names now match each extension's element so Joomla resolves them to their human-readable titles.</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>com_alfa</element>
+        <type>component</type>
         <version>1.0.10</version>
 
         <fix>

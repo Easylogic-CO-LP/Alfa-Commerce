@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extension type="plugin" group="alfa-shipments" method="upgrade">
-	<name>PLG_ALFA_SHIPMENTS_STANDARD</name>
+	<name>plg_alfa-shipments_standard</name>
 	<copyright>(C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.</copyright>
 	<license>GNU General Public License version 3 or later; see LICENSE</license>
 	<author>Agamemnon Fakas</author>
