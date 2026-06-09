@@ -1,413 +1,145 @@
 # Contributing to Alfa Commerce
 
-Welcome! This guide explains how to contribute to Alfa Commerce, step by step. Whether you're a seasoned developer or just getting started, this document covers everything you need to know.
-
-## Table of Contents
-
-- [Getting Started](#getting-started)
-- [How to Contribute](#how-to-contribute)
-- [Branching Strategy](#branching-strategy)
-- [Automated Checks (What Happens When You Open a PR)](#automated-checks)
-- [Understanding PHP CS Fixer (Code Style)](#php-cs-fixer)
-- [Understanding PHPStan (Static Analysis)](#phpstan)
-- [Understanding Claude AI Review](#claude-ai-review)
-- [Understanding Security Scans](#security-scans)
-- [How to Read Check Results](#how-to-read-check-results)
-- [Fixing Issues Found by Checks](#fixing-issues-found-by-checks)
-- [Coding Standards](#coding-standards)
-- [Project Structure](#project-structure)
-- [Need Help?](#need-help)
+Thanks for helping improve **Alfa Commerce**! This document describes the contribution **process**. For how the
+codebase is organized and how the component works, see the **[developer manual](https://manual.alfacommerce.gr)** —
+the single source of truth for architecture, structure, and conventions.
 
 ---
 
-## Getting Started
-
-### Prerequisites
-- PHP 8.2 or higher
-- A Joomla 4.x / 5.x installation for testing
-- Git installed on your machine
-- A GitHub account
-
-### Setting Up Locally
-1. **Fork** the repository on GitHub
-2. **Clone** your fork locally
-3. Set up a local Joomla installation (using XAMPP, WAMP, Laravel Herd, or similar)
-4. Install the component by downloading the ZIP and uploading via Joomla Extension Manager
-
----
-
-## How to Contribute
-
-### Step-by-Step Process
-
-```
-1. Fork the repository on GitHub
-2. Create a new branch from "developer" (not main)
-3. Make your changes
-4. Commit and push to your fork
-5. Open a Pull Request targeting the "developer" branch
-6. Wait for automated checks to run (usually 2-5 minutes)
-7. Address any issues the checks find
-8. Get your PR reviewed and merged
-```
-
-### Quick Example
+## Quick start
 
 ```bash
-# Clone your fork
 git clone https://github.com/YOUR-USERNAME/Alfa-Commerce.git
 cd Alfa-Commerce
-
-# Create a branch from developer
 git checkout developer
-git checkout -b feat/my-new-feature
-
-# Make your changes...
-
-# Commit and push
-git add .
-git commit -m "Add my new feature"
-git push origin feat/my-new-feature
-
-# Then go to GitHub and open a Pull Request
+git checkout -b feat/short-description      # or fix/short-description
+# …make your changes…
+git commit -m "Add coupon validation"
+git push origin feat/short-description       # then open a PR against `developer`
 ```
 
 ---
 
-## Branching Strategy
+## Contents
+
+- [Prerequisites](#prerequisites)
+- [Workflow](#workflow)
+- [Branching](#branching)
+- [Commit messages](#commit-messages)
+- [Coding standards](#coding-standards)
+- [Automated checks](#automated-checks)
+- [Opening a pull request](#opening-a-pull-request)
+- [Where things live](#where-things-live)
+- [Getting help](#getting-help)
+
+---
+
+## Prerequisites
+
+| You'll need | Notes |
+|-------------|-------|
+| **PHP 8.2+** | Matches the component's runtime requirement |
+| **Joomla 6 or 7** | A local install for testing (XAMPP, WAMP, MAMP, Laravel Herd, …) |
+| **Git + a GitHub account** | Fork-and-pull-request workflow |
+
+Install the component into your test site by uploading the package ZIP via **System > Install > Extensions**.
+
+---
+
+## Workflow
+
+1. **Fork** the repository, then **clone** your fork.
+2. Branch from **`developer`** (never `main`).
+3. Make focused changes — one feature or fix per branch.
+4. **Push** and open a **Pull Request against `developer`**.
+5. Wait for the automated checks, address any feedback, and a maintainer merges it.
+
+---
+
+## Branching
 
 | Branch | Purpose |
 |--------|---------|
-| `main` | Stable releases only. Never commit directly to main. |
-| `developer` | Active development branch. Create your branches from here. |
-| `feat/*` | New features (e.g., `feat/paypal-payment`) |
-| `fix/*` | Bug fixes (e.g., `fix/cart-total-calculation`) |
+| `main` | Released, stable code only — **never** commit directly. |
+| `developer` | Integration branch — **branch from here, PR back here.** |
+| `feat/*` | New features — e.g. `feat/paypal-payment` |
+| `fix/*` | Bug fixes — e.g. `fix/cart-total-rounding` |
 
-**Always target your Pull Requests to the `developer` branch**, unless you're told otherwise.
-
----
-
-## Automated Checks
-
-When you open or update a Pull Request, **four automated checks** run on your code. You don't need to do anything to trigger them — they run automatically.
-
-Here's what happens:
-
-```
-You open a Pull Request
-        |
-        v
-+------------------+     +------------------+     +------------------+     +------------------+
-|  PHP CS Fixer    |     |    PHPStan       |     | Claude AI Review |     | Security Scan    |
-|                  |     |                  |     |                  |     |                  |
-| Checks code      |     | Finds bugs and   |     | AI reviews your  |     | Checks for       |
-| formatting and   |     | type errors in   |     | code and leaves  |     | vulnerabilities  |
-| FIXES it for you |     | your PHP code    |     | comments on the  |     | and leaked       |
-| automatically    |     |                  |     | Pull Request     |     | secrets          |
-+------------------+     +------------------+     +------------------+     +------------------+
-        |                         |                        |                        |
-   Auto-commits             Shows errors            Posts comments           Shows warnings
-   fixes to your            as red markers          with suggestions         in Checks tab
-   branch                   on changed lines
-```
-
-### Where to See Results
-
-On your Pull Request page on GitHub:
-
-1. **Checks tab** — Shows green (passed) or red (failed) for each check
-2. **Files changed tab** — Shows inline annotations (yellow/red markers on specific lines)
-3. **Conversation tab** — Shows Claude AI review comments
+Release flow: `feat/*` / `fix/*` branches merge into **`developer`**, then **`developer`** is merged into **`main`** for a release.
 
 ---
 
-## PHP CS Fixer
+## Commit messages
 
-### What It Does
-PHP CS Fixer automatically formats your PHP code to follow our coding standards (PSR-12). Think of it like auto-correct for code formatting.
-
-### What It Fixes (Examples)
-
-```php
-// BEFORE (your code):
-function getPrice($id){
-    $result=$price+$tax;
-    if($result>0){
-        return $result;
-    }
-}
-
-// AFTER (auto-fixed):
-function getPrice($id)
-{
-    $result = $price + $tax;
-    if ($result > 0) {
-        return $result;
-    }
-}
-```
-
-Common things it fixes:
-- **Indentation** — Converts tabs to 4 spaces
-- **Spacing** — Adds spaces around operators (`=`, `+`, `>`, etc.)
-- **Braces** — Ensures consistent brace placement
-- **Imports** — Sorts `use` statements alphabetically, removes unused ones
-- **Arrays** — Converts `array()` to `[]` short syntax
-- **Trailing commas** — Adds trailing commas in multiline arrays
-- **Quotes** — Converts double quotes to single quotes when no variables are inside
-
-### What You Need to Do
-**Nothing!** PHP CS Fixer runs automatically and commits the fixes directly to your branch. After it runs:
-
-1. You'll see a new commit on your PR by `github-actions[bot]` with the message: `style: auto-fix code style with PHP CS Fixer`
-2. **Pull the latest changes** to your local machine before making more commits:
-   ```bash
-   git pull origin your-branch-name
-   ```
-
-### Running It Locally (Optional)
-If you want to fix formatting before pushing:
-```bash
-# Install PHP CS Fixer
-composer global require friendsofphp/php-cs-fixer
-
-# Check what would change (dry run)
-php-cs-fixer fix --config=.php-cs-fixer.php --allow-risky=yes --dry-run --diff
-
-# Auto-fix everything
-php-cs-fixer fix --config=.php-cs-fixer.php --allow-risky=yes
-```
+- Use the **imperative mood**: *"Add coupon validation"*, not *"Added…"*.
+- One logical change per commit; keep the subject concise (~72 chars).
+- Reference issues when relevant: *"Fix cart total rounding (#123)"*.
 
 ---
 
-## PHPStan
+## Coding standards
 
-### What It Does
-PHPStan analyses your PHP code **without running it** and finds potential bugs. It catches things like:
-- Calling methods that don't exist
-- Passing wrong argument types to functions
-- Using undefined variables
-- Logic errors
+PHP CS Fixer enforces formatting automatically, so focus on substance.
 
-### What It Catches (Examples)
+**PHP**
+- **PSR-12**; 4-space indentation; short array syntax `[]`; single quotes unless interpolating.
+- Type-hint parameters and return types; keep `use` imports alphabetical.
+- All database access through Joomla's `DatabaseDriver` (never raw SQL); sanitise input with `InputFilter`.
+- Keep `tmpl/` and `layouts/` **presentation-only** — business logic belongs in models/helpers.
 
-```php
-// PHPStan will flag these:
+**JavaScript**
+- `const` / `let` (never `var`), single quotes, semicolons.
 
-$order->getTotel();
-// Error: Method getTotel() not found. Did you mean getTotal()?
-
-function calculateTax(float $price): float {
-    return $price * $taxRate;
-    // Error: Variable $taxRate might not be defined
-}
-
-if ($status = 'active') {
-    // Error: Assignment in condition. Did you mean == or ===?
-}
-```
-
-### How to Read PHPStan Errors
-
-On the **Files changed** tab of your PR, you'll see annotations like:
-
-```
-Line 45: Call to method getTotel() on class OrderModel.
-         Did you mean getTotal()?
-```
-
-Each annotation tells you:
-- **The line number** where the problem is
-- **What the problem is** in plain English
-- Sometimes a **suggestion** for how to fix it
-
-### What You Need to Do
-PHPStan does **NOT** auto-fix. You need to fix these manually:
-1. Read the error message on the PR
-2. Go to that file and line in your code
-3. Fix the issue
-4. Commit and push — PHPStan will re-run automatically
-
-### Running It Locally (Optional)
-```bash
-# Install PHPStan
-composer global require phpstan/phpstan
-
-# Run analysis
-phpstan analyse --configuration=phpstan.neon --memory-limit=512M
-```
+> Full conventions and namespaces live in the **[manual](https://manual.alfacommerce.gr/docs/getting-started/project-structure)**.
 
 ---
 
-## Claude AI Review
+## Automated checks
 
-### What It Does
-Claude is an AI that reviews your code like a human reviewer would. It reads your changes and posts comments on the Pull Request with:
-- Suggestions for improvement
-- Potential bugs it spotted
-- Questions about your approach
-- Best practice recommendations
+Every Pull Request runs:
 
-### How It Works
-- **Automatic:** Claude reviews every new PR automatically
-- **On-demand:** You can ask Claude questions by commenting `@claude` followed by your question on the PR
+| Check | What it does |
+|-------|--------------|
+| **PHP CS Fixer** | Auto-formats to PSR-12 and commits the fixes back to your branch |
+| **PHPStan** | Static analysis for bugs and type errors |
+| **Claude AI review** | Specialist review for correctness, security, and Joomla-API misuse |
+| **Security scans** | CodeQL, secret-scanning, and dependency checks |
 
-### Examples of What Claude Might Comment
-
-```
-"This database query doesn't sanitize the user input on line 34.
-Consider using $db->quote() to prevent SQL injection."
-
-"This function is doing too many things. Consider splitting the
-order validation and payment processing into separate methods."
-
-"Good implementation! One suggestion: you could use early returns
-to reduce nesting in this method."
-```
-
-### Asking Claude Questions
-You can comment on the PR like:
-- `@claude is this the right way to handle cart calculations?`
-- `@claude can you explain what this method does?`
-- `@claude are there any security issues with this approach?`
-
-### What You Need to Do
-Read Claude's comments and decide which suggestions to apply. Claude's suggestions are recommendations, not requirements — use your judgment.
+**Wait for every check to pass — and read the Claude review — before a PR is merged.** What each check does, examples,
+and how to run them locally: **[CI/CD & Tooling](https://manual.alfacommerce.gr/docs/tooling/workflows)**.
 
 ---
 
-## Security Scans
+## Opening a pull request
 
-### What They Do
-Three security tools run on every PR:
+Before you open a PR, please confirm:
 
-| Tool | What It Checks |
-|------|---------------|
-| **CodeQL** | Scans JavaScript/TypeScript for security vulnerabilities (XSS, injection, etc.) |
-| **PHPStan Security** | Checks PHP code for security anti-patterns |
-| **TruffleHog** | Scans for accidentally committed secrets (API keys, passwords, tokens) |
+- [ ] Branched from `developer` and targeting `developer`.
+- [ ] One focused change — unrelated edits split into separate PRs.
+- [ ] **Schema change?** Included the migration *and* the install-schema update *and* a version bump (see the manual).
+- [ ] User-facing strings use `Text::_()` with keys defined in the `.ini`.
+- [ ] Ran the component locally and confirmed it works.
 
-### What You Need to Do
-- **Never commit** API keys, passwords, or secrets to the repository
-- If TruffleHog flags something, **immediately** rotate that secret/key
-- Fix any security issues CodeQL reports before the PR can be merged
+Then push and open the PR — the checks and the review will guide the rest.
 
 ---
 
-## How to Read Check Results
+## Where things live
 
-### On the Pull Request Page
-
-At the bottom of your PR, you'll see a section like:
-
-```
-Checks
-  ✅ PHP CS Fixer        — All checks passed (fixes were auto-committed)
-  ❌ PHPStan             — 3 errors found
-  ✅ Claude PR Review    — Review complete
-  ✅ Security Scan       — No vulnerabilities found
-```
-
-- **Green checkmark** = passed, no action needed
-- **Red X** = issues found, click to see details
-- **Yellow dot** = still running, wait a moment
-
-### Clicking Into a Failed Check
-1. Click on the failed check name
-2. You'll see the **log output** showing exactly what failed
-3. For PHPStan, errors also appear as **inline annotations** on the Files changed tab
+| Topic | Source of truth |
+|-------|-----------------|
+| Architecture, directory layout, namespaces | [Manual: Project Structure](https://manual.alfacommerce.gr/docs/getting-started/project-structure) |
+| Building plugins (payment / shipment / field / media) | [Manual: Plugin Development](https://manual.alfacommerce.gr/docs/plugins/overview) |
+| CI/CD & tooling | [Manual: CI/CD & Tooling](https://manual.alfacommerce.gr/docs/tooling/workflows) |
+| Contribution process | This file |
 
 ---
 
-## Fixing Issues Found by Checks
+## Getting help
 
-### Quick Reference
+- **Found a bug?** Open an issue with steps to reproduce.
+- **Have a feature idea?** Open an issue with the `enhancement` label.
+- **Question on a PR?** Mention `@claude` for an automated review, or tag a maintainer.
+- **Contact:** info@easylogic.gr · [easylogic.gr](https://easylogic.gr)
 
-| Check | Auto-fixes? | What to do if it fails |
-|-------|-------------|----------------------|
-| PHP CS Fixer | Yes | Just pull the latest changes from your branch |
-| PHPStan | No | Read the error annotations, fix the code, push again |
-| Claude Review | No | Read the comments, apply suggestions you agree with |
-| Security Scan | No | Fix vulnerabilities, never commit secrets |
-
-### The Fix Cycle
-
-```
-Check fails
-    |
-    v
-Read the error/comment
-    |
-    v
-Fix the issue in your code
-    |
-    v
-Commit and push
-    |
-    v
-Checks run again automatically
-    |
-    v
-All green? --> Ready for merge!
-```
-
----
-
-## Coding Standards
-
-### PHP
-- Follow **PSR-12** coding standard (enforced automatically by PHP CS Fixer)
-- Use **4 spaces** for indentation (not tabs)
-- Use **single quotes** for strings without variables
-- Always use **short array syntax** `[]` instead of `array()`
-- Sort `use` import statements alphabetically
-- Use type hints for function parameters and return types where possible
-- Use Joomla's `DatabaseDriver` for all database queries — never write raw SQL
-- Always sanitize user input using Joomla's `InputFilter`
-
-### JavaScript
-- Use `const` and `let` instead of `var`
-- Use single quotes for strings
-- Add semicolons at the end of statements
-
-### General
-- Write meaningful commit messages
-- One feature or fix per Pull Request
-- Keep PRs small and focused — large PRs are harder to review
-
----
-
-## Project Structure
-
-```
-Alfa-Commerce/
-|-- administrator/          # Backend admin panel (models, views, controllers, forms)
-|-- site/                   # Frontend customer-facing code
-|-- api/                    # REST JSON-API controllers
-|-- plugins/
-|   |-- alfa-payments/      # Payment plugins (standard, revolut, viva)
-|   |-- alfa-shipments/     # Shipping plugins (standard, boxnow)
-|   |-- alfa-fields/        # Custom field type plugins
-|   |-- webservices/        # API routing plugin
-|-- modules/
-|   |-- mod_alfa_cart/      # Shopping cart module
-|   |-- mod_alfa_search/    # Product search module
-|-- media/com_alfa/         # CSS, JavaScript, images
-|-- alfa.xml                # Joomla package manifest
-|-- script.php              # Install/update/uninstall script
-|-- .php-cs-fixer.php       # Code style configuration
-|-- phpstan.neon            # Static analysis configuration
-|-- .github/workflows/      # Automated check definitions
-```
-
----
-
-## Need Help?
-
-- **Questions about the code?** Open an issue on GitHub or ask `@claude` on a PR
-- **Found a bug?** Open an issue with steps to reproduce
-- **Want to discuss a feature?** Open an issue with the `enhancement` label
-- **Contact the team:** info@easylogic.gr
-- **Website:** [Easylogic](https://easylogic.gr)
-
-Thank you for contributing to Alfa Commerce!
+Thank you for helping make Alfa Commerce better.

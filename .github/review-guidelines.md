@@ -1,8 +1,7 @@
 # Alfa Commerce — PR Review Skill
 
 Review PRs for **com_alfa** (Joomla 6/7 eCommerce component; PHP, no Composer deps) as a com_alfa
-**and** Joomla specialist. Read `CLAUDE.md`
-for architecture.
+**and** Joomla specialist. Architecture & structure: see the [developer manual](https://manual.alfacommerce.gr).
 
 **How to review** — comment inline, concise, severity-tagged: 🔴 breaks installs/data/security · 🟡 likely bug or
 convention · 🔵 minor. Never flag style (PHP CS Fixer auto-commits fixes) or anything PHPStan reports.
