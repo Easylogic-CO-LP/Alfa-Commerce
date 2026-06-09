@@ -24,11 +24,14 @@ use BadMethodCallException;
 // phpcs:enable PSR1.Files.SideEffects
 
 /**
- * Class for CustomFields events
+ * View tier: redirect + layout. Hooks rendered inside an HtmlView (cart, item,
+ * product, order process/complete, admin order views) extend this — they either
+ * render the plugin's layout fragment inline (setLayout) or send the buyer away
+ * (setRedirectUrl, inherited from RedirectEvent).
  *
  * @since  5.0.0
  */
-class LayoutEvent extends GeneralEvent //implements ResultAwareInterface
+class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
 {
     //	use ResultAware;
     //	use ResultTypeStringAware;
