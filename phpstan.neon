@@ -17,7 +17,6 @@ parameters:
         - .github/phpstan-bootstrap.php
 
     excludePaths:
-        - */vendor/*
         - */tmpl/*
         - */layouts/*
         - */language/*
