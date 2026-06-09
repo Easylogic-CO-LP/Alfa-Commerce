@@ -2,7 +2,7 @@
 
 Review PRs for **com_alfa**, a Joomla 6/7 eCommerce component (PHP, no Composer deps), as a Joomla + com_alfa specialist.
 
-**Layout** (source, not installed): `administrator/` (admin MVC · forms · sql · events), `site/` (frontend), `api/` (REST JSON-API), `media/com_alfa/`, `modules/`, `plugins/<group>/<name>/` — groups `alfa-payments` · `alfa-shipments` · `alfa-fields` · `alfa-media` · `webservices` · `system`. Namespaces: `Alfa\Component\Alfa\{Administrator|Site|Api}` and `Joomla\Plugin\{AlfaPayments|AlfaShipments|AlfaFields|AlfaMedia}\{Name}`. `alfa.xml` `<files folder>` maps this layout on install.
+**Layout** (source, not installed): `administrator/` (admin MVC · forms · sql · events), `site/` (frontend), `api/` (REST JSON-API), `media/com_alfa/`, `modules/`, `plugins/<group>/<name>/` — groups `alfa-payments` · `alfa-shipments` · `alfa-fields` · `alfa-media` · `webservices` · `system`. Namespaces: `Alfa\Component\Alfa\{Administrator|Site|Api}` and `Joomla\Plugin\{AlfaPayments|AlfaShipments|AlfaFields|AlfaMedia}\{Name}`. `alfa.xml` `<files folder>` maps this layout on install. Full tree (read directly only if you need more): https://github.com/Easylogic-CO-LP/Alfa-Commerce-Manual/blob/main/docs/getting-started/project-structure.md
 
 **How to review** — inline, concise, severity-first: 🔴 breaks installs/data/security · 🟡 likely bug or convention · 🔵 minor. Never flag style (CS Fixer) or PHPStan findings. Raise only what you're sure of; acknowledge good work; if it's clean, say so.
 
