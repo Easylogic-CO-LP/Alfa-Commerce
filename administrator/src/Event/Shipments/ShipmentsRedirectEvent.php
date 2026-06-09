@@ -1,9 +1,6 @@
 <?php
 
 /**
- * Alfa Commerce
- *
- * @copyright  (C) 2023 Open Source Matters, Inc. <https://www.joomla.org>
  * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
@@ -17,21 +14,12 @@ namespace Alfa\Component\Alfa\Administrator\Event\Shipments;
 // phpcs:enable PSR1.Files.SideEffects
 
 /**
- * Class for CustomFields events
+ * Redirect tier for shipment hooks fired outside a view — the gateway/carrier-return
+ * handler `onPaymentResponse`. The plugin may set a redirect; it renders no layout,
+ * because the controller that dispatches it has no view.
  *
- * @since  5.0.0
+ * @since  1.0.10
  */
-class PaymentResponseEvent extends ShipmentsRedirectEvent
+abstract class ShipmentsRedirectEvent extends \Alfa\Component\Alfa\Administrator\Event\General\RedirectEvent
 {
-    /**
-     * Get the order/cart subject carried by the event.
-     *
-     * @return mixed The order or cart object
-     *
-     * @since  5.0.0
-     */
-    public function getOrder()
-    {
-        return $this->getSubject();
-    }
 }

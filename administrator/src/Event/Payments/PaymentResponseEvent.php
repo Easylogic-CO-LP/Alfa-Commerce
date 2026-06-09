@@ -17,11 +17,13 @@ namespace Alfa\Component\Alfa\Administrator\Event\Payments;
 // phpcs:enable PSR1.Files.SideEffects
 
 /**
- * Class for CustomFields events
+ * Gateway-return event (onPaymentResponse), dispatched by the site PaymentController
+ * which has no view — so it is redirect-only (no layout). The plugin decides where to
+ * send the buyer after the bank; to show a result page, redirect to a view layout.
  *
  * @since  5.0.0
  */
-class PaymentResponseEvent extends PaymentsLayoutEvent
+class PaymentResponseEvent extends PaymentsRedirectEvent
 {
     /**
      * Get the order/cart subject carried by the event.
