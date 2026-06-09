@@ -56,8 +56,14 @@ PHPStan reports. Only raise what you're confident about; acknowledge good work.
 - When a DB column or field read by a plugin changes/renames, require its consumers updated **in
   lockstep**. Event/plugin handlers must stay **pure side effects** — never hijack a response (e.g.
   the controller's JSON) that isn't theirs. 🟡
+- `tmpl/` and `layouts/` are presentation-only **and excluded from PHPStan** (a blind spot). Flag
+  heavy logic there — DB queries, pricing/business calculations, complex branching — it belongs in a
+  model/helper/controller; the template should only loop, escape and format. 🟡
 
 ## i18n
+- Flag hardcoded **user-facing** strings (labels, buttons, headings, `enqueueMessage`, user-shown
+  exception/error text) in PHP and `tmpl` — they must be `Text::_()` / `Text::sprintf()` keys defined in
+  the `.ini`, never literals. Log lines, array/option keys, HTML/CSS attributes and class names are exempt. 🟡
 - Every used `Text::` key must be defined; `.ini` = one `KEY="…"` per line, no newline inside a value,
   `&quot;` for embedded quotes. 🔵
 
