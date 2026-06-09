@@ -4,9 +4,10 @@ Review PRs for **com_alfa** (Joomla 6/7 eCommerce component; PHP, no Composer de
 **and** Joomla specialist. Read `CLAUDE.md`
 for architecture.
 
-**How to review** — comment inline, concise, severity-tagged: 🔴 breaks installs/data/security ·
-🟡 likely bug or convention · 🔵 minor. Never flag style (PHP CS Fixer auto-commits fixes) or anything
-PHPStan reports. Only raise what you're confident about; acknowledge good work.
+**How to review** — review **only the PR's changed lines** (never pre-existing issues in untouched
+code); comment inline, concise, severity-tagged: 🔴 breaks installs/data/security · 🟡 likely bug or
+convention · 🔵 minor. Never flag style (PHP CS Fixer auto-commits fixes) or anything PHPStan reports.
+Only raise what you're confident about; acknowledge good work.
 
 ## Release & migrations
 - Require a `<version>` bump in `alfa.xml` + a `changelog.xml` entry for any shipped-code change.
@@ -61,9 +62,10 @@ PHPStan reports. Only raise what you're confident about; acknowledge good work.
   model/helper/controller; the template should only loop, escape and format. 🟡
 
 ## i18n
-- Flag hardcoded **user-facing** strings (labels, buttons, headings, `enqueueMessage`, user-shown
-  exception/error text) in PHP and `tmpl` — they must be `Text::_()` / `Text::sprintf()` keys defined in
-  the `.ini`, never literals. Log lines, array/option keys, HTML/CSS attributes and class names are exempt. 🟡
+- Flag hardcoded **user-facing** strings anywhere they're produced — controllers (`enqueueMessage`),
+  models, views, helpers, plugins, templates: labels, buttons, headings, notices, user-shown
+  exception/error text. Require `Text::_()` / `Text::sprintf()` keys defined in the `.ini`, never
+  literals. Log lines, array/option keys, HTML/CSS attributes and class names are exempt. 🟡
 - Every used `Text::` key must be defined; `.ini` = one `KEY="…"` per line, no newline inside a value,
   `&quot;` for embedded quotes. 🔵
 
