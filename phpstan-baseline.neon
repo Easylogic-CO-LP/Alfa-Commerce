@@ -1,0 +1,1243 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Method Joomla\\CMS\\Application\\CMSApplicationInterface\:\:getMessageQueue\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: administrator/src/Controller/OrderController.php
+
+		-
+			message: '#^PHPDoc tag @throws with type Alfa\\Component\\Alfa\\Administrator\\Controller\\Exception is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 1
+			path: administrator/src/Controller/OrdersController.php
+
+		-
+			message: '#^Property Joomla\\CMS\\User\\User\:\:\$email \(string\) on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.property
+			count: 1
+			path: administrator/src/Controller/OrderstatusController.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Controller\\PluginController\:\:trigger\(\) should return bool\|Joomla\\CMS\\MVC\\Controller\\BaseController but return statement is missing\.$#'
+			identifier: return.missing
+			count: 1
+			path: administrator/src/Controller/PluginController.php
+
+		-
+			message: '#^Variable \$response might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: administrator/src/Controller/PluginController.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Controller\\SeoController\:\:calculateScore\(\) should return int but returns float\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Controller/SeoController.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between non\-empty\-string and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: administrator/src/Controller/SeoController.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: administrator/src/Controller/SeoController.php
+
+		-
+			message: '#^PHPDoc tag @var above a method has no effect\.$#'
+			identifier: varTag.misplaced
+			count: 1
+			path: administrator/src/Event/Fields/FieldsEvent.php
+
+		-
+			message: '#^PHPDoc tag @var above a method has no effect\.$#'
+			identifier: varTag.misplaced
+			count: 1
+			path: administrator/src/Event/Fields/PrepareDomEvent.php
+
+		-
+			message: '#^PHPDoc tag @return with type mixed is not subtype of native type static\(Joomla\\CMS\\Event\\CustomFields\\AfterPrepareFieldEvent\)\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: administrator/src/Event/Fields/_AfterPrepareFieldEvent.php
+
+		-
+			message: '#^PHPDoc tag @var above a method has no effect\.$#'
+			identifier: varTag.misplaced
+			count: 1
+			path: administrator/src/Event/General/LayoutEvent.php
+
+		-
+			message: '#^Call to an undefined method Alfa\\Component\\Alfa\\Administrator\\Event\\Shipments\\AdminOrderAfterSaveEvent\:\:getSubject\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: administrator/src/Event/Shipments/AdminOrderAfterSaveEvent.php
+
+		-
+			message: '#^Call to an undefined method Alfa\\Component\\Alfa\\Administrator\\Event\\Shipments\\AdminOrderBeforeSaveEvent\:\:getSubject\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: administrator/src/Event/Shipments/AdminOrderBeforeSaveEvent.php
+
+		-
+			message: '#^Call to an undefined method Alfa\\Component\\Alfa\\Administrator\\Event\\Shipments\\AdminOrderDeleteEvent\:\:getSubject\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: administrator/src/Event/Shipments/AdminOrderDeleteEvent.php
+
+		-
+			message: '#^Call to an undefined method Alfa\\Component\\Alfa\\Administrator\\Event\\Shipments\\CalculateShippingCostEvent\:\:getSubject\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: administrator/src/Event/Shipments/CalculateShippingCostEvent.php
+
+		-
+			message: '#^Call to an undefined method Alfa\\Component\\Alfa\\Administrator\\Event\\Shipments\\OrderAfterPlaceEvent\:\:getSubject\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: administrator/src/Event/Shipments/OrderAfterPlaceEvent.php
+
+		-
+			message: '#^Call to an undefined method Alfa\\Component\\Alfa\\Administrator\\Event\\Shipments\\OrderPlaceEvent\:\:getSubject\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: administrator/src/Event/Shipments/OrderPlaceEvent.php
+
+		-
+			message: '#^Parameter \#4 \$height of method Joomla\\CMS\\Editor\\Editor\:\:display\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: administrator/src/Field/EmailPositionsField.php
+
+		-
+			message: '#^Property Joomla\\CMS\\Form\\Field\\EditorField\:\:\$height \(string\) on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.property
+			count: 1
+			path: administrator/src/Field/MultilingualEditorField.php
+
+		-
+			message: '#^Property Joomla\\CMS\\Form\\Field\\EditorField\:\:\$width \(string\) on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.property
+			count: 1
+			path: administrator/src/Field/MultilingualEditorField.php
+
+		-
+			message: '#^Right side of && is always false\.$#'
+			identifier: booleanAnd.rightAlwaysFalse
+			count: 1
+			path: administrator/src/Helper/ActionRegistry.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Helper\\AlfaHelper\:\:setAssocsToDb\(\) with return type void returns false but should not return anything\.$#'
+			identifier: return.void
+			count: 1
+			path: administrator/src/Helper/AlfaHelper.php
+
+		-
+			message: '#^Variable \$currentPath might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: administrator/src/Helper/AlfaHelper.php
+
+		-
+			message: '#^Negated boolean expression is always false\.$#'
+			identifier: booleanNot.alwaysFalse
+			count: 1
+			path: administrator/src/Helper/FieldsHelper.php
+
+		-
+			message: '#^Comparison operation "\<" between int\<1, max\> and 1 is always false\.$#'
+			identifier: smaller.alwaysFalse
+			count: 2
+			path: administrator/src/Helper/MediaHelper.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Helper\\MediaHelper\:\:getMediaData\(\) should return array\<object\> but returns array\<list\>\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Helper/MediaHelper.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Helper\\MediaHelper\:\:getPlaceholderMedia\(\) never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: administrator/src/Helper/MediaHelper.php
+
+		-
+			message: '#^Result of \|\| is always false\.$#'
+			identifier: booleanOr.alwaysFalse
+			count: 1
+			path: administrator/src/Helper/MediaHelper.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between int\<1, max\> and 0 will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: administrator/src/Helper/MediaHelper.php
+
+		-
+			message: '#^Variable \$finalThumbnail might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: administrator/src/Helper/MediaHelper.php
+
+		-
+			message: '#^Cannot call method getItems\(\) on object\|false\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: administrator/src/Helper/NotificationHelper.php
+
+		-
+			message: '#^Cannot call method getState\(\) on object\|false\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: administrator/src/Helper/NotificationHelper.php
+
+		-
+			message: '#^Cannot call method setState\(\) on object\|false\.$#'
+			identifier: method.nonObject
+			count: 3
+			path: administrator/src/Helper/NotificationHelper.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Helper\\OrderEmailHelper\:\:discoverSequence\(\) should return array\<int, array\{type\: string, name\?\: string\}\> but returns array\<string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Helper/OrderEmailHelper.php
+
+		-
+			message: '#^Parameter \#3 \$basePath of static method Joomla\\CMS\\Layout\\LayoutHelper\:\:render\(\) expects string, null given\.$#'
+			identifier: argument.type
+			count: 3
+			path: administrator/src/Helper/OrderEmailHelper.php
+
+		-
+			message: '#^Argument of an invalid type stdClass supplied for foreach, only iterables are supported\.$#'
+			identifier: foreach.nonIterable
+			count: 1
+			path: administrator/src/Helper/OrderHelper.php
+
+		-
+			message: '#^PHPDoc tag @return with type array is incompatible with native type Alfa\\Component\\Alfa\\Site\\Service\\Pricing\\PriceContext\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: administrator/src/Helper/OrderHelper.php
+
+		-
+			message: '#^Comparison operation "\>" between int\<1, max\> and 0 is always true\.$#'
+			identifier: greater.alwaysTrue
+			count: 1
+			path: administrator/src/Helper/OrderPaymentHelper.php
+
+		-
+			message: '#^Unsafe usage of new static\(\)\.$#'
+			identifier: new.static
+			count: 2
+			path: administrator/src/Helper/OrderPaymentHelper.php
+
+		-
+			message: '#^Comparison operation "\>" between int\<1, max\> and 0 is always true\.$#'
+			identifier: greater.alwaysTrue
+			count: 1
+			path: administrator/src/Helper/OrderShipmentHelper.php
+
+		-
+			message: '#^Unsafe usage of new static\(\)\.$#'
+			identifier: new.static
+			count: 2
+			path: administrator/src/Helper/OrderShipmentHelper.php
+
+		-
+			message: '#^Call to function in_array\(\) with arguments string, array\{\} and true will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: administrator/src/Helper/PackageHelper.php
+
+		-
+			message: '#^Right side of && is always false\.$#'
+			identifier: booleanAnd.rightAlwaysFalse
+			count: 1
+			path: administrator/src/Helper/PluginLayoutHelper.php
+
+		-
+			message: '#^PHPDoc tag @throws with type Alfa\\Component\\Alfa\\Administrator\\Model\\Exception is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 1
+			path: administrator/src/Model/CategoriesModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CategoryModel\:\:getForm\(\) has invalid return type JForm\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Model/CategoryModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CategoryModel\:\:getForm\(\) should return bool\|JForm but returns Joomla\\CMS\\Form\\Form\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/CategoryModel.php
+
+		-
+			message: '#^Offset ''\#__alfa_categories'' on array\{''\#__alfa_categories''\: array\{''parent_id''\}\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: administrator/src/Model/CategoryModel.php
+
+		-
+			message: '#^Property Alfa\\Component\\Alfa\\Administrator\\Model\\CategoryModel\:\:\$item \(null\) does not accept array\<int, bool\|stdClass\>\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: administrator/src/Model/CategoryModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CouponModel\:\:getForm\(\) has invalid return type JForm\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Model/CouponModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CouponModel\:\:getForm\(\) should return bool\|JForm but returns Joomla\\CMS\\Form\\Form\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/CouponModel.php
+
+		-
+			message: '#^PHPDoc tag @throws with type Alfa\\Component\\Alfa\\Administrator\\Model\\Exception is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 1
+			path: administrator/src/Model/CouponModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CouponsModel\:\:getListQuery\(\) has invalid return type Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Model/CouponsModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CouponsModel\:\:getListQuery\(\) should return Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/CouponsModel.php
+
+		-
+			message: '#^PHPDoc tag @throws with type Alfa\\Component\\Alfa\\Administrator\\Model\\Exception is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 1
+			path: administrator/src/Model/CouponsModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CurrenciesModel\:\:getListQuery\(\) has invalid return type Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Model/CurrenciesModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CurrenciesModel\:\:getListQuery\(\) should return Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/CurrenciesModel.php
+
+		-
+			message: '#^PHPDoc tag @throws with type Alfa\\Component\\Alfa\\Administrator\\Model\\Exception is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 1
+			path: administrator/src/Model/CurrenciesModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CurrencyModel\:\:getForm\(\) has invalid return type JForm\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Model/CurrencyModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CurrencyModel\:\:getForm\(\) should return bool\|JForm but returns Joomla\\CMS\\Form\\Form\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/CurrencyModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CurrencyModel\:\:prepareTable\(\) with return type void returns null but should not return anything\.$#'
+			identifier: return.void
+			count: 1
+			path: administrator/src/Model/CurrencyModel.php
+
+		-
+			message: '#^Result of method Joomla\\CMS\\MVC\\Model\\AdminModel\:\:prepareTable\(\) \(void\) is used\.$#'
+			identifier: staticMethod.void
+			count: 1
+			path: administrator/src/Model/CurrencyModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CustomModel\:\:getForm\(\) has invalid return type JForm\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Model/CustomModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CustomModel\:\:getForm\(\) should return bool\|JForm but returns Joomla\\CMS\\Form\\Form\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/CustomModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CustomsModel\:\:getListQuery\(\) has invalid return type Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Model/CustomsModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CustomsModel\:\:getListQuery\(\) should return Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/CustomsModel.php
+
+		-
+			message: '#^PHPDoc tag @throws with type Alfa\\Component\\Alfa\\Administrator\\Model\\Exception is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 1
+			path: administrator/src/Model/CustomsModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\DiscountModel\:\:getForm\(\) has invalid return type JForm\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Model/DiscountModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\DiscountModel\:\:getForm\(\) should return bool\|JForm but returns Joomla\\CMS\\Form\\Form\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/DiscountModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\DiscountModel\:\:prepareTable\(\) with return type void returns null but should not return anything\.$#'
+			identifier: return.void
+			count: 1
+			path: administrator/src/Model/DiscountModel.php
+
+		-
+			message: '#^Result of method Joomla\\CMS\\MVC\\Model\\AdminModel\:\:prepareTable\(\) \(void\) is used\.$#'
+			identifier: staticMethod.void
+			count: 1
+			path: administrator/src/Model/DiscountModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\DiscountsModel\:\:getListQuery\(\) has invalid return type Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Model/DiscountsModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\DiscountsModel\:\:getListQuery\(\) should return Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/DiscountsModel.php
+
+		-
+			message: '#^PHPDoc tag @throws with type Alfa\\Component\\Alfa\\Administrator\\Model\\Exception is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 1
+			path: administrator/src/Model/DiscountsModel.php
+
+		-
+			message: '#^Cannot access property \$fieldsparams on bool\|object\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: administrator/src/Model/FormfieldModel.php
+
+		-
+			message: '#^Cannot access property \$params on bool\|object\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: administrator/src/Model/FormfieldModel.php
+
+		-
+			message: '#^Cannot access property \$showon on bool\|object\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: administrator/src/Model/FormfieldModel.php
+
+		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 1
+			path: administrator/src/Model/FormfieldModel.php
+
+		-
+			message: '#^PHPDoc tag @return with type mixed is not subtype of native type string\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: administrator/src/Model/FormfieldModel.php
+
+		-
+			message: '#^Property Alfa\\Component\\Alfa\\Administrator\\Model\\FormfieldModel\:\:\$batch_copymove \(string\) does not accept default value of type false\.$#'
+			identifier: property.defaultValue
+			count: 1
+			path: administrator/src/Model/FormfieldModel.php
+
+		-
+			message: '#^Property Alfa\\Component\\Alfa\\Administrator\\Model\\FormfieldModel\:\:\$item \(null\) does not accept bool\|object\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: administrator/src/Model/FormfieldModel.php
+
+		-
+			message: '#^Return type \(void\) of method Alfa\\Component\\Alfa\\Administrator\\Model\\FormfieldModel\:\:delete\(\) should be compatible with return type \(bool\) of method Joomla\\CMS\\MVC\\Model\\AdminModel\:\:delete\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: administrator/src/Model/FormfieldModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\FormFieldsModel\:\:getListQuery\(\) has invalid return type Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Model/FormfieldsModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\FormFieldsModel\:\:getListQuery\(\) should return Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/FormfieldsModel.php
+
+		-
+			message: '#^PHPDoc tag @throws with type Alfa\\Component\\Alfa\\Administrator\\Model\\Exception is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 1
+			path: administrator/src/Model/FormfieldsModel.php
+
+		-
+			message: '#^Call to an undefined static method Alfa\\Component\\Alfa\\Administrator\\Helper\\AlfaHelper\:\:setAllowedUserGroups\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 1
+			path: administrator/src/Model/ItemModel.php
+
+		-
+			message: '#^Call to an undefined static method Alfa\\Component\\Alfa\\Administrator\\Helper\\AlfaHelper\:\:setAllowedUsers\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 1
+			path: administrator/src/Model/ItemModel.php
+
+		-
+			message: '#^Parameter \#1 \$text of method Joomla\\Database\\DatabaseInterface\:\:quote\(\) expects array\|string, int\<1, max\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: administrator/src/Model/ItemModel.php
+
+		-
+			message: '#^Property Alfa\\Component\\Alfa\\Administrator\\Model\\ItemModel\:\:\$batch_copymove \(string\) does not accept default value of type false\.$#'
+			identifier: property.defaultValue
+			count: 1
+			path: administrator/src/Model/ItemModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\ManufacturerModel\:\:getForm\(\) has invalid return type JForm\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Model/ManufacturerModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\ManufacturerModel\:\:getForm\(\) should return bool\|JForm but returns Joomla\\CMS\\Form\\Form\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/ManufacturerModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\ManufacturerModel\:\:prepareTable\(\) with return type void returns null but should not return anything\.$#'
+			identifier: return.void
+			count: 1
+			path: administrator/src/Model/ManufacturerModel.php
+
+		-
+			message: '#^Result of method Joomla\\CMS\\MVC\\Model\\AdminModel\:\:prepareTable\(\) \(void\) is used\.$#'
+			identifier: staticMethod.void
+			count: 1
+			path: administrator/src/Model/ManufacturerModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\ManufacturersModel\:\:getListQuery\(\) has invalid return type Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Model/ManufacturersModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\ManufacturersModel\:\:getListQuery\(\) should return Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/ManufacturersModel.php
+
+		-
+			message: '#^PHPDoc tag @throws with type Alfa\\Component\\Alfa\\Administrator\\Model\\Exception is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 1
+			path: administrator/src/Model/ManufacturersModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\OrderModel\:\:getItem\(\) should return stdClass\|false but returns null\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/OrderModel.php
+
+		-
+			message: '#^Parameter \#1 \$text of method Joomla\\Database\\DatabaseInterface\:\:quote\(\) expects array\|string, int given\.$#'
+			identifier: argument.type
+			count: 2
+			path: administrator/src/Model/OrderModel.php
+
+		-
+			message: '#^Variable \$oldItemSnapshot might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: administrator/src/Model/OrderModel.php
+
+		-
+			message: '#^Variable \$orders might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: administrator/src/Model/OrderModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\OrdersModel\:\:getListQuery\(\) should return Joomla\\Database\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/OrdersModel.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between mixed and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: administrator/src/Model/OrderstatusModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\PaymentModel\:\:getForm\(\) has invalid return type Alfa\\Component\\Alfa\\Administrator\\Model\\Form\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Model/PaymentModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\PaymentModel\:\:getForm\(\) should return Alfa\\Component\\Alfa\\Administrator\\Model\\Form\|bool but returns Joomla\\CMS\\Form\\Form\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/PaymentModel.php
+
+		-
+			message: '#^Property Alfa\\Component\\Alfa\\Administrator\\Model\\PaymentModel\:\:\$item \(null\) does not accept stdClass\|false\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: administrator/src/Model/PaymentModel.php
+
+		-
+			message: '#^Property Alfa\\Component\\Alfa\\Administrator\\Model\\PaymentModel\:\:\$item \(null\) on left side of \?\? is always null\.$#'
+			identifier: nullCoalesce.property
+			count: 1
+			path: administrator/src/Model/PaymentModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\PaymentsModel\:\:getListQuery\(\) has invalid return type Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Model/PaymentsModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\PaymentsModel\:\:getListQuery\(\) should return Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/PaymentsModel.php
+
+		-
+			message: '#^PHPDoc tag @throws with type Alfa\\Component\\Alfa\\Administrator\\Model\\Exception is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 1
+			path: administrator/src/Model/PaymentsModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\PlaceModel\:\:getForm\(\) has invalid return type JForm\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Model/PlaceModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\PlaceModel\:\:getForm\(\) should return bool\|JForm but returns Joomla\\CMS\\Form\\Form\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/PlaceModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\PlacesModel\:\:getListQuery\(\) has invalid return type Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Model/PlacesModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\PlacesModel\:\:getListQuery\(\) should return Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/PlacesModel.php
+
+		-
+			message: '#^PHPDoc tag @throws with type Alfa\\Component\\Alfa\\Administrator\\Model\\Exception is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 1
+			path: administrator/src/Model/PlacesModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\ShipmentModel\:\:getForm\(\) has invalid return type JForm\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Model/ShipmentModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\ShipmentModel\:\:getForm\(\) should return bool\|JForm but returns Joomla\\CMS\\Form\\Form\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/ShipmentModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\ShipmentsModel\:\:getListQuery\(\) has invalid return type Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Model/ShipmentsModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\ShipmentsModel\:\:getListQuery\(\) should return Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/ShipmentsModel.php
+
+		-
+			message: '#^PHPDoc tag @throws with type Alfa\\Component\\Alfa\\Administrator\\Model\\Exception is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 1
+			path: administrator/src/Model/ShipmentsModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\TaxModel\:\:getForm\(\) has invalid return type JForm\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Model/TaxModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\TaxModel\:\:getForm\(\) should return bool\|JForm but returns Joomla\\CMS\\Form\\Form\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/TaxModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\TaxesModel\:\:getListQuery\(\) has invalid return type Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Model/TaxesModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\TaxesModel\:\:getListQuery\(\) should return Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/TaxesModel.php
+
+		-
+			message: '#^PHPDoc tag @throws with type Alfa\\Component\\Alfa\\Administrator\\Model\\Exception is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 1
+			path: administrator/src/Model/TaxesModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\ToolsmediaModel\:\:getListQuery\(\) should return Joomla\\Database\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/ToolsmediaModel.php
+
+		-
+			message: '#^Call to function in_array\(\) with arguments string, array\{\} and true will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: administrator/src/Model/UsergroupModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\UsersModel\:\:getListQuery\(\) should return Joomla\\Database\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/UsersModel.php
+
+		-
+			message: '#^PHPDoc tag @param for parameter \$db with type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase is not subtype of native type Joomla\\Database\\DatabaseDriver\.$#'
+			identifier: parameter.phpDocType
+			count: 1
+			path: administrator/src/Table/CategoryTable.php
+
+		-
+			message: '#^Parameter \$db of method Alfa\\Component\\Alfa\\Administrator\\Table\\CategoryTable\:\:__construct\(\) has invalid type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Table/CategoryTable.php
+
+		-
+			message: '#^PHPDoc tag @param for parameter \$db with type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase is not subtype of native type Joomla\\Database\\DatabaseDriver\.$#'
+			identifier: parameter.phpDocType
+			count: 1
+			path: administrator/src/Table/CouponTable.php
+
+		-
+			message: '#^Parameter \$db of method Alfa\\Component\\Alfa\\Administrator\\Table\\CouponTable\:\:__construct\(\) has invalid type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Table/CouponTable.php
+
+		-
+			message: '#^PHPDoc tag @param for parameter \$db with type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase is not subtype of native type Joomla\\Database\\DatabaseDriver\.$#'
+			identifier: parameter.phpDocType
+			count: 1
+			path: administrator/src/Table/CurrencyTable.php
+
+		-
+			message: '#^Parameter \$db of method Alfa\\Component\\Alfa\\Administrator\\Table\\CurrencyTable\:\:__construct\(\) has invalid type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Table/CurrencyTable.php
+
+		-
+			message: '#^PHPDoc tag @param for parameter \$db with type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase is not subtype of native type Joomla\\Database\\DatabaseDriver\.$#'
+			identifier: parameter.phpDocType
+			count: 1
+			path: administrator/src/Table/CustomTable.php
+
+		-
+			message: '#^Parameter \$db of method Alfa\\Component\\Alfa\\Administrator\\Table\\CustomTable\:\:__construct\(\) has invalid type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Table/CustomTable.php
+
+		-
+			message: '#^PHPDoc tag @param for parameter \$db with type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase is not subtype of native type Joomla\\Database\\DatabaseDriver\.$#'
+			identifier: parameter.phpDocType
+			count: 1
+			path: administrator/src/Table/DiscountTable.php
+
+		-
+			message: '#^Parameter \$db of method Alfa\\Component\\Alfa\\Administrator\\Table\\DiscountTable\:\:__construct\(\) has invalid type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Table/DiscountTable.php
+
+		-
+			message: '#^PHPDoc tag @param for parameter \$db with type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase is not subtype of native type Joomla\\Database\\DatabaseDriver\.$#'
+			identifier: parameter.phpDocType
+			count: 1
+			path: administrator/src/Table/FormfieldTable.php
+
+		-
+			message: '#^Parameter \$db of method Alfa\\Component\\Alfa\\Administrator\\Table\\FormfieldTable\:\:__construct\(\) has invalid type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Table/FormfieldTable.php
+
+		-
+			message: '#^PHPDoc tag @param for parameter \$db with type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase is not subtype of native type Joomla\\Database\\DatabaseDriver\.$#'
+			identifier: parameter.phpDocType
+			count: 1
+			path: administrator/src/Table/ItemTable.php
+
+		-
+			message: '#^Parameter \$db of method Alfa\\Component\\Alfa\\Administrator\\Table\\ItemTable\:\:__construct\(\) has invalid type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Table/ItemTable.php
+
+		-
+			message: '#^PHPDoc tag @param for parameter \$db with type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase is not subtype of native type Joomla\\Database\\DatabaseDriver\.$#'
+			identifier: parameter.phpDocType
+			count: 1
+			path: administrator/src/Table/ManufacturerTable.php
+
+		-
+			message: '#^Parameter \$db of method Alfa\\Component\\Alfa\\Administrator\\Table\\ManufacturerTable\:\:__construct\(\) has invalid type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Table/ManufacturerTable.php
+
+		-
+			message: '#^PHPDoc tag @param for parameter \$db with type Alfa\\Component\\Alfa\\Administrator\\Table\\Database is not subtype of native type Joomla\\Database\\DatabaseDriver\.$#'
+			identifier: parameter.phpDocType
+			count: 1
+			path: administrator/src/Table/OrderTable.php
+
+		-
+			message: '#^Parameter \$db of method Alfa\\Component\\Alfa\\Administrator\\Table\\OrderTable\:\:__construct\(\) has invalid type Alfa\\Component\\Alfa\\Administrator\\Table\\Database\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Table/OrderTable.php
+
+		-
+			message: '#^PHPDoc tag @param for parameter \$db with type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase is not subtype of native type Joomla\\Database\\DatabaseDriver\.$#'
+			identifier: parameter.phpDocType
+			count: 1
+			path: administrator/src/Table/OrderstatusTable.php
+
+		-
+			message: '#^Parameter \$db of method Alfa\\Component\\Alfa\\Administrator\\Table\\OrderstatusTable\:\:__construct\(\) has invalid type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Table/OrderstatusTable.php
+
+		-
+			message: '#^PHPDoc tag @param for parameter \$db with type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase is not subtype of native type Joomla\\Database\\DatabaseDriver\.$#'
+			identifier: parameter.phpDocType
+			count: 1
+			path: administrator/src/Table/PaymentTable.php
+
+		-
+			message: '#^Parameter \$db of method Alfa\\Component\\Alfa\\Administrator\\Table\\PaymentTable\:\:__construct\(\) has invalid type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Table/PaymentTable.php
+
+		-
+			message: '#^PHPDoc tag @param for parameter \$db with type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase is not subtype of native type Joomla\\Database\\DatabaseDriver\.$#'
+			identifier: parameter.phpDocType
+			count: 1
+			path: administrator/src/Table/PlaceTable.php
+
+		-
+			message: '#^Parameter \$db of method Alfa\\Component\\Alfa\\Administrator\\Table\\PlaceTable\:\:__construct\(\) has invalid type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Table/PlaceTable.php
+
+		-
+			message: '#^PHPDoc tag @param for parameter \$db with type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase is not subtype of native type Joomla\\Database\\DatabaseDriver\.$#'
+			identifier: parameter.phpDocType
+			count: 1
+			path: administrator/src/Table/ShipmentTable.php
+
+		-
+			message: '#^Parameter \$db of method Alfa\\Component\\Alfa\\Administrator\\Table\\ShipmentTable\:\:__construct\(\) has invalid type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Table/ShipmentTable.php
+
+		-
+			message: '#^PHPDoc tag @param for parameter \$db with type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase is not subtype of native type Joomla\\Database\\DatabaseDriver\.$#'
+			identifier: parameter.phpDocType
+			count: 1
+			path: administrator/src/Table/TaxTable.php
+
+		-
+			message: '#^Parameter \$db of method Alfa\\Component\\Alfa\\Administrator\\Table\\TaxTable\:\:__construct\(\) has invalid type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Table/TaxTable.php
+
+		-
+			message: '#^PHPDoc tag @param for parameter \$db with type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase is not subtype of native type Joomla\\Database\\DatabaseDriver\.$#'
+			identifier: parameter.phpDocType
+			count: 1
+			path: administrator/src/Table/UserTable.php
+
+		-
+			message: '#^Parameter \$db of method Alfa\\Component\\Alfa\\Administrator\\Table\\UserTable\:\:__construct\(\) has invalid type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Table/UserTable.php
+
+		-
+			message: '#^PHPDoc tag @param for parameter \$db with type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase is not subtype of native type Joomla\\Database\\DatabaseDriver\.$#'
+			identifier: parameter.phpDocType
+			count: 1
+			path: administrator/src/Table/UsergroupTable.php
+
+		-
+			message: '#^Parameter \$db of method Alfa\\Component\\Alfa\\Administrator\\Table\\UsergroupTable\:\:__construct\(\) has invalid type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Table/UsergroupTable.php
+
+		-
+			message: '#^PHPDoc tag @throws with type Alfa\\Component\\Alfa\\Administrator\\View\\Coupon\\Exception is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 1
+			path: administrator/src/View/Coupon/HtmlView.php
+
+		-
+			message: '#^Offset ''checkedAt'' does not exist on array\{status\: string\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: administrator/src/View/Tools/_integrity.php
+
+		-
+			message: '#^Offset ''injected'' does not exist on array\{status\: string\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: administrator/src/View/Tools/_integrity.php
+
+		-
+			message: '#^Offset ''missing'' does not exist on array\{status\: string\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: administrator/src/View/Tools/_integrity.php
+
+		-
+			message: '#^Offset ''modified'' does not exist on array\{status\: string\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: administrator/src/View/Tools/_integrity.php
+
+		-
+			message: '#^Caught class libphonenumber\\NumberParseException not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: plugins/alfa-fields/tel/src/Rule/AlfatelRule.php
+
+		-
+			message: '#^Property Joomla\\CMS\\Menu\\MenuItem\:\:\$link \(string\) on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.property
+			count: 1
+			path: plugins/system/alfasync/src/Extension/Alfasync.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: plugins/system/alfasync/src/Extension/Alfasync.php
+
+		-
+			message: '#^If condition is always true\.$#'
+			identifier: if.alwaysTrue
+			count: 1
+			path: site/src/Controller/CartController.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Site\\Controller\\CartController\:\:recalculate\(\) should return Joomla\\CMS\\MVC\\Controller\\BaseController but return statement is missing\.$#'
+			identifier: return.missing
+			count: 1
+			path: site/src/Controller/CartController.php
+
+		-
+			message: '#^Parameter \#1 \$displayData of method Joomla\\CMS\\Layout\\FileLayout\:\:render\(\) expects array, Alfa\\Component\\Alfa\\Site\\Helper\\CartHelper given\.$#'
+			identifier: argument.type
+			count: 3
+			path: site/src/Controller/CartController.php
+
+		-
+			message: '#^Ternary operator condition is always false\.$#'
+			identifier: ternary.alwaysFalse
+			count: 1
+			path: site/src/Controller/CartController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: site/src/Controller/CartController.php
+
+		-
+			message: '#^Variable \$result might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: site/src/Controller/CartController.php
+
+		-
+			message: '#^Cannot call method checkin\(\) on bool\|Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\.$#'
+			identifier: method.nonObject
+			count: 3
+			path: site/src/Controller/CategoryController.php
+
+		-
+			message: '#^Cannot call method checkout\(\) on bool\|Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: site/src/Controller/CategoryController.php
+
+		-
+			message: '#^Cannot call method delete\(\) on bool\|Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: site/src/Controller/CategoryController.php
+
+		-
+			message: '#^Cannot call method getItem\(\) on bool\|Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: site/src/Controller/CategoryController.php
+
+		-
+			message: '#^Cannot call method publish\(\) on bool\|Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: site/src/Controller/CategoryController.php
+
+		-
+			message: '#^PHPDoc tag @throws with type Alfa\\Component\\Alfa\\Site\\Controller\\Exception is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 3
+			path: site/src/Controller/CategoryController.php
+
+		-
+			message: '#^Parameter \#1 \$message of class Exception constructor expects string, int given\.$#'
+			identifier: argument.type
+			count: 2
+			path: site/src/Controller/CategoryController.php
+
+		-
+			message: '#^Parameter \#2 \$urlparams \(bool\) of method Alfa\\Component\\Alfa\\Site\\Controller\\DisplayController\:\:display\(\) should be compatible with parameter \$urlparams \(array\) of method Joomla\\CMS\\MVC\\Controller\\BaseController\:\:display\(\)$#'
+			identifier: method.childParameterType
+			count: 1
+			path: site/src/Controller/DisplayController.php
+
+		-
+			message: '#^Parameter \#2 \$urlparams of method Joomla\\CMS\\MVC\\Controller\\BaseController\:\:display\(\) expects array, bool given\.$#'
+			identifier: argument.type
+			count: 1
+			path: site/src/Controller/DisplayController.php
+
+		-
+			message: '#^Parameter \#3 \$app of method Joomla\\CMS\\MVC\\Controller\\BaseController\:\:__construct\(\) expects Joomla\\CMS\\Application\\CMSApplicationInterface\|null, Alfa\\Component\\Alfa\\Site\\Controller\\CMSApplication\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: site/src/Controller/DisplayController.php
+
+		-
+			message: '#^Parameter \#4 \$input of method Joomla\\CMS\\MVC\\Controller\\BaseController\:\:__construct\(\) expects Joomla\\Input\\Input\|null, Alfa\\Component\\Alfa\\Site\\Controller\\Input\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: site/src/Controller/DisplayController.php
+
+		-
+			message: '#^Parameter \$app of method Alfa\\Component\\Alfa\\Site\\Controller\\DisplayController\:\:__construct\(\) has invalid type Alfa\\Component\\Alfa\\Site\\Controller\\CMSApplication\.$#'
+			identifier: class.notFound
+			count: 1
+			path: site/src/Controller/DisplayController.php
+
+		-
+			message: '#^Parameter \$input of method Alfa\\Component\\Alfa\\Site\\Controller\\DisplayController\:\:__construct\(\) has invalid type Alfa\\Component\\Alfa\\Site\\Controller\\Input\.$#'
+			identifier: class.notFound
+			count: 1
+			path: site/src/Controller/DisplayController.php
+
+		-
+			message: '#^Cannot call method checkin\(\) on bool\|Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\.$#'
+			identifier: method.nonObject
+			count: 3
+			path: site/src/Controller/ManufacturerController.php
+
+		-
+			message: '#^Cannot call method checkout\(\) on bool\|Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: site/src/Controller/ManufacturerController.php
+
+		-
+			message: '#^Cannot call method delete\(\) on bool\|Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: site/src/Controller/ManufacturerController.php
+
+		-
+			message: '#^Cannot call method getItem\(\) on bool\|Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: site/src/Controller/ManufacturerController.php
+
+		-
+			message: '#^Cannot call method publish\(\) on bool\|Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: site/src/Controller/ManufacturerController.php
+
+		-
+			message: '#^PHPDoc tag @throws with type Alfa\\Component\\Alfa\\Site\\Controller\\Exception is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 3
+			path: site/src/Controller/ManufacturerController.php
+
+		-
+			message: '#^Parameter \#1 \$message of class Exception constructor expects string, int given\.$#'
+			identifier: argument.type
+			count: 2
+			path: site/src/Controller/ManufacturerController.php
+
+		-
+			message: '#^Variable \$html on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.variable
+			count: 1
+			path: site/src/Helper/AlfaHelper.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: site/src/Helper/OrderPlaceHelper.php
+
+		-
+			message: '#^If condition is always false\.$#'
+			identifier: if.alwaysFalse
+			count: 1
+			path: site/src/Helper/PluginLayoutHelper.php
+
+		-
+			message: '#^Parameter \#1 \$ids of method Alfa\\Component\\Alfa\\Site\\Model\\ItemsModel\:\:getRecordsByIds\(\) expects array\<int\>, array\<string\> given\.$#'
+			identifier: argument.type
+			count: 2
+			path: site/src/Model/ItemsModel.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between float\|int\|numeric\-string and '''' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 2
+			path: site/src/Model/ItemsModel.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between float\|int\|numeric\-string and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 2
+			path: site/src/Model/ItemsModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Site\\Model\\ManufacturersModel\:\:getListQuery\(\) has invalid return type Alfa\\Component\\Alfa\\Site\\Model\\DatabaseQuery\.$#'
+			identifier: class.notFound
+			count: 1
+			path: site/src/Model/ManufacturersModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Site\\Model\\ManufacturersModel\:\:getListQuery\(\) should return Alfa\\Component\\Alfa\\Site\\Model\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
+			identifier: return.type
+			count: 1
+			path: site/src/Model/ManufacturersModel.php
+
+		-
+			message: '#^Property Alfa\\Component\\Alfa\\Site\\Model\\UrlListModel\:\:\$app \(Joomla\\CMS\\Application\\CMSApplication\) does not accept Joomla\\CMS\\Application\\CMSApplicationInterface\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: site/src/Model/UrlListModel.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between mixed and array\{\} will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: site/src/Model/UrlListModel.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between int and false will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: site/src/Service/Pricing/Money.php
+
+		-
+			message: '#^Static property Alfa\\Component\\Alfa\\Site\\Service\\Router\:\:\$categoryPathCache is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: site/src/Service/Router.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and 0 will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: site/src/Service/Router.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed~\(0\|0\.0\|''''\|''0''\|array\{\}\|false\|null\) and ''0'' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: site/src/Service/Router.php

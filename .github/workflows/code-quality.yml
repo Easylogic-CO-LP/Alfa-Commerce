@@ -52,6 +52,13 @@ jobs:
           php-version: "8.2"
           tools: phpstan
 
+      - name: Fetch latest Joomla (PHPStan symbol resolution)
+        run: |
+          url=$(curl -sL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/joomla/joomla-cms/releases/latest | jq -r '.assets[] | select(.name | endswith("Full_Package.zip")) | .browser_download_url' | head -1)
+          echo "Latest Joomla package: $url"
+          curl -sL -o /tmp/joomla.zip "$url"
+          mkdir -p joomla && unzip -q /tmp/joomla.zip -d joomla
+
       - name: Run PHPStan
-        run: phpstan analyse --configuration=phpstan.neon --memory-limit=512M --error-format=github
+        run: phpstan analyse --configuration=phpstan.neon --memory-limit=1G --error-format=github
         continue-on-error: true
