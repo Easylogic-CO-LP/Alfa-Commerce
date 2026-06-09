@@ -1,0 +1,7 @@
+{
+    "files": [
+        "/plugins/alfa-payments/standard/src/Extension/StandardBACKUP.php",
+        "/plugins/alfa-shipments/standard/src/Extension/StandardBACKUP.php"
+    ],
+    "folders": []
+}
