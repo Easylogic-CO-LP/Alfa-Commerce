@@ -63,6 +63,6 @@ Joomla component (type="component", method="upgrade") with bundled plugins and m
 - **Add API endpoint:** Create controller in `/api/src/Controller/`, view in `/api/src/View/`
 
 ## Pull requests & merging
-- **Branch flow:** feature/fix branch → PR to `developer` → PR `developer` → `main` (release). Never commit directly to `developer`/`main` — the branch ruleset requires a PR.
+- **Branch flow:** feature/fix branch → PR to `developer` → PR from `developer` → `main` (release). Never commit directly to `developer`/`main` — the branch ruleset requires a PR.
 - **Wait for every check to finish before merging any PR** — on both the feature→`developer` and `developer`→`main` PRs. Checks: PHP CS Fixer, PHPStan, security-scan, CodeQL, secret-scanning, php-security, and the **Claude reviewer**. Read the Claude review summary + inline comments and fix anything raised, then merge. That pipeline (security audit + AI review) exists to catch bugs/regressions before they land; merging early defeats it and races the CS-Fixer auto-commit (causing protected-branch push failures and stray style commits).
 - Merging needs an admin override (review-required ruleset — the sole author can't self-approve), but only once all of the above is green.
