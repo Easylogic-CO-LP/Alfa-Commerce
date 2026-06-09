@@ -42,7 +42,7 @@ git push origin feat/short-description       # then open a PR against `developer
 | **Joomla 6 or 7** | A local install for testing (XAMPP, WAMP, MAMP, Laravel Herd, …) |
 | **Git + a GitHub account** | Fork-and-pull-request workflow |
 
-Install the component into your test site by uploading the package ZIP via **System → Install → Extensions**.
+Install the component into your test site by uploading the package ZIP via **System > Install > Extensions**.
 
 ---
 
@@ -65,7 +65,7 @@ Install the component into your test site by uploading the package ZIP via **Sys
 | `feat/*` | New features — e.g. `feat/paypal-payment` |
 | `fix/*` | Bug fixes — e.g. `fix/cart-total-rounding` |
 
-Release flow: `feat/*` or `fix/*` → **`developer`** → **`main`** (release).
+Release flow: `feat/*` / `fix/*` branches merge into **`developer`**, then **`developer`** is merged into **`main`** for a release.
 
 ---
 
@@ -128,9 +128,9 @@ Then push and open the PR — the checks and the review will guide the rest.
 
 | Topic | Source of truth |
 |-------|-----------------|
-| Architecture, directory layout, namespaces | [Manual → Project Structure](https://manual.alfacommerce.gr/docs/getting-started/project-structure) |
-| Building plugins (payment / shipment / field / media) | [Manual → Plugin Development](https://manual.alfacommerce.gr/docs/plugins/overview) |
-| CI/CD & tooling | [Manual → CI/CD & Tooling](https://manual.alfacommerce.gr/docs/tooling/workflows) |
+| Architecture, directory layout, namespaces | [Manual: Project Structure](https://manual.alfacommerce.gr/docs/getting-started/project-structure) |
+| Building plugins (payment / shipment / field / media) | [Manual: Plugin Development](https://manual.alfacommerce.gr/docs/plugins/overview) |
+| CI/CD & tooling | [Manual: CI/CD & Tooling](https://manual.alfacommerce.gr/docs/tooling/workflows) |
 | Contribution process | This file |
 
 ---
