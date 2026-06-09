@@ -7,6 +7,7 @@
 
         <change>
             <item>Internal housekeeping: removed stray developer backup files that were inadvertently included in the package.</item>
+            <item>Refined the payment/shipment plugin event model so redirect and inline template rendering are available only where they apply — the checkout views and the gateway-return step; order place/save hooks are now strictly data hooks.</item>
         </change>
     </changelog>
 
