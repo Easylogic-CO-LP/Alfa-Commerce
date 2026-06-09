@@ -3,6 +3,24 @@
     <changelog>
         <element>com_alfa</element>
         <type>component</type>
+        <version>1.0.9</version>
+
+        <fix>
+            <item>Drag-and-drop image upload in the media zone now shows the preview reliably, and gives a clear message when a file is the wrong type or too large — instead of a confusing "no valid files found" error.</item>
+            <item>The media upload size limit now follows the server's actual limit, and the standard image types are accepted out of the box when none are explicitly selected.</item>
+        </fix>
+
+        <change>
+            <item>Reorganised the Media options into clear sections (Storage, Uploads, Thumbnails, Display, Deletion), and merged the two overlapping deletion settings into a single "Complete Media Deletion" option.</item>
+            <item>Updated the default media folder and placeholder images.</item>
+            <item>Added a "Delete all untracked files" action to Tools → Media for clearing leftover image files that have no database record.</item>
+            <item>Added database indexes to the media table for faster media maintenance and listings.</item>
+        </change>
+    </changelog>
+
+    <changelog>
+        <element>com_alfa</element>
+        <type>component</type>
         <version>1.0.8</version>
 
         <fix>
