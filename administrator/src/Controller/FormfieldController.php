@@ -17,7 +17,7 @@ use Joomla\CMS\Router\Route;
 /**
  * Form field controller class.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class FormfieldController extends FormController
 {
@@ -31,7 +31,7 @@ class FormfieldController extends FormController
      *
      * @return bool True on success
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public function batch($model = null)
     {

@@ -9,7 +9,7 @@
 
 /**
  * @package    Alfa Commerce
- * @since      1.0.1
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Site\Helper;
@@ -43,7 +43,7 @@ defined('_JEXEC') or die;
  * - Callers requesting less depth get a trimmed copy (no extra queries)
  * - Avoids duplicate cache entries for depth=3, depth=5, depth=10 etc.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class CategoryHelper
 {
@@ -51,7 +51,7 @@ class CategoryHelper
      * Internal max depth for all tree builds.
      * Templates control how deep they render, not how deep we cache.
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     private const TREE_MAX_DEPTH = 10;
 
@@ -87,7 +87,7 @@ class CategoryHelper
      * Get component parameters (cached)
      *
      * @return \Joomla\Registry\Registry
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function getParams()
     {
@@ -101,7 +101,7 @@ class CategoryHelper
     /**
      * Check if component caching is enabled
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function isCachingEnabled(): bool
     {
@@ -111,7 +111,7 @@ class CategoryHelper
     /**
      * Check if category caching is enabled
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function isCategoryCachingEnabled(): bool
     {
@@ -125,7 +125,7 @@ class CategoryHelper
     /**
      * Get the cache controller instance (lazy initialization)
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function getCacheController(): ?CallbackController
     {
@@ -159,7 +159,7 @@ class CategoryHelper
      * Get current user's usergroup IDs (cached per request)
      *
      * @return array Array of usergroup IDs
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function getCurrentUserGroupIds(): array
     {
@@ -176,7 +176,7 @@ class CategoryHelper
      *
      * Sorted and hashed so [2,8] and [8,2] produce the same key
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function getUserGroupCacheKey(): string
     {
@@ -197,7 +197,7 @@ class CategoryHelper
      * Centralised so stock/state logic is defined once.
      *
      * @return string SQL fragment
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function getItemJoinConditions(): string
     {
@@ -212,7 +212,7 @@ class CategoryHelper
      *
      * @param \Joomla\Database\DatabaseQuery $query Query to modify
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function applyUserGroupFilter($query): void
     {
@@ -237,7 +237,7 @@ class CategoryHelper
      *
      * @return string e.g. "en_gb"
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function resolveLangTag(?string $langTag): string
     {
@@ -255,7 +255,7 @@ class CategoryHelper
      * @param string|null $langTag Resolve name/alias in THIS language; null = current.
      *
      * @return array|false Category data or false if not found
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function loadCategoryFromDatabase(int $categoryId, ?string $langTag = null)
     {
@@ -289,7 +289,7 @@ class CategoryHelper
      * @param int $categoryId Category ID
      *
      * @return array|false Category data or false if not found
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function getCategory(int $categoryId, ?string $langTag = null)
     {
@@ -334,7 +334,7 @@ class CategoryHelper
      *                             switch); null = current request language.
      *
      * @return array Array of categories from root to current
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function getCategoryPath(int $categoryId, ?string $langTag = null): array
     {
@@ -377,7 +377,7 @@ class CategoryHelper
      * @param string|null $langTag Resolve aliases in THIS language; null = current.
      *
      * @return array Array of categories from root to current
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function buildCategoryPath(int $categoryId, ?string $langTag = null): array
     {
@@ -438,7 +438,7 @@ class CategoryHelper
      * @param bool $includeCount Include product count (default: false)
      *
      * @return array Nested category tree
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function getCategoryTree(int $parentId = 0, int $maxDepth = 10, bool $includeCount = false): array
     {
@@ -493,7 +493,7 @@ class CategoryHelper
      * @param int $currentDepth Current depth (internal)
      *
      * @return array Trimmed tree
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function trimTreeDepth(array $categories, int $maxDepth, int $currentDepth = 0): array
     {
@@ -529,7 +529,7 @@ class CategoryHelper
      * @param array $visited Track visited IDs to prevent infinite loops
      *
      * @return array Category tree
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function buildCategoryTree(
         int $parentId,
@@ -614,7 +614,7 @@ class CategoryHelper
      *
      * @param array $categories Root-level tree nodes (with children built)
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function computeAllCounts(array $categories): void
     {
@@ -669,7 +669,7 @@ class CategoryHelper
      * @param array $categoryItemSets Map of category_id → [item_id => true]
      *
      * @return array Merged item ID set for this level [item_id => true]
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function assignCountsFromMap(array $categories, array $categoryItemSets): array
     {
@@ -718,7 +718,7 @@ class CategoryHelper
      * @param int $maxDepth Maximum depth (default: 10)
      *
      * @return array Flat array of descendant category IDs (does NOT include parent)
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function getDescendantIds(int $parentId, int $maxDepth = 10): array
     {
@@ -735,7 +735,7 @@ class CategoryHelper
      * @param array $categories Category tree nodes
      * @param array &$ids Collected IDs (by reference)
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function collectIds(array $categories, array &$ids): void
     {
@@ -768,7 +768,7 @@ class CategoryHelper
      * @param bool $includeSubcategories Include descendant categories
      *
      * @return int Number of visible products
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function getProductCount(int $categoryId, bool $includeSubcategories = false): int
     {
@@ -789,7 +789,7 @@ class CategoryHelper
      * @param array $categoryIds Array of category IDs to count across
      *
      * @return int Number of unique visible items
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function countVisibleItems(array $categoryIds): int
     {
@@ -821,7 +821,7 @@ class CategoryHelper
      *
      * @param int|null $categoryId Specific category ID, or null to clear all
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function clearCache(?int $categoryId = null): void
     {
@@ -853,7 +853,7 @@ class CategoryHelper
      *
      * @param int $categoryId Parent category ID
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function clearCacheRecursive(int $categoryId): void
     {

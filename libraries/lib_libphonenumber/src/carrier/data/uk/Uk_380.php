@@ -13,6 +13,7 @@ namespace libphonenumber\carrier\data\uk;
 
 /**
  * @internal
+ * @since  1.0.0
  */
 class Uk_380
 {

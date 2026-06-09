@@ -21,7 +21,7 @@ use Joomla\CMS\Router\Route;
 /**
  * Methods supporting a list of Alfa records.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class CategoriesModel extends UrlListModel
 {
@@ -31,7 +31,7 @@ class CategoriesModel extends UrlListModel
      * @param array $config An optional associative array of configuration settings.
      *
      * @see    JController
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public function __construct($config = [])
     {
@@ -56,7 +56,7 @@ class CategoriesModel extends UrlListModel
      * Build an SQL query to load the list data.
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function getListQuery()
     {
@@ -148,6 +148,7 @@ class CategoriesModel extends UrlListModel
      * Method to get an array of data items
      *
      * @return mixed An array of data on success, false on failure.
+     * @since  1.0.0
      */
     public function getItems()
     {
@@ -181,7 +182,7 @@ class CategoriesModel extends UrlListModel
      *
      * @return array Array of categories from root to current
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getCategoryPath($categoryId)
     {

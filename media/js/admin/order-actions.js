@@ -32,7 +32,7 @@
  * @copyright   2026 Easylogic CO LP
  * @license     GNU General Public License version 2 or later
  *
- * @since  3.0.0
+ * @since  1.0.0
  */
 
 window.Alfa = window.Alfa || {};

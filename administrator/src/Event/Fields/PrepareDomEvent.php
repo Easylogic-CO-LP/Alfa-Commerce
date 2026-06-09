@@ -23,7 +23,7 @@ use Joomla\CMS\Form\Form;
 /**
  * Class for CustomFields events
  *
- * @since  5.0.0
+ * @since  1.0.0
  */
 class PrepareDomEvent extends FieldsEvent
 {
@@ -32,7 +32,7 @@ class PrepareDomEvent extends FieldsEvent
      *
      * @var array
      *
-     * @since  5.0.0
+     * @since  1.0.0
      * @deprecated 5.0 will be removed in 6.0
      */
     // protected $legacyArgumentsOrder = ['subject', 'fieldset', 'form'];
@@ -45,7 +45,7 @@ class PrepareDomEvent extends FieldsEvent
      *
      * @throws BadMethodCallException
      *
-     * @since   5.0.0
+     * @since  1.0.0
      */
     public function __construct($name, array $arguments = [])
     {
@@ -66,7 +66,7 @@ class PrepareDomEvent extends FieldsEvent
      * @param DOMElement $value The value to set
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     protected function onSetFieldset(DOMElement $value): DOMElement
     {
@@ -79,7 +79,7 @@ class PrepareDomEvent extends FieldsEvent
      * @param Form $value The value to set
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     protected function onSetForm(Form $value): Form
     {
@@ -90,7 +90,7 @@ class PrepareDomEvent extends FieldsEvent
      * Getter for the field.
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getField(): object
     {
@@ -101,7 +101,7 @@ class PrepareDomEvent extends FieldsEvent
      * Getter for the fieldset.
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getFieldset(): DOMElement
     {
@@ -112,7 +112,7 @@ class PrepareDomEvent extends FieldsEvent
      * Getter for the form.
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getForm(): Form
     {

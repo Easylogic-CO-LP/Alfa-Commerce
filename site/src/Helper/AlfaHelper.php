@@ -18,7 +18,7 @@ defined('_JEXEC') or die;
 /**
  * Class AlfaFrontendHelper
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class AlfaHelper
 {
@@ -27,7 +27,7 @@ class AlfaHelper
      *
      * @return \Joomla\Registry\Registry The component parameters.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function getGeneralSettings()
     {
@@ -51,6 +51,7 @@ class AlfaHelper
      *
      *
      * @return array the common payment methods.
+     * @since  1.0.0
      */
     public static function getFilteredMethods($categories, $manufacturers, $usergroups, $userId, $baseTable = 'payment')
     {
@@ -146,7 +147,7 @@ class AlfaHelper
      *
      * @return string The cleaned, whitespace-collapsed text.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function cleanContent(
         string $html,

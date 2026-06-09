@@ -16,7 +16,7 @@ use Joomla\CMS\MVC\Controller\FormController;
 /**
  * Manufacturers class.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class ManufacturersController extends FormController
 {
@@ -29,7 +29,7 @@ class ManufacturersController extends FormController
      *
      * @return object The model
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getModel($name = 'Manufacturers', $prefix = 'Site', $config = [])
     {

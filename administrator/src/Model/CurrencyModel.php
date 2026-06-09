@@ -23,21 +23,21 @@ use Joomla\CMS\Table\Table;
 /**
  * Currency model.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class CurrencyModel extends AdminModel
 {
     /**
      * @var string The prefix to use with controller messages.
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $text_prefix = 'COM_ALFA';
 
     /**
      * @var string Alias to manage history control
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public $typeAlias = 'com_alfa.currency';
 
@@ -46,7 +46,7 @@ class CurrencyModel extends AdminModel
     /**
      * @var null Item data
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $item = null;
 
@@ -58,7 +58,7 @@ class CurrencyModel extends AdminModel
      *
      * @return JForm|bool A \JForm object on success, false on failure
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getForm($data = [], $loadData = true)
     {
@@ -84,7 +84,7 @@ class CurrencyModel extends AdminModel
      *
      * @return mixed The data for the form.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function loadFormData()
     {
@@ -109,7 +109,7 @@ class CurrencyModel extends AdminModel
      *
      * @return mixed Object on success, false on failure.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getItem($pk = null)
     {
@@ -129,7 +129,7 @@ class CurrencyModel extends AdminModel
      *
      * @return bool True on success, False on error.
      *
-     * @since   1.6
+     * @since  1.0.0
      */
     public function save($data)
     {
@@ -173,7 +173,7 @@ class CurrencyModel extends AdminModel
      *
      * @return void
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function prepareTable($table)
     {

@@ -106,7 +106,7 @@ use Throwable;
  * using the consistent format:
  *   [MultilingualHelper::methodName] Human-readable message
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class MultilingualHelper
 {
@@ -165,6 +165,7 @@ class MultilingualHelper
      *
      * @throws InvalidArgumentException On bad arguments.
      * @throws RuntimeException On any unrecoverable database error.
+     * @since  1.0.0
      */
     public static function saveMultilingualData(
         int $currentId,
@@ -311,6 +312,7 @@ class MultilingualHelper
      *
      * @throws InvalidArgumentException
      * @throws RuntimeException On a database read failure.
+     * @since  1.0.0
      */
     public static function getMultilingualData(
         int $currentId,
@@ -376,7 +378,7 @@ class MultilingualHelper
      * @param array $multilingualData Return value of getMultilingualData().
      *
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public static function flattenForFormData(array $multilingualData): array
     {
@@ -402,7 +404,7 @@ class MultilingualHelper
      *
      * @return array Flat key-value pairs ready for object property assignment.
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public static function getMultilingualDataFlat(
         int $currentId,
@@ -433,7 +435,7 @@ class MultilingualHelper
      * @param object $item The item object to hydrate.
      *
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public static function bindMultilingualToItem(
         object $item,
@@ -475,7 +477,7 @@ class MultilingualHelper
      *
      * @return string The resolved join alias (e.g. "en_gb").
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public static function addMultilingualJoinToQuery(
         &$query,
@@ -593,7 +595,7 @@ class MultilingualHelper
      * @param string $selectAlias Output column alias          (e.g. 'category_ids').
      *
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public static function addRelatedIdsToQuery(
         &$query,
@@ -672,7 +674,7 @@ class MultilingualHelper
      *
      * @return array<int, array<string, mixed>> Associative array keyed by ID.
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public static function getRecordsByIds(
         object $db,
@@ -814,7 +816,7 @@ class MultilingualHelper
      *
      * @return array<int, array<int, array<string, mixed>>> Keyed by item PK then related ID.
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public static function fetchRelated(
         object $db,
@@ -916,7 +918,7 @@ class MultilingualHelper
      * @param array<int, array<int, array<string, mixed>>> $map Return value of fetchRelated().
      *
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public static function bindRelated(object $item, string $property, array $map): void
     {
@@ -941,7 +943,7 @@ class MultilingualHelper
      * @param string[] $langFields
      *
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public static function loadRelated(
         object $db,
@@ -978,7 +980,7 @@ class MultilingualHelper
      * Return the current request language tag in lower-snake format.
      * Example:  "en-GB"  →  "en_gb"
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public static function getCurrentLanguageTag(): string
     {
@@ -991,7 +993,7 @@ class MultilingualHelper
      * Return the site's default language tag in lower-snake format.
      * Falls back to "en_gb" when no language is explicitly marked as default.
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public static function getDefaultLanguageTag(): string
     {
@@ -1007,7 +1009,7 @@ class MultilingualHelper
     /**
      * The CURRENT request language in lower-snake format (e.g. "el_gr").
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public static function currentLangKey(): string
     {
@@ -1030,7 +1032,7 @@ class MultilingualHelper
      * @param string|null $lang Target language key; defaults to the current request language.
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function collapseToCurrent(mixed $data, ?string $lang = null): mixed
     {
@@ -1059,7 +1061,7 @@ class MultilingualHelper
      *
      * @return array<string, true>
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function installedLangKeys(): array
     {
@@ -1079,7 +1081,7 @@ class MultilingualHelper
      * @param array<string, true> $langSet
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function isLangMap(array $data, array $langSet): bool
     {
@@ -1102,7 +1104,7 @@ class MultilingualHelper
      *
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function pickLangValue(array $map, string $lang): string
     {
@@ -1144,7 +1146,7 @@ class MultilingualHelper
      *
      * @return string The field value, or '' when no translation exists.
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public static function getTranslatedValue(
         int $id,
@@ -1181,6 +1183,7 @@ class MultilingualHelper
     /**
      * Read one field for one record from a single language table, or '' if the
      * table doesn't exist / the row is missing.
+     * @since  1.0.0
      */
     private static function readFieldFromLangTable(
         int $id,
@@ -1231,7 +1234,7 @@ class MultilingualHelper
      * @throws InvalidArgumentException On a bad PK identifier.
      * @throws RuntimeException On any unrecoverable database error.
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public static function ensureLangSchema(
         string $tableName,
@@ -1322,7 +1325,7 @@ class MultilingualHelper
      *
      * @return array ['written' => int, 'processed' => int, 'total' => int].
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public static function backfillEmptyTranslations(
         string $tableName,
@@ -1510,6 +1513,7 @@ class MultilingualHelper
      * @param array $languages Output of LanguageHelper::getLanguages('lang_code').
      *
      * @return string[] e.g. ['en_gb', 'el_gr']
+     * @since  1.0.0
      */
     private static function buildLangCodeList(array $languages): array
     {
@@ -1532,6 +1536,7 @@ class MultilingualHelper
      * @param string[] $langCodes Lower-snake codes  (e.g. ['en_gb', 'el_gr']).
      *
      * @return array [ $languageData, $fallbackData ]
+     * @since  1.0.0
      */
     private static function extractLanguageData(array $data, array $langCodes): array
     {
@@ -1572,6 +1577,7 @@ class MultilingualHelper
      * @param object $app Joomla application (for the unicodeslugs setting).
      *
      * @return array Processed fields.
+     * @since  1.0.0
      */
     private static function applyFallbackAndSlugs(
         array $fields,
@@ -1614,6 +1620,7 @@ class MultilingualHelper
      * @param object $app Joomla application (for unicodeslugs config).
      *
      * @return string Sanitised slug.
+     * @since  1.0.0
      */
     private static function resolveSlugValue(
         string $rawValue,
@@ -1657,6 +1664,7 @@ class MultilingualHelper
      * @param string[] $aliasUniqueScope Main-table columns scoping uniqueness ([] = global).
      *
      * @return array $fields with unique slug values.
+     * @since  1.0.0
      */
     private static function ensureUniqueSlugs(
         $db,
@@ -1714,6 +1722,7 @@ class MultilingualHelper
      * Returns [] when no (safe) scope columns are requested — i.e. global uniqueness.
      *
      * @return array<string, mixed> [columnName => value]
+     * @since  1.0.0
      */
     private static function loadScopeValues(
         $db,
@@ -1747,6 +1756,7 @@ class MultilingualHelper
     /**
      * Return a slug unique within $langTableName for the given scope, appending
      * -2, -3, … on collision (capped at 100 attempts, then a time() suffix).
+     * @since  1.0.0
      */
     private static function makeUniqueSlug(
         $db,
@@ -1808,6 +1818,7 @@ class MultilingualHelper
      *
      * Fields containing any LONGTEXT_HINTS substring get  LONGTEXT NULL.
      * Everything else gets  VARCHAR(255) NOT NULL DEFAULT ''.
+     * @since  1.0.0
      */
     private static function columnTypeForField(string $fieldName): string
     {
@@ -1826,6 +1837,7 @@ class MultilingualHelper
      * CREATE TABLE IF NOT EXISTS for a new language auxiliary table.
      *
      * @throws RuntimeException
+     * @since  1.0.0
      */
     private static function createLangTable(
         $db,
@@ -1867,6 +1879,7 @@ class MultilingualHelper
      * executed when the column genuinely does not exist yet.
      *
      * @throws RuntimeException
+     * @since  1.0.0
      */
     private static function ensureColumnsExist(
         $db,
@@ -1925,6 +1938,7 @@ class MultilingualHelper
      * without a prior SELECT.
      *
      * @throws RuntimeException
+     * @since  1.0.0
      */
     private static function upsertLangRow(
         $db,
@@ -1977,6 +1991,7 @@ class MultilingualHelper
     /**
      * Fetch all physical table names from the active database.
      * Result is statically cached for the duration of the request.
+     * @since  1.0.0
      */
     private static function fetchTableList($db): array
     {
@@ -1997,7 +2012,9 @@ class MultilingualHelper
         return $tables;
     }
 
-    /** Retrieve the DatabaseDriver from the Joomla DI container. */
+    /** Retrieve the DatabaseDriver from the Joomla DI container.
+     * @since  1.0.0
+     */
     private static function getDb()
     {
         try {
@@ -2011,7 +2028,9 @@ class MultilingualHelper
         }
     }
 
-    /** Normalise a Joomla language tag to lower-snake format:  "en-GB" → "en_gb". */
+    /** Normalise a Joomla language tag to lower-snake format:  "en-GB" → "en_gb".
+     * @since  1.0.0
+     */
     private static function normaliseTag(string $tag): string
     {
         return strtolower(str_replace('-', '_', $tag));
@@ -2020,6 +2039,7 @@ class MultilingualHelper
     /**
      * Return true when $name is a safe SQL identifier (letters, digits, underscore).
      * Logs a WARNING and returns false otherwise — callers skip the offending field.
+     * @since  1.0.0
      */
     private static function isSafeIdentifier(string $name): bool
     {
@@ -2040,6 +2060,7 @@ class MultilingualHelper
      * Used for structurally required identifiers (e.g. PK column names).
      *
      * @throws InvalidArgumentException
+     * @since  1.0.0
      */
     private static function assertSafeIdentifier(string $name, string $callerMethod): void
     {
@@ -2054,6 +2075,7 @@ class MultilingualHelper
      * Validate the three required arguments shared by save / get operations.
      *
      * @throws InvalidArgumentException
+     * @since  1.0.0
      */
     private static function assertValidArguments(
         int $currentId,
@@ -2091,6 +2113,7 @@ class MultilingualHelper
      * @param string $callerMethod Pass __METHOD__ at every call site.
      * @param string $message Human-readable description.
      * @param int $priority Log::DEBUG | Log::INFO | Log::WARNING | Log::ERROR
+     * @since  1.0.0
      */
     private static function log(
         string $callerMethod,
@@ -2131,6 +2154,7 @@ class MultilingualHelper
      *
      * @throws InvalidArgumentException
      * @throws RuntimeException On any unrecoverable database error.
+     * @since  1.0.0
      */
     public static function deleteMultilingualData(
         int|array $ids,

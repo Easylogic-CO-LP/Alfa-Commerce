@@ -47,7 +47,7 @@ use ZipArchive;
  * The reverse path → repo mapping mirrors the standalone `alfa-diffs` tool, run
  * one-way (install → repo) instead of as a diff.
  *
- * @since  1.0.3
+ * @since  1.0.0
  */
 class PackageHelper
 {
@@ -56,7 +56,7 @@ class PackageHelper
      * OS cruft) — never shipped in a package.
      *
      * @var string[]
-     * @since 1.0.3
+     * @since  1.0.0
      */
     private const IGNORE_NAMES = ['.DS_Store', '.git', '.idea', '.vscode', '.svn', 'Thumbs.db'];
 
@@ -64,7 +64,7 @@ class PackageHelper
      * Folder/file name suffixes treated as local backups and skipped.
      *
      * @var string[]
-     * @since 1.0.3
+     * @since  1.0.0
      */
     private const IGNORE_SUFFIXES = ['_BK', '_bk', '.bak', '~'];
 
@@ -76,7 +76,7 @@ class PackageHelper
      * 'logs', 'debug_data', 'composer.json', 'composer.lock'.
      *
      * @var string[]
-     * @since 1.0.3
+     * @since  1.0.0
      */
     private const IGNORE_RUNTIME = [];
 
@@ -104,7 +104,7 @@ class PackageHelper
      *
      * @throws RuntimeException If the manifest is missing/invalid or zipping fails.
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     public static function buildPackageZip(string $installRoot, ?array $onlyRelPaths = null): array
     {
@@ -164,7 +164,7 @@ class PackageHelper
      * @return array<string, array{h: string, s: int, m: int}> Live root-relative path
      *                                                         => {h: sha256, s: size, m: mtime}.
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public static function hashShippedFiles(string $installRoot): array
     {
@@ -181,7 +181,7 @@ class PackageHelper
      *
      * @return array<string, array{h: string, s: int, m: int}> liveRel => {sha256, size, mtime}.
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     private static function hashEntries(array $entries): array
     {
@@ -226,7 +226,7 @@ class PackageHelper
      *
      * @throws RuntimeException If zip support is missing or the package can't be read.
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public static function hashInstallable(string $zipPath): array
     {
@@ -272,7 +272,7 @@ class PackageHelper
      *
      * @throws RuntimeException If the manifest is missing or invalid.
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public static function enumerateFromPackage(string $packageRoot): array
     {
@@ -393,7 +393,7 @@ class PackageHelper
      * @param array<string, array{abs: string, repo: string}> $out Accumulator (by ref).
      *
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     private static function collectSubExtensionFromPackage(string $packageRoot, string $relDir, string $preferred, array $langRoots, array &$out): void
     {
@@ -503,7 +503,7 @@ class PackageHelper
      *
      * @throws RuntimeException If the manifest is missing or invalid.
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     public static function enumerateShippedFiles(string $installRoot): array
     {
@@ -635,7 +635,7 @@ class PackageHelper
      *                                                                                                              Per library: the repo folder name, the Joomla library name, and the
      *                                                                                                              install paths of its code and (renamed) manifest, for reference.
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     public static function describeLibraries(string $installRoot): array
     {
@@ -679,7 +679,7 @@ class PackageHelper
      *
      * @return string The suggested next version, or '' if it cannot be determined.
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     public static function nextVersion(string $installRoot): string
     {
@@ -729,7 +729,7 @@ class PackageHelper
      *                                                                                                                version is '' (and both flags true) when it cannot be
      *                                                                                                                determined, so the UI shows no spurious reminder.
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     public static function releaseReadiness(string $installRoot): array
     {
@@ -793,7 +793,7 @@ class PackageHelper
      *
      * @return array{missing: string[], undeclared: string[]}
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     public static function detectDrift(string $installRoot): array
     {
@@ -866,7 +866,7 @@ class PackageHelper
      * @param string[] $missing Accumulator (by ref).
      * @param string[] $undeclared Accumulator (by ref).
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     private static function driftDir(string $label, string $dir, array $items, array $extraSkip, array &$missing, array &$undeclared): void
     {
@@ -917,7 +917,7 @@ class PackageHelper
      * @param string[] $missing Accumulator (by ref).
      * @param string[] $undeclared Accumulator (by ref).
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     private static function driftSub(string $label, string $dir, ?string $manifestPath, string $installRoot, array &$missing, array &$undeclared): void
     {
@@ -1042,7 +1042,7 @@ class PackageHelper
      *
      * @throws RuntimeException If the file is missing or not a valid <extension>.
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     private static function parseManifest(string $manifestPath): array
     {
@@ -1100,7 +1100,7 @@ class PackageHelper
      *
      * @return array<int, array{0: string, 1: string}>
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     private static function parseFilesItems(?SimpleXMLElement $node): array
     {
@@ -1136,7 +1136,7 @@ class PackageHelper
      *
      * @return array<int, array{0: string, 1: string}>
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     private static function parseLanguages(?SimpleXMLElement $node): array
     {
@@ -1165,7 +1165,7 @@ class PackageHelper
      *
      * @return array<int, array{0: string, 1: string}>
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     private static function parsePlugins(?SimpleXMLElement $node): array
     {
@@ -1194,7 +1194,7 @@ class PackageHelper
      *
      * @return string[]
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     private static function parseModules(?SimpleXMLElement $node): array
     {
@@ -1222,7 +1222,7 @@ class PackageHelper
      *
      * @return array<int, array{0: string, 1: string}>
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     private static function parseLibraries(?SimpleXMLElement $node): array
     {
@@ -1253,7 +1253,7 @@ class PackageHelper
      * @param string $destRoot Temporary working directory to build into.
      *
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     private static function buildTree(string $installRoot, array $manifest, string $destRoot): void
     {
@@ -1356,7 +1356,7 @@ class PackageHelper
      * @param string $name Plugin name (e.g. "standard").
      *
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     private static function buildPlugin(string $installRoot, string $destRoot, string $group, string $name): void
     {
@@ -1385,7 +1385,7 @@ class PackageHelper
      * @param string $module Module name (e.g. "mod_alfa_cart").
      *
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     private static function buildModule(string $installRoot, string $destRoot, string $module): void
     {
@@ -1416,7 +1416,7 @@ class PackageHelper
      * @param string[] $skip Entry names to skip.
      *
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     private static function copyItems(array $items, string $srcRoot, string $destRoot, array $skip = []): void
     {
@@ -1446,7 +1446,7 @@ class PackageHelper
      * @param string|null $manifestPath Absolute path to its manifest (or null).
      *
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     private static function copyDeclaredFiles(string $sourceDir, string $destBase, ?string $manifestPath): void
     {
@@ -1489,7 +1489,7 @@ class PackageHelper
      * @param string[] $langRoots Install language roots to search, highest priority first.
      *
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     private static function copyDeclaredMediaAndLanguages(string $installRoot, ?string $manifestPath, string $destBase, array $langRoots): void
     {
@@ -1559,7 +1559,7 @@ class PackageHelper
      * @param string $preferredName Expected manifest basename without extension.
      *
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     private static function findSubManifest(string $dir, string $preferredName): ?string
     {
@@ -1596,7 +1596,7 @@ class PackageHelper
      * @param array<string, array{abs: string, repo: string}> $out Accumulator: liveRel => {abs, repo} (by ref).
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function collectDeclaredItems(array $items, string $absRoot, string $relRoot, string $repoRoot, array &$out): void
     {
@@ -1647,7 +1647,7 @@ class PackageHelper
      * @param array<string, array{abs: string, repo: string}> $out Accumulator: liveRel => {abs, repo} (by ref).
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function collectSubExtension(string $installRoot, string $sourceDir, string $relSourceDir, ?string $manifestPath, array $langRoots, array &$out): void
     {
@@ -1748,7 +1748,7 @@ class PackageHelper
      * @param array<string, array{abs: string, repo: string}> $out Accumulator: liveRel => {abs, repo} (by ref).
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function collectFiles(string $absDir, string $relDir, string $repoDir, array &$out): void
     {
@@ -1784,7 +1784,7 @@ class PackageHelper
      * @param array<string, array{abs: string, repo: string}> $out Accumulator: liveRel => {abs, repo} (by ref).
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function collectFile(string $abs, string $rel, string $repo, array &$out): void
     {
@@ -1804,7 +1804,7 @@ class PackageHelper
      * @param string[] $skipTop Immediate child names to skip at the source root.
      *
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     private static function copyDir(string $source, string $dest, array $skipTop = []): void
     {
@@ -1836,7 +1836,7 @@ class PackageHelper
      * @param string $dest Destination file.
      *
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     private static function copyFile(string $source, string $dest): void
     {
@@ -1863,7 +1863,7 @@ class PackageHelper
      *
      * @throws RuntimeException If the archive cannot be created.
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     private static function zipTree(string $sourceDir, string $zipPath): void
     {
@@ -1904,7 +1904,7 @@ class PackageHelper
      * @param string $dir Directory to remove.
      *
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     private static function rrmdir(string $dir): void
     {
@@ -1936,7 +1936,7 @@ class PackageHelper
      * @param string $tmpDir Temporary directory holding the archives.
      *
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     private static function sweepStaleArchives(string $tmpDir): void
     {
@@ -1958,7 +1958,7 @@ class PackageHelper
      *
      * @return string An existing, writable temporary directory path.
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     private static function resolveTmpDir(string $installRoot): string
     {
@@ -1984,7 +1984,7 @@ class PackageHelper
      * @param string $name Bare entry name.
      *
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     private static function isIgnored(string $name): bool
     {

@@ -23,7 +23,7 @@ use Psr\Container\ContainerInterface;
 /**
  * Component class for Alfa
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class AlfaComponent extends MVCComponent implements RouterServiceInterface, BootableExtensionInterface, AssociationServiceInterface
 {
@@ -34,32 +34,34 @@ class AlfaComponent extends MVCComponent implements RouterServiceInterface, Boot
     /**
      * The archived condition
      *
-     * @since   4.0.0
+     * @since  1.0.0
      */
     public const CONDITION_ARCHIVED = 2;
 
     /**
      * The published condition
      *
-     * @since   4.0.0
+     * @since  1.0.0
      */
     public const CONDITION_PUBLISHED = 1;
 
     /**
      * The unpublished condition
      *
-     * @since   4.0.0
+     * @since  1.0.0
      */
     public const CONDITION_UNPUBLISHED = 0;
 
     /**
      * The trashed condition
      *
-     * @since   4.0.0
+     * @since  1.0.0
      */
     public const CONDITION_TRASHED = -2;
 
-    /** @inheritdoc  */
+    /** @inheritdoc
+     * @since  1.0.0
+     */
     public function boot(ContainerInterface $container)
     {
         /**

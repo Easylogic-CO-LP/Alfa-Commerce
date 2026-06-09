@@ -13,6 +13,7 @@ namespace libphonenumber\geocoding\data\zh_Hant;
 
 /**
  * @internal
+ * @since  1.0.0
  */
 class Zh_Hant_886
 {

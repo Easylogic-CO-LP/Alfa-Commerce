@@ -21,7 +21,7 @@ use BadMethodCallException;
 /**
  * Class for CustomFields events
  *
- * @since  5.0.0
+ * @since  1.0.0
  */
 abstract class AbstractPrepareFieldEvent extends CustomFieldsEvent
 {
@@ -30,7 +30,7 @@ abstract class AbstractPrepareFieldEvent extends CustomFieldsEvent
      *
      * @var array
      *
-     * @since  5.0.0
+     * @since  1.0.0
      * @deprecated 5.0 will be removed in 6.0
      */
     protected $legacyArgumentsOrder = ['context', 'item', 'subject'];
@@ -43,7 +43,7 @@ abstract class AbstractPrepareFieldEvent extends CustomFieldsEvent
      *
      * @throws BadMethodCallException
      *
-     * @since   5.0.0
+     * @since  1.0.0
      */
     public function __construct($name, array $arguments = [])
     {
@@ -64,7 +64,7 @@ abstract class AbstractPrepareFieldEvent extends CustomFieldsEvent
      * @param string $value The value to set
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     protected function onSetContext(string $value): string
     {
@@ -77,7 +77,7 @@ abstract class AbstractPrepareFieldEvent extends CustomFieldsEvent
      * @param object $value The value to set
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     protected function onSetItem(object $value): object
     {
@@ -88,7 +88,7 @@ abstract class AbstractPrepareFieldEvent extends CustomFieldsEvent
      * Getter for the field.
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getField(): object
     {
@@ -99,7 +99,7 @@ abstract class AbstractPrepareFieldEvent extends CustomFieldsEvent
      * Getter for the context.
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getContext(): string
     {
@@ -110,7 +110,7 @@ abstract class AbstractPrepareFieldEvent extends CustomFieldsEvent
      * Getter for the item.
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getItem(): object
     {

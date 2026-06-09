@@ -13,6 +13,7 @@ namespace libphonenumber\geocoding\data\hr;
 
 /**
  * @internal
+ * @since  1.0.0
  */
 class Hr_387
 {

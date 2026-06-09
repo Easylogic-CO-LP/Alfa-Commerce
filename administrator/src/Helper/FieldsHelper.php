@@ -28,6 +28,7 @@ defined('_JEXEC') or die;
  * Entry points for rendering alfa-fields in Joomla forms.
  *   - prepareForm()  injects custom fields into a Form for the given context
  *   - getFields()    loads fields visible to the given user in the given context
+ * @since  1.0.0
  */
 class FieldsHelper
 {
@@ -70,6 +71,7 @@ class FieldsHelper
      * static fields declared in the consumer's order/cart XML — the dynamic
      * groups produced here are separate fieldsets and are rendered through
      * FieldsHelper::renderTargetFieldsets() instead.
+     * @since  1.0.0
      */
     public static function prepareForm(string $context, Form $form, $data, string $targetFieldset): bool
     {
@@ -144,6 +146,7 @@ class FieldsHelper
      * fieldset regardless of routing.
      *
      * @return object[]
+     * @since  1.0.0
      */
     public static function getTargetFieldsets(Form $form, ?string $target = null): array
     {
@@ -173,6 +176,7 @@ class FieldsHelper
      * Pass $target = null to render every alfa-injected group regardless of
      * routing (useful for forms like the frontend cart where there are no
      * static fields to render alongside).
+     * @since  1.0.0
      */
     public static function renderFieldset(Form $form, ?string $target = null): string
     {
@@ -220,6 +224,7 @@ class FieldsHelper
 
     /**
      * Load fields visible to $userId in $context. Ordered by group.ordering, field.ordering.
+     * @since  1.0.0
      */
     public static function getFields(string $context, $item = null, ?int $userId = null): array
     {
@@ -312,6 +317,7 @@ class FieldsHelper
      *   "tpl:name"      → templates/tpl/html/plg_alfa-fields_<type>/name.php
      *
      * Falls back to the plugin's default.php if the chosen file is missing.
+     * @since  1.0.0
      */
     public static function render(string $context, $field, array $displayData = []): string
     {
@@ -350,6 +356,7 @@ class FieldsHelper
     /**
      * Resolve the filesystem path for a field's chosen layout.
      * Returns null if neither the chosen file nor the plugin default exists.
+     * @since  1.0.0
      */
     private static function resolveLayoutPath($field, string $type): ?string
     {
@@ -396,6 +403,7 @@ class FieldsHelper
 
     /**
      * Clear the per-request field cache.
+     * @since  1.0.0
      */
     public static function clearFieldsCache(): void
     {
@@ -405,6 +413,7 @@ class FieldsHelper
     /**
      * Whether the field should be displayed on a form. Kept as a hook for future show_on /
      * display_readonly logic; returns true by default.
+     * @since  1.0.0
      */
     public static function displayFieldOnForm($field): bool
     {
@@ -413,6 +422,7 @@ class FieldsHelper
 
     /**
      * Whether the current user may edit the field value. Hook for future ACL; returns true.
+     * @since  1.0.0
      */
     public static function canEditFieldValue($field): bool
     {
@@ -421,6 +431,7 @@ class FieldsHelper
 
     /**
      * Load groups by id, keyed by id. Used by prepareForm to render fieldsets.
+     * @since  1.0.0
      */
     private static function getGroups(array $ids): array
     {
@@ -443,6 +454,7 @@ class FieldsHelper
     /**
      * Boot the alfa-fields plugin for this field type. Returns null if the plugin is
      * missing, disabled, or not a FieldsPlugin instance.
+     * @since  1.0.0
      */
     private static function boot(string $type): ?FieldsPlugin
     {

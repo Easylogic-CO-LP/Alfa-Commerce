@@ -41,7 +41,7 @@
  *
  * Path: administrator/components/com_alfa/src/Plugin/HasPluginActionsTrait.php
  *
- * @since  3.5.0
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Plugin;
@@ -61,7 +61,7 @@ trait HasPluginActionsTrait
      *
      * @return PluginAction For chaining: ->icon()->css()->confirm()
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public function add(string $id, string $label): PluginAction
     {
@@ -76,7 +76,7 @@ trait HasPluginActionsTrait
      *
      *
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public function addAction(PluginAction $action): void
     {
@@ -90,7 +90,7 @@ trait HasPluginActionsTrait
      *
      * @return PluginAction For chaining
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public function addFromArray(array $config): PluginAction
     {
@@ -105,7 +105,7 @@ trait HasPluginActionsTrait
      *
      * @return PluginAction[]
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public function getActions(): array
     {
@@ -119,7 +119,7 @@ trait HasPluginActionsTrait
      *
      * @return PluginAction[]
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public function getRawActions(): array
     {
@@ -132,7 +132,7 @@ trait HasPluginActionsTrait
      * @param PluginAction[] $actions
      *
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public function setActions(array $actions): void
     {
@@ -143,7 +143,7 @@ trait HasPluginActionsTrait
      * Check whether any actions have been registered.
      *
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public function hasActions(): bool
     {
@@ -154,7 +154,7 @@ trait HasPluginActionsTrait
      * Get count of registered actions (before filtering).
      *
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public function countActions(): int
     {

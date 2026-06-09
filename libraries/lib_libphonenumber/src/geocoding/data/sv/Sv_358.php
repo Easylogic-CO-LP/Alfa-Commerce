@@ -13,6 +13,7 @@ namespace libphonenumber\geocoding\data\sv;
 
 /**
  * @internal
+ * @since  1.0.0
  */
 class Sv_358
 {

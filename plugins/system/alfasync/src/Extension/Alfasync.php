@@ -69,6 +69,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
     /**
      * @return array<string, string>
+     * @since  1.0.0
      */
     public static function getSubscribedEvents(): array
     {
@@ -106,6 +107,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      *   registerDate, lastvisitDate, activation, params, groups, …
      *
      * @param Event|array $event
+     * @since  1.0.0
      */
     public function onUserAfterSave($event, ?bool $isNew = null, ?bool $success = null): void
     {
@@ -131,6 +133,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * Available in $group: id, title, parent_id.
      *
      * @param Event|array $event
+     * @since  1.0.0
      */
     public function onUserAfterSaveGroup($event, ?bool $isNew = null): void
     {
@@ -156,6 +159,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * Called after a Joomla user is deleted.
      *
      * @param Event|array $event
+     * @since  1.0.0
      */
     public function onUserAfterDelete($event, ?bool $success = null): void
     {
@@ -215,6 +219,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * admin "Resync languages" button use.
      *
      * @param Event|array $event
+     * @since  1.0.0
      */
     public function onContentAfterSave($event): void
     {
@@ -235,6 +240,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * subscription wiring above.
      *
      * @param string $context Joomla content context, e.g. 'com_languages.language'.
+     * @since  1.0.0
      */
     private function handleContentSave(string $context): void
     {
@@ -267,7 +273,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * @param PreprocessMenuItemsEvent $event The admin-menu preprocess event.
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function onPreprocessMenuItems(PreprocessMenuItemsEvent $event): void
     {
@@ -316,6 +322,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * Extracts [userData, isNew, success] from a typed Event or legacy array call.
      *
      * @return array{0: array, 1: bool, 2: bool}
+     * @since  1.0.0
      */
     private function extractUserArgs($event, ?bool $isNew, ?bool $success): array
     {
@@ -336,6 +343,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * Extracts [groupData, isNew] from a typed Event or legacy array call.
      *
      * @return array{0: array, 1: bool}
+     * @since  1.0.0
      */
     private function extractGroupArgs($event, ?bool $isNew): array
     {
@@ -358,6 +366,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * Returns the DB driver. Prefers the injected $this->db (Joomla 4.2+).
      *
      * @return \Joomla\Database\DatabaseInterface
+     * @since  1.0.0
      */
     private function getDatabase()
     {

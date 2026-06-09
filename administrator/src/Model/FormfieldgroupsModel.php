@@ -37,6 +37,7 @@ class FormfieldgroupsModel extends ListModel
      * @param string $direction The default ordering direction.
      *
      * @return void
+     * @since  1.0.0
      */
     protected function populateState($ordering = 'a.ordering', $direction = 'ASC')
     {
@@ -49,6 +50,7 @@ class FormfieldgroupsModel extends ListModel
      * @param string $id An identifier string to prefix the store id.
      *
      * @return string A store id reflecting the active filters.
+     * @since  1.0.0
      */
     protected function getStoreId($id = '')
     {
@@ -62,6 +64,7 @@ class FormfieldgroupsModel extends ListModel
      * subquery and applying the state and search (id: / title LIKE) filters.
      *
      * @return \Joomla\Database\QueryInterface The query to list the groups.
+     * @since  1.0.0
      */
     protected function getListQuery()
     {

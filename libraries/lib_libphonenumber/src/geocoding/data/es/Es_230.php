@@ -13,6 +13,7 @@ namespace libphonenumber\geocoding\data\es;
 
 /**
  * @internal
+ * @since  1.0.0
  */
 class Es_230
 {

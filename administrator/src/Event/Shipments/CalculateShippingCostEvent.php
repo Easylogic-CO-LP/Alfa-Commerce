@@ -45,6 +45,7 @@ class CalculateShippingCostEvent extends ShipmentsEvent
      * @param array $arguments Must include 'method' and 'shippingCost'
      *
      * @throws BadMethodCallException If 'method' is missing
+     * @since  1.0.0
      */
     public function __construct($name, array $arguments = [])
     {
@@ -61,6 +62,7 @@ class CalculateShippingCostEvent extends ShipmentsEvent
      * Get the cart helper instance (subject).
      *
      * @return \Alfa\Component\Alfa\Site\Helper\CartHelper
+     * @since  1.0.0
      */
     public function getCart()
     {
@@ -72,6 +74,7 @@ class CalculateShippingCostEvent extends ShipmentsEvent
      *
      * @param mixed $value Shipment method object
      * @return mixed
+     * @since  1.0.0
      */
     protected function onSetMethod($value)
     {
@@ -82,6 +85,7 @@ class CalculateShippingCostEvent extends ShipmentsEvent
      * Get the shipment method configuration.
      *
      * @return object Shipment method with params, type, etc.
+     * @since  1.0.0
      */
     public function getMethod()
     {
@@ -98,6 +102,7 @@ class CalculateShippingCostEvent extends ShipmentsEvent
      * Plugins MUST call this. This is the primary shipping cost value.
      *
      * @param float $cost Shipping cost including tax
+     * @since  1.0.0
      */
     public function setShippingCost(float $cost): void
     {
@@ -108,6 +113,7 @@ class CalculateShippingCostEvent extends ShipmentsEvent
      * Joomla event setter hook — delegates to setShippingCost().
      *
      * @param float $cost Shipping cost including tax
+     * @since  1.0.0
      */
     public function onSetShippingCost(float $cost): void
     {
@@ -116,6 +122,7 @@ class CalculateShippingCostEvent extends ShipmentsEvent
 
     /**
      * Get shipping cost (tax inclusive).
+     * @since  1.0.0
      */
     public function getShippingCost(): float
     {
@@ -137,6 +144,7 @@ class CalculateShippingCostEvent extends ShipmentsEvent
      * (zero-tax default).
      *
      * @param float $cost Shipping cost excluding tax
+     * @since  1.0.0
      */
     public function setShippingCostTaxExcl(float $cost): void
     {
@@ -147,6 +155,7 @@ class CalculateShippingCostEvent extends ShipmentsEvent
      * Get shipping cost (tax exclusive).
      *
      * Falls back to tax-inclusive value if not explicitly set.
+     * @since  1.0.0
      */
     public function getShippingCostTaxExcl(): float
     {

@@ -23,7 +23,7 @@ use Joomla\CMS\Form\Form;
 /**
  * Class for Model Form event
  *
- * @since  5.0.0
+ * @since  1.0.0
  */
 abstract class FormEvent extends AbstractImmutableEvent
 {
@@ -35,7 +35,7 @@ abstract class FormEvent extends AbstractImmutableEvent
      *
      * @throws BadMethodCallException
      *
-     * @since   5.0.0
+     * @since  1.0.0
      */
     public function __construct($name, array $arguments = [])
     {
@@ -57,7 +57,7 @@ abstract class FormEvent extends AbstractImmutableEvent
      * @param string $value The value to set
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     protected function onSetContext(string $value): string
     {
@@ -68,7 +68,7 @@ abstract class FormEvent extends AbstractImmutableEvent
      * Getter for the context argument.
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getContext(): string
     {
@@ -81,7 +81,7 @@ abstract class FormEvent extends AbstractImmutableEvent
      * @param Form $value The value to set
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     protected function onSetSubject(Form $value): Form
     {
@@ -95,7 +95,7 @@ abstract class FormEvent extends AbstractImmutableEvent
      *
      * @return void
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function setForm($form)
     {
@@ -108,7 +108,7 @@ abstract class FormEvent extends AbstractImmutableEvent
      * @param object|array $value The value to set
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     protected function onSetData(object|array $value): object|array
     {
@@ -119,7 +119,7 @@ abstract class FormEvent extends AbstractImmutableEvent
      * Getter for the form.
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getForm(): Form
     {
@@ -130,7 +130,7 @@ abstract class FormEvent extends AbstractImmutableEvent
      * Getter for the data.
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getData(): object|array
     {
@@ -144,7 +144,7 @@ abstract class FormEvent extends AbstractImmutableEvent
      *
      * @return void
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function setData($data)
     {

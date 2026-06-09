@@ -22,7 +22,7 @@ use Joomla\CMS\Dispatcher\AbstractModuleDispatcher;
 /**
  * Dispatcher class for mod_alfa-cart
  *
- * @since  4.4.0
+ * @since  1.0.0
  */
 class Dispatcher extends AbstractModuleDispatcher
 {
@@ -31,7 +31,7 @@ class Dispatcher extends AbstractModuleDispatcher
      *
      * @return array
      *
-     * @since   4.4.0
+     * @since  1.0.0
      */
     protected function getLayoutData()
     {

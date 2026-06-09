@@ -19,7 +19,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Shipments;
 /**
  * Class for CustomFields events
  *
- * @since  5.0.0
+ * @since  1.0.0
  */
 class ItemViewEvent extends ShipmentsLayoutEvent
 {
@@ -28,7 +28,7 @@ class ItemViewEvent extends ShipmentsLayoutEvent
      *
      * @return mixed The item object
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getItem()
     {

@@ -22,7 +22,7 @@ use Joomla\CMS\Uri\Uri;
 /**
  * View class for a list of items
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class HtmlView extends BaseHtmlView
 {
@@ -39,6 +39,7 @@ class HtmlView extends BaseHtmlView
      * Constructor
      *
      * @param array $config Configuration settings
+     * @since  1.0.0
      */
     public function __construct($config = [])
     {
@@ -52,6 +53,7 @@ class HtmlView extends BaseHtmlView
      * @param string $tpl Template name
      *
      * @return void
+     * @since  1.0.0
      */
     public function display($tpl = null)
     {
@@ -85,6 +87,7 @@ class HtmlView extends BaseHtmlView
 
     /**
      * Prepares the document
+     * @since  1.0.0
      */
     protected function _prepareDocument(): void
     {
@@ -96,6 +99,7 @@ class HtmlView extends BaseHtmlView
 
     /**
      * Add breadcrumbs for category path
+     * @since  1.0.0
      */
     protected function addBreadcrumbs(): void
     {
@@ -117,6 +121,7 @@ class HtmlView extends BaseHtmlView
 
     /**
      * Add meta title and description
+     * @since  1.0.0
      */
     protected function addMetaTags(): void
     {
@@ -164,6 +169,7 @@ class HtmlView extends BaseHtmlView
      *
      * Canonical points to base category URL + pagination only
      * Removes filters, sorting, and limit from canonical
+     * @since  1.0.0
      */
     protected function addCanonicalUrl(): void
     {
@@ -186,6 +192,7 @@ class HtmlView extends BaseHtmlView
      *
      * Filtered/sorted pages get noindex (priority)
      * Otherwise uses category or menu setting
+     * @since  1.0.0
      */
     protected function addRobotsMeta(): void
     {
@@ -214,6 +221,7 @@ class HtmlView extends BaseHtmlView
 
     /**
      * Check if page has filters/sorting/limit applied
+     * @since  1.0.0
      */
     protected function isFilteredPage(): bool
     {

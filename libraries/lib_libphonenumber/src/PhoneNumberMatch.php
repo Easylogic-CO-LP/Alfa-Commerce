@@ -10,6 +10,7 @@ use function mb_strlen;
 
 /**
  * @no-named-arguments
+ * @since  1.0.0
  */
 class PhoneNumberMatch
 {
@@ -34,6 +35,7 @@ class PhoneNumberMatch
      * @param int $start The start index into the target text
      * @param string $rawString The matched substring of the target text
      * @param PhoneNumber $number The matched phone number
+     * @since  1.0.0
      */
     public function __construct(int $start, string $rawString, PhoneNumber $number)
     {
@@ -48,6 +50,7 @@ class PhoneNumberMatch
 
     /**
      * Returns the phone number matched by the receiver.
+     * @since  1.0.0
      */
     public function number(): PhoneNumber
     {
@@ -56,6 +59,7 @@ class PhoneNumberMatch
 
     /**
      * Returns the start index of the matched phone number within the searched text.
+     * @since  1.0.0
      */
     public function start(): int
     {
@@ -64,6 +68,7 @@ class PhoneNumberMatch
 
     /**
      * Returns the exclusive end index of the matched phone number within the searched text.
+     * @since  1.0.0
      */
     public function end(): int
     {
@@ -72,6 +77,7 @@ class PhoneNumberMatch
 
     /**
      * Returns the raw string matched as a phone number in the searched text.
+     * @since  1.0.0
      */
     public function rawString(): string
     {

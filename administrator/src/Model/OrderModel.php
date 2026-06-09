@@ -157,7 +157,7 @@ class OrderModel extends AdminModel
      *
      * @return \Joomla\CMS\Form\Form|false The Form object on success, false on failure.
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public function getPaymentForm($data = [], $loadData = true)
     {
@@ -249,7 +249,7 @@ class OrderModel extends AdminModel
      *
      * @return \Joomla\CMS\Form\Form|false The Form object on success, false on failure.
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public function getForm($data = [], $loadData = true)
     {
@@ -569,7 +569,7 @@ class OrderModel extends AdminModel
      *
      * @return array An array of payment row objects.
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public function getOrderPayments($orderId)
     {
@@ -599,7 +599,7 @@ class OrderModel extends AdminModel
      * @param array &$data Form data (by reference — PK set on insert)
      *
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public function saveOrderPayment(&$data): bool
     {
@@ -646,7 +646,7 @@ class OrderModel extends AdminModel
      * @param int $id_order Order PK
      *
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public function deleteOrderPayment($id, $id_order): bool
     {
@@ -660,7 +660,7 @@ class OrderModel extends AdminModel
      *
      * @return object|null The payment row object, or null if not found.
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     protected function getOrderPayment($id)
     {
@@ -715,7 +715,7 @@ class OrderModel extends AdminModel
      *
      * @return array An array of shipment row objects.
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public function getOrderShipments($orderId)
     {
@@ -746,7 +746,7 @@ class OrderModel extends AdminModel
      * @param array &$data Form data (by reference — PK set on insert)
      *
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public function saveOrderShipment(&$data): bool
     {
@@ -793,7 +793,7 @@ class OrderModel extends AdminModel
      * @param int $id_order Order PK
      *
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public function deleteOrderShipment($id, $id_order): bool
     {
@@ -810,7 +810,7 @@ class OrderModel extends AdminModel
      * @param array $selectedItemIds Array of order_items.id values
      *
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     protected function assignItemsToShipment(int $shipmentId, int $orderId, array $selectedItemIds): void
     {
@@ -826,7 +826,7 @@ class OrderModel extends AdminModel
      *
      * @return array Array of order_items.id values
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     protected function getShipmentItemIds(int $shipmentId): array
     {
@@ -842,7 +842,7 @@ class OrderModel extends AdminModel
      *
      * @return string Comma-separated item names, or empty string
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     protected function getShipmentItemNames(int $shipmentId): string
     {
@@ -854,6 +854,7 @@ class OrderModel extends AdminModel
      *
      * @param int $id Shipment row PK
      * @return object|null
+     * @since  1.0.0
      */
     protected function getOrderShipment($id)
     {
@@ -876,6 +877,7 @@ class OrderModel extends AdminModel
      *
      * @param int|null $pk Order item row PK
      * @return object|null
+     * @since  1.0.0
      */
     public function getOrderItemData($pk = null)
     {
@@ -926,6 +928,7 @@ class OrderModel extends AdminModel
      * @param array|object $data Existing item data to bind (or empty for new)
      * @param bool $loadData Whether to load data
      * @return \Joomla\CMS\Form\Form|false
+     * @since  1.0.0
      */
     public function getOrderItemForm($data = [], $loadData = true)
     {
@@ -984,6 +987,7 @@ class OrderModel extends AdminModel
      * - UPDATE: preserves refunds, tax, shipping, discounts, added timestamp
      *
      * @param array $data Form data with: id, id_order, id_item, quantity, unit_price
+     * @since  1.0.0
      */
     public function saveOrderItem(array &$data): bool
     {
@@ -1296,6 +1300,7 @@ class OrderModel extends AdminModel
      *
      * @param int $id Order item row PK
      * @param int $orderId Order ID (for security)
+     * @since  1.0.0
      */
     public function deleteOrderItem(int $id, int $orderId): bool
     {
@@ -1373,6 +1378,7 @@ class OrderModel extends AdminModel
      * Load existing order item row from DB (all fields preserved)
      *
      * @param int $itemPK Row PK
+     * @since  1.0.0
      */
     protected function loadExistingItemRow(int $itemPK): ?object
     {
@@ -1403,6 +1409,7 @@ class OrderModel extends AdminModel
      *
      * @param int $orderId Order ID
      * @return array Activity log entries
+     * @since  1.0.0
      */
     public function getOrderHistory($orderId)
     {
@@ -1425,6 +1432,7 @@ class OrderModel extends AdminModel
      * - Timestamp management
      *
      * @param \Joomla\CMS\Table\Table $table The table instance
+     * @since  1.0.0
      */
     protected function prepareTable($table)
     {
@@ -1497,7 +1505,7 @@ class OrderModel extends AdminModel
      *
      * @param array $data The form data.
      * @return bool True on success, false on failure.
-     * @since   3.5.1
+     * @since  1.0.0
      */
     public function save($data)
     {
@@ -1600,7 +1608,7 @@ class OrderModel extends AdminModel
      * @param int $orderId Order PK
      * @param int $oldStatusId Previous order status ID
      * @param int $newStatusId New order status ID
-     * @since   3.5.1
+     * @since  1.0.0
      */
     protected function handleStockOperation(int $orderId, int $oldStatusId, int $newStatusId): void
     {
@@ -1670,7 +1678,7 @@ class OrderModel extends AdminModel
      *
      * @param int $orderId Order PK
      * @return int Number of distinct products restored
-     * @since   3.5.1
+     * @since  1.0.0
      */
     protected function restoreOrderStock(int $orderId): int
     {
@@ -1723,7 +1731,7 @@ class OrderModel extends AdminModel
      *
      * @param int $orderId Order PK
      * @return int Number of distinct products deducted
-     * @since   3.5.1
+     * @since  1.0.0
      */
     protected function deductOrderStock(int $orderId): int
     {
@@ -1780,6 +1788,7 @@ class OrderModel extends AdminModel
      * @param object|null $prevOrder Previous order from getItem() (includes user_info)
      * @param array $data New form data
      * @param array $userInfoData New customer/address data (com_alfa fields)
+     * @since  1.0.0
      */
     protected function logOrderChanges(int $orderId, ?object $prevOrder, array $data, array $userInfoData = []): void
     {
@@ -1894,7 +1903,7 @@ class OrderModel extends AdminModel
      *
      * @return bool True on success.
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     public function delete(&$pks)
     {
@@ -1964,7 +1973,7 @@ class OrderModel extends AdminModel
      * @param array $pks The order ids whose related data should be deleted.
      *
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     protected function deleteRelatedData(array $pks): void
     {
@@ -2052,7 +2061,7 @@ class OrderModel extends AdminModel
      *
      * @return array Complete data array safe for save()
      *
-     * @since   4.1.0
+     * @since  1.0.0
      */
     public function prefillData(int $recordKey, array $data = []): array
     {
@@ -2101,6 +2110,7 @@ class OrderModel extends AdminModel
      *          saveOrderItem(), and any method that needs to wrap values as Money.
      *
      * @param int $currencyId alfa_currencies.id (NOT the ISO number)
+     * @since  1.0.0
      */
     protected function loadCurrency(int $currencyId): Currency
     {
@@ -2130,6 +2140,7 @@ class OrderModel extends AdminModel
      * into a single reusable call.
      *
      * @param string $name Model name: 'Payment', 'Shipment', etc.
+     * @since  1.0.0
      */
     protected function getRelatedModel(string $name): AdminModel
     {
@@ -2145,6 +2156,7 @@ class OrderModel extends AdminModel
      * Safe to call on any value — returns float whether given Money, string, or number.
      *
      * @param mixed $value Money object, numeric string, or number
+     * @since  1.0.0
      */
     protected function moneyToFloat(mixed $value): float
     {
@@ -2162,6 +2174,7 @@ class OrderModel extends AdminModel
      *
      * @param mixed $value Raw DB value (string, float, null)
      * @param Currency $currency Currency for the Money object
+     * @since  1.0.0
      */
     protected function toMoney(mixed $value, Currency $currency): Money
     {
@@ -2177,6 +2190,7 @@ class OrderModel extends AdminModel
      * @param string $modelName 'Payment' or 'Shipment'
      * @param int $methodId PK of the method row
      * @return string Method name, or empty string if not found
+     * @since  1.0.0
      */
     protected function getMethodName(string $modelName, int $methodId): string
     {
@@ -2200,6 +2214,7 @@ class OrderModel extends AdminModel
      *
      * @param object $data Object from getPaymentData(), getShipmentData(), etc.
      * @return array Flat array safe for Form::bind()
+     * @since  1.0.0
      */
     protected function objectToFormData(object $data): array
     {
@@ -2224,6 +2239,7 @@ class OrderModel extends AdminModel
      *
      * @param int $orderId Order PK
      * @return int Currency ID (defaults to 1)
+     * @since  1.0.0
      */
     public function getOrderCurrencyId(int $orderId): int
     {
@@ -2246,6 +2262,7 @@ class OrderModel extends AdminModel
      * @param array &$data Form data (by ref — PK is set on insert)
      * @param string $tableName Full table name with #__ prefix
      * @param string $pkColumn Primary key column name
+     * @since  1.0.0
      */
     protected function saveDataOnTable(&$data, $tableName, $pkColumn = 'id'): bool
     {
@@ -2287,6 +2304,7 @@ class OrderModel extends AdminModel
      * @param string $tableName Full table name with #__ prefix
      * @param int $id Row PK value
      * @param string $pkColumn Primary key column name
+     * @since  1.0.0
      */
     protected function deleteTableEntry($tableName, $id, $pkColumn = 'id'): bool
     {
@@ -2341,6 +2359,7 @@ class OrderModel extends AdminModel
      * @param string $summary Human-readable summary
      * @param array|null $context Structured data (changes, metadata, gateway info)
      * @param int|null $entityId Related entity PK (order_items.id, order_payments.id, etc.)
+     * @since  1.0.0
      */
     public static function logOrderActivity(
         int $orderId,
@@ -2398,6 +2417,7 @@ class OrderModel extends AdminModel
      * @param int $orderId Order ID
      * @param string $eventFilter Filter by event prefix: 'item', 'payment', 'status', '' = all
      * @param int $limit Max entries
+     * @since  1.0.0
      */
     public function getOrderActivityLog(int $orderId, string $eventFilter = '', int $limit = 100): array
     {
@@ -2429,7 +2449,7 @@ class OrderModel extends AdminModel
      *
      * @return void
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     protected function populateState()
     {

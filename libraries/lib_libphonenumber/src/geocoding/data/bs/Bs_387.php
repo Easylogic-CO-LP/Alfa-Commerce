@@ -13,6 +13,7 @@ namespace libphonenumber\geocoding\data\bs;
 
 /**
  * @internal
+ * @since  1.0.0
  */
 class Bs_387
 {

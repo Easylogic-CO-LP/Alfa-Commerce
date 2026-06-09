@@ -17,7 +17,7 @@
  * Errors are ALWAYS shown as Joomla warning messages.
  * Step-by-step trace only appears when JDEBUG is enabled.
  *
- * @since  3.0.0
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Helper;
@@ -45,7 +45,7 @@ class PluginLayoutHelper
      *
      * @return FileLayout Ready to call ->render($displayData)
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public static function pluginLayout(string $pluginType, string $pluginName, string $fileName): FileLayout
     {
@@ -87,7 +87,7 @@ class PluginLayoutHelper
      * @param string $fileName Layout filename without .php
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     private static function getDefaultLayout(string $fileName): FileLayout
     {
@@ -127,7 +127,7 @@ class PluginLayoutHelper
      * Calling ->render() on this returns an empty string.
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public static function getEmptyLayout(): FileLayout
     {
@@ -146,7 +146,7 @@ class PluginLayoutHelper
      * @param string $message Warning message
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     private static function warn(string $message): void
     {
@@ -169,7 +169,7 @@ class PluginLayoutHelper
      * @param string $message Trace message
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     private static function trace(string $message): void
     {

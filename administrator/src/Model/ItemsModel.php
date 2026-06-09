@@ -20,7 +20,7 @@ use Joomla\CMS\MVC\Model\ListModel;
 /**
  * Methods supporting a list of Items records.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class ItemsModel extends ListModel
 {
@@ -30,7 +30,7 @@ class ItemsModel extends ListModel
      * @param array $config An optional associative array of configuration settings.
     *
     * @see        JController
-    * @since      1.6
+    * @since  1.0.0
     */
     public function __construct($config = [], ?MVCFactoryInterface $factory = null)
     {
@@ -70,6 +70,7 @@ class ItemsModel extends ListModel
      * @return void
      *
      * @throws Exception
+     * @since  1.0.0
      */
     protected function populateState($ordering = 'a.id', $direction = 'DESC')
     {
@@ -87,7 +88,7 @@ class ItemsModel extends ListModel
      *
      * @return string A store id.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function getStoreId($id = '')
     {
@@ -103,7 +104,7 @@ class ItemsModel extends ListModel
     /**
      * Build an SQL query to load the list data.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function getListQuery()
     {
@@ -233,6 +234,7 @@ class ItemsModel extends ListModel
      * Get an array of data items
      *
      * @return mixed Array of data items on success, false on failure.
+     * @since  1.0.0
      */
     public function getItems()
     {

@@ -19,7 +19,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Shipments;
 /**
  * Class for CustomFields events
  *
- * @since  5.0.0
+ * @since  1.0.0
  */
 class AdminOrderBeforeSaveEvent extends ShipmentsEvent
 {
@@ -28,7 +28,7 @@ class AdminOrderBeforeSaveEvent extends ShipmentsEvent
      *
      * @return mixed The order or cart object
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getOrder()
     {
@@ -42,7 +42,7 @@ class AdminOrderBeforeSaveEvent extends ShipmentsEvent
      *
      * @return bool The currently stored can-save flag
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function onSetCanSave(bool $canSave): bool
     {
@@ -55,7 +55,7 @@ class AdminOrderBeforeSaveEvent extends ShipmentsEvent
      * @param bool $canSave Whether the order may be saved
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function setCanSave(bool $canSave): void
     {
@@ -67,7 +67,7 @@ class AdminOrderBeforeSaveEvent extends ShipmentsEvent
      *
      * @return bool Whether the order may be saved
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getCanSave(): bool
     {

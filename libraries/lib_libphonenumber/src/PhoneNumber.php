@@ -10,6 +10,7 @@ use Serializable;
  * It is not recommended to create PhoneNumber objects directly, instead you should
  * use PhoneNumberUtil::parse() to parse the number and return a PhoneNumber object
  * @no-named-arguments
+ * @since  1.0.0
  */
 class PhoneNumber implements Serializable
 {
@@ -144,6 +145,7 @@ class PhoneNumber implements Serializable
 
     /**
      * Merges the information from another phone number into this phone number.
+     * @since  1.0.0
      */
     public function mergeFrom(PhoneNumber $other): static
     {
@@ -237,6 +239,7 @@ class PhoneNumber implements Serializable
      * Returns whether this phone number uses an italian leading zero.
      *
      * @return bool|null True if it uses an italian leading zero, false it it does not, null if not set.
+     * @since  1.0.0
      */
     public function isItalianLeadingZero(): ?bool
     {
@@ -314,6 +317,7 @@ class PhoneNumber implements Serializable
      * @param PhoneNumber $other The phone number to compare.
      *
      * @return bool True if the phone numbers are equal, false otherwise.
+     * @since  1.0.0
      */
     public function equals(PhoneNumber $other): bool
     {
@@ -333,6 +337,7 @@ class PhoneNumber implements Serializable
 
     /**
      * Returns a string representation of this phone number.
+     * @since  1.0.0
      */
     public function __toString(): string
     {
@@ -382,6 +387,7 @@ class PhoneNumber implements Serializable
 
     /**
      * @param array{int,string,string,bool|null,int,string|null,CountryCodeSource|null,string|null} $data
+     * @since  1.0.0
      */
     public function __unserialize(array $data): void
     {

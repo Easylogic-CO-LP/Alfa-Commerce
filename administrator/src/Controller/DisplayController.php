@@ -16,7 +16,7 @@ use Joomla\CMS\MVC\Controller\BaseController;
 /**
  * Alfa master display controller.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class DisplayController extends BaseController
 {
@@ -24,7 +24,7 @@ class DisplayController extends BaseController
      * The default view.
      *
      * @var string
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $default_view = 'items';
 
@@ -36,7 +36,7 @@ class DisplayController extends BaseController
      *
      * @return BaseController|bool This object to support chaining.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function display($cachable = false, $urlparams = [])
     {

@@ -26,7 +26,7 @@ use Joomla\DI\ServiceProviderInterface;
 /**
  * The Alfa service provider.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 return new class implements ServiceProviderInterface
 {
@@ -37,7 +37,7 @@ return new class implements ServiceProviderInterface
 	 *
 	 * @return  void
 	 *
-	 * @since   1.0.1
+	 * @since  1.0.0
 	 */
 	public function register(Container $container)
 	{

@@ -25,7 +25,7 @@
  *   $event->setMessage('Payment marked as paid');
  *   $event->setRefresh(true);
  *
- * @since  3.0.0
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\Payments;
@@ -44,7 +44,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
      * Get the action ID requested (e.g. 'mark_paid', 'view_details').
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getAction(): string
     {
@@ -55,7 +55,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
      * Get the payment record.
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getPayment(): object
     {
@@ -66,7 +66,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
      * Get the order record.
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getOrder(): object
     {
@@ -77,7 +77,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
      * Get additional data sent from JS.
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getData(): array
     {
@@ -95,7 +95,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
      *
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function setSuccess(bool $success): void
     {
@@ -103,7 +103,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
     }
 
     /**
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function isSuccess(): bool
     {
@@ -115,7 +115,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
      *
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function setMessage(string $message): void
     {
@@ -123,7 +123,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
     }
 
     /**
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getMessage(): string
     {
@@ -136,7 +136,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
      * @param string $message Error message
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function setError(string $message): void
     {
@@ -151,7 +151,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
      *
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function setRefresh(bool $refresh): void
     {
@@ -159,7 +159,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
     }
 
     /**
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getRefresh(): bool
     {
@@ -173,7 +173,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
      *
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function setRedirectUrl(string $url): void
     {
@@ -181,7 +181,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
     }
 
     /**
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getRedirectUrl(): ?string
     {
@@ -200,7 +200,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
      * @param string $layout e.g. 'action_view_details'
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function setLayout(string $layout): void
     {
@@ -210,7 +210,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
     /**
      * Matches LayoutEvent::getLayout()
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getLayout(): string
     {
@@ -224,7 +224,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
      *
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function setLayoutData(array $data): void
     {
@@ -234,7 +234,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
     /**
      * Matches LayoutEvent::getLayoutData()
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getLayoutData(): array
     {
@@ -246,7 +246,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
      *
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function setModalTitle(string $title): void
     {
@@ -254,7 +254,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
     }
 
     /**
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getModalTitle(): ?string
     {
@@ -269,7 +269,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
      *
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function setHtml(string $html): void
     {
@@ -277,7 +277,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
     }
 
     /**
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getHtml(): ?string
     {
@@ -295,7 +295,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
      * are not sent to the client.
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function toResponseArray(): array
     {
@@ -317,7 +317,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
      * Serialize the response to JSON.
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function toResponseJson(): string
     {

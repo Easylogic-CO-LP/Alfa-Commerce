@@ -46,7 +46,7 @@
  *
  * Path: administrator/components/com_alfa/src/Helper/OrderTotalHelper.php
  *
- * @since  3.5.1
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Helper;
@@ -100,7 +100,7 @@ class OrderTotalHelper
      *                discount_tax_excl, discount_tax_incl,
      *                grand_total_tax_incl, grand_total_tax_excl
      *
-     * @since   4.1.0
+     * @since  1.0.0
      */
     public static function computeFromArrays(array $items, array $shipments, array $discounts): object
     {
@@ -171,7 +171,7 @@ class OrderTotalHelper
      *
      * @return float Grand total (tax inclusive)
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     public static function getOrderTotal(int $orderId, ?object $order = null): float
     {
@@ -190,7 +190,7 @@ class OrderTotalHelper
      *
      * @return object Same structure as computeFromArrays()
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     public static function getBreakdown(int $orderId, ?object $order = null): object
     {
@@ -240,7 +240,7 @@ class OrderTotalHelper
      * @param object|null $order Optional loaded order with ->items
      *
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     public static function getItemsTotal(int $orderId, ?object $order = null): float
     {
@@ -271,7 +271,7 @@ class OrderTotalHelper
      * @param int $orderId Order PK
      *
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     public static function getShippingTotal(int $orderId): float
     {
@@ -292,7 +292,7 @@ class OrderTotalHelper
      * @param int $orderId Order PK
      *
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     public static function getDiscountTotal(int $orderId): float
     {
@@ -329,7 +329,7 @@ class OrderTotalHelper
      * @param int $orderId Order PK
      *
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     public static function getDiscountTotalExcl(int $orderId): float
     {
@@ -358,7 +358,7 @@ class OrderTotalHelper
      * @param mixed $value Money object, numeric string, float, or int
      *
      *
-     * @since   4.1.0
+     * @since  1.0.0
      */
     private static function extractFloat(mixed $value): float
     {
@@ -375,6 +375,7 @@ class OrderTotalHelper
 
     /**
      * Get the Joomla database driver.
+     * @since  1.0.0
      */
     private static function db(): \Joomla\Database\DatabaseDriver
     {

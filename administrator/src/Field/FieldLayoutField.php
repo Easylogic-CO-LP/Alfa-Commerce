@@ -31,6 +31,7 @@ use Joomla\Database\ParameterType;
  *
  * The runtime resolver splits on ":" to pick the right file for the field's
  * type. Falls back to "_:default" if the stored override no longer exists.
+ * @since  1.0.0
  */
 class FieldLayoutField extends FormField
 {
@@ -43,6 +44,7 @@ class FieldLayoutField extends FormField
      * frontend template.
      *
      * @return string The grouped-list select HTML
+     * @since  1.0.0
      */
     protected function getInput(): string
     {
@@ -130,6 +132,7 @@ class FieldLayoutField extends FormField
 
     /**
      * @return string[] Element names of enabled frontend templates.
+     * @since  1.0.0
      */
     private function getEnabledFrontendTemplates(): array
     {

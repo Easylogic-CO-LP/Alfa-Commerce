@@ -27,7 +27,7 @@ use RuntimeException;
 /**
  * Item model.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class FormfieldModel extends AdminModel
 {
@@ -58,6 +58,7 @@ class FormfieldModel extends AdminModel
 
     /**
      * Reassign selected fields to the chosen group (0 = ungrouped).
+     * @since  1.0.0
      */
     protected function batchGroup($value, $pks, $contexts)
     {
@@ -131,6 +132,7 @@ class FormfieldModel extends AdminModel
      * True if $type is a MySQL column type we allow. Trims whitespace and
      * matches case-insensitively. Rejects anything that isn't an exact match
      * (no trailing SQL, no comments, no newlines).
+     * @since  1.0.0
      */
     protected static function isAllowedSqlType(string $type): bool
     {
@@ -163,7 +165,7 @@ class FormfieldModel extends AdminModel
      *
      * @return \Joomla\CMS\Form\Form|false The Form object on success, false on failure.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getForm($data = [], $loadData = true)
     {
@@ -210,7 +212,7 @@ class FormfieldModel extends AdminModel
      *
      * @return mixed The data for the form.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function loadFormData()
     {
@@ -247,7 +249,7 @@ class FormfieldModel extends AdminModel
      *
      * @return object|bool The populated field object, or false on failure.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getItem($pk = null)
     {
@@ -266,7 +268,7 @@ class FormfieldModel extends AdminModel
      *
      * @return bool True on success, False on error.
      *
-     * @since   1.6
+     * @since  1.0.0
      */
     public function save($data)
     {
@@ -381,7 +383,7 @@ class FormfieldModel extends AdminModel
      *
      * @return void
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function prepareTable($table)
     {
@@ -405,7 +407,7 @@ class FormfieldModel extends AdminModel
      *
      * @return void
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function delete(&$pks)
     {
@@ -540,7 +542,7 @@ class FormfieldModel extends AdminModel
      *
      * @return object|null
      *
-     * @since 1.0
+     * @since  1.0.0
      */
     protected function getTableField($tableName, $field)
     {
@@ -578,7 +580,7 @@ class FormfieldModel extends AdminModel
      *
      * @return void
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function dropUserInfoColumns($columnNames = [])
     {
@@ -615,7 +617,7 @@ class FormfieldModel extends AdminModel
      *
      * @return string A value not currently used in that column.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function generateNewName($name, $columnName)
     {

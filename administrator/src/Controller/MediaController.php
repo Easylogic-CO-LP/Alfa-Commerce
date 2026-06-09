@@ -18,6 +18,7 @@ class MediaController extends FormController
     /**
      * Media Controller - AJAX getSource Method
      * Handles business logic and prepares data for template
+     * @since  1.0.0
      */
 
     public function getSource()
@@ -81,6 +82,7 @@ class MediaController extends FormController
      * @param string $type - 'drop' or 'picker'
      * @param int $index - File index
      * @return object - Clean media object
+     * @since  1.0.0
      */
     protected function prepareNewMediaObject($image, $thumbnail, $type, $index, $url)
     {
@@ -132,6 +134,7 @@ class MediaController extends FormController
      * @param object $object The stored media record
      *
      * @return object The prepared media object
+     * @since  1.0.0
      */
     public function prepareExistingMedia($object)
     {
@@ -151,6 +154,7 @@ class MediaController extends FormController
      * @param string $url The URL to validate
      *
      * @return array Result with 'valid' (bool), 'message' (string) and 'http_code' (int|null)
+     * @since  1.0.0
      */
     public function validateUrl(string $url): array
     {

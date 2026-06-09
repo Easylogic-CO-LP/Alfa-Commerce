@@ -29,7 +29,7 @@
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
  *
- * @since  3.0.0
+ * @since  1.0.0
  */
 
 use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
@@ -528,6 +528,7 @@ echo HTMLHelper::_(
          * Reload the order edit page by submitting the form with a
          * special "reload" task. This preserves the current tab state
          * and shows a Joomla loading spinner during the reload.
+         * @since  1.0.0
          */
         function reloadOrderPage() {
             var orderForm = document.querySelector('#order-form');
@@ -561,6 +562,7 @@ echo HTMLHelper::_(
          *   paymentId = 5  → 'paymentModal-5' (edit modal for payment #5)
          *
          * @param {number} paymentId  The payment row PK (0 for new)
+         * @since  1.0.0
          */
         function closeModal(paymentId) {
             var modalId = (paymentId === 0)

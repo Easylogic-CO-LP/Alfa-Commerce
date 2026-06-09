@@ -68,7 +68,7 @@
  *
  * Path: administrator/components/com_alfa/src/Helper/OrderPaymentHelper.php
  *
- * @since  3.5.0
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Helper;
@@ -204,7 +204,7 @@ class OrderPaymentHelper
      *
      * @return static Builder in create mode — chain setters, finish with ->save()
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     public static function for(object $order): static
     {
@@ -238,7 +238,7 @@ class OrderPaymentHelper
      *
      * @throws RuntimeException If payment not found in DB
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     public static function load(int $paymentId): static
     {
@@ -265,6 +265,7 @@ class OrderPaymentHelper
     /**
      * Set status to PENDING.
      * Use for: offline payments (cash, bank transfer), awaiting gateway callback.
+     * @since  1.0.0
      */
     public function pending(): static
     {
@@ -275,6 +276,7 @@ class OrderPaymentHelper
     /**
      * Set status to AUTHORIZED.
      * Use for: gateway pre-auth (funds reserved, capture later with ->completed()).
+     * @since  1.0.0
      */
     public function authorized(): static
     {
@@ -285,6 +287,7 @@ class OrderPaymentHelper
     /**
      * Set status to COMPLETED.
      * Use for: payment captured — money in the bank.
+     * @since  1.0.0
      */
     public function completed(): static
     {
@@ -295,6 +298,7 @@ class OrderPaymentHelper
     /**
      * Set status to FAILED.
      * Use for: declined card, gateway timeout, insufficient funds.
+     * @since  1.0.0
      */
     public function failed(): static
     {
@@ -305,6 +309,7 @@ class OrderPaymentHelper
     /**
      * Set status to CANCELLED.
      * Use for: admin or customer cancels before payment completes.
+     * @since  1.0.0
      */
     public function cancelled(): static
     {
@@ -315,6 +320,7 @@ class OrderPaymentHelper
     /**
      * Set status to REFUNDED.
      * Use for: marking the original payment as refunded.
+     * @since  1.0.0
      */
     public function refunded(): static
     {
@@ -329,6 +335,7 @@ class OrderPaymentHelper
      * Creates a separate record with payment_type = 'refund' for the activity log.
      *
      * Example: $this->payment($order)->refund()->amount(50)->completed()->save();
+     * @since  1.0.0
      */
     public function refund(): static
     {
@@ -339,6 +346,7 @@ class OrderPaymentHelper
     /**
      * Mark as authorization hold.
      * For gateway pre-auth flows: hold funds now, capture later.
+     * @since  1.0.0
      */
     public function authorization(): static
     {
@@ -355,6 +363,7 @@ class OrderPaymentHelper
      * deposit payments, installments.
      *
      * @param float $amount Payment amount (tax inclusive)
+     * @since  1.0.0
      */
     public function amount(float $amount): static
     {
@@ -367,6 +376,7 @@ class OrderPaymentHelper
      * Set amount = items total only (no shipping, no discounts).
      *
      * Use for: deposit payments, item-only charges before shipping is calculated.
+     * @since  1.0.0
      */
     public function itemsOnly(): static
     {
@@ -389,6 +399,7 @@ class OrderPaymentHelper
      * Stored for reconciliation (Stripe charge ID, PayPal txn ID, etc.)
      *
      * @param string $id Gateway reference (e.g. 'ch_3MqBE2...')
+     * @since  1.0.0
      */
     public function transactionId(string $id): static
     {
@@ -400,6 +411,7 @@ class OrderPaymentHelper
      * Set admin-visible note on the payment.
      *
      * @param string $note Free-text note
+     * @since  1.0.0
      */
     public function note(string $note): static
     {
@@ -416,7 +428,7 @@ class OrderPaymentHelper
      * @param int $paymentId Original payment row PK
      *
      *
-     * @since   4.0.0
+     * @since  1.0.0
      */
     public function refundedPayment(int $paymentId): static
     {
@@ -430,7 +442,7 @@ class OrderPaymentHelper
      * @param string $reason Human-readable reason
      *
      *
-     * @since   4.0.0
+     * @since  1.0.0
      */
     public function refundReason(string $reason): static
     {
@@ -447,7 +459,7 @@ class OrderPaymentHelper
      * @param string $type 'full' or 'partial' (use REFUND_FULL / REFUND_PARTIAL)
      *
      *
-     * @since   4.0.0
+     * @since  1.0.0
      */
     public function refundType(string $type): static
     {
@@ -461,7 +473,7 @@ class OrderPaymentHelper
      * Shortcut for ->refundType(self::REFUND_FULL).
      *
      *
-     * @since   4.0.0
+     * @since  1.0.0
      */
     public function fullRefund(): static
     {
@@ -475,7 +487,7 @@ class OrderPaymentHelper
      * Shortcut for ->refundType(self::REFUND_PARTIAL).
      *
      *
-     * @since   4.0.0
+     * @since  1.0.0
      */
     public function partialRefund(): static
     {
@@ -489,7 +501,7 @@ class OrderPaymentHelper
      * @param string $datetime SQL datetime string (UTC)
      *
      *
-     * @since   4.0.0
+     * @since  1.0.0
      */
     public function processedAt(string $datetime): static
     {
@@ -503,7 +515,7 @@ class OrderPaymentHelper
      * @param string $json Raw JSON from Stripe, PayPal, etc.
      *
      *
-     * @since   4.0.0
+     * @since  1.0.0
      */
     public function gatewayResponse(string $json): static
     {
@@ -518,6 +530,7 @@ class OrderPaymentHelper
      * Use when creating a payment for a different method than the order's default.
      *
      * @param int $methodId Payment method PK
+     * @since  1.0.0
      */
     public function method(int $methodId): static
     {
@@ -533,6 +546,7 @@ class OrderPaymentHelper
      *
      * @param string $key Column name
      * @param mixed $value Value to set
+     * @since  1.0.0
      */
     public function set(string $key, mixed $value): static
     {
@@ -553,7 +567,7 @@ class OrderPaymentHelper
      * @throws RuntimeException If transaction_status not set (create mode)
      * @throws RuntimeException If payment ID missing (update mode)
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     public function save(): int|false
     {
@@ -572,6 +586,7 @@ class OrderPaymentHelper
      * Useful for validation dropdowns, documentation generation.
      *
      * @return array ['pending', 'authorized', 'completed', 'failed', 'cancelled', 'refunded']
+     * @since  1.0.0
      */
     public static function allStatuses(): array
     {
@@ -585,6 +600,7 @@ class OrderPaymentHelper
      * Get all valid payment_type values.
      *
      * @return array ['payment', 'refund', 'authorization']
+     * @since  1.0.0
      */
     public static function allTypes(): array
     {
@@ -596,7 +612,7 @@ class OrderPaymentHelper
      *
      * @return array ['full', 'partial']
      *
-     * @since   4.0.0
+     * @since  1.0.0
      */
     public static function allRefundTypes(): array
     {
@@ -607,6 +623,7 @@ class OrderPaymentHelper
      * Get current builder mode.
      *
      * @return string 'create' or 'update'
+     * @since  1.0.0
      */
     public function getMode(): string
     {
@@ -620,6 +637,7 @@ class OrderPaymentHelper
      * Useful for debugging and testing.
      *
      * @return array The data that would be passed to create() or update()
+     * @since  1.0.0
      */
     public function toArray(): array
     {
@@ -636,6 +654,7 @@ class OrderPaymentHelper
 
     /**
      * Execute the CREATE flow.
+     * @since  1.0.0
      */
     protected function doBuilderCreate(): int|false
     {
@@ -663,6 +682,7 @@ class OrderPaymentHelper
      *
      * Only sends fields that were explicitly set by the developer.
      * Returns the payment ID on success (including no-op), false on failure.
+     * @since  1.0.0
      */
     protected function doBuilderUpdate(): int|false
     {
@@ -696,6 +716,7 @@ class OrderPaymentHelper
      * (defensive — shouldn't happen in normal flow).
      *
      * Called automatically by doBuilderCreate() when ->amount() was not called.
+     * @since  1.0.0
      */
     protected function resolveAmount(): float
     {
@@ -741,7 +762,7 @@ class OrderPaymentHelper
      *
      * @return int|false New payment row ID, or false on failure
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public static function create(array $data): int|false
     {
@@ -826,7 +847,7 @@ class OrderPaymentHelper
      *
      * @return bool True on success
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public static function update(int $id, array $data): bool
     {
@@ -903,7 +924,7 @@ class OrderPaymentHelper
      *
      * @return bool True on success
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public static function delete(int $id, int $orderId): bool
     {
@@ -946,7 +967,7 @@ class OrderPaymentHelper
      *
      * @return object|null Payment record with params, or null if not found
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public static function get(int $id): ?object
     {
@@ -987,7 +1008,7 @@ class OrderPaymentHelper
      *
      * @return array Array of payment row objects
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public static function getByOrder(int $orderId): array
     {
@@ -1019,7 +1040,7 @@ class OrderPaymentHelper
      *
      * @return object|null Raw DB row
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     private static function getRaw(int $id): ?object
     {
@@ -1043,7 +1064,7 @@ class OrderPaymentHelper
      *
      * @return bool True on success
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     private static function saveToTable(array &$data): bool
     {
@@ -1103,7 +1124,7 @@ class OrderPaymentHelper
      *
      * @return bool True on success
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     private static function deleteFromTable(int $id): bool
     {
@@ -1131,7 +1152,7 @@ class OrderPaymentHelper
      * Get the Joomla database driver from the DI container.
      *
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     private static function db(): \Joomla\Database\DatabaseDriver
     {
@@ -1144,7 +1165,7 @@ class OrderPaymentHelper
      * @param mixed $value Money object, numeric string, or number
      *
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     private static function moneyToFloat(mixed $value): float
     {
@@ -1165,7 +1186,7 @@ class OrderPaymentHelper
      *
      * @return string Method name, or empty string if not found
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     private static function resolveMethodName(string $modelName, int $methodId): string
     {
@@ -1189,7 +1210,7 @@ class OrderPaymentHelper
      *
      * @return \Joomla\CMS\MVC\Model\AdminModel
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     private static function getRelatedModel(string $name)
     {
@@ -1206,7 +1227,7 @@ class OrderPaymentHelper
      *
      * @return int Currency ID (defaults to 1)
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     private static function getOrderCurrencyId(int $orderId): int
     {
@@ -1226,7 +1247,7 @@ class OrderPaymentHelper
      * Returns 0 for guests and CLI contexts.
      *
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     private static function getCurrentUserId(): int
     {
@@ -1243,7 +1264,7 @@ class OrderPaymentHelper
      * @param string $message Warning text
      *
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     private static function warn(string $message): void
     {

@@ -32,6 +32,7 @@ use function str_ends_with;
  * @package libphonenumber
  * @no-named-arguments
  * @implements Iterator<int,PhoneNumberMatch|null>
+ * @since  1.0.0
  */
 class PhoneNumberMatcher implements Iterator
 {
@@ -193,6 +194,7 @@ class PhoneNumberMatcher implements Iterator
 
     /**
      * Helper function to generate regular expression with an upper and lower limit.
+     * @since  1.0.0
      */
     protected static function limit(int $lower, int $upper): string
     {
@@ -248,6 +250,7 @@ class PhoneNumberMatcher implements Iterator
      *                      This is to cover degenerate cases where the text has a lot of false positives in it. Must be >= 0
      * @throws InvalidArgumentException
      * @internal @see PhoneNumberUtil::findNumbers() instead
+     * @since  1.0.0
      */
     public function __construct(
         protected readonly PhoneNumberUtil $phoneUtil,
@@ -274,6 +277,7 @@ class PhoneNumberMatcher implements Iterator
      *
      * @param int $index The search index to start searching at
      * @return PhoneNumberMatch|null The Phone Number Match found, null if none can be found
+     * @since  1.0.0
      */
     protected function find(int $index): ?PhoneNumberMatch
     {
@@ -303,6 +307,7 @@ class PhoneNumberMatcher implements Iterator
     /**
      * Trims away any characters after the first match of $pattern in $candidate,
      * returning the trimmed version.
+     * @since  1.0.0
      */
     protected static function trimAfterFirstMatch(string $pattern, string $candidate): string
     {
@@ -320,6 +325,7 @@ class PhoneNumberMatcher implements Iterator
      * Latin character.
      *
      * @internal
+     * @since  1.0.0
      */
     public static function isLatinLetter(string $letter): bool
     {
@@ -343,6 +349,7 @@ class PhoneNumberMatcher implements Iterator
      * @param string $candidate The candidate text that might contain a phone number
      * @param int $offset The offset of $candidate within $this->text
      * @return PhoneNumberMatch|null The match found, null if none can be found
+     * @since  1.0.0
      */
     protected function extractMatch(string $candidate, int $offset): ?PhoneNumberMatch
     {
@@ -374,6 +381,7 @@ class PhoneNumberMatcher implements Iterator
      * @param string $candidate The candidate text that might contact a phone number
      * @param int $offset The current offset of $candidate within $this->text
      * @return PhoneNumberMatch|null The match found, null if none can be found
+     * @since  1.0.0
      */
     protected function extractInnerMatch(string $candidate, int $offset): ?PhoneNumberMatch
     {
@@ -418,6 +426,7 @@ class PhoneNumberMatcher implements Iterator
      * @param string $candidate The candidate match
      * @param int $offset The offset of $candidate within $this->text
      * @return PhoneNumberMatch|null The parsed and validated phone number match, or null
+     * @since  1.0.0
      */
     protected function parseAndVerify(string $candidate, int $offset): ?PhoneNumberMatch
     {
@@ -471,6 +480,7 @@ class PhoneNumberMatcher implements Iterator
 
     /**
      * @param string[] $formattedNumberGroups
+     * @since  1.0.0
      */
     public static function allNumberGroupsRemainGrouped(
         PhoneNumberUtil $util,
@@ -531,6 +541,7 @@ class PhoneNumberMatcher implements Iterator
 
     /**
      * @param string[] $formattedNumberGroups
+     * @since  1.0.0
      */
     public static function allNumberGroupsAreExactlyPresent(
         PhoneNumberUtil $util,
@@ -577,6 +588,7 @@ class PhoneNumberMatcher implements Iterator
      * prefix, and return it as a set of digit blocks that would be formatted together.
      *
      * @return string[]
+     * @since  1.0.0
      */
     protected static function getNationalNumberGroups(
         PhoneNumberUtil $util,

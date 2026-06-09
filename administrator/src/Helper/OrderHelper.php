@@ -52,6 +52,7 @@ class OrderHelper
      * @param int $orderId Order ID
      * @param Currency|null $currency Currency object (optional, will load if not provided)
      * @return array Array of order item objects with Money prices
+     * @since  1.0.0
      */
     public static function getOrderItems(int $orderId, ?Currency $currency = null): array
     {
@@ -131,6 +132,7 @@ class OrderHelper
      * - Items indexed by row PK, not id_item
      * - Stock aggregated per product across all order lines
      * - Form field names matching order_items.xml: id, id_item, quantity, price, total, name
+     * @since  1.0.0
      */
     public static function setOrderItems(int $orderId, array $data, ?Currency $currency = null): bool
     {
@@ -327,6 +329,7 @@ class OrderHelper
      *
      * @param int $itemId The order_items PK (id column)
      * @return object|null The DB row or null if not found
+     * @since  1.0.0
      */
     protected static function loadExistingItemRow(int $itemId): ?object
     {
@@ -356,6 +359,7 @@ class OrderHelper
      * @param array $itemsTable Products from #__alfa_items indexed by id
      * @param Currency $currency Currency object
      * @return array Array of configured item objects
+     * @since  1.0.0
      */
     protected static function configureCurrentItems(array $order_items, array $itemsTable, Currency $currency): array
     {
@@ -411,7 +415,7 @@ class OrderHelper
      *
      * @param array $newItems New item set (objects with id_item, quantity)
      * @param array $oldItemsByPK Old items indexed by row PK
-     * @since   3.3.0
+     * @since  1.0.0
      */
     protected static function handleStockAggregated(array $newItems, array $oldItemsByPK): void
     {
@@ -426,6 +430,7 @@ class OrderHelper
      *
      * @param int $orderId Order ID (for safety WHERE clause)
      * @param array $pksToRemove Row PKs to delete
+     * @since  1.0.0
      */
     protected static function deleteOrderItemsByPK(int $orderId, array $pksToRemove): void
     {
@@ -451,6 +456,7 @@ class OrderHelper
      *
      * @param int $orderId Order ID
      * @return array Items indexed by row PK (id)
+     * @since  1.0.0
      */
     protected static function getOlderOrderItems(int $orderId): array
     {
@@ -466,6 +472,7 @@ class OrderHelper
 
     /**
      * Get items from items table
+     * @since  1.0.0
      */
     protected static function getItemsWithGivenIDs(array $ids): array
     {
@@ -488,6 +495,7 @@ class OrderHelper
 
     /**
      * Get order currency
+     * @since  1.0.0
      */
     protected static function getOrderCurrency(int $orderId): Currency
     {
@@ -521,6 +529,7 @@ class OrderHelper
 
     /**
      * Get order
+     * @since  1.0.0
      */
     public static function getOrder(int $orderId)
     {
@@ -537,6 +546,7 @@ class OrderHelper
 
     /**
      * Save user info
+     * @since  1.0.0
      */
     public static function saveUserInfo(int $userInfoId, array $data): bool
     {
@@ -590,6 +600,7 @@ class OrderHelper
      * their currency — so prices/discounts/taxes reflect what THEY would see.
      *
      * @param int $orderId Order ID to load customer context from
+     * @since  1.0.0
      */
     public static function buildOrderPriceContext(int $orderId): \Alfa\Component\Alfa\Site\Service\Pricing\PriceContext
     {
@@ -643,6 +654,7 @@ class OrderHelper
      * @param \Alfa\Component\Alfa\Site\Service\Pricing\PriceContext $context Customer pricing context
      * @param int $limit Max results (default 20)
      * @return array Array of product objects with calculated prices
+     * @since  1.0.0
      */
     public static function searchProducts(
         string $searchTerm,
@@ -712,7 +724,7 @@ class OrderHelper
      *
      * @return \Joomla\CMS\MVC\Model\ListModel|null
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function bootItemsModel()
     {
@@ -736,6 +748,7 @@ class OrderHelper
      * @param \Alfa\Component\Alfa\Site\Service\Pricing\PriceContext $context Customer pricing context
      * @param int $quantity Quantity for price calculation (default 1)
      * @return object|null Product object with price fields or null
+     * @since  1.0.0
      */
     public static function getProductById(
         int $productId,
@@ -793,6 +806,7 @@ class OrderHelper
      * @param object $item Product object to attach prices to
      * @param object|null $priceResult Calculated PriceResult (null = fallback)
      * @param float $fallbackPrice Raw price if PriceResult unavailable
+     * @since  1.0.0
      */
     protected static function attachPriceResult(object $item, $priceResult, float $fallbackPrice = 0): void
     {
@@ -852,6 +866,7 @@ class OrderHelper
      * @param int|null $currencyId Currency id to match, or null/0 for default only
      *
      * @return array Map of item_id => price (float)
+     * @since  1.0.0
      */
     protected static function getBaseProductPrices(array $productIds, ?int $currencyId = null): array
     {

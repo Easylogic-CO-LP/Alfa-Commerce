@@ -13,6 +13,7 @@ namespace libphonenumber\geocoding\data\pt;
 
 /**
  * @internal
+ * @since  1.0.0
  */
 class Pt_238
 {

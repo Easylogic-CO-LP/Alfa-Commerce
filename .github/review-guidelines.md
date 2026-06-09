@@ -13,6 +13,7 @@ Only raise what you're confident about; acknowledge good work.
   Reject re-touching an already-published version (changes the sha256, breaks signed integrity). 🔴
 - Require **all three** for a schema change: `sql/updates/mysql/<ver>.sql` (that delta only) + the same
   folded into `sql/install.mysql.utf8.sql` + the version bump. Files removed → `files/removed/<ver>.json`. 🔴
+- Flag repo files placed at an **installed** path (e.g. `administrator/components/com_alfa/…`): the repo uses the **source** layout (`administrator/`, `site/`, `api/`, `media/com_alfa/`) that `alfa.xml` `<files folder>` maps on install — an installed-style path double-nests or won't package. Also flag new top-level files/folders not covered by any `alfa.xml` `<files>/<media>/<administration>` declaration (they silently won't ship). 🟡
 - Require **one column per `ALTER`** (Joomla's Database-Fix parser reads only the first), idempotent
   deltas (`IF [NOT] EXISTS`), and `#__` + utf8mb4 + indexes on new tables; reject duplicate
   `CREATE TABLE` in the install schema. 🔴

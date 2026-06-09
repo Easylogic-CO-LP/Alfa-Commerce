@@ -22,7 +22,7 @@ use Joomla\CMS\MVC\Controller\AdminController;
  * {@see \Alfa\Component\Alfa\Administrator\Model\NotificationsModel}, writes through
  * {@see NotificationHelper}.
  *
- * @since  1.0.5
+ * @since  1.0.0
  */
 class NotificationsController extends AdminController
 {
@@ -34,7 +34,7 @@ class NotificationsController extends AdminController
      * @param array $config Configuration.
      *
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public function getModel($name = 'Notification', $prefix = 'Administrator', $config = ['ignore_request' => true]): object
     {
@@ -48,7 +48,7 @@ class NotificationsController extends AdminController
      * open state across the refresh.
      *
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public function panel(): void
     {
@@ -71,7 +71,7 @@ class NotificationsController extends AdminController
      * Mark a notification read (records the current user).
      *
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public function markRead(): void
     {
@@ -91,7 +91,7 @@ class NotificationsController extends AdminController
      * Dismiss a notification → archive it to history.
      *
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public function dismiss(): void
     {
@@ -112,7 +112,7 @@ class NotificationsController extends AdminController
      * Guard: the current user may manage com_alfa.
      *
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     private function assertManage(): void
     {
@@ -127,7 +127,7 @@ class NotificationsController extends AdminController
      * @param array $payload The data to encode.
      *
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     private function respondJson(array $payload): void
     {

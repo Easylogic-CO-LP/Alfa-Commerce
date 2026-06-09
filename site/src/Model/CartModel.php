@@ -19,7 +19,7 @@ use Joomla\CMS\MVC\Model\FormModel;
 /**
  * Alfa model.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class CartModel extends FormModel   // Should this extend FormModel? Contact model does do that.
 {
@@ -32,7 +32,7 @@ class CartModel extends FormModel   // Should this extend FormModel? Contact mod
      *
      * @return CartHelper The cart helper.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getItem($pk = null)
     {
@@ -54,7 +54,7 @@ class CartModel extends FormModel   // Should this extend FormModel? Contact mod
      *
      * @return \Joomla\CMS\Form\Form|false The prepared form, or false on failure.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getForm($data = [], $loadData = true)
     {

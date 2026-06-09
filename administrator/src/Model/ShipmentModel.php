@@ -22,7 +22,7 @@ use Joomla\CMS\Table\Table;
 /**
  * Shipment model.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class ShipmentModel extends AdminModel
 {
@@ -36,7 +36,7 @@ class ShipmentModel extends AdminModel
     /**
      * @var null Item data
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $item = null;
 
@@ -48,7 +48,7 @@ class ShipmentModel extends AdminModel
      *
      * @return JForm|bool A \JForm object on success, false on failure
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getForm($data = [], $loadData = true)
     {
@@ -88,7 +88,7 @@ class ShipmentModel extends AdminModel
      *
      * @return mixed The data for the form.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function loadFormData()
     {
@@ -111,7 +111,7 @@ class ShipmentModel extends AdminModel
      *
      * @return mixed Object on success, false on failure.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getItem($pk = null)
     {
@@ -137,7 +137,7 @@ class ShipmentModel extends AdminModel
      *
      * @return bool True on success, false on failure.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function save($data)
     {
@@ -192,7 +192,7 @@ class ShipmentModel extends AdminModel
      *
      * @return bool True on success.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function delete(&$pks)
     {
@@ -217,7 +217,7 @@ class ShipmentModel extends AdminModel
      *
      * @return void
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function prepareTable($table)
     {

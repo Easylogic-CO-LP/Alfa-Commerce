@@ -57,7 +57,7 @@ use Throwable;
  * presentation layout id lives in this helper. Partials under
  * `layouts/emails/partials/` are overridable by templates.
  *
- * @since   1.0.4
+ * @since  1.0.0
  */
 class OrderEmailHelper
 {
@@ -119,7 +119,7 @@ class OrderEmailHelper
      *
      * @return string[] Ordered body position names.
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     public static function discoverPositions(string $layoutId): array
     {
@@ -152,7 +152,7 @@ class OrderEmailHelper
      *
      * @return array<int, array{type:string, name?:string}> Ordered entries.
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     public static function discoverSequence(string $layoutId): array
     {
@@ -246,7 +246,7 @@ class OrderEmailHelper
      * @return array<string, array<string, string>> Map of group key
      *                                              (`order`, `user`, `fields`, `site`) → token → label.
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     public static function availableTokens(): array
     {
@@ -294,7 +294,7 @@ class OrderEmailHelper
      * @return string Default HTML, or '' when no language in the chain
      *                translates the key.
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     public static function defaultContent(string $position, string $langTag): string
     {
@@ -322,7 +322,7 @@ class OrderEmailHelper
      *
      * @return array<string, string> position => default HTML.
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     public static function defaultsForLanguage(string $layoutId, string $langTag): array
     {
@@ -358,7 +358,7 @@ class OrderEmailHelper
      *
      * @return string[]
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function defaultLangChain(string $langTag): array
     {
@@ -385,7 +385,7 @@ class OrderEmailHelper
      *
      * @return string Translated text, or '' when untranslated.
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function translateInLanguage(string $key, string $langTag): string
     {
@@ -420,7 +420,7 @@ class OrderEmailHelper
      *
      * @return array<string, string> Map of token → human label.
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function loadFormFieldTokenCatalogue(): array
     {
@@ -501,7 +501,7 @@ class OrderEmailHelper
      *
      * @return string Final email HTML.
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     public static function previewForStatus(int $statusId, string $langTag, string $recipient): string
     {
@@ -570,7 +570,7 @@ class OrderEmailHelper
      *                          or the destination is missing — caller
      *                          surfaces the message to the admin.
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     public static function sendTestForStatus(
         int $orderId,
@@ -660,7 +660,7 @@ class OrderEmailHelper
      * whenever possible. Returns null when the table is empty.
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function loadMostRecentOrder(): ?object
     {
@@ -714,7 +714,7 @@ class OrderEmailHelper
      * id_language. Token values resolve to placeholder strings.
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function buildSyntheticOrder(): object
     {
@@ -738,7 +738,7 @@ class OrderEmailHelper
      * same PHP process.
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     public static function clearPositionsCache(): void
     {
@@ -761,7 +761,7 @@ class OrderEmailHelper
      * @param int $newStatusId Status the order is transitioning into.
      *
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public static function sendForStatusChange(int $orderId, int $newStatusId): void
     {
@@ -863,7 +863,7 @@ class OrderEmailHelper
      *                                      status, recipient, langTag).
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function dispatch(
         string $recipient,
@@ -928,7 +928,7 @@ class OrderEmailHelper
      *
      * @return array<string, mixed>
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function displayDataSkeleton(): array
     {
@@ -967,7 +967,7 @@ class OrderEmailHelper
      *
      * @return array<string, mixed>
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function buildLayoutContext(object $order, object $status, string $recipient, string $langTag): array
     {
@@ -1032,7 +1032,7 @@ class OrderEmailHelper
      *
      * @return string Final HTML payload for Mail::setBody().
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function renderEmailHtml(
         array $positions,
@@ -1085,7 +1085,7 @@ class OrderEmailHelper
      *
      * @return array<string, callable>
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function layoutHelperApi(array $positions, array $dataContext): array
     {
@@ -1128,7 +1128,7 @@ class OrderEmailHelper
      *
      * @return array<string, string>
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function decodePositions(string $json): array
     {
@@ -1152,7 +1152,7 @@ class OrderEmailHelper
      *
      * @return string Token-substituted output.
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     private static function applyTokens(string $template, array $tokens): string
     {
@@ -1194,7 +1194,7 @@ class OrderEmailHelper
      *
      * @return array<string, string>
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function buildTokens(object $order, object $status, string $langTag): array
     {
@@ -1259,7 +1259,7 @@ class OrderEmailHelper
      *
      * @return array<string, string>
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function resolveJoomlaUserTokens(int $idUser): array
     {
@@ -1329,7 +1329,7 @@ class OrderEmailHelper
      *
      * @return array<string, string>
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function resolveFormFieldTokens(int $addressId, string $langTag): array
     {
@@ -1385,7 +1385,7 @@ class OrderEmailHelper
      *
      * @return array<string, object> Map of machine_key → field row.
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function loadFormFieldRows(): array
     {
@@ -1458,7 +1458,7 @@ class OrderEmailHelper
      * @param int $addressId Row PK.
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function loadUserInfoRow(int $addressId): ?object
     {
@@ -1492,7 +1492,7 @@ class OrderEmailHelper
      * @param int $orderId Order PK.
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function loadOrder(int $orderId): ?object
     {
@@ -1535,7 +1535,7 @@ class OrderEmailHelper
      *
      * @return object|null Combined row or null when status doesn't exist.
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     private static function loadStatusForLanguage(int $statusId, string $langTag): ?object
     {
@@ -1597,7 +1597,7 @@ class OrderEmailHelper
      *
      * @return object|null Per-language row or null when missing.
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     private static function loadLangRow(int $statusId, string $langTag): ?object
     {
@@ -1634,7 +1634,7 @@ class OrderEmailHelper
      *
      * @return string Language tag like 'en-GB'.
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     private static function resolveLangTag(int $idLanguage): string
     {
@@ -1672,7 +1672,7 @@ class OrderEmailHelper
      *
      * @return array{0:string,1:string} [name, email]
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     private static function resolveCustomer(object $order): array
     {
@@ -1714,7 +1714,7 @@ class OrderEmailHelper
      *
      * @return string Customer email or '' when unknown.
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     private static function resolveCustomerEmail(object $order): string
     {
@@ -1736,7 +1736,7 @@ class OrderEmailHelper
      *
      * @return string[] Distinct, non-empty admin email addresses.
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     private static function resolveAdminRecipientEmails(int $statusId): array
     {
@@ -1779,7 +1779,7 @@ class OrderEmailHelper
      *
      * @return string Formatted date, or '' when input was null/empty.
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     private static function formatDate(?string $sqlDate): string
     {
@@ -1808,7 +1808,7 @@ class OrderEmailHelper
      *
      * @return string Formatted total (e.g. '€42.50') or ''.
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     private static function formatOrderTotalFromItems(array $items): string
     {
@@ -1840,7 +1840,7 @@ class OrderEmailHelper
      *
      * @return object[]
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function safeLoadItems(int $orderId): array
     {
@@ -1876,7 +1876,7 @@ class OrderEmailHelper
      * @return array<string, mixed> Keys: items, subtotal, shipping,
      *                              discount, tax, total.
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function buildTotals(int $orderId, array $items): array
     {
@@ -1934,7 +1934,7 @@ class OrderEmailHelper
      *
      * @return object|null Currency object or null when unresolvable.
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function resolveCurrency(array $items = [])
     {
@@ -1959,7 +1959,7 @@ class OrderEmailHelper
      * @param object|null $currency Currency object from resolveCurrency.
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function formatMoney($value, $currency): string
     {
@@ -1981,7 +1981,7 @@ class OrderEmailHelper
      * @param string $status Raw status string.
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function statusLabel(string $status): string
     {
@@ -2004,7 +2004,7 @@ class OrderEmailHelper
      *
      * @return object[] Each: {method, amount, status}.
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function safeLoadPayments(int $orderId, $currency): array
     {
@@ -2055,7 +2055,7 @@ class OrderEmailHelper
      *
      * @return object[] Each: {method, tracking, status}.
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function safeLoadShipments(int $orderId): array
     {

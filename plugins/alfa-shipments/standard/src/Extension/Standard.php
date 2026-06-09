@@ -203,7 +203,7 @@
  *
  * Path: plugins/alfa-shipments/standard/src/Extension/Standard.php
  *
- * @since  3.0.0
+ * @since  1.0.0
  */
 
 namespace Joomla\Plugin\AlfaShipments\Standard\Extension;
@@ -238,7 +238,7 @@ final class Standard extends ShipmentsPlugin
      * @param object $event ItemViewEvent
      *                      $event->getItem()   → product object
      *                      $event->getMethod() → shipment method record
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function onItemView($event): void
     {
@@ -258,7 +258,7 @@ final class Standard extends ShipmentsPlugin
      * @param object $event CartViewEvent
      *                      $event->getCart()    → cart object
      *                      $event->getMethod() → shipment method record
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function onCartView($event): void
     {
@@ -286,7 +286,7 @@ final class Standard extends ShipmentsPlugin
      *   $event->setShippingCostTaxExcl($cost) → set tax-exclusive cost
      *
      * @param object $event CalculateShippingCostEvent
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function onCalculateShippingCost($event): void
     {
@@ -339,7 +339,7 @@ final class Standard extends ShipmentsPlugin
      *
      * @param object $event OrderAfterPlaceEvent
      *                      $event->getOrder() → full order object
-     * @since   3.5.1
+     * @since  1.0.0
      */
     public function onOrderAfterPlace($event): void
     {
@@ -410,7 +410,7 @@ final class Standard extends ShipmentsPlugin
      *                      $event->getShipment() → shipment record
      *                      $event->getOrder()    → order object
      *                      $event->add(name, label) → register button
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function onGetActions($event): void
     {
@@ -480,7 +480,7 @@ final class Standard extends ShipmentsPlugin
      *                      $event->getAction()   → action name string
      *                      $event->getShipment() → shipment record
      *                      $event->getOrder()    → order object
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function onExecuteAction($event): void
     {
@@ -532,7 +532,7 @@ final class Standard extends ShipmentsPlugin
      *   - Send tracking email to customer
      *
      * @param object $event ExecuteShipmentActionEvent
-     * @since   4.0.0
+     * @since  1.0.0
      */
     private function handleMarkShipped($event): void
     {
@@ -587,7 +587,7 @@ final class Standard extends ShipmentsPlugin
      *   - FedEx: EVENT.DELIVERED webhook → auto-call this handler
      *
      * @param object $event ExecuteShipmentActionEvent
-     * @since   4.0.0
+     * @since  1.0.0
      */
     private function handleMarkDelivered($event): void
     {
@@ -639,7 +639,7 @@ final class Standard extends ShipmentsPlugin
      *   - FedEx: $fedex->cancelShipment($trackingNumber)
      *
      * @param object $event ExecuteShipmentActionEvent
-     * @since   4.0.0
+     * @since  1.0.0
      */
     private function handleCancel($event): void
     {
@@ -685,7 +685,7 @@ final class Standard extends ShipmentsPlugin
      * Show shipment details in a modal.
      *
      * @param object $event ExecuteShipmentActionEvent
-     * @since   3.0.0
+     * @since  1.0.0
      */
     private function handleViewDetails($event): void
     {
@@ -706,7 +706,7 @@ final class Standard extends ShipmentsPlugin
      * ShipmentsPlugin sets logIdentifierField = 'id_order_shipment'.
      *
      * @param object $event ExecuteShipmentActionEvent
-     * @since   3.5.0
+     * @since  1.0.0
      */
     private function handleViewLogs($event): void
     {
@@ -732,7 +732,7 @@ final class Standard extends ShipmentsPlugin
      *   $event->setLayoutData(['events' => $tracking->events, ...]);
      *
      * @param object $event ExecuteShipmentActionEvent
-     * @since   3.0.0
+     * @since  1.0.0
      */
     private function handleTrack($event): void
     {
@@ -769,7 +769,7 @@ final class Standard extends ShipmentsPlugin
      * @param object $cart Cart object (getData() returns cart data)
      * @param object $method Shipping method record with params (cost zones)
      * @return float|int Shipping cost (0 if no match)
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function calculateShippingCost($cart, $method)
     {
@@ -825,7 +825,7 @@ final class Standard extends ShipmentsPlugin
      * @param array $shippingMethods Cost packages with dimension limits
      * @param string|int $zipCode Delivery zip (-1 to skip check)
      * @return float|int Shipping cost (0 if nothing fits)
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function findBestShippingMethod($products, $shippingMethods, $zipCode = -1)
     {
@@ -861,7 +861,7 @@ final class Standard extends ShipmentsPlugin
      *
      * @param array $products Cart items with dimension properties
      * @return array ['width' => float, 'height' => float, 'depth' => float, 'weight' => float]
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getTotalDimensions($products)
     {
@@ -898,7 +898,7 @@ final class Standard extends ShipmentsPlugin
      *
      * @param object $shipment Shipment record
      * @return float Shipping cost (tax incl) as a plain float
-     * @since   3.5.0
+     * @since  1.0.0
      */
     private function getShipmentCost(object $shipment): float
     {

@@ -23,6 +23,7 @@ class DateRangeHelper
      * @param string $endField The quoted-or-unquoted end date column name.
      *
      * @return string The SQL condition.
+     * @since  1.0.0
      */
     public function getActiveCondition(string $startField, string $endField): string
     {

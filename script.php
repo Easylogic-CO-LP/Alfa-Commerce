@@ -47,7 +47,7 @@ use Joomla\CMS\Installer\InstallerScript;
  *  • After any library install/update the PSR-4 namespace cache is flushed so the
  *    library's <namespace> tag is picked up on the very next request.
  *
- * @since  0.1b
+ * @since  1.0.0
  */
 class com_alfaInstallerScript extends InstallerScript
 {
@@ -147,6 +147,7 @@ class com_alfaInstallerScript extends InstallerScript
      *
      * @return  bool
      * @throws  \Exception
+     * @since  1.0.0
      */
     public function preflight($type, $parent): bool
     {
@@ -180,6 +181,7 @@ class com_alfaInstallerScript extends InstallerScript
      * @param   object  $parent
      *
      * @return  void
+     * @since  1.0.0
      */
     public function install($parent): void
     {
@@ -197,6 +199,7 @@ class com_alfaInstallerScript extends InstallerScript
      * @param   object  $parent
      *
      * @return  void
+     * @since  1.0.0
      */
     public function update($parent): void
     {
@@ -214,6 +217,7 @@ class com_alfaInstallerScript extends InstallerScript
      * @param   object  $parent
      *
      * @return  void
+     * @since  1.0.0
      */
     public function uninstall($parent): void
     {
@@ -234,6 +238,7 @@ class com_alfaInstallerScript extends InstallerScript
      * @param   object  $parent
      *
      * @return  bool
+     * @since  1.0.0
      */
     public function postflight($type, $parent): bool
     {
@@ -387,6 +392,7 @@ class com_alfaInstallerScript extends InstallerScript
      * @param   string  $fromVersion  The version being updated from.
      *
      * @return  void
+     * @since  1.0.0
      */
     private function removeObsoleteFiles(string $fromVersion): void
     {
@@ -462,6 +468,7 @@ class com_alfaInstallerScript extends InstallerScript
      * @param   string  $type
      *
      * @return  void
+     * @since  1.0.0
      */
     private function applyDefaultParams(string $type): void
     {
@@ -528,6 +535,7 @@ class com_alfaInstallerScript extends InstallerScript
      * @param   object  $parent
      *
      * @return  void
+     * @since  1.0.0
      */
     private function installLibraries($parent): void
     {
@@ -593,6 +601,7 @@ class com_alfaInstallerScript extends InstallerScript
      * @param   object  $parent
      *
      * @return  void
+     * @since  1.0.0
      */
     private function uninstallLibraries($parent): void
     {
@@ -652,6 +661,7 @@ class com_alfaInstallerScript extends InstallerScript
      * because Joomla core does not invalidate this cache automatically.
      *
      * @return  void
+     * @since  1.0.0
      */
     private function flushNamespaceCache(): void
     {
@@ -726,6 +736,7 @@ class com_alfaInstallerScript extends InstallerScript
      * @param   mixed  $parent  The installer adapter providing the package manifest
      *
      * @return  void
+     * @since  1.0.0
      */
     private function uninstallPlugins($parent): void
     {
@@ -825,6 +836,7 @@ class com_alfaInstallerScript extends InstallerScript
      * @param   mixed  $parent  The installer adapter providing the package manifest
      *
      * @return  void
+     * @since  1.0.0
      */
     private function uninstallModules($parent): void
     {
@@ -891,6 +903,7 @@ class com_alfaInstallerScript extends InstallerScript
      * @param   string|null  $folder  Plugin group (only used for plugins)
      *
      * @return  bool
+     * @since  1.0.0
      */
     private function isAlreadyInstalled(string $type, string $name, ?string $folder = null): bool
     {

@@ -26,6 +26,7 @@ class CategoriesField extends ListField
      * descendants to prevent a category from becoming its own parent (cycle).
      *
      * @return array The option set keyed by 'cat-<id>'
+     * @since  1.0.0
      */
     protected function getOptions()
     {

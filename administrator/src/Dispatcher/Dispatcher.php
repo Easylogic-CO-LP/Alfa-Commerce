@@ -18,7 +18,7 @@ use Throwable;
 /**
  * ComponentDispatcher class for Com_Alfa
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class Dispatcher extends ComponentDispatcher
 {
@@ -27,7 +27,7 @@ class Dispatcher extends ComponentDispatcher
      *
      * @return void
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function dispatch()
     {

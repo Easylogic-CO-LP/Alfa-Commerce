@@ -22,7 +22,7 @@ defined('_JEXEC') or die;
  *
  * To make a new entity's alias translatable, add its table here.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 final class MultilingualAliasConfig
 {
@@ -32,7 +32,7 @@ final class MultilingualAliasConfig
      *
      * @var array<string, string[]>
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public const FIELDS = [
         '#__alfa_categories' => ['alias'],
@@ -47,7 +47,7 @@ final class MultilingualAliasConfig
      *
      * @var array<string, string[]>
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public const SCOPE = [
         '#__alfa_categories' => ['parent_id'],

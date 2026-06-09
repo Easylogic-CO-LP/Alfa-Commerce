@@ -18,7 +18,7 @@
  *   $event->getRows()   → media rows about to be deleted ({path, thumbnail, …})
  *   $event->getPaths()  → flattened relative path strings of those rows
  *
- * @since  1.0.2
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\Media;
@@ -32,7 +32,7 @@ use Joomla\CMS\Event\AbstractImmutableEvent;
 /**
  * Pre-delete cleanup event (no outputs).
  *
- * @since  1.0.2
+ * @since  1.0.0
  */
 class BeforeDeleteEvent extends AbstractImmutableEvent
 {
@@ -44,7 +44,7 @@ class BeforeDeleteEvent extends AbstractImmutableEvent
      * Get the media rows about to be deleted.
      *
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     public function getRows(): array
     {
@@ -55,7 +55,7 @@ class BeforeDeleteEvent extends AbstractImmutableEvent
      * Get the flattened relative path strings of the rows about to be deleted.
      *
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     public function getPaths(): array
     {

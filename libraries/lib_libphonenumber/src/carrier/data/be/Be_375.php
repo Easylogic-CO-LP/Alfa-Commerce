@@ -13,6 +13,7 @@ namespace libphonenumber\carrier\data\be;
 
 /**
  * @internal
+ * @since  1.0.0
  */
 class Be_375
 {

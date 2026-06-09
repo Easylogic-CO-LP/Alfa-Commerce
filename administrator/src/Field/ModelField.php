@@ -33,6 +33,7 @@ class ModelField extends ListField
      * attributes. Results are cached per attribute combination for the request.
      *
      * @return array The option set keyed by '<model>-<value>'
+     * @since  1.0.0
      */
     protected function getOptions()
     {
@@ -70,6 +71,7 @@ class ModelField extends ListField
      * @param string $orderDir Order direction ('ASC' or 'DESC')
      *
      * @return array List of ['value' => ..., 'text' => ..., 'disable' => false]
+     * @since  1.0.0
      */
     protected function loadItems(string $componentName, string $modelName, string $columnValue, string $columnText, string $orderBy, string $orderDir): array
     {

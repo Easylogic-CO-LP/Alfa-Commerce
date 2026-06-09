@@ -71,7 +71,7 @@ class Router extends RouterView
      * @param SiteApplication $app Application object
      * @param AbstractMenu $menu Menu object
      *
-     * @since   1.0.0
+     * @since  1.0.0
      */
     public function __construct(SiteApplication $app, AbstractMenu $menu)
     {
@@ -127,7 +127,7 @@ class Router extends RouterView
      *
      * @return array The cleaned query parameters
      *
-     * @since 1.0.0
+     * @since  1.0.0
      */
     public function preprocess($query): array
     {
@@ -179,7 +179,7 @@ class Router extends RouterView
      *
      * @return array Cleaned array
      *
-     * @since 1.0.0
+     * @since  1.0.0
      */
     protected function cleanEmptyValues(array $array): array
     {
@@ -216,7 +216,7 @@ class Router extends RouterView
      *
      * @return array Array of URL segments indexed by category ID, always includes '0:root'
      *
-     * @since   1.0.0
+     * @since  1.0.0
      */
     public function getItemsSegment($id, $query): array
     {
@@ -253,7 +253,7 @@ class Router extends RouterView
      *
      * @return int|false Category ID or false if not found
      *
-     * @since   1.0.0
+     * @since  1.0.0
      */
     public function getItemsId($segment, $query)
     {
@@ -296,7 +296,7 @@ class Router extends RouterView
      *
      * @return array The segments of this item
      *
-     * @since   1.0.0
+     * @since  1.0.0
      */
     public function getItemSegment($id, $query): array
     {
@@ -342,7 +342,7 @@ class Router extends RouterView
      *
      * @return int The id of this item or 0 if not found
      *
-     * @since   1.0.0
+     * @since  1.0.0
      */
     public function getItemId($segment, $query)
     {
@@ -387,7 +387,7 @@ class Router extends RouterView
      *
      * @return array The segments of this manufacturer
      *
-     * @since   1.0.0
+     * @since  1.0.0
      */
     public function getManufacturerSegment($id, $query): array
     {
@@ -432,7 +432,7 @@ class Router extends RouterView
      *
      * @return int The id of this manufacturer or 0 if not found
      *
-     * @since   1.0.0
+     * @since  1.0.0
      */
     public function getManufacturerId($segment, $query)
     {

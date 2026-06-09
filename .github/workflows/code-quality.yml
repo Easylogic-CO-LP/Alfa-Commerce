@@ -9,6 +9,9 @@ on:
 jobs:
   php-cs-fixer:
     name: PHP CS Fixer
+    # Auto-fix + commit only on PRs (head feature branch is pushable); a push to the
+    # protected main/developer branches is rejected by the ruleset.
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: write

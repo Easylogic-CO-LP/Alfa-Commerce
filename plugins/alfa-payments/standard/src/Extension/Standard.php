@@ -291,7 +291,7 @@
  *
  * Path: plugins/alfa-payments/standard/src/Extension/Standard.php
  *
- * @since  3.0.0
+ * @since  1.0.0
  */
 
 namespace Joomla\Plugin\AlfaPayments\Standard\Extension;
@@ -341,7 +341,7 @@ final class Standard extends PaymentsPlugin
      * For PayPal: could show "PayPal accepted" logo.
      *
      * @param object $event ItemViewEvent
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function onItemView($event): void
     {
@@ -364,7 +364,7 @@ final class Standard extends PaymentsPlugin
      * For PayPal: could render the PayPal Smart Buttons.
      *
      * @param object $event CartViewEvent
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function onCartView($event): void
     {
@@ -399,7 +399,7 @@ final class Standard extends PaymentsPlugin
      *   $event->getMethod()   → Payment method record
      *
      * @param object $event OrderProcessViewEvent
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function onOrderProcessView($event): void
     {
@@ -420,7 +420,7 @@ final class Standard extends PaymentsPlugin
      *   $event->getMethod()   → Payment method record
      *
      * @param object $event OrderCompleteViewEvent
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function onOrderCompleteView($event): void
     {
@@ -473,7 +473,7 @@ final class Standard extends PaymentsPlugin
      *
      * @param object $event OrderAfterPlaceEvent
      *                      $event->getOrder() → full order object
-     * @since   3.5.1
+     * @since  1.0.0
      */
     public function onOrderAfterPlace($event): void
     {
@@ -552,7 +552,7 @@ final class Standard extends PaymentsPlugin
      *   $event->getOrder()    → Full order object
      *
      * @param object $event GetPaymentActionsEvent
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function onGetActions($event): void
     {
@@ -623,7 +623,7 @@ final class Standard extends PaymentsPlugin
      *   $event->setModalTitle() → title for modal actions
      *
      * @param object $event ExecutePaymentActionEvent
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function onExecuteAction($event): void
     {
@@ -680,7 +680,7 @@ final class Standard extends PaymentsPlugin
      * rather than an admin button click.
      *
      * @param object $event ExecutePaymentActionEvent
-     * @since   4.0.0
+     * @since  1.0.0
      */
     private function handleMarkPaid($event): void
     {
@@ -752,7 +752,7 @@ final class Standard extends PaymentsPlugin
      *       ->save();
      *
      * @param object $event ExecutePaymentActionEvent
-     * @since   4.0.0
+     * @since  1.0.0
      */
     private function handleCancel($event): void
     {
@@ -832,7 +832,7 @@ final class Standard extends PaymentsPlugin
      *     ->partialRefund()  // if partial amount
      *
      * @param object $event ExecutePaymentActionEvent
-     * @since   4.0.0
+     * @since  1.0.0
      */
     private function handleRefund($event): void
     {
@@ -905,7 +905,7 @@ final class Standard extends PaymentsPlugin
      * transaction timeline, etc.
      *
      * @param object $event ExecutePaymentActionEvent
-     * @since   3.0.0
+     * @since  1.0.0
      */
     private function handleViewDetails($event): void
     {
@@ -929,7 +929,7 @@ final class Standard extends PaymentsPlugin
      * PaymentsPlugin sets logIdentifierField = 'id_order_payment'.
      *
      * @param object $event ExecutePaymentActionEvent
-     * @since   3.5.0
+     * @since  1.0.0
      */
     private function handleViewLogs($event): void
     {
@@ -973,7 +973,7 @@ final class Standard extends PaymentsPlugin
      *
      * @param object $payment Payment record
      * @return float Payment amount as a plain float
-     * @since   3.5.0
+     * @since  1.0.0
      */
     private function getPaymentAmount(object $payment): float
     {

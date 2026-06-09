@@ -19,7 +19,7 @@
  *   $event->getOrigin()  → media origin / context ('item'|'category'|...)
  *   $event->getField()   → logical field name ('image'|'thumbnail')
  *
- * @since  1.0.2
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\Media;
@@ -33,7 +33,7 @@ use Joomla\CMS\Event\AbstractImmutableEvent;
 /**
  * Abstract base for the alfa-media events.
  *
- * @since  1.0.2
+ * @since  1.0.0
  */
 abstract class MediaEvent extends AbstractImmutableEvent
 {
@@ -45,7 +45,7 @@ abstract class MediaEvent extends AbstractImmutableEvent
      * Get the absolute source path of the upload.
      *
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     public function getSource(): string
     {
@@ -56,7 +56,7 @@ abstract class MediaEvent extends AbstractImmutableEvent
      * Get the absolute destination path the component proposes for the file.
      *
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     public function getDest(): string
     {
@@ -68,7 +68,7 @@ abstract class MediaEvent extends AbstractImmutableEvent
      * 'thumbnail' | ...).
      *
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     public function getOrigin(): string
     {
@@ -79,7 +79,7 @@ abstract class MediaEvent extends AbstractImmutableEvent
      * Get the logical field name ('image' | 'thumbnail').
      *
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     public function getField(): string
     {

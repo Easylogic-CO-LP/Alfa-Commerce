@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Site\Service\Pricing;
  * Price Breakdown
  *
  * Detailed step-by-step calculation breakdown
+ * @since  1.0.0
  */
 class PriceBreakdown
 {
@@ -20,6 +21,7 @@ class PriceBreakdown
 
     /**
      * Add a calculation step
+     * @since  1.0.0
      */
     public function addStep(string $description, Money $amount, string $operation): void
     {
@@ -35,6 +37,7 @@ class PriceBreakdown
 
     /**
      * Export the breakdown steps as a plain array.
+     * @since  1.0.0
      */
     public function toArray(): array
     {

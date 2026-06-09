@@ -13,6 +13,7 @@ namespace libphonenumber\geocoding\data\tr;
 
 /**
  * @internal
+ * @since  1.0.0
  */
 class Tr_90
 {

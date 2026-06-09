@@ -28,6 +28,7 @@ class FormfieldgroupModel extends AdminModel
      * @param bool $loadData True to load form data from the model state.
      *
      * @return \Joomla\CMS\Form\Form|false The Form object on success, false on failure.
+     * @since  1.0.0
      */
     public function getForm($data = [], $loadData = true)
     {
@@ -43,6 +44,7 @@ class FormfieldgroupModel extends AdminModel
      * and falling back to the loaded item.
      *
      * @return mixed The data for the form.
+     * @since  1.0.0
      */
     protected function loadFormData()
     {
@@ -62,6 +64,7 @@ class FormfieldgroupModel extends AdminModel
      * @param \Joomla\CMS\Table\Table $table The table object.
      *
      * @return void
+     * @since  1.0.0
      */
     protected function prepareTable($table)
     {
@@ -79,6 +82,7 @@ class FormfieldgroupModel extends AdminModel
     /**
      * Delete groups; any fields referencing a deleted group are moved to ungrouped (group_id = 0).
      * Returns via parent::delete; callers see the standard success/failure flow.
+     * @since  1.0.0
      */
     public function delete(&$pks)
     {

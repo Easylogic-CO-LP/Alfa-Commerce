@@ -26,7 +26,7 @@
  *
  * @package    Com_Alfa
  * @version    4.2.0
- * @since      4.1.0
+ * @since  1.0.0
  */
 (function() {
     'use strict';

@@ -24,7 +24,7 @@ use Joomla\CMS\Association\AssociationExtensionHelper;
  * Site helper namespace; the Site namespace is registered for the component on
  * the frontend where the switcher runs.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class AssociationsHelper extends AssociationExtensionHelper
 {
@@ -32,7 +32,7 @@ class AssociationsHelper extends AssociationExtensionHelper
      * The extension name.
      *
      * @var string
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $extension = 'com_alfa';
 
@@ -40,7 +40,7 @@ class AssociationsHelper extends AssociationExtensionHelper
      * Item types that take part in language switching.
      *
      * @var string[]
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $itemTypes = ['item', 'manufacturer', 'items'];
 
@@ -48,7 +48,7 @@ class AssociationsHelper extends AssociationExtensionHelper
      * This component supports associations.
      *
      * @var bool
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $associationsSupport = true;
 
@@ -63,7 +63,7 @@ class AssociationsHelper extends AssociationExtensionHelper
      *
      * @return array
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getAssociationsForItem($id = 0, $view = null)
     {

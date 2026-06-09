@@ -18,7 +18,7 @@
  * Inputs: source, dest, origin, field, maxWidth, maxHeight, allowedMimes.
  * Outputs: setProcessed()/isProcessed() and setFinalPath()/getFinalPath().
  *
- * @since  1.0.2
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\Media;
@@ -30,7 +30,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Media;
 /**
  * Thumbnail processing event.
  *
- * @since  1.0.2
+ * @since  1.0.0
  */
 class ThumbnailEvent extends BeforeProcessEvent
 {

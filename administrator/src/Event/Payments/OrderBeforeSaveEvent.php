@@ -16,7 +16,7 @@ class OrderBeforeSaveEvent extends PaymentsEvent
      *
      * @return mixed The cart object
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getCart()
     {

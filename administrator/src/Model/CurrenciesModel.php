@@ -18,7 +18,7 @@ use Joomla\CMS\MVC\Model\ListModel;
 /**
  * Methods supporting a list of Currencies records.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class CurrenciesModel extends ListModel
 {
@@ -28,7 +28,7 @@ class CurrenciesModel extends ListModel
      * @param array $config An optional associative array of configuration settings.
     *
     * @see        JController
-    * @since      1.6
+    * @since  1.0.0
     */
     public function __construct($config = [], ?MVCFactoryInterface $factory = null)
     {
@@ -60,6 +60,7 @@ class CurrenciesModel extends ListModel
      * @return void
      *
      * @throws Exception
+     * @since  1.0.0
      */
     protected function populateState($ordering = 'a.id', $direction = 'ASC')
     {
@@ -77,7 +78,7 @@ class CurrenciesModel extends ListModel
      *
      * @return string A store id.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function getStoreId($id = '')
     {
@@ -93,7 +94,7 @@ class CurrenciesModel extends ListModel
      *
      * @return DatabaseQuery
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function getListQuery()
     {
@@ -158,6 +159,7 @@ class CurrenciesModel extends ListModel
      * Get an array of data items
      *
      * @return mixed Array of data items on success, false on failure.
+     * @since  1.0.0
      */
     public function getItems()
     {

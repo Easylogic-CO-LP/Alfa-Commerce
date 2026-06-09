@@ -18,7 +18,7 @@ use Joomla\CMS\Versioning\VersionableControllerTrait;
 /**
  * Item controller class.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class ItemController extends FormController
 {
@@ -33,7 +33,7 @@ class ItemController extends FormController
      *
      * @return bool True if successful, false otherwise and internal error is set.
      *
-     * @since   1.6
+     * @since  1.0.0
      */
     public function batch($model = null)
     {

@@ -22,7 +22,7 @@ use Joomla\Event\SubscriberInterface;
 /**
  * Web Services adapter for com_contact.
  *
- * @since  4.0.0
+ * @since  1.0.0
  */
 final class Alfa extends CMSPlugin implements SubscriberInterface
 {
@@ -30,7 +30,7 @@ final class Alfa extends CMSPlugin implements SubscriberInterface
      * Returns an array of events this subscriber will listen to.
      *
      *
-     * @since   5.1.0
+     * @since  1.0.0
      */
     public static function getSubscribedEvents(): array
     {

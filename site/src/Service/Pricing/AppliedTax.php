@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Site\Service\Pricing;
  * Applied Tax
  *
  * Represents a tax that has been applied to a price
+ * @since  1.0.0
  */
 class AppliedTax
 {
@@ -35,6 +36,7 @@ class AppliedTax
 
     /**
      * Export the applied tax as a plain array.
+     * @since  1.0.0
      */
     public function toArray(): array
     {

@@ -70,7 +70,7 @@ use SimpleXMLElement;
  * Standard Joomla field layouts assume a single input element and are
  * incompatible with the per-language input structure this field produces.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class MultilingualEditorField extends EditorField
 {
@@ -101,7 +101,7 @@ class MultilingualEditorField extends EditorField
      * @param string|null $group Field name group.
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function setup(SimpleXMLElement $element, $value, $group = null): bool
     {
@@ -154,7 +154,7 @@ class MultilingualEditorField extends EditorField
      *
      * @return string Ready-to-render HTML.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function getInput(): string
     {
@@ -197,7 +197,7 @@ class MultilingualEditorField extends EditorField
      *
      * @return bool|Exception True if valid, Exception on failure.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function validate($value, $group = null, ?\Joomla\Registry\Registry $input = null): bool|Exception
     {
@@ -224,7 +224,7 @@ class MultilingualEditorField extends EditorField
      * @param array $values Keyed by formatted lang code e.g. 'en_gb'.
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private function renderSingleLanguage(
         \Joomla\CMS\Editor\Editor $editor,
@@ -255,7 +255,7 @@ class MultilingualEditorField extends EditorField
      * @param array $values Keyed by formatted lang code e.g. 'en_gb'.
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private function renderTabSet(
         \Joomla\CMS\Editor\Editor $editor,
@@ -320,7 +320,7 @@ class MultilingualEditorField extends EditorField
      * @param string $value Existing translation value.
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private function buildEditorHtml(
         \Joomla\CMS\Editor\Editor $editor,
@@ -355,7 +355,7 @@ class MultilingualEditorField extends EditorField
      * @param object $language Language object from LanguageHelper::getLanguages().
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private function buildTabLabel(object $language): string
     {
@@ -388,7 +388,7 @@ class MultilingualEditorField extends EditorField
      * @param array $languages Keyed by raw lang code e.g. 'en-GB'.
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private function normaliseLangEntries(array $languages): array
     {
@@ -413,7 +413,7 @@ class MultilingualEditorField extends EditorField
      * @param string $langCode Raw code as returned by LanguageHelper.
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private function formatLangCode(string $langCode): string
     {
@@ -427,7 +427,7 @@ class MultilingualEditorField extends EditorField
      *
      * @return string e.g. 'jform[desc_en_gb]'
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private function buildInputName(string $formattedLangCode): string
     {

@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Site\Service\Pricing;
  * Tax Summary
  *
  * Aggregates all tax information
+ * @since  1.0.0
  */
 class TaxSummary
 {
@@ -29,6 +30,7 @@ class TaxSummary
 
     /**
      * Get the total tax amount.
+     * @since  1.0.0
      */
     public function getTotal(): Money
     {
@@ -37,6 +39,7 @@ class TaxSummary
 
     /**
      * Get the effective (blended) tax rate.
+     * @since  1.0.0
      */
     public function getEffectiveRate(): float
     {
@@ -47,6 +50,7 @@ class TaxSummary
      * Get the list of individually applied taxes.
      *
      * @return AppliedTax[]
+     * @since  1.0.0
      */
     public function getApplied(): array
     {
@@ -55,6 +59,7 @@ class TaxSummary
 
     /**
      * Whether any positive tax was applied.
+     * @since  1.0.0
      */
     public function hasTaxes(): bool
     {
@@ -63,6 +68,7 @@ class TaxSummary
 
     /**
      * Get the number of applied taxes.
+     * @since  1.0.0
      */
     public function getCount(): int
     {
@@ -71,6 +77,7 @@ class TaxSummary
 
     /**
      * Export the tax summary (total, effective rate, count, applied taxes) as a plain array.
+     * @since  1.0.0
      */
     public function toArray(): array
     {

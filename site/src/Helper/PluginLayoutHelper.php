@@ -18,7 +18,7 @@ defined('_JEXEC') or die;
 /**
  * Class AlfaFrontendHelper
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class PluginLayoutHelper
 {
@@ -32,7 +32,7 @@ class PluginLayoutHelper
      *
      * @return FileLayout The resolved file layout.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function pluginLayout($pluginType, $pluginName, $fileName): FileLayout
     {
@@ -64,7 +64,7 @@ class PluginLayoutHelper
      *
      * @return FileLayout The default component layout, or an empty layout when it cannot be resolved.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function getDefaultPluginLayout($type): FileLayout
     {
@@ -85,7 +85,7 @@ class PluginLayoutHelper
      *
      * @return string The default layout filename, or an empty string when none applies.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function getLayoutDefaultFilename(): string
     {
@@ -107,7 +107,7 @@ class PluginLayoutHelper
      *
      * @return FileLayout A dummy layout whose render() output is ''.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function getEmptyLayout(): FileLayout
     {

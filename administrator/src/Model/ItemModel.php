@@ -51,7 +51,7 @@ use Throwable;
  * All sync operations are wrapped in try/catch and are NON-FATAL — a sync
  * failure is logged as a warning but never blocks the admin save operation.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class ItemModel extends AdminModel
 {
@@ -70,7 +70,7 @@ class ItemModel extends AdminModel
      *
      * @return Form|bool A Form object on success, false on failure
      *
-     * @since   1.6
+     * @since  1.0.0
      */
 
     protected $item = null;
@@ -93,7 +93,7 @@ class ItemModel extends AdminModel
      *
      * @return bool True on success.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function batchUser($value, $pks, $contexts)
     {
@@ -125,7 +125,7 @@ class ItemModel extends AdminModel
      *
      * @return bool True on success.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function batchUserGroup($value, $pks, $contexts)
     {
@@ -156,7 +156,7 @@ class ItemModel extends AdminModel
      *
      * @return bool True on success.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function batchManufacturer($value, $pks, $contexts)
     {
@@ -188,7 +188,7 @@ class ItemModel extends AdminModel
      *
      * @return bool True on success.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function batchCategory($value, $pks, $contexts)
     {
@@ -228,7 +228,7 @@ class ItemModel extends AdminModel
      *
      * @return \Joomla\CMS\Form\Form|false The Form object on success, false on failure.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getForm($data = [], $loadData = true)
     {
@@ -274,7 +274,7 @@ class ItemModel extends AdminModel
      *
      * @return mixed The data for the form.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function loadFormData()
     {
@@ -295,7 +295,7 @@ class ItemModel extends AdminModel
      *
      * @return mixed Object on success, false on failure.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
 
     public function getItem($pk = null)
@@ -347,7 +347,7 @@ class ItemModel extends AdminModel
      *
      * @return bool True on success, False on error.
      *
-     * @since   1.6
+     * @since  1.0.0
      */
     public function save($data)
     {
@@ -492,7 +492,7 @@ class ItemModel extends AdminModel
      *
      * @return bool True on success.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function publish(&$pks, $value = 1)
     {
@@ -555,7 +555,7 @@ class ItemModel extends AdminModel
      *
      * @return bool True on success.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function delete(&$pks)
     {
@@ -609,7 +609,7 @@ class ItemModel extends AdminModel
      *
      * @return array An array of price rows (associative), empty if id is invalid.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getPrices($id)
     {
@@ -645,7 +645,7 @@ class ItemModel extends AdminModel
      *
      * @return bool True on success, false if input is invalid.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function setPrices($productId, $prices)
     {
@@ -724,7 +724,7 @@ class ItemModel extends AdminModel
      *
      * @return void
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function prepareTable($table)
     {

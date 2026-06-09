@@ -9,7 +9,7 @@
 
 /**
  * @package    Alfa Commerce
- * @since      1.0.1
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Site\Model;
@@ -53,7 +53,7 @@ use Joomla\CMS\Router\Route;
  * Displayed prices on listing cards are computed live by PriceCalculator in
  * getItems(). The index is used ONLY for filtering — never for display.
  *
- * @since 1.0.1
+ * @since  1.0.0
  */
 class ItemsModel extends UrlListModel
 {
@@ -120,6 +120,7 @@ class ItemsModel extends UrlListModel
      *
      * @param string|null $ordering
      * @param string|null $direction
+     * @since  1.0.0
      */
     protected function populateState($ordering = null, $direction = null): void
     {
@@ -136,6 +137,7 @@ class ItemsModel extends UrlListModel
      * Get pagination object, appending the navigation category id to page URLs.
      *
      * @return \Joomla\CMS\Pagination\Pagination
+     * @since  1.0.0
      */
     public function getPagination()
     {
@@ -154,6 +156,7 @@ class ItemsModel extends UrlListModel
 
     /**
      * Return subcategories of the current navigation category.
+     * @since  1.0.0
      */
     public function getItemsCategories(): array
     {
@@ -179,6 +182,7 @@ class ItemsModel extends UrlListModel
 
     /**
      * Return the current navigation category, or null when browsing all.
+     * @since  1.0.0
      */
     public function getItemsCategory(): ?object
     {
@@ -206,6 +210,7 @@ class ItemsModel extends UrlListModel
      * Override the pricing intent (default: PricingIntent::catalog()).
      *
      * @return $this
+     * @since  1.0.0
      */
     public function setPricingIntent(PricingIntent $intent): self
     {
@@ -217,6 +222,7 @@ class ItemsModel extends UrlListModel
      * Override the price calculator (primarily used in unit tests).
      *
      * @return $this
+     * @since  1.0.0
      */
     public function setPriceCalculator(PriceCalculator $calculator): self
     {
@@ -226,6 +232,7 @@ class ItemsModel extends UrlListModel
 
     /**
      * Lazy-load the price calculator.
+     * @since  1.0.0
      */
     protected function getPriceCalculator(): PriceCalculator
     {
@@ -261,6 +268,7 @@ class ItemsModel extends UrlListModel
      *   filter.discount_percent_min → pf.discount_percent >= X
      *
      * @return \Joomla\Database\QueryInterface
+     * @since  1.0.0
      */
     public function getListQuery()
     {
@@ -410,6 +418,7 @@ class ItemsModel extends UrlListModel
      * current visitor's currency, place, and usergroups.
      *
      * @param \Joomla\Database\QueryInterface $query Mutated in place
+     * @since  1.0.0
      */
     protected function applyPriceIndexJoin($query): void
     {
@@ -463,6 +472,7 @@ class ItemsModel extends UrlListModel
      * only for filtering. This guarantees 100% accurate display prices.
      *
      * @return array
+     * @since  1.0.0
      */
     public function getItems()
     {
@@ -542,6 +552,7 @@ class ItemsModel extends UrlListModel
      * of prices visible under the other active filters (search, category, etc.).
      *
      * @return array{min: float|null, max: float|null}
+     * @since  1.0.0
      */
     public function getAvailablePriceRange(): array
     {
@@ -576,6 +587,7 @@ class ItemsModel extends UrlListModel
      * Return available manufacturers for the current non-manufacturer filters.
      *
      * @return array Keyed by id: [1 => ['id' => 1, 'name' => 'Nike'], ...]
+     * @since  1.0.0
      */
     public function getAvailableManufacturers(): array
     {
@@ -599,6 +611,7 @@ class ItemsModel extends UrlListModel
      * Return available categories for the current non-category filters.
      *
      * @return array Keyed by id: [2 => ['id' => 2, 'name' => 'Shoes'], ...]
+     * @since  1.0.0
      */
     public function getAvailableCategories(): array
     {
@@ -630,6 +643,7 @@ class ItemsModel extends UrlListModel
      * faceted" for accurate option availability.
      *
      * @param string[] $excludeKeys Filter state keys to exclude
+     * @since  1.0.0
      */
     public function createFilterSubModel(array $excludeKeys): self
     {
@@ -671,6 +685,7 @@ class ItemsModel extends UrlListModel
      * @param array $selectFields Columns to select (id auto-added)
      * @param string $idFieldName Name of the id column
      * @return array Keyed by id
+     * @since  1.0.0
      */
     public function getRecordsByIds(
         array $ids,
@@ -726,6 +741,7 @@ class ItemsModel extends UrlListModel
      *
      * @param string|null $ids Comma-separated ids from GROUP_CONCAT
      * @param array $mapping Pre-loaded data keyed by id
+     * @since  1.0.0
      */
     private function mapIdsToNames(?string $ids, array $mapping): array
     {
@@ -741,6 +757,7 @@ class ItemsModel extends UrlListModel
      *
      * @param string|null $ids e.g. "1,2,3" from GROUP_CONCAT
      * @return string[]
+     * @since  1.0.0
      */
     private function extractIds(?string $ids): array
     {

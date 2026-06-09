@@ -22,7 +22,7 @@ use Joomla\CMS\MVC\Model\ListModel;
  * Joins #__alfa_users with #__users to expose Joomla account fields
  * (username, email, lastvisitDate) alongside the component-specific columns.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class UsersModel extends ListModel
 {
@@ -32,7 +32,7 @@ class UsersModel extends ListModel
      * @param array $config Optional configuration array.
      * @param MVCFactoryInterface|null $factory MVC factory.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function __construct($config = [], ?MVCFactoryInterface $factory = null)
     {
@@ -62,7 +62,7 @@ class UsersModel extends ListModel
      *
      * @return void
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function populateState($ordering = 'a.id', $direction = 'ASC')
     {
@@ -79,7 +79,7 @@ class UsersModel extends ListModel
      *
      * @return string
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function getStoreId($id = '')
     {
@@ -98,7 +98,7 @@ class UsersModel extends ListModel
      *
      * @return \Joomla\Database\DatabaseQuery
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function getListQuery()
     {
@@ -150,7 +150,7 @@ class UsersModel extends ListModel
      *
      * @return array|false
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getItems()
     {

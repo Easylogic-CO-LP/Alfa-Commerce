@@ -13,6 +13,7 @@ namespace libphonenumber\geocoding\data\fr;
 
 /**
  * @internal
+ * @since  1.0.0
  */
 class Fr_225
 {

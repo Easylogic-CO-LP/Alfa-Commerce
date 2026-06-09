@@ -12,7 +12,7 @@
  * Error messages are ALWAYS shown (admin must know when something is broken).
  * Step-by-step trace only appears when Joomla Debug System is enabled.
  *
- * @since  3.0.0
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Helper;
@@ -34,7 +34,7 @@ class ActionRegistry
      *
      * @return array Array of PluginAction objects
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public static function getPaymentActions(object $payment, object $order): array
     {
@@ -55,7 +55,7 @@ class ActionRegistry
      *
      * @return array Array of PluginAction objects
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public static function getShipmentActions(object $shipment, object $order): array
     {
@@ -88,7 +88,7 @@ class ActionRegistry
      *
      * @return array Array of PluginAction objects
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     private static function resolveActions(
         string $pluginGroup,
@@ -197,7 +197,7 @@ class ActionRegistry
      * @param string $message Warning message
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     private static function warn(string $message): void
     {
@@ -220,7 +220,7 @@ class ActionRegistry
      * @param string $message Trace message
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     private static function trace(string $message): void
     {
@@ -243,7 +243,7 @@ class ActionRegistry
      * @param int $max Maximum length
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     private static function truncate(string $string, int $max = 120): string
     {
