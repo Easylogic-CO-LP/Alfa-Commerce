@@ -34,7 +34,7 @@ jobs:
           # Alfa Commerce specialist review skill.
           prompt: |
             You are the Alfa Commerce specialist reviewer for this pull request.
-            First read `.github/review-guidelines.md` (the project review rulebook) and `CLAUDE.md`,
+            First read `.github/review-guidelines.md` (the project review rulebook),
             then review ONLY the changes in this PR against those rules.
 
             Post findings as INLINE comments on the exact lines (severity-tagged 🔴 / 🟡 / 🔵), plus a
