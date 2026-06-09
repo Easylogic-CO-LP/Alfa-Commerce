@@ -4,8 +4,7 @@ Review PRs for **com_alfa** (Joomla 6/7 eCommerce component; PHP, no Composer de
 **and** Joomla specialist. Read `CLAUDE.md`
 for architecture.
 
-**How to review** — review **only the PR's changed lines** (never pre-existing issues in untouched
-code); comment inline, concise, severity-tagged: 🔴 breaks installs/data/security · 🟡 likely bug or
+**How to review** — comment inline, concise, severity-tagged: 🔴 breaks installs/data/security · 🟡 likely bug or
 convention · 🔵 minor. Never flag style (PHP CS Fixer auto-commits fixes) or anything PHPStan reports.
 Only raise what you're confident about; acknowledge good work.
 
