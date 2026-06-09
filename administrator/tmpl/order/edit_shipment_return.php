@@ -98,6 +98,7 @@ $message = "SUCCESS";
          * 1. Show any messages (from successData.messages)
          * 2. Close the modal (because shouldClose: true)
          * 3. Reload the page (because shouldReload: true)
+         * @since  1.0.0
          */
         function notifyParent() {
             if (window.parent && window.parent !== window) {

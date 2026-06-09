@@ -13,6 +13,7 @@ namespace libphonenumber\geocoding\data\th;
 
 /**
  * @internal
+ * @since  1.0.0
  */
 class Th_66
 {

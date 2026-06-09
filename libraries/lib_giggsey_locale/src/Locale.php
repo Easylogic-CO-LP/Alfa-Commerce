@@ -15,6 +15,7 @@ class Locale
      *
      * @param string $locale Input locale (e.g. en-GB)
      * @return string Primary Language (e.g. en)
+     * @since  1.0.0
      */
     public static function getPrimaryLanguage(string $locale): string
     {
@@ -28,6 +29,7 @@ class Locale
      *
      * @param string $locale Input locale (e.g. de-CH-1991)
      * @return string Region (e.g. CH)
+     * @since  1.0.0
      */
     public static function getRegion(string $locale): string
     {
@@ -56,6 +58,7 @@ class Locale
      * @param string $locale The locale to return a display region for
      * @param string $inLocale Format locale to display the region name
      * @return string Display name for the region, or an empty string if no result could be found
+     * @since  1.0.0
      */
     public static function getDisplayRegion(string $locale, string $inLocale): string
     {
@@ -113,6 +116,7 @@ class Locale
      * Return a list of all the supported locales
      *
      * @return string[]
+     * @since  1.0.0
      */
     public static function getSupportedLocales(): array
     {
@@ -127,6 +131,7 @@ class Locale
      *
      * @return string[] Associative array of Country Code => Country Name
      * @throws RuntimeException On an invalid region
+     * @since  1.0.0
      */
     public static function getAllCountriesForLocale(string $locale): array
     {

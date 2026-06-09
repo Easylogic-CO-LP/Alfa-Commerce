@@ -22,7 +22,7 @@
  *   $event->setError('…');                   → message to enqueue
  *   $event->isValid();  $event->getError();  → read back
  *
- * @since  1.0.2
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\Media;
@@ -34,7 +34,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Media;
 /**
  * Pre-flight media validation event.
  *
- * @since  1.0.2
+ * @since  1.0.0
  */
 class ValidateEvent extends MediaEvent
 {
@@ -46,7 +46,7 @@ class ValidateEvent extends MediaEvent
      * Get the allowed source MIME types.
      *
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     public function getAllowedMimes(): array
     {
@@ -66,7 +66,7 @@ class ValidateEvent extends MediaEvent
      * @param bool $valid True to allow, false to veto.
      *
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     public function setValid(bool $valid): void
     {
@@ -77,7 +77,7 @@ class ValidateEvent extends MediaEvent
      * Whether the file passed validation. Defaults to true when unset.
      *
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     public function isValid(): bool
     {
@@ -90,7 +90,7 @@ class ValidateEvent extends MediaEvent
      * @param string $error Human-readable error message.
      *
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     public function setError(string $error): void
     {
@@ -101,7 +101,7 @@ class ValidateEvent extends MediaEvent
      * Get the error message set by the plugin.
      *
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     public function getError(): string
     {

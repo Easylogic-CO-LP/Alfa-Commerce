@@ -13,6 +13,7 @@ namespace libphonenumber\geocoding\data\pl;
 
 /**
  * @internal
+ * @since  1.0.0
  */
 class Pl_48
 {

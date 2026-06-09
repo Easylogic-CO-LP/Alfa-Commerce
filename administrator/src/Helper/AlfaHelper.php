@@ -21,7 +21,7 @@ use Joomla\CMS\Plugin\PluginHelper;
 /**
  * Alfa helper.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class AlfaHelper
 {
@@ -65,7 +65,7 @@ class AlfaHelper
      * @return array|object Changes: ['field' => ['from' => old, 'to' => new], ...]
      *                      Empty array/object when nothing changed.
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public static function buildDiff(
         object|array $old,
@@ -106,6 +106,7 @@ class AlfaHelper
      * @param int $parentId The parent ID to start building from. ( Begins with zero, so we don't set it )
      * @param int $depth The current depth level ( Auto setted while recursing )
      * @return array The nested array of items with depth level ( e.g. the fixed categories with children and depth attached)
+     * @since  1.0.0
      */
     public static function buildNestedArray($items, $childrenField = 'children', $parentId = 0, $depth = 0)
     {
@@ -132,7 +133,7 @@ class AlfaHelper
      *
      * @return int Negative, zero or positive per the comparison and direction
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public static function sort_items($object1, $object2, $property, $order = 'asc')
     {
@@ -155,7 +156,7 @@ class AlfaHelper
      *
      * @return void
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public static function sort_nested_items(&$items, $property = 'name', $order = 'asc', $childrenField = 'children')
     {
@@ -185,7 +186,7 @@ class AlfaHelper
      *
      * @return array The flattened list of cloned nodes
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public static function flatten_nested_items($items, $pathField = 'name', $pathSeparator = '/', $childrenField = 'children', $parentPath = '')
     {
@@ -233,7 +234,7 @@ class AlfaHelper
      *
      * @return array Depth-first ordered list with depth/path stamped
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public static function addHierarchyData($items, $pathField = 'name', $pathSeparator = '/', $parentPath = '', $parentId = 0, $depth = 0)
     {
@@ -264,6 +265,7 @@ class AlfaHelper
      * Saves the assocs data to to the database.
      *
      * @return void
+     * @since  1.0.0
      */
     public static function setAssocsToDb($mainFieldId, $data, $table, $mainField, $dataField, $assignZeroIdIfDataEmpty = false)
     {
@@ -298,6 +300,7 @@ class AlfaHelper
      * Retrieves all the assocs data from the database. Reusable for all forms that have allowed user groups as a field.
      *
      * @return mixed
+     * @since  1.0.0
      */
     public static function getAssocsFromDb($mainFieldId, $table, $mainField, $dataField)
     {
@@ -359,7 +362,7 @@ class AlfaHelper
      *
      * @return array Statuses indexed by ID
      *
-     * @since   4.1.0
+     * @since  1.0.0
      */
     public static function getOrderStatuses(): array
     {
@@ -401,7 +404,7 @@ class AlfaHelper
      *
      * @return array Payment methods indexed by ID
      *
-     * @since   4.1.0
+     * @since  1.0.0
      */
     public static function getPaymentMethods(): array
     {
@@ -445,7 +448,7 @@ class AlfaHelper
      *
      * @return array Shipment methods indexed by ID
      *
-     * @since   4.1.0
+     * @since  1.0.0
      */
     public static function getShipmentMethods(): array
     {
@@ -509,6 +512,7 @@ class AlfaHelper
      * @param string $field The field's name
      *
      * @return array The files
+     * @since  1.0.0
      */
     public static function getFiles($pk, $table, $field)
     {
@@ -535,7 +539,7 @@ class AlfaHelper
      *
      * @return array
      *
-     * @since   3.7.0
+     * @since  1.0.0
      */
     public static function getFieldTypes($type)
     {
@@ -569,7 +573,7 @@ class AlfaHelper
      *
      * @return void
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public static function addPluginForm(&$form, $data, $item, $type)
     {

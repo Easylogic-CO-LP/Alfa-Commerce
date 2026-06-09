@@ -71,6 +71,7 @@ class OrderItemsField extends ListField
      * When assign_column is empty: shows ALL items for the order.
      *
      * @return array Options for the select field
+     * @since  1.0.0
      */
     protected function getOptions()
     {

@@ -21,7 +21,7 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
  * Notification history view — the full, filterable/paginated list reached from the
  * quick panel's "Show all". Read-only browsing of active + dismissed notifications.
  *
- * @since  1.0.5
+ * @since  1.0.0
  */
 class HtmlView extends BaseHtmlView
 {
@@ -42,7 +42,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public function display($tpl = null)
     {
@@ -72,7 +72,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     protected function addToolbar()
     {

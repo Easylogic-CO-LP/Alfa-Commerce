@@ -13,6 +13,7 @@ namespace libphonenumber\carrier\data\zh;
 
 /**
  * @internal
+ * @since  1.0.0
  */
 class Zh_852
 {

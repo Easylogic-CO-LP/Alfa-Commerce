@@ -30,7 +30,7 @@ use Joomla\CMS\Uri\Uri;
  * GeneralEvent instead, so they carry no redirect; view-rendered hooks extend
  * LayoutEvent, which adds the layout capability on top of this one.
  *
- * @since  1.0.10
+ * @since  1.0.0
  */
 abstract class RedirectEvent extends GeneralEvent
 {
@@ -39,7 +39,7 @@ abstract class RedirectEvent extends GeneralEvent
      *
      * @param string $url The URL to redirect to
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function onSetRedirectUrl(string $url): void
     {
@@ -51,7 +51,7 @@ abstract class RedirectEvent extends GeneralEvent
      *
      * @param string $url The URL to redirect to
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function setRedirectUrl(string $url): void
     {
@@ -63,7 +63,7 @@ abstract class RedirectEvent extends GeneralEvent
     /**
      * Get the redirect URL if one was set.
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getRedirectUrl(): ?string
     {
@@ -90,7 +90,7 @@ abstract class RedirectEvent extends GeneralEvent
      * with custom flags such as Route::TLS_FORCE / absolute). For redirecting,
      * use getRedirectUrl(), which SEF-routes raw internal URLs.
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getRawRedirectUrl(): ?string
     {
@@ -100,7 +100,7 @@ abstract class RedirectEvent extends GeneralEvent
     /**
      * Check whether a redirect URL has been set.
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function hasRedirect(): bool
     {
@@ -117,7 +117,7 @@ abstract class RedirectEvent extends GeneralEvent
      *
      * @return void
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function onSetRedirectCode(int $code)
     {
@@ -131,7 +131,7 @@ abstract class RedirectEvent extends GeneralEvent
      *
      * @return void
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function setRedirectCode(int $code)
     {
@@ -143,7 +143,7 @@ abstract class RedirectEvent extends GeneralEvent
      *
      * @return int|null The status code, or null when none was set
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getRedirectCode(): ?int
     {

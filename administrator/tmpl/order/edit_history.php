@@ -15,7 +15,7 @@
  * Data: $this->activityLog (from OrderModel::getOrderActivityLog())
  *
  * @package    Alfa Commerce
- * @since      3.4.0
+ * @since  1.0.0
  */
 
 defined('_JEXEC') or die;

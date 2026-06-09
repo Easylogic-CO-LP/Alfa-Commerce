@@ -20,7 +20,7 @@ use Joomla\CMS\MVC\Model\BaseDatabaseModel;
  * model carries no list state — it exists so the MVC factory resolves a model
  * for the view rather than falling back to none.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class ToolsModel extends BaseDatabaseModel
 {

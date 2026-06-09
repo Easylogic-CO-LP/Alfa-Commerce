@@ -21,7 +21,7 @@ use Joomla\CMS\Router\Route;
 /**
  * Item class.
  *
- * @since  1.6.0
+ * @since  1.0.0
  */
 class PaymentController extends BaseController
 {
@@ -32,7 +32,7 @@ class PaymentController extends BaseController
      *
      * @return void
      *
-     * @since   1.6.0
+     * @since  1.0.0
      */
     public function response()
     {

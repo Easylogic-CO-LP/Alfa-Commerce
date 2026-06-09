@@ -21,7 +21,7 @@ use Joomla\CMS\Table\Table;
 /**
  * Payment model.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class PaymentModel extends AdminModel
 {
@@ -47,7 +47,7 @@ class PaymentModel extends AdminModel
      *
      * @return Form|bool A Form object on success, false on failure
      *
-     * @since   1.6
+     * @since  1.0.0
      */
     public function getForm($data = [], $loadData = true)
     {
@@ -87,7 +87,7 @@ class PaymentModel extends AdminModel
      *
      * @return mixed The data for the form.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function loadFormData()
     {
@@ -111,7 +111,7 @@ class PaymentModel extends AdminModel
      *
      * @return mixed Object on success, false on failure.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
 
     public function getItem($pk = null)
@@ -137,7 +137,7 @@ class PaymentModel extends AdminModel
      *
      * @return bool True on success, False on error.
      *
-     * @since   1.6
+     * @since  1.0.0
      */
     public function save($data)
     {
@@ -194,7 +194,7 @@ class PaymentModel extends AdminModel
      *
      * @return bool True on success.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function delete(&$pks)
     {
@@ -219,7 +219,7 @@ class PaymentModel extends AdminModel
      *
      * @return void
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function prepareTable($table)
     {

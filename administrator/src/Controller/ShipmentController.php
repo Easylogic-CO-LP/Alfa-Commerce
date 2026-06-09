@@ -16,7 +16,7 @@ use Joomla\CMS\MVC\Controller\FormController;
 /**
  * Shipment controller class.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class ShipmentController extends FormController
 {

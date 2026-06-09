@@ -36,7 +36,7 @@
  * @copyright  2026 Easylogic CO LP
  * @license    GNU General Public License version 2 or later
  *
- * @since  4.1.0
+ * @since  1.0.0
  */
 (function () {
     'use strict';

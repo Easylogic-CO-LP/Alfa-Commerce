@@ -29,7 +29,7 @@ use BadMethodCallException;
  * render the plugin's layout fragment inline (setLayout) or send the buyer away
  * (setRedirectUrl, inherited from RedirectEvent).
  *
- * @since  5.0.0
+ * @since  1.0.0
  */
 class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
 {
@@ -41,7 +41,7 @@ class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
      *
      * @var array
      *
-     * @since      5.0.0
+     * @since  1.0.0
      * @deprecated 5.0 will be removed in 6.0
      */
     // protected $legacyArgumentsOrder = ['subject', 'fieldset', 'form'];
@@ -54,7 +54,7 @@ class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
      *
      * @throws BadMethodCallException
      *
-     * @since   5.0.0
+     * @since  1.0.0
      */
     public function __construct($name, array $arguments = [])
     {
@@ -70,7 +70,7 @@ class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
      *
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     protected function onSetMethod($value)
     {
@@ -81,7 +81,7 @@ class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
      * Getter for the fieldset.
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getMethod()
     {
@@ -92,7 +92,7 @@ class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
      * Getter for the layout. If not set, return 'default_product_view'.
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getLayoutPluginType(): string
     {
@@ -105,7 +105,7 @@ class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
      * @param string $value The layout value to set
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function onSetLayoutPluginType($value): void
     {
@@ -118,7 +118,7 @@ class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
      * @param string $value The plugin type to set
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function setLayoutPluginType($value): void
     {
@@ -129,7 +129,7 @@ class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
      * Getter for the layout. If not set, return 'default_product_view'.
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getLayoutPluginName(): string
     {
@@ -142,7 +142,7 @@ class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
      * @param string $value The layout value to set
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function onSetLayoutPluginName($value): void
     {
@@ -155,7 +155,7 @@ class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
      * @param string $value The plugin name to set
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function setLayoutPluginName($value): void
     {
@@ -166,7 +166,7 @@ class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
      * Getter for the layout. If not set, return 'default_product_view'.
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getLayout(): string
     {
@@ -180,7 +180,7 @@ class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
      * @param string $value The layout value to set
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function onSetLayout($value): void
     {
@@ -193,7 +193,7 @@ class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
      * @param string $value The layout value to set
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function setLayout($value): void
     {
@@ -204,7 +204,7 @@ class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
      * Getter for the layout. If not set, return 'default_product_view'.
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getLayoutData(): array
     {
@@ -217,7 +217,7 @@ class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
      * @param string $value The layout value to set
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function onSetLayoutData($value): void
     {
@@ -230,7 +230,7 @@ class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
      * @param array $value The layout data to set
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function setLayoutData($value): void
     {

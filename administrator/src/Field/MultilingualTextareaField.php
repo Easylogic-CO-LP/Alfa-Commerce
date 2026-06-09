@@ -47,7 +47,7 @@ use SimpleXMLElement;
  *          rows="3"
  *          label="COM_ALFA_FORM_LBL_DESCRIPTION" />
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class MultilingualTextareaField extends TextareaField
 {
@@ -75,7 +75,7 @@ class MultilingualTextareaField extends TextareaField
      * @param string|null $group The field group name.
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function setup(SimpleXMLElement $element, $value, $group = null): bool
     {
@@ -119,7 +119,7 @@ class MultilingualTextareaField extends TextareaField
      *
      * @return string HTML markup for all language textareas.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function getInput(): string
     {
@@ -184,7 +184,7 @@ class MultilingualTextareaField extends TextareaField
      * @param \Joomla\Registry\Registry|null $input Full form data registry.
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function validate($value, $group = null, ?\Joomla\Registry\Registry $input = null): bool|Exception
     {
@@ -212,7 +212,7 @@ class MultilingualTextareaField extends TextareaField
      *
      * @return string HTML <textarea> tag.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private function buildTextareaHtml(
         string $id,
@@ -270,7 +270,7 @@ class MultilingualTextareaField extends TextareaField
      * @param object $language Language object from LanguageHelper::getLanguages().
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private function buildFlagHtml(object $language): string
     {

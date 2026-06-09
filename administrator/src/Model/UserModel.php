@@ -23,22 +23,22 @@ use Joomla\CMS\User\UserFactoryInterface;
  * Persists com_alfa user records. The linked Joomla account is displayed
  * read-only; all credential management is done via the Joomla User Manager.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class UserModel extends AdminModel
 {
-    /** @var string @since 1.0.1 */
+    /** @var string @since  1.0.0 */
     protected $text_prefix = 'COM_ALFA';
 
-    /** @var string @since 1.0.1 */
+    /** @var string @since  1.0.0 */
     public $typeAlias = 'com_alfa.user';
 
-    /** @var object|null @since 1.0.1 */
+    /** @var object|null @since  1.0.0 */
     protected $item = null;
 
     /**
      * {@inheritdoc}
-     * @since 1.0.1
+     * @since  1.0.0
      */
     public function getTable($name = 'User', $prefix = 'Administrator', $options = [])
     {
@@ -47,7 +47,7 @@ class UserModel extends AdminModel
 
     /**
      * {@inheritdoc}
-     * @since 1.0.1
+     * @since  1.0.0
      */
     public function getForm($data = [], $loadData = true)
     {
@@ -62,7 +62,7 @@ class UserModel extends AdminModel
 
     /**
      * {@inheritdoc}
-     * @since 1.0.1
+     * @since  1.0.0
      */
     protected function loadFormData()
     {
@@ -87,7 +87,7 @@ class UserModel extends AdminModel
      *
      * @return object|false
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getItem($pk = null)
     {

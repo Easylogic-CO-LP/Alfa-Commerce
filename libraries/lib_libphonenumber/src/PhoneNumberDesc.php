@@ -7,6 +7,7 @@ namespace libphonenumber;
 /**
  * Phone Number Description
  * @internal
+ * @since  1.0.0
  */
 class PhoneNumberDesc
 {
@@ -25,6 +26,7 @@ class PhoneNumberDesc
 
     /**
      * @return int[]
+     * @since  1.0.0
      */
     public function getPossibleLength(): array
     {
@@ -33,6 +35,7 @@ class PhoneNumberDesc
 
     /**
      * @param int[] $possibleLength
+     * @since  1.0.0
      */
     public function setPossibleLength(array $possibleLength): static
     {
@@ -54,6 +57,7 @@ class PhoneNumberDesc
 
     /**
      * @return int[]
+     * @since  1.0.0
      */
     public function getPossibleLengthLocalOnly(): array
     {
@@ -62,6 +66,7 @@ class PhoneNumberDesc
 
     /**
      * @param int[] $possibleLengthLocalOnly
+     * @since  1.0.0
      */
     public function setPossibleLengthLocalOnly(array $possibleLengthLocalOnly): static
     {
@@ -84,6 +89,7 @@ class PhoneNumberDesc
 
     /**
      * @return boolean
+     * @since  1.0.0
      */
     public function hasNationalNumberPattern(): bool
     {
@@ -127,6 +133,7 @@ class PhoneNumberDesc
      * Used for metadata as a shortcut to an empty object
      * Use the same object to reduce load further
      * @internal
+     * @since  1.0.0
      */
     public static function empty(): self
     {

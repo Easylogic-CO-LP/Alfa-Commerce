@@ -42,7 +42,7 @@ use Joomla\Database\ParameterType;
  * shows — the positions the layout requests via $position()/$hasPosition()
  * (discovered by OrderEmailHelper::discoverPositions). See that field's getInput().
  *
- * @since   1.0.4
+ * @since  1.0.0
  */
 class OrderStatusEmailLayoutField extends FormField
 {
@@ -60,7 +60,7 @@ class OrderStatusEmailLayoutField extends FormField
      * not listed twice).
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     protected function getInput(): string
     {
@@ -122,7 +122,7 @@ class OrderStatusEmailLayoutField extends FormField
      *
      * @return string[]
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function scanFolder(string $dir): array
     {
@@ -151,7 +151,7 @@ class OrderStatusEmailLayoutField extends FormField
      * @param string $name Layout basename (e.g. 'order').
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function layoutLabel(string $name): string
     {
@@ -170,7 +170,7 @@ class OrderStatusEmailLayoutField extends FormField
      *
      * @return string[]
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function getEnabledAdminTemplates(): array
     {

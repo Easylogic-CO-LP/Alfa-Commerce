@@ -16,6 +16,7 @@ use libphonenumber\PhoneMetadata;
 
 /**
  * @internal
+ * @since  1.0.0
  */
 class PhoneNumberAlternateFormats_7 extends PhoneMetadata
 {

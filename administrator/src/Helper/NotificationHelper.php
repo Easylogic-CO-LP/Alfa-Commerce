@@ -36,7 +36,7 @@ use Joomla\Database\ParameterType;
  * default {@see self::DEFAULT_HISTORY_DAYS}) rather than hard-deleting, so a history
  * of what was shown survives. Non-dismissible rows can't be hidden by the user.
  *
- * @since  1.0.5
+ * @since  1.0.0
  */
 class NotificationHelper
 {
@@ -44,7 +44,7 @@ class NotificationHelper
      * Notifications table (the single read/write target).
      *
      * @var string
-     * @since 1.0.5
+     * @since  1.0.0
      */
     private const TABLE = '#__alfa_notifications';
 
@@ -52,7 +52,7 @@ class NotificationHelper
      * Severity ordering (worst last) for sorting and the badge colour.
      *
      * @var array<string, int>
-     * @since 1.0.5
+     * @since  1.0.0
      */
     private const SEVERITY_RANK = ['success' => 0, 'info' => 1, 'warning' => 2, 'danger' => 3];
 
@@ -60,7 +60,7 @@ class NotificationHelper
      * Default days a dismissed notification is kept as history before purge.
      *
      * @var int
-     * @since 1.0.5
+     * @since  1.0.0
      */
     private const DEFAULT_HISTORY_DAYS = 7;
 
@@ -78,7 +78,7 @@ class NotificationHelper
      *                       link(['action'=>..,'asset'=>..] — who may use the LINK; null = anyone who sees it).
      *
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public static function push(string $dedupKey, string $title, array $options = []): void
     {
@@ -140,7 +140,7 @@ class NotificationHelper
      * @param int $userId The reading admin's id (0 = unknown).
      *
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public static function markRead(int $id, int $userId = 0): void
     {
@@ -162,7 +162,7 @@ class NotificationHelper
      * @param int|null $historyDays Days to keep as history (null = default).
      *
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public static function dismiss(int $id, ?int $historyDays = null): void
     {
@@ -194,7 +194,7 @@ class NotificationHelper
      * @param int|null $historyDays Retention when archiving (null = default).
      *
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public static function clear(string $dedupKey, bool $hard = false, ?int $historyDays = null): void
     {
@@ -232,7 +232,7 @@ class NotificationHelper
      *
      * @return array{count: int, severity: string}
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public static function summary(): array
     {
@@ -277,7 +277,7 @@ class NotificationHelper
      * @param mixed $user A user object, or null for the current identity.
      *
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public static function canSee(object $notification, $user = null): bool
     {
@@ -296,7 +296,7 @@ class NotificationHelper
      * @param mixed $user A user object, or null for the current identity.
      *
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public static function canUseLink(object $notification, $user = null): bool
     {
@@ -319,7 +319,7 @@ class NotificationHelper
      *
      * @return string The normalised URL, or '' if its scheme isn't allowed.
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public static function safeUrl(string $url): string
     {
@@ -346,7 +346,7 @@ class NotificationHelper
      *
      * @return string The rendered `notifications.panel` layout.
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public static function renderActivePanel(bool $isOpen = false): string
     {
@@ -382,7 +382,7 @@ class NotificationHelper
      *
      * @return string The rendered `notifications.badge` layout.
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public static function renderBadge(bool $isOpen = false): string
     {
@@ -401,7 +401,7 @@ class NotificationHelper
      * @param mixed $toolbar The view's Toolbar instance ($this->getDocument()->getToolbar()).
      *
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public static function toolbarBadge($toolbar): void
     {
@@ -438,7 +438,7 @@ class NotificationHelper
      * @param mixed $user A user object, or null for the current identity.
      *
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     private static function authorised(string $action, string $asset, $user = null): bool
     {
@@ -455,7 +455,7 @@ class NotificationHelper
      * Delete history rows whose `expires` is in the past (lazy cleanup — no cron).
      *
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public static function purge(): void
     {
@@ -477,7 +477,7 @@ class NotificationHelper
      *
      * @return string SQL datetime.
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     private static function historyExpiry(?int $historyDays): string
     {
@@ -494,7 +494,7 @@ class NotificationHelper
      *
      * @return int The id, or 0 if none.
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     private static function idForKey(string $dedupKey): int
     {
@@ -518,7 +518,7 @@ class NotificationHelper
      *
      * @return object|false
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     private static function model(string $name = 'Notification')
     {
@@ -532,7 +532,7 @@ class NotificationHelper
      * The component database driver.
      *
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     private static function db(): DatabaseInterface
     {

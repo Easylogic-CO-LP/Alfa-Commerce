@@ -9,7 +9,7 @@
 
 /**
  * @package    Alfa Commerce
- * @since      1.0.0
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Site\Service\Pricing;
@@ -29,6 +29,7 @@ defined('_JEXEC') or die;
  * - Proper currency handling
  * - Accurate decimal arithmetic
  * - Type safety
+ * @since  1.0.0
  */
 class PriceComputationEngine
 {
@@ -43,6 +44,7 @@ class PriceComputationEngine
      * @param PriceContext $context Pricing context (currency, customer, location)
      *
      * @return PriceResult Complete price calculation result
+     * @since  1.0.0
      */
     public function compute(
         int $productId,
@@ -156,6 +158,7 @@ class PriceComputationEngine
      * @param int $quantity Quantity being priced
      *
      * @return float Unit price, or 0.0 if no row matched
+     * @since  1.0.0
      */
     protected function selectBasePrice(array $prices, int $quantity): float
     {
@@ -204,6 +207,7 @@ class PriceComputationEngine
      * @param Currency $currency Active currency for fixed-amount discounts
      *
      * @return AppliedDiscount[]
+     * @since  1.0.0
      */
     protected function processDiscounts(array $discounts, Currency $currency): array
     {
@@ -261,6 +265,7 @@ class PriceComputationEngine
      * @param AppliedDiscount $discount The discount to apply
      *
      * @return Money The discount amount in money terms
+     * @since  1.0.0
      */
     protected function calculateDiscountAmount(Money $price, AppliedDiscount $discount): Money
     {
@@ -287,6 +292,7 @@ class PriceComputationEngine
      * @param Currency $currency Active currency (currently unused but kept for future use)
      *
      * @return AppliedTax[]
+     * @since  1.0.0
      */
     protected function processTaxes(array $taxes, Currency $currency): array
     {
@@ -320,6 +326,7 @@ class PriceComputationEngine
      * @param array $taxes Raw tax rows from PriceDataLoader
      *
      * @return float[] One rate per AppliedTax index
+     * @since  1.0.0
      */
     protected function calculateTaxRates(array $taxes): array
     {
@@ -355,6 +362,7 @@ class PriceComputationEngine
      * @param AppliedTax[] $appliedTaxes
      *
      * @return float Effective percentage rate
+     * @since  1.0.0
      */
     protected function calculateEffectiveTaxRate(array $appliedTaxes): float
     {
@@ -381,6 +389,7 @@ class PriceComputationEngine
      * Currency::loadByNumber() would look up ISO codes and throw RuntimeException
      * for any id value like 47 that does not happen to be a valid ISO code —
      * silently killing every price computation.
+     * @since  1.0.0
      */
     protected function getCurrency(PriceContext $context): Currency
     {

@@ -21,7 +21,7 @@ use BadMethodCallException;
 /**
  * Class for CustomFields events
  *
- * @since  5.0.0
+ * @since  1.0.0
  */
 class AfterPrepareFieldEvent extends AbstractPrepareFieldEvent
 {
@@ -30,7 +30,7 @@ class AfterPrepareFieldEvent extends AbstractPrepareFieldEvent
      *
      * @var array
      *
-     * @since  5.0.0
+     * @since  1.0.0
      * @deprecated 5.0 will be removed in 6.0
      */
     protected $legacyArgumentsOrder = ['context', 'item', 'subject', 'value'];
@@ -43,7 +43,7 @@ class AfterPrepareFieldEvent extends AbstractPrepareFieldEvent
      *
      * @throws BadMethodCallException
      *
-     * @since   5.0.0
+     * @since  1.0.0
      */
     public function __construct($name, array $arguments = [])
     {
@@ -67,7 +67,7 @@ class AfterPrepareFieldEvent extends AbstractPrepareFieldEvent
      * Getter for the value.
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getValue(): mixed
     {
@@ -79,7 +79,7 @@ class AfterPrepareFieldEvent extends AbstractPrepareFieldEvent
      *
      * @return mixed
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function updateValue(mixed $value): static
     {

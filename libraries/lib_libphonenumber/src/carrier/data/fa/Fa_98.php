@@ -13,6 +13,7 @@ namespace libphonenumber\carrier\data\fa;
 
 /**
  * @internal
+ * @since  1.0.0
  */
 class Fa_98
 {

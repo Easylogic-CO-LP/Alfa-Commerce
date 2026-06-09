@@ -16,7 +16,7 @@ use Joomla\CMS\MVC\Controller\ApiController;
 /**
  * The Itemsprices controller
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class ItemspricesController extends ApiController
 {
@@ -24,7 +24,7 @@ class ItemspricesController extends ApiController
      * The content type of the item.
      *
      * @var string
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $contentType = 'itemsprices';
 
@@ -32,7 +32,7 @@ class ItemspricesController extends ApiController
      * The default view for the display method.
      *
      * @var string
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $default_view = 'itemsprices';
 }

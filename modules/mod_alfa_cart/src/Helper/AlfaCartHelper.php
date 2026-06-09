@@ -24,6 +24,7 @@ class AlfaCartHelper
 {
     /**
      * @throws Exception
+     * @since  1.0.0
      */
 
     public static function reloadAjax()
@@ -73,6 +74,7 @@ class AlfaCartHelper
      * @return void
      *
      * @throws Exception
+     * @since  1.0.0
      */
     public static function getAjax()
     {
@@ -138,6 +140,7 @@ class AlfaCartHelper
      * @param Registry $params The module parameters.
      *
      * @return array The resolved price settings for the cart layout.
+     * @since  1.0.0
      */
     public static function buildPriceSettings(Registry $params): array
     {

@@ -19,7 +19,7 @@ use Joomla\CMS\Language\Text;
 /**
  * View class for a list of Alfa.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class HtmlView extends BaseHtmlView
 {
@@ -31,6 +31,7 @@ class HtmlView extends BaseHtmlView
      * @param string|null $tpl The name of the template file to parse.
      *
      * @return void
+     * @since  1.0.0
      */
     public function display($tpl = null)
     {
@@ -49,6 +50,7 @@ class HtmlView extends BaseHtmlView
      * the active menu item and the merged component params.
      *
      * @return void
+     * @since  1.0.0
      */
     protected function _prepareDocument()
     {

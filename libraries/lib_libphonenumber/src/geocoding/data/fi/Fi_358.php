@@ -13,6 +13,7 @@ namespace libphonenumber\geocoding\data\fi;
 
 /**
  * @internal
+ * @since  1.0.0
  */
 class Fi_358
 {

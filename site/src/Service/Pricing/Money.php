@@ -34,6 +34,7 @@ defined('_JEXEC') or die;
  *
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @link     https://easylogic.gr
+ * @since  1.0.0
  */
 class Money
 {
@@ -57,6 +58,7 @@ class Money
      *
      * @param int $minorUnits Amount in minor units (cents)
      * @param Currency $currency Currency object
+     * @since  1.0.0
      */
     private function __construct(int $minorUnits, Currency $currency)
     {
@@ -81,6 +83,7 @@ class Money
      * @example
      * $price = Money::of(19.99, Currency::usd()); // $19.99
      * $btc = Money::of(0.5, Currency::btc()); // 0.5 BTC
+     * @since  1.0.0
      */
     public static function of(float $amount, Currency $currency): self
     {
@@ -101,6 +104,7 @@ class Money
      * @example
      * $price = Money::ofMinor(1999, Currency::usd()); // $19.99
      * $btc = Money::ofMinor(50000000, Currency::btc()); // 0.5 BTC
+     * @since  1.0.0
      */
     public static function ofMinor(int $minorUnits, Currency $currency): self
     {
@@ -120,6 +124,7 @@ class Money
      * foreach ($items as $item) {
      *     $total = $total->add($item->price);
      * }
+     * @since  1.0.0
      */
     public static function zero(Currency $currency): self
     {
@@ -156,6 +161,7 @@ class Money
      *
      * $jpy = Currency::loadByCode('JPY');
      * Money::parse("¥1,234", $jpy);        // ¥1,234 (no decimals)
+     * @since  1.0.0
      */
     public static function parse(string $amount, Currency $currency): self
     {
@@ -399,6 +405,7 @@ class Money
      * @example
      * $money = Money::of(19.99, Currency::usd());
      * echo $money->getAmount(); // 19.99
+     * @since  1.0.0
      */
     public function getAmount(): float
     {
@@ -416,6 +423,7 @@ class Money
      * @example
      * $money = Money::of(19.99, Currency::usd());
      * echo $money->getMinorUnits(); // 1999
+     * @since  1.0.0
      */
     public function getMinorUnits(): int
     {
@@ -430,6 +438,7 @@ class Money
      * @example
      * $money = Money::of(19.99, Currency::usd());
      * echo $money->getCurrency()->getCode(); // "USD"
+     * @since  1.0.0
      */
     public function getCurrency(): Currency
     {
@@ -455,6 +464,7 @@ class Money
      * $price = Money::of(10.00, Currency::usd());
      * $tax = Money::of(2.00, Currency::usd());
      * $total = $price->add($tax); // $12.00
+     * @since  1.0.0
      */
     public function add(Money $other): self
     {
@@ -480,6 +490,7 @@ class Money
      * $price = Money::of(100.00, Currency::usd());
      * $discount = Money::of(10.00, Currency::usd());
      * $final = $price->subtract($discount); // $90.00
+     * @since  1.0.0
      */
     public function subtract(Money $other): self
     {
@@ -503,6 +514,7 @@ class Money
      * @example
      * $unitPrice = Money::of(19.99, Currency::usd());
      * $total = $unitPrice->multiply(5); // $99.95
+     * @since  1.0.0
      */
     public function multiply(float $multiplier): self
     {
@@ -524,6 +536,7 @@ class Money
      * @example
      * $total = Money::of(100.00, Currency::usd());
      * $perMonth = $total->divide(12); // $8.33 (rounded)
+     * @since  1.0.0
      */
     public function divide(float $divisor): self
     {
@@ -548,6 +561,7 @@ class Money
      * $price = Money::of(100.00, Currency::usd());
      * $tax = $price->percentage(10); // $10.00 (10% of $100)
      * $discount = $price->percentage(15); // $15.00 (15% of $100)
+     * @since  1.0.0
      */
     public function percentage(float $percent): self
     {
@@ -566,6 +580,7 @@ class Money
      * @example
      * $debt = Money::of(-50.00, Currency::usd());
      * $amount = $debt->abs(); // $50.00
+     * @since  1.0.0
      */
     public function abs(): self
     {
@@ -582,6 +597,7 @@ class Money
      * @example
      * $credit = Money::of(50.00, Currency::usd());
      * $debit = $credit->negate(); // -$50.00
+     * @since  1.0.0
      */
     public function negate(): self
     {
@@ -599,6 +615,7 @@ class Money
      * $price = Money::of(10.00, Currency::usd());
      * $discount = Money::of(20.00, Currency::usd());
      * $final = $price->subtract($discount)->nonNegative(); // $0.00
+     * @since  1.0.0
      */
     public function nonNegative(): self
     {
@@ -613,6 +630,7 @@ class Money
      *
      * @param int $mode Rounding mode (not used with integers)
      * @return self Returns self (already rounded)
+     * @since  1.0.0
      */
     public function round(int $mode = PHP_ROUND_HALF_UP): self
     {
@@ -645,6 +663,7 @@ class Money
      * $money = Money::of(5.00, Currency::usd());
      * $parts = $money->allocate(3);
      * // Result: [$1.67, $1.67, $1.66] = $5.00
+     * @since  1.0.0
      */
     public function allocate(int $n): array
     {
@@ -691,6 +710,7 @@ class Money
      * $profit = Money::of(100.00, Currency::usd());
      * $split = $profit->allocateByRatios([1, 1, 1]);
      * // Result: [$33.33, $33.33, $33.34] = $100.00
+     * @since  1.0.0
      */
     public function allocateByRatios(array $ratios): array
     {
@@ -736,6 +756,7 @@ class Money
      * $food = Money::of(30.00, Currency::usd());
      * $allocated = $total->allocateToTargets([$rent, $food]);
      * // Remainder $20 distributed proportionally
+     * @since  1.0.0
      */
     public function allocateToTargets(array $targets): array
     {
@@ -788,6 +809,7 @@ class Money
      * @example
      * $money = Money::of(0, Currency::usd());
      * $money->isZero(); // true
+     * @since  1.0.0
      */
     public function isZero(): bool
     {
@@ -802,6 +824,7 @@ class Money
      * @example
      * $money = Money::of(10.00, Currency::usd());
      * $money->isPositive(); // true
+     * @since  1.0.0
      */
     public function isPositive(): bool
     {
@@ -816,6 +839,7 @@ class Money
      * @example
      * $debt = Money::of(-50.00, Currency::usd());
      * $debt->isNegative(); // true
+     * @since  1.0.0
      */
     public function isNegative(): bool
     {
@@ -833,6 +857,7 @@ class Money
      * $a = Money::of(10.00, Currency::usd());
      * $b = Money::of(20.00, Currency::usd());
      * $a->compareTo($b); // -1 (less than)
+     * @since  1.0.0
      */
     public function compareTo(Money $other): int
     {
@@ -861,6 +886,7 @@ class Money
      * $a = Money::of(10.00, Currency::usd());
      * $b = Money::of(10.00, Currency::usd());
      * $a->equals($b); // true
+     * @since  1.0.0
      */
     public function equals(Money $other): bool
     {
@@ -879,6 +905,7 @@ class Money
      * $a = Money::of(20.00, Currency::usd());
      * $b = Money::of(10.00, Currency::usd());
      * $a->greaterThan($b); // true
+     * @since  1.0.0
      */
     public function greaterThan(Money $other): bool
     {
@@ -891,6 +918,7 @@ class Money
      * @param Money $other Money to compare with
      * @return bool True if greater or equal
      * @throws InvalidArgumentException If currencies don't match
+     * @since  1.0.0
      */
     public function greaterThanOrEqual(Money $other): bool
     {
@@ -908,6 +936,7 @@ class Money
      * $a = Money::of(10.00, Currency::usd());
      * $b = Money::of(20.00, Currency::usd());
      * $a->lessThan($b); // true
+     * @since  1.0.0
      */
     public function lessThan(Money $other): bool
     {
@@ -920,6 +949,7 @@ class Money
      * @param Money $other Money to compare with
      * @return bool True if less or equal
      * @throws InvalidArgumentException If currencies don't match
+     * @since  1.0.0
      */
     public function lessThanOrEqual(Money $other): bool
     {
@@ -942,6 +972,7 @@ class Money
      * $price = Money::of(1999.99, Currency::usd());
      * echo $price->format(); // "$1,999.99"
      * echo $price->format(false); // "1,999.99"
+     * @since  1.0.0
      */
     public function format(bool $includeSymbol = true): string
     {
@@ -965,6 +996,7 @@ class Money
      * //   'currency_symbol' => '$',
      * //   'minor_units' => 1999
      * // ]
+     * @since  1.0.0
      */
     public function toArray(): array
     {
@@ -987,6 +1019,7 @@ class Money
      * @example
      * $price = Money::of(19.99, Currency::usd());
      * echo $price; // "$19.99"
+     * @since  1.0.0
      */
     public function __toString(): string
     {
@@ -1010,6 +1043,7 @@ class Money
      * @example
      * $usd = Money::of(100.00, Currency::usd());
      * $eur = $usd->convertTo(Currency::eur(), 0.85); // €85.00
+     * @since  1.0.0
      */
     public function convertTo(Currency $targetCurrency, float $exchangeRate): self
     {
@@ -1037,6 +1071,7 @@ class Money
      *     Money::of(5.00, Currency::usd()),
      *     Money::of(15.00, Currency::usd())
      * ); // $5.00
+     * @since  1.0.0
      */
     public static function min(Money ...$amounts): Money
     {
@@ -1067,6 +1102,7 @@ class Money
      *     Money::of(5.00, Currency::usd()),
      *     Money::of(15.00, Currency::usd())
      * ); // $15.00
+     * @since  1.0.0
      */
     public static function max(Money ...$amounts): Money
     {
@@ -1097,6 +1133,7 @@ class Money
      *     Money::of(5.00, Currency::usd()),
      *     Money::of(15.00, Currency::usd())
      * ); // $30.00
+     * @since  1.0.0
      */
     public static function sum(Money ...$amounts): Money
     {
@@ -1125,6 +1162,7 @@ class Money
      *     Money::of(20.00, Currency::usd()),
      *     Money::of(30.00, Currency::usd())
      * ); // $20.00
+     * @since  1.0.0
      */
     public static function avg(Money ...$amounts): Money
     {
@@ -1151,6 +1189,7 @@ class Money
      * @param float $amount Amount in major units
      * @param Currency $currency Currency object
      * @return int Amount in minor units
+     * @since  1.0.0
      */
     private static function convertToMinorUnits(float $amount, Currency $currency): int
     {
@@ -1171,6 +1210,7 @@ class Money
      * @param int $minorUnits Amount in minor units
      * @param Currency $currency Currency object
      * @return float Amount in major units
+     * @since  1.0.0
      */
     private static function convertToMajorUnits(int $minorUnits, Currency $currency): float
     {
@@ -1187,6 +1227,7 @@ class Money
      *
      * @param Money $other Money to compare currency with
      * @throws InvalidArgumentException If currencies don't match
+     * @since  1.0.0
      */
     private function assertSameCurrency(Money $other): void
     {

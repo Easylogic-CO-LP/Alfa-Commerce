@@ -21,6 +21,7 @@ defined('_JEXEC') or die;
  * - Maintain list of applied discounts
  * - Calculate effective discount percentages
  * - Handle discount timing logic (before-tax vs after-tax)
+ * @since  1.0.0
  */
 class DiscountSummary
 {
@@ -39,6 +40,7 @@ class DiscountSummary
 
     /**
      * Get total discount amount
+     * @since  1.0.0
      */
     public function getTotal(): Money
     {
@@ -49,6 +51,7 @@ class DiscountSummary
      * Get all applied discounts
      *
      * @return array Array of AppliedDiscount objects
+     * @since  1.0.0
      */
     public function getApplied(): array
     {
@@ -57,6 +60,7 @@ class DiscountSummary
 
     /**
      * Check if any discounts are applied
+     * @since  1.0.0
      */
     public function hasDiscounts(): bool
     {
@@ -65,6 +69,7 @@ class DiscountSummary
 
     /**
      * Get number of applied discounts
+     * @since  1.0.0
      */
     public function getCount(): int
     {
@@ -87,6 +92,7 @@ class DiscountSummary
      * @param Money $subtotal Amount after discounts, before tax
      * @param Money $taxTotal Tax amount
      * @return float Percentage with 2 decimal places
+     * @since  1.0.0
      */
     public function getEffectivePercent(
         Money $baseTotal,
@@ -109,6 +115,7 @@ class DiscountSummary
      * @param Money $subtotal Amount after discounts, before tax
      * @param Money $taxTotal Tax amount
      * @return array ['before_tax' => float, 'after_tax' => float, 'total' => float]
+     * @since  1.0.0
      */
     public function getPercentBreakdown(
         Money $baseTotal,
@@ -131,6 +138,7 @@ class DiscountSummary
      *
      * Separates before-tax and after-tax discounts and calculates
      * each relative to the appropriate base amount.
+     * @since  1.0.0
      */
     private function calculatePercentBreakdown(
         Money $baseTotal,
@@ -183,6 +191,7 @@ class DiscountSummary
      * @param object $discount AppliedDiscount object
      * @param Money $baseAmount Base amount to calculate percentage against
      * @return float Percentage value
+     * @since  1.0.0
      */
     private function calculateDiscountPercent($discount, Money $baseAmount): float
     {
@@ -208,6 +217,7 @@ class DiscountSummary
      *
      * @param string $timing 'before_tax' or 'after_tax'
      * @return array Filtered discounts
+     * @since  1.0.0
      */
     private function getDiscountsByTiming(string $timing): array
     {
@@ -226,6 +236,7 @@ class DiscountSummary
      *
      * @param string $type 'percentage', 'fixed_amount', etc.
      * @return array Filtered discounts
+     * @since  1.0.0
      */
     public function getDiscountsByType(string $type): array
     {
@@ -240,6 +251,7 @@ class DiscountSummary
      *
      * @param string $code Discount code
      * @return object|null AppliedDiscount or null if not found
+     * @since  1.0.0
      */
     public function getDiscountByCode(string $code): ?object
     {
@@ -256,6 +268,7 @@ class DiscountSummary
      * Check if a specific discount code was applied
      *
      * @param string $code Discount code
+     * @since  1.0.0
      */
     public function hasDiscountCode(string $code): bool
     {
@@ -268,6 +281,7 @@ class DiscountSummary
 
     /**
      * Export as array for APIs/JSON
+     * @since  1.0.0
      */
     public function toArray(): array
     {

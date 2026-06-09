@@ -19,7 +19,7 @@ use Joomla\CMS\Router\Route;
 /**
  * JSON View class for a list of Alfa items.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class JsonView extends BaseJsonView
 {
@@ -27,7 +27,7 @@ class JsonView extends BaseJsonView
      * The items to display
      *
      * @var array
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $items;
 
@@ -35,7 +35,7 @@ class JsonView extends BaseJsonView
      * The pagination object
      *
      * @var \Joomla\CMS\Pagination\Pagination
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $pagination;
 
@@ -43,7 +43,7 @@ class JsonView extends BaseJsonView
      * The model state
      *
      * @var \Joomla\CMS\Object\CMSObject
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $state;
 
@@ -51,7 +51,7 @@ class JsonView extends BaseJsonView
      * The component parameters
      *
      * @var \Joomla\Registry\Registry
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $params;
 
@@ -59,7 +59,7 @@ class JsonView extends BaseJsonView
      * The subcategories list
      *
      * @var array
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $categories;
 
@@ -67,7 +67,7 @@ class JsonView extends BaseJsonView
      * The current category
      *
      * @var object|null
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $category;
 
@@ -78,7 +78,7 @@ class JsonView extends BaseJsonView
      *
      * @return void
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function display($tpl = null)
     {
@@ -126,7 +126,7 @@ class JsonView extends BaseJsonView
      *
      * @return array
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function preparePaginationData()
     {
@@ -151,7 +151,7 @@ class JsonView extends BaseJsonView
      *
      * @return array
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function preparePaginationLinks()
     {
@@ -199,7 +199,7 @@ class JsonView extends BaseJsonView
      *
      * @return array
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function prepareStateData()
     {
@@ -216,7 +216,7 @@ class JsonView extends BaseJsonView
      *
      * @return array
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function prepareCategoryData()
     {

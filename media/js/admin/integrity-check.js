@@ -12,7 +12,7 @@
  * either it already is (immediate) or on its 'alfa-notifications-ready' event.
  *
  * @package  Com_Alfa
- * @since    1.0.5
+ * @since  1.0.0
  */
 (function () {
     'use strict';

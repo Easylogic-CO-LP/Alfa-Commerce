@@ -19,7 +19,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Payments;
  * after the bank); it renders no layout, because the controller that dispatches it has
  * no view. To show something instead of redirecting, redirect to a view layout.
  *
- * @since  1.0.10
+ * @since  1.0.0
  */
 abstract class PaymentsRedirectEvent extends \Alfa\Component\Alfa\Administrator\Event\General\RedirectEvent
 {

@@ -28,7 +28,7 @@ class PluginController extends BaseController
      *
      * @return BaseController|bool This object to support chaining.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     // public function display($cachable = false, $urlparams = array())
     // {

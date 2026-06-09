@@ -113,7 +113,7 @@ class OrderPlaceHelper
      * Register the file logger for the com_alfa.orders category; failures are sent to error_log.
      *
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     protected function configureLogging(): void
     {
@@ -129,7 +129,7 @@ class OrderPlaceHelper
      *
      * @return object|null The order, or null if no order has been placed.
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     public function getOrder(): ?object
     {
@@ -141,7 +141,7 @@ class OrderPlaceHelper
      *
      * @return CartHelper|null The cart helper, or null if not set.
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     public function getCart(): ?CartHelper
     {
@@ -172,7 +172,7 @@ class OrderPlaceHelper
      *
      * @param array $data User form data (address fields)
      * @return bool True on success, false on failure
-     * @since   3.5.1
+     * @since  1.0.0
      */
     public function placeOrder(array $data): bool
     {
@@ -320,7 +320,7 @@ class OrderPlaceHelper
      *
      * @return bool True when all prerequisites pass, false otherwise.
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     protected function validateOrderPrerequisites(): bool
     {
@@ -362,7 +362,7 @@ class OrderPlaceHelper
      *
      * @return bool True unless an unexpected top-level error occurs.
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     protected function triggerBeforePlaceEvents(int $paymentMethodId, int $shipmentMethodId): bool
     {
@@ -407,7 +407,7 @@ class OrderPlaceHelper
      * payment/shipment records) for the placed order. All errors are logged and swallowed.
      *
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     protected function triggerAfterPlaceEvents(): void
     {
@@ -449,7 +449,7 @@ class OrderPlaceHelper
      * @param int $paymentMethodId Selected payment method PK
      * @param int $shipmentMethodId Selected shipment method PK
      * @return int|false New order ID, or false on failure
-     * @since   3.5.1
+     * @since  1.0.0
      */
     protected function saveOrder(int $paymentMethodId, int $shipmentMethodId)
     {
@@ -529,6 +529,7 @@ class OrderPlaceHelper
      *
      * WARNING: getPrice()/getTotal() include after-tax discounts — DO NOT use for tax-incl fields.
      * After-tax discounts (coupons) are tracked in order_cart_rule, not in item prices.
+     * @since  1.0.0
      */
     protected function saveOrderItems(): bool
     {
@@ -652,6 +653,7 @@ class OrderPlaceHelper
      *
      * @param int $orderDetailId The order_items row ID
      * @param object $cartItem Cart item with ->data->price (PriceResult)
+     * @since  1.0.0
      */
     protected function saveItemTaxBreakdown(int $orderDetailId, object $cartItem): bool
     {
@@ -753,6 +755,7 @@ class OrderPlaceHelper
      * id_order_status + status_name columns, plus in the context.
      *
      * @param int $statusId Initial order status ID
+     * @since  1.0.0
      */
     protected function createOrderHistory(int $statusId): bool
     {
@@ -793,6 +796,7 @@ class OrderPlaceHelper
 
     /**
      * V3: Save cart rules
+     * @since  1.0.0
      */
     protected function saveCartRules(): bool
     {
@@ -857,7 +861,7 @@ class OrderPlaceHelper
      *
      * @return bool True if no methods are offered or the id matches an available method.
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     protected function checkShipmentMethod(?int $id): bool
     {
@@ -891,7 +895,7 @@ class OrderPlaceHelper
      *
      * @return object|null The inserted info object (with id), or null on validation failure/error.
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     protected function saveUserInfo(array $data): ?object
     {
@@ -940,6 +944,7 @@ class OrderPlaceHelper
     /**
      * Load all form fields marked as unique=1 from the form fields table.
      * Returns an array of field_name strings.
+     * @since  1.0.0
      */
     protected function getUniqueFormFields(): array
     {
@@ -969,7 +974,7 @@ class OrderPlaceHelper
      *
      * @return array Map of violating field name => submitted value (empty when none).
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     protected function checkUniqueFieldViolations(array $data, array $uniqueFields): array
     {
@@ -1029,7 +1034,7 @@ class OrderPlaceHelper
      * @param int $id The payment method id.
      *
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     protected function getPaymentType(int $id): void
     {
@@ -1059,7 +1064,7 @@ class OrderPlaceHelper
      * @param int $id The shipment method id.
      *
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     protected function getShipmentType(int $id): void
     {
@@ -1090,7 +1095,7 @@ class OrderPlaceHelper
      *
      * @return string The translated payment method name.
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     protected function getPaymentMethodName(int $id): string
     {
@@ -1117,7 +1122,7 @@ class OrderPlaceHelper
      *
      * @return string The translated shipment method name.
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     protected function getShipmentMethodName(int $id): string
     {
@@ -1143,7 +1148,7 @@ class OrderPlaceHelper
      *
      * @return int|null The currency id, or null when not found / on error.
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     protected function getCurrencyID(int $number): ?int
     {
@@ -1165,7 +1170,7 @@ class OrderPlaceHelper
      *
      * @return float The aggregate cart weight; 0 on error.
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     protected function calculateTotalWeight(): float
     {
@@ -1186,6 +1191,7 @@ class OrderPlaceHelper
      * @param int $orderId Order ID
      *
      * @return object|null Order object or null on failure
+     * @since  1.0.0
      */
     protected function loadOrderModel(int $orderId): ?object
     {

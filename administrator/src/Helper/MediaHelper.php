@@ -46,7 +46,7 @@ class MediaHelper
      * server-side handling so both ends agree.
      *
      * @var string[]
-     * @since  1.0.8
+     * @since  1.0.0
      */
     public const DEFAULT_IMAGE_MIMES = [
         'image/jpeg',
@@ -68,7 +68,7 @@ class MediaHelper
      *
      * @return string[] The effective allowed MIME types.
      *
-     * @since   1.0.8
+     * @since  1.0.0
      */
     public static function resolveAllowedMimes($configured): array
     {
@@ -88,7 +88,7 @@ class MediaHelper
      *
      * @return int Effective max upload size in bytes (0 = unlimited).
      *
-     * @since   1.0.8
+     * @since  1.0.0
      */
     public static function maxUploadBytes(): int
     {
@@ -132,7 +132,7 @@ class MediaHelper
      *
      * @return string Absolute URL, or '' for an empty path.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function toUrl(?string $path): string
     {
@@ -160,7 +160,7 @@ class MediaHelper
      * @param string $origin Media origin ('item' | 'category' | 'manufacturer').
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function deleteMediaForItems(array $itemIds, string $origin): void
     {
@@ -225,7 +225,7 @@ class MediaHelper
      * IN(...) clause and per-batch file work bounded so a single request can
      * safely clear a very large selection ("show all") or the whole table.
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     private const DELETE_BATCH_SIZE = 500;
 
@@ -242,7 +242,7 @@ class MediaHelper
      *
      * @return int Number of rows removed.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function deleteMediaByIds(array $mediaIds): int
     {
@@ -311,7 +311,7 @@ class MediaHelper
      *
      * @return int[]
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function findOrphanMediaIds(): array
     {
@@ -343,7 +343,7 @@ class MediaHelper
      *
      * @return int[]
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function findMissingFileMediaIds(): array
     {
@@ -372,7 +372,7 @@ class MediaHelper
      * Absolute path of the com_alfa upload root (media_save_location).
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function getUploadRoot(): string
     {
@@ -391,7 +391,7 @@ class MediaHelper
      *
      * @return array<string, true>
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function getTrackedRelativePaths(): array
     {
@@ -425,7 +425,7 @@ class MediaHelper
      *
      * @return object[] Each: { path (relative), size (int bytes), mtime (int) }.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function findUntrackedFiles(): array
     {
@@ -474,7 +474,7 @@ class MediaHelper
      *
      * @return int Number of files deleted.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function deleteUntrackedFiles(array $relativePaths): int
     {
@@ -528,6 +528,7 @@ class MediaHelper
      * @param string $customFileName Reserved (alias-based naming is no longer a component setting).
      *
      * @throws Exception
+     * @since  1.0.0
      */
     public static function saveMedia(array $mediaData, array $droppedMedia, int $itemId, string $mediaOrigin, string $customFileName = ''): true
     {
@@ -809,6 +810,7 @@ class MediaHelper
      * @param object $params Component parameters object.
      *
      * @return string Relative path of the saved thumbnail, or empty string if none.
+     * @since  1.0.0
      */
     private static function processThumbnail(string $rawThumbnail, string $defaultThumbPath, string $absolutePath, string $saveFolder, object $params): string
     {
@@ -890,6 +892,7 @@ class MediaHelper
      * @param string $suffix Optional suffix appended to the name (e.g., 'thumb').
      *
      * @return string The unique filename with extension.
+     * @since  1.0.0
      */
     private static function getUniqueFilename(
         string $name,
@@ -920,6 +923,7 @@ class MediaHelper
      * @param int|array $itemIDs Single ID or array of IDs
      *
      * @return array|object[] Media objects (single) or grouped array (multiple)
+     * @since  1.0.0
      */
     public static function getMediaData(string $origin, int|array|null $itemIDs, $usePlaceHolder = false): array
     {
@@ -990,6 +994,7 @@ class MediaHelper
     /**
      * Resolves a display thumbnail for records with no stored thumbnail.
      * Images fall back to their own path; URL media uses the configured URL thumbnail.
+     * @since  1.0.0
      */
     private static function resolveThumbnail(object $result, string $urlThumbnailPath): string
     {
@@ -1004,6 +1009,7 @@ class MediaHelper
      * Get placeholder media object from component params
      *
      * @return object|null Placeholder media object or null if not configured
+     * @since  1.0.0
      */
     private static function getPlaceholderMedia(string $placeholderPath): ?object
     {
@@ -1028,7 +1034,7 @@ class MediaHelper
      * {@see self::dominantColor()} to open the final file for colour sampling.
      *
      * @var array<string, string>
-     * @since  1.0.2
+     * @since  1.0.0
      */
     private const COLOR_LOADERS = [
         'image/jpeg' => 'imagecreatefromjpeg',
@@ -1055,7 +1061,7 @@ class MediaHelper
      *
      * @return string Dominant colour as 'rgb(r,g,b)', or '' on failure.
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     private static function dominantColor(string $imagePath): string
     {
@@ -1134,7 +1140,7 @@ class MediaHelper
      *
      * @return bool True when a resized thumbnail was written, false otherwise.
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     private static function resizeThumbnail(string $src, string $dest, int $maxW, int $maxH): bool
     {
@@ -1213,7 +1219,7 @@ class MediaHelper
      * @return bool True when valid (or unhandled), false when a plugin vetoed it
      *              (the plugin's error message is enqueued here).
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     private static function dispatchValidate(string $source, string $origin, string $field, array $allowedMimes): bool
     {
@@ -1268,7 +1274,7 @@ class MediaHelper
      *
      * @return array{dest:string, processed:bool}
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     private static function dispatchProcess(
         string $eventName,
@@ -1319,7 +1325,7 @@ class MediaHelper
      * @param bool $processed Whether a plugin actually processed the image.
      *
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     private static function dispatchAfterProcess(string $source, string $dest, string $origin, string $field, string $color, bool $processed): void
     {
@@ -1344,7 +1350,7 @@ class MediaHelper
      * @param object[] $rows Media rows about to be deleted (path, thumbnail, ...).
      *
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     private static function dispatchBeforeDelete(array $rows): void
     {

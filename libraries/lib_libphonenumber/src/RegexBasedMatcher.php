@@ -8,12 +8,14 @@ namespace libphonenumber;
  * Class RegexBasedMatcher
  * @package libphonenumber
  * @internal
+ * @since  1.0.0
  */
 class RegexBasedMatcher implements MatcherAPIInterface
 {
     /**
      * Returns whether the given national number (a string containing only decimal digits) matches
      * the national number pattern defined in the given {@code PhoneNumberDesc} message.
+     * @since  1.0.0
      */
     public function matchNationalNumber(string $number, PhoneNumberDesc $numberDesc, bool $allowPrefixMatch): bool
     {

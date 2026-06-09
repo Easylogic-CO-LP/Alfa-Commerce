@@ -21,7 +21,7 @@ use Alfa\Component\Alfa\Administrator\Event\General\FormEvent;
 /**
  * Class for CustomFields events
  *
- * @since  5.0.0
+ * @since  1.0.0
  */
 class AdminOrderPrepareFormEvent extends FormEvent
 {

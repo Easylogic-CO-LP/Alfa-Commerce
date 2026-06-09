@@ -13,6 +13,7 @@ namespace libphonenumber\geocoding\data\ru;
 
 /**
  * @internal
+ * @since  1.0.0
  */
 class Ru_373
 {

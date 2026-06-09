@@ -19,7 +19,7 @@ use Joomla\CMS\Router\Route;
 /**
  * Manufacturer class.
  *
- * @since  1.6.0
+ * @since  1.0.0
  */
 class ManufacturerController extends BaseController
 {
@@ -29,7 +29,7 @@ class ManufacturerController extends BaseController
      * @return void
      *
      * @throws Exception
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function edit()
     {
@@ -63,7 +63,7 @@ class ManufacturerController extends BaseController
      * @return void
      *
      * @throws Exception
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function publish()
     {
@@ -112,7 +112,7 @@ class ManufacturerController extends BaseController
      *
      * @return bool True on success
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function checkin()
     {
@@ -153,6 +153,7 @@ class ManufacturerController extends BaseController
      * @return void
      *
      * @throws Exception
+     * @since  1.0.0
      */
     public function remove()
     {

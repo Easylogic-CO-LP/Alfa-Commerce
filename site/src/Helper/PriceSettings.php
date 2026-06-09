@@ -5,7 +5,7 @@
  *
  * @package    Com_Alfa
  * @subpackage Site
- * @since      1.0.1
+ * @since  1.0.0
  * @author     Agamemnon Fakas
  * @copyright  2025 Easylogic CO LP
  * @license    GNU General Public License version 2 or later
@@ -237,7 +237,7 @@ defined('_JEXEC') or die;
  * Implements static caching to minimize database queries and comprehensive error
  * handling to ensure zero runtime failures.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class PriceSettings
 {
@@ -246,7 +246,7 @@ class PriceSettings
      * Key format: 'u{userId}'
      *
      * @var array
-     * @since  1.0.1
+     * @since  1.0.0
      */
     private static $userCache = [];
 
@@ -254,7 +254,7 @@ class PriceSettings
      * Static cache for global component settings
      *
      * @var array|null
-     * @since  1.0.1
+     * @since  1.0.0
      */
     private static $globalCache = null;
 
@@ -263,7 +263,7 @@ class PriceSettings
      * Public for builder class access
      *
      * @var array
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public const FIELDS = [
         'base_price_show',
@@ -287,7 +287,7 @@ class PriceSettings
      * Public for builder class access
      *
      * @var array
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public const ALIASES = [
         // Base price
@@ -347,7 +347,7 @@ class PriceSettings
      * @param int|null $userId User ID (null for current user)
      *
      * @return array Complete settings array with all field values
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function get(?int $userId = null): array
     {
@@ -390,7 +390,7 @@ class PriceSettings
      * Loads from component configuration and caches for request duration.
      *
      * @return array Global settings array
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function global(): array
     {
@@ -425,7 +425,7 @@ class PriceSettings
      * Suitable for compact displays such as sidebar widgets or product cards.
      *
      * @return array Settings array
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function minimal(): array
     {
@@ -442,7 +442,7 @@ class PriceSettings
      * Suitable for product listings and grid views.
      *
      * @return array Settings array
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function compact(): array
     {
@@ -456,7 +456,7 @@ class PriceSettings
      * Suitable for detailed product pages.
      *
      * @return array Settings array
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function full(): array
     {
@@ -481,7 +481,7 @@ class PriceSettings
      * @param string ...$elements Element names to show
      *
      * @return array Settings array
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function only(string ...$elements): array
     {
@@ -507,7 +507,7 @@ class PriceSettings
      * @param string ...$elements Element names to hide
      *
      * @return array Settings array
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function except(string ...$elements): array
     {
@@ -534,7 +534,7 @@ class PriceSettings
      * Provides chainable API for fine-grained control over price visibility.
      *
      * @return PriceSettingsBuilder Builder instance
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function make(): PriceSettingsBuilder
     {
@@ -554,7 +554,7 @@ class PriceSettings
      * @param string $element User-provided element name
      *
      * @return string|null Internal field name or null if not found
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function resolve(string $element): ?string
     {
@@ -581,7 +581,7 @@ class PriceSettings
      * @param int $userId User ID
      *
      * @return array Resolved settings array
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function resolveUserGroup(int $userId): array
     {
@@ -630,7 +630,7 @@ class PriceSettings
      * @param array $global Global settings
      *
      * @return array Merged settings array
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function merge(array $group, array $global): array
     {
@@ -652,7 +652,7 @@ class PriceSettings
      * Create settings array with all elements hidden
      *
      * @return array Settings array with all values set to 0
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function hideAll(): array
     {
@@ -669,7 +669,7 @@ class PriceSettings
      * @param array $settings Settings array to modify
      *
      * @return array Settings array with all labels hidden
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function removeLabels(array $settings): array
     {
@@ -685,7 +685,7 @@ class PriceSettings
      * Get default settings (all visible)
      *
      * @return array Default settings array
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function defaults(): array
     {
@@ -705,7 +705,7 @@ class PriceSettings
      * @param string $message Error description
      * @param Exception $exception Exception object
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private static function log(string $message, Exception $exception): void
     {
@@ -726,7 +726,7 @@ class PriceSettings
      * Primarily for testing purposes; cache is automatically
      * cleared between requests.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function clearCache(): void
     {
@@ -742,7 +742,7 @@ class PriceSettings
  * with fine-grained control. Invalid element names are silently ignored
  * to prevent chain breakage.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class PriceSettingsBuilder
 {
@@ -750,7 +750,7 @@ class PriceSettingsBuilder
      * Settings being constructed
      *
      * @var array
-     * @since  1.0.1
+     * @since  1.0.0
      */
     private $settings = [];
 
@@ -759,7 +759,7 @@ class PriceSettingsBuilder
      *
      * Initializes settings with all elements hidden.
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public function __construct()
     {
@@ -777,7 +777,7 @@ class PriceSettingsBuilder
      * @param bool $withLabel Show label (default: true)
      *
      * @return self Builder instance for chaining
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function show(string $element, bool $withLabel = true): self
     {
@@ -799,7 +799,7 @@ class PriceSettingsBuilder
      * @param string $element Element name
      *
      * @return self Builder instance for chaining
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function hide(string $element): self
     {
@@ -817,7 +817,7 @@ class PriceSettingsBuilder
      * Remove all label visibility
      *
      * @return self Builder instance for chaining
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function withoutLabels(): self
     {
@@ -834,7 +834,7 @@ class PriceSettingsBuilder
      * Build and return final settings array
      *
      * @return array Complete settings array
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function get(): array
     {
@@ -849,7 +849,7 @@ class PriceSettingsBuilder
      * @param string $element Element name
      *
      * @return string|null Field name or null if not found
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private function resolveField(string $element): ?string
     {

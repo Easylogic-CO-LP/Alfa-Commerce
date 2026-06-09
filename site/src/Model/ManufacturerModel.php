@@ -26,7 +26,7 @@ use Joomla\Database\ParameterType;
 /**
  * Manufacturer model
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class ManufacturerModel extends BaseItemModel
 {
@@ -40,7 +40,7 @@ class ManufacturerModel extends BaseItemModel
      *
      *
      * @throws Exception
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected function populateState(): void
     {
@@ -58,6 +58,7 @@ class ManufacturerModel extends BaseItemModel
      * @param int|null $pk Manufacturer ID
      *
      * @return object|false Manufacturer object or false on error
+     * @since  1.0.0
      */
     public function getItem($pk = null)
     {

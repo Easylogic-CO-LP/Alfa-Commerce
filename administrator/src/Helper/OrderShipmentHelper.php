@@ -46,7 +46,7 @@
  *
  * Path: administrator/components/com_alfa/src/Helper/OrderShipmentHelper.php
  *
- * @since  3.5.0
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Helper;
@@ -154,7 +154,7 @@ class OrderShipmentHelper
      *
      * @return static Builder in create mode
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     public static function for(object $order): static
     {
@@ -185,7 +185,7 @@ class OrderShipmentHelper
      *
      * @throws RuntimeException If shipment not found
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     public static function load(int $shipmentId): static
     {
@@ -211,6 +211,7 @@ class OrderShipmentHelper
 
     /**
      * Set status to PENDING — created, not dispatched.
+     * @since  1.0.0
      */
     public function pending(): static
     {
@@ -220,6 +221,7 @@ class OrderShipmentHelper
 
     /**
      * Set status to SHIPPED — auto-sets 'shipped' timestamp.
+     * @since  1.0.0
      */
     public function shipped(): static
     {
@@ -236,6 +238,7 @@ class OrderShipmentHelper
      * Set status to DELIVERED — auto-sets 'shipped' + 'delivered' timestamps.
      *
      * Use for: digital products (instant delivery), local pickup.
+     * @since  1.0.0
      */
     public function delivered(): static
     {
@@ -255,6 +258,7 @@ class OrderShipmentHelper
 
     /**
      * Set status to CANCELLED.
+     * @since  1.0.0
      */
     public function cancelled(): static
     {
@@ -265,6 +269,7 @@ class OrderShipmentHelper
     /**
      * Set status to ON_HOLD.
      * Use for: waiting for stock, address verification, customs hold.
+     * @since  1.0.0
      */
     public function onHold(): static
     {
@@ -274,6 +279,7 @@ class OrderShipmentHelper
 
     /**
      * Set status to RETURNED.
+     * @since  1.0.0
      */
     public function returned(): static
     {
@@ -285,6 +291,7 @@ class OrderShipmentHelper
 
     /**
      * Assign ALL order items to this shipment.
+     * @since  1.0.0
      */
     public function withAllItems(): static
     {
@@ -306,6 +313,7 @@ class OrderShipmentHelper
      * Assign specific items by order_items.id (not product ID).
      *
      * @param array $itemIds Array of order_items row PKs
+     * @since  1.0.0
      */
     public function withItems(array $itemIds): static
     {
@@ -315,6 +323,7 @@ class OrderShipmentHelper
 
     /**
      * Create shipment with no items assigned (assign later from admin).
+     * @since  1.0.0
      */
     public function withNoItems(): static
     {
@@ -329,6 +338,7 @@ class OrderShipmentHelper
      *
      * @param float $taxIncl Cost including tax
      * @param float|null $taxExcl Cost excluding tax (defaults to taxIncl if null)
+     * @since  1.0.0
      */
     public function cost(float $taxIncl, ?float $taxExcl = null): static
     {
@@ -341,6 +351,7 @@ class OrderShipmentHelper
      * Set carrier tracking number.
      *
      * @param string $number Carrier tracking reference
+     * @since  1.0.0
      */
     public function trackingNumber(string $number): static
     {
@@ -352,6 +363,7 @@ class OrderShipmentHelper
      * Set tracking URL for customer.
      *
      * @param string $url Full tracking URL
+     * @since  1.0.0
      */
     public function trackingUrl(string $url): static
     {
@@ -363,6 +375,7 @@ class OrderShipmentHelper
      * Override the auto-calculated weight.
      *
      * @param float $weight Total weight in configured units
+     * @since  1.0.0
      */
     public function weight(float $weight): static
     {
@@ -374,6 +387,7 @@ class OrderShipmentHelper
      * Override the shipment method (normally from order).
      *
      * @param int $methodId Shipment method PK
+     * @since  1.0.0
      */
     public function method(int $methodId): static
     {
@@ -386,6 +400,7 @@ class OrderShipmentHelper
      *
      * @param string $key Column name
      * @param mixed $value Value to set
+     * @since  1.0.0
      */
     public function set(string $key, mixed $value): static
     {
@@ -402,7 +417,7 @@ class OrderShipmentHelper
      *
      * @throws RuntimeException If status not set (create mode)
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     public function save(): int|false
     {
@@ -419,6 +434,7 @@ class OrderShipmentHelper
      * Get all valid shipment status values.
      *
      * @return array ['pending', 'shipped', 'delivered', 'cancelled', 'on_hold', 'returned']
+     * @since  1.0.0
      */
     public static function allStatuses(): array
     {
@@ -432,6 +448,7 @@ class OrderShipmentHelper
      * Get current builder mode.
      *
      * @return string 'create' or 'update'
+     * @since  1.0.0
      */
     public function getMode(): string
     {
@@ -440,6 +457,7 @@ class OrderShipmentHelper
 
     /**
      * Preview data without saving.
+     * @since  1.0.0
      */
     public function toArray(): array
     {
@@ -456,6 +474,7 @@ class OrderShipmentHelper
 
     /**
      * Execute CREATE flow.
+     * @since  1.0.0
      */
     protected function doBuilderCreate(): int|false
     {
@@ -478,6 +497,7 @@ class OrderShipmentHelper
 
     /**
      * Execute UPDATE flow.
+     * @since  1.0.0
      */
     protected function doBuilderUpdate(): int|false
     {
@@ -507,6 +527,7 @@ class OrderShipmentHelper
      * Sum weight × quantity from order items.
      *
      * @param object $order Order with ->items
+     * @since  1.0.0
      */
     protected static function calculateWeight(object $order): float
     {
@@ -534,7 +555,7 @@ class OrderShipmentHelper
      *
      * @return int|false New shipment row ID, or false on failure
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public static function create(array $data): int|false
     {
@@ -621,7 +642,7 @@ class OrderShipmentHelper
      *
      * @return bool True on success
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public static function update(int $id, array $data): bool
     {
@@ -719,7 +740,7 @@ class OrderShipmentHelper
      *
      * @return bool True on success
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public static function delete(int $id, int $orderId): bool
     {
@@ -761,7 +782,7 @@ class OrderShipmentHelper
      *
      * @return object|null Shipment with ->params, or null
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public static function get(int $id): ?object
     {
@@ -799,7 +820,7 @@ class OrderShipmentHelper
      *
      * @return array Array of shipment row objects
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public static function getByOrder(int $orderId): array
     {
@@ -834,7 +855,7 @@ class OrderShipmentHelper
      *
      * @return bool True on success
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public static function assignItems(int $shipmentId, int $orderId, array $itemIds): bool
     {
@@ -870,7 +891,7 @@ class OrderShipmentHelper
      *
      * @return array Array of order_items.id values
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public static function getItemIds(int $shipmentId): array
     {
@@ -894,7 +915,7 @@ class OrderShipmentHelper
      *
      * @return string Comma-separated names, or empty string
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public static function getItemNames(int $shipmentId): string
     {
@@ -930,7 +951,7 @@ class OrderShipmentHelper
      * @param int $id Shipment PK
      *
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     private static function getRaw(int $id): ?object
     {
@@ -951,7 +972,7 @@ class OrderShipmentHelper
      * @param array &$data Data array (by reference — PK set on insert)
      *
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     private static function saveToTable(array &$data): bool
     {
@@ -1004,7 +1025,7 @@ class OrderShipmentHelper
      * @param int $id Row PK
      *
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     private static function deleteFromTable(int $id): bool
     {
@@ -1033,7 +1054,7 @@ class OrderShipmentHelper
      * @param int $orderId Order PK (scope)
      *
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     private static function clearItemAssignments(int $shipmentId, int $orderId): void
     {
@@ -1068,6 +1089,7 @@ class OrderShipmentHelper
      * @param mixed $value A Money instance, numeric value or null
      *
      * @return float The amount as a float
+     * @since  1.0.0
      */
     private static function moneyToFloat(mixed $value): float
     {
@@ -1085,6 +1107,7 @@ class OrderShipmentHelper
      * @param int $methodId The method id to resolve
      *
      * @return string The method name, or '' when unavailable
+     * @since  1.0.0
      */
     private static function resolveMethodName(string $modelName, int $methodId): string
     {
@@ -1107,6 +1130,7 @@ class OrderShipmentHelper
      * @param string $name The model name to instantiate
      *
      * @return object The model instance
+     * @since  1.0.0
      */
     private static function getRelatedModel(string $name)
     {
@@ -1122,6 +1146,7 @@ class OrderShipmentHelper
      * @param int $orderId The order id
      *
      * @return int The order's currency id, or 1 as fallback
+     * @since  1.0.0
      */
     private static function getOrderCurrencyId(int $orderId): int
     {
@@ -1139,6 +1164,7 @@ class OrderShipmentHelper
      * Get the current user's id, returning 0 when no identity is available.
      *
      * @return int The current user id, or 0
+     * @since  1.0.0
      */
     private static function getCurrentUserId(): int
     {
@@ -1154,6 +1180,7 @@ class OrderShipmentHelper
      * as an error message (silently ignored under CLI or early boot).
      *
      * @param string $message The warning message
+     * @since  1.0.0
      */
     private static function warn(string $message): void
     {

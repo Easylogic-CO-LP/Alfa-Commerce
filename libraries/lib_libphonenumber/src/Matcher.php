@@ -12,6 +12,7 @@ namespace libphonenumber;
  * is designed to recognize phone numbers embedded in any text.
  *
  * @internal
+ * @since  1.0.0
  */
 class Matcher
 {

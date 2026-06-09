@@ -14,7 +14,7 @@
  *
  * Path: plugins/alfa-shipments/standard/tmpl/action_view_details.php
  *
- * @since  3.0.0
+ * @since  1.0.0
  */
 
 defined('_JEXEC') or die;

@@ -25,7 +25,7 @@
  *   $event->setMessage('Shipment marked as shipped');
  *   $event->setRefresh(true);
  *
- * @since  3.0.0
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\Shipments;
@@ -44,7 +44,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
      * Get the action ID requested (e.g. 'mark_shipped', 'track').
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getAction(): string
     {
@@ -55,7 +55,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
      * Get the shipment record.
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getShipment(): object
     {
@@ -66,7 +66,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
      * Get the order record.
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getOrder(): object
     {
@@ -77,7 +77,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
      * Get additional data sent from JS.
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getData(): array
     {
@@ -95,7 +95,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
      *
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function setSuccess(bool $success): void
     {
@@ -103,7 +103,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
     }
 
     /**
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function isSuccess(): bool
     {
@@ -115,7 +115,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
      *
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function setMessage(string $message): void
     {
@@ -123,7 +123,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
     }
 
     /**
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getMessage(): string
     {
@@ -136,7 +136,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
      * @param string $message Error message
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function setError(string $message): void
     {
@@ -151,7 +151,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
      *
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function setRefresh(bool $refresh): void
     {
@@ -159,7 +159,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
     }
 
     /**
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getRefresh(): bool
     {
@@ -173,7 +173,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
      *
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function setRedirectUrl(string $url): void
     {
@@ -181,7 +181,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
     }
 
     /**
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getRedirectUrl(): ?string
     {
@@ -198,7 +198,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
      * @param string $layout e.g. 'action_tracking'
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function setLayout(string $layout): void
     {
@@ -208,7 +208,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
     /**
      * Matches LayoutEvent::getLayout()
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getLayout(): string
     {
@@ -222,7 +222,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
      *
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function setLayoutData(array $data): void
     {
@@ -232,7 +232,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
     /**
      * Matches LayoutEvent::getLayoutData()
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getLayoutData(): array
     {
@@ -244,7 +244,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
      *
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function setModalTitle(string $title): void
     {
@@ -252,7 +252,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
     }
 
     /**
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getModalTitle(): ?string
     {
@@ -267,7 +267,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
      *
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function setHtml(string $html): void
     {
@@ -275,7 +275,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
     }
 
     /**
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getHtml(): ?string
     {
@@ -290,7 +290,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
      * Serialize the response fields to an array.
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function toResponseArray(): array
     {
@@ -312,7 +312,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
      * Serialize the response to JSON.
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function toResponseJson(): string
     {

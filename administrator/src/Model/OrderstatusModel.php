@@ -44,7 +44,7 @@ use Joomla\CMS\MVC\Model\AdminModel;
  *   clearSingletonStatusOnOtherRows() → post-save side effect that
  *                           keeps is_initial at exactly one holder.
  *
- * @since   1.0.1
+ * @since  1.0.0
  */
 class OrderstatusModel extends AdminModel
 {
@@ -101,7 +101,7 @@ class OrderstatusModel extends AdminModel
      *
      * @return Form|false The bound form on success, false on failure.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getForm($data = [], $loadData = true)
     {
@@ -126,7 +126,7 @@ class OrderstatusModel extends AdminModel
      *
      * @return array|object Data the form will bind to.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function loadFormData()
     {
@@ -152,7 +152,7 @@ class OrderstatusModel extends AdminModel
      *
      * @return object|false Row on success, false on failure.
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public function getItem($pk = null)
     {
@@ -175,7 +175,7 @@ class OrderstatusModel extends AdminModel
      *
      * @return int[] Sanitised user ids.
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     private static function extractAdminRecipientIds(array $data): array
     {
@@ -198,7 +198,7 @@ class OrderstatusModel extends AdminModel
      *
      * @return int[] User ids in stored order.
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     private function loadAdminRecipientIds(int $statusId): array
     {
@@ -229,7 +229,7 @@ class OrderstatusModel extends AdminModel
      * @param int[] $userIds Sanitised user ids to write.
      *
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     private function saveAdminRecipients(int $statusId, array $userIds): void
     {
@@ -290,7 +290,7 @@ class OrderstatusModel extends AdminModel
      * @param array $data Form payload (modified by reference).
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private static function bundleEmailPositionsIntoLanguageKeys(array &$data): void
     {
@@ -377,7 +377,7 @@ class OrderstatusModel extends AdminModel
      * @return bool True on success, false when a guard or the parent
      *              rejects.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function save($data)
     {
@@ -448,7 +448,7 @@ class OrderstatusModel extends AdminModel
      * @return bool True on success, false when the guard or the
      *              parent rejects.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function publish(&$pks, $value = 1)
     {
@@ -486,7 +486,7 @@ class OrderstatusModel extends AdminModel
      * @return bool True on success, false when the guard or the
      *              parent rejects.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function delete(&$pks)
     {
@@ -526,7 +526,7 @@ class OrderstatusModel extends AdminModel
      * @param array $statusIds Status PKs that were deleted.
      *
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     private function dropAdminRecipientsFor(array $statusIds): void
     {
@@ -555,7 +555,7 @@ class OrderstatusModel extends AdminModel
      *
      * @return void
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function prepareTable($table)
     {
@@ -584,7 +584,7 @@ class OrderstatusModel extends AdminModel
      * @return bool True when the save is legal; false (with a queued
      *              warning) when an invariant would be violated.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function canSaveStatus(array $data, ?object $prev): bool
     {
@@ -678,7 +678,7 @@ class OrderstatusModel extends AdminModel
      * @return int[] PKs safe to remove, in admin-selection order.
      *               Empty when every submitted PK would orphan a role.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function removableStatuses(array $pks, string $messageKey, ?int $requireState = null): array
     {
@@ -774,7 +774,7 @@ class OrderstatusModel extends AdminModel
      * @param array $data Submitted form payload.
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function clearSingletonStatusOnOtherRows(int $currentId, array $data): void
     {
@@ -811,7 +811,7 @@ class OrderstatusModel extends AdminModel
      *
      * @return bool True when a sibling published holder exists.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function hasAnotherPublishedHolder(string $flag, int $excludeId): bool
     {

@@ -10,6 +10,7 @@ use libphonenumber\PhoneNumberUtil;
 
 /**
  * @no-named-arguments
+ * @since  1.0.0
  */
 class StrictGrouping extends AbstractLeniency
 {
@@ -26,6 +27,7 @@ class StrictGrouping extends AbstractLeniency
      * Warning: This level might result in lower coverage especially for regions outside of country
      * code "+1". If you are not sure about which level to use, email the discussion group
      * libphonenumber-discuss@googlegroups.com.
+     * @since  1.0.0
      */
     public static function verify(PhoneNumber $number, string $candidate, PhoneNumberUtil $util): bool
     {

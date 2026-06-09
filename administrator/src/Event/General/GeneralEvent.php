@@ -30,7 +30,7 @@ use Joomla\CMS\Event\AbstractImmutableEvent;
  * cannot accidentally try to navigate from them). Hooks that may send the buyer
  * somewhere extend RedirectEvent; view-rendered hooks extend LayoutEvent.
  *
- * @since  5.0.0
+ * @since  1.0.0
  */
 abstract class GeneralEvent extends AbstractImmutableEvent
 {
@@ -42,7 +42,7 @@ abstract class GeneralEvent extends AbstractImmutableEvent
      *
      * @throws BadMethodCallException
      *
-     * @since   5.0.0
+     * @since  1.0.0
      */
     public function __construct($name, array $arguments = [])
     {
@@ -57,7 +57,7 @@ abstract class GeneralEvent extends AbstractImmutableEvent
      * Getter for the field.
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getSubject()
     {
@@ -70,7 +70,7 @@ abstract class GeneralEvent extends AbstractImmutableEvent
      * @param object $value The value to set
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     protected function onSetSubject(object $value): object
     {

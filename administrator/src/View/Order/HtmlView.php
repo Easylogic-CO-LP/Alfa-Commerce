@@ -25,7 +25,7 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
 /**
  * View class for a single Order.
  * We directly here extend the BaseHtmlView instead of FormView to directly handle all the layout and data
- * @since  1.0.1
+ * @since  1.0.0
  */
 class HtmlView extends BaseHtmlView
 {
@@ -54,7 +54,7 @@ class HtmlView extends BaseHtmlView
      *
      * @throws Exception When a requested shipment/payment/order item or order is missing, or an id is required
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public function display($tpl = null)
     {
@@ -178,7 +178,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected function addPaymentEvents(&$payment)
     {
@@ -226,7 +226,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected function addShipmentEvents(&$shipment)
     {
@@ -271,6 +271,7 @@ class HtmlView extends BaseHtmlView
      * @return void
      *
      * @throws Exception
+     * @since  1.0.0
      */
     protected function addToolbar()
     {
@@ -296,6 +297,7 @@ class HtmlView extends BaseHtmlView
 
     /**
      * Add toolbar for payment edit view
+     * @since  1.0.0
      */
     protected function addPaymentToolbar(): void
     {
@@ -327,6 +329,7 @@ class HtmlView extends BaseHtmlView
 
     /**
      * Add toolbar for shipment edit view
+     * @since  1.0.0
      */
     protected function addShipmentToolbar(): void
     {
@@ -358,6 +361,7 @@ class HtmlView extends BaseHtmlView
 
     /**
      * Add toolbar for order item edit view
+     * @since  1.0.0
      */
     protected function addOrderItemToolbar(): void
     {

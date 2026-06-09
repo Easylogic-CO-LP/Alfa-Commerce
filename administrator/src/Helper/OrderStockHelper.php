@@ -31,7 +31,7 @@
  *
  * Path: administrator/components/com_alfa/src/Helper/OrderStockHelper.php
  *
- * @since  3.5.1
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Helper;
@@ -66,7 +66,7 @@ class OrderStockHelper
      *                state. Additional columns are passed through from
      *                the underlying row.
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     public static function getDefaultOrderStatus(): object
     {
@@ -100,7 +100,7 @@ class OrderStockHelper
      *
      * @param int $statusId Order status ID
      * @return bool True if stock should be deducted (stock_operation = 0)
-     * @since   3.5.1
+     * @since  1.0.0
      */
     public static function shouldDeductStock(int $statusId): bool
     {
@@ -135,7 +135,7 @@ class OrderStockHelper
      * @param int $oldStatusId Previous order status ID
      * @param int $newStatusId New order status ID
      * @return array ['action' => 'restored'|'deducted'|'none', 'count' => int]
-     * @since   3.5.1
+     * @since  1.0.0
      */
     public static function handleStatusTransition(int $orderId, int $oldStatusId, int $newStatusId): array
     {
@@ -203,7 +203,7 @@ class OrderStockHelper
      *
      * @param int $orderId Order PK
      * @return int Number of distinct products adjusted
-     * @since   3.5.1
+     * @since  1.0.0
      */
     public static function deductOrderStock(int $orderId): int
     {
@@ -229,7 +229,7 @@ class OrderStockHelper
      *
      * @param int $orderId Order PK
      * @return int Number of distinct products adjusted
-     * @since   3.5.1
+     * @since  1.0.0
      */
     public static function restoreOrderStock(int $orderId): int
     {
@@ -261,7 +261,7 @@ class OrderStockHelper
      * @param int $productId Product PK (#__alfa_items.id)
      * @param int $diff Stock change: negative = deduct, positive = restore
      * @return bool True if stock was adjusted, false if skipped (manage_stock=0 or error)
-     * @since   3.5.1
+     * @since  1.0.0
      */
     public static function adjustProductStock(int $productId, int $diff): bool
     {
@@ -354,7 +354,7 @@ class OrderStockHelper
      *
      * @param array $newItems New item set (objects with id_item, quantity)
      * @param array $oldItemsByPK Old items indexed by row PK
-     * @since   3.5.1
+     * @since  1.0.0
      */
     public static function handleItemStockDiff(array $newItems, array $oldItemsByPK): void
     {
@@ -408,7 +408,7 @@ class OrderStockHelper
      *
      * @param int $orderId Order PK
      * @return array [product_id => total_quantity, ...]
-     * @since   3.5.1
+     * @since  1.0.0
      */
     protected static function aggregateOrderItems(int $orderId): array
     {

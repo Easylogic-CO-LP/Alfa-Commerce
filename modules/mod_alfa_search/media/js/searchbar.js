@@ -4,7 +4,7 @@
  *
  * @package     Alfa.Module
  * @subpackage  mod_alfa_search
- * @since       1.0.0
+ * @since  1.0.0
  */
 
 (function() {

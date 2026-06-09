@@ -16,7 +16,7 @@ class OrderPlaceEvent extends PaymentsEvent
      *
      * @return mixed The cart object
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getCart()
     {
@@ -30,7 +30,7 @@ class OrderPlaceEvent extends PaymentsEvent
      *
      * @return void
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function setCart($cart)
     {

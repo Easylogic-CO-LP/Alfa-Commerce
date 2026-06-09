@@ -13,6 +13,7 @@ namespace libphonenumber\carrier\data\en;
 
 /**
  * @internal
+ * @since  1.0.0
  */
 class En_244
 {

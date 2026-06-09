@@ -15,7 +15,7 @@
  * Live refresh: 'alfa-notifications-changed' event · postMessage {alfaNotifications:'refresh'} · poll
  *
  * @package  Com_Alfa
- * @since    1.0.5
+ * @since  1.0.0
  */
 (function () {
     'use strict';

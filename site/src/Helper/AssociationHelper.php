@@ -31,7 +31,7 @@ use Joomla\CMS\Language\Multilanguage;
  * 'el-GR', 'en-GB') whose values are internal URLs carrying &lang=<code>;
  * Route::_() + the RouterView then build /el/... and /en/... server-side.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class AssociationHelper
 {
@@ -47,7 +47,7 @@ class AssociationHelper
      *
      * @return array [ 'el-GR' => 'index.php?...&lang=el-GR', 'en-GB' => … ]
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function getAssociations(int $id = 0, ?string $view = null): array
     {

@@ -34,7 +34,7 @@ use Joomla\CMS\Language\Text;
  * only via nested groups). Empty tree -> '' (field always shown). The model
  * folds this value into params; FieldsPlugin reads params->get('showon').
  *
- * @since 1.0.1
+ * @since  1.0.0
  */
 class ShowonField extends FormField
 {
@@ -80,7 +80,7 @@ class ShowonField extends FormField
      *
      * @return string The builder HTML
      *
-     * @since 1.0.1
+     * @since  1.0.0
      */
     protected function getInput()
     {
@@ -125,7 +125,9 @@ class ShowonField extends FormField
      *  Recursive server render
      * ============================================================ */
 
-    /** A whole group: ordered items + the add bar. */
+    /** A whole group: ordered items + the add bar.
+     * @since  1.0.0
+     */
     private function renderGroup(array $items, bool $isRoot): string
     {
         $cls = 'aso-group' . ($isRoot ? ' aso-group--root' : '');
@@ -151,7 +153,9 @@ class ShowonField extends FormField
         return $out;
     }
 
-    /** One item = a rule OR a nested group, plus the glue to the NEXT sibling. */
+    /** One item = a rule OR a nested group, plus the glue to the NEXT sibling.
+     * @since  1.0.0
+     */
     private function renderItem(array $item, bool $isLast): string
     {
         $out = '<div class="aso-item">';
@@ -183,6 +187,7 @@ class ShowonField extends FormField
      * A single condition row. ONE value per rule (OR is the glue, not a
      * delimiter — values are never split). `between` shows two inputs
      * (min/max); no-value ops show none.
+     * @since  1.0.0
      */
     private function renderRule(array $r): string
     {
@@ -229,7 +234,9 @@ class ShowonField extends FormField
             . '</div>';
     }
 
-    /** The AND/OR connector between two siblings. */
+    /** The AND/OR connector between two siblings.
+     * @since  1.0.0
+     */
     private function renderGlue(string $glue): string
     {
         $or = $glue === 'OR';
@@ -259,7 +266,7 @@ class ShowonField extends FormField
      *
      * @return string The attribute-safe JSON string
      *
-     * @since 1.0.1
+     * @since  1.0.0
      */
     private function escAttrJson(array $v): string
     {
@@ -275,6 +282,7 @@ class ShowonField extends FormField
      * except this one (you can't gate a field on itself).
      *
      * @return array<int, array{value:string,text:string}>
+     * @since  1.0.0
      */
     private function switchableFields(): array
     {

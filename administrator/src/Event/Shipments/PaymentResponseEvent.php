@@ -21,7 +21,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Shipments;
  * site PaymentController which has no view — so it is redirect-only (no layout). To
  * show a result page, redirect to a view layout (e.g. the order-process page).
  *
- * @since  5.0.0
+ * @since  1.0.0
  */
 class PaymentResponseEvent extends ShipmentsRedirectEvent
 {
@@ -30,7 +30,7 @@ class PaymentResponseEvent extends ShipmentsRedirectEvent
      *
      * @return mixed The order or cart object
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getOrder()
     {

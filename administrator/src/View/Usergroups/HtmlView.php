@@ -23,7 +23,7 @@ use Joomla\CMS\Uri\Uri;
 /**
  * View class for a list of Usergroups.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class HtmlView extends BaseHtmlView
 {
@@ -43,6 +43,7 @@ class HtmlView extends BaseHtmlView
      * @param string $tpl The name of the template file to parse; automatically searches through the template paths.
      *
      * @return void
+     * @since  1.0.0
      */
     public function display($tpl = null)
     {
@@ -69,7 +70,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function addToolbar()
     {

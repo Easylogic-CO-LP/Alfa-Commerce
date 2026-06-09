@@ -24,7 +24,7 @@ use Throwable;
 /**
  * Orderstatus admin controller.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class OrderstatusController extends FormController
 {
@@ -56,7 +56,7 @@ class OrderstatusController extends FormController
      *     suppresses the Joomla chrome.
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     public function previewEmail(): void
     {
@@ -121,7 +121,7 @@ class OrderstatusController extends FormController
      * on the parent admin chrome — keeps the rendering predictable.
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     public function previewShell(): void
     {
@@ -208,7 +208,7 @@ class OrderstatusController extends FormController
      *
      * @return string Complete HTML page.
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function renderShellHtml(array $groups, int $statusId): string
     {
@@ -352,7 +352,7 @@ class OrderstatusController extends FormController
      *   • Submit posts to sendTestEmail() in the same iframe.
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     public function sendTestForm(): void
     {
@@ -393,7 +393,7 @@ class OrderstatusController extends FormController
      * link back to sendTestForm.
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     public function sendTestEmail(): void
     {
@@ -464,7 +464,7 @@ class OrderstatusController extends FormController
      *
      * @return string Complete HTML page.
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function renderSendTestFormHtml(int $statusId, $user, string $recipient = 'customer', string $lang = ''): string
     {
@@ -574,7 +574,7 @@ class OrderstatusController extends FormController
      *
      * @return string Complete HTML page.
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function renderSendTestResultHtml(int $statusId, string $destination, ?string $error): string
     {
@@ -645,7 +645,7 @@ class OrderstatusController extends FormController
      *
      * @return object[]
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function loadRecentOrdersForPicker(int $limit): array
     {
@@ -680,7 +680,7 @@ class OrderstatusController extends FormController
      * @param string $message Plain-text error message.
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function emitPreviewError(string $message): void
     {

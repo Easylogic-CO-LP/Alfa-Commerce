@@ -29,7 +29,7 @@
  *
  * Path: administrator/components/com_alfa/src/Event/Shipments/GetShipmentActionsEvent.php
  *
- * @since  3.0.0
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\Shipments;
@@ -47,7 +47,7 @@ class GetShipmentActionsEvent extends AbstractImmutableEvent
      * Get the shipment record (with decoded params and method info).
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getShipment(): object
     {
@@ -58,7 +58,7 @@ class GetShipmentActionsEvent extends AbstractImmutableEvent
      * Get the order record.
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getOrder(): object
     {

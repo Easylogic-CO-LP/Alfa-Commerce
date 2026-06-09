@@ -34,6 +34,7 @@ defined('_JEXEC') or die;
  *
  * Note: prepareDom() is invoked DIRECTLY by FieldsHelper::prepareForm(), not
  * dispatched, so it does NOT belong in getSubscribedEvents().
+ * @since  1.0.0
  */
 abstract class FieldsPlugin extends CMSPlugin implements SubscriberInterface
 {
@@ -43,6 +44,7 @@ abstract class FieldsPlugin extends CMSPlugin implements SubscriberInterface
      * Subscribed events. Base default is empty — subclasses override to add
      * events specific to their plugin. Merge via array_merge with parent
      * to inherit any future base events without redeclaring.
+     * @since  1.0.0
      */
     public static function getSubscribedEvents(): array
     {
@@ -52,6 +54,7 @@ abstract class FieldsPlugin extends CMSPlugin implements SubscriberInterface
     /**
      * Build a <field> node for $event->getField() and append it to $event->getFieldset().
      * Subclasses override to tweak; call parent::prepareDom($event) first, then mutate the node.
+     * @since  1.0.0
      */
     public function prepareDom(PrepareDomEvent $event): ?DOMElement
     {

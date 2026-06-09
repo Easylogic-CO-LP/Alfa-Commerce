@@ -19,7 +19,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\FormFields;
 /**
  * Class for CustomFields events
  *
- * @since  5.0.0
+ * @since  1.0.0
  */
 class ValidateFieldEvent extends FormFieldsEvent
 {
@@ -28,7 +28,7 @@ class ValidateFieldEvent extends FormFieldsEvent
      *
      * @return mixed The form instance
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getForm()
     {
@@ -40,7 +40,7 @@ class ValidateFieldEvent extends FormFieldsEvent
      *
      * @return mixed The field object
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getField()
     {
@@ -54,7 +54,7 @@ class ValidateFieldEvent extends FormFieldsEvent
      *
      * @return void
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function setField($field)
     {
@@ -66,7 +66,7 @@ class ValidateFieldEvent extends FormFieldsEvent
      *
      * @return mixed Truthy when the field value is valid
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getValid()
     {
@@ -80,7 +80,7 @@ class ValidateFieldEvent extends FormFieldsEvent
      *
      * @return void
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function setValid($valid)
     {

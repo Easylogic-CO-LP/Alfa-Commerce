@@ -13,6 +13,7 @@ namespace libphonenumber\carrier\data\ru;
 
 /**
  * @internal
+ * @since  1.0.0
  */
 class Ru_7
 {

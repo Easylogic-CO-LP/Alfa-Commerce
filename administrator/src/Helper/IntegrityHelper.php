@@ -32,7 +32,7 @@ use Throwable;
  * connection can't masquerade as healthy. The only defence against a fully-owned
  * server (which can neuter any on-box check) is an external off-box monitor.
  *
- * @since  1.0.5
+ * @since  1.0.0
  */
 class IntegrityHelper
 {
@@ -45,7 +45,7 @@ class IntegrityHelper
      * in a new release; add one by appending its public key.
      *
      * @var string[]
-     * @since 1.0.5
+     * @since  1.0.0
      */
     private const TRUSTED_PUBLIC_KEYS = [
         'x6E27LNfUJucR6jI4GybPGBGQD7ZvVZ9s7/yc4ODyTU=', // primary
@@ -59,7 +59,7 @@ class IntegrityHelper
      * files still won't match your signed official reference. HTTPS only.
      *
      * @var string
-     * @since 1.0.5
+     * @since  1.0.0
      */
     private const CDN_INTEGRITY_BASE = 'https://cdn.alfacommerce.gr/com_alfa/integrity/';
 
@@ -69,7 +69,7 @@ class IntegrityHelper
      * dropped web shell — the expected-set loop alone never visits it.
      *
      * @var string[]
-     * @since 1.0.5
+     * @since  1.0.0
      */
     private const CORE_ROOTS = [
         'components/com_alfa',
@@ -105,7 +105,7 @@ class IntegrityHelper
      *     injected?: string[], reason?: string
      * } status ∈ official | modified | ahead | unreachable | bad_signature.
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public static function verifyAgainstOfficial(): array
     {
@@ -120,7 +120,7 @@ class IntegrityHelper
      * listed file. {@see self::verifyAgainstOfficial()} wraps this to stamp the time.
      *
      *
-     * @since   1.0.9
+     * @since  1.0.0
      */
     private static function computeVerdict(): array
     {
@@ -222,7 +222,7 @@ class IntegrityHelper
      *
      * @return array Same shape as {@see self::verifyAgainstOfficial()}.
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public static function cachedVerdict(): array
     {
@@ -247,7 +247,7 @@ class IntegrityHelper
      * Called after a fresh Security-tab check so the badge reflects the latest.
      *
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public static function clearVerdictCache(): void
     {
@@ -271,7 +271,7 @@ class IntegrityHelper
      *
      * @return string[] Root-relative paths present on disk but absent from $known.
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     private static function collectInjected(string $root, array $known): array
     {
@@ -300,7 +300,7 @@ class IntegrityHelper
      *
      * @return array{0: string, 1: string}|null
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     private static function fetchOfficial(string $file): ?array
     {
@@ -337,7 +337,7 @@ class IntegrityHelper
      *
      * @return string The manifest <version>, or an empty string if unreadable.
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     private static function manifestVersion(): string
     {
@@ -366,7 +366,7 @@ class IntegrityHelper
      * @param string $relDir Root-relative path of that directory (no leading slash).
      * @param string[] $out Accumulator of root-relative file paths (by ref).
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     private static function walk(string $absDir, string $relDir, array &$out): void
     {

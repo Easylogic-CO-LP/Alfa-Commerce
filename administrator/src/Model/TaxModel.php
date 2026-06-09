@@ -49,28 +49,28 @@ use Throwable;
  *
  * All sync operations are non-fatal — logged as warnings, never block the admin save.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class TaxModel extends AdminModel
 {
     /**
      * @var string The prefix to use with controller messages.
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $text_prefix = 'COM_ALFA';
 
     /**
      * @var string Alias to manage history control
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public $typeAlias = 'com_alfa.tax';
 
     /**
      * @var null Item data
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $item = null;
 
@@ -82,7 +82,7 @@ class TaxModel extends AdminModel
      *
      * @return JForm|bool A \JForm object on success, false on failure
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getForm($data = [], $loadData = true)
     {
@@ -111,7 +111,7 @@ class TaxModel extends AdminModel
      *
      * @return mixed The data for the form.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function loadFormData()
     {
@@ -136,7 +136,7 @@ class TaxModel extends AdminModel
      *
      * @return mixed Object on success, false on failure.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getItem($pk = null)
     {
@@ -170,7 +170,7 @@ class TaxModel extends AdminModel
      *
      * @return bool True on success, False on error.
      *
-     * @since   1.6
+     * @since  1.0.0
      */
     public function save($data)
     {
@@ -254,7 +254,7 @@ class TaxModel extends AdminModel
      *
      * @return bool True on success.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function publish(&$pks, $value = 1)
     {
@@ -314,7 +314,7 @@ class TaxModel extends AdminModel
      *
      * @return bool True on success.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function delete(&$pks)
     {
@@ -385,7 +385,7 @@ class TaxModel extends AdminModel
      *
      * @return void
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function prepareTable($table)
     {

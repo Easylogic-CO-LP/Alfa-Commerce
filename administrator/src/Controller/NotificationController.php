@@ -19,7 +19,7 @@ use Joomla\CMS\MVC\Controller\FormController;
  * so HTTP and the webservices API create notifications the same way the static
  * helper does.
  *
- * @since  1.0.5
+ * @since  1.0.0
  */
 class NotificationController extends FormController
 {
@@ -27,7 +27,7 @@ class NotificationController extends FormController
      * The list view to return to.
      *
      * @var string
-     * @since 1.0.5
+     * @since  1.0.0
      */
     protected $view_list = 'notifications';
 }

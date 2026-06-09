@@ -24,7 +24,7 @@ use SimpleXMLElement;
 /**
  * Fields Type
  *
- * @since  3.7.0
+ * @since  1.0.0
  */
 class TypeField extends ListField
 {
@@ -44,7 +44,7 @@ class TypeField extends ListField
      *
      * @return bool True on success.
      *
-     * @since   3.7.0
+     * @since  1.0.0
      */
     public function setup(SimpleXMLElement $element, $value, $group = null)
     {
@@ -60,7 +60,7 @@ class TypeField extends ListField
      *
      * @return array The field option objects.
      *
-     * @since   3.7.0
+     * @since  1.0.0
      */
     protected function getOptions()
     {

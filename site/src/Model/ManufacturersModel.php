@@ -20,7 +20,7 @@ use Joomla\CMS\Router\Route;
 /**
  * Methods supporting a list of Alfa records.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class ManufacturersModel extends UrlListModel
 {
@@ -30,7 +30,7 @@ class ManufacturersModel extends UrlListModel
      * @param array $config An optional associative array of configuration settings.
      *
      * @see    JController
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public function __construct($config = [])
     {
@@ -56,7 +56,7 @@ class ManufacturersModel extends UrlListModel
      *
      * @return DatabaseQuery
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function getListQuery()
     {
@@ -129,6 +129,7 @@ class ManufacturersModel extends UrlListModel
      * Method to get an array of data items
      *
      * @return mixed An array of data on success, false on failure.
+     * @since  1.0.0
      */
     public function getItems()
     {

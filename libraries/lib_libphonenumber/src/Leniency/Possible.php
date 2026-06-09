@@ -9,6 +9,7 @@ use libphonenumber\PhoneNumberUtil;
 
 /**
  * @no-named-arguments
+ * @since  1.0.0
  */
 class Possible extends AbstractLeniency
 {
@@ -17,6 +18,7 @@ class Possible extends AbstractLeniency
     /**
      * Phone numbers accepted are PhoneNumberUtil::isPossibleNumber(), but not necessarily
      * PhoneNumberUtil::isValidNumber().
+     * @since  1.0.0
      */
     public static function verify(PhoneNumber $number, string $candidate, PhoneNumberUtil $util): bool
     {

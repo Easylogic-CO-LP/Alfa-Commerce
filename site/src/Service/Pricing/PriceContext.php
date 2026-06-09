@@ -9,7 +9,7 @@
 
 /**
  * @package    Alfa Commerce
- * @since      1.0.0
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Site\Service\Pricing;
@@ -62,7 +62,7 @@ use RuntimeException;
  *   alfa.currency_id  — int   DB id of visitor's chosen/detected currency
  *   alfa.location_id  — int   DB id of visitor's place (#__alfa_places.id)
  *
- * @since 1.0.0
+ * @since  1.0.0
  */
 class PriceContext
 {
@@ -91,6 +91,7 @@ class PriceContext
 
     /**
      * @param int[] $userGroups
+     * @since  1.0.0
      */
     private function __construct(
         int $currencyId,
@@ -125,6 +126,7 @@ class PriceContext
      *           Set this in your location-detection middleware, e.g.:
      *             Factory::getApplication()->getSession()
      *                 ->set('alfa.location_id', $detectedPlaceId);
+     * @since  1.0.0
      */
     public static function fromSession(): self
     {
@@ -176,6 +178,7 @@ class PriceContext
      * @param int $currencyId DB id from #__alfa_currencies; 0 = default
      * @param int $placeId DB id from #__alfa_places;     0 = any
      * @param int $usergroupId Joomla usergroup id;            0 = public
+     * @since  1.0.0
      */
     public static function forIndex(int $currencyId, int $placeId, int $usergroupId): self
     {
@@ -203,6 +206,7 @@ class PriceContext
      *   $gbpContext = PriceContext::fromSession()->withCurrency(47);
      *
      * @param int $currencyId DB id from #__alfa_currencies
+     * @since  1.0.0
      */
     public function withCurrency(int $currencyId): self
     {
@@ -219,6 +223,7 @@ class PriceContext
      *   $anyPlace  = PriceContext::fromSession()->withLocation(null);
      *
      * @param int|null $placeId DB id from #__alfa_places, or null
+     * @since  1.0.0
      */
     public function withLocation(?int $placeId): self
     {
@@ -239,6 +244,7 @@ class PriceContext
      *   $wholesaleCtx = PriceContext::fromSession()->withUserGroups([0, 25]);
      *
      * @param int[] $groups Joomla usergroup ids
+     * @since  1.0.0
      */
     public function withUserGroups(array $groups): self
     {
@@ -249,6 +255,7 @@ class PriceContext
      * Return a new context with a different user id.
      *
      * @param int|null $userId Joomla user id, or null for guest
+     * @since  1.0.0
      */
     public function withUserId(?int $userId): self
     {
@@ -267,6 +274,7 @@ class PriceContext
      *
      * Usage:
      *   $anonCtx = $userCtx->withoutUser();
+     * @since  1.0.0
      */
     public function withoutUser(): self
     {
@@ -279,6 +287,7 @@ class PriceContext
 
     /**
      * Currency DB id (from #__alfa_currencies.id, NOT the ISO code).
+     * @since  1.0.0
      */
     public function getCurrencyId(): int
     {
@@ -287,6 +296,7 @@ class PriceContext
 
     /**
      * Joomla user id, or null for guests.
+     * @since  1.0.0
      */
     public function getUserId(): ?int
     {
@@ -297,6 +307,7 @@ class PriceContext
      * Array of Joomla usergroup ids (always includes 0 as sentinel).
      *
      * @return int[]
+     * @since  1.0.0
      */
     public function getUserGroups(): array
     {
@@ -305,6 +316,7 @@ class PriceContext
 
     /**
      * Place DB id (#__alfa_places.id), or null when location is unknown.
+     * @since  1.0.0
      */
     public function getLocationId(): ?int
     {
@@ -317,6 +329,7 @@ class PriceContext
 
     /**
      * True if this context represents a logged-in user.
+     * @since  1.0.0
      */
     public function isLoggedIn(): bool
     {
@@ -325,6 +338,7 @@ class PriceContext
 
     /**
      * True if a specific location is known.
+     * @since  1.0.0
      */
     public function hasLocation(): bool
     {
@@ -336,6 +350,7 @@ class PriceContext
      *
      * Suitable for Joomla's cache service or APCu.
      * Example: "price_ctx_c47_p85_u0-8-25"
+     * @since  1.0.0
      */
     public function toCacheKey(): string
     {
@@ -354,6 +369,7 @@ class PriceContext
      * Comma-separated SQL IN() list of usergroup ids.
      *
      * Example: "0,8,25"  →  WHERE usergroup_id IN (0, 8, 25)
+     * @since  1.0.0
      */
     public function getUserGroupsSql(): string
     {
@@ -362,6 +378,7 @@ class PriceContext
 
     /**
      * Serialise to array (logging, APIs, passing to sub-services).
+     * @since  1.0.0
      */
     public function toArray(): array
     {

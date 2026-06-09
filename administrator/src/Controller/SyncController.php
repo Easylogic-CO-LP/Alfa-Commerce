@@ -30,7 +30,7 @@ use Throwable;
  *   - backfillPlan     — list translatable tables + row counts for the backfill.
  *   - backfillChunk    — backfill one chunk of records for a single table.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class SyncController extends BaseController
 {
@@ -44,7 +44,7 @@ class SyncController extends BaseController
      * languages. Idempotent — only creates missing tables / columns.
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function languages(): void
     {
@@ -75,7 +75,7 @@ class SyncController extends BaseController
      * any that were created before the plugin was active, or outside the app).
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function users(): void
     {
@@ -98,7 +98,7 @@ class SyncController extends BaseController
      * chunked backfill and compute overall progress.
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function backfillPlan(): void
     {
@@ -129,7 +129,7 @@ class SyncController extends BaseController
      * supplies the table name + offset) so they can't be tampered with.
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function backfillChunk(): void
     {
@@ -172,7 +172,7 @@ class SyncController extends BaseController
      * Shared AJAX guard: admin permission + CSRF token (accepted in GET or POST).
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private function ajaxGuard(): void
     {
@@ -195,7 +195,7 @@ class SyncController extends BaseController
      * @param string $message Message (used for the error case).
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private function ajaxRespond(array $data = [], bool $success = true, string $message = ''): void
     {

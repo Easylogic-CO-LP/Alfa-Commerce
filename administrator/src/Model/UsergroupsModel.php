@@ -30,6 +30,7 @@ class UsergroupsModel extends ListModel
      * @param string $direction The default ordering direction.
      *
      * @return void
+     * @since  1.0.0
      */
     protected function populateState($ordering = 'ug.title', $direction = 'ASC')
     {
@@ -41,6 +42,7 @@ class UsergroupsModel extends ListModel
      * #__usergroups table (on usergroup_id) and applying the id: / title LIKE search filter.
      *
      * @return \Joomla\Database\QueryInterface The query to list the usergroup settings.
+     * @since  1.0.0
      */
     protected function getListQuery()
     {

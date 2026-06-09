@@ -26,6 +26,7 @@ defined('_JEXEC') or die;
  * - Immutability
  *
  * Inspired by: Shopify, Magento 2, Salesforce Commerce Cloud
+ * @since  1.0.0
  */
 class PriceResult
 {
@@ -67,6 +68,7 @@ class PriceResult
 
     /**
      * Get base total (original price × quantity, before any discounts)
+     * @since  1.0.0
      */
     public function getBaseTotal(): Money
     {
@@ -75,6 +77,7 @@ class PriceResult
 
     /**
      * Get subtotal (after discounts, before tax)
+     * @since  1.0.0
      */
     public function getSubtotal(): Money
     {
@@ -83,6 +86,7 @@ class PriceResult
 
     /**
      * Get total tax amount
+     * @since  1.0.0
      */
     public function getTaxTotal(): Money
     {
@@ -91,6 +95,7 @@ class PriceResult
 
     /**
      * Get final total (what customer pays)
+     * @since  1.0.0
      */
     public function getTotal(): Money
     {
@@ -105,6 +110,7 @@ class PriceResult
      * Get base price per unit (before any discounts)
      *
      * This is the original unit price before any calculations.
+     * @since  1.0.0
      */
     public function getBasePrice(): Money
     {
@@ -113,6 +119,7 @@ class PriceResult
 
     /**
      * Get subtotal price per unit (after discounts, before tax)
+     * @since  1.0.0
      */
     public function getSubtotalPrice(): Money
     {
@@ -121,6 +128,7 @@ class PriceResult
 
     /**
      * Get tax per unit
+     * @since  1.0.0
      */
     public function getTaxPrice(): Money
     {
@@ -131,6 +139,7 @@ class PriceResult
      * Get price per unit (final price per item)
      *
      * Most commonly used method for displaying unit price.
+     * @since  1.0.0
      */
     public function getPrice(): Money
     {
@@ -143,6 +152,7 @@ class PriceResult
 
     /**
      * Get total savings amount from all discounts
+     * @since  1.0.0
      */
     public function getSavingsTotal(): Money
     {
@@ -151,6 +161,7 @@ class PriceResult
 
     /**
      * Get savings per unit
+     * @since  1.0.0
      */
     public function getSavingsPrice(): Money
     {
@@ -159,6 +170,7 @@ class PriceResult
 
     /**
      * Check if product has active discount
+     * @since  1.0.0
      */
     public function hasDiscount(): bool
     {
@@ -172,6 +184,7 @@ class PriceResult
      * for handling discount timing and aggregation.
      *
      * @return float Percentage with 2 decimal places
+     * @since  1.0.0
      */
     public function getSavingsPercent(): float
     {
@@ -186,6 +199,7 @@ class PriceResult
      * Get discount breakdown by timing
      *
      * @return array ['before_tax' => float, 'after_tax' => float, 'total' => float]
+     * @since  1.0.0
      */
     public function getSavingsPercentBreakdown(): array
     {
@@ -207,6 +221,7 @@ class PriceResult
 
     /**
      * Get the currency of this result (derived from the total).
+     * @since  1.0.0
      */
     public function getCurrency(): Currency
     {
@@ -215,6 +230,7 @@ class PriceResult
 
     /**
      * Get the applied-discounts summary.
+     * @since  1.0.0
      */
     public function getDiscounts(): DiscountSummary
     {
@@ -223,6 +239,7 @@ class PriceResult
 
     /**
      * Get the applied-taxes summary.
+     * @since  1.0.0
      */
     public function getTaxes(): TaxSummary
     {
@@ -231,6 +248,7 @@ class PriceResult
 
     /**
      * Get the step-by-step calculation breakdown.
+     * @since  1.0.0
      */
     public function getBreakdown(): PriceBreakdown
     {
@@ -248,6 +266,7 @@ class PriceResult
      *
      * @param Money $money Amount to divide
      * @return Money Divided amount or zero
+     * @since  1.0.0
      */
     private function divideByQuantity(Money $money): Money
     {
@@ -276,6 +295,7 @@ class PriceResult
      * @param bool $includeSymbol Include currency symbol
      * @param bool $includeUnitPrices Include per-unit prices
      * @return array Formatted prices
+     * @since  1.0.0
      */
     public function formatAll(bool $includeSymbol = true, bool $includeUnitPrices = false): array
     {
@@ -307,6 +327,7 @@ class PriceResult
      * Export as array for APIs/JSON
      *
      * Includes both raw amounts and formatted strings.
+     * @since  1.0.0
      */
     public function toArray(): array
     {
@@ -349,6 +370,7 @@ class PriceResult
 
     /**
      * Export as JSON
+     * @since  1.0.0
      */
     public function toJson(int $options = JSON_PRETTY_PRINT): string
     {
@@ -357,6 +379,7 @@ class PriceResult
 
     /**
      * Export minimal data (for lightweight API responses)
+     * @since  1.0.0
      */
     public function toMinimalArray(): array
     {

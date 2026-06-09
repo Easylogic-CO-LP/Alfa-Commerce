@@ -20,7 +20,7 @@
  *   $event->getColor()       → dominant colour computed for the stored file
  *   $event->isProcessed()    → whether a plugin actually processed the image
  *
- * @since  1.0.2
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\Media;
@@ -32,7 +32,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Media;
 /**
  * Post-process notification event (no outputs).
  *
- * @since  1.0.2
+ * @since  1.0.0
  */
 class AfterProcessEvent extends MediaEvent
 {
@@ -44,7 +44,7 @@ class AfterProcessEvent extends MediaEvent
      * Get the dominant colour computed for the stored file (e.g. 'rgb(r,g,b)').
      *
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     public function getColor(): string
     {
@@ -55,7 +55,7 @@ class AfterProcessEvent extends MediaEvent
      * Whether a plugin actually processed the image upstream.
      *
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     public function isProcessed(): bool
     {
