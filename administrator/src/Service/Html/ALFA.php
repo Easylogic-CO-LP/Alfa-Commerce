@@ -15,7 +15,7 @@ defined('_JEXEC') or die;
 /**
  * Alfa HTML Helper.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class ALFA
 {

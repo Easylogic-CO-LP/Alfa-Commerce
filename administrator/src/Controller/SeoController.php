@@ -25,7 +25,7 @@ use Joomla\CMS\Uri\Uri;
 /**
  * SEO Preview Controller - Full UTF-8 Support
  *
- * @since  2.2.0
+ * @since  1.0.0
  */
 class SeoController extends BaseController
 {
@@ -34,7 +34,7 @@ class SeoController extends BaseController
      *
      * @return void
      *
-     * @since   1.0.0
+     * @since  1.0.0
      */
     public function getPreview()
     {
@@ -102,7 +102,7 @@ class SeoController extends BaseController
      *
      * @return object Display data for layout
      *
-     * @since   2.2.0
+     * @since  1.0.0
      */
     public function getResultObject($itemId = 0, $title = '', $metaTitle = '', $metaDesc = '', $alias = '', $defaultAlias = '', $content = '', $additionalContent = null, $focusKeyword = '', $itemType = 'category', $robots = '', $fieldJsSelectors = null)
     {
@@ -184,7 +184,7 @@ class SeoController extends BaseController
      *
      * @return string Combined content
      *
-     * @since   2.2.0
+     * @since  1.0.0
      */
     protected function combineContent($mainContent, $additionalContent = [])
     {
@@ -218,7 +218,7 @@ class SeoController extends BaseController
      *
      * @return string Full preview URL
      *
-     * @since   2.0.0
+     * @since  1.0.0
      */
     protected function getPreviewUrl($itemId, $itemType = 'category')
     {
@@ -252,7 +252,7 @@ class SeoController extends BaseController
      *
      * @return array Analysis results
      *
-     * @since   2.2.0
+     * @since  1.0.0
      */
     protected function analyzeSEO($title, $metaTitle, $metaDesc, $alias, $content, $combinedContent, $focusKeyword = '', $robots = '')
     {
@@ -470,7 +470,7 @@ class SeoController extends BaseController
      *
      * @return array Keyword analysis results
      *
-     * @since   2.2.0
+     * @since  1.0.0
      */
     protected function analyzeFocusKeyword($keyword, $title, $metaDesc, $alias, $content)
     {
@@ -597,7 +597,7 @@ class SeoController extends BaseController
      *
      * @return array|null Readability check result
      *
-     * @since   2.0.0
+     * @since  1.0.0
      */
     protected function calculateReadability($text)
     {
@@ -652,7 +652,7 @@ class SeoController extends BaseController
      *
      * @return int Score (0-100)
      *
-     * @since   1.0.0
+     * @since  1.0.0
      */
     protected function calculateScore($checks)
     {
@@ -675,7 +675,7 @@ class SeoController extends BaseController
      *
      * @return string The alias
      *
-     * @since   1.0.0
+     * @since  1.0.0
      */
     protected function generateAlias($title)
     {
@@ -684,6 +684,7 @@ class SeoController extends BaseController
 
     /**
      * Returns the number of words in a string.
+     * @since  1.0.0
      */
     public function word_count(string $html, bool $cleanHtml = true): int
     {

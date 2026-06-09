@@ -19,7 +19,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Payments;
 /**
  * Class for CustomFields events
  *
- * @since  5.0.0
+ * @since  1.0.0
  */
 class AdminOrderDeleteEvent extends PaymentsLayoutEvent
 {
@@ -28,7 +28,7 @@ class AdminOrderDeleteEvent extends PaymentsLayoutEvent
      *
      * @return mixed The order or cart object
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getOrder()
     {
@@ -42,7 +42,7 @@ class AdminOrderDeleteEvent extends PaymentsLayoutEvent
      *
      * @return bool The currently stored result flag
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function onSetResult(bool $result): bool
     {
@@ -55,7 +55,7 @@ class AdminOrderDeleteEvent extends PaymentsLayoutEvent
      * @param bool $result The result of the operation
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function setResult(bool $result): void
     {
@@ -67,7 +67,7 @@ class AdminOrderDeleteEvent extends PaymentsLayoutEvent
      *
      * @return bool The operation result
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getResult(): bool
     {

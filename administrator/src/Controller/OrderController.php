@@ -20,7 +20,7 @@
  *   order.saveOrderItem        — Order item CRUD (form POST)
  *   order.searchProducts       — Product search (AJAX)
  *
- * @since  3.0.0
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Controller;
@@ -50,7 +50,7 @@ class OrderController extends FormController
      *
      * @throws Exception If model cannot be loaded
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     protected function getOrderModel()
     {
@@ -102,7 +102,7 @@ class OrderController extends FormController
      * Returns JSON: { success: bool, message: string, data?: {...} }
      *
      *
-     * @since   4.1.0
+     * @since  1.0.0
      */
     public function updateOrder(): void
     {
@@ -168,7 +168,7 @@ class OrderController extends FormController
      * @param array|null $data Optional response data
      *
      *
-     * @since   4.1.0
+     * @since  1.0.0
      */
     private function sendJsonResponse(bool $success, string $message, ?array $data = null): void
     {
@@ -218,7 +218,7 @@ class OrderController extends FormController
      * and the execution goes through the full plugin system.
      *
      *
-     * @since   4.1.0
+     * @since  1.0.0
      */
     public function getOrderActions(): void
     {
@@ -320,7 +320,7 @@ class OrderController extends FormController
      *   6. Return JSON response
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function executePaymentAction(): void
     {
@@ -393,7 +393,7 @@ class OrderController extends FormController
      * Flow identical to executePaymentAction() but for shipment context.
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function executeShipmentAction(): void
     {
@@ -467,7 +467,7 @@ class OrderController extends FormController
      *
      * @return void
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function savePayment()
     {
@@ -512,7 +512,7 @@ class OrderController extends FormController
      *
      * @return void
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function cancelPayment()
     {
@@ -540,7 +540,7 @@ class OrderController extends FormController
      *
      * @return void
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function deletePayment()
     {
@@ -578,7 +578,7 @@ class OrderController extends FormController
      *
      * @return void
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function saveShipment()
     {
@@ -634,7 +634,7 @@ class OrderController extends FormController
      *
      * @return void
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function cancelShipment()
     {
@@ -662,7 +662,7 @@ class OrderController extends FormController
      *
      * @return void
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function deleteShipment()
     {
@@ -700,7 +700,7 @@ class OrderController extends FormController
      *
      * @return void
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function saveOrderItem()
     {
@@ -741,7 +741,7 @@ class OrderController extends FormController
      *
      * @return void
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function cancelOrderItem()
     {
@@ -769,7 +769,7 @@ class OrderController extends FormController
      *
      * @return void
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function deleteOrderItem()
     {
@@ -810,7 +810,7 @@ class OrderController extends FormController
      *
      * @return void
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function searchProducts()
     {

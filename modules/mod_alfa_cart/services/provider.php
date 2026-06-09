@@ -20,7 +20,7 @@ use Joomla\DI\ServiceProviderInterface;
 /**
  * The module AlfaCart HTML service provider.
  *
- * @since  4.4.0
+ * @since  1.0.0
  */
 return new class () implements ServiceProviderInterface {
     /**
@@ -29,7 +29,7 @@ return new class () implements ServiceProviderInterface {
      * @param Container $container The DI container.
      *
      *
-     * @since   4.4.0
+     * @since  1.0.0
      */
     public function register(Container $container): void
     {

@@ -13,7 +13,7 @@
  *
  * Path: administrator/components/com_alfa/src/Plugin/PluginAction.php
  *
- * @since  3.0.0
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Plugin;
@@ -69,7 +69,7 @@ class PluginAction
      *
      * @param array $config All properties as key-value pairs
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function __construct(array $config = [])
     {
@@ -98,7 +98,7 @@ class PluginAction
      *
      * @param string $icon Icon name
      * @return static For chaining
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public function icon(string $icon): static
     {
@@ -112,7 +112,7 @@ class PluginAction
      *
      * @param string $class CSS class
      * @return static For chaining
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public function css(string $class): static
     {
@@ -126,7 +126,7 @@ class PluginAction
      *
      * @param string $message Confirmation dialog text
      * @return static For chaining
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public function confirm(string $message): static
     {
@@ -141,7 +141,7 @@ class PluginAction
      *
      * @param string $text Tooltip text
      * @return static For chaining
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public function tooltip(string $text): static
     {
@@ -155,7 +155,7 @@ class PluginAction
      *
      * @param int $priority Sort priority
      * @return static For chaining
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public function priority(int $priority): static
     {
@@ -168,7 +168,7 @@ class PluginAction
      * Disable this action (button appears grayed out).
      *
      * @return static For chaining
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public function disabled(): static
     {
@@ -183,7 +183,7 @@ class PluginAction
      * @param string $key Metadata key
      * @param mixed $value Metadata value
      * @return static For chaining
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public function meta(string $key, mixed $value): static
     {
@@ -197,7 +197,7 @@ class PluginAction
      *
      * @param string $layout Layout name
      * @return static For chaining
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public function buttonLayout(string $layout): static
     {
@@ -213,7 +213,7 @@ class PluginAction
      * @param string $title Modal title
      * @param string $size Modal size: 'sm', 'md', 'lg', 'xl'
      * @return static For chaining
-     * @since   3.5.0
+     * @since  1.0.0
      */
     public function modal(string $layout, string $title = '', string $size = 'md'): static
     {
@@ -231,7 +231,7 @@ class PluginAction
     /**
      * Check if the action has a response layout (will show a modal).
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function hasResponseLayout(): bool
     {
@@ -241,7 +241,7 @@ class PluginAction
     /**
      * Check if the action is valid (has required id and label).
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function isValid(): bool
     {
@@ -251,7 +251,7 @@ class PluginAction
     /**
      * Convert to array for serialization.
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function toArray(): array
     {

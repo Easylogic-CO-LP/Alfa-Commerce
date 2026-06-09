@@ -23,28 +23,28 @@ use Joomla\CMS\Table\Table;
 /**
  * Manufacturer model.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class ManufacturerModel extends AdminModel
 {
     /**
      * @var string The prefix to use with controller messages.
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $text_prefix = 'COM_ALFA';
 
     /**
      * @var string Alias to manage history control
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public $typeAlias = 'com_alfa.manufacturer';
 
     /**
      * @var null Item data
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $item = null;
 
@@ -56,7 +56,7 @@ class ManufacturerModel extends AdminModel
      *
      * @return JForm|bool A \JForm object on success, false on failure
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getForm($data = [], $loadData = true)
     {
@@ -87,7 +87,7 @@ class ManufacturerModel extends AdminModel
      *
      * @return bool True on success, False on error.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function save($data)
     {
@@ -146,7 +146,7 @@ class ManufacturerModel extends AdminModel
      *
      * @return bool True on success.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function delete(&$pks)
     {
@@ -172,7 +172,7 @@ class ManufacturerModel extends AdminModel
      *
      * @return mixed The data for the form.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function loadFormData()
     {
@@ -197,7 +197,7 @@ class ManufacturerModel extends AdminModel
      *
      * @return mixed Object on success, false on failure.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getItem($pk = null)
     {
@@ -225,7 +225,7 @@ class ManufacturerModel extends AdminModel
      *
      * @return void
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function prepareTable($table)
     {

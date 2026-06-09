@@ -78,7 +78,7 @@
  *
  * Path: administrator/components/com_alfa/src/Plugin/Plugin.php
  *
- * @since  3.0.0
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Plugin;
@@ -97,7 +97,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * Auto-load language files.
      *
      * @var bool
-     * @since  3.0.0
+     * @since  1.0.0
      */
     protected $autoloadLanguage = true;
 
@@ -105,14 +105,14 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * Application object.
      *
      * @var \Joomla\CMS\Application\CMSApplication
-     * @since  3.0.0
+     * @since  1.0.0
      */
     protected $app;
 
     /**
      * URL for the order completion page. Payment plugins may override.
      *
-     * @since  3.0.0
+     * @since  1.0.0
      */
     protected string $completePageUrl;
 
@@ -123,7 +123,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * Shipment plugins set this to 'id_order_shipment'.
      * Set by PaymentsPlugin / ShipmentsPlugin base classes.
      *
-     * @since  3.0.0
+     * @since  1.0.0
      */
     protected string $logIdentifierField = '';
 
@@ -131,21 +131,21 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * Cached parsed logs.xml schema. Null = not loaded yet.
      *
      * @var SimpleXMLElement|null|false
-     * @since  3.0.0
+     * @since  1.0.0
      */
     private $logsSchemaCache = null;
 
     /**
      * Cached default values from logs.xml. Null = not built yet.
      *
-     * @since  3.0.0
+     * @since  1.0.0
      */
     private ?array $logsDefaultsCache = null;
 
     /**
      * Whether the log table has been ensured this request.
      *
-     * @since  3.0.0
+     * @since  1.0.0
      */
     private bool $logTableEnsured = false;
 
@@ -154,7 +154,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      *
      * @param array $config Plugin configuration
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function __construct(array $config = [])
     {
@@ -194,7 +194,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * @param object $event CartViewEvent
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     abstract public function onCartView($event): void;
 
@@ -225,7 +225,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * @param object $event ItemViewEvent
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     abstract public function onItemView($event): void;
 
@@ -266,7 +266,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      *
      * @return int The inserted/updated log row ID, or 0 on failure
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     protected function log(array $data): int
     {
@@ -363,7 +363,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      *
      * @return array|null Array of log rows, or null if table doesn't exist
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     protected function loadLogs(int $orderId, int $identifierId = 0, array $filters = [], bool $asArray = true): ?array
     {
@@ -403,7 +403,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * @param int $identifierId Payment/shipment ID (0 = delete all for order)
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     protected function deleteLog(int $orderId, int $identifierId = 0): void
     {
@@ -438,7 +438,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      *   foreach ($xml->fields->fieldset->field as $field) { ... }
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     protected function getLogsSchema(): ?SimpleXMLElement
     {
@@ -460,7 +460,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * @param int $prefix 0 = no prefix, 1 = real prefix, 2 = #__ prefix
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     protected function getLogTableName(int $prefix = 2): string
     {
@@ -487,7 +487,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      *
      * @return SimpleXMLElement|false Parsed XML or false if not found
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     private function loadLogsSchema()
     {
@@ -531,7 +531,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      *
      * @return array|null Defaults array, or null if no logs.xml
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     private function getLogsDefaults(): ?array
     {
@@ -582,7 +582,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      *
      * @return bool true if table is ready, false on failure
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     private function ensureLogTable(): bool
     {
@@ -665,7 +665,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * @param object $db Database driver
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     private function applyLogFilters($query, array $filters, $db): void
     {
@@ -730,7 +730,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * @param mixed $max Range maximum (inclusive)
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     protected function isValueInRange($value, $min, $max): bool
     {

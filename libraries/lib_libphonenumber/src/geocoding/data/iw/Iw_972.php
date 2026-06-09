@@ -13,6 +13,7 @@ namespace libphonenumber\geocoding\data\iw;
 
 /**
  * @internal
+ * @since  1.0.0
  */
 class Iw_972
 {

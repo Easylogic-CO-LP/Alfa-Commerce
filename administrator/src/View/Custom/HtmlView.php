@@ -21,7 +21,7 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
 /**
  * View class for a single Category.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class HtmlView extends FormView
 {
@@ -32,7 +32,7 @@ class HtmlView extends FormView
      *
      * @return void
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public function display($tpl = null)
     {
@@ -45,7 +45,7 @@ class HtmlView extends FormView
      *
      * @return void
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected function initializeView()
     {
@@ -67,7 +67,7 @@ class HtmlView extends FormView
      *
      * @return void
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected function addToolbar()
     {

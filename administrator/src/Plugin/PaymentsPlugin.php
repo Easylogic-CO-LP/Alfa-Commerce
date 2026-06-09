@@ -45,7 +45,7 @@
  *
  * Path: administrator/components/com_alfa/src/Plugin/PaymentsPlugin.php
  *
- * @since  3.0.0
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Plugin;
@@ -67,7 +67,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     /**
      * Events this plugin subscribes to.
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public static function getSubscribedEvents(): array
     {
@@ -85,7 +85,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * correctly filters by id_order_payment in the plugin's log table.
      *
      * @param array $config Plugin configuration
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function __construct(array $config = [])
     {
@@ -99,7 +99,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     /**
      * Get the order completion page URL.
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getCompletePageUrl(): string
     {
@@ -109,7 +109,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     /**
      * Set the order completion page URL.
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function setCompletePageUrl(string $url): void
     {
@@ -119,7 +119,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     /**
      * Get the payment-in-progress (process) page URL.
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getProcessPageUrl(): string
     {
@@ -129,7 +129,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     /**
      * Set the payment-in-progress (process) page URL.
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function setProcessPageUrl(string $url): void
     {
@@ -164,7 +164,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @return OrderPaymentHelper Builder — chain setters, finish with ->save()
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     protected function payment(object $order): OrderPaymentHelper
     {
@@ -188,7 +188,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @throws RuntimeException If payment not found in DB
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     protected function paymentUpdate(int $paymentId): OrderPaymentHelper
     {
@@ -207,7 +207,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @return bool True on success
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     protected function deletePayment(int $id, int $orderId): bool
     {
@@ -221,7 +221,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @return object|null Payment record with ->params, or null
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     protected function getPayment(int $id): ?object
     {
@@ -235,7 +235,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @return array Array of payment row objects
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     protected function getPaymentsByOrder(int $orderId): array
     {
@@ -250,7 +250,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * Order process view — redirect to gateway or show processing page.
      *
      * @param object $event OrderProcessViewEvent
-     * @since   3.0.0
+     * @since  1.0.0
      */
     abstract public function onOrderProcessView($event): void;
 
@@ -258,7 +258,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * Order complete view — show thank-you page.
      *
      * @param object $event OrderCompleteViewEvent
-     * @since   3.0.0
+     * @since  1.0.0
      */
     abstract public function onOrderCompleteView($event): void;
 
@@ -278,7 +278,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * Default: no actions.
      *
      * @param object $event GetPaymentActionsEvent
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function onGetActions($event): void
     {
@@ -299,7 +299,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * Default: sets error "Unknown action".
      *
      * @param object $event ExecutePaymentActionEvent
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function onExecuteAction($event): void
     {

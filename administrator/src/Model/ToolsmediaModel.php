@@ -24,7 +24,7 @@ use Joomla\CMS\MVC\Model\ListModel;
  *   - FILE MISSING: the stored file no longer exists on disk (checked per page
  *                  with file_exists(), so it stays paginatable).
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class ToolsmediaModel extends ListModel
 {
@@ -38,7 +38,7 @@ class ToolsmediaModel extends ListModel
     /**
      * @param array $config
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public function __construct($config = [])
     {
@@ -67,7 +67,7 @@ class ToolsmediaModel extends ListModel
      *
      * @return void
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected function populateState($ordering = 'a.id', $direction = 'DESC')
     {
@@ -81,7 +81,7 @@ class ToolsmediaModel extends ListModel
      *
      * @return string
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function getStoreId($id = '')
     {
@@ -95,7 +95,7 @@ class ToolsmediaModel extends ListModel
     /**
      * @return \Joomla\Database\DatabaseQuery
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function getListQuery()
     {
@@ -163,7 +163,7 @@ class ToolsmediaModel extends ListModel
      *
      * @return object[]|false
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getItems()
     {
@@ -193,7 +193,7 @@ class ToolsmediaModel extends ListModel
      *
      * @return object[] Each: { path, size, mtime }.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private function scanUntrackedFiles(): array
     {
@@ -226,7 +226,7 @@ class ToolsmediaModel extends ListModel
      *
      * @return object[]
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getUntrackedMediaItems(): array
     {
@@ -249,7 +249,7 @@ class ToolsmediaModel extends ListModel
      *
      * @return int
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getTotal()
     {

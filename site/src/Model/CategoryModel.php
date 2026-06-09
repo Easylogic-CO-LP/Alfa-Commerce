@@ -26,7 +26,7 @@ use Joomla\Database\ParameterType;
 /**
  * Category model
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class CategoryModel extends BaseItemModel
 {
@@ -40,7 +40,7 @@ class CategoryModel extends BaseItemModel
      *
      *
      * @throws Exception
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected function populateState(): void
     {
@@ -58,6 +58,7 @@ class CategoryModel extends BaseItemModel
      * @param int|null $pk Category ID
      *
      * @return object|false Category object or false on error
+     * @since  1.0.0
      */
     public function getItem($pk = null)
     {

@@ -18,6 +18,7 @@ use function substr;
 /**
  * @phpstan-consistent-constructor
  * @no-named-arguments
+ * @since  1.0.0
  */
 class PhoneNumberOfflineGeocoder
 {
@@ -27,6 +28,7 @@ class PhoneNumberOfflineGeocoder
 
     /**
      * PhoneNumberOfflineGeocoder constructor.
+     * @since  1.0.0
      */
     protected function __construct(string $phonePrefixDataNamespace)
     {
@@ -42,6 +44,7 @@ class PhoneNumberOfflineGeocoder
      * multiple times will only result in one instance being created.
      *
      * @param string $mappingNamespace (Optional) Mapping Data Namespace
+     * @since  1.0.0
      */
     public static function getInstance(string $mappingNamespace = __NAMESPACE__ . '\\data\\'): PhoneNumberOfflineGeocoder
     {
@@ -70,6 +73,7 @@ class PhoneNumberOfflineGeocoder
      *                                code.
      * @return string a text description for the given language code for the given phone number, or empty
      *                string if the number passed in is invalid
+     * @since  1.0.0
      */
     public function getDescriptionForNumber(PhoneNumber $number, string $locale, ?string $userRegion = null): string
     {
@@ -89,6 +93,7 @@ class PhoneNumberOfflineGeocoder
     /**
      * Returns the customary display name in the given language for the given territory the phone
      * number is from. If it could be from many territories, nothing is returned.
+     * @since  1.0.0
      */
     protected function getCountryNameForNumber(PhoneNumber $number, string $locale): string
     {
@@ -115,6 +120,7 @@ class PhoneNumberOfflineGeocoder
 
     /**
      * Returns the customary display name in the given language for the given region.
+     * @since  1.0.0
      */
     protected function getRegionDisplayName(string $regionCode, string $locale): string
     {
@@ -156,6 +162,7 @@ class PhoneNumberOfflineGeocoder
      * @return string a text description for the given language code for the given phone number, or an
      *                empty string if the number could come from multiple countries, or the country code is
      *                in fact invalid
+     * @since  1.0.0
      */
     public function getDescriptionForValidNumber(PhoneNumber $number, string $locale, ?string $userRegion = null): string
     {

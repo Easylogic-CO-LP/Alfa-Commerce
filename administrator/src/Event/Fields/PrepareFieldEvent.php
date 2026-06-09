@@ -23,7 +23,7 @@ use Joomla\CMS\Event\Result\ResultTypeMixedAware;
 /**
  * Class for CustomFields events
  *
- * @since  5.0.0
+ * @since  1.0.0
  */
 class PrepareFieldEvent extends AbstractPrepareFieldEvent implements ResultAwareInterface
 {

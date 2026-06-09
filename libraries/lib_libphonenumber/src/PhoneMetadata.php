@@ -10,6 +10,7 @@ use function count;
  * Class PhoneMetadata
  * @package libphonenumber
  * @internal Used internally, and can change at any time
+ * @since  1.0.0
  */
 class PhoneMetadata
 {
@@ -268,6 +269,7 @@ class PhoneMetadata
 
     /**
      * @return NumberFormat[]
+     * @since  1.0.0
      */
     public function numberFormats(): array
     {
@@ -276,6 +278,7 @@ class PhoneMetadata
 
     /**
      * @return NumberFormat[]
+     * @since  1.0.0
      */
     public function intlNumberFormats(): array
     {

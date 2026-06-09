@@ -31,7 +31,7 @@ use Joomla\CMS\User\UserFactoryAwareTrait;
 /**
  * Item class.
  *
- * @since  1.6.0
+ * @since  1.0.0
  */
 class CartController extends FormController implements UserFactoryAwareInterface
 {
@@ -46,7 +46,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      *
      * @return \Joomla\CMS\MVC\Model\BaseDatabaseModel The model.
      *
-     * @since   1.6.4
+     * @since  1.0.0
      */
     public function getModel($name = 'cart', $prefix = '', $config = ['ignore_request' => true])
     {
@@ -59,7 +59,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      *
      * @return \Joomla\CMS\MVC\Controller\BaseController This object to support chaining.
      *
-     * @since   1.0.0
+     * @since  1.0.0
      */
     // public function display($cachable = false, $urlparams = false)
     // {
@@ -140,7 +140,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      *
      * @return void
      *
-     * @since   1.6.0
+     * @since  1.0.0
      */
     public function addToCart()
     {
@@ -179,7 +179,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      *
      * @return void
      *
-     * @since   1.6.0
+     * @since  1.0.0
      */
     public function clearCart()
     {
@@ -221,7 +221,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      *
      * @return void
      *
-     * @since   1.6.0
+     * @since  1.0.0
      */
     public function updateQuantity()
     {
@@ -264,7 +264,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      *
      * @return bool True when the order is placed, false on validation/session/placement failure.
      *
-     * @since   1.6.0
+     * @since  1.0.0
      */
     public function placeOrder()
     {
@@ -454,7 +454,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      *
      * @return void
      *
-     * @since   1.6.0
+     * @since  1.0.0
      */
     public function updatePayment()
     {
@@ -492,7 +492,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      *
      * @return array ['tmpl' => rendered HTML, 'isEmpty' => bool].
      *
-     * @since   1.6.0
+     * @since  1.0.0
      */
     protected function getItemsLayout($cart)
     {
@@ -524,7 +524,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      *
      * @return array ['tmpl' => rendered HTML, 'isEmpty' => bool].
      *
-     * @since   1.6.0
+     * @since  1.0.0
      */
     protected function getPaymentsLayout($cart)
     {
@@ -555,7 +555,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      *
      * @return array ['tmpl' => rendered HTML, 'isEmpty' => bool].
      *
-     * @since   1.6.0
+     * @since  1.0.0
      */
     protected function getShipmentsLayout($cart)
     {

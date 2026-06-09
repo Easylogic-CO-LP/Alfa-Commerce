@@ -38,7 +38,7 @@ use Joomla\CMS\Log\Log;
  * Results are memoised for the lifetime of the request. Callers that need
  * fresh data after writing should call self::clearCache().
  *
- * @since   1.0.1
+ * @since  1.0.0
  */
 class OrderStatusHelper
 {
@@ -79,7 +79,7 @@ class OrderStatusHelper
      *                            `id ASC` as the deterministic
      *                            tiebreaker).
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function getAll(?string $orderBy = null): array
     {
@@ -120,7 +120,7 @@ class OrderStatusHelper
      * lookup re-queries the DB.
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function clearCache(): void
     {
@@ -138,7 +138,7 @@ class OrderStatusHelper
      *
      * @return int|null The status PK or null if the table is empty.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function getInitialId(): ?int
     {
@@ -156,7 +156,7 @@ class OrderStatusHelper
      * @return int[] Status PKs in the cancelled family. Empty array
      *               when no row has been nominated yet.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function getCancelledIds(): array
     {
@@ -172,7 +172,7 @@ class OrderStatusHelper
      * @return int[] Status PKs in the completed family. Empty array
      *               when no row has been nominated yet.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function getCompletedIds(): array
     {
@@ -186,7 +186,7 @@ class OrderStatusHelper
      *
      * @return bool True only when $statusId matches the row marked is_initial.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function isInitial(?int $statusId): bool
     {
@@ -200,7 +200,7 @@ class OrderStatusHelper
      *
      * @return bool True only when $statusId matches the row marked is_cancelled.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function isCancelled(?int $statusId): bool
     {
@@ -214,7 +214,7 @@ class OrderStatusHelper
      *
      * @return bool True only when $statusId matches the row marked is_completed.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function isCompleted(?int $statusId): bool
     {
@@ -228,7 +228,7 @@ class OrderStatusHelper
      *
      * @return object|null Status row or null when unknown.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public static function getById(?int $statusId): ?object
     {
@@ -254,7 +254,7 @@ class OrderStatusHelper
      *
      * @return int|null Status PK or null if nothing matches.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected static function resolveRoleId(string $flag, bool $allowFallback): ?int
     {
@@ -289,7 +289,7 @@ class OrderStatusHelper
      * @return int[] Row PKs in the family. Empty when no row holds the
      *               flag.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected static function resolveRoleIds(string $flag): array
     {
@@ -312,7 +312,7 @@ class OrderStatusHelper
      *
      * @return bool True when the row identified by $statusId has $flag = 1.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected static function hasFlag(?int $statusId, string $flag): bool
     {

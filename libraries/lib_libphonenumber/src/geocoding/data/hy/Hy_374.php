@@ -13,6 +13,7 @@ namespace libphonenumber\geocoding\data\hy;
 
 /**
  * @internal
+ * @since  1.0.0
  */
 class Hy_374
 {

@@ -30,7 +30,7 @@ use Throwable;
  * then deletes the temporary file — so nothing is left on disk. Gated by the
  * `alfa.tools` permission and a CSRF token, matching the other Tools actions.
  *
- * @since  1.0.3
+ * @since  1.0.0
  */
 class ToolsController extends BaseController
 {
@@ -40,7 +40,7 @@ class ToolsController extends BaseController
      * Security tab can no longer be spammed into re-scanning on every page load.
      *
      *
-     * @since   1.0.9
+     * @since  1.0.0
      */
     public function recheckIntegrity(): void
     {
@@ -68,7 +68,7 @@ class ToolsController extends BaseController
      * and the request redirects back to the Tools view with a notice.
      *
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     public function exportPackage(): void
     {
@@ -136,7 +136,7 @@ class ToolsController extends BaseController
      * @param string $filename Download filename presented to the browser.
      *
      *
-     * @since   1.0.3
+     * @since  1.0.0
      */
     private function streamArchive(string $path, string $filename): void
     {

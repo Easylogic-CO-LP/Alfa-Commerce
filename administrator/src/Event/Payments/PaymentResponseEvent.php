@@ -21,7 +21,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Payments;
  * which has no view — so it is redirect-only (no layout). The plugin decides where to
  * send the buyer after the bank; to show a result page, redirect to a view layout.
  *
- * @since  5.0.0
+ * @since  1.0.0
  */
 class PaymentResponseEvent extends PaymentsRedirectEvent
 {
@@ -30,7 +30,7 @@ class PaymentResponseEvent extends PaymentsRedirectEvent
      *
      * @return mixed The order or cart object
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getOrder()
     {

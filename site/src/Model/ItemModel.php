@@ -27,7 +27,7 @@ use Joomla\Database\ParameterType;
 /**
  * Alfa model.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class ItemModel extends BaseItemModel
 {
@@ -45,7 +45,7 @@ class ItemModel extends BaseItemModel
      *
      *
      * @throws Exception
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected function populateState(): void
     {
@@ -64,7 +64,7 @@ class ItemModel extends BaseItemModel
      * @return mixed Object on success, false on failure.
      *
      * @throws Exception
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getItem($pk = null): mixed
     {
@@ -205,7 +205,7 @@ class ItemModel extends BaseItemModel
      * @param int $pk Item ID
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function getItemCategories(int $pk): array
     {
@@ -243,7 +243,7 @@ class ItemModel extends BaseItemModel
      * @param int $pk Item ID
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function getItemManufacturers(int $pk): array
     {

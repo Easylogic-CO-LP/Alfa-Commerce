@@ -5,6 +5,10 @@
         <type>component</type>
         <version>1.0.10</version>
 
+        <fix>
+            <item>Fixed a latent infinite recursion in the plugin layout event setter (onSetLayoutData), which could overflow the stack when layout data was supplied through the event's magic setter.</item>
+        </fix>
+
         <change>
             <item>Internal housekeeping: removed stray developer backup files that were inadvertently included in the package.</item>
             <item>Refined the payment/shipment plugin event model so redirect and inline template rendering are available only where they apply — the checkout views and the gateway-return step; order place/save hooks are now strictly data hooks.</item>

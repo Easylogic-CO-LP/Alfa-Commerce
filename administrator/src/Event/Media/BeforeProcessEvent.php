@@ -34,7 +34,7 @@
  * NOTE: `dest` is an INPUT (getDest). The plugin's rewritten path is the
  * SEPARATE output key `finalPath` — never set `dest`.
  *
- * @since  1.0.2
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\Media;
@@ -46,7 +46,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Media;
 /**
  * Full-size media processing event.
  *
- * @since  1.0.2
+ * @since  1.0.0
  */
 class BeforeProcessEvent extends MediaEvent
 {
@@ -58,7 +58,7 @@ class BeforeProcessEvent extends MediaEvent
      * Get the requested output format ('' = keep the original extension).
      *
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     public function getFormat(): string
     {
@@ -69,7 +69,7 @@ class BeforeProcessEvent extends MediaEvent
      * Get the target maximum width in pixels.
      *
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     public function getMaxWidth(): int
     {
@@ -80,7 +80,7 @@ class BeforeProcessEvent extends MediaEvent
      * Get the target maximum height in pixels.
      *
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     public function getMaxHeight(): int
     {
@@ -91,7 +91,7 @@ class BeforeProcessEvent extends MediaEvent
      * Get the compression strength (1-100).
      *
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     public function getQuality(): int
     {
@@ -102,7 +102,7 @@ class BeforeProcessEvent extends MediaEvent
      * Get the allowed source MIME types.
      *
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     public function getAllowedMimes(): array
     {
@@ -123,7 +123,7 @@ class BeforeProcessEvent extends MediaEvent
      * @param bool $processed True when the plugin wrote the file.
      *
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     public function setProcessed(bool $processed): void
     {
@@ -134,7 +134,7 @@ class BeforeProcessEvent extends MediaEvent
      * Whether a plugin processed the file. Defaults to false when unset.
      *
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     public function isProcessed(): bool
     {
@@ -151,7 +151,7 @@ class BeforeProcessEvent extends MediaEvent
      * @param string $finalPath Absolute path of the written file.
      *
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     public function setFinalPath(string $finalPath): void
     {
@@ -163,7 +163,7 @@ class BeforeProcessEvent extends MediaEvent
      * plugin did not rewrite it.
      *
      *
-     * @since   1.0.2
+     * @since  1.0.0
      */
     public function getFinalPath(): string
     {

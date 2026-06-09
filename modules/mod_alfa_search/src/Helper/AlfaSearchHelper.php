@@ -41,7 +41,7 @@ class AlfaSearchHelper
      * Handle AJAX search requests
      *
      * @return void
-     * @since 1.0.0
+     * @since  1.0.0
      */
     public static function getAjax()
     {
@@ -93,7 +93,7 @@ class AlfaSearchHelper
      *
      * @return string Validated keyword
      * @throws Exception
-     * @since   1.0.0
+     * @since  1.0.0
      */
     private static function getAndValidateKeyword($app, Registry $params): string
     {
@@ -126,7 +126,7 @@ class AlfaSearchHelper
      * @param string $keyword Raw keyword
      *
      * @return string Sanitized keyword
-     * @since   1.0.0
+     * @since  1.0.0
      */
     private static function sanitizeKeyword(string $keyword): string
     {
@@ -144,7 +144,7 @@ class AlfaSearchHelper
      *
      * @return mixed MVC Factory instance
      * @throws Exception
-     * @since   1.0.0
+     * @since  1.0.0
      */
     private static function initializeComponent($app)
     {
@@ -169,7 +169,7 @@ class AlfaSearchHelper
      * @param Registry $params Module parameters
      *
      * @return array Search results
-     * @since   1.0.0
+     * @since  1.0.0
      */
     private static function performSearches($mvcFactory, string $keyword, Registry $params): array
     {
@@ -226,7 +226,7 @@ class AlfaSearchHelper
      * @param int $limit Result limit
      *
      * @return array Products array
-     * @since   1.0.0
+     * @since  1.0.0
      */
     private static function searchProducts($mvcFactory, string $keyword, int $limit = 50): array
     {
@@ -253,7 +253,7 @@ class AlfaSearchHelper
      * @param int $limit Result limit from XML
      *
      * @return array Categories array
-     * @since   1.0.0
+     * @since  1.0.0
      */
     private static function searchCategories($mvcFactory, string $keyword, int $limit): array
     {
@@ -280,7 +280,7 @@ class AlfaSearchHelper
      * @param int $limit Result limit from XML
      *
      * @return array Manufacturers array
-     * @since   1.0.0
+     * @since  1.0.0
      */
     private static function searchManufacturers($mvcFactory, string $keyword, int $limit): array
     {
@@ -306,7 +306,7 @@ class AlfaSearchHelper
      * @param array $results Search results
      * @param Registry $params Module parameters
      *
-     * @since   1.0.0
+     * @since  1.0.0
      */
     private static function renderAndSend(string $keyword, array $results, Registry $params): void
     {
@@ -354,7 +354,7 @@ class AlfaSearchHelper
      * @param string $message Error message
      * @param int $statusCode HTTP status code
      *
-     * @since   1.0.0
+     * @since  1.0.0
      */
     private static function sendError(string $message, int $statusCode = 500): void
     {
@@ -373,7 +373,7 @@ class AlfaSearchHelper
      * @param string $message Error message
      * @param array $context Additional context
      *
-     * @since   1.0.0
+     * @since  1.0.0
      */
     //	TODO: CHECK LOG ERROR IS WORKING FINE WITH JOOMLA
     private static function logError(string $message, array $context = []): void

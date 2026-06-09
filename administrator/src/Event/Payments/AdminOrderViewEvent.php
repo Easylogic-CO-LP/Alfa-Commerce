@@ -19,7 +19,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Payments;
 /**
  * Class for CustomFields events
  *
- * @since  5.0.0
+ * @since  1.0.0
  */
 class AdminOrderViewEvent extends PaymentsLayoutEvent
 {
@@ -28,7 +28,7 @@ class AdminOrderViewEvent extends PaymentsLayoutEvent
      *
      * @return mixed The order or cart object
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function getOrder()
     {
@@ -42,7 +42,7 @@ class AdminOrderViewEvent extends PaymentsLayoutEvent
      *
      * @return void
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     public function setOrder($order)
     {

@@ -32,6 +32,7 @@ class HtmlView extends BaseHtmlView
      * @param string|null $tpl The name of the template file to parse
      *
      * @return void
+     * @since  1.0.0
      */
     public function display($tpl = null)
     {
@@ -58,6 +59,7 @@ class HtmlView extends BaseHtmlView
      * a Back-to-Fields link and the notification badge, gated by permissions.
      *
      * @return void
+     * @since  1.0.0
      */
     protected function addToolbar()
     {

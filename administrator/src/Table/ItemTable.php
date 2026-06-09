@@ -18,7 +18,7 @@ use Joomla\Database\DatabaseDriver;
 /**
  * Item table
  *
- * @since 1.0.1
+ * @since  1.0.0
  */
 class ItemTable extends Table
 {
@@ -26,7 +26,7 @@ class ItemTable extends Table
      * Indicates that columns fully support the NULL value in the database
      *
      * @var bool
-     * @since  4.0.0
+     * @since  1.0.0
      */
     protected $_supportNullValue = true;
 
@@ -34,6 +34,7 @@ class ItemTable extends Table
      * Constructor
      *
      * @param JDatabase &$db A database connector object
+     * @since  1.0.0
      */
     public function __construct(DatabaseDriver $db)
     {
@@ -52,7 +53,7 @@ class ItemTable extends Table
      *
      * @return bool True on success.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function store($updateNulls = true)
     {

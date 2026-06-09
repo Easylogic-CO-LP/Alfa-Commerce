@@ -18,7 +18,7 @@ use Joomla\CMS\MVC\Controller\BaseController;
 /**
  * Item class.
  *
- * @since  1.6.0
+ * @since  1.0.0
  */
 class ItemController extends BaseController
 {

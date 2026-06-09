@@ -9,7 +9,7 @@
 
 /**
  * @package    Alfa Commerce
- * @since      1.0.0
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Service;
@@ -66,7 +66,7 @@ use Throwable;
  *
  * All sync failures are non-fatal — logged as warnings, admin save never blocked.
  *
- * @since 1.0.0
+ * @since  1.0.0
  */
 class PriceIndexSyncService
 {
@@ -93,6 +93,7 @@ class PriceIndexSyncService
 
     /**
      * @param PriceCalculator|null $calculator Injected for testing; defaults to new instance
+     * @since  1.0.0
      */
     public function __construct(?PriceCalculator $calculator = null)
     {
@@ -109,6 +110,7 @@ class PriceIndexSyncService
      *
      * Called from ItemModel::save() and ItemModel::publish() when an item is
      * re-published (state = 1). All associated data must already be committed.
+     * @since  1.0.0
      */
     public function syncItem(int $itemId): void
     {
@@ -133,6 +135,7 @@ class PriceIndexSyncService
      *
      * @param int[] $itemIds
      * @return int Number of index rows written
+     * @since  1.0.0
      */
     public function syncItems(array $itemIds): int
     {
@@ -163,6 +166,7 @@ class PriceIndexSyncService
      * NOT used for delete — see syncItems() and the delete hook comments.
      *
      * @return int Number of index rows written
+     * @since  1.0.0
      */
     public function syncByDiscount(int $discountId): int
     {
@@ -202,6 +206,7 @@ class PriceIndexSyncService
      * NOT used for delete — see syncItems() and the delete hook comments.
      *
      * @return int Number of index rows written
+     * @since  1.0.0
      */
     public function syncByTax(int $taxId): int
     {
@@ -238,6 +243,7 @@ class PriceIndexSyncService
      * Run this once after installation and after bulk catalogue imports.
      *
      * @return int Total number of index rows written
+     * @since  1.0.0
      */
     public function syncAll(): int
     {
@@ -258,6 +264,7 @@ class PriceIndexSyncService
      * Call when an item is unpublished, trashed, or soft-deleted so it
      * disappears from the filter immediately without waiting for a full rebuild.
      * Hard deletes are also handled automatically by the FK ON DELETE CASCADE.
+     * @since  1.0.0
      */
     public function deleteForItem(int $itemId): void
     {
@@ -288,6 +295,7 @@ class PriceIndexSyncService
      * are returned.
      *
      * @return int[]
+     * @since  1.0.0
      */
     public function getItemIdsForDiscount(int $discountId): array
     {
@@ -311,6 +319,7 @@ class PriceIndexSyncService
      * are returned.
      *
      * @return int[]
+     * @since  1.0.0
      */
     public function getItemIdsForTax(int $taxId): array
     {
@@ -344,6 +353,7 @@ class PriceIndexSyncService
      * @param int[] $itemIds
      * @param array $combinations From getActiveContextCombinations()
      * @return int Total rows written
+     * @since  1.0.0
      */
     private function writeIndexRows(array $itemIds, array $combinations): int
     {
@@ -428,6 +438,7 @@ class PriceIndexSyncService
      *
      * INSERT … ON DUPLICATE KEY UPDATE is atomic and idempotent.
      * updated_at is refreshed automatically by the column definition.
+     * @since  1.0.0
      */
     private function upsertRow(
         int $itemId,
@@ -486,6 +497,7 @@ class PriceIndexSyncService
      * Sentinel 0 = "any / default" in every dimension, always included.
      *
      * @return array Array of ['currency_id'=>N, 'place_id'=>N, 'usergroup_id'=>N]
+     * @since  1.0.0
      */
     private function getActiveContextCombinations(): array
     {
@@ -513,6 +525,7 @@ class PriceIndexSyncService
      * Distinct currency DB ids in items_prices, plus sentinel 0.
      *
      * @return int[]
+     * @since  1.0.0
      */
     private function getDistinctCurrencyIds(): array
     {
@@ -529,6 +542,7 @@ class PriceIndexSyncService
      * Distinct usergroup ids from all pricing assignment tables, plus sentinel 0.
      *
      * @return int[]
+     * @since  1.0.0
      */
     private function getDistinctUsergroupIds(): array
     {
@@ -552,6 +566,7 @@ class PriceIndexSyncService
      * items_prices uses 'country_id' (same semantic: a #__alfa_places id).
      *
      * @return int[]
+     * @since  1.0.0
      */
     private function getDistinctPlaceIds(): array
     {
@@ -576,6 +591,7 @@ class PriceIndexSyncService
      * All published item ids.
      *
      * @return int[]
+     * @since  1.0.0
      */
     private function getAllPublishedItemIds(): array
     {
@@ -593,6 +609,7 @@ class PriceIndexSyncService
      *
      * @param int[] $categoryIds
      * @return int[]
+     * @since  1.0.0
      */
     private function getItemIdsInCategories(array $categoryIds): array
     {
@@ -615,6 +632,7 @@ class PriceIndexSyncService
 
     /**
      * True if the discount has category_id = 0 (applies to all items).
+     * @since  1.0.0
      */
     private function discountAppliesGlobally(int $discountId): bool
     {
@@ -631,6 +649,7 @@ class PriceIndexSyncService
      * Category ids assigned to a discount (excluding sentinel 0).
      *
      * @return int[]
+     * @since  1.0.0
      */
     private function getDiscountCategoryIds(int $discountId): array
     {
@@ -649,6 +668,7 @@ class PriceIndexSyncService
 
     /**
      * True if the tax has category_id = 0 (applies to all items).
+     * @since  1.0.0
      */
     private function taxAppliesGlobally(int $taxId): bool
     {
@@ -665,6 +685,7 @@ class PriceIndexSyncService
      * Category ids assigned to a tax (excluding sentinel 0).
      *
      * @return int[]
+     * @since  1.0.0
      */
     private function getTaxCategoryIds(int $taxId): array
     {
@@ -683,6 +704,7 @@ class PriceIndexSyncService
 
     /**
      * Log a non-fatal warning to the Joomla 'com_alfa' log channel.
+     * @since  1.0.0
      */
     private function logWarning(string $message): void
     {

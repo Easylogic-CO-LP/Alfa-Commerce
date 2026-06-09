@@ -16,7 +16,7 @@ use Joomla\CMS\MVC\Controller\FormController;
 /**
  * Items class.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class ItemsController extends FormController
 {
@@ -29,7 +29,7 @@ class ItemsController extends FormController
      *
      * @return ItemsController This object to support chaining.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function display($cachable = false, $urlparams = [])
     {
@@ -51,7 +51,7 @@ class ItemsController extends FormController
      *
      * @return object The model
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getModel($name = 'Items', $prefix = 'Site', $config = ['ignore_request' => true])
     {

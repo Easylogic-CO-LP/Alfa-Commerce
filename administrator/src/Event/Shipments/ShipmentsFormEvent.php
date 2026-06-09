@@ -19,7 +19,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Shipments;
 /**
  * Class for CustomFields events
  *
- * @since  5.0.0
+ * @since  1.0.0
  */
 abstract class ShipmentsEvent extends \Alfa\Component\Alfa\Administrator\Event\General\FormEvent
 {

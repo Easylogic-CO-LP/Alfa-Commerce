@@ -13,6 +13,7 @@ namespace libphonenumber\geocoding\data\sq;
 
 /**
  * @internal
+ * @since  1.0.0
  */
 class Sq_383
 {

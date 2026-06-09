@@ -6,6 +6,7 @@ namespace libphonenumber;
 
 /**
  * Type of phone numbers.
+ * @since  1.0.0
  */
 enum PhoneNumberType: int
 {

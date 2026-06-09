@@ -16,6 +16,7 @@ use libphonenumber\prefixmapper\PrefixFileReader;
 /**
  * @phpstan-consistent-constructor
  * @no-named-arguments
+ * @since  1.0.0
  */
 class PhoneNumberToCarrierMapper
 {
@@ -37,6 +38,7 @@ class PhoneNumberToCarrierMapper
      *
      * <p> The {@link PhoneNumberToCarrierMapper} is implemented as a singleton. Therefore, calling
      * this method multiple times will only result in one instance being created.
+     * @since  1.0.0
      */
     public static function getInstance(?string $mappingNamespace = __NAMESPACE__ . '\\carrier\\data\\'): PhoneNumberToCarrierMapper
     {
@@ -60,6 +62,7 @@ class PhoneNumberToCarrierMapper
      * @param PhoneNumber $number a valid phone number for which we want to get a carrier name
      * @param string $languageCode the language code in which the name should be written
      * @return string a carrier name for the given phone number
+     * @since  1.0.0
      */
     public function getNameForValidNumber(PhoneNumber $number, string $languageCode): string
     {
@@ -80,6 +83,7 @@ class PhoneNumberToCarrierMapper
      * @param string $languageCode Language code for which the description should be written
      * @return string a carrier name for the given phone number, or empty string if the number passed in is
      *                invalid
+     * @since  1.0.0
      */
     public function getNameForNumber(PhoneNumber $number, string $languageCode): string
     {
@@ -99,6 +103,7 @@ class PhoneNumberToCarrierMapper
      * @param $number PhoneNumber the phone number for which we want to get a carrier name
      * @param $languageCode String the language code in which the name should be written
      * @return string a carrier name that is safe to display to users, or the empty string
+     * @since  1.0.0
      */
     public function getSafeDisplayName(PhoneNumber $number, string $languageCode): string
     {
@@ -111,6 +116,7 @@ class PhoneNumberToCarrierMapper
 
     /**
      * Checks if the supplied number type supports carrier lookup.
+     * @since  1.0.0
      */
     protected function isMobile(PhoneNumberType $numberType): bool
     {

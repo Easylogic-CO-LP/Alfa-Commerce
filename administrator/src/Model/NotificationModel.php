@@ -22,7 +22,7 @@ use Joomla\CMS\MVC\Model\AdminModel;
  * the form controller, and the webservices API alike), so there is one professional
  * write everywhere. Reads use {@see NotificationsModel}.
  *
- * @since  1.0.5
+ * @since  1.0.0
  */
 class NotificationModel extends AdminModel
 {
@@ -30,7 +30,7 @@ class NotificationModel extends AdminModel
      * The prefix to use with controller messages.
      *
      * @var string
-     * @since  1.0.5
+     * @since  1.0.0
      */
     protected $text_prefix = 'COM_ALFA';
 
@@ -38,7 +38,7 @@ class NotificationModel extends AdminModel
      * Alias for history/UCM.
      *
      * @var string
-     * @since  1.0.5
+     * @since  1.0.0
      */
     public $typeAlias = 'com_alfa.notification';
 
@@ -50,7 +50,7 @@ class NotificationModel extends AdminModel
      *
      * @return Form|false
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public function getForm($data = [], $loadData = true)
     {
@@ -75,7 +75,7 @@ class NotificationModel extends AdminModel
      *
      * @return mixed
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     protected function loadFormData()
     {

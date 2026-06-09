@@ -24,7 +24,7 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
  * Tools / maintenance view — developer & sync utilities (language-table resync,
  * user/group resync, chunked translation backfill, package export).
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class HtmlView extends BaseHtmlView
 {
@@ -34,7 +34,7 @@ class HtmlView extends BaseHtmlView
      * installCode, installManifest.
      *
      * @var array<int, array{folder: string, libraryname: string, installCode: string, installManifest: string}>
-     * @since  1.0.3
+     * @since  1.0.0
      */
     public array $libraries = [];
 
@@ -45,7 +45,7 @@ class HtmlView extends BaseHtmlView
      * not declared (silently left out of the package/install).
      *
      * @var array{missing: string[], undeclared: string[]}
-     * @since  1.0.3
+     * @since  1.0.0
      */
     public array $drift = ['missing' => [], 'undeclared' => []];
 
@@ -54,7 +54,7 @@ class HtmlView extends BaseHtmlView
      * 1.0.5), so the contribution guide's SQL-update / version-bump examples match
      * this install instead of a hard-coded number.
      *
-     * @since  1.0.4
+     * @since  1.0.0
      */
     public string $nextVersion = '';
 
@@ -66,7 +66,7 @@ class HtmlView extends BaseHtmlView
      * 'hasRemovedJson' => bool].
      *
      * @var array{version: string, sqlFile: string, removedFile: string, hasSqlUpdate: bool, hasRemovedJson: bool}
-     * @since  1.0.4
+     * @since  1.0.0
      */
     public array $release = ['version' => '', 'sqlFile' => '', 'removedFile' => '', 'hasSqlUpdate' => true, 'hasRemovedJson' => true];
 
@@ -80,7 +80,7 @@ class HtmlView extends BaseHtmlView
      * = fetched a reference that isn't signed by us (do not trust).
      *
      * @var array{status: string}
-     * @since  1.0.5
+     * @since  1.0.0
      */
     public array $official = ['status' => 'unreachable'];
 
@@ -89,7 +89,7 @@ class HtmlView extends BaseHtmlView
      * fixed-path partial (NOT the overridable layout system) so a template override
      * cannot silently fake the result — the Tools template only echoes this string.
      *
-     * @since   1.0.9
+     * @since  1.0.0
      */
     public string $integrityHtml = '';
 
@@ -99,7 +99,7 @@ class HtmlView extends BaseHtmlView
      * @param string|null $tpl The template name.
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function display($tpl = null): void
     {
@@ -133,7 +133,7 @@ class HtmlView extends BaseHtmlView
      * Build the toolbar.
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function addToolbar(): void
     {

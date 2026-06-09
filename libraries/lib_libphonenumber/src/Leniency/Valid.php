@@ -10,6 +10,7 @@ use libphonenumber\PhoneNumberUtil;
 
 /**
  * @no-named-arguments
+ * @since  1.0.0
  */
 class Valid extends AbstractLeniency
 {
@@ -19,6 +20,7 @@ class Valid extends AbstractLeniency
      * Phone numbers accepted are PhoneNumberUtil::isPossibleNumber() and PhoneNumberUtil::isValidNumber().
      * Numbers written in national format must have their national-prefix present if it is usually written
      * for a number of this type.
+     * @since  1.0.0
      */
     public static function verify(PhoneNumber $number, string $candidate, PhoneNumberUtil $util): bool
     {

@@ -109,6 +109,7 @@ final class SyncHelper
      *                                 read from ComponentHelper at runtime.
      *
      * @return string JSON-encoded prices_display value.
+     * @since  1.0.0
      */
     public static function buildDefaultPricesDisplay(?array $sourceParams = null): string
     {
@@ -138,6 +139,7 @@ final class SyncHelper
 
     /**
      * Returns true if a row for $userId already exists in #__alfa_users.
+     * @since  1.0.0
      */
     public static function alfaUserExists(DatabaseInterface $db, int $userId): bool
     {
@@ -151,6 +153,7 @@ final class SyncHelper
 
     /**
      * Returns true if a row for $groupId already exists in #__alfa_usergroups.
+     * @since  1.0.0
      */
     public static function alfaUsergroupExists(DatabaseInterface $db, int $groupId): bool
     {
@@ -174,6 +177,7 @@ final class SyncHelper
      *
      *
      * @return bool True if a row was inserted, false if it already existed.
+     * @since  1.0.0
      */
     public static function insertAlfaUser(DatabaseInterface $db, int $userId): bool
     {
@@ -207,6 +211,7 @@ final class SyncHelper
      *                                   build from component params.
      *
      * @return bool True if a row was inserted, false if it already existed.
+     * @since  1.0.0
      */
     public static function insertAlfaUsergroup(
         DatabaseInterface $db,
@@ -247,6 +252,7 @@ final class SyncHelper
      *
      *
      * @return int Total number of rows inserted.
+     * @since  1.0.0
      */
     public static function bulkSyncUsers(DatabaseInterface $db): int
     {
@@ -294,6 +300,7 @@ final class SyncHelper
      * @param array|null $sourceParams See buildDefaultPricesDisplay().
      *
      * @return int Total number of rows inserted.
+     * @since  1.0.0
      */
     public static function bulkSyncUsergroups(
         DatabaseInterface $db,
@@ -347,6 +354,7 @@ final class SyncHelper
      *
      *
      * @return int[]
+     * @since  1.0.0
      */
     public static function getMissingUserIds(DatabaseInterface $db): array
     {
@@ -369,6 +377,7 @@ final class SyncHelper
      *
      *
      * @return int[]
+     * @since  1.0.0
      */
     public static function getMissingGroupIds(DatabaseInterface $db): array
     {
@@ -396,6 +405,7 @@ final class SyncHelper
      * @param int[] $userIds
      *
      * @return int Number of rows successfully inserted.
+     * @since  1.0.0
      */
     private static function insertUsersOneByOne(DatabaseInterface $db, array $userIds): int
     {
@@ -415,6 +425,7 @@ final class SyncHelper
      * Only called as a fallback when a chunk INSERT fails.
      *
      * @param int[] $groupIds
+     * @since  1.0.0
      */
     private static function insertGroupsOneByOne(
         DatabaseInterface $db,
@@ -452,6 +463,7 @@ final class SyncHelper
      * PlgSystemAlfasync runtime sync, and the admin "Resync languages" button.
      *
      * @return array ['tables' => [table => ensureLangSchema summary], 'errors' => [table => message]].
+     * @since  1.0.0
      */
     public static function syncLanguageSchema(): array
     {
@@ -488,6 +500,7 @@ final class SyncHelper
      * the schema sync. Alias fields + uniqueness scope come from MultilingualAliasConfig.
      *
      * @return array<string, array{pk: string, fields: string[], aliasFields: string[], aliasScope: string[]}>
+     * @since  1.0.0
      */
     public static function getMultilingualSchema(): array
     {
@@ -507,6 +520,7 @@ final class SyncHelper
      * @param string[] $formDirs Absolute paths to directories of *.xml form files.
      *
      * @return array<string, array{pk: string, fields: string[], aliasFields: string[], aliasScope: string[]}>
+     * @since  1.0.0
      */
     private static function discoverMultilingualSchema(array $formDirs): array
     {
@@ -557,7 +571,7 @@ final class SyncHelper
      * scheduling. The actual push/clear runs only on a cache miss.
      *
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public static function syncIntegrity(): void
     {
@@ -584,7 +598,7 @@ final class SyncHelper
      *
      * @return bool Always true (so the cache stores a hit).
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public static function doSyncIntegrity(): bool
     {
@@ -601,7 +615,7 @@ final class SyncHelper
      * @param array $verdict A verdict from IntegrityHelper (verifyAgainstOfficial/cachedVerdict).
      *
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public static function applyIntegrityVerdict(array $verdict): void
     {
@@ -649,7 +663,7 @@ final class SyncHelper
      * raise a global, override-proof banner without ever running the real check.
      *
      *
-     * @since   1.0.9
+     * @since  1.0.0
      */
     public static function hasIntegrityAlarm(): bool
     {

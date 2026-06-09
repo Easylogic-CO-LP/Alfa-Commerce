@@ -16,7 +16,7 @@ use Joomla\CMS\MVC\Controller\FormController;
 /**
  * Manufacturer controller class.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class ManufacturerController extends FormController
 {

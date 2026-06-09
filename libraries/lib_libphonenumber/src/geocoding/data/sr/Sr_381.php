@@ -13,6 +13,7 @@ namespace libphonenumber\geocoding\data\sr;
 
 /**
  * @internal
+ * @since  1.0.0
  */
 class Sr_381
 {

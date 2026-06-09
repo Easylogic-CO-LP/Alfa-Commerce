@@ -19,28 +19,28 @@ use Joomla\CMS\MVC\Model\AdminModel;
 /**
  * Custom model.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class CustomModel extends AdminModel
 {
     /**
      * @var string The prefix to use with controller messages.
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $text_prefix = 'COM_ALFA';
 
     /**
      * @var string Alias to manage history control
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public $typeAlias = 'com_alfa.custom';
 
     /**
      * @var null Item data
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $item = null;
 
@@ -52,7 +52,7 @@ class CustomModel extends AdminModel
      *
      * @return JForm|bool A \JForm object on success, false on failure
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getForm($data = [], $loadData = true)
     {
@@ -81,7 +81,7 @@ class CustomModel extends AdminModel
      *
      * @return mixed The data for the form.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function loadFormData()
     {
@@ -130,7 +130,7 @@ class CustomModel extends AdminModel
      *
      * @return mixed Object on success, false on failure.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getItem($pk = null)
     {

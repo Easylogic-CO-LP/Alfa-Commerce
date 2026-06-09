@@ -15,6 +15,7 @@ defined('_JEXEC') or die;
  * Applied Discount
  *
  * Represents a discount that has been applied to a price
+ * @since  1.0.0
  */
 class AppliedDiscount
 {
@@ -46,6 +47,7 @@ class AppliedDiscount
 
     /**
      * Export the applied discount as a plain array (formatting the amount when present).
+     * @since  1.0.0
      */
     public function toArray(): array
     {

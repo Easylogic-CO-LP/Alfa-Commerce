@@ -13,6 +13,7 @@ namespace libphonenumber\geocoding\data\id;
 
 /**
  * @internal
+ * @since  1.0.0
  */
 class Id_62
 {

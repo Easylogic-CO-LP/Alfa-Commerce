@@ -26,28 +26,28 @@ use Joomla\Database\ParameterType;
 /**
  * Category model.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class CategoryModel extends AdminModel
 {
     /**
      * @var string The prefix to use with controller messages.
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $text_prefix = 'COM_ALFA';
 
     /**
      * @var string Alias to manage history control
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public $typeAlias = 'com_alfa.category';
 
     /**
      * @var null Item data
      *
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $item = null;
 
@@ -59,7 +59,7 @@ class CategoryModel extends AdminModel
      *
      * @return JForm|bool A \JForm object on success, false on failure
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getForm($data = [], $loadData = true)
     {
@@ -84,7 +84,7 @@ class CategoryModel extends AdminModel
      *
      * @return mixed The data for the form.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function loadFormData()
     {
@@ -104,7 +104,7 @@ class CategoryModel extends AdminModel
      *
      * @return mixed Object on success, false on failure.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getItem($pk = null)
     {
@@ -140,7 +140,7 @@ class CategoryModel extends AdminModel
      *
      * @return bool True on success, False on error.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function save($data)
     {
@@ -241,7 +241,7 @@ class CategoryModel extends AdminModel
      * @param int $categoryId Category ID to check
      *
      * @return bool True if circular reference detected, false if valid
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function hasCircularReference(int $categoryId): bool
     {
@@ -302,7 +302,7 @@ class CategoryModel extends AdminModel
      * @param int|null $oldParentId Old parent ID (if changed)
      * @param int $newParentId New parent ID
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function clearRelatedCache(int $categoryId, ?int $oldParentId, int $newParentId): void
     {
@@ -330,7 +330,7 @@ class CategoryModel extends AdminModel
      * @param array &$pks Record primary keys
      *
      * @return bool True on success
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function delete(&$pks)
     {
@@ -363,7 +363,7 @@ class CategoryModel extends AdminModel
      * @param int $value The value of the published state
      *
      * @return bool True on success
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function publish(&$pks, $value = 1)
     {
@@ -386,7 +386,7 @@ class CategoryModel extends AdminModel
      * @param Table $table Table Object
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function prepareTable($table): void
     {

@@ -32,7 +32,7 @@
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
  *
- * @since  3.0.0
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Model;
@@ -60,6 +60,7 @@ class OrdersModel extends ListModel
      *
      * @param array $config Configuration array
      * @param MVCFactoryInterface|null $factory MVC factory
+     * @since  1.0.0
      */
     public function __construct($config = [], ?MVCFactoryInterface $factory = null)
     {
@@ -82,6 +83,7 @@ class OrdersModel extends ListModel
 
     /**
      * Populate state
+     * @since  1.0.0
      */
     protected function populateState($ordering = 'a.id', $direction = 'DESC')
     {
@@ -90,6 +92,7 @@ class OrdersModel extends ListModel
 
     /**
      * Get store id
+     * @since  1.0.0
      */
     protected function getStoreId($id = '')
     {
@@ -113,6 +116,7 @@ class OrdersModel extends ListModel
      * in getItems() after Joomla paginates.
      *
      * @return \Joomla\Database\DatabaseQuery
+     * @since  1.0.0
      */
     protected function getListQuery()
     {
@@ -220,6 +224,7 @@ class OrdersModel extends ListModel
      *   Display:     order_total_money, formatted_date, order_age_days, etc.
      *
      * @return array Fully enriched order items
+     * @since  1.0.0
      */
     public function getItems()
     {
@@ -490,6 +495,7 @@ class OrdersModel extends ListModel
      * @param int[] $orderIds Order PKs from the current page
      *
      * @return array [ orderId => [item objects...] ]
+     * @since  1.0.0
      */
     private function batchLoadItems(array $orderIds): array
     {
@@ -538,6 +544,7 @@ class OrdersModel extends ListModel
      * @param int[] $orderIds Order PKs
      *
      * @return array [ orderId => [shipment objects...] ]
+     * @since  1.0.0
      */
     private function batchLoadShipments(array $orderIds): array
     {
@@ -579,6 +586,7 @@ class OrdersModel extends ListModel
      * @param int[] $orderIds Order PKs
      *
      * @return array [ orderId => [payment objects...] ]
+     * @since  1.0.0
      */
     private function batchLoadPayments(array $orderIds): array
     {
@@ -617,6 +625,7 @@ class OrdersModel extends ListModel
      * @param int[] $orderIds Order PKs
      *
      * @return array [ orderId => [cart rule objects...] ]
+     * @since  1.0.0
      */
     private function batchLoadDiscounts(array $orderIds): array
     {
@@ -655,6 +664,7 @@ class OrdersModel extends ListModel
      * @param string $key Column name containing the order ID
      *
      * @return array Grouped array
+     * @since  1.0.0
      */
     private function groupByOrder(?array $rows, string $key): array
     {
@@ -682,6 +692,7 @@ class OrdersModel extends ListModel
     /**
      * Get all order statuses keyed by ID.
      * Delegates to AlfaHelper::getOrderStatuses() (cached).
+     * @since  1.0.0
      */
     public function getOrderStatuses(): array
     {
@@ -691,6 +702,7 @@ class OrdersModel extends ListModel
     /**
      * Get all active payment methods keyed by ID.
      * Delegates to AlfaHelper::getPaymentMethods() (cached).
+     * @since  1.0.0
      */
     public function getPaymentMethods(): array
     {
@@ -700,6 +712,7 @@ class OrdersModel extends ListModel
     /**
      * Get all active shipment methods keyed by ID.
      * Delegates to AlfaHelper::getShipmentMethods() (cached).
+     * @since  1.0.0
      */
     public function getShipmentMethods(): array
     {

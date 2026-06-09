@@ -13,6 +13,7 @@ use InvalidArgumentException;
  *
  * @package libphonenumber\prefixmapper
  * @internal
+ * @since  1.0.0
  */
 class PrefixFileReader
 {
@@ -94,6 +95,7 @@ class PrefixFileReader
      * @param string $region two-letter uppercase ISO country code as defined by ISO 3166-1
      * @return string a text description for the given language code for the given phone number, or empty
      *                string if the number passed in is invalid or could belong to multiple countries
+     * @since  1.0.0
      */
     public function getDescriptionForNumber(PhoneNumber $number, string $language, string $script, string $region): string
     {

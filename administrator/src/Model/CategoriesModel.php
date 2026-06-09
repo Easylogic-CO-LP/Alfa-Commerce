@@ -22,7 +22,7 @@ use Joomla\Database\QueryInterface;
 /**
  * Methods supporting a list of Categories records.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class CategoriesModel extends ListModel
 {
@@ -32,7 +32,7 @@ class CategoriesModel extends ListModel
      * @param array $config An optional associative array of configuration settings.
     *
     * @see        JController
-    * @since      1.6
+    * @since  1.0.0
     */
     public function __construct($config = [], ?MVCFactoryInterface $factory = null)
     {
@@ -64,6 +64,7 @@ class CategoriesModel extends ListModel
      * @return void
      *
      * @throws Exception
+     * @since  1.0.0
      */
     protected function populateState($ordering = 'a.id', $direction = 'ASC')
     {
@@ -81,7 +82,7 @@ class CategoriesModel extends ListModel
      *
      * @return string A store id.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function getStoreId($id = '')
     {
@@ -97,7 +98,7 @@ class CategoriesModel extends ListModel
      *
      * @return QueryInterface
      *
-     * @since   1.6
+     * @since  1.0.0
      */
     protected function getListQuery()
     {
@@ -175,6 +176,7 @@ class CategoriesModel extends ListModel
      * Get an array of data items
      *
      * @return mixed Array of data items on success, false on failure.
+     * @since  1.0.0
      */
     public function getItems()
     {

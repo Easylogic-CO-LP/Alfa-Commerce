@@ -15,6 +15,7 @@ use Joomla\CMS\Component\ComponentHelper;
 
 /**
  * Main Price Calculator Service
+ * @since  1.0.0
  */
 class PriceCalculator
 {
@@ -39,6 +40,7 @@ class PriceCalculator
      * @param PriceContext|null $context The pricing context; resolved from session when null.
      *
      * @return PriceResult|PriceResult[] A single result when a scalar id was passed, otherwise a map keyed by product id.
+     * @since  1.0.0
      */
     public function calculate($productIds, $quantities = 1, ?PriceContext $context = null)
     {
@@ -71,6 +73,7 @@ class PriceCalculator
      * @param int|int[] $quantities A single quantity for all ids, or an existing per-id map (returned as-is).
      *
      * @return array The quantity map keyed by product id.
+     * @since  1.0.0
      */
     protected function normalizeQuantities(array $productIds, $quantities): array
     {

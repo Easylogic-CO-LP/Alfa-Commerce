@@ -30,6 +30,7 @@ class PriceDataCollection
      * @param int $productId The product id.
      *
      * @return array The price rows (empty when none loaded).
+     * @since  1.0.0
      */
     public function getPricesFor(int $productId): array
     {
@@ -42,6 +43,7 @@ class PriceDataCollection
      * @param int $productId The product id.
      *
      * @return array The discount rows (empty when none loaded).
+     * @since  1.0.0
      */
     public function getDiscountsFor(int $productId): array
     {
@@ -54,6 +56,7 @@ class PriceDataCollection
      * @param int $productId The product id.
      *
      * @return array The tax rows (empty when none loaded).
+     * @since  1.0.0
      */
     public function getTaxesFor(int $productId): array
     {

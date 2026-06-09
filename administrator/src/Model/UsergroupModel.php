@@ -20,25 +20,25 @@ use SimpleXMLElement;
 /**
  * Usergroup model.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class UsergroupModel extends AdminModel
 {
     /**
      * @var string The prefix to use with controller messages.
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $text_prefix = 'COM_ALFA';
 
     /**
      * @var string Alias to manage history control.
-     * @since  1.0.1
+     * @since  1.0.0
      */
     public $typeAlias = 'com_alfa.usergroup';
 
     /**
      * @var object|null Cached item data.
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $item = null;
 
@@ -49,7 +49,7 @@ class UsergroupModel extends AdminModel
      * simply add an entry here — no other changes required.
      *
      * @var array<string, string>
-     * @since  1.0.1
+     * @since  1.0.0
      */
     private const OVERRIDE_FIELDSETS = [
         'prices' => 'prices_display',
@@ -60,7 +60,7 @@ class UsergroupModel extends AdminModel
      * Field types that are purely cosmetic / UI-only and carry no storable value.
      *
      * @var string[]
-     * @since  1.0.1
+     * @since  1.0.0
      */
     private const SKIP_FIELD_TYPES = ['note'];
 
@@ -78,7 +78,7 @@ class UsergroupModel extends AdminModel
      * @param bool $loadData True if the form is to load its own data (default case), false if not.
      *
      * @return \Joomla\CMS\Form\Form|bool A Form object on success, false on failure.
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getForm($data = [], $loadData = true)
     {
@@ -121,7 +121,7 @@ class UsergroupModel extends AdminModel
      * and inject the result into the form under the mapped field group name.
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function injectConfigFieldsets(\Joomla\CMS\Form\Form $form): void
     {
@@ -187,7 +187,7 @@ class UsergroupModel extends AdminModel
      *
      *
      * @return string Valid XML fragment for a single <field>.
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function buildFieldXml(SimpleXMLElement $field): string
     {
@@ -227,7 +227,7 @@ class UsergroupModel extends AdminModel
      * Escape a string for safe embedding inside an XML attribute value.
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private function esc(string $value): string
     {
@@ -244,7 +244,7 @@ class UsergroupModel extends AdminModel
      * Guards against stale session data belonging to a different record.
      *
      * @return mixed The data for the form.
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function loadFormData()
     {
@@ -281,7 +281,7 @@ class UsergroupModel extends AdminModel
      * @param int|null $pk The id of the primary key.
      *
      * @return object|bool Object on success, false on failure.
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getItem($pk = null)
     {
@@ -324,7 +324,7 @@ class UsergroupModel extends AdminModel
      * @param array $data The form data.
      *
      * @return bool True on success, false on failure.
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function save($data)
     {

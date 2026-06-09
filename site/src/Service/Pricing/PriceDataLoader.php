@@ -9,7 +9,7 @@
 
 /**
  * @package    Alfa Commerce
- * @since      1.0.0
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Site\Service\Pricing;
@@ -58,7 +58,7 @@ use Joomla\CMS\Factory;
  * discounts to never apply (or to apply to the wrong items).
  *
  * @package    Alfa Commerce
- * @since   1.0.0
+ * @since  1.0.0
  */
 class PriceDataLoader
 {
@@ -87,6 +87,7 @@ class PriceDataLoader
      *
      * @param array $productIds Product IDs to load
      * @param PriceContext $context Pricing context (currency, user, location)
+     * @since  1.0.0
      */
     public function loadBatch(array $productIds, PriceContext $context): PriceDataCollection
     {
@@ -122,6 +123,7 @@ class PriceDataLoader
      * @param array $productIds All product IDs
      *
      * @return array Merged results grouped by product ID
+     * @since  1.0.0
      */
     protected function executeBatched(callable $fetchFunction, array $productIds): array
     {
@@ -167,6 +169,7 @@ class PriceDataLoader
      * @param PriceContext $context Pricing context
      *
      * @return array Prices grouped by product ID
+     * @since  1.0.0
      */
     protected function fetchPrices(array $productIds, PriceContext $context): array
     {
@@ -211,6 +214,7 @@ class PriceDataLoader
      *
      * @param mixed $query Joomla database query object
      * @param PriceContext $context Pricing context
+     * @since  1.0.0
      */
     protected function applyPriceContextFilters($query, PriceContext $context): void
     {
@@ -282,6 +286,7 @@ class PriceDataLoader
      * @param PriceContext $context Pricing context
      *
      * @return array Discounts grouped by product ID
+     * @since  1.0.0
      */
     protected function fetchDiscounts(array $productIds, PriceContext $context): array
     {
@@ -375,6 +380,7 @@ class PriceDataLoader
      * @param PriceContext $context Pricing context
      *
      * @return array Taxes grouped by product ID
+     * @since  1.0.0
      */
     protected function fetchTaxes(array $productIds, PriceContext $context): array
     {
@@ -453,6 +459,7 @@ class PriceDataLoader
      * @param string $idField Field name containing the product ID
      *
      * @return array Results grouped by product ID
+     * @since  1.0.0
      */
     protected function groupByProductId(array $results, string $idField): array
     {

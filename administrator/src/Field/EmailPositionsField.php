@@ -56,7 +56,7 @@ use Throwable;
  *                       sibling email_layout_<recipient> selection
  *                       exists. Defaults to 'emails.order.default'.
  *
- * @since   1.0.4
+ * @since  1.0.0
  */
 class EmailPositionsField extends EditorField
 {
@@ -102,7 +102,7 @@ class EmailPositionsField extends EditorField
      * @param string|null $group Field group.
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     public function setup(SimpleXMLElement $element, $value, $group = null): bool
     {
@@ -175,7 +175,7 @@ class EmailPositionsField extends EditorField
      * envelope per language + the variables palette.
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     protected function getInput(): string
     {
@@ -238,7 +238,7 @@ class EmailPositionsField extends EditorField
      * @param array<string, object> $languages
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function renderTabs(array $languages): string
     {
@@ -275,7 +275,7 @@ class EmailPositionsField extends EditorField
      * other tabs the admin has already authored.
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function renderRestoreButton(): string
     {
@@ -294,7 +294,7 @@ class EmailPositionsField extends EditorField
      * @param array<string, object> $languages Installed content languages.
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function emitDefaults(string $layoutId, array $languages): void
     {
@@ -321,7 +321,7 @@ class EmailPositionsField extends EditorField
      * once the status exists (a saved id is needed to preview/test).
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function renderActions(): string
     {
@@ -368,7 +368,7 @@ class EmailPositionsField extends EditorField
      * @param bool $active Visible panel?
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function renderEnvelope(
         \Joomla\CMS\Editor\Editor $editor,
@@ -425,7 +425,7 @@ class EmailPositionsField extends EditorField
      *
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function renderSubjectInput(string $suffix, string $value): string
     {
@@ -453,7 +453,7 @@ class EmailPositionsField extends EditorField
      * @param string $value Current HTML value.
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function renderEditorSlot(
         \Joomla\CMS\Editor\Editor $editor,
@@ -481,7 +481,7 @@ class EmailPositionsField extends EditorField
      *
      * @return string
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     /**
      * Per-section visibility state: slug => bool, one entry per structural
@@ -494,7 +494,7 @@ class EmailPositionsField extends EditorField
      *
      * @return array<string, bool>
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function collectStructState(array $sequence, array $values): array
     {
@@ -528,7 +528,7 @@ class EmailPositionsField extends EditorField
      * @param array<string, bool> $structState
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function renderSectionFlags(array $structState): string
     {
@@ -564,7 +564,7 @@ class EmailPositionsField extends EditorField
      *
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function structSlug(string $layoutId): string
     {
@@ -580,7 +580,7 @@ class EmailPositionsField extends EditorField
      * @param array<string, array<string,string>> $values
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function structEnabled(array $values, string $slug): bool
     {
@@ -604,7 +604,7 @@ class EmailPositionsField extends EditorField
      *
      * @return string The block HTML
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function renderStruct(string $layoutId = '', bool $enabled = true): string
     {
@@ -661,7 +661,7 @@ class EmailPositionsField extends EditorField
      * @param string $layoutId e.g. 'emails.partials.order_items'.
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function humaniseLayoutId(string $layoutId): string
     {
@@ -686,7 +686,7 @@ class EmailPositionsField extends EditorField
      * @param array<string, string> $values
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function renderStale(\Joomla\CMS\Editor\Editor $editor, string $suffix, array $livePositions, array $values): string
     {
@@ -729,7 +729,7 @@ class EmailPositionsField extends EditorField
      * at the caret of the focused slot. Sourced from availableTokens().
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function renderVarsPalette(): string
     {
@@ -785,7 +785,7 @@ class EmailPositionsField extends EditorField
      *
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function langChip(object $language): string
     {
@@ -809,7 +809,7 @@ class EmailPositionsField extends EditorField
      * @param string $position Position name (incl. 'subject').
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function buildInputName(string $suffix, string $position): string
     {
@@ -826,7 +826,7 @@ class EmailPositionsField extends EditorField
      *
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function positionLabel(string $position): string
     {
@@ -846,7 +846,7 @@ class EmailPositionsField extends EditorField
      *
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function positionPlaceholder(string $position): string
     {
@@ -861,7 +861,7 @@ class EmailPositionsField extends EditorField
      * email_layout_<recipient> selection, else the XML / class default.
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function resolveSelectedLayout(): string
     {
@@ -886,7 +886,7 @@ class EmailPositionsField extends EditorField
      *
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function hasContent(string $html): bool
     {
@@ -906,7 +906,7 @@ class EmailPositionsField extends EditorField
      *
      * @return array<string, object>
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function getLanguages(): array
     {
@@ -922,7 +922,7 @@ class EmailPositionsField extends EditorField
      *
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function snakeLang(string $langCode): string
     {
@@ -936,7 +936,7 @@ class EmailPositionsField extends EditorField
      * @return string|null Raw JSON, '' when the column is empty, or null
      *                     on a missing row / error.
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function loadJsonValue(string $table, string $pk, string $column, int $itemId): ?string
     {
@@ -968,7 +968,7 @@ class EmailPositionsField extends EditorField
      *
      * @return bool True when a row exists; false on absence / error.
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function langRowExists(string $table, string $pk, int $itemId): bool
     {
@@ -991,7 +991,7 @@ class EmailPositionsField extends EditorField
      * Push the composer's CSS + JS into the web-asset manager.
      *
      *
-     * @since   1.0.4
+     * @since  1.0.0
      */
     private function ensureAssetsLoaded(): void
     {

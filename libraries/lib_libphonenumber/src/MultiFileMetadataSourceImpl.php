@@ -14,6 +14,7 @@ use RuntimeException;
 
 /**
  * @internal
+ * @since  1.0.0
  */
 class MultiFileMetadataSourceImpl implements MetadataSourceInterface
 {
@@ -33,6 +34,7 @@ class MultiFileMetadataSourceImpl implements MetadataSourceInterface
 
     /**
      * @param string $currentFilePrefix The prefix of the metadata class names from which region data is loaded
+     * @since  1.0.0
      */
     public function __construct(
         protected readonly string $currentFilePrefix = __NAMESPACE__ . '\data\PhoneNumberMetadata_'
@@ -62,6 +64,7 @@ class MultiFileMetadataSourceImpl implements MetadataSourceInterface
 
     /**
      * @throws RuntimeException
+     * @since  1.0.0
      */
     public function loadMetadataFromFile(string $filePrefix, string $regionCode, int $countryCallingCode): void
     {

@@ -21,7 +21,7 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
  * Tools → Media maintenance view: review and bulk-delete orphan / missing-file
  * media rows.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class HtmlView extends BaseHtmlView
 {
@@ -45,7 +45,7 @@ class HtmlView extends BaseHtmlView
      * @param string|null $tpl
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function display($tpl = null): void
     {
@@ -78,7 +78,7 @@ class HtmlView extends BaseHtmlView
     }
 
     /**
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function addToolbar(): void
     {

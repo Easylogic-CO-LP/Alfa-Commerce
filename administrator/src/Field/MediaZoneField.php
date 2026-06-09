@@ -28,7 +28,7 @@ class MediaZoneField extends FormField
      * Get the field input markup
      *
      * @return string
-     * @since   1.0.0
+     * @since  1.0.0
      */
     private const MIME_EXTENSION_MAP = [
         // Images
@@ -57,7 +57,7 @@ class MediaZoneField extends FormField
      * Get the field input markup
      *
      * @return string
-     * @since   1.0.0
+     * @since  1.0.0
      */
     protected function getInput()
     {
@@ -88,7 +88,7 @@ class MediaZoneField extends FormField
      * @param mixed $mimes Allowed MIME types from component config
      *
      * @return array{images: string[], audios: string[], videos: string[], documents: string[]}
-     * @since   1.0.0
+     * @since  1.0.0
      */
     private function getSupportedExtensions($mimes): array
     {
@@ -117,7 +117,7 @@ class MediaZoneField extends FormField
      * @param mixed $value Field value (array of DB records or null)
      *
      * @return array Array of prepared media objects
-     * @since   1.0.0
+     * @since  1.0.0
      */
     protected function prepareMediaObjects($value)
     {

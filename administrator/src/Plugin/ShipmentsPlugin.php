@@ -45,7 +45,7 @@
  *
  * Path: administrator/components/com_alfa/src/Plugin/ShipmentsPlugin.php
  *
- * @since  3.0.0
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Plugin;
@@ -61,7 +61,7 @@ abstract class ShipmentsPlugin extends Plugin
     /**
      * Events this plugin subscribes to.
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public static function getSubscribedEvents(): array
     {
@@ -78,7 +78,7 @@ abstract class ShipmentsPlugin extends Plugin
      * correctly filters by id_order_shipment in the plugin's log table.
      *
      * @param array $config Plugin configuration
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function __construct(array $config = [])
     {
@@ -113,7 +113,7 @@ abstract class ShipmentsPlugin extends Plugin
      *
      * @return OrderShipmentHelper Builder — chain setters, finish with ->save()
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     protected function shipment(object $order): OrderShipmentHelper
     {
@@ -139,7 +139,7 @@ abstract class ShipmentsPlugin extends Plugin
      *
      * @throws RuntimeException If shipment not found in DB
      *
-     * @since   3.5.1
+     * @since  1.0.0
      */
     protected function shipmentUpdate(int $shipmentId): OrderShipmentHelper
     {
@@ -160,7 +160,7 @@ abstract class ShipmentsPlugin extends Plugin
      *
      * @return bool True on success
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     protected function deleteShipment(int $id, int $orderId): bool
     {
@@ -174,7 +174,7 @@ abstract class ShipmentsPlugin extends Plugin
      *
      * @return object|null Shipment record with ->params, or null
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     protected function getShipment(int $id): ?object
     {
@@ -188,7 +188,7 @@ abstract class ShipmentsPlugin extends Plugin
      *
      * @return array Array of shipment row objects
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     protected function getShipmentsByOrder(int $orderId): array
     {
@@ -207,7 +207,7 @@ abstract class ShipmentsPlugin extends Plugin
      *
      * @return bool True on success
      *
-     * @since   3.5.0
+     * @since  1.0.0
      */
     protected function assignShipmentItems(int $shipmentId, int $orderId, array $itemIds): bool
     {
@@ -221,7 +221,7 @@ abstract class ShipmentsPlugin extends Plugin
     /**
      * Calculate shipping cost for the cart.
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     abstract public function onCalculateShippingCost(CalculateShippingCostEvent $event): void;
 
@@ -241,7 +241,7 @@ abstract class ShipmentsPlugin extends Plugin
      * Default: no actions.
      *
      * @param object $event GetShipmentActionsEvent
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function onGetActions($event): void
     {
@@ -262,7 +262,7 @@ abstract class ShipmentsPlugin extends Plugin
      * Default: sets error "Unknown action".
      *
      * @param object $event ExecuteShipmentActionEvent
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function onExecuteAction($event): void
     {

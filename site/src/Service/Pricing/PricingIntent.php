@@ -32,6 +32,7 @@ final class PricingIntent
      * @param string $scope Pricing scope
      * @param array $quantities Item ID => quantity map
      * @param int $minQuantity Minimum quantity fallback
+     * @since  1.0.0
      */
     private function __construct(string $scope, array $quantities = [], int $minQuantity = 1)
     {
@@ -43,6 +44,7 @@ final class PricingIntent
 
     /**
      * Catalog pricing - uses minimum order quantities from product data
+     * @since  1.0.0
      */
     public static function catalog(): self
     {
@@ -53,6 +55,7 @@ final class PricingIntent
      * Cart pricing - uses actual quantities in shopping cart
      *
      * @param array $quantities Map of item_id => quantity
+     * @since  1.0.0
      */
     public static function cart(array $quantities): self
     {
@@ -65,6 +68,7 @@ final class PricingIntent
      * May differ from cart if user modifies quantities during checkout
      *
      * @param array $quantities Map of item_id => quantity
+     * @since  1.0.0
      */
     public static function checkout(array $quantities): self
     {
@@ -76,6 +80,7 @@ final class PricingIntent
      *
      * @param array $quantities Map of item_id => quantity
      * @param int $minQuantity Optional minimum quantity override
+     * @since  1.0.0
      */
     public static function quote(array $quantities, int $minQuantity = 1): self
     {
@@ -90,6 +95,7 @@ final class PricingIntent
      * @param object $item Item object with potential quantity_min property
      *
      * @return int Valid quantity (always >= 1)
+     * @since  1.0.0
      */
     public function getQuantityForItem(object $item): int
     {
@@ -108,6 +114,7 @@ final class PricingIntent
      * Get all quantities (immutable copy)
      *
      * @return array Copy of quantities array
+     * @since  1.0.0
      */
     public function getQuantities(): array
     {
@@ -118,6 +125,7 @@ final class PricingIntent
      * Get pricing scope
      *
      * @return string One of the scope constants
+     * @since  1.0.0
      */
     public function getScope(): string
     {
@@ -132,6 +140,7 @@ final class PricingIntent
      * - Promotional rules (apply cart-specific discounts)
      * - Tax calculation (different rules for quotes vs. actual sales)
      * - Analytics (track conversion funnel)
+     * @since  1.0.0
      */
     public function isTransactional(): bool
     {
@@ -142,6 +151,7 @@ final class PricingIntent
      * Check if stock should be validated
      *
      * Catalog views don't need strict stock checks, but cart/checkout do
+     * @since  1.0.0
      */
     public function requiresStockValidation(): bool
     {
@@ -152,6 +162,7 @@ final class PricingIntent
      * Check if prices should be cached
      *
      * Catalog prices can be cached, transactional prices should not
+     * @since  1.0.0
      */
     public function isCacheable(): bool
     {
@@ -160,6 +171,7 @@ final class PricingIntent
 
     /**
      * Get a debug-friendly representation
+     * @since  1.0.0
      */
     public function __toString(): string
     {

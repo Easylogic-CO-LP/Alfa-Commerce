@@ -59,6 +59,7 @@ abstract class UrlListModel extends ListModel
      * Constructor
      *
      * @param array $config Configuration array
+     * @since  1.0.0
      */
     public function __construct($config = [])
     {
@@ -78,6 +79,7 @@ abstract class UrlListModel extends ListModel
      * Examples:
      * - Alfa\Component\Alfa\Site\Model\ItemsModel -> filter_items
      * - Alfa\Component\Alfa\Site\Model\CategoriesModel -> filter_categories
+     * @since  1.0.0
      */
     protected function getDefaultFilterFormName(): ?string
     {
@@ -96,6 +98,7 @@ abstract class UrlListModel extends ListModel
 
     /**
      * Get data for filter form binding
+     * @since  1.0.0
      */
     protected function loadFormData(): array
     {
@@ -131,7 +134,7 @@ abstract class UrlListModel extends ListModel
      *
      * @return \Joomla\CMS\Form\Form|null The filter form, or null when no filter form is defined.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getFilterForm($data = [], $loadData = true)
     {
@@ -141,6 +144,7 @@ abstract class UrlListModel extends ListModel
 
     /**
      * Get active filters for display (badges/clear buttons)
+     * @since  1.0.0
      */
     public function getActiveFilters(): array
     {
@@ -168,6 +172,7 @@ abstract class UrlListModel extends ListModel
 
     /**
      * Get the filter form XML path
+     * @since  1.0.0
      */
     protected function getFilterFormPath(): ?string
     {
@@ -194,6 +199,7 @@ abstract class UrlListModel extends ListModel
 
     /**
      * Get defaults from XML form
+     * @since  1.0.0
      */
     public function getDefaults(): array
     {
@@ -244,6 +250,7 @@ abstract class UrlListModel extends ListModel
      *
      * @param string|null $ordering Unused
      * @param string|null $direction Unused
+     * @since  1.0.0
      */
     protected function populateState($ordering = null, $direction = null): void
     {
@@ -283,6 +290,7 @@ abstract class UrlListModel extends ListModel
      *
      * @param array $list List input from URL
      * @param array $defaults Defaults from XML
+     * @since  1.0.0
      */
     protected function populateListState(array $list, array $defaults): void
     {
@@ -312,6 +320,7 @@ abstract class UrlListModel extends ListModel
      *
      * @param string $fullordering e.g. "a.name ASC"
      * @return array [column, direction]
+     * @since  1.0.0
      */
     protected function parseFullordering(string $fullordering): array
     {
@@ -341,6 +350,7 @@ abstract class UrlListModel extends ListModel
      * Get pagination with clean URLs
      *
      * @return \Joomla\CMS\Pagination\Pagination
+     * @since  1.0.0
      */
     public function getPagination()
     {
@@ -379,6 +389,7 @@ abstract class UrlListModel extends ListModel
 
     /**
      * Get current non-default list params for URL building
+     * @since  1.0.0
      */
     public function getListUrlParams(): array
     {
@@ -401,6 +412,7 @@ abstract class UrlListModel extends ListModel
      * Build URL with current list params
      *
      * @param string $url Base URL
+     * @since  1.0.0
      */
     public function buildUrlWithListParams(string $url): string
     {
@@ -424,6 +436,7 @@ abstract class UrlListModel extends ListModel
      *
      * @param mixed $value Input value
      * @return mixed Normalized value
+     * @since  1.0.0
      */
     protected function normalizeFilterValue($value)
     {
@@ -447,6 +460,7 @@ abstract class UrlListModel extends ListModel
      *
      * @param array $value Input array
      * @return array Normalized array
+     * @since  1.0.0
      */
     protected function normalizeArrayValue(array $value): array
     {
@@ -479,6 +493,7 @@ abstract class UrlListModel extends ListModel
      * Check if value is empty
      *
      * @param mixed $value
+     * @since  1.0.0
      */
     protected function isEmpty($value): bool
     {
@@ -499,6 +514,7 @@ abstract class UrlListModel extends ListModel
      * @param string $group Group name
      * @param string $name Field name
      * @param mixed $value Value to check
+     * @since  1.0.0
      */
     protected function isDefault(string $group, string $name, $value): bool
     {

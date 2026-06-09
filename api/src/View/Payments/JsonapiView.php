@@ -16,7 +16,7 @@ use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
 /**
  * The Payments view
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class JsonApiView extends BaseApiView
 {
@@ -24,7 +24,7 @@ class JsonApiView extends BaseApiView
      * The fields to render item in the documents
      *
      * @var array
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $fieldsToRenderItem = [
         'id',
@@ -37,7 +37,7 @@ class JsonApiView extends BaseApiView
      * The fields to render items in the documents
      *
      * @var array
-     * @since  1.0.1
+     * @since  1.0.0
      */
     protected $fieldsToRenderList = [
         'id',

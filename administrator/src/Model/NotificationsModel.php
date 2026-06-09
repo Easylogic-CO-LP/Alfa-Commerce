@@ -32,7 +32,7 @@ use Joomla\Database\QueryInterface;
  *   $model->setState('list.limit', 0);
  *   $items = $model->getItems();
  *
- * @since  1.0.5
+ * @since  1.0.0
  */
 class NotificationsModel extends ListModel
 {
@@ -42,7 +42,7 @@ class NotificationsModel extends ListModel
      * @param array $config Configuration array.
      * @param MVCFactoryInterface|null $factory The factory.
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     public function __construct($config = [], ?MVCFactoryInterface $factory = null)
     {
@@ -68,7 +68,7 @@ class NotificationsModel extends ListModel
      *
      * @return void
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     protected function populateState($ordering = 'a.created', $direction = 'DESC')
     {
@@ -90,7 +90,7 @@ class NotificationsModel extends ListModel
      *
      * @return string
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     protected function getStoreId($id = '')
     {
@@ -108,7 +108,7 @@ class NotificationsModel extends ListModel
      *
      * @return QueryInterface
      *
-     * @since   1.0.5
+     * @since  1.0.0
      */
     protected function getListQuery()
     {

@@ -36,7 +36,7 @@
  *
  * Path: administrator/components/com_alfa/src/Event/Payments/GetPaymentActionsEvent.php
  *
- * @since  3.0.0
+ * @since  1.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\Payments;
@@ -54,7 +54,7 @@ class GetPaymentActionsEvent extends AbstractImmutableEvent
      * Get the payment record (with decoded params and method info).
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getPayment(): object
     {
@@ -65,7 +65,7 @@ class GetPaymentActionsEvent extends AbstractImmutableEvent
      * Get the order record.
      *
      *
-     * @since   3.0.0
+     * @since  1.0.0
      */
     public function getOrder(): object
     {

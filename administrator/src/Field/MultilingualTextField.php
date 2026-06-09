@@ -64,7 +64,7 @@ use SimpleXMLElement;
  *          label="COM_ALFA_FIELD_NAME"
  *          required="true" />
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class MultilingualTextField extends TextField
 {
@@ -90,7 +90,7 @@ class MultilingualTextField extends TextField
      * @param string|null $group The field group name.
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function setup(SimpleXMLElement $element, $value, $group = null): bool
     {
@@ -163,7 +163,7 @@ class MultilingualTextField extends TextField
      * writing language tables. Column mode is used when multilingual_table is set.
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private function isJsonMode(): bool
     {
@@ -184,7 +184,7 @@ class MultilingualTextField extends TextField
      *
      * @return string HTML markup for all language inputs.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     protected function getInput(): string
     {
@@ -258,7 +258,7 @@ class MultilingualTextField extends TextField
      *
      * @return bool|Exception True if valid, Exception on failure.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function validate($value, $group = null, ?\Joomla\Registry\Registry $input = null): bool|Exception
     {
@@ -308,7 +308,7 @@ class MultilingualTextField extends TextField
      *
      * @return string HTML <input> tag.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private function buildInputHtml(
         string $id,
@@ -367,7 +367,7 @@ class MultilingualTextField extends TextField
      *
      * @return string HTML image tag or text fallback.
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private function buildFlagHtml(object $language): string
     {

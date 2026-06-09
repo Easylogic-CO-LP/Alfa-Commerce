@@ -14,7 +14,7 @@
  * Shows user-friendly messages when no logs exist instead of blank modal.
  *
  * Path: administrator/components/com_alfa/layouts/orders/default_order_logs_view.php
- * @since  3.0.0
+ * @since  1.0.0
  */
 
 use Joomla\CMS\HTML\HTMLHelper;

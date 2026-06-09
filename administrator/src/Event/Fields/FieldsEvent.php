@@ -24,7 +24,7 @@ use Joomla\CMS\Event\AbstractImmutableEvent;
 /**
  * Class for CustomFields events
  *
- * @since  5.0.0
+ * @since  1.0.0
  */
 abstract class FieldsEvent extends AbstractImmutableEvent
 {
@@ -35,7 +35,7 @@ abstract class FieldsEvent extends AbstractImmutableEvent
      *
      * @var array
      *
-     * @since  5.0.0
+     * @since  1.0.0
      * @deprecated 5.0 will be removed in 6.0
      */
     // protected $legacyArgumentsOrder = [];
@@ -48,7 +48,7 @@ abstract class FieldsEvent extends AbstractImmutableEvent
      *
      * @throws BadMethodCallException
      *
-     * @since   5.0.0
+     * @since  1.0.0
      */
     public function __construct($name, array $arguments = [])
     {
@@ -70,7 +70,7 @@ abstract class FieldsEvent extends AbstractImmutableEvent
      * @param object $value The value to set
      *
      *
-     * @since  5.0.0
+     * @since  1.0.0
      */
     protected function onSetSubject(object $value): object
     {

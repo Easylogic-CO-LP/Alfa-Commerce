@@ -21,7 +21,7 @@ use Throwable;
 /**
  * Controller for the Tools → Media maintenance view.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class ToolsmediaController extends BaseController
 {
@@ -30,7 +30,7 @@ class ToolsmediaController extends BaseController
      * cleanup. Gated by the alfa.tools permission.
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function delete(): void
     {
@@ -71,7 +71,7 @@ class ToolsmediaController extends BaseController
      * the alfa.tools permission.
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function deleteAllOrphans(): void
     {
@@ -83,7 +83,7 @@ class ToolsmediaController extends BaseController
      * Gated by the alfa.tools permission.
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function deleteAllMissing(): void
     {
@@ -98,7 +98,7 @@ class ToolsmediaController extends BaseController
      * alfa.tools permission.
      *
      *
-     * @since   1.0.8
+     * @since  1.0.0
      */
     public function deleteAllUntracked(): void
     {
@@ -130,7 +130,7 @@ class ToolsmediaController extends BaseController
      * @param callable $finder Returns the int[] of media ids to delete.
      *
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     private function deleteAll(callable $finder): void
     {

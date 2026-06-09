@@ -16,7 +16,7 @@ use Joomla\CMS\MVC\Controller\AdminController;
 /**
  * Discounts list controller class.
  *
- * @since  1.0.1
+ * @since  1.0.0
  */
 class DiscountsController extends AdminController
 {
@@ -29,7 +29,7 @@ class DiscountsController extends AdminController
      *
      * @return object The Model
      *
-     * @since   1.0.1
+     * @since  1.0.0
      */
     public function getModel($name = 'Discount', $prefix = 'Administrator', $config = ['ignore_request' => true]): object
     {

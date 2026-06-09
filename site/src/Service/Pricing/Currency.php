@@ -19,6 +19,7 @@ defined('_JEXEC') or die;
  *
  * Immutable currency representation with formatting rules.
  * Loads currency data from database and caches it.
+ * @since  1.0.0
  */
 class Currency
 {
@@ -68,6 +69,7 @@ class Currency
 
     /**
      * Create Currency from database row
+     * @since  1.0.0
      */
     public static function fromDatabase(object $row): self
     {
@@ -88,6 +90,7 @@ class Currency
     /**
      * Load currency by ISO number (e.g., 978 for EUR)
      * Uses caching for performance
+     * @since  1.0.0
      */
     public static function loadByNumber(int $number): self
     {
@@ -125,6 +128,7 @@ class Currency
      * @return self The loaded currency.
      *
      * @throws RuntimeException When no currency with the given id exists.
+     * @since  1.0.0
      */
     public static function loadById(int $id): self
     {
@@ -155,6 +159,7 @@ class Currency
 
     /**
      * Load currency by ISO code (e.g., 'EUR', 'USD')
+     * @since  1.0.0
      */
     public static function loadByCode(string $code): self
     {
@@ -186,6 +191,7 @@ class Currency
 
     /**
      * Get default currency from component configuration
+     * @since  1.0.0
      */
     public static function getDefault(): self
     {
@@ -202,6 +208,7 @@ class Currency
      * load was via loadById(47).
      *
      * @param self $currency Currency to cache
+     * @since  1.0.0
      */
     private static function cacheAll(self $currency): void
     {
@@ -219,6 +226,7 @@ class Currency
 
     /**
      * Get the currency display name.
+     * @since  1.0.0
      */
     public function getName(): string
     {
@@ -227,6 +235,7 @@ class Currency
 
     /**
      * Get the ISO 4217 alphabetic code (e.g. EUR, USD).
+     * @since  1.0.0
      */
     public function getCode(): string
     {
@@ -235,6 +244,7 @@ class Currency
 
     /**
      * Get the ISO 4217 numeric code (e.g. 978 for EUR).
+     * @since  1.0.0
      */
     public function getNumber(): int
     {
@@ -243,6 +253,7 @@ class Currency
 
     /**
      * Get the currency symbol (e.g. €, $).
+     * @since  1.0.0
      */
     public function getSymbol(): string
     {
@@ -251,6 +262,7 @@ class Currency
 
     /**
      * Get the number of decimal places used for formatting amounts.
+     * @since  1.0.0
      */
     public function getDecimalPlaces(): int
     {
@@ -259,6 +271,7 @@ class Currency
 
     /**
      * Get the decimal symbol (mantissa marker) used for formatting.
+     * @since  1.0.0
      */
     public function getDecimalSymbol(): string
     {
@@ -267,6 +280,7 @@ class Currency
 
     /**
      * Get the decimal separator used for formatting.
+     * @since  1.0.0
      */
     public function getDecimalSeparator(): string
     {
@@ -275,6 +289,7 @@ class Currency
 
     /**
      * Get the thousands separator used for formatting.
+     * @since  1.0.0
      */
     public function getThousandSeparator(): string
     {
@@ -283,6 +298,7 @@ class Currency
 
     /**
      * Get the format pattern controlling symbol/amount placement.
+     * @since  1.0.0
      */
     public function getFormatPattern(): string
     {
@@ -295,6 +311,7 @@ class Currency
      * @param float $amount Amount to format
      * @param bool $includeSymbol Whether to include currency symbol
      * @return string Formatted amount
+     * @since  1.0.0
      */
     public function format(float $amount, bool $includeSymbol = true): string
     {
@@ -319,6 +336,7 @@ class Currency
 
     /**
      * Check if this currency equals another
+     * @since  1.0.0
      */
     public function equals(Currency $other): bool
     {
@@ -327,6 +345,7 @@ class Currency
 
     /**
      * Check if this is a specific currency by code
+     * @since  1.0.0
      */
     public function is(string $code): bool
     {
@@ -335,6 +354,7 @@ class Currency
 
     /**
      * Export as array
+     * @since  1.0.0
      */
     public function toArray(): array
     {
@@ -353,6 +373,7 @@ class Currency
 
     /**
      * String representation
+     * @since  1.0.0
      */
     public function __toString(): string
     {
@@ -361,6 +382,7 @@ class Currency
 
     /**
      * Allow serialization for caching
+     * @since  1.0.0
      */
     public function __serialize(): array
     {
@@ -380,6 +402,7 @@ class Currency
 
     /**
      * Allow deserialization from cache
+     * @since  1.0.0
      */
     public function __unserialize(array $data): void
     {

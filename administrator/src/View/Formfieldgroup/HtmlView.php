@@ -27,6 +27,7 @@ class HtmlView extends FormView
      * @param string|null $tpl The name of the template file to parse
      *
      * @return void
+     * @since  1.0.0
      */
     public function display($tpl = null)
     {
@@ -38,6 +39,7 @@ class HtmlView extends FormView
      * base64 'return' control fields to the form.
      *
      * @return void
+     * @since  1.0.0
      */
     protected function initializeView()
     {
@@ -55,6 +57,7 @@ class HtmlView extends FormView
      * Save as Copy and Cancel buttons according to the current user permissions.
      *
      * @return void
+     * @since  1.0.0
      */
     protected function addToolbar()
     {

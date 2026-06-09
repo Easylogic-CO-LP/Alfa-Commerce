@@ -19,7 +19,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\FormFields;
 /**
  * Class for CustomFields events
  *
- * @since  5.0.0
+ * @since  1.0.0
  */
 abstract class FormFieldsEvent extends \Alfa\Component\Alfa\Administrator\Event\General\GeneralEvent
 {

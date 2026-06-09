@@ -33,6 +33,7 @@ use stdClass;
  *
  * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
+ * @since  1.0.0
  */
 class CartHelper
 {
@@ -83,6 +84,7 @@ class CartHelper
      * Get the loaded cart object (including its items).
      *
      * @return object The cart data object.
+     * @since  1.0.0
      */
     public function getData()
     {
@@ -93,6 +95,7 @@ class CartHelper
      * Get the current user (cart owner / identity).
      *
      * @return \Joomla\CMS\User\User The current user.
+     * @since  1.0.0
      */
     public function getUser()
     {
@@ -103,6 +106,7 @@ class CartHelper
      * Get the payment methods available for this cart's items and user.
      *
      * @return array The filtered payment methods keyed by id.
+     * @since  1.0.0
      */
     public function getPaymentMethods()
     {
@@ -113,6 +117,7 @@ class CartHelper
      * Get the shipment methods available for this cart's items and user.
      *
      * @return array The filtered shipment methods keyed by id.
+     * @since  1.0.0
      */
     public function getShipmentMethods()
     {
@@ -125,6 +130,7 @@ class CartHelper
      * @param int $shipmentMethodId The shipment method id; 0 uses the cart's id_shipment.
      *
      * @return object|null The shipment method item, or null when none is selected.
+     * @since  1.0.0
      */
     public function getShipmentMethodData($shipmentMethodId = 0)
     {
@@ -160,6 +166,7 @@ class CartHelper
      * Get cart with items
      *
      * @return object Cart object with items array
+     * @since  1.0.0
      */
     protected function getCart()
     {
@@ -238,6 +245,7 @@ class CartHelper
      * }
      *
      * @return array Array of CartItem objects
+     * @since  1.0.0
      */
     protected function getCartItems()
     {
@@ -335,6 +343,7 @@ class CartHelper
      *
      * @param int $info_id User info ID
      * @return object|null User info object
+     * @since  1.0.0
      */
     protected function getUserInfo($info_id)
     {
@@ -370,6 +379,7 @@ class CartHelper
      * Get recognize key from cookie
      *
      * @return string Recognize key
+     * @since  1.0.0
      */
     public function getRecognizeKey()
     {
@@ -388,6 +398,7 @@ class CartHelper
      * - 30 days expiration
      *
      * @return void
+     * @since  1.0.0
      */
     protected function createRecognizeKey()
     {
@@ -437,6 +448,7 @@ class CartHelper
      * Create new cart
      *
      * @return bool Success
+     * @since  1.0.0
      */
     protected function createCart(): bool
     {
@@ -474,6 +486,7 @@ class CartHelper
      * @param int $itemId Item ID
      * @param int $quantity Quantity (0 = remove)
      * @return bool Success
+     * @since  1.0.0
      */
     public function addToCart($itemId, $quantity)
     {
@@ -604,6 +617,7 @@ class CartHelper
      *
      * @param bool $clearOnlyItems Keep cart record if true
      * @return bool Success
+     * @since  1.0.0
      */
     public function clearCart($clearOnlyItems = false)
     {
@@ -644,6 +658,7 @@ class CartHelper
      *
      * @param int $id Shipment method ID
      * @return bool Success
+     * @since  1.0.0
      */
     public function updateShipment($id)
     {
@@ -680,6 +695,7 @@ class CartHelper
      *
      * @param int $id Payment method ID
      * @return bool Success
+     * @since  1.0.0
      */
     public function updatePayment($id)
     {
@@ -722,6 +738,7 @@ class CartHelper
      * Note: PriceResult has getter methods (getTotal(), getBasePrice(), etc.)
      *
      * @return Money Total as Money object
+     * @since  1.0.0
      */
     public function getTotal()
     {
@@ -747,6 +764,7 @@ class CartHelper
 
     /**
      * Get currency from first cart item or fallback
+     * @since  1.0.0
      */
     protected function getCurrency(): Currency
     {
@@ -763,6 +781,7 @@ class CartHelper
 
     /**
      * Get total discount for all cart items
+     * @since  1.0.0
      */
     public function getDiscountTotal(): Money
     {
@@ -780,6 +799,7 @@ class CartHelper
 
     /**
      * Get total tax for all cart items
+     * @since  1.0.0
      */
     public function getTaxTotal(): Money
     {
@@ -799,6 +819,7 @@ class CartHelper
      * Get shipment cost (tax inclusive) as Money object.
      *
      * @return Money Shipping cost incl. tax
+     * @since  1.0.0
      */
     public function getShipmentTotal(): Money
     {
@@ -812,6 +833,7 @@ class CartHelper
      * this returns the same as getShipmentTotal() (zero-tax default).
      *
      * @return Money Shipping cost excl. tax
+     * @since  1.0.0
      */
     public function getShipmentTotalExcl(): Money
     {
@@ -829,6 +851,7 @@ class CartHelper
      * to getShipmentTotal() / getShipmentTotalExcl() read from cache.
      *
      * @return array{tax_incl: Money, tax_excl: Money}
+     * @since  1.0.0
      */
     protected function computeShipmentCosts(): array
     {
@@ -876,6 +899,7 @@ class CartHelper
      * Counterpart of getTotal() which sums tax-inclusive.
      *
      * @return Money Items total excl. tax
+     * @since  1.0.0
      */
     public function getTotalExcl(): Money
     {
@@ -899,6 +923,7 @@ class CartHelper
      * Get grand total (items + shipping) tax inclusive.
      *
      * @return Money Grand total incl. tax
+     * @since  1.0.0
      */
     public function getGrandTotal(): Money
     {
@@ -909,6 +934,7 @@ class CartHelper
      * Get grand total (items + shipping) tax exclusive.
      *
      * @return Money Grand total excl. tax
+     * @since  1.0.0
      */
     public function getGrandTotalExcl(): Money
     {
@@ -919,6 +945,7 @@ class CartHelper
      * Get total number of unique items
      *
      * @return int Item count
+     * @since  1.0.0
      */
     public function getTotalItems()
     {
@@ -929,6 +956,7 @@ class CartHelper
      * Get total quantity of all items
      *
      * @return int Total quantity
+     * @since  1.0.0
      */
     public function getTotalQuantity()
     {
@@ -947,6 +975,7 @@ class CartHelper
      * Check if cart is empty
      *
      * @return bool True if empty
+     * @since  1.0.0
      */
     public function isEmpty()
     {
@@ -961,6 +990,7 @@ class CartHelper
      * Add events to shipment methods
      *
      * @return void
+     * @since  1.0.0
      */
     public function addEventsToShipments()
     {
@@ -1020,6 +1050,7 @@ class CartHelper
      * Add events to payment methods
      *
      * @return void
+     * @since  1.0.0
      */
     public function addEventsToPayments()
     {
