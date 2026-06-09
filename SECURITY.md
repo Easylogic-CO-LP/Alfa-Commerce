@@ -1,11 +1,5 @@
 # Security Policy
 
-## Supported Versions
-
-| Version | Supported |
-|---------|-----------|
-| Pre-alpha (current) | Yes |
-
 ## Reporting a Vulnerability
 
 We take security seriously at Alfa Commerce. If you discover a security vulnerability, please report it responsibly.
