@@ -8,14 +8,26 @@ the single source of truth for architecture, structure, and conventions.
 
 ## Quick start
 
+**Team members** (with write access) — work directly in the repository:
+
+```bash
+git clone https://github.com/Easylogic-CO-LP/Alfa-Commerce.git
+cd Alfa-Commerce
+git checkout developer
+git checkout -b feat/short-description       # or fix/short-description
+# …make your changes, then commit…
+git push origin feat/short-description        # then open a PR against `developer`
+```
+
+**External contributors** — fork the repository on GitHub first, then work in your fork:
+
 ```bash
 git clone https://github.com/YOUR-USERNAME/Alfa-Commerce.git
 cd Alfa-Commerce
 git checkout developer
-git checkout -b feat/short-description      # or fix/short-description
-# …make your changes…
-git commit -m "Add coupon validation"
-git push origin feat/short-description       # then open a PR against `developer`
+git checkout -b feat/short-description       # or fix/short-description
+# …make your changes, then commit…
+git push origin feat/short-description        # then open a PR against `developer`
 ```
 
 ---
@@ -40,7 +52,7 @@ git push origin feat/short-description       # then open a PR against `developer
 |-------------|-------|
 | **PHP 8.2+** | Matches the component's runtime requirement |
 | **Joomla 6 or 7** | A local install for testing (XAMPP, WAMP, MAMP, Laravel Herd, …) |
-| **Git + a GitHub account** | Fork-and-pull-request workflow |
+| **Git + a GitHub account** | For the branch / pull-request workflow |
 
 Install the component into your test site by uploading the package ZIP via **System > Install > Extensions**.
 
@@ -48,11 +60,12 @@ Install the component into your test site by uploading the package ZIP via **Sys
 
 ## Workflow
 
-1. **Fork** the repository, then **clone** your fork.
-2. Branch from **`developer`** (never `main`).
-3. Make focused changes — one feature or fix per branch.
-4. **Push** and open a **Pull Request against `developer`**.
-5. Wait for the automated checks, address any feedback, and a maintainer merges it.
+1. Get a branch off **`developer`** — see [Quick start](#quick-start) (never branch from `main`).
+2. Make focused changes — one feature or fix per branch.
+3. Open a **Pull Request against `developer`**.
+4. Wait for the automated checks and address any review feedback; a maintainer merges it.
+
+Releases are cut by maintainers, who periodically merge `developer` into `main`.
 
 ---
 
