@@ -7,6 +7,15 @@ parameters:
         - plugins
         - modules
 
+    # The latest Joomla is downloaded into ./joomla in CI so PHPStan can resolve the
+    # Joomla\CMS\* / Joomla\* framework classes our code extends (the repo has no
+    # Composer dependencies). See .github/workflows/code-quality.yml.
+    scanDirectories:
+        - joomla
+
+    bootstrapFiles:
+        - .github/phpstan-bootstrap.php
+
     excludePaths:
         - */vendor/*
         - */tmpl/*
@@ -14,13 +23,8 @@ parameters:
         - */language/*
 
     ignoreErrors:
-        # Joomla framework classes are not available in CI (no Composer/stubs package).
-        # Suppress every framework-visibility error so PHPStan focuses on our own logic:
-        - identifier: class.notFound
-        - '#extends unknown class Joomla\\#'              # controllers/views extend Joomla\CMS base classes
-        - '#implements unknown interface Joomla\\#'
-        - '#but .+ does not extend any class#'            # parent::x() where the (unknown) parent is a Joomla class
-        # Joomla dynamic properties and magic methods
+        # Joomla models/views expose values via magic __get / dynamic methods,
+        # which PHPStan can't infer even with the framework scanned.
         - '#Access to an undefined property#'
         - '#Call to an undefined method.*\\\\HtmlView::#'
         - '#Call to an undefined method.*\\\\BaseController::#'
