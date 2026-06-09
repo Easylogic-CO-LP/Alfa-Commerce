@@ -3,6 +3,16 @@
     <changelog>
         <element>com_alfa</element>
         <type>component</type>
+        <version>1.0.10</version>
+
+        <change>
+            <item>Internal housekeeping: removed stray developer backup files that were inadvertently included in the package.</item>
+        </change>
+    </changelog>
+
+    <changelog>
+        <element>com_alfa</element>
+        <type>component</type>
         <version>1.0.9</version>
 
         <fix>
