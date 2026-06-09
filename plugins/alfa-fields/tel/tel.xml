@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extension type="plugin" group="alfa-fields" method="upgrade">
-    <name>PLG_ALFA_FIELDS_TEL</name>
+    <name>plg_alfa-fields_tel</name>
     <author>Easylogic</author>
     <creationDate>2026-04</creationDate>
     <copyright>(C) 2024-2026 Easylogic CO LP</copyright>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extension type="module" client="site" method="upgrade">
-    <name>MOD_ALFA_SEARCH_NAME</name>
+    <name>mod_alfa_search</name>
     <author>Alex K</author>
     <creationDate>2024-8-26</creationDate>
     <copyright>(C) 2024 Open Source Matters, Inc.</copyright>
