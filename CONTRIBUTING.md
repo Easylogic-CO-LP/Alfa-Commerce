@@ -142,4 +142,4 @@ Then push and open the PR — the checks and the review will guide the rest.
 - **Question on a PR?** Mention `@claude` for an automated review, or tag a maintainer.
 - **Contact:** info@easylogic.gr · [easylogic.gr](https://easylogic.gr)
 
-Thank you for helping make Alfa Commerce better! 🙌
+Thank you for helping make Alfa Commerce better.
