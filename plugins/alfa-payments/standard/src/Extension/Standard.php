@@ -279,7 +279,7 @@
  *    - onOrderProcessView(): redirect customer to gateway payment page
  *    - onPaymentResponse(): handle the customer's return from the gateway —
  *      REDIRECT-ONLY (see the GATEWAY RETURN section below). The separate
- *      server-to-server webhook is task=plugin.trigger&func=notify (no session).
+ *      server-to-server webhook is task=plugin.trigger&type=alfa-payments&name=<plugin>&func=notify (no session).
  *    - handleCapture(): ->completed()->transactionId($id)->processedAt($now)
  *    - handleRefund(): add ->transactionId() and ->gatewayResponse()
  *    - logs.xml: add gateway-specific columns (e.g. stripe_event_id)
@@ -461,10 +461,10 @@ final class Standard extends PaymentsPlugin
     //
     //      public function onPaymentResponse($event): void
     //      {
-    //          $order = $event->getOrder();
-    //          $input = Factory::getApplication()->getInput();
+    //          $order  = $event->getOrder();
+    //          $status = Factory::getApplication()->getInput()->getString('<gateway>_status', '');
     //
-    //          if (/* payment confirmed by the gateway */) {
+    //          if ($status === 'paid') {   // gateway confirmed the payment on return
     //              $this->payment($order)->completed()->transactionId($txnId)->save();
     //              $event->setRedirectUrl($this->getCompletePageUrl());      // success
     //              return;
