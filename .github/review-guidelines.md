@@ -91,9 +91,9 @@ Alfa-Commerce/
 | Admin | `Alfa\Component\Alfa\Administrator\{Controller,Model,View,...}` |
 | Site | `Alfa\Component\Alfa\Site\{Controller,Model,View,...}` |
 | API | `Alfa\Component\Alfa\Api\{Controller,View}` |
-| Payment plugins | `Joomla\Plugin\AlfaPayments\{PluginName}\Extension` |
-| Shipment plugins | `Joomla\Plugin\AlfaShipments\{PluginName}\Extension` |
-| Field plugins | `Joomla\Plugin\AlfaFields\{PluginName}\Extension` |
+| Payment plugins | `Alfa\Plugin\AlfaPayments\{PluginName}\Extension` |
+| Shipment plugins | `Alfa\Plugin\AlfaShipments\{PluginName}\Extension` |
+| Field plugins | `Alfa\Plugin\AlfaFields\{PluginName}\Extension` |
 | Cart module | `Alfa\Module\AlfaCart` |
 | Search module | `Alfa\Module\AlfaSearch` |
 
