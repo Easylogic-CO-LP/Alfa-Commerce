@@ -7,7 +7,7 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
-namespace Joomla\Plugin\AlfaFields\Tel\Extension;
+namespace Alfa\Plugin\AlfaFields\Tel\Extension;
 
 use Alfa\Component\Alfa\Administrator\Event\Fields\PrepareDomEvent;
 use Alfa\Component\Alfa\Administrator\Plugin\FieldsPlugin;
@@ -40,7 +40,7 @@ final class Tel extends FieldsPlugin
         // Our own field class — wraps the input in a layout that pre-renders
         // translated hint <small> elements that tel.js toggles.
         $node->setAttribute('type', 'tel');
-        FormHelper::addFieldPrefix('Joomla\\Plugin\\AlfaFields\\Tel\\Field');
+        FormHelper::addFieldPrefix('Alfa\\Plugin\\AlfaFields\\Tel\\Field');
 
         // Single source of truth for the rule name. Keep it lowercase —
         // camelCase breaks FormHelper::loadClass (splits into sub-namespace).
@@ -83,7 +83,7 @@ final class Tel extends FieldsPlugin
         $node->setAttribute('data-require-mobile', $require_mobile);
         $node->setAttribute('data-display-format', $display_format);
 
-        FormHelper::addRulePrefix('Joomla\\Plugin\\AlfaFields\\Tel\\Rule');
+        FormHelper::addRulePrefix('Alfa\\Plugin\\AlfaFields\\Tel\\Rule');
 
         return $node;
     }
