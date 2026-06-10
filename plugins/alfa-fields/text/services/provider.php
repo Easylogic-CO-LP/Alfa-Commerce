@@ -11,13 +11,13 @@
 
 \defined('_JEXEC') or die;
 
+use Alfa\Plugin\AlfaFields\Text\Extension\Text;
 use Joomla\CMS\Extension\PluginInterface;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
 use Joomla\Event\DispatcherInterface;
-use Alfa\Plugin\AlfaFields\Text\Extension\Text;
 
 return new class () implements ServiceProviderInterface {
     /**
