@@ -153,4 +153,4 @@ Alfa-Commerce/
 - 🔵 Every used `Text::` key must be defined; `.ini` = one `KEY="…"` per line, `&quot;` for embedded quotes.
 
 ## Don't flag
-Style (CS Fixer), PHPStan findings, or dev-box integrity "drift". Premium gateways/modules (Revolut, Viva, BoxNow, Klarna, PayPal, filters, media optimizer) are **CDN-only by design** — never suggest bundling them or mention their removal publicly. PRs target `developer`, never `main`.
+Style (CS Fixer), PHPStan findings, or dev-box integrity "drift". PRs target `developer`, never `main`.

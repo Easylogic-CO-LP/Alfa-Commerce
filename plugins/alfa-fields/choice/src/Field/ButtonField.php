@@ -1,6 +1,6 @@
 <?php
 
-namespace Joomla\Plugin\AlfaFields\Choice\Field;
+namespace Alfa\Plugin\AlfaFields\Choice\Field;
 
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Field\RadioField;

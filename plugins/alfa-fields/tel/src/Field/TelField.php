@@ -7,7 +7,7 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
-namespace Joomla\Plugin\AlfaFields\Tel\Field;
+namespace Alfa\Plugin\AlfaFields\Tel\Field;
 
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Field\TextField;

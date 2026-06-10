@@ -254,7 +254,7 @@
  *
  * 1. Copy the entire plugins/alfa-payments/standard/ directory
  * 2. Rename to plugins/alfa-payments/yourname/
- * 3. Update namespace: Joomla\Plugin\AlfaPayments\YourName\Extension
+ * 3. Update namespace: Alfa\Plugin\AlfaPayments\YourName\Extension
  * 4. Rename class: final class YourName extends PaymentsPlugin
  * 5. Update services/provider.php with new class reference
  * 6. Update language files and XML manifest
@@ -296,7 +296,7 @@
  * @since  1.0.0
  */
 
-namespace Joomla\Plugin\AlfaPayments\Standard\Extension;
+namespace Alfa\Plugin\AlfaPayments\Standard\Extension;
 
 use Alfa\Component\Alfa\Administrator\Helper\OrderPaymentHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\PaymentsPlugin;

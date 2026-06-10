@@ -7,7 +7,7 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
-use Joomla\Plugin\AlfaFields\Choice\Extension\Choice;
+use Alfa\Plugin\AlfaFields\Choice\Extension\Choice;
 
 // Events are auto-wired from Choice::getSubscribedEvents() via SubscriberInterface
 // (declared on FieldsPlugin). Do NOT call $dispatcher->addListener() here — that

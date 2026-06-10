@@ -9,7 +9,7 @@
 	<authorUrl>www.joomla.org</authorUrl>
 	<version>3.7.0</version>
 	<description>PLG_ALFA_FIELDS_TEXTAREA_XML_DESCRIPTION</description>
-	<namespace path="src">Joomla\Plugin\AlfaFields\Textarea</namespace>
+	<namespace path="src">Alfa\Plugin\AlfaFields\Textarea</namespace>
 	<files>
 		<folder>params</folder>
 		<folder plugin="textarea">services</folder>

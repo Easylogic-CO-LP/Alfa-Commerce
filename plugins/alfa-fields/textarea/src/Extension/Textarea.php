@@ -7,7 +7,7 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
-namespace Joomla\Plugin\AlfaFields\Textarea\Extension;
+namespace Alfa\Plugin\AlfaFields\Textarea\Extension;
 
 use Alfa\Component\Alfa\Administrator\Plugin\FieldsPlugin;
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace Joomla\Plugin\AlfaFields\Tel\Rule;
+namespace Alfa\Plugin\AlfaFields\Tel\Rule;
 
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\Form\FormRule;

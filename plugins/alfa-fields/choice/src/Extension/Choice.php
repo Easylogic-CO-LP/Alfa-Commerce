@@ -1,6 +1,6 @@
 <?php
 
-namespace Joomla\Plugin\AlfaFields\Choice\Extension;
+namespace Alfa\Plugin\AlfaFields\Choice\Extension;
 
 use Alfa\Component\Alfa\Administrator\Event\Fields\PrepareDomEvent;
 use Alfa\Component\Alfa\Administrator\Plugin\FieldsPlugin;
@@ -99,7 +99,7 @@ final class Choice extends FieldsPlugin
                 $node->setAttribute('data-max-selections', (string) $maxSel);
             }
             $node->setAttribute('validate', 'choice');
-            FormHelper::addRulePrefix('Joomla\\Plugin\\AlfaFields\\Choice\\Rule');
+            FormHelper::addRulePrefix('Alfa\\Plugin\\AlfaFields\\Choice\\Rule');
 
             // Joomla's validate.js dispatches handlers via class="validate-X",
             // not the validate="X" attribute (server-side only). Without this
@@ -117,7 +117,7 @@ final class Choice extends FieldsPlugin
 
         // Button variants need a class prefix + custom params forwarded as attrs.
         if (in_array($type, ['button', 'buttonmulti'], true)) {
-            FormHelper::addFieldPrefix('Joomla\\Plugin\\AlfaFields\\Choice\\Field');
+            FormHelper::addFieldPrefix('Alfa\\Plugin\\AlfaFields\\Choice\\Field');
             $node->setAttribute('button_style', $variant);
             $node->setAttribute('layout_mode', $layoutMod);
         }

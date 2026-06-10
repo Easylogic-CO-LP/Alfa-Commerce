@@ -18,7 +18,7 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
-use Joomla\Plugin\AlfaShipments\Standard\Extension\Standard;
+use Alfa\Plugin\AlfaShipments\Standard\Extension\Standard;
 
 return new class () implements ServiceProviderInterface {
     /**

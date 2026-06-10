@@ -17,7 +17,7 @@ use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
 use Joomla\Event\DispatcherInterface;
-use Joomla\Plugin\AlfaFields\Text\Extension\Text;
+use Alfa\Plugin\AlfaFields\Text\Extension\Text;
 
 return new class () implements ServiceProviderInterface {
     /**

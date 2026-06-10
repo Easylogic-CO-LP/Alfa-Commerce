@@ -7,7 +7,7 @@
     <license>GNU General Public License version 3 or later</license>
     <version>1.0.0</version>
     <description>PLG_ALFA_FIELDS_TEL_XML_DESCRIPTION</description>
-    <namespace path="src">Joomla\Plugin\AlfaFields\Tel</namespace>
+    <namespace path="src">Alfa\Plugin\AlfaFields\Tel</namespace>
     <files>
         <folder>params</folder>
         <folder plugin="tel">services</folder>
