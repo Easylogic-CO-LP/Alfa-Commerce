@@ -11,7 +11,7 @@
 	<authorUrl>http://easylogic.gr</authorUrl>
 	<version>1.0.2</version>
 	<description>PLG_ALFA_PAYMENTS_STANDARD_XML_DESCRIPTION</description>
-	<namespace path="src">Joomla\Plugin\AlfaPayments\Standard</namespace>
+	<namespace path="src">Alfa\Plugin\AlfaPayments\Standard</namespace>
 	<files>
 		<folder plugin="standard">services</folder>
 		<folder>src</folder>

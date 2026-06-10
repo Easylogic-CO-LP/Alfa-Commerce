@@ -182,7 +182,7 @@
  * ───────────────────────────────────────────────────────────────────────
  *
  * 1. Copy plugins/alfa-shipments/standard/ → plugins/alfa-shipments/fedex/
- * 2. Update namespace: Joomla\Plugin\AlfaShipments\FedEx\Extension
+ * 2. Update namespace: Alfa\Plugin\AlfaShipments\FedEx\Extension
  * 3. Rename class: final class FedEx extends ShipmentsPlugin
  * 4. Update services/provider.php
  *
@@ -206,7 +206,7 @@
  * @since  1.0.0
  */
 
-namespace Joomla\Plugin\AlfaShipments\Standard\Extension;
+namespace Alfa\Plugin\AlfaShipments\Standard\Extension;
 
 use Alfa\Component\Alfa\Administrator\Helper\OrderShipmentHelper;
 use Alfa\Component\Alfa\Administrator\Plugin\ShipmentsPlugin;

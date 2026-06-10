@@ -2,12 +2,12 @@
 
 defined('_JEXEC') or die;
 
+use Alfa\Plugin\AlfaFields\Tel\Extension\Tel;
 use Joomla\CMS\Extension\PluginInterface;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
-use Joomla\Plugin\AlfaFields\Tel\Extension\Tel;
 
 // Events are auto-wired from Tel::getSubscribedEvents() (inherited empty default
 // from FieldsPlugin via SubscriberInterface). Do NOT pass a DispatcherInterface

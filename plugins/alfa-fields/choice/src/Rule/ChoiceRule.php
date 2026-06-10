@@ -1,6 +1,6 @@
 <?php
 
-namespace Joomla\Plugin\AlfaFields\Choice\Rule;
+namespace Alfa\Plugin\AlfaFields\Choice\Rule;
 
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\Form\FormRule;

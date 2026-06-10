@@ -7,7 +7,7 @@
     <license>GNU General Public License version 3 or later; see LICENSE</license>
     <version>1.0.0</version>
     <description>PLG_ALFA_FIELDS_CHOICE_DESC</description>
-    <namespace path="src">Joomla\Plugin\AlfaFields\Choice</namespace>
+    <namespace path="src">Alfa\Plugin\AlfaFields\Choice</namespace>
     <files>
         <folder>params</folder>
         <folder plugin="choice">services</folder>
