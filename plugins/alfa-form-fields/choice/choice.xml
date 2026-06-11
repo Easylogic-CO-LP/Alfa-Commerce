@@ -6,7 +6,7 @@
     <copyright>(C) 2026 Easylogic</copyright>
     <license>GNU General Public License version 3 or later; see LICENSE</license>
     <version>1.0.0</version>
-    <description>PLG_ALFA_FORM_FIELDS_CHOICE_DESC</description>
+    <description>PLG_ALFA_FORM_FIELDS_CHOICE_XML_DESCRIPTION</description>
     <namespace path="src">Alfa\Plugin\AlfaFormFields\Choice</namespace>
     <files>
         <folder>params</folder>
