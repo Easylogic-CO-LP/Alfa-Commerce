@@ -58,7 +58,7 @@ Alfa-Commerce/
 │   │   └── standard/           # Offline payment (bank transfer / cash on delivery)
 │   ├── alfa-shipments/
 │   │   └── standard/           # Standard shipping (flat / zone rates)
-│   ├── alfa-fields/            # Form field type plugins
+│   ├── alfa-form-fields/            # Form field type plugins
 │   │   ├── text/
 │   │   ├── textarea/
 │   │   ├── tel/
@@ -93,7 +93,7 @@ Alfa-Commerce/
 | API | `Alfa\Component\Alfa\Api\{Controller,View}` |
 | Payment plugins | `Alfa\Plugin\AlfaPayments\{PluginName}\Extension` |
 | Shipment plugins | `Alfa\Plugin\AlfaShipments\{PluginName}\Extension` |
-| Field plugins | `Alfa\Plugin\AlfaFields\{PluginName}\Extension` |
+| Field plugins | `Alfa\Plugin\AlfaFormFields\{PluginName}\Extension` |
 | Cart module | `Alfa\Module\AlfaCart` |
 | Search module | `Alfa\Module\AlfaSearch` |
 

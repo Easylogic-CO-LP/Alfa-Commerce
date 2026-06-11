@@ -1,0 +1,69 @@
+<form>
+    <fields name="fieldsparams">
+        <fieldset name="field_settings">
+
+            <field name="render_as" type="list" default="select"
+                   label="PLG_ALFA_FORM_FIELDS_OPTIONS_PARAMS_RENDER_AS_LABEL"
+                   description="PLG_ALFA_FORM_FIELDS_OPTIONS_PARAMS_RENDER_AS_DESC">
+                <option value="select">PLG_ALFA_FORM_FIELDS_OPTIONS_RENDER_AS_SELECT</option>
+                <option value="multiselect">PLG_ALFA_FORM_FIELDS_OPTIONS_RENDER_AS_MULTISELECT</option>
+                <option value="radio">PLG_ALFA_FORM_FIELDS_OPTIONS_RENDER_AS_RADIO</option>
+                <option value="checkbox">PLG_ALFA_FORM_FIELDS_OPTIONS_RENDER_AS_CHECKBOX</option>
+                <option value="button">PLG_ALFA_FORM_FIELDS_OPTIONS_RENDER_AS_BUTTON</option>
+                <option value="button-multi">PLG_ALFA_FORM_FIELDS_OPTIONS_RENDER_AS_BUTTON_MULTI</option>
+            </field>
+
+            <field name="layout_mode" type="list" default="vertical"
+                   label="PLG_ALFA_FORM_FIELDS_OPTIONS_PARAMS_LAYOUT_MODE_LABEL"
+                   description="PLG_ALFA_FORM_FIELDS_OPTIONS_PARAMS_LAYOUT_MODE_DESC"
+                   showon="render_as:radio,checkbox,button,button-multi">
+                <option value="vertical">PLG_ALFA_FORM_FIELDS_OPTIONS_LAYOUT_VERTICAL</option>
+                <option value="horizontal">PLG_ALFA_FORM_FIELDS_OPTIONS_LAYOUT_HORIZONTAL</option>
+                <option value="grid">PLG_ALFA_FORM_FIELDS_OPTIONS_LAYOUT_GRID</option>
+            </field>
+
+            <field name="placeholder" type="MultilingualText" default=""
+                   addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
+                   label="PLG_ALFA_FORM_FIELDS_OPTIONS_PARAMS_PLACEHOLDER_LABEL"
+                   description="PLG_ALFA_FORM_FIELDS_OPTIONS_PARAMS_PLACEHOLDER_DESC"
+                   showon="render_as:select,multiselect"/>
+
+            <field name="button_style" type="list" default="solid"
+                   label="PLG_ALFA_FORM_FIELDS_OPTIONS_PARAMS_BUTTON_STYLE_LABEL"
+                   description="PLG_ALFA_FORM_FIELDS_OPTIONS_PARAMS_BUTTON_STYLE_DESC"
+                   showon="render_as:button,button-multi">
+                <option value="solid">PLG_ALFA_FORM_FIELDS_OPTIONS_BUTTON_STYLE_SOLID</option>
+                <option value="chip">PLG_ALFA_FORM_FIELDS_OPTIONS_BUTTON_STYLE_CHIP</option>
+                <option value="pill">PLG_ALFA_FORM_FIELDS_OPTIONS_BUTTON_STYLE_PILL</option>
+                <option value="outline">PLG_ALFA_FORM_FIELDS_OPTIONS_BUTTON_STYLE_OUTLINE</option>
+            </field>
+
+            <field name="min_selections" type="number" default="0" filter="integer"
+                   label="PLG_ALFA_FORM_FIELDS_OPTIONS_PARAMS_MIN_SELECTIONS_LABEL"
+                   description="PLG_ALFA_FORM_FIELDS_OPTIONS_PARAMS_MIN_SELECTIONS_DESC"
+                   showon="render_as:multiselect,checkbox,button-multi"
+            />
+
+            <field name="max_selections" type="number" default="0" filter="integer"
+                   label="PLG_ALFA_FORM_FIELDS_OPTIONS_PARAMS_MAX_SELECTIONS_LABEL"
+                   description="PLG_ALFA_FORM_FIELDS_OPTIONS_PARAMS_MAX_SELECTIONS_DESC"
+                   showon="render_as:multiselect,checkbox,button-multi"
+            />
+
+            <field name="options" type="subform" multiple="true"
+                   layout="joomla.form.field.subform.repeatable"
+                   label="PLG_ALFA_FORM_FIELDS_OPTIONS_PARAMS_OPTIONS_LABEL"
+                   description="PLG_ALFA_FORM_FIELDS_OPTIONS_PARAMS_OPTIONS_DESC">
+                <form>
+                    <field name="value" type="text" label="PLG_ALFA_FORM_FIELDS_OPTIONS_PARAMS_OPTIONS_VALUE_LABEL" required="true"/>
+                    <field name="text" type="MultilingualText"
+                           addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
+                           label="PLG_ALFA_FORM_FIELDS_OPTIONS_PARAMS_OPTIONS_TEXT_LABEL" required="true"/>
+                </form>
+            </field>
+
+            <field name="sql_type" type="hidden" default="text"/>
+
+        </fieldset>
+    </fields>
+</form>

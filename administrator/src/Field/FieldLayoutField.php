@@ -17,17 +17,17 @@ use Joomla\CMS\Language\Text;
 use Joomla\Database\ParameterType;
 
 /**
- * Layout picker for an alfa-fields field.
+ * Layout picker for an alfa-form-fields field.
  *
  * Lists every layout basename found in:
- *   - plugins/alfa-fields/*\/tmpl/*.php                                    (plugin defaults)
- *   - templates/<frontend-template>/html/plg_alfa-fields_*\/*.php          (template overrides)
+ *   - plugins/alfa-form-fields/*\/tmpl/*.php                                    (plugin defaults)
+ *   - templates/<frontend-template>/html/plg_alfa-form-fields_*\/*.php          (template overrides)
  *
  * Every enabled frontend template is scanned (client_id = 0). Selecting an
  * option stores the value in "template:layout" form, mirroring Joomla's
  * ComponentlayoutField convention:
  *   - "_:default"       — plugin's own tmpl/default.php (no template override)
- *   - "cassiopeia:foo"  — templates/cassiopeia/html/plg_alfa-fields_<type>/foo.php
+ *   - "cassiopeia:foo"  — templates/cassiopeia/html/plg_alfa-form-fields_<type>/foo.php
  *
  * The runtime resolver splits on ":" to pick the right file for the field's
  * type. Falls back to "_:default" if the stored override no longer exists.
@@ -39,7 +39,7 @@ class FieldLayoutField extends FormField
 
     /**
      * Render a grouped select listing the available layouts: a "use default"
-     * entry, the union of alfa-fields plugin tmpl layouts ("_:<layout>") and the
+     * entry, the union of alfa-form-fields plugin tmpl layouts ("_:<layout>") and the
      * per-template override layouts ("<template>:<layout>") for every enabled
      * frontend template.
      *
@@ -59,10 +59,10 @@ class FieldLayoutField extends FormField
             ],
         ];
 
-        // From Plugins — union across all alfa-fields plugin tmpl folders.
+        // From Plugins — union across all alfa-form-fields plugin tmpl folders.
         // Value format: "_:<layout>" to distinguish from template overrides.
         $pluginLayouts = [];
-        foreach (glob(JPATH_PLUGINS . '/alfa-fields/*/tmpl/*.php') ?: [] as $file) {
+        foreach (glob(JPATH_PLUGINS . '/alfa-form-fields/*/tmpl/*.php') ?: [] as $file) {
             $name = basename($file, '.php');
             if ($name === '' || str_starts_with($name, '_')) {
                 continue;
@@ -86,7 +86,7 @@ class FieldLayoutField extends FormField
         foreach ($this->getEnabledFrontendTemplates() as $template) {
             $tplLayouts = [];
 
-            foreach (glob(JPATH_SITE . '/templates/' . $template . '/html/plg_alfa-fields_*/*.php') ?: [] as $file) {
+            foreach (glob(JPATH_SITE . '/templates/' . $template . '/html/plg_alfa-form-fields_*/*.php') ?: [] as $file) {
                 $name = basename($file, '.php');
                 if ($name === '' || str_starts_with($name, '_')) {
                     continue;

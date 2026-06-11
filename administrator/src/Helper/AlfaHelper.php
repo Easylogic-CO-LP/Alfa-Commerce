@@ -530,6 +530,25 @@ class AlfaHelper
     }
 
     /**
+     * Resolves a plugin family key ('fields', 'payments', 'shipments', …) to its
+     * plugin group folder name.
+     *
+     * The 'fields' family key predates the alfa-form-fields group rename and is
+     * still the basis for the derived form keys (e.g. the 'fieldsparams'
+     * fieldset), so only the group folder is mapped here.
+     *
+     * @param string $type Plugin family key
+     *
+     * @return string Plugin group folder (e.g. 'alfa-form-fields')
+     *
+     * @since  1.2.1
+     */
+    private static function pluginGroup(string $type): string
+    {
+        return $type === 'fields' ? 'alfa-form-fields' : 'alfa-' . $type;
+    }
+
+    /**
      * Loads the fields plugins and returns an array of field types from the plugins.
      *
      * The returned array contains arrays with the following keys:
@@ -545,7 +564,7 @@ class AlfaHelper
     {
         $plugin_types = [];
 
-        $pluginGroup = 'alfa-' . $type;
+        $pluginGroup = self::pluginGroup(type: $type);
 
         $plugins = PluginHelper::getPlugin($pluginGroup);// Get a list of all plugins in the specified group
 
@@ -579,7 +598,7 @@ class AlfaHelper
     {
         $app = Factory::getApplication();
 
-        $pluginGroup = 'alfa-' . $type; //alfa-payments , alfa-shipments etc...
+        $pluginGroup = self::pluginGroup(type: $type);
         $pluginName = $data['type'] ?? $form->getValue('type'); // $data when we save but when we open the form we get it from getValue
 
         // New entry - Auto select the default value for first time
