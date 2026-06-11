@@ -1,0 +1,17 @@
+{
+    "files": [
+        "administrator/language/en-GB/plg_alfa-fields_choice.ini",
+        "administrator/language/en-GB/plg_alfa-fields_choice.sys.ini",
+        "administrator/language/en-GB/plg_alfa-fields_tel.ini",
+        "administrator/language/en-GB/plg_alfa-fields_tel.sys.ini",
+        "administrator/language/en-GB/plg_alfa-fields_text.ini",
+        "administrator/language/en-GB/plg_alfa-fields_text.sys.ini",
+        "administrator/language/en-GB/plg_alfa-fields_textarea.ini",
+        "administrator/language/en-GB/plg_alfa-fields_textarea.sys.ini"
+    ],
+    "folders": [
+        "plugins/alfa-fields",
+        "media/plg_alfa-fields_choice",
+        "media/plg_alfa-fields_tel"
+    ]
+}

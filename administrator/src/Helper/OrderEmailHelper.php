@@ -1347,7 +1347,7 @@ class OrderEmailHelper
                 ? $userInfo->{$machineKey}
                 : '';
 
-            // Plugin tmpls (plg_alfa-fields/<type>/tmpl/default.php) read
+            // Plugin tmpls (plg_alfa-form-fields/<type>/tmpl/default.php) read
             // the value off `$field->value` — that's the cart/JForm
             // contract. We hold a cached row from FormfieldsModel that
             // has no `value` populated, so clone it and set the value

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension type="plugin" group="alfa-form-fields" method="upgrade">
+    <name>plg_alfa-form-fields_choice</name>
+    <author>Easylogic</author>
+    <creationDate>2026-05</creationDate>
+    <copyright>(C) 2026 Easylogic</copyright>
+    <license>GNU General Public License version 3 or later; see LICENSE</license>
+    <version>1.0.0</version>
+    <description>PLG_ALFA_FORM_FIELDS_CHOICE_DESC</description>
+    <namespace path="src">Alfa\Plugin\AlfaFormFields\Choice</namespace>
+    <files>
+        <folder>params</folder>
+        <folder plugin="choice">services</folder>
+        <folder>src</folder>
+        <folder>tmpl</folder>
+    </files>
+    <media destination="plg_alfa-form-fields_choice" folder="media">
+        <folder>css</folder>
+        <folder>js</folder>
+        <filename>joomla.asset.json</filename>
+    </media>
+
+    <languages folder="language">
+        <language tag="en-GB">en-GB/plg_alfa-form-fields_choice.ini</language>
+        <language tag="en-GB">en-GB/plg_alfa-form-fields_choice.sys.ini</language>
+    </languages>
+</extension>
+<!--        Unified choice field — select / radio / checkbox / button / chip, always array.-->

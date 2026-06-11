@@ -7,7 +7,7 @@
     <author>Agamemnon Fakas</author>
     <authorEmail>info@easylogic.gr</authorEmail>
     <authorUrl>https://easylogic.gr</authorUrl>
-    <version>1.2.0</version>
+    <version>1.2.1</version>
     <description>The smartest,fastest and easiest ecommerce solution for companies developed with love by Easylogic.</description>
     <namespace path="src">Alfa\Component\Alfa</namespace>
 
@@ -123,10 +123,10 @@
 
         <plugin group="alfa-shipments" plugin="standard"/>
 
-        <plugin group="alfa-fields" plugin="tel"/>
-        <plugin group="alfa-fields" plugin="text"/>
-        <plugin group="alfa-fields" plugin="textarea"/>
-        <plugin group="alfa-fields" plugin="choice"/>
+        <plugin group="alfa-form-fields" plugin="tel"/>
+        <plugin group="alfa-form-fields" plugin="text"/>
+        <plugin group="alfa-form-fields" plugin="textarea"/>
+        <plugin group="alfa-form-fields" plugin="choice"/>
         <plugin  group="system" plugin="alfasync"/>
 
     </plugins>

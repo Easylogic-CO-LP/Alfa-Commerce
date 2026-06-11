@@ -21,7 +21,7 @@ use Joomla\Registry\Registry;
 defined('_JEXEC') or die;
 
 /**
- * Abstract base for alfa-fields plugins.
+ * Abstract base for alfa-form-fields plugins.
  *
  * One plugin per field type (plugin name == type name by convention).
  * Default prepareDom() builds a standard <field> DOM node; subclasses override
