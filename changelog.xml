@@ -3,6 +3,15 @@
     <changelog>
         <element>com_alfa</element>
         <type>component</type>
+        <version>1.2.1</version>
+
+        <change>
+            <item>Renamed the form-fields plugin group from alfa-fields to alfa-form-fields (folder, plugin names, namespaces, language files, media assets). Existing plugin rows are migrated in place — enabled state and settings survive — and stale alfa-fields folders are cleaned up on update. Prepares the ground for the upcoming alfa-item-fields product fields system.</item>
+        </change>
+    </changelog>
+    <changelog>
+        <element>com_alfa</element>
+        <type>component</type>
         <version>1.2.0</version>
 
         <change>

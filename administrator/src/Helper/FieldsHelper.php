@@ -25,7 +25,7 @@ defined('_JEXEC') or die;
 /**
  * FieldsHelper
  *
- * Entry points for rendering alfa-fields in Joomla forms.
+ * Entry points for rendering alfa-form-fields in Joomla forms.
  *   - prepareForm()  injects custom fields into a Form for the given context
  *   - getFields()    loads fields visible to the given user in the given context
  * @since  1.0.0
@@ -62,7 +62,7 @@ class FieldsHelper
     ];
 
     /**
-     * Inject custom alfa-fields for $context into $form as one <fieldset> per
+     * Inject custom alfa-form-fields for $context into $form as one <fieldset> per
      * group. Each generated fieldset is tagged with target="$targetFieldset"
      * so views can pull only the groups meant for a specific UI slot via
      * getTargetFieldsets() / renderTargetFieldsets().
@@ -120,7 +120,7 @@ class FieldsHelper
             foreach ($groupFields as $field) {
                 try {
                     $plugin = self::boot($field->type ?? '');
-                    $plugin?->prepareDom(new PrepareDomEvent('onAlfaFieldsPrepareDom', [
+                    $plugin?->prepareDom(new PrepareDomEvent('onAlfaFormFieldsPrepareDom', [
                         'subject' => $field,
                         'fieldset' => $fieldset,
                         'form' => $form,
@@ -314,7 +314,7 @@ class FieldsHelper
      * Layout resolution (from $field->layout):
      *   ""              → active-template override then plugin's default.php
      *   "_:name"        → plugin's tmpl/name.php only
-     *   "tpl:name"      → templates/tpl/html/plg_alfa-fields_<type>/name.php
+     *   "tpl:name"      → templates/tpl/html/plg_alfa-form-fields_<type>/name.php
      *
      * Falls back to the plugin's default.php if the chosen file is missing.
      * @since  1.0.0
@@ -382,15 +382,15 @@ class FieldsHelper
         if ($template !== null) {
             // Explicit template override chosen by admin.
             $candidates[] = JPATH_SITE . '/templates/' . $template
-                          . '/html/plg_alfa-fields_' . $type . '/' . $name . '.php';
+                          . '/html/plg_alfa-form-fields_' . $type . '/' . $name . '.php';
         } else {
             // No explicit template — let PluginHelper resolve active-template
             // override + plugin default.
-            $candidates[] = PluginHelper::getLayoutPath('alfa-fields', $type, $name);
+            $candidates[] = PluginHelper::getLayoutPath('alfa-form-fields', $type, $name);
         }
 
         // Last-resort fallback: plugin's default.php for this type.
-        $candidates[] = JPATH_PLUGINS . '/alfa-fields/' . $type . '/tmpl/default.php';
+        $candidates[] = JPATH_PLUGINS . '/alfa-form-fields/' . $type . '/tmpl/default.php';
 
         foreach ($candidates as $path) {
             if ($path && is_file($path)) {
@@ -452,18 +452,18 @@ class FieldsHelper
     }
 
     /**
-     * Boot the alfa-fields plugin for this field type. Returns null if the plugin is
+     * Boot the alfa-form-fields plugin for this field type. Returns null if the plugin is
      * missing, disabled, or not a FieldsPlugin instance.
      * @since  1.0.0
      */
     private static function boot(string $type): ?FieldsPlugin
     {
-        if ($type === '' || !PluginHelper::getPlugin('alfa-fields', $type)) {
+        if ($type === '' || !PluginHelper::getPlugin('alfa-form-fields', $type)) {
             return null;
         }
 
         $app = Factory::getApplication();
-        $plugin = $app->bootPlugin($type, 'alfa-fields');
+        $plugin = $app->bootPlugin($type, 'alfa-form-fields');
 
         if ($plugin instanceof FieldsPlugin) {
             $app->getDispatcher()->addSubscriber($plugin);

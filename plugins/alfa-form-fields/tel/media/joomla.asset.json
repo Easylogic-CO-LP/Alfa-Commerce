@@ -1,0 +1,50 @@
+{
+  "$schema": "https://developer.joomla.org/schemas/json-schema/web_assets.json",
+  "description": "intl-tel-input assets for plg_alfa-form-fields_tel",
+  "name": "plg_alfa-form-fields_tel",
+  "version": "1.0.0",
+  "assets": [
+    {
+      "name": "plg_alfa-form-fields_tel.intltelinput",
+      "type": "style",
+      "uri": "plg_alfa-form-fields_tel/intlTelInput.min.css"
+    },
+    {
+      "name": "plg_alfa-form-fields_tel.intltelinput",
+      "type": "script",
+      "uri": "plg_alfa-form-fields_tel/intlTelInputWithUtils.min.js",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "plg_alfa-form-fields_tel.tel",
+      "type": "style",
+      "uri": "plg_alfa-form-fields_tel/tel.css",
+      "dependencies": [
+        "plg_alfa-form-fields_tel.intltelinput"
+      ]
+    },
+    {
+      "name": "plg_alfa-form-fields_tel.tel",
+      "type": "script",
+      "uri": "plg_alfa-form-fields_tel/tel.js",
+      "dependencies": [
+        "plg_alfa-form-fields_tel.intltelinput",
+        "form.validate"
+      ],
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "plg_alfa-form-fields_tel",
+      "type": "preset",
+      "dependencies": [
+        "plg_alfa-form-fields_tel.tel#style",
+        "plg_alfa-form-fields_tel.tel#script",
+        "com_alfa.showon"
+      ]
+    }
+  ]
+}
