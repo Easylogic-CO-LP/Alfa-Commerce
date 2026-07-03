@@ -102,6 +102,14 @@ class Router extends RouterView
         $cart = new RouterViewConfiguration('cart');
         $this->registerView($cart);
 
+        // Register registration view
+        $registration = new RouterViewConfiguration('registration');
+        $this->registerView($registration);
+
+        // Register user info view
+        $userinfo = new RouterViewConfiguration('userinfo');
+        $this->registerView($userinfo);
+
         // Register empties view
         $empties = new RouterViewConfiguration('empties');
         $this->registerView($empties);

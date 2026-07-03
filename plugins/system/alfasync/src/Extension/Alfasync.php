@@ -52,6 +52,9 @@ use Joomla\CMS\Log\Log;
 use Joomla\CMS\Plugin\CMSPlugin;
 use Joomla\Event\Event;
 use Joomla\Event\SubscriberInterface;
+use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
+use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
+use Joomla\CMS\Router\Route;
 
 /**
  * Alfa Commerce — central sync system plugin.
@@ -87,6 +90,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
             // Other content events — uncomment to activate
             // 'onContentAfterDelete' => 'onContentAfterDelete',
+            'onAfterRoute' => 'onAfterRoute',
 
             // Custom Alfa events — uncomment + dispatch from component/plugin
             // 'onAlfaProductAfterSave'  => 'onAlfaProductAfterSave',
@@ -125,6 +129,58 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
         } catch (Exception $e) {
             $this->logError('onUserAfterSave', $e->getMessage(), ['user_id' => $userId]);
         }
+
+        // Save alfa registration field values if this came from our registration form.
+        $jform = Factory::getApplication()->input->post->get('jform', [], 'array');
+        $alfaFields = $jform[FieldsHelper::FIELDS_KEY] ?? null;
+
+        if (empty($alfaFields)) {
+            return;
+        }
+
+        try {
+            UserInfoHelper::insertData($userId, $alfaFields);
+            $this->logDebug('onUserAfterSave', 'Saved alfa user info for user #' . $userId);
+        } catch (Exception $e) {
+            $this->logError('onUserAfterSave', $e->getMessage(), ['user_id' => $userId]);
+        }
+    }
+
+    /**
+     * Redirects the stock com_users registration page to our com_alfa one.
+     * Login, profile, MFA (methods/method/captive), reset and remind are NOT touched.
+     *
+     * @return  void
+     *
+     * @since   1.0.1
+     */
+    public function onAfterRoute(): void
+    {
+        $app = Factory::getApplication();
+
+        if (!$app->isClient('site')) {
+            return;
+        }
+
+        $input = $app->input;
+
+        if ($input->getCmd('option') !== 'com_users' || $input->getCmd('view') !== 'registration') {
+            return;
+        }
+
+        // Let activation and the post-submit complete screen through.
+        if ($input->getCmd('task') === 'registration.activate' || $input->getCmd('layout') === 'complete') {
+            return;
+        }
+
+        $url = 'index.php?option=com_alfa&view=registration';
+        $return = $input->getBase64('return', '');
+
+        if ($return !== '') {
+            $url .= '&return=' . $return;
+        }
+
+        $app->redirect(Route::_($url, false));
     }
 
     /**

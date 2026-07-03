@@ -50,6 +50,7 @@ use Alfa\Component\Alfa\Administrator\Helper\OrderShipmentHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStockHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderTotalHelper;
+use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Exception;
@@ -1577,8 +1578,25 @@ class OrderModel extends AdminModel
         $userInfoData = $data[FieldsHelper::FIELDS_KEY] ?? [];
 
         if (!empty($userInfoData) && !empty($data['id_address_delivery'])) {
-            if (!OrderHelper::saveUserInfo((int) $data['id_address_delivery'], $userInfoData)) {
-                $app->enqueueMessage(Text::_('COM_ALFA_ERROR_SAVE_USER_INFO'), 'error');
+            $currentId = (int) $data['id_address_delivery'];
+            $newId = UserInfoHelper::insertData(
+                userId: (int) $data['id_user'],
+                data: $userInfoData,
+                existingId: $currentId ?: null,
+            );
+
+            // If insertData created a new snapshot (row was frozen), point the order to it.
+            if ($newId !== $currentId) {
+                $data['id_address_delivery'] = $newId;
+
+                // Update the order row to point to the new snapshot
+                $db = $this->getDatabase();
+                $query = $db->getQuery(true)
+                    ->update($db->quoteName('#__alfa_orders'))
+                    ->set($db->quoteName('id_address_delivery') . ' = ' . $newId)
+                    ->where($db->quoteName('id') . ' = ' . $orderId);
+                $db->setQuery($query);
+                $db->execute();
             }
         }
 

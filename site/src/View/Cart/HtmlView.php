@@ -20,6 +20,7 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
 use stdClass;
+use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
 
 /**
  * View class for a list of Alfa.
@@ -43,6 +44,8 @@ class HtmlView extends BaseHtmlView
     protected $params;
 
     protected $event;
+
+    protected $savedRows = [];
 
     /**
      * Display the view
@@ -68,6 +71,11 @@ class HtmlView extends BaseHtmlView
         $this->params = $app->getParams('com_alfa');
         //        $model = new CartModel();
         $this->form = $model->getForm();
+
+        // Saved addresses for logged-in users — shown as a pre-fill dropdown in the form.
+        $this->savedRows = (!$user->guest)
+            ? UserInfoHelper::getRowsByUser(userId: (int) $user->id)
+            : [];
 
         // Check for errors.
         if (count($errors = $this->get('Errors'))) {
