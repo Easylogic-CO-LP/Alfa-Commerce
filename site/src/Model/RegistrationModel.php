@@ -12,10 +12,10 @@ namespace Alfa\Component\Alfa\Site\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
-use Joomla\CMS\Factory;
-use Joomla\CMS\MVC\Model\FormModel;
 use Joomla\CMS\Component\ComponentHelper;
+use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
+use Joomla\CMS\MVC\Model\FormModel;
 
 class RegistrationModel extends FormModel
 {

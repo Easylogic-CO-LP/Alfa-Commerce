@@ -29,11 +29,11 @@ class RegistrationController extends FormController
     /**
      * Method to get a model object, loading it if required.
      *
-     * @param   string  $name    The model name. Optional.
-     * @param   string  $prefix  The class prefix. Optional.
-     * @param   array   $config  Configuration array for model. Optional.
+     * @param string $name The model name. Optional.
+     * @param string $prefix The class prefix. Optional.
+     * @param array $config Configuration array for model. Optional.
      *
-     * @return  \Joomla\CMS\MVC\Model\BaseDatabaseModel
+     * @return \Joomla\CMS\MVC\Model\BaseDatabaseModel
      *
      * @since   1.0.1
      */
@@ -53,7 +53,7 @@ class RegistrationController extends FormController
      *   5. Create the Joomla user via the core model
      *   6. Redirect based on activation type
      *
-     * @return  void
+     * @return void
      *
      * @since   1.0.1
      */
@@ -83,7 +83,6 @@ class RegistrationController extends FormController
         $validData = $model->validate($form, $data);
 
         if ($validData === false) {
-
             $this->flashErrors($model->getErrors());
 
             // Save submitted data to session so the form can be re-filled.
@@ -122,9 +121,8 @@ class RegistrationController extends FormController
     /**
      * Enqueues model errors as user messages.
      *
-     * @param   array  $errors  Error strings or Exceptions.
+     * @param array $errors Error strings or Exceptions.
      *
-     * @return  void
      *
      * @since   1.0.1
      */

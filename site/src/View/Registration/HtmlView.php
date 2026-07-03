@@ -36,11 +36,11 @@ class HtmlView extends BaseHtmlView
     /**
      * @inheritDoc
      *
-     * @param   string|null  $tpl  Template name.
+     * @param string|null $tpl Template name.
      *
-     * @return  void
+     * @return void
      *
-     * @throws  Exception
+     * @throws Exception
      */
     public function display($tpl = null)
     {

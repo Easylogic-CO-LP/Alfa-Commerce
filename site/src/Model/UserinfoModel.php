@@ -7,7 +7,6 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
 use Joomla\CMS\Factory;
-use Joomla\CMS\Form\Form;
 use Joomla\CMS\MVC\Model\FormModel;
 
 class UserinfoModel extends FormModel

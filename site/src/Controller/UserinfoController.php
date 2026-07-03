@@ -27,7 +27,7 @@ class UserinfoController extends BaseController
     /**
      * Ensures a logged-in user; redirects guests to login.
      *
-     * @return  \Joomla\CMS\User\User|null
+     * @return \Joomla\CMS\User\User|null
      *
      * @since   1.0.1
      */
@@ -50,7 +50,7 @@ class UserinfoController extends BaseController
      * editing a row that is not used in any order, the source row is removed so
      * no duplicate accumulates.
      *
-     * @return  void
+     * @return void
      *
      * @since   1.0.1
      */
@@ -79,7 +79,7 @@ class UserinfoController extends BaseController
     /**
      * Deletes a row when it is owned by the user and not used in any order.
      *
-     * @return  void
+     * @return void
      *
      * @since   1.0.1
      */

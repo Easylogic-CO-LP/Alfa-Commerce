@@ -44,17 +44,17 @@ namespace Alfa\Plugin\System\Alfasync\Extension;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
+use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
 use Exception;
 use Joomla\CMS\Event\Menu\PreprocessMenuItemsEvent;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Plugin\CMSPlugin;
+use Joomla\CMS\Router\Route;
 use Joomla\Event\Event;
 use Joomla\Event\SubscriberInterface;
-use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
-use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
-use Joomla\CMS\Router\Route;
 
 /**
  * Alfa Commerce — central sync system plugin.
@@ -150,7 +150,6 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * Redirects the stock com_users registration page to our com_alfa one.
      * Login, profile, MFA (methods/method/captive), reset and remind are NOT touched.
      *
-     * @return  void
      *
      * @since   1.0.1
      */

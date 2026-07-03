@@ -11,11 +11,8 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 
 defined('_JEXEC') or die;
 
-use Exception;
 use Joomla\CMS\Factory;
-use Joomla\CMS\Log\Log;
 use Joomla\Database\ParameterType;
-use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 
 /**
  * Helper for #__alfa_user_info operations.
@@ -35,9 +32,9 @@ class UserInfoHelper
      * are left as-is. This mirrors the normalization that was previously
      * inlined in OrderPlaceHelper::saveUserInfo().
      *
-     * @param   array  $data  Raw field values keyed by field_name.
+     * @param array $data Raw field values keyed by field_name.
      *
-     * @return  array  Normalized field values.
+     * @return array Normalized field values.
      *
      * @since   1.0.1
      */
@@ -67,11 +64,11 @@ class UserInfoHelper
      *
      * Guests (id_user = 0) always INSERT.
      *
-     * @param   int       $userId      Owner id (0 for guests).
-     * @param   array     $data        Raw field values keyed by field_name.
-     * @param   int|null  $existingId  Row the caller is editing, if known.
+     * @param int $userId Owner id (0 for guests).
+     * @param array $data Raw field values keyed by field_name.
+     * @param int|null $existingId Row the caller is editing, if known.
      *
-     * @return  int  The id to reference (e.g. as id_address_delivery).
+     * @return int The id to reference (e.g. as id_address_delivery).
      *
      * @since   1.0.1
      */
@@ -133,7 +130,7 @@ class UserInfoHelper
     }
 
     /**
-     * All saved rows for a user (the "my info" list), newest first. 
+     * All saved rows for a user (the "my info" list), newest first.
      * Guest rows (id_user = 0) are excluded.
      *
      * @param int $userId Joomla user id.
@@ -167,7 +164,6 @@ class UserInfoHelper
      *
      * @param int $userId Owner id.
      *
-     * @return object|null
      *
      * @since 1.0.1
      */
@@ -186,7 +182,7 @@ class UserInfoHelper
             ->where(
                 'NOT EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_orders', 'o')
                 . ' WHERE o.' . $db->quoteName('id_address_delivery') . ' = ui.id'
-                . ' OR o.' . $db->quoteName('id_address_invoice') . ' = ui.id)'
+                . ' OR o.' . $db->quoteName('id_address_invoice') . ' = ui.id)',
             )
             ->order($db->quoteName('ui.id') . ' DESC')
             ->setLimit(1)
@@ -200,10 +196,9 @@ class UserInfoHelper
     /**
      * Loads a single row, scoped to its owner (null when not found / not owned).
      *
-     * @param   int  $userId  Owner id.
-     * @param   int  $id      Row id.
+     * @param int $userId Owner id.
+     * @param int $id Row id.
      *
-     * @return  object|null
      *
      * @since   1.0.1
      */
@@ -231,9 +226,8 @@ class UserInfoHelper
      * True when a row is referenced by any order (delivery or invoice address):
      * such a row must never be edited in place or deleted, to protect history.
      *
-     * @param   int  $id  Row id.
+     * @param int $id Row id.
      *
-     * @return  bool
      *
      * @since   1.0.1
      */
@@ -260,10 +254,10 @@ class UserInfoHelper
      * Deletes a user's row, but only when it is owned by them and not referenced
      * by any order.
      *
-     * @param   int  $userId  Owner id.
-     * @param   int  $id      Row id.
+     * @param int $userId Owner id.
+     * @param int $id Row id.
      *
-     * @return  bool  True when a row was deleted.
+     * @return bool True when a row was deleted.
      *
      * @since   1.0.1
      */
@@ -287,7 +281,6 @@ class UserInfoHelper
         return true;
     }
 
-
     /**
      * Builds a short human-readable label for a user info row using the
      * currently active cart fields. Only fields that are published and
@@ -297,9 +290,8 @@ class UserInfoHelper
      * Returns the first 3 non-empty field values joined by ", ".
      * Falls back to "#id" if no active fields have a value in the row.
      *
-     * @param   object  $row  A row from #__alfa_user_info.
+     * @param object $row A row from #__alfa_user_info.
      *
-     * @return  string
      *
      * @since   1.0.1
      */
