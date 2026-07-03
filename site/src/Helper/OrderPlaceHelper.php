@@ -47,6 +47,7 @@ use Alfa\Component\Alfa\Administrator\Event\Shipments\OrderPlaceEvent as Shipmen
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderEmailHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStockHelper;
+use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
 use Exception;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
@@ -928,13 +929,16 @@ class OrderPlaceHelper
                 }
             }
 
-            $infoObject = (object) $data;
+            // To alfa_user_info_id prepei na stelnetai apo thn forma tou kalathiou logika alla den yparxei.
+            $selectedId = (int) $this->app->input->getInt('alfa_user_info_id', 0);
 
-            $infoObject->id_user = $this->user->id;
+            $id = UserInfoHelper::insertData(
+                userId: (int) $this->user->id,
+                data: $data,
+                existingId: $selectedId ?: null,
+            );
 
-            $this->db->insertObject($this->user_info_table, $infoObject, 'id');
-
-            return $infoObject;
+            return (object) ['id' => $id];
         } catch (Exception $e) {
             Log::add('User info save error: ' . $e->getMessage(), Log::ERROR, 'com_alfa.orders');
             return null;

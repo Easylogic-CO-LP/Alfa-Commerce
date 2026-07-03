@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<metadata>
+    <layout title="COM_ALFA_TITLE_REGISTRATION_VIEW_REGISTRATION" option="View">
+        <message>
+            <![CDATA[COM_ALFA_TITLE_REGISTRATION_VIEW_REGISTRATION_DESC]]>
+        </message>
+    </layout>
+</metadata>

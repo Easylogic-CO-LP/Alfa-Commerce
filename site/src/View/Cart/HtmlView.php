@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Payments\OrderCompleteViewEvent as PaymentsOrderCompleteViewEvent;
 use Alfa\Component\Alfa\Administrator\Event\Payments\OrderProcessViewEvent as PaymentsOrderProcessViewEvent;
+use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
 use Alfa\Component\Alfa\Site\View\HtmlView as BaseHtmlView;
 use Exception;
 use Joomla\CMS\Factory;
@@ -44,6 +45,8 @@ class HtmlView extends BaseHtmlView
 
     protected $event;
 
+    protected $savedRows = [];
+
     /**
      * Display the view
      *
@@ -68,6 +71,11 @@ class HtmlView extends BaseHtmlView
         $this->params = $app->getParams('com_alfa');
         //        $model = new CartModel();
         $this->form = $model->getForm();
+
+        // Saved addresses for logged-in users — shown as a pre-fill dropdown in the form.
+        $this->savedRows = (!$user->guest)
+            ? UserInfoHelper::getRowsByUser(userId: (int) $user->id)
+            : [];
 
         // Check for errors.
         if (count($errors = $this->get('Errors'))) {
