@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="plugin" group="system" method="upgrade">
+    <name>System - E-commerce Geo IP Loader</name>
+    <author>Team</author>
+    <version>1.0.0</version>
+    <description>Detects visitor country via IP and stores it in the Joomla session.</description>
+    <namespace>Joomla\Plugin\System\GeoLoader</namespace>
+    <files>
+        <folder>services</folder>
+        <folder>src</folder>
+    </files>
+
+    <!-- This block generates the form inside the Joomla Admin Backend -->
+    <config>
+        <fields name="params">
+            <fieldset name="basic">
+
+                <field
+                        name="api_token"
+                        type="text"
+                        label="IPinfo API Token"
+                        description="Enter your ipinfo.io account token. Leave empty for the free tier limit."
+                        size="40"
+                />
+
+                <field
+                        name="default_country"
+                        type="list"
+                        label="Fallback Country"
+                        description="The country used if the IP lookup fails or is a local address."
+                        default="GR"
+                >
+                    <option value="GR">Greece</option>
+                    <option value="US">United States</option>
+                    <option value="DE">Germany</option>
+                    <option value="GB">United Kingdom</option>
+                </field>
+
+            </fieldset>
+        </fields>
+    </config>
+</extension>
