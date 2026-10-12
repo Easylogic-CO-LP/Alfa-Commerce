@@ -4,7 +4,6 @@
  * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
  *
- * @copyright   (C) 2015 Open Source Matters, Inc. <https://www.joomla.org>
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
@@ -17,10 +16,6 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
 
 /** @var \Joomla\Component\Content\Administrator\View\Articles\HtmlView $this */
-
-// $params = ComponentHelper::getParams('com_content');
-
-// $published = (int) $this->state->get('filter.published');
 
 $user = $this->getCurrentUser();
 ?>

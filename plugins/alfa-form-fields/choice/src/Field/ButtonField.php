@@ -7,7 +7,7 @@ use Joomla\CMS\Form\Field\RadioField;
 
 defined('_JEXEC') or die;
 
-// Single-select button group. Same DB semantics as a radio — only the visual
+// Single-select button group. Same DB semantics as a radio; only the visual
 // layout differs. The variant (solid / chip / pill / outline) is read from
 // the element's button_style attribute and forwarded to the layout.
 class ButtonField extends RadioField

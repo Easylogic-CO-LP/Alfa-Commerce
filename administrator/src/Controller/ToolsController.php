@@ -13,21 +13,24 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\IntegrityHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PackageHelper;
+use Alfa\Component\Alfa\Administrator\Service\Download\StoreProtection;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Log\Log;
 use Joomla\CMS\MVC\Controller\BaseController;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Session\Session;
+use Joomla\CMS\Uri\Uri;
 use Throwable;
 
 /**
- * Developer tools controller — actions for the Tools view that don't belong to a
- * more specific tool controller (sync, media). Currently exposes the package
+ * Developer tools controller: actions for the Tools view that don't belong to a
+ * more specific tool controller (toolaction, media). Currently exposes the package
  * export; further developer utilities can be added here as new tasks.
  *
  * The `export` task re-assembles the live com_alfa install back into a repo-layout
  * archive (via {@see PackageHelper}), streams it to the browser as an attachment,
- * then deletes the temporary file — so nothing is left on disk. Gated by the
+ * then deletes the temporary file, so nothing is left on disk. Gated by the
  * `alfa.tools` permission and a CSRF token, matching the other Tools actions.
  *
  * @since  1.0.0
@@ -59,11 +62,45 @@ class ToolsController extends BaseController
     }
 
     /**
+     * "Check again" for the download store's direct-download protection: probe it now
+     * ({@see StoreProtection::check()}) and go back to the page that asked, which shows the
+     * result (the dashboard, a product's Downloads panel, the Options).
+     *
+     * @since  2.0.0
+     */
+    public function checkDownloadStore(): void
+    {
+        if (!$this->app->getIdentity()->authorise('alfa.tools', 'com_alfa')) {
+            throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
+        }
+
+        $return = base64_decode($this->input->getBase64('return', ''), true);
+        $redirect = \is_string($return) && $return !== '' && Uri::isInternal($return)
+            ? $return
+            : Route::_('index.php?option=com_alfa&view=dashboard', false);
+
+        if (!Session::checkToken('request')) {
+            $this->setRedirect($redirect, Text::_('JINVALID_TOKEN'), 'error');
+
+            return;
+        }
+
+        try {
+            (new StoreProtection())->check();
+            $this->setRedirect($redirect, Text::_('COM_ALFA_DOWNLOADS_PROTECTION_CHECKED'));
+        } catch (Throwable $e) {
+            // The reason's own words go to the log, never to the page.
+            Log::add(entry: 'Download store protection: Check again failed: ' . $e->getMessage(), priority: Log::ERROR, category: 'com_alfa.downloads');
+            $this->setRedirect($redirect, Text::_('COM_ALFA_DOWNLOADS_PROTECTION_FAILED'), 'error');
+        }
+    }
+
+    /**
      * Build and download the extension package archive (repo layout, libraries
-     * excluded — a source/PR package rather than a guaranteed-installable one).
+     * excluded; a source/PR package rather than a guaranteed-installable one).
      *
      * With `&changed=1` the archive is restricted to the files the integrity scan
-     * reports as changed against the install/update baseline — but only when that
+     * reports as changed against the install/update baseline, but only when that
      * scan is verified and actually reports changes; otherwise nothing is streamed
      * and the request redirects back to the Tools view with a notice.
      *
@@ -90,21 +127,22 @@ class ToolsController extends BaseController
             if ($changed === 1) {
                 // The changed set comes from the signed official CDN checksums
                 // (single source of truth): files that differ from the released
-                // version = modified + injected. ('missing' can't be zipped — those
-                // go in files/removed/<version>.json instead.)
+                // version = modified + injected. ('missing' can't be zipped: a
+                // file the release has and this install does not is a deletion to
+                // make in the repo, not an archive entry.)
                 $report = IntegrityHelper::verifyAgainstOfficial();
                 $status = $report['status'] ?? '';
                 $diff = array_merge($report['modified'] ?? [], $report['injected'] ?? []);
 
                 // 'modified' = exact-version deviation, 'ahead' = customised/off-catalog
-                // — both have real diffs to export. Anything else (official/unreachable/
+                // - both have real diffs to export. Anything else (official/unreachable/
                 // bad_signature) has nothing trustworthy to export.
                 if (($status !== 'modified' && $status !== 'ahead') || empty($diff)) {
                     if ($status === 'official') {
-                        // Verified — this install matches the official release exactly.
+                        // Verified: this install matches the official release exactly.
                         $this->setMessage(Text::_('COM_ALFA_TOOLS_CHANGED_NONE'), 'notice');
                     } else {
-                        // unreachable / bad_signature — can't trust a diff; go online.
+                        // unreachable / bad_signature: can't trust a diff; go online.
                         $this->setMessage(Text::_('COM_ALFA_TOOLS_CHANGED_UNVERIFIED'), 'warning');
                     }
 

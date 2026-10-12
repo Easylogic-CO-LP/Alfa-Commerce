@@ -1,7 +1,26 @@
+/* Palette aliases: the module reads the storefront's tokens (--alfa-*), never a
+   template's own variables, and declares each one once here. The fallbacks are the
+   literals this module shipped with, so nothing changes where com_alfa's CSS is
+   absent. A pill stays 999px: that is a shape, not a size. */
 .alfasearch-wrapper {
+    --alfa-search-surface: var(--alfa-surface, #fff);
+    /* Writing on that surface. `inherit` by default, so the module keeps taking
+       the page's own text colour until a merchant or the palette says otherwise. */
+    --alfa-search-surface-color: var(--alfa-surface-color, inherit);
+    /* The second line of a result: what it is, under what it is called. */
+    --alfa-search-muted: var(--alfa-muted-color, #6b7280);
+    --alfa-search-hairline: var(--alfa-hairline, lightgrey);
+    /* Suggestion chips, lifted off the panel by mixing the text colour in rather
+       than a fixed grey, so they stay visible on a dark surface too. */
+    --alfa-search-chip: color-mix(in srgb, currentColor 6%, var(--alfa-search-surface));
+    --alfa-search-chip-hover: color-mix(in srgb, currentColor 12%, var(--alfa-search-surface));
+    --alfa-search-radius: var(--alfa-radius-panel, 12px);
+
     position: relative;
     width: 100%;
     max-width: 1000px;
+
+    color: var(--alfa-search-surface-color);
 }
 
 .alfasearch-wrapper .search-container {
@@ -27,10 +46,10 @@
 .alfasearch-wrapper .searchbar-popup {
     position: absolute;
     z-index: 100;
-    background-color: white;
+    background-color: var(--alfa-search-surface);
     width: 100%;
-    border: 1px solid lightgrey;
-    border-radius: 0 0 12px 12px;
+    border: 1px solid var(--alfa-search-hairline);
+    border-radius: 0 0 var(--alfa-search-radius) var(--alfa-search-radius);
     border-top: none;
     display: none;
     padding: 20px;
@@ -68,11 +87,11 @@
 }
 
 .alfasearch-wrapper .searchbar-popup .search-product-item:hover {
-    background-color: lightgray;
+    background-color: var(--alfa-search-chip-hover);
 }
 
 .alfasearch-wrapper .searchbar-popup .search-product-item:not(:last-child) {
-    border-bottom: 1px solid lightgray;
+    border-bottom: 1px solid var(--alfa-search-hairline);
 }
 
 .searchbar-popup .search-image-container {
@@ -89,4 +108,72 @@
 
 .searchbar-popup.active {
     display: block;
+}
+
+/* Query completions (the greeklish bridge). Chips a shopper clicks to run the
+   real search with the canonical word; hidden entirely when JS is off. */
+.searchbar-popup .search-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px;
+    border-bottom: 1px solid var(--alfa-search-hairline);
+}
+
+.searchbar-popup .search-suggestion {
+    font: inherit;
+    cursor: pointer;
+    padding: 6px 12px;
+    border: 1px solid var(--alfa-search-hairline);
+    border-radius: 999px;
+    background: var(--alfa-search-chip);
+    color: inherit;
+    line-height: 1.2;
+}
+
+.searchbar-popup .search-suggestion:hover,
+.searchbar-popup .search-suggestion:focus {
+    background: var(--alfa-search-chip-hover);
+    border-color: var(--alfa-search-hairline);
+    outline: none;
+}
+
+/*
+   Dark
+   The module's own dark values, so it is correct in both modes on its own: a page
+   that never loads com_alfa's palette still gets a readable panel instead of dark
+   text on a dark ground. Where the palette IS loaded it wins, so a merchant who
+   themes the shop still themes this module; these are the floor, not the ceiling.
+
+   Keyed on what the PAGE declares, never on the device alone: a visitor who picks
+   light on a dark laptop must get light. The third selector is the case where no
+   Alfa template is installed: neither attribute exists, so the device decides.
+   */
+:is(:root[data-theme="dark"], :root[data-theme-default="dark"]:not([data-theme]))
+.alfasearch-wrapper {
+    --alfa-search-surface: var(--alfa-surface, #1f2937);
+    --alfa-search-surface-color: var(--alfa-surface-color, #e5e7eb);
+    --alfa-search-muted: var(--alfa-muted-color, #9ca3af);
+    --alfa-search-hairline: var(--alfa-hairline, #374151);
+}
+
+@media (prefers-color-scheme: dark) {
+    :is(:root[data-theme="auto"],
+        :root[data-theme-default="auto"]:not([data-theme]),
+        :root:not([data-theme]):not([data-theme-default]))
+    .alfasearch-wrapper {
+        --alfa-search-surface: var(--alfa-surface, #1f2937);
+        --alfa-search-surface-color: var(--alfa-surface-color, #e5e7eb);
+        --alfa-search-muted: var(--alfa-muted-color, #9ca3af);
+        --alfa-search-hairline: var(--alfa-hairline, #374151);
+    }
+}
+
+/* The descriptions under each result, and the empty state: secondary by role, so
+   they take the muted colour instead of full-strength text. */
+.alfasearch-wrapper .search-product-description,
+.alfasearch-wrapper .search-category-description,
+.alfasearch-wrapper .search-manufacturer-description,
+.alfasearch-wrapper .search-no-results {
+    color: var(--alfa-search-muted);
 }

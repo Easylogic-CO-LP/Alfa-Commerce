@@ -20,7 +20,6 @@
         <filename plugin="alfasync">services/provider.php</filename>
         <folder>src</folder>
         <folder>services</folder>
-        <folder>language</folder>
     </files>
     <languages folder="language">
         <language tag="en-GB">en-GB/plg_system_alfasync.ini</language>

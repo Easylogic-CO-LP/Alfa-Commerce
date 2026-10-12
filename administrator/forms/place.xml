@@ -90,29 +90,5 @@
             default="0"
     />
 
-    <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL" description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>
-
-    <field
-            name="allowedUsers" type="sql"
-            input_type="list"
-            required="false"
-            multiple="true"
-            label="COM_ALFA_FORM_PLACE_ALLOWEDUSERS_LBL"
-            description="COM_ALFA_FORM_PLACE_ALLOWEDUSERS_DESC"
-            layout="joomla.form.field.list-fancy-select"
-            query="SELECT `id`, `name` FROM `#__users`" key_field="id" value_field="name"
-    />
-
-    <field
-            name="allowedUserGroups"
-            type="UserGroupList"
-            label="COM_ALFA_FORM_PLACE_ALLOWEDUSERGROUPS_LBL"
-            description="COM_ALFA_FORM_PLACE_ALLOWEDUSERGROUPS_DESC"
-            layout="joomla.form.field.list-fancy-select"
-            multiple="true"
-            checksuperusergroup="1"
-            default="8"
-    />
-
     </fieldset>
 </form>

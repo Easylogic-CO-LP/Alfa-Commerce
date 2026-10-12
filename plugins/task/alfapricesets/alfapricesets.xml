@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension type="plugin" group="task" method="upgrade">
+	<name>plg_task_alfapricesets</name>
+	<copyright>(C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.</copyright>
+	<license>GNU General Public License version 3 or later; see LICENSE</license>
+	<author>Agamemnon Fakas</author>
+	<creationDate>2026</creationDate>
+	<authorEmail>info@easylogic.gr</authorEmail>
+	<authorUrl>http://easylogic.gr</authorUrl>
+	<version>1.0.0</version>
+	<description>PLG_TASK_ALFAPRICESETS_XML_DESCRIPTION</description>
+	<scriptfile>script.php</scriptfile>
+	<namespace path="src">Alfa\Plugin\Task\Alfapricesets</namespace>
+
+	<files>
+		<folder plugin="alfapricesets">services</folder>
+		<filename>script.php</filename>
+		<folder>src</folder>
+		<folder>forms</folder>
+	</files>
+	<languages folder="language">
+		<language tag="en-GB">en-GB/plg_task_alfapricesets.ini</language>
+		<language tag="en-GB">en-GB/plg_task_alfapricesets.sys.ini</language>
+	</languages>
+
+</extension>

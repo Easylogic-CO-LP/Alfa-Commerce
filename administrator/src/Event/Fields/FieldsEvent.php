@@ -3,7 +3,6 @@
 /**
  * Alfa Commerce
  *
- * @copyright  (C) 2023 Open Source Matters, Inc. <https://www.joomla.org>
  * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
@@ -14,8 +13,6 @@ namespace Alfa\Component\Alfa\Administrator\Event\Fields;
 
 use BadMethodCallException;
 use Joomla\CMS\Event\AbstractImmutableEvent;
-
-// use Joomla\CMS\Event\ReshapeArgumentsAware;
 
 // phpcs:disable PSR1.Files.SideEffects
 \defined('_JEXEC') or die;
@@ -28,17 +25,9 @@ use Joomla\CMS\Event\AbstractImmutableEvent;
  */
 abstract class FieldsEvent extends AbstractImmutableEvent
 {
-    // use ReshapeArgumentsAware;
-
-    /**
-     * The argument names, in order expected by legacy plugins.
-     *
-     * @var array
-     *
-     * @since  1.0.0
-     * @deprecated 5.0 will be removed in 6.0
-     */
-    // protected $legacyArgumentsOrder = [];
+    // Listeners receive named arguments only, so this event does not use Joomla's
+    // ReshapeArgumentsAware layer (which reshapes named args into a legacy positional
+    // order for old-style listeners).
 
     /**
      * Constructor.
@@ -52,11 +41,6 @@ abstract class FieldsEvent extends AbstractImmutableEvent
      */
     public function __construct($name, array $arguments = [])
     {
-        // Reshape the arguments array to preserve b/c with legacy listeners
-        // if ($this->legacyArgumentsOrder) {
-        //     $arguments = $this->reshapeArguments($arguments, $this->legacyArgumentsOrder);
-        // }
-
         parent::__construct($name, $arguments);
 
         if (!\array_key_exists('subject', $this->arguments)) {

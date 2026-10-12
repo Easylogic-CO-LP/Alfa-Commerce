@@ -7,12 +7,14 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
-use Alfa\Component\Alfa\Site\Helper\PluginLayoutHelper;
+\defined('_JEXEC') or die;
+
+use Alfa\Component\Alfa\Site\Helper\Layout;
 
 /**
- * Order processing template — shown while waiting for external payment confirmation.
+ * Order processing template: shown while waiting for external payment confirmation.
  *
- * This page is used by external gateway plugins (Stripe, PayPal, Revolut, Viva, etc.)
+ * This page is used by external gateway plugins (card, wallet and bank gateways)
  * that need a "waiting for payment" step between checkout and order completion.
  *
  * The plugin's onOrderProcessView() sets a layout which is rendered here.
@@ -25,13 +27,14 @@ use Alfa\Component\Alfa\Site\Helper\PluginLayoutHelper;
  */
 
 if (!empty($this->event->onOrderProcessView)): ?>
-    <div class="alfa-order-process">
+    <div class="order-process">
         <?php
-        echo PluginLayoutHelper::pluginLayout(
+        echo Layout::render(
+            $this->event->onOrderProcessView->getLayout(),
+            $this->event->onOrderProcessView->getLayoutData(),
             $this->event->onOrderProcessView->getLayoutPluginType(),
             $this->event->onOrderProcessView->getLayoutPluginName(),
-            $this->event->onOrderProcessView->getLayout(),
-        )->render($this->event->onOrderProcessView->getLayoutData());
+        );
         ?>
     </div>
 <?php endif; ?>

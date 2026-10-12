@@ -2,14 +2,15 @@
 <form>
     <fields name="filter" addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
         <field name="search" type="text" description="COM_ALFA_SEARCH_FILTER_SUBMIT"
-               label="COM_USERS_FILTER_SEARCH_DESC"
+               label="COM_ALFA_FILTER_SEARCH_LABEL"
+               hint="COM_ALFA_ORDERS_SEARCH_PLACEHOLDER"
                class="js-stools-search-string" />
 
-        <!-- type="model" → Alfa ModelField, sourced from OrderstatusesModel so
+        <!-- type="model" -> Alfa ModelField, sourced from OrderstatusesModel so
              status names come back in the active language. The empty first
              option is the "all statuses" placeholder (single-select). -->
         <field
-          name="order_status" type="model"
+          name="id_order_status" type="model"
           model="orderstatuses"
           column_value="id"
           column_text="name"
@@ -34,10 +35,101 @@
             <option value="1">COM_ALFA_FILTER_ORDERS_TRASHED</option>
         </field>
 
+        <!-- Payment - Fulfilment - Waiting
+             Three plain questions about an order, each its own filter. The
+             dashboard's "Worth a look" tiles land on combinations of them with the
+             very predicates they counted with (OrdersModel::applyNeeds). -->
+        <field
+          name="payment" type="list"
+          multiple="false"
+          label="COM_ALFA_FILTER_PAYMENT"
+          layout="joomla.form.field.list-fancy-select"
+          onchange="this.form.submit();"
+        >
+            <option value="">COM_ALFA_FILTER_PAYMENT_ANY</option>
+            <option value="paid">COM_ALFA_FILTER_PAYMENT_PAID</option>
+            <option value="unpaid">COM_ALFA_FILTER_PAYMENT_UNPAID</option>
+            <option value="failed">COM_ALFA_FILTER_PAYMENT_FAILED</option>
+            <option value="refunded">COM_ALFA_FILTER_PAYMENT_REFUNDED</option>
+        </field>
+
+        <!-- Reconciliation - Overpaid
+             Both are driven by the CANONICAL facts (ReconciliationFacts), not by
+             a SQL re-derivation: "not fully documented" is healthy and must never
+             appear here. Coverage questions belong in their own filter, and that
+             filter is not called reconciliation. -->
+        <field
+          name="reconciliation" type="list"
+          multiple="false"
+          label="COM_ALFA_FILTER_RECONCILIATION"
+          layout="joomla.form.field.list-fancy-select"
+          onchange="this.form.submit();"
+        >
+            <option value="">COM_ALFA_FILTER_RECONCILIATION_ANY</option>
+            <option value="1">COM_ALFA_FILTER_RECONCILIATION_NEEDED</option>
+        </field>
+
+        <field
+          name="overpaid" type="list"
+          multiple="false"
+          label="COM_ALFA_FILTER_OVERPAID"
+          layout="joomla.form.field.list-fancy-select"
+          onchange="this.form.submit();"
+        >
+            <option value="">COM_ALFA_FILTER_OVERPAID_ANY</option>
+            <option value="1">COM_ALFA_FILTER_OVERPAID_YES</option>
+        </field>
+
+        <field
+          name="fulfilment" type="list"
+          multiple="false"
+          label="COM_ALFA_FILTER_FULFILMENT"
+          layout="joomla.form.field.list-fancy-select"
+          onchange="this.form.submit();"
+        >
+            <option value="">COM_ALFA_FILTER_FULFILMENT_ANY</option>
+            <option value="unshipped">COM_ALFA_FILTER_FULFILMENT_UNSHIPPED</option>
+            <option value="shipped">COM_ALFA_FILTER_FULFILMENT_SHIPPED</option>
+        </field>
+
+        <!-- The 48 in the values is DashboardStatsService::STALE_HOURS; a probe keeps
+             them in step. -->
+        <field
+          name="waiting" type="list"
+          multiple="false"
+          label="COM_ALFA_FILTER_WAITING"
+          layout="joomla.form.field.list-fancy-select"
+          onchange="this.form.submit();"
+        >
+            <option value="">COM_ALFA_FILTER_WAITING_ANY</option>
+            <option value="placed_48">COM_ALFA_FILTER_WAITING_PLACED</option>
+            <option value="untouched_48">COM_ALFA_FILTER_WAITING_UNTOUCHED</option>
+        </field>
+
+        <!-- Order date
+             A preset OR an explicit pair, addressing the same bounds. Which
+             one wins is resolved in OrdersModel::populateState(): whichever the
+             operator just changed. -->
+
+        <field name="date_range" type="daterange"
+               label="COM_ALFA_FILTER_DATE_RANGE"
+               layout="joomla.form.field.list-fancy-select"
+               onchange="this.form.submit();" />
+
+        <field name="date_start" type="calendar" default="" showtime="true"
+               translateformat="true" filter="raw"
+               label="COM_ALFA_FILTER_DATE_START" />
+
+        <field name="date_end" type="calendar" default="" showtime="true"
+               translateformat="true" filter="raw"
+               label="COM_ALFA_FILTER_DATE_END" />
+
     </fields>
 
     <fields name="list">
 
+        <!-- Every value here MUST appear in OrdersModel::$filter_fields; Joomla
+             silently falls back to the default ordering for anything else. -->
         <field name="fullordering"
                type="list"
                label="COM_ALFA_LIST_FULL_ORDERING"
@@ -48,12 +140,15 @@
             <option value="">JGLOBAL_SORT_BY</option>
             <option value="a.id ASC">COM_ALFA_ID_ASC</option>
             <option value="a.id DESC">COM_ALFA_ID_DESC</option>
-            <option value="user_name ASC">COM_ALFA_USER_NAME_ASC</option>
-            <option value="user_name DESC">COM_ALFA_USER_NAME_DESC</option>
-            <option value="a.original_price ASC">COM_ALFA_ORIGINAL_PRICE_ASC</option>
-            <option value="a.original_price DESC">COM_ALFA_ORIGINAL_PRICE_DESC</option>
-            <option value="a.shipping_tracking_number ASC">COM_ALFA_TRACKING_NUMBER_ASC</option>
-            <option value="a.shipping_tracking_number DESC">COM_ALFA_TRACKING_NUMBER_DESC</option>
+            <option value="customer_name ASC">COM_ALFA_USER_NAME_ASC</option>
+            <option value="customer_name DESC">COM_ALFA_USER_NAME_DESC</option>
+            <!-- NO "Code" ORDERING. #__alfa_orders.reference is declared optional
+                 ("can use ID instead") and nothing writes it, so every row is NULL
+                 and the option sorted by nothing at all. The column, its index, the
+                 search clause and the guarded display line stay: the day something
+                 mints a reference, those light up on their own and this option comes
+                 back with them. COM_ALFA_CODE_ASC/DESC are kept: filter_currencies
+                 uses them for the currency code, which is real. -->
             <option value="a.created ASC">COM_ALFA_CREATED_ASC</option>
             <option value="a.created DESC">COM_ALFA_CREATED_DESC</option>
 

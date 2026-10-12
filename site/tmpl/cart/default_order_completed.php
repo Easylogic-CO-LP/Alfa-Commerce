@@ -11,22 +11,32 @@ defined('_JEXEC') or die;
 
     <?php echo \Joomla\CMS\Language\Text::_('COM_ALFA_ORDER_COMPLETED_MESSAGE'); ?><br>
 
+    <?php // The address the confirmation went to; a guest sees a typo at once. ?>
+    <?php if (!empty($this->customerEmail)) : ?>
+        <p class="order-confirmation-notice">
+            <?php echo \Joomla\CMS\Language\Text::sprintf('COM_ALFA_ORDER_COMPLETED_CONFIRMATION_SENT', $this->escape($this->customerEmail)); ?>
+        </p>
+    <?php endif; ?>
+
+    <?php if (!empty($this->hasDownloads)) : ?>
+        <p class="order-downloads-notice">
+            <?php echo \Joomla\CMS\Language\Text::_('COM_ALFA_ORDER_COMPLETED_DOWNLOADS_EMAILED'); ?>
+        </p>
+    <?php endif; ?>
+
 	<?php
 
-	// TODO: Error handling for missing template.
-	use Alfa\Component\Alfa\Site\Helper\PluginLayoutHelper;
+	use Alfa\Component\Alfa\Site\Helper\Layout;
 
-	// Safe to call unconditionally: PluginLayoutHelper returns a no-output layout
+	// Safe to call unconditionally: Layout::render returns a no-output layout
 	// when the type/name/layout is empty (e.g. an order with no payment method).
-	echo PluginLayoutHelper::pluginLayout(
+	echo Layout::render(
+		$this->event->onOrderCompleteView->getLayout(),
+		$this->event->onOrderCompleteView->getLayoutData(),
 		$this->event->onOrderCompleteView->getLayoutPluginType(),
-		$this->event->onOrderCompleteView->getLayoutPluginName(),
-		$this->event->onOrderCompleteView->getLayout()
-	)->render($this->event->onOrderCompleteView->getLayoutData());
+		$this->event->onOrderCompleteView->getLayoutPluginName()
+	);
 
-	//    echo "<pre>";
-	//    print_r($this->event);
-	//    echo "</pre>";
 
 	?>
 

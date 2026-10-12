@@ -1,11 +1,10 @@
 <?php
 
 /**
- * @version    1.0.1
- * @package    Com_Alfa
+ * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  2024 Easylogic CO LP
- * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
 namespace Alfa\Component\Alfa\Administrator\Model;
@@ -14,7 +13,6 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
-use Joomla\CMS\MVC\Model\ListModel;
 
 /**
  * List model for com_alfa users.
@@ -24,8 +22,16 @@ use Joomla\CMS\MVC\Model\ListModel;
  *
  * @since  1.0.0
  */
-class UsersModel extends ListModel
+class UsersModel extends AlfaListModel
 {
+    /**
+     * The admin-contract entity this list serves.
+     *
+     *
+     * @since  1.8.0
+     */
+    protected string $alfaEntity = 'user';
+
     /**
      * Constructor.
      *
@@ -40,9 +46,9 @@ class UsersModel extends ListModel
             $config['filter_fields'] = [
                 'id',          'a.id',
                 'note',        'a.note',
-                'ordering',    'a.ordering',
-                'created_by',  'a.created_by',
-                'modified_by', 'a.modified_by',
+                // No ordering/created_by/modified_by here: #__alfa_users has
+                // no such columns; whitelisting them lets list.ordering
+                // produce broken SQL (the API validates against this list).
                 'username',    'u.username',
                 'email',       'u.email',
                 'lastvisitDate', 'u.lastvisitDate',
@@ -83,8 +89,25 @@ class UsersModel extends ListModel
      */
     protected function getStoreId($id = '')
     {
-        $id .= ':' . $this->getState('filter.search');
-        $id .= ':' . $this->getState('filter.state');
+        // Serialise EVERY filter into the cache identity, including filters a plugin
+        // declared through onAlfaAdminListFilters, which a hand-enumerated list would
+        // silently omit (stale cache + the contract's list phases skipping re-runs).
+        // Same discipline as the orders grid.
+        $filters = [];
+
+        // toArray(), not (array): the model State keeps LITERAL dotted keys, so an
+        // object cast returns its protected properties and matches nothing.
+        foreach ($this->getState()->toArray() as $key => $value) {
+            if (str_starts_with((string) $key, 'filter.')) {
+                $filters[$key] = \is_array($value) ? implode(',', $value) : (string) $value;
+            }
+        }
+
+        ksort($filters);
+
+        foreach ($filters as $key => $value) {
+            $id .= ':' . $key . '=' . $value;
+        }
 
         return parent::getStoreId($id);
     }
@@ -140,8 +163,6 @@ class UsersModel extends ListModel
         $orderDirn = $this->getState('list.direction', 'ASC');
         $query->order($db->escape($orderCol . ' ' . $orderDirn));
 
-        // print_r($db->replacePrefix((string) $query));
-        // exit;
         return $query;
     }
 

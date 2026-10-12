@@ -1,54 +1,57 @@
 /**
- * Orders List — Client-side interactions
+ * Orders List: Client-side interactions
  *
  * Handles list-view-specific behavior only:
  *   - Inline status dropdown AJAX (order.updateOrder endpoint)
  *   - Tooltip initialization (with Joomla 5 ES module retry)
  *   - Detail panel lazy-loading of plugin action buttons
  *   - Toast notifications via Alfa.notify() on status change
- *   - Dynamic list refresh via #alfa-app innerHTML swap (no full reload)
+ *   - Dynamic list refresh by replacing the list table (no full reload)
  *
- * Action execution is fully delegated to order-actions.js (Alfa.executeAction).
- * This file contains ZERO duplicated action logic — it only renders the
- * buttons and passes a list-specific onSuccess callback so that after an
- * action, the entire orders list is refreshed in-place rather than doing
- * a full page reload. This ensures all order rows reflect the latest state
- * (badges, statuses, amounts) because a plugin action can affect anything.
+ * Action execution is delegated to actions.js (Alfa.openAction). This file
+ * only renders the buttons and registers Alfa.actionReload so that after an
+ * action the orders list refreshes in-place rather than doing a full page
+ * reload: every row reflects the latest state (badges, statuses, amounts),
+ * since a plugin action can affect anything.
  *
  * Refresh strategy:
- *   fetch(window.location.href)         — same URL, same filters/pagination
- *   → DOMParser                         — parse full HTML response
- *   → extract #alfa-app innerHTML       — just the list, not chrome
- *   → swap into current #alfa-app       — seamless, no navigation
- *   → re-init tooltips + clear cache    — ready for next interaction
+ *   fetch(window.location.href)         - same URL, same filters/pagination
+ *   -> DOMParser                         - parse full HTML response
+ *   -> surface its Joomla messages       - the fetch drains the session queue
+ *   -> extract [data-alfa-list]          - just the table, not the chrome
+ *   -> replace the live table            - seamless, no navigation
+ *   -> dispatch joomla:updated           - searchtools / list-view re-bind
+ *   -> re-init tooltips + clear cache    - ready for next interaction
+ *
+ * The searchtools bar, bulk bar and the form's control fields (task,
+ * boxchecked, CSRF) sit outside the table and are deliberately never
+ * touched; see the DYNAMIC LIST REFRESH block for why that matters.
  *
  * Dependencies (loaded before this file via web asset manager):
- *   - com_alfa.admin.order-actions  (Alfa.executeAction, Alfa.showActionModal)
+ *   - com_alfa.actions  (Alfa.openAction, Alfa.actionReload)
  *   - com_alfa.admin.notifications  (Alfa.notify)
  *
  * Registered as web asset: com_alfa.admin.orders-list
  * Loaded by: administrator/components/com_alfa/tmpl/orders/default.php
  *
- * @package    Com_Alfa
+ * @package    Alfa Commerce
  * @subpackage Administrator.Assets
  * @version    5.1.0
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  2026 Easylogic CO LP
- * @license    GNU General Public License version 2 or later
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  *
  * @since  1.0.0
  */
 (function () {
     'use strict';
 
-    // ═══════════════════════════════════════════════════════════════
-    //  TOOLTIP INITIALIZATION
+    //  Tooltip initialization
     //
-    //  Joomla 5 loads Bootstrap as an ES module — it may not be
+    //  Joomla 5 loads Bootstrap as an ES module; it may not be
     //  available when DOMContentLoaded fires. We use data-tip /
     //  alfa-tip (not data-bs-toggle="tooltip") and retry at 500ms
     //  and 1500ms as fallback. Each element is only initialized once.
-    // ═══════════════════════════════════════════════════════════════
 
     /**
      * Initialize Bootstrap tooltips on elements with data-tip attribute.
@@ -80,20 +83,18 @@
         });
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  SERVER MESSAGE PROCESSING
+    //  Server message processing
     //
     //  The controller includes Joomla's message queue in the JSON
     //  response (getMessageQueue). Messages come from save(), stock
     //  operations, and activity logging.
     //
     //  Only errors and warnings are shown as sticky toasts. Info/
-    //  success messages go to console — the main action toast covers
+    //  success messages go to console; the main action toast covers
     //  the primary result already.
-    // ═══════════════════════════════════════════════════════════════
 
     /**
-     * Map Joomla message types → Alfa.notify types.
+     * Map Joomla message types -> Alfa.notify types.
      *
      * Joomla uses: 'error', 'warning', 'message' (success), 'notice', 'info'
      * Alfa.notify:  'error', 'warning', 'success', 'info', 'default'
@@ -127,31 +128,91 @@
                         Alfa.notify(msg.message, MESSAGE_TYPE_MAP[msg.type] || 'default');
                     }, (index + 1) * 400);
                 }
-            } else {
-                console.log('[Alfa Orders] Server:', msg.message);
             }
         });
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  DYNAMIC LIST REFRESH
+    //  Dynamic list refresh
     //
     //  Fetches the current page URL (preserving all active filters,
     //  search terms, pagination and sort order from window.location)
-    //  and swaps only the #alfa-app div's innerHTML. The rest of the
-    //  Joomla chrome (toolbar, sidebar, breadcrumbs) stays untouched.
+    //  and replaces ONLY the list table. Everything above and below it
+    //  inside #adminForm - the searchtools bar, the bulk bar, and the
+    //  control fields (task, boxchecked, CSRF) - is left alone, plus
+    //  all the Joomla chrome (toolbar, sidebar, breadcrumbs).
+    //
+    //  Why the table and not the whole #alfa-app wrapper?
+    //  #alfa-app holds stable chrome as well as volatile data. Replacing
+    //  it destroys the nodes Joomla bound listeners to at page load,
+    //  most damagingly the boxchecked input, which every list-selection
+    //  <joomla-toolbar-button> (Trash, Restore, Check-in, Empty Trash,
+    //  the status dropdown) caches in connectedCallback and never re-reads.
+    //  The toolbar sits outside #alfa-app, so it is never reconnected and
+    //  those buttons freeze: worst case still enabled over an empty cid[].
+    //  Keeping the swap inside the table means none of that is ours to
+    //  resurrect: only the table's own contents need re-binding.
     //
     //  Why fetch the whole page vs. a dedicated AJAX endpoint?
-    //   - Zero extra PHP/controller code — existing view renders it
+    //   - Zero extra PHP/controller code; existing view renders it
     //   - Filters, pagination, sort already in window.location.href
-    //   - DOMParser extracts just the #alfa-app slice cleanly
+    //   - DOMParser extracts just the table cleanly
     //   - Scripts in the parsed doc do NOT execute (DOMParser is safe)
     //
     //  Called by the onSuccess callback in handleActionClick() when
     //  result.refresh = true. A plugin action can affect any order row
     //  (delivery badges, payment status, fulfillment, amounts) so
-    //  refreshing the full list is the only correct approach.
-    // ═══════════════════════════════════════════════════════════════
+    //  refreshing every row is the only correct approach.
+
+    /**
+     * Surface the Joomla messages carried by a refresh response.
+     *
+     * Rendering that response server-side drains the session message queue:
+     * CMSApplication::getMessageQueue() moves it out of the session and clears
+     * it. The message container is emitted outside the component (atum's
+     * component.php renders jdoc message and component as siblings), so without
+     * this the messages are lost twice over: discarded here, and already gone
+     * from the session, so the next real page load shows nothing either.
+     *
+     * The payload rides in the head as script options; the rendered container is
+     * <noscript>-wrapped and useless to copy. Shape is a list of {type: [text]},
+     * matching Joomla's own boot in media/system/js/messages.js.
+     *
+     * @param  {Document}  doc  The parsed refresh response
+     */
+    function showResponseMessages(doc) {
+        if (typeof Joomla === 'undefined' || !Joomla.renderMessages) return;
+
+        var payload = null;
+
+        doc.querySelectorAll('script.joomla-script-options').forEach(function (el) {
+            if (payload) return;
+
+            try {
+                var opts = JSON.parse(el.textContent || '{}');
+                if (opts['joomla.messages']) payload = opts['joomla.messages'];
+            } catch (e) {
+                // Not a parseable options blob; skip it.
+            }
+        });
+
+        if (!payload) return;
+
+        // keepOld: never wipe messages or toasts already on screen.
+        Object.keys(payload).forEach(function (key) {
+            Joomla.renderMessages(payload[key], undefined, true, undefined);
+        });
+    }
+
+    /**
+     * The refreshable list region, matched in both the live page and the
+     * fetched response. Targets the data attribute rather than the id so a
+     * template override can rename #orderList without breaking the refresh.
+     *
+     * Emitted by administrator/components/com_alfa/tmpl/orders/default.php.
+     *
+     * @type {string}
+     */
+    var LIST_SELECTOR = '[data-alfa-list="orders"]';
 
     /**
      * Whether a refresh fetch is already in progress.
@@ -162,18 +223,21 @@
     var refreshInProgress = false;
 
     /**
-     * Dynamically refresh the orders list by swapping #alfa-app innerHTML.
+     * Dynamically refresh the orders list by replacing the list table.
      *
      * Flow:
      *   1. Guard against concurrent refreshes
      *   2. Dim the #alfa-app container (loading feedback)
      *   3. Fetch window.location.href with GET
      *   4. Parse full HTML response via DOMParser (scripts do NOT run)
-     *   5. Extract #alfa-app from the parsed document
-     *   6. Replace current #alfa-app innerHTML
-     *   7. Clear loadedActions cache (panels collapse on swap)
-     *   8. Re-initialize tooltips on new DOM nodes
-     *   9. Restore opacity
+     *   5. Render any Joomla messages the response carried
+     *   6. Extract the list table from the parsed document
+     *   7. Dispose the Collapse instances on the outgoing panels
+     *   8. Replace the live table with the fetched one
+     *   9. Dispatch joomla:updated so searchtools / list-view re-bind
+     *  10. Clear loadedActions cache (panels collapse on swap)
+     *  11. Re-initialize tooltips on new DOM nodes
+     *  12. Restore opacity + re-expand the panels that were open
      *
      * On any failure: restores the container and shows a warning toast.
      */
@@ -181,15 +245,14 @@
         if (refreshInProgress) return;
         refreshInProgress = true;
 
-        // ── Remember which panel was open before the swap ────────────
-        // After innerHTML replacement all panels are collapsed.
-        // We re-expand the same one so the admin keeps their context
-        // and can see the updated state of the order they just acted on.
-        var openPanelId = null;
-        var openPanel   = document.querySelector('.collapse.show[data-order-id]');
-        if (openPanel) {
-            openPanelId = openPanel.getAttribute('data-order-id');
-        }
+        // Remember which panels were open before the swap
+        // The replacement table arrives with every panel collapsed. Panels carry
+        // no data-bs-parent, so any number can be open at once; re-expand every
+        // one of them, or the admin silently loses the context they had.
+        var openPanelIds = [];
+        document.querySelectorAll('.collapse.show[data-order-id]').forEach(function (panel) {
+            openPanelIds.push(panel.getAttribute('data-order-id'));
+        });
 
         var appEl = document.getElementById('alfa-app');
         if (appEl) {
@@ -210,17 +273,44 @@
                 return response.text();
             })
             .then(function (html) {
-                var parser   = new DOMParser();
-                var doc      = parser.parseFromString(html, 'text/html');
-                var freshApp = doc.getElementById('alfa-app');
+                var parser    = new DOMParser();
+                var doc       = parser.parseFromString(html, 'text/html');
 
-                if (!freshApp) {
-                    throw new Error('#alfa-app not found in response. Session may have expired.');
+                // Before the not-found guards below: if the server refused the
+                // refresh it usually said why, and that message is the only clue.
+                showResponseMessages(doc);
+
+                var freshList = doc.querySelector(LIST_SELECTOR);
+                var liveList  = document.querySelector(LIST_SELECTOR);
+
+                if (!freshList) {
+                    throw new Error(LIST_SELECTOR + ' not found in response. Session may have expired.');
+                }
+                if (!liveList) {
+                    throw new Error(LIST_SELECTOR + ' is gone from the page.');
                 }
 
-                if (appEl) {
-                    appEl.innerHTML = freshApp.innerHTML;
+                // Bootstrap holds element->instance in a strong Map, so every panel we
+                // detach stays reachable and pins the old list DOM behind it. Release
+                // them before the node is thrown away.
+                if (typeof bootstrap !== 'undefined') {
+                    liveList.querySelectorAll('.collapse[data-order-id]').forEach(function (panel) {
+                        var inst = bootstrap.Collapse.getInstance(panel);
+                        if (inst) inst.dispose();
+                    });
                 }
+
+                var newList = document.importNode(freshList, true);
+                liveList.replaceWith(newList);
+
+                // Joomla's "this subtree was replaced, re-bind" signal. The sort headers
+                // (.js-stools-column-order), row checkboxes (.js-grid-item-is-checked) and
+                // check-in padlocks (.js-grid-item-action) live inside the table and only
+                // re-bind on this event. Dispatch it on the table, never on document:
+                // searchtools and list-view.js scope their re-init to event.target, and
+                // list-view.js has no re-entrancy guard; a document-wide target would
+                // double-bind everything outside the list too.
+                newList.dispatchEvent(new CustomEvent('joomla:updated', { bubbles: true }));
 
                 loadedActions = {};
 
@@ -233,19 +323,21 @@
                     appEl.style.transition    = '';
                 }
 
-                // ── Restore the previously open panel ────────────────
-                // Use Bootstrap's Collapse API to re-expand the panel.
-                // This also fires 'shown.bs.collapse' which triggers
-                // loadOrderActions() — so fresh action buttons are loaded
-                // automatically, no extra call needed.
-                if (openPanelId) {
-                    var restoredPanel = document.getElementById('od-' + openPanelId);
-                    if (restoredPanel && typeof bootstrap !== 'undefined') {
-                        // Small delay so the DOM settles after the innerHTML swap
-                        setTimeout(function () {
-                            bootstrap.Collapse.getOrCreateInstance(restoredPanel).show();
-                        }, 50);
-                    }
+                // Restore the previously open panels
+                // Use Bootstrap's Collapse API to re-expand each one. This also
+                // fires 'shown.bs.collapse' which triggers loadOrderActions(),
+                // so fresh action buttons are loaded automatically for every
+                // restored panel, no extra call needed.
+                if (openPanelIds.length && typeof bootstrap !== 'undefined') {
+                    // Small delay so the DOM settles after the table swap
+                    setTimeout(function () {
+                        openPanelIds.forEach(function (panelId) {
+                            var restoredPanel = document.getElementById('od-' + panelId);
+                            if (restoredPanel) {
+                                bootstrap.Collapse.getOrCreateInstance(restoredPanel).show();
+                            }
+                        });
+                    }, 50);
                 }
 
                 refreshInProgress = false;
@@ -262,13 +354,12 @@
                 refreshInProgress = false;
 
                 if (window.Alfa && Alfa.notify) {
-                    Alfa.notify('List refresh failed — reload the page manually', 'warning');
+                    Alfa.notify('List refresh failed; reload the page manually', 'warning');
                 }
             });
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  INLINE STATUS CHANGE — AJAX via updateOrder endpoint
+    //  INLINE STATUS CHANGE: AJAX via updateOrder endpoint
     //
     //  When admin changes the status dropdown:
     //    1. Show "saving" CSS class (opacity + cursor)
@@ -277,16 +368,15 @@
     //    4. Success: update colors, flash green, show toast
     //    5. Error: revert value, flash red, show toast
     //
-    //  Status changes do NOT trigger refreshOrdersList() — the dropdown
+    //  Status changes do NOT trigger refreshOrdersList(); the dropdown
     //  already reflects the new value visually and only the one row is
     //  affected. A full list refresh would be wasteful here.
-    // ═══════════════════════════════════════════════════════════════
 
     /**
      * Get the Joomla CSRF token via the framework options API.
      *
      * Joomla.getOptions('csrf.token') is the reliable Joomla 5 method.
-     * Never scrape the DOM for the token — the key name is random per session.
+     * Never scrape the DOM for the token; the key name is random per session.
      *
      * @return  {string}  Token name, or empty string
      */
@@ -324,7 +414,7 @@
      * Handle status dropdown change event.
      *
      * POSTs to order.updateOrder and manages visual state.
-     * Does NOT trigger a full list refresh — only one row is affected
+     * Does NOT trigger a full list refresh; only one row is affected
      * and the dropdown already shows the new value.
      *
      * @param  {Event}  event  The change event from the <select>
@@ -380,7 +470,7 @@
                     flashClass(select, 'saved', 1500);
                     if (window.Alfa && Alfa.notify) {
                         var statusName = select.options[select.selectedIndex].text.trim();
-                        Alfa.notify('Order #' + orderId + ' → ' + statusName, 'success', 'medium');
+                        Alfa.notify('Order #' + orderId + ' -> ' + statusName, 'success', 'medium');
                     }
                     showServerMessages(result.messages);
                 } else {
@@ -401,22 +491,19 @@
                 updateSelectColors(select);
                 flashClass(select, 'error', 2000);
                 if (window.Alfa && Alfa.notify) {
-                    Alfa.notify('Network error — status not saved', 'error');
+                    Alfa.notify('Network error: status not saved', 'error');
                 }
             });
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  PLUGIN ACTIONS — Lazy-loaded for detail panels
+    //  PLUGIN ACTIONS: Lazy-loaded for detail panels
     //
     //  When a detail panel opens, fetch available plugin actions for
     //  that order via getOrderActions. Buttons are rendered from the
     //  JSON response into .dp-actions placeholder divs.
     //
-    //  On click, Alfa.executeAction() is called with a list-specific
-    //  onSuccess callback that calls refreshOrdersList() on refresh,
-    //  or navigates on redirect.
-    // ═══════════════════════════════════════════════════════════════
+    //  On click, Alfa.openAction() opens the action page; the registered
+    //  Alfa.actionReload (refreshOrdersList) swaps the rows when it finishes.
 
     /**
      * Track which orders already have actions loaded.
@@ -478,8 +565,8 @@
     /**
      * Render action buttons into .dp-actions placeholder divs.
      *
-     * Uses data attributes only (no inline onclick) — CSP-friendly.
-     * Clicks bubble up to the delegated listener on #orderList.
+     * Uses data attributes only (no inline onclick), CSP-friendly.
+     * Clicks bubble up to the delegated listener on #alfa-app.
      *
      * @param  {HTMLElement}  panel       The detail panel (div#od-N)
      * @param  {string}       entityType  'shipment' or 'payment'
@@ -499,19 +586,33 @@
 
             actions.sort(function (a, b) { return (b.priority || 0) - (a.priority || 0); });
 
+            // Plugin-supplied action metadata is untrusted markup; escape every value
+            // before it enters this innerHTML string, or a label/tooltip/class could
+            // break out of its attribute (or inject script) into the admin list.
+            var esc = function (s) {
+                return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                });
+            };
+
             var html = '<div class="btn-group" role="group">';
             actions.forEach(function (action) {
                 html +=
                     '<button type="button"'
-                    + ' class="btn btn-sm ' + (action.class || 'btn-primary') + (action.enabled === false ? ' disabled' : '') + '"'
-                    + ' data-action="'    + action.id  + '"'
-                    + ' data-entity="'    + entityType + '"'
-                    + ' data-entity-id="' + entityId   + '"'
-                    + (action.tooltip ? ' title="' + action.tooltip + '"' : '')
-                    + (action.requires_confirmation ? ' data-confirm="' + (action.confirmation_message || 'Are you sure?') + '"' : '')
+                    + ' class="btn btn-sm ' + esc(action.class || 'btn-primary') + (action.enabled === false ? ' disabled' : '') + '"'
+                    + ' data-action="'    + esc(action.id)  + '"'
+                    // A state-changing action must be SUBMITTED, not linked:
+                    // the dispatcher refuses it over GET.
+                    + ' data-mutates="'   + (action.mutates ? '1' : '0') + '"'
+                    + ' data-entity="'    + esc(entityType) + '"'
+                    + ' data-entity-id="' + esc(entityId)   + '"'
+                    + (action.tooltip ? ' title="' + esc(action.tooltip) + '"' : '')
+                    + (action.requires_confirmation ? ' data-confirm="' + esc(action.confirmation_message || 'Are you sure?') + '"' : '')
+                    // Fields the action posts, e.g. the figure its confirmation named.
+                    + ' data-fields="' + esc(JSON.stringify(action.data || {})) + '"'
                     + '>'
-                    + (action.icon ? '<span class="icon-' + action.icon + ' me-1"></span>' : '')
-                    + action.label
+                    + (action.icon ? '<span class="icon-' + esc(action.icon) + ' me-1"></span>' : '')
+                    + esc(action.label)
                     + '</button>';
             });
             html += '</div>';
@@ -522,59 +623,43 @@
     /**
      * Handle action button clicks in detail panels.
      *
-     * Delegates entirely to Alfa.executeAction() (order-actions.js).
-     * The only list-specific logic is the onSuccess callback which
-     * calls refreshOrdersList() instead of location.reload().
+     * Opens the action page (Alfa.openAction) like every other surface; when
+     * it finishes, the registered Alfa.actionReload (refreshOrdersList) swaps
+     * the list rows in place, preserving filters, search and pagination.
      *
-     * Why refresh the whole list on every plugin action?
-     *   A plugin can change anything: mark a payment refunded, update
-     *   a shipment to delivered, trigger stock restoration — all of which
-     *   affect row data outside the current detail panel. Refreshing the
-     *   full list guarantees consistency with zero extra backend code.
-     *
-     * @param  {Event}  event  Click event delegated from #orderList
+     * @param  {Event}  event  Click event delegated from #alfa-app
      */
     function handleActionClick(event) {
         var btn = event.target.closest('button[data-action]');
         if (!btn) return;
 
-        var actionId   = btn.getAttribute('data-action');
-        var entityType = btn.getAttribute('data-entity');
-        var entityId   = parseInt(btn.getAttribute('data-entity-id'), 10);
         var confirmMsg = btn.getAttribute('data-confirm');
-
         if (confirmMsg && !confirm(confirmMsg)) return;
 
-        /**
-         * List-specific post-action callback.
-         * Replaces Alfa._handleNavigation() for the list context.
-         *
-         * @param  {object}  result  Server response
-         * @param  {string}  action  Executed action ID
-         */
-        var onSuccess = function (result, action) {
-            if (result.redirect) {
-                setTimeout(function () { window.location.href = result.redirect; }, 800);
-            } else {
-                // Fetch and swap the entire list — not just the actions panel.
-                // Preserves current filters, search, and pagination exactly.
-                refreshOrdersList();
-            }
-        };
-
-        Alfa.executeAction(entityType, entityId, actionId, btn, {}, onSuccess);
+        Alfa.openAction({
+            context: btn.getAttribute('data-entity'),
+            id:      parseInt(btn.getAttribute('data-entity-id'), 10),
+            action:  btn.getAttribute('data-action'),
+            data:    JSON.parse(btn.getAttribute('data-fields') || '{}'),
+            title:   (btn.textContent || '').trim(),
+            mutates: btn.getAttribute('data-mutates') === '1'
+        });
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  INITIALIZATION
-    // ═══════════════════════════════════════════════════════════════
+    //  Initialization
 
     document.addEventListener('DOMContentLoaded', function () {
 
-        // ── Tooltips with retries for ES module Bootstrap ────────
+        // Tooltips with retries for ES module Bootstrap
         initTooltips();
         setTimeout(initTooltips, 500);
         setTimeout(initTooltips, 1500);
+
+        // After any action finishes, swap the list rows in place rather than a
+        // full reload: keeps filters, search and pagination exactly as they are.
+        if (window.Alfa) {
+            Alfa.actionReload = refreshOrdersList;
+        }
 
         var appContainer = document.getElementById('alfa-app');
 
@@ -592,7 +677,7 @@
             });
         }
 
-        // ── Load actions when a detail panel opens ───────────────
+        // Load actions when a detail panel opens
         // Fires after Bootstrap collapse animation completes.
         // After refreshOrdersList() all panels are closed and
         // loadedActions is empty, so re-opening fetches fresh data.

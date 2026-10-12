@@ -1,12 +1,14 @@
 <?php
 
 /**
- * @package    Alfa Commerce
- * @author     Agamemnon Fakas <info@easylogic.gr>
+ * @package        Alfa Commerce
+ * @author         Agamemnon Fakas <info@easylogic.gr>
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
- * @license    GNU General Public License version 3 or later; see LICENSE
+ * @license        GNU General Public License version 3 or later; see LICENSE
  */
 
+use Alfa\Component\Alfa\Administrator\Event\ItemFields\CartSurface;
+use Alfa\Component\Alfa\Site\Helper\Layout;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Router\Route;
@@ -17,15 +19,17 @@ if (isset($displayData)) {
     extract($displayData);
 }
 
-$cart = ($cart ?? null);
-if (!isset($cart)) {
+// Nothing to draw without a reading of the cart, and the reading is what this
+// layout renders from, so it is the reading that decides.
+$snapshot = ($snapshot ?? null);
+
+if ($snapshot === null) {
     return;
 }
 
 $priceSettings = ($priceSettings ?? null);
 
-$data = $cart->getData();
-$items = $data->items ?? [];
+$items = $snapshot->lines;
 $itemsCount = count($items);
 
 ?>
@@ -53,39 +57,107 @@ $itemsCount = count($items);
         </button>
     </div>
     <div class="cart-body">
+		<?php // What the cart said about the change just made: the drawer answers a change with it inside.?>
+		<?php echo Layout::render('cart.messages', ['messages' => $messages ?? []]); ?>
 
 		<?php if (!empty($items)): ?>
             <ul class="cart-list">
 				<?php foreach ($items as $cartItem): ?>
-                    <li class="cart-item-outer" data-item-id="<?= $cartItem->id_item; ?>">
+					<?php
+                    // AN UNAVAILABLE LINE IS REMOVE-ONLY HERE TOO.
+                    // Its product left the catalogue or its unit is out of stock. The
+                    // drawer reads the same lines the cart page does, so the line is
+                    // shown, named and explained, its quantity is a number rather than
+                    // a control, and the only thing still offered on it is taking it
+                    // out. Its money is not in the cart total, so its total is a dash:
+                    // a withdrawn line has no price, and a line out of stock keeps its
+                    // price, shows the unit and is labelled out of stock, as on the
+                    // cart page.
+                    $unavailable = !empty($cartItem->unavailable);
+				    // A line refused only for its quantity names the smallest one that
+				    // is charged, and keeps its stepper so the shopper can set it.
+				    $requantify = $unavailable && isset($cartItem->chargeable_from);
+				    $outOfStock = $unavailable && \is_object($cartItem->data->price ?? null);
+				    ?>
+                    <li class="cart-item-outer<?php echo $unavailable ? ' cart-item-unavailable' : ''; ?>" data-item-id="<?= (int) $cartItem->id_item; ?>" data-line-id="<?= (int) $cartItem->id; ?>">
                         <div class="cart-item-details">
                             <div class="cart-item-name">
 								<?php echo htmlspecialchars($cartItem->data->name); ?>
                             </div>
+							<?php if ($unavailable): ?>
+                                <p class="cart-item-unavailable-reason"><?php echo htmlspecialchars((string) ($cartItem->unavailable_reason ?? '')); ?></p>
+							<?php endif; ?>
+							<?php $cartFieldSurfaces = $cartItem->surfaces[CartSurface::Main->value] ?? []; ?>
+							<?php if ($cartFieldSurfaces): ?>
+                                <ul class="cart-item-fields">
+									<?php foreach ($cartFieldSurfaces as $surface): ?>
+                                        <li><?php echo Layout::render($surface['layout'], $surface['layoutData'], $surface['layoutPluginType'], $surface['layoutPluginName']); ?></li>
+									<?php endforeach; ?>
+                                </ul>
+							<?php endif; ?>
                             <div class="cart-item-price">
-								<?php
-                                echo LayoutHelper::render('price', [
-                                    'item' => $cartItem->data,  // Pass item data
-                                    'settings' => $priceSettings,
-                                    'options' => ['show_totals' => true],
-                                ], JPATH_ROOT . '/components/com_alfa/layouts');
-				    ?>
+								<?php if ($unavailable): ?>
+									<?php if ($outOfStock): ?>
+										<?php
+				                        // One unit figure, the one the cart page prints for the line:
+				                        // the unit price with tax, before discounts. The module's price
+				                        // settings are not applied, since a total or a breakdown they
+				                        // switch on would print line money the cart does not count.
+				                        echo LayoutHelper::render(
+				                            layoutFile: 'item.price',
+				                            displayData: [
+				                                'item' => $cartItem->data,
+				                                'settings' => ['base_price_with_tax_show' => 1],
+				                                'options' => ['show_totals' => false],
+				                            ],
+				                            basePath: JPATH_ROOT . '/components/com_alfa/layouts',
+				                        );
+									    ?>
+									<?php endif; ?>
+									<?php echo '&mdash;'; ?>
+									<?php if ($outOfStock): ?>
+										<span class="cart-item-out-of-stock"><?php echo Text::_(string: 'COM_ALFA_ITEM_FIELD_OUT_OF_STOCK'); ?></span>
+									<?php endif; ?>
+								<?php else: ?>
+									<?php
+                                    echo LayoutHelper::render('item.price', [
+									    'item' => $cartItem->data,  // Pass item data
+									    'settings' => $priceSettings,
+									    'options' => ['show_totals' => true],
+                                    ], JPATH_ROOT . '/components/com_alfa/layouts');
+								    ?>
+								<?php endif; ?>
                             </div>
 
                         </div>
 
                         <div class="item-quantity-controls-wrapper">
-                            <button class="item-quantity-controls decrement" data-action="cart-item-decrement">-</button>
+							<?php if ($unavailable && !$requantify): ?>
+                                <span class="cart-item-quantity-static"><?php echo (int) $cartItem->quantity; ?></span>
+							<?php else: ?>
+                            <div class="alfa-stepper">
+                                <button class="alfa-stepper-btn decrement" data-action="cart-item-decrement">-
+                                </button>
 
-                            <input class="item-quantity"
-                                   type="number"
-                                   name="quantity"
-                                   data-action="cart-item-quantity"
-                                   min="<?php echo $cartItem->data->quantity_min ?? 1; ?>"
-                                   max="<?php echo $cartItem->data->stock ?? 999; ?>"
-                                   value="<?php echo $cartItem->quantity; ?>">
+                                <input class="alfa-stepper-input"
+                                       type="number"
+                                       name="quantity"
+                                       data-action="cart-item-quantity"
+                                       <?php // The line's smallest sale in whole units, as the cart
+								             // page renders it from the hydrator's figures.?>
+                                       min="<?php echo $cartItem->sale_minimum ?? 1; ?>"
+                                       <?php // The line's canonical maximum, rendered as on the cart page:
+								             // empty means no limit, '+' is disabled at the maximum and the
+								             // box is read-only at 0. The server clamp enforces it.?>
+                                       max="<?php echo $cartItem->quantity_limit ?? ''; ?>"
+                                       <?php // The line's step in whole units, as the cart page renders it.?>
+                                       data-step="<?php echo $cartItem->sale_increment ?? 1; ?>"
+                                       value="<?php echo $cartItem->quantity; ?>"<?php echo ($cartItem->quantity_limit ?? null) === 0 ? ' readonly' : ''; ?>>
 
-                            <button class="item-quantity-controls increment" data-action="cart-item-increment">+</button>
+                                <button class="alfa-stepper-btn increment" data-action="cart-item-increment"<?php echo isset($cartItem->quantity_limit) && (int) $cartItem->quantity >= $cartItem->quantity_limit ? ' disabled' : ''; ?>>+
+                                </button>
+                            </div>
+							<?php endif; ?>
 
                             <button class="cart-item-remove" data-action="cart-item-remove">
                                 <svg fill="currentColor"
@@ -105,7 +177,7 @@ $itemsCount = count($items);
             </ul>
 
 		<?php else: ?>
-            <span class="alfa-cart-empty"><?php echo Text::_('MOD_ALFA_CART_EMPTY_MSG'); ?></span>
+            <span class="cart-empty"><?php echo Text::_('MOD_ALFA_CART_EMPTY_MSG'); ?></span>
 		<?php endif; ?>
     </div>
 
@@ -117,15 +189,15 @@ $itemsCount = count($items);
             <div class="cart-totals">
 
                 <!-- Shipping Row -->
-				<?php //if (!$cart->getShipmentTotal()->isZero()):?>
-                    <div class="totals-row shipping-row">
-                        <div class="totals-label">
-                            <strong><?php echo Text::_('MOD_ALFA_CART_SHIPPING'); ?>:</strong>
-                        </div>
-                        <div class="totals-value">
-							<?php echo $cart->getShipmentTotal()->format(); ?>
-                        </div>
+				<?php //if (!$snapshot->totals->shipment->isZero()):?>
+                <div class="totals-row shipping-row">
+                    <div class="totals-label">
+                        <strong><?php echo Text::_('MOD_ALFA_CART_SHIPPING'); ?>:</strong>
                     </div>
+                    <div class="totals-value">
+						<?php echo $snapshot->totals->shipment->format(); ?>
+                    </div>
+                </div>
 				<?php //endif;?>
 
                 <!-- Grand Total Row -->
@@ -134,7 +206,7 @@ $itemsCount = count($items);
                         <strong><?php echo Text::_('MOD_ALFA_CART_TOTAL_PRICE_TEXT'); ?>:</strong>
                     </div>
                     <div class="totals-value">
-                        <strong><?php echo $cart->getGrandTotal()->format(); ?></strong>
+                        <strong><?php echo $snapshot->totals->grand->format(); ?></strong>
                     </div>
                 </div>
 
@@ -142,7 +214,7 @@ $itemsCount = count($items);
 
             <!-- Checkout Button -->
             <a href="<?php echo Route::_('index.php?option=com_alfa&view=cart'); ?>"
-               class="btn btn-primary btn-checkout">
+               class="cart-checkout">
 				<?php echo Text::_('MOD_ALFA_CART_COMPLETE_ORDER_BUTTON'); ?>
             </a>
 

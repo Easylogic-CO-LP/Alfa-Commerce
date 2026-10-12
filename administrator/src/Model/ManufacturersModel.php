@@ -14,15 +14,20 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
-use Joomla\CMS\MVC\Model\ListModel;
 
 /**
  * Methods supporting a list of Manufacturers records.
  *
  * @since  1.0.0
  */
-class ManufacturersModel extends ListModel
+class ManufacturersModel extends AlfaListModel
 {
+    /**
+     * @var string The entity a plugin targets with $context->targets('manufacturer').
+     * @since  1.8.0
+     */
+    protected string $alfaEntity = 'manufacturer';
+
     /**
     * Constructor.
     *
@@ -41,7 +46,7 @@ class ManufacturersModel extends ListModel
                 'id', 'a.id',
                 'state', 'a.state',
                 'website', 'a.website',
-                // Translatable — resolved via the lang-table COALESCE alias.
+                // Translatable: resolved via the lang-table COALESCE alias.
                 'name',
                 'alias',
             ];
@@ -83,9 +88,25 @@ class ManufacturersModel extends ListModel
      */
     protected function getStoreId($id = '')
     {
-        // Compile the store id.
-        $id .= ':' . $this->getState('filter.search');
-        $id .= ':' . $this->getState('filter.state');
+        // Serialise EVERY filter into the cache identity, including filters a plugin
+        // declared through onAlfaAdminListFilters, which a hand-enumerated list would
+        // silently omit (stale cache + the contract's list phases skipping re-runs).
+        // Same discipline as the orders grid.
+        $filters = [];
+
+        // toArray(), not (array): the model State keeps LITERAL dotted keys, so an
+        // object cast returns its protected properties and matches nothing.
+        foreach ($this->getState()->toArray() as $key => $value) {
+            if (str_starts_with((string) $key, 'filter.')) {
+                $filters[$key] = \is_array($value) ? implode(',', $value) : (string) $value;
+            }
+        }
+
+        ksort($filters);
+
+        foreach ($filters as $key => $value) {
+            $id .= ':' . $key . '=' . $value;
+        }
 
         return parent::getStoreId($id);
     }
@@ -135,6 +156,21 @@ class ManufacturersModel extends ListModel
             fields:            ['name', 'alias'],
         );
 
+        // Assigned item count: correlated subquery for the same reason as
+        // CategoriesModel: DISTINCT a.* plus a bare HAVING forbid a junction join.
+        // COUNT(DISTINCT) because the junction table has no unique key, and the
+        // item states mirror the Items list default so the badge and the linked
+        // list agree.
+        $query->select(
+            '(SELECT COUNT(DISTINCT ' . $db->quoteName('im.item_id') . ')'
+            . ' FROM ' . $db->quoteName('#__alfa_items_manufacturers', 'im')
+            . ' INNER JOIN ' . $db->quoteName('#__alfa_items', 'mi')
+            . ' ON ' . $db->quoteName('mi.id') . ' = ' . $db->quoteName('im.item_id')
+            . ' WHERE ' . $db->quoteName('im.manufacturer_id') . ' = ' . $db->quoteName('a.id')
+            . ' AND ' . $db->quoteName('mi.state') . ' IN (0, 1)'
+            . ') AS ' . $db->quoteName('item_count'),
+        );
+
         // Filter by published state
         $published = $this->getState('filter.state');
 
@@ -152,7 +188,7 @@ class ManufacturersModel extends ListModel
                 $query->where('a.id = ' . (int) substr($search, 3));
             } else {
                 $search = $db->Quote('%' . $db->escape($search, true) . '%');
-                // HAVING — `name` is the COALESCE alias from the lang join, not a
+                // HAVING: `name` is the COALESCE alias from the lang join, not a
                 // real column at WHERE time.
                 $query->having('( ' . $db->quoteName('name') . ' LIKE ' . $search . ' )');
             }

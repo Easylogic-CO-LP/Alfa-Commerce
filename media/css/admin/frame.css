@@ -1,0 +1,67 @@
+/**
+ * Alfa Commerce: admin chrome removal inside the action frame.
+ *
+ * The setup checklist and the tools open real admin screens inside an iframe
+ * modal. They used to be opened with `tmpl=component`, but Joomla's component
+ * template renders no `toolbar` module position at all: the screen arrived with
+ * no Save and no New: a merchant could type a store name into the Options and
+ * had nothing to press, and an edit screen showed its toolbar for a blink before
+ * the guard reloaded it away.
+ *
+ * So the frame now loads the page exactly as the admin serves it, and this
+ * stylesheet (injected into the framed document by actions.js, which also
+ * stamps `data-alfa-frame` on its <html>) removes only the navigation chrome.
+ * The toolbar is deliberately kept and pinned, because it is the half the
+ * merchant came for.
+ *
+ * Selectors follow Atum's structure (header#header, #wrapper > #sidebar-wrapper
+ * + .container-main > #subhead-container + #content). If a future template
+ * renames them the worst case is a visible sidebar inside the modal, never a
+ * broken screen.
+ */
+
+:root[data-alfa-frame] #header,
+:root[data-alfa-frame] #sidebar-wrapper,
+:root[data-alfa-frame] .toggler-burger,
+:root[data-alfa-frame] .skip-to,
+:root[data-alfa-frame] #status,
+:root[data-alfa-frame] .footer,
+:root[data-alfa-frame] #back-top {
+    display: none;
+}
+
+/* The wrapper is a flex row built to sit beside the sidebar that is now gone. */
+:root[data-alfa-frame] #wrapper {
+    display: block;
+}
+
+:root[data-alfa-frame] .container-main {
+    padding: 0.75rem 1rem 1.5rem;
+    margin: 0;
+    max-width: none;
+}
+
+/* The toolbar travels with the scroll: on a long edit form Save must never be
+   somewhere above the top of a 72vh modal. */
+:root[data-alfa-frame] #subhead-container {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    margin-bottom: 1rem;
+    padding-top: 0.25rem;
+    background: var(--body-bg, #fff);
+}
+
+/* ...but a toolbar with nothing in it is just a white strip where buttons would
+   have been. A framed screen may legitimately have none (a screen opened as a
+   popup whose exit is the frame's own close), so drop the container when it is
+   empty rather than reserving sticky space for it. Without :has() support the
+   worst case is the blank strip that was there before. */
+:root[data-alfa-frame] #subhead-container:not(:has(.btn, joomla-toolbar-button)) {
+    display: none;
+}
+
+/* Joomla's own messages render inside the frame; keep them tight to the top. */
+:root[data-alfa-frame] #system-message-container {
+    margin-bottom: 0.75rem;
+}

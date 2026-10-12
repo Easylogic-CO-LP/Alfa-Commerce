@@ -10,18 +10,18 @@
 namespace Alfa\Plugin\AlfaFormFields\Tel\Extension;
 
 use Alfa\Component\Alfa\Administrator\Event\Fields\PrepareDomEvent;
-use Alfa\Component\Alfa\Administrator\Plugin\FieldsPlugin;
+use Alfa\Component\Alfa\Administrator\Plugin\FormFieldsPlugin;
 use DOMElement;
 use Joomla\CMS\Form\FormHelper;
 use Joomla\Registry\Registry;
 
 defined('_JEXEC') or die;
 
-final class Tel extends FieldsPlugin
+final class Tel extends FormFieldsPlugin
 {
     // Assets (intl-tel-input, tel.js, tel.css) load from inside the layout
     // (tmpl/layouts/tel.php) so they're only pulled in when a tel field actually
-    // renders — and a template override of the layout can swap them.
+    // renders, and a template override of the layout can swap them.
 
     public function prepareDom(PrepareDomEvent $event): ?DOMElement
     {
@@ -37,12 +37,12 @@ final class Tel extends FieldsPlugin
             ? new Registry($field->params)
             : ($field->params ?? new Registry());
 
-        // Our own field class — wraps the input in a layout that pre-renders
+        // Our own field class: wraps the input in a layout that pre-renders
         // translated hint <small> elements that tel.js toggles.
         $node->setAttribute('type', 'tel');
         FormHelper::addFieldPrefix('Alfa\\Plugin\\AlfaFormFields\\Tel\\Field');
 
-        // Single source of truth for the rule name. Keep it lowercase —
+        // Single source of truth for the rule name. Keep it lowercase:
         // camelCase breaks FormHelper::loadClass (splits into sub-namespace).
         if (!$node->getAttribute('validate')) {
             $node->setAttribute('validate', 'alfatel');
@@ -57,6 +57,18 @@ final class Tel extends FieldsPlugin
         if (!preg_match('/\b' . preg_quote($needle, '/') . '\b/', $existing)) {
             $node->setAttribute('class', trim($existing . ' ' . $needle));
         }
+
+        // THE FILTER IS WHAT REACHES STORAGE. Joomla runs Form::filter() before
+        // Form::validate() and the model returns the FILTERED data; the Registry
+        // a rule is handed is a discarded copy. The component's telephone filter
+        // reads `default_region` off this node and stores E.164, so whatever
+        // dials or posts the number later (a carrier booking a locker) gets
+        // one shape. The rule beside it still refuses what cannot be read.
+        if (!$node->getAttribute('filter')) {
+            $node->setAttribute('filter', 'telephone');
+        }
+
+        FormHelper::addFilterPrefix('Alfa\\Component\\Alfa\\Administrator\\Filter');
 
         if (!$node->getAttribute('inputmode')) {
             $node->setAttribute('inputmode', 'tel');

@@ -1,14 +1,59 @@
 /**
  * SEO Preview Styles - v2.0 Enhanced
- * Google-style focus keyword input + centered loading
+ * Search-engine-style focus keyword input + centered loading
  *
- * @package     Com_Alfa
+ * @package     Alfa Commerce
  * @version     2.0.0
  */
 
-/* ===================================
+/*
+   Colour tokens
+
+   The preview deliberately mimics a search-engine result, so it keeps the search engine's own
+   palette instead of riding on the Atum tokens -- but it must still follow the
+   admin theme. Atum resolves every source of that choice (template parameter,
+   per-user parameter, the header switch, and the OS preference in "os" mode)
+   into `data-color-scheme` / `data-bs-theme` on <html>, so listening to those
+   attributes is enough. This file used a bare `prefers-color-scheme` query
+   before, which ignored the user's own choice whenever it differed from the OS.
+   */
+
+:root {
+    --seo-surface: #fff;
+    --seo-surface-alt: #f8f9fa;
+    --seo-surface-alt-hover: #e9ecef;
+    --seo-line: #dfe1e5;
+    --seo-line-soft: #e8eaed;
+    --seo-text: #202124;
+    --seo-text-muted: #5f6368;
+    --seo-text-faint: #9aa0a6;
+    --seo-link: #1a0dab;
+    --seo-desc: #4d5156;
+    --seo-date: #70757a;
+    --seo-accent: #4285f4;
+    --seo-spinner-track: #f3f4f6;
+}
+
+:root[data-color-scheme="dark"],
+:root[data-bs-theme="dark"] {
+    --seo-surface: #202124;
+    --seo-surface-alt: #292a2d;
+    --seo-surface-alt-hover: #35363a;
+    --seo-line: #3c4043;
+    --seo-line-soft: #3c4043;
+    --seo-text: #e8eaed;
+    --seo-text-muted: #9aa0a6;
+    --seo-text-faint: #80868b;
+    --seo-link: #8ab4f8;
+    --seo-desc: #bdc1c6;
+    --seo-date: #9aa0a6;
+    --seo-accent: #8ab4f8;
+    --seo-spinner-track: #3c4043;
+}
+
+/*
    Preview Container
-   =================================== */
+   */
 
 .seo-preview-container {
     position: relative;
@@ -20,9 +65,9 @@
     overflow: hidden;
 }
 
-/* ===================================
-   Focus Keyword Input (Google 2024 Style)
-   =================================== */
+/*
+   Focus Keyword Input (Search Engine 2024 Style)
+   */
 
 /* Main input group */
 .seo-focus-keyword-wrapper .input-group {
@@ -30,8 +75,8 @@
     overflow: hidden !important;
     box-shadow: 0 1px 3px rgba(60, 64, 67, 0.15) !important;
     transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    border: 1px solid #dfe1e5;
-    background: #fff;
+    border: 1px solid var(--seo-line, #dfe1e5);
+    background: var(--seo-surface, #fff);
 }
 
 .seo-focus-keyword-wrapper .input-group:hover {
@@ -45,15 +90,15 @@
 
 /* Icon on the left */
 .seo-focus-keyword-wrapper .input-group-text:first-child {
-    background: #fff;
+    background: var(--seo-surface, #fff);
     border: none;
     padding: 12px 14px 12px 16px;
-    color: #5f6368;
+    color: var(--seo-text-muted, #5f6368);
 }
 
 .seo-focus-keyword-wrapper .icon-key {
     font-size: 20px;
-    color: #4285f4;
+    color: var(--seo-accent, #4285f4);
 }
 
 /* The actual input */
@@ -62,8 +107,8 @@
     font-size: 16px;
     padding: 11px 8px;
     border: none;
-    background: #fff;
-    color: #202124;
+    background: var(--seo-surface, #fff);
+    color: var(--seo-text, #202124);
     flex: 1;
 }
 
@@ -74,25 +119,25 @@
 }
 
 #seo-focus-keyword-input::placeholder {
-    color: #9aa0a6;
+    color: var(--seo-text-faint, #9aa0a6);
     font-weight: 400;
 }
 
 /* Badge on the right */
 .seo-focus-keyword-wrapper .input-group-text:last-child {
-    background: #f8f9fa;
+    background: var(--seo-surface-alt, #f8f9fa);
     border: none;
     padding: 12px 16px 12px 14px;
     font-size: 12px;
-    color: #5f6368;
+    color: var(--seo-text-muted, #5f6368);
     font-weight: 500;
     letter-spacing: 0.3px;
 }
 
-/* Helper text below (Google style) */
+/* Helper text below (search-engine style) */
 .seo-focus-keyword-wrapper .form-text {
     font-size: 13px;
-    color: #5f6368;
+    color: var(--seo-text-muted, #5f6368);
     margin-top: 8px;
     padding-left: 16px;
     line-height: 1.5;
@@ -102,16 +147,17 @@
     font-size: 14px;
     margin-right: 5px;
     vertical-align: text-bottom;
-    color: #4285f4;
+    color: var(--seo-accent, #4285f4);
 }
 
-/* ===================================
-   Google Search Preview Box
-   =================================== */
+/*
+   Search Result Preview Box
+   */
 
 .seo-google-preview {
-    background: #fff;
-    border: 1px solid #e8eaed;
+    background: var(--seo-surface, #fff);
+    color: var(--seo-text, #202124);
+    border: 1px solid var(--seo-line-soft, #e8eaed);
     border-radius: 8px;
     padding: 20px;
     font-family: Arial, sans-serif;
@@ -131,7 +177,7 @@
 .seo-google-preview .seo-preview-title {
     font-size: 20px;
     line-height: 1.3;
-    color: #1a0dab;
+    color: var(--seo-link, #1a0dab);
     margin-bottom: 3px;
     text-decoration: none;
     font-weight: 400;
@@ -144,17 +190,17 @@
 .seo-google-preview .seo-preview-description {
     font-size: 14px;
     line-height: 1.58;
-    color: #4d5156;
+    color: var(--seo-desc, #4d5156);
 }
 
 .seo-google-preview .seo-date {
-    color: #70757a;
+    color: var(--seo-date, #70757a);
     font-weight: 400;
 }
 
-/* ===================================
+/*
    SEO Analysis Section
-   =================================== */
+   */
 
 .seo-analysis-group {
     margin-bottom: 1rem;
@@ -170,12 +216,12 @@
     padding: 10px 12px;
     margin-bottom: 8px;
     border-radius: 6px;
-    background: #f8f9fa;
+    background: var(--seo-surface-alt, #f8f9fa);
     transition: background-color 0.2s ease;
 }
 
 .seo-check-item:hover {
-    background: #e9ecef;
+    background: var(--seo-surface-alt-hover, #e9ecef);
 }
 
 .seo-check-item .icon {
@@ -205,12 +251,12 @@
     flex: 1;
     font-size: 14px;
     line-height: 1.5;
-    color: #212529;
+    color: var(--seo-text, #212529);
 }
 
-/* ===================================
+/*
    Focus Keyword Badge
-   =================================== */
+   */
 
 .seo-focus-keyword-badge {
     display: inline-flex;
@@ -235,9 +281,9 @@
     margin-left: 4px;
 }
 
-/* ===================================
+/*
    Loading State (Centered Overlay)
-   =================================== */
+   */
 
 .seo-preview-container.is-loading {
     position: relative;
@@ -262,15 +308,15 @@
 .seo-loading-spinner {
     width: 48px;
     height: 48px;
-    border: 4px solid #f3f4f6;
-    border-top: 4px solid #4285f4;
+    border: 4px solid var(--seo-spinner-track, #f3f4f6);
+    border-top: 4px solid var(--seo-accent, #4285f4);
     border-radius: 50%;
     animation: seo-spin 0.8s linear infinite;
 }
 
 .seo-loading-text {
     margin-top: 16px;
-    color: #5f6368;
+    color: var(--seo-text-muted, #5f6368);
     font-size: 15px;
     font-weight: 500;
     letter-spacing: 0.2px;
@@ -281,9 +327,9 @@
     100% { transform: rotate(360deg); }
 }
 
-/* ===================================
+/*
    Score Badge
-   =================================== */
+   */
 
 [data-seo-score-badge] {
     min-width: 70px;
@@ -299,18 +345,18 @@
     50% { transform: scale(1.1); }
 }
 
-/* ===================================
+/*
    Refresh Button
-   =================================== */
+   */
 
 [data-seo-refresh-btn] {
-    color: #5f6368;
+    color: var(--seo-text-muted, #5f6368);
     font-size: 13px;
     transition: color 0.2s ease;
 }
 
 [data-seo-refresh-btn]:hover {
-    color: #4285f4;
+    color: var(--seo-accent, #4285f4);
 }
 
 [data-seo-refresh-btn] .icon-refresh {
@@ -318,9 +364,9 @@
     margin-right: 4px;
 }
 
-/* ===================================
+/*
    Responsive Design
-   =================================== */
+   */
 
 @media (max-width: 768px) {
     .seo-google-preview {
@@ -345,61 +391,9 @@
     }
 }
 
-/* ===================================
-   Dark Mode Support (Optional)
-   =================================== */
-
-@media (prefers-color-scheme: dark) {
-    .seo-google-preview {
-        background: #202124;
-        border-color: #3c4043;
-    }
-
-    .seo-google-preview .seo-url {
-        color: #bdc1c6;
-    }
-
-    .seo-google-preview .seo-title {
-        color: #8ab4f8;
-    }
-
-    .seo-google-preview .seo-description {
-        color: #bdc1c6;
-    }
-
-    .seo-google-preview .seo-date {
-        color: #9aa0a6;
-    }
-
-    .seo-check-item {
-        background: #292a2d;
-    }
-
-    .seo-check-item:hover {
-        background: #35363a;
-    }
-
-    #seo-focus-keyword-input,
-    .seo-focus-keyword-wrapper .input-group {
-        background: #292a2d;
-        border-color: #3c4043;
-        color: #e8eaed;
-    }
-
-    .seo-focus-keyword-wrapper .input-group-text:first-child,
-    #seo-focus-keyword-input {
-        background: #292a2d;
-        color: #e8eaed;
-    }
-
-    .seo-focus-keyword-wrapper .input-group-text:last-child {
-        background: #35363a;
-    }
-}
-
-/* ===================================
+/*
    Accessibility
-   =================================== */
+   */
 
 /* Focus visible for keyboard navigation */
 #seo-focus-keyword-input:focus-visible {
@@ -431,4 +425,18 @@
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
     }
+}
+/*
+   Language tabs
+
+   layouts/seo/multilingual.php renders one joomla-tab panel per content
+   language (id prefix "seoMlTab_"). Core joomla-tab-element CSS insets each
+   panel by `padding: 30px 2vw`, which pushes the preview away from the panel
+   edge and misaligns it with the fields above. Reset it exactly the way the
+   multilingual editor does, scoped to our tab sets so every other joomla-tab
+   on the page keeps its padding.
+   */
+
+joomla-tab[id^="seoMlTab_"] > joomla-tab-element {
+    padding: 0;
 }

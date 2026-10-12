@@ -16,10 +16,12 @@ $imageType = $params->get('imageType', '3');
 $imageFile = $params->get('imageFile', '');
 $imageInline = $params->get('imageInline', '');
 $animation = $params->get('animation', 'fromTop');
+// What the module does when a product is added anywhere on the page (cart.js reads it).
+$onAdd = $params->get('on_add', 'refresh') === 'open' ? 'open' : 'refresh';
 
 ?>
 
-<div class="mod-alfa-cart <?php echo $animation?>" data-mod-cart-outer>
+<div class="mod-alfa-cart mod-alfa-cart-<?php echo (int) $module->id; ?> <?php echo $animation?>" data-mod-cart-outer data-on-add="<?php echo $onAdd; ?>">
     <div class="cart-toggler" data-counter="<?php echo $togglerCounter; ?>">
         <?php if ($imageType == '0' && !empty($imageFile)) {
             echo HtmlHelper::image($imageFile, 'loading-img');

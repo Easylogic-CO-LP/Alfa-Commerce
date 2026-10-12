@@ -12,9 +12,9 @@ namespace Alfa\Component\Alfa\Site\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper as AdminAlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
-use Joomla\CMS\Factory;
 use Joomla\CMS\Router\Route;
 
 /**
@@ -42,7 +42,7 @@ class ManufacturersModel extends UrlListModel
                 'id', 'a.id',
                 'state', 'a.state',
                 'website', 'a.website',
-                // Translatable — resolved via the lang-table COALESCE alias.
+                // Translatable: resolved via the lang-table COALESCE alias.
                 'name',
                 'alias',
             ];
@@ -95,10 +95,32 @@ class ManufacturersModel extends UrlListModel
             fields:            ['name', 'alias', 'desc'],
         );
 
-        if (!Factory::getApplication()->getIdentity()->authorise('core.edit', 'com_alfa')) {
+        // Whoever may edit manufacturers also sees the unpublished ones on the shop;
+        // everyone else, published only.
+        if (!AdminAlfaHelper::can(section: 'manufacturers', action: 'edit')) {
             $query->where('a.state = 1');
         } else {
             $query->where('(a.state IN (0, 1))');
+        }
+
+        // FILTER BY MANUFACTURER ID LIST: the hydration constraint the engine-typed
+        // search path sets (mirrors CategoriesModel's filter.categories): the engine
+        // returns ranked candidate ids and this model re-reads them under its own
+        // state/ACL rules, so visibility never leaves the catalogue.
+        $manufacturersFilter = $this->getState('filter.manufacturers');
+
+        if ($manufacturersFilter !== null) {
+            if (!is_array($manufacturersFilter)) {
+                $manufacturersFilter = is_numeric($manufacturersFilter) ? [(int) $manufacturersFilter] : null;
+            }
+
+            if ($manufacturersFilter !== null) {
+                $manufacturersFilter = array_filter(array_map('intval', $manufacturersFilter), static fn (int $id): bool => $id > 0);
+
+                if (!empty($manufacturersFilter)) {
+                    $query->whereIn('a.id', $manufacturersFilter);
+                }
+            }
         }
 
         // Filter by search in title
@@ -109,7 +131,7 @@ class ManufacturersModel extends UrlListModel
                 $query->where('a.id = ' . (int) substr($search, 3));
             } else {
                 $search = $db->Quote('%' . $db->escape($search, true) . '%');
-                // HAVING — `name` is the COALESCE alias from the lang join.
+                // HAVING: `name` is the COALESCE alias from the lang join.
                 $query->having('( ' . $db->quoteName('name') . ' LIKE ' . $search . ' )');
             }
         }
@@ -136,11 +158,11 @@ class ManufacturersModel extends UrlListModel
         $items = parent::getItems();
 
         if (!empty($items)) {
-            // Batch media (one query for ALL manufacturers, grouped by id — avoids N+1).
+            // Batch media (one query for ALL manufacturers, grouped by id; avoids N+1).
             $mediaByManufacturer = MediaHelper::getMediaData(
                 origin:         'manufacturer',
                 itemIDs:        array_map(static fn ($m) => (int) $m->id, $items),
-                usePlaceHolder: true,
+                usePlaceHolder: $this->usePlaceholder('media_placeholder_manufacturers'),
             );
 
             foreach ($items as $manufacturer) {

@@ -14,15 +14,30 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
-use Joomla\CMS\MVC\Model\ListModel;
 
 /**
  * Methods supporting a list of Taxes records.
  *
  * @since  1.0.0
  */
-class TaxesModel extends ListModel
+class TaxesModel extends AlfaListModel
 {
+    /**
+     * @var string The entity a plugin targets with $context->targets('tax').
+     * @since  1.8.0
+     */
+    protected string $alfaEntity = 'tax';
+
+    /**
+     * The enriched page of the last getItems() run: the contract's list phases
+     * re-ask getItems(), and without the memo the five fetchRelated() resolutions
+     * would run twice per request.
+     *
+     *
+     * @since  1.8.0
+     */
+    private ?array $alfaEnriched = null;
+
     /**
     * Constructor.
     *
@@ -38,7 +53,7 @@ class TaxesModel extends ListModel
                 'id', 'a.id',
                 'value', 'a.value',
                 'state', 'a.state',
-                // Translatable — resolved via the lang-table COALESCE alias.
+                // Translatable: resolved via the lang-table COALESCE alias.
                 'name',
                 'ordering', 'a.ordering',
                 'created_by', 'a.created_by',
@@ -82,9 +97,25 @@ class TaxesModel extends ListModel
      */
     protected function getStoreId($id = '')
     {
-        // Compile the store id.
-        $id .= ':' . $this->getState('filter.search');
-        $id .= ':' . $this->getState('filter.state');
+        // Serialise EVERY filter into the cache identity, including filters a plugin
+        // declared through onAlfaAdminListFilters, which a hand-enumerated list would
+        // silently omit (stale cache + the contract's list phases skipping re-runs).
+        // Same discipline as the orders grid.
+        $filters = [];
+
+        // toArray(), not (array): the model State keeps LITERAL dotted keys, so an
+        // object cast returns its protected properties and matches nothing.
+        foreach ($this->getState()->toArray() as $key => $value) {
+            if (str_starts_with((string) $key, 'filter.')) {
+                $filters[$key] = \is_array($value) ? implode(',', $value) : (string) $value;
+            }
+        }
+
+        ksort($filters);
+
+        foreach ($filters as $key => $value) {
+            $id .= ':' . $key . '=' . $value;
+        }
 
         return parent::getStoreId($id);
     }
@@ -199,7 +230,7 @@ class TaxesModel extends ListModel
                 $query->where('a.id = ' . (int) substr($search, 3));
             } else {
                 $search = $db->Quote('%' . $db->escape($search, true) . '%');
-                // HAVING — `name` is the COALESCE alias from the lang join.
+                // HAVING: `name` is the COALESCE alias from the lang join.
                 $query->having('( ' . $db->quoteName('name') . ' LIKE ' . $search . ' )');
             }
         }
@@ -223,6 +254,10 @@ class TaxesModel extends ListModel
      */
     public function getItems()
     {
+        if ($this->alfaEnriched !== null) {
+            return $this->alfaEnriched;
+        }
+
         $items = parent::getItems();
 
         if (empty($items)) {
@@ -231,7 +266,7 @@ class TaxesModel extends ListModel
 
         $db = $this->getDatabase();
 
-        // One query per relationship — names resolved per-language for the
+        // One query per relationship: names resolved per-language for the
         // translatable tables (categories, manufacturers), read directly for
         // non-translatable / core tables (users, places, usergroups).
         $catMap = MultilingualHelper::fetchRelated(
@@ -254,7 +289,7 @@ class TaxesModel extends ListModel
             langFields:        ['name'],
         );
 
-        // #__users is Joomla core — name read directly, no lang tables.
+        // #__users is Joomla core: name read directly, no lang tables.
         $userMap = MultilingualHelper::fetchRelated(
             db:          $db,
             items:       $items,
@@ -263,7 +298,7 @@ class TaxesModel extends ListModel
             langFields:  ['name'],
         );
 
-        // #__alfa_places — not yet translatable; name read directly.
+        // #__alfa_places: not yet translatable; name read directly.
         $placeMap = MultilingualHelper::fetchRelated(
             db:          $db,
             items:       $items,
@@ -289,6 +324,6 @@ class TaxesModel extends ListModel
             MultilingualHelper::bindRelated($item, 'usergroups', $ugMap);
         }
 
-        return $items;
+        return $this->alfaEnriched = $items;
     }
 }

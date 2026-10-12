@@ -1,3 +1,4 @@
+<?php \defined('_JEXEC') or die; ?>
 <label id="batch-manufacturer-lbl" for="batch-manufacturer-id">
     Manufacturer to select:
 </label>
@@ -43,7 +44,6 @@ $manufacturers = $db->loadAssocList();
 
 // Create options array for the select list
 $options = array();
-// $options[] = HTMLHelper::_('select.option', '', '- Keep current manufacturer -');
 foreach ($manufacturers as $manufacturer) {
     $options[] = HTMLHelper::_('select.option', $manufacturer['id'], $manufacturer['name']);
 }

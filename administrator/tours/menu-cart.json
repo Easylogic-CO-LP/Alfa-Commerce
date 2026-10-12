@@ -1,0 +1,151 @@
+{
+    "uid": "com_alfa.menu-cart",
+    "version": 3,
+    "ordering": 19,
+    "title": "COM_ALFA_GUIDEDTOUR_MENU_CART_TITLE",
+    "description": "COM_ALFA_GUIDEDTOUR_MENU_CART_DESC",
+    "extensions": [
+        "com_alfa"
+    ],
+    "url": "administrator/index.php?option=com_menus&view=items&menutype=",
+    "autostart": false,
+    "steps": [
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_MENU_CART_1_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_MENU_CART_1_DESC",
+            "position": "bottom",
+            "target": "",
+            "type": 0,
+            "url": "administrator/index.php?option=com_menus&view=items&menutype="
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_MENU_CART_2_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_MENU_CART_2_DESC",
+            "position": "bottom",
+            "target": "select[name=\"menutype\"], #filter_menutype",
+            "type": 0,
+            "url": "administrator/index.php?option=com_menus&view=items&menutype="
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_MENU_CART_3_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_MENU_CART_3_DESC",
+            "position": "bottom",
+            "target": ".button-new",
+            "type": 2,
+            "interactive_type": 1,
+            "url": "administrator/index.php?option=com_menus&view=items&menutype="
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_MENU_CART_4_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_MENU_CART_4_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_title), #jform_title",
+            "type": 2,
+            "interactive_type": 2,
+            "url": "administrator/index.php?option=com_menus&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_MENU_CART_5_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_MENU_CART_5_DESC",
+            "position": "bottom",
+            "target": ".input-group:has(#jform_type)",
+            "type": 2,
+            "interactive_type": 1,
+            "url": "administrator/index.php?option=com_menus&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_MENU_CART_6_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_MENU_CART_6_DESC",
+            "position": "bottom",
+            "target": ".accordion-item:has(a.choose_type[data-type^=\"COM_ALFA_\"]) .accordion-button, #jform_type",
+            "type": 2,
+            "interactive_type": 4,
+            "url": "administrator/index.php?option=com_menus&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_MENU_CART_7_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_MENU_CART_7_DESC",
+            "position": "bottom",
+            "target": "a.choose_type[data-type=\"COM_ALFA_TITLE_CART_VIEW_CART\"], #jform_type",
+            "type": 2,
+            "interactive_type": 1,
+            "url": "administrator/index.php?option=com_menus&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_MENU_CART_8_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_MENU_CART_8_DESC",
+            "position": "left",
+            "target": ".control-group:not(.hidden):has(#jform_menutype), #jform_menutype, #item-form",
+            "type": 0,
+            "url": "administrator/index.php?option=com_menus&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_MENU_CART_9_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_MENU_CART_9_DESC",
+            "position": "left",
+            "target": ".control-group:not(.hidden):has(#jform_access), #jform_access, #item-form",
+            "type": 0,
+            "url": "administrator/index.php?option=com_menus&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_MENU_CART_10_MONO_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_MENU_CART_10_MONO_DESC",
+            "position": "left",
+            "target": ".control-group:not(.hidden):has(#jform_language), #jform_language, #item-form",
+            "type": 0,
+            "url": "administrator/index.php?option=com_menus&view=item&layout=edit",
+            "when": "monolingual"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_MENU_CART_10_ML_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_MENU_CART_10_ML_DESC",
+            "position": "left",
+            "target": ".control-group:not(.hidden):has(#jform_language), #jform_language, #item-form",
+            "type": 0,
+            "url": "administrator/index.php?option=com_menus&view=item&layout=edit",
+            "when": "multilingual"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_MENU_CART_11_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_MENU_CART_11_DESC",
+            "position": "bottom",
+            "target": "joomla-tab#myTab, #item-form",
+            "type": 0,
+            "url": "administrator/index.php?option=com_menus&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_MENU_CART_12_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_MENU_CART_12_DESC",
+            "position": "bottom",
+            "target": "joomla-tab#myTab button[aria-controls=\"attrib-layouts\"], #item-form",
+            "type": 0,
+            "url": "administrator/index.php?option=com_menus&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_MENU_CART_13_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_MENU_CART_13_DESC",
+            "position": "bottom",
+            "target": "joomla-tab#myTab button[aria-controls=\"associations\"], #item-form",
+            "type": 0,
+            "url": "administrator/index.php?option=com_menus&view=item&layout=edit",
+            "when": "multilingual"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_MENU_CART_14_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_MENU_CART_14_DESC",
+            "position": "bottom",
+            "target": ".button-apply",
+            "type": 2,
+            "interactive_type": 1,
+            "url": "administrator/index.php?option=com_menus&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_MENU_CART_15_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_MENU_CART_15_DESC",
+            "position": "bottom",
+            "target": "",
+            "type": 0,
+            "url": "administrator/index.php?option=com_menus&view=items&menutype="
+        }
+    ]
+}

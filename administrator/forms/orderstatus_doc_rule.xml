@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    One auto-issuance rule row (orderstatus.issues_doc_rules subform).
+
+    Rows are evaluated top-down per order entering the status; the first
+    matching row decides the document. Empty groups = every customer
+    (catch-all, put it last). No rows / no matching row = no sales
+    document. The series picker implies the document type (a series has
+    exactly one); its "default series" entries follow the type's default
+    at issue time. AutoIssuePolicy::resolveRules consumes the JSON.
+-->
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+
+    <field
+            name="usergroups"
+            type="usergrouplist"
+            multiple="true"
+            layout="joomla.form.field.list-fancy-select"
+            label="COM_ALFA_DOC_RULE_GROUPS"
+            description="COM_ALFA_DOC_RULE_GROUPS_DESC"
+    />
+
+    <field
+            name="series"
+            type="DocumentSeries"
+            required="true"
+            label="COM_ALFA_DOC_RULE_SERIES"
+            description="COM_ALFA_DOC_RULE_SERIES_DESC"
+    />
+
+</form>

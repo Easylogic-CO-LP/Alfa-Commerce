@@ -13,9 +13,7 @@
 <form>
     <fieldset name="order_item">
 
-        <!-- ======================================================== -->
         <!-- HIDDEN: System fields (not visible in list) -->
-        <!-- ======================================================== -->
         <field
                 name="id"
                 type="hidden"
@@ -37,9 +35,7 @@
                 label="COM_ALFA_ORDER_ITEM_PRODUCT_ID"
         />
 
-        <!-- ======================================================== -->
         <!-- VISIBLE: Product snapshot (shown in list + readonly in popup) -->
-        <!-- ======================================================== -->
         <field
                 name="name"
                 type="text"
@@ -50,7 +46,7 @@
         />
 
         <field
-                name="reference"
+                name="sku"
                 type="text"
                 label="COM_ALFA_FORM_LBL_SKU"
                 readonly="true"
@@ -58,9 +54,9 @@
                 description="COM_ALFA_SKU_DESC"
         />
 
-        <!-- ======================================================== -->
-        <!-- EDITABLE: Quantity and pricing -->
-        <!-- ======================================================== -->
+        <!-- EDITABLE: the quantity. The price is not a field: the popup's -->
+        <!-- price command (layout order.item_price_command) says how the  -->
+        <!-- line's one custom-price column changes, and the save prices.  -->
         <field
                 name="quantity"
                 type="number"
@@ -72,34 +68,48 @@
                 default="1"
         />
 
+        <!-- READONLY: the line's money, as the save wrote it. Derived    -->
+        <!-- columns, shown in the list; never posted back as an input.   -->
         <field
                 name="unit_price_tax_incl"
                 type="number"
                 label="COM_ALFA_FORM_LBL_UNIT_PRICE"
                 description=""
-                required="true"
-                min="0"
+                readonly="true"
                 step="0.01"
-                hint="0.00"
         />
 
-        <!-- ======================================================== -->
-        <!-- READONLY: Calculated fields (auto-computed, display only) -->
-        <!-- ======================================================== -->
         <field
                 name="unit_price_tax_excl"
-                type="text"
+                type="number"
                 label="COM_ALFA_FORM_LBL_PRICE_TAX_EXCL"
-                readonly="true"
-                class="readonly"
+                step="0.01"
+                min="0"
         />
 
         <field
                 name="total_price_tax_incl"
-                type="text"
+                type="number"
                 label="COM_ALFA_FORM_LBL_TOTAL_PRICE"
-                readonly="true"
-                class="readonly"
+                step="0.01"
+                min="0"
+        />
+
+        <field
+                name="discount_percent"
+                type="number"
+                label="COM_ALFA_FORM_LBL_DISCOUNT_PERCENT"
+                step="0.01"
+                min="0"
+                max="100"
+        />
+
+        <field
+                name="discount_amount_tax_incl"
+                type="number"
+                label="COM_ALFA_FORM_LBL_DISCOUNT_AMOUNT"
+                step="0.01"
+                min="0"
         />
 
         <field

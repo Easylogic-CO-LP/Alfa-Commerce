@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Alfa Commerce: the sales-document VOID form.
+
+    Voiding is the ONLY mutation a document has: the row stays, its number
+    stays drawn, and it is marked void with a reason. The reason is not
+    decoration; it is the audit record for a fiscal act, so it is required
+    here and required again in the controller.
+
+    This form exists so that voiding travels the same road every other order
+    modal travels. It used to be a <div> inside the page whose two values a
+    script copied into a form it built at submit time: the same throwaway
+    POST the Issue modal used to make, and written out twice: once on the
+    order screen and once on the Documents list.
+
+    @package    Alfa Commerce
+    @author     Agamemnon Fakas <info@easylogic.gr>
+    @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+    @license    GNU General Public License version 3 or later; see LICENSE
+-->
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+
+    <fieldset name="void">
+
+        <!-- Which document. Read by the controller, never typed. -->
+        <field name="id" type="hidden"/>
+
+        <!-- The audit reason. `required` is what makes Joomla's own validator
+             refuse an empty submit; the controller refuses it again, because a
+             client-side rule is a convenience and never the guard. -->
+        <field
+                name="reason"
+                type="textarea"
+                label="COM_ALFA_DOCUMENTS_VOID_REASON_LABEL"
+                required="true"
+                rows="3"
+                class="form-control"
+                filter="string"
+        />
+
+    </fieldset>
+
+</form>

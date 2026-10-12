@@ -11,6 +11,8 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFailedCopyRedirect;
+use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFormPermissions;
 use Joomla\CMS\MVC\Controller\FormController;
 
 /**
@@ -20,5 +22,8 @@ use Joomla\CMS\MVC\Controller\FormController;
  */
 class PaymentController extends FormController
 {
+    use HasFormPermissions;
+    use HasFailedCopyRedirect;
+
     protected $view_list = 'payments';
 }

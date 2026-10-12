@@ -1,11 +1,10 @@
 <?php
 
 /**
- * @version    1.0.1
- * @package    Com_Alfa
+ * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  2024 Easylogic CO LP
- * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
 namespace Alfa\Component\Alfa\Administrator\Model;
@@ -13,8 +12,8 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
-use Joomla\CMS\Factory;
-use Joomla\CMS\MVC\Model\AdminModel;
+use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
+use Alfa\Component\Alfa\Site\Helper\PriceSettings;
 use SimpleXMLElement;
 
 /**
@@ -22,8 +21,14 @@ use SimpleXMLElement;
  *
  * @since  1.0.0
  */
-class UsergroupModel extends AdminModel
+class UsergroupModel extends AlfaAdminModel
 {
+    /**
+     * @var string The entity a plugin targets with $context->targets('usergroup').
+     * @since  1.8.0
+     */
+    protected string $alfaEntity = 'usergroup';
+
     /**
      * @var string The prefix to use with controller messages.
      * @since  1.0.0
@@ -46,7 +51,7 @@ class UsergroupModel extends AdminModel
      * Map of config.xml fieldset name => DB column / form group name.
      *
      * To expose a new fieldset from config.xml at the usergroup level,
-     * simply add an entry here — no other changes required.
+     * simply add an entry here; no other changes required.
      *
      * @var array<string, string>
      * @since  1.0.0
@@ -64,9 +69,20 @@ class UsergroupModel extends AdminModel
      */
     private const SKIP_FIELD_TYPES = ['note'];
 
-    // -------------------------------------------------------------------------
+    /**
+     * The fields of each overridable fieldset that a customer group may override: one list decides it.
+     *
+     * A field of the fieldset that the list does not name is a shop-wide setting and is never put on the group
+     * form, so it can never be stored per group.
+     *
+     * @var array<string, string[]>
+     * @since  1.14.0
+     */
+    private const OVERRIDABLE_FIELDS = [
+        'prices' => PriceSettings::FIELDS,
+    ];
+
     // Form
-    // -------------------------------------------------------------------------
 
     /**
      * Method to get the record form.
@@ -158,15 +174,27 @@ class UsergroupModel extends AdminModel
                 . '>';
 
             // .//field catches direct children AND fields inside nested sub-fieldsets.
+            // Only the fields a customer group may override are taken; a spacer
+            // is kept only in front of a field that is taken.
+            $overridable = self::OVERRIDABLE_FIELDS[$fieldsetName] ?? [];
+            $spacer = '';
+
             foreach ($sourceFieldset->xpath('.//field') as $field) {
                 $type = strtolower((string) $field['type']);
                 $name = (string) $field['name'];
 
-                if (($type !== 'spacer' && empty($name)) || in_array($type, self::SKIP_FIELD_TYPES, true)) {
+                if ($type === 'spacer') {
+                    $spacer = $this->buildFieldXml($field);
+
                     continue;
                 }
 
-                $xmlStr .= $this->buildFieldXml($field);
+                if (empty($name) || in_array($type, self::SKIP_FIELD_TYPES, true) || !in_array($name, $overridable, true)) {
+                    continue;
+                }
+
+                $xmlStr .= $spacer . $this->buildFieldXml($field);
+                $spacer = '';
             }
 
             $xmlStr .= '</fieldset></fields></form>';
@@ -192,7 +220,6 @@ class UsergroupModel extends AdminModel
     protected function buildFieldXml(SimpleXMLElement $field): string
     {
         /** Attributes that must be removed when re-using a config field in a sub-form context. */
-        // $stripAttributes = ['showon'];
         $stripAttributes = [];
 
         $xml = '<field';
@@ -234,32 +261,23 @@ class UsergroupModel extends AdminModel
         return htmlspecialchars($value, ENT_XML1 | ENT_QUOTES, 'UTF-8');
     }
 
-    // -------------------------------------------------------------------------
     // Data load / save
-    // -------------------------------------------------------------------------
 
     /**
      * Method to get the data that should be injected in the form.
      *
-     * Guards against stale session data belonging to a different record.
+     * A post kept for a different record (a new one included) never fills
+     * this one ({@see KeptPost}).
      *
      * @return mixed The data for the form.
      * @since  1.0.0
      */
     protected function loadFormData()
     {
-        $app = Factory::getApplication();
-        $data = $app->getUserState('com_alfa.edit.usergroup.data', []);
-
-        if (!empty($data)) {
-            $sessionId = is_array($data) ? ($data['id'] ?? 0) : ($data->id ?? 0);
-            $requestId = (int) $app->getInput()->getInt('id', 0);
-
-            // Discard session data if it belongs to a different record.
-            if ($requestId > 0 && (int) $sessionId !== $requestId) {
-                $data = [];
-            }
-        }
+        $data = KeptPost::forRecord(
+            stateKey: 'com_alfa.edit.usergroup.data',
+            recordId: (int) $this->getState($this->getName() . '.id'),
+        );
 
         if (empty($data)) {
             if ($this->item === null) {
@@ -291,7 +309,7 @@ class UsergroupModel extends AdminModel
             return false;
         }
 
-        // Decode each overridable group column from JSON → array for form binding.
+        // Decode each overridable group column from JSON -> array for form binding.
         foreach (self::OVERRIDE_FIELDSETS as $fieldsetName => $groupName) {
             if (!empty($item->$groupName) && is_string($item->$groupName)) {
                 $item->$groupName = json_decode($item->$groupName, true) ?: [];

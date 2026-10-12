@@ -6,13 +6,14 @@
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
  *
- * The panel region of the badge component — the `.alfa-notify-dropdown` itself (the JS
+ * The panel region of the badge component: the `.alfa-notify-dropdown` itself (the JS
  * moves nothing; it's position:fixed and the JS only sets its coordinates). `data-region`
  * lets the JS target it; `data-open` + the `show` class carry the open state so a refresh
  * restores it. Visibility is already filtered upstream; this layout only decides, per row,
- * whether to show the link (url-access). Styling: notifications.css.
+ * whether to show the link (url-access), and offers read/dismiss only to a user who may
+ * change notification state. Styling: notifications.css.
  *
- * @var array $displayData  ['items' => object[], 'is_open' => bool]
+ * @var array $displayData  ['items' => object[], 'is_open' => bool, 'can_change' => bool]
  */
 
 defined('_JEXEC') or die;
@@ -22,8 +23,9 @@ use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
 
-$items  = $displayData['items'] ?? [];
-$isOpen = !empty($displayData['is_open']);
+$items     = $displayData['items'] ?? [];
+$isOpen    = !empty($displayData['is_open']);
+$canChange = !empty($displayData['can_change']);
 ?>
 <div class="alfa-notify-dropdown<?php echo $isOpen ? ' show' : ''; ?>" data-region="panel" data-open="<?php echo $isOpen ? '1' : '0'; ?>" role="menu">
 <div class="alfa-notify-head">
@@ -66,13 +68,13 @@ $isOpen = !empty($displayData['is_open']);
                     </div>
                 </div>
                 <div class="alfa-notify-actions">
-                    <?php if ($unread) : ?>
+                    <?php if ($canChange && $unread) : ?>
                         <button type="button" class="alfa-notify-act" data-action="read" data-id="<?php echo (int) $n->id; ?>"
                                 title="<?php echo Text::_('COM_ALFA_NOTIFY_MARK_READ'); ?>">
                             <span class="icon-checkmark" aria-hidden="true"></span>
                         </button>
                     <?php endif; ?>
-                    <?php if ((int) $n->dismissible === 1) : ?>
+                    <?php if ($canChange && (int) $n->dismissible === 1) : ?>
                         <button type="button" class="alfa-notify-act" data-action="dismiss" data-id="<?php echo (int) $n->id; ?>"
                                 title="<?php echo Text::_('COM_ALFA_NOTIFY_DISMISS'); ?>">
                             <span class="icon-cancel" aria-hidden="true"></span>

@@ -7,6 +7,8 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
+\defined('_JEXEC') or die;
+
 use \Joomla\CMS\Uri\Uri;
 use \Joomla\CMS\Language\Text;
 

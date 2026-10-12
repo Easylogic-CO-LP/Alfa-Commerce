@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<form>
+    <fields name="valueparams">
+        <fieldset name="value_settings" label="PLG_ALFA_ITEM_FIELDS_CHOICE_FIELDSET_VALUE">
+
+            <!-- Swatch presentation for this value, used by the swatches render
+                 modes on every surface. Stored opaquely in the value's params
+                 JSON; core has no color/image columns by design.
+
+                 A value may carry ANY NUMBER of canonical colours: "Blue" is one,
+                 "Blue/Red" is two, "Blue/Red/White" is three. The normalised
+                 lowercase #rrggbb code is the colour's IDENTITY (two values that
+                 name the same code belong to the same filter colour group) while
+                 the label is presentation only and the row order is render order.
+                 This plugin reports finished group memberships through
+                 onItemFieldValueFacetGroups; the component never reads this shape. -->
+            <field name="swatch_colors" type="subform" multiple="true"
+                   layout="joomla.form.field.subform.repeatable-table"
+                   label="PLG_ALFA_ITEM_FIELDS_CHOICE_SWATCH_COLORS_LABEL"
+                   description="PLG_ALFA_ITEM_FIELDS_CHOICE_SWATCH_COLORS_DESC">
+                <form>
+                    <field name="code" type="color" format="hex" default=""
+                           label="PLG_ALFA_ITEM_FIELDS_CHOICE_SWATCH_CODE_LABEL"/>
+                    <field name="label" type="text" default=""
+                           label="PLG_ALFA_ITEM_FIELDS_CHOICE_SWATCH_LABEL_LABEL"
+                           description="PLG_ALFA_ITEM_FIELDS_CHOICE_SWATCH_LABEL_DESC"/>
+                </form>
+            </field>
+
+            <field name="swatch_image" type="media" default=""
+                   label="PLG_ALFA_ITEM_FIELDS_CHOICE_SWATCH_IMAGE_LABEL"
+                   description="PLG_ALFA_ITEM_FIELDS_CHOICE_SWATCH_IMAGE_DESC"/>
+
+        </fieldset>
+    </fields>
+</form>

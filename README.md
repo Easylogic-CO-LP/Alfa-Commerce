@@ -1,31 +1,31 @@
 # Alfa Commerce
 
-A full-featured eCommerce component for Joomla 5.x / 6.x / 7.x, developed by [Easylogic](https://easylogic.gr).
+A full-featured eCommerce component for Joomla 6.1+, developed by [Easylogic](https://easylogic.gr).
 
-> **Status:** Beta — the core is being actively built and tested.
+> **Status:** Stable. 2.0.0 is the first stable release. Sites on a 1.x beta need a clean install ([how](https://manual.alfacommerce.gr/docs/getting-started/installation/#from-a-1x-beta)).
 
 ## Features
 
-- **Product Catalog** — Items, categories, manufacturers, custom fields
-- **Cart & Checkout** — Full shopping cart with multi-step checkout
-- **Orders Management** — Order lifecycle, statuses, history tracking
-- **Payments** — Pluggable payment gateways
-- **Shipping** — Pluggable shipment methods
-- **Pricing Engine** — Taxes, discounts, coupons, multi-currency support
-- **Users & Groups** — Customer management with user group pricing
-- **REST API** — JSON-API endpoints for third-party integrations
-- **SEO** — SEF URLs, metadata management
-- **Multilingual** — Full i18n support (en-GB, el-GR)
+- **Product Catalog**: Items, categories, manufacturers, custom fields
+- **Cart & Checkout**: Full shopping cart with multi-step checkout
+- **Orders Management**: Order lifecycle, statuses, history tracking
+- **Payments**: Pluggable payment gateways
+- **Shipping**: Pluggable shipment methods
+- **Pricing Engine**: Taxes, discounts, coupons, multi-currency support
+- **Users & Groups**: Customer management with user group pricing
+- **REST API**: JSON-API endpoints for third-party integrations
+- **SEO**: SEF URLs, metadata management
+- **Multilingual**: Full i18n support (en-GB, el-GR)
 
 ## Requirements
 
-- PHP 8.2+
-- Joomla 5.x, 6.x or 7.x
-- MySQL (utf8mb4)
+- PHP 8.3+ (8.4 recommended), with bcmath, intl, mbstring, gd and openssl
+- Joomla 6.1+ (6.1 or a later Joomla 6 release)
+- MySQL 8.0.13+ or MariaDB 10.6+ (utf8mb4)
 
 ## Installation
 
-1. Download the latest release ZIP from the [main branch](https://github.com/Easylogic-CO-LP/Alfa-Commerce/archive/refs/heads/main.zip)
+1. Download the latest release from [alfacommerce.gr](https://alfacommerce.gr) (**Download**). The release ZIP is signed: the admin **Tools -> Security** check compares your files with its published checksums. The branch archive on GitHub is the source tree, not a release.
 2. In your Joomla admin, go to **System > Install > Extensions**
 3. Upload the ZIP file
 4. The installer will automatically set up the component, plugins, and modules

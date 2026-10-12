@@ -1,0 +1,67 @@
+{
+    "uid": "com_alfa.shipping",
+    "version": 11,
+    "title": "COM_ALFA_GUIDEDTOUR_SHIPPING_TITLE",
+    "description": "COM_ALFA_GUIDEDTOUR_SHIPPING_DESC",
+    "extensions": [
+        "com_alfa"
+    ],
+    "url": "administrator/index.php?option=com_alfa&view=shipments",
+    "autostart": false,
+    "steps": [
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_SHIPPING_STEP_1_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_SHIPPING_STEP_1_DESC",
+            "position": "right",
+            "target": "#sidebarmenu a[href*=\"option=com_alfa\"][href*=\"view=shipments\"]",
+            "type": 2,
+            "interactive_type": 1,
+            "url": "administrator/index.php?option=com_alfa&view=shipments"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_SHIPPING_STEP_2_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_SHIPPING_STEP_2_DESC",
+            "position": "bottom",
+            "target": ".button-new",
+            "type": 2,
+            "interactive_type": 1,
+            "url": "administrator/index.php?option=com_alfa&view=shipments"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_SHIPPING_STEP_3_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_SHIPPING_STEP_3_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_name), #jform_name",
+            "type": 2,
+            "interactive_type": 2,
+            "url": "administrator/index.php?option=com_alfa&view=shipment&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_SHIPPING_STEP_4_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_SHIPPING_STEP_4_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_type), #jform_type",
+            "type": 2,
+            "interactive_type": 3,
+            "url": "administrator/index.php?option=com_alfa&view=shipment&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_SHIPPING_STEP_5_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_SHIPPING_STEP_5_DESC",
+            "position": "bottom",
+            "target": "#save-group-children-save .button-save, .button-save",
+            "type": 2,
+            "interactive_type": 1,
+            "url": "administrator/index.php?option=com_alfa&view=shipment&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_SHIPPING_STEP_6_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_SHIPPING_STEP_6_DESC",
+            "position": "center",
+            "target": "",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=shipments"
+        }
+    ],
+    "ordering": 90
+}

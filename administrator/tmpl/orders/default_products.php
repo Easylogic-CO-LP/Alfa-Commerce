@@ -1,6 +1,6 @@
 <?php
 /**
- * Orders List — Detail Panel: Products Grid
+ * Orders List - Detail Panel: Products Grid
  *
  * Renders the products section of the detail panel.
  * Shows a grid of all order items with: name, discount badge,
@@ -8,7 +8,7 @@
  * line total (incl/excl), and fulfillment status.
  *
  * Receives per-row data via:
- *   $this->currentItem — order object (reads _items[])
+ *   $this->currentItem - order object (reads _items[])
  *
  * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
@@ -18,6 +18,7 @@
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\Language\Text;
 
 $item = $this->currentItem;
@@ -26,7 +27,7 @@ $item = $this->currentItem;
 
     <div class="dp-hdr dp-hdr-products">
         <?php echo Text::_('COM_ALFA_PRODUCTS'); ?>
-        <span class="badge bg-light text-dark"><?php echo count($item->_items ?? []); ?></span>
+        <span class="badge bg-body-tertiary text-body-emphasis"><?php echo count($item->_items ?? []); ?></span>
     </div>
 
     <?php if (!empty($item->_items)) : ?>
@@ -48,22 +49,22 @@ $item = $this->currentItem;
                 $oiStsClass  = in_array($oiSts, ['shipped','delivered','pending','cancelled'], true)
                     ? $oiSts : 'unassigned';
                 $oiStsLabel  = $oiSts ?: Text::_('COM_ALFA_UNASSIGNED');
-                $hasDiscount = ((float) ($oi->reduction_percent ?? 0)) > 0
-                    || ((float) ($oi->reduction_amount_tax_incl ?? 0)) > 0;
+                $hasDiscount = ((float) ($oi->discount_percent ?? 0)) > 0
+                    || ((float) ($oi->discount_amount_tax_incl ?? 0)) > 0;
                 $hasRefund   = ((int) ($oi->quantity_refunded ?? 0)) > 0;
-                $hasReturn   = ((int) ($oi->quantity_return   ?? 0)) > 0;
+                $hasReturn   = ((int) ($oi->quantity_returned ?? 0)) > 0;
                 ?>
                 <div class="dp-grid-row">
 
                     <!-- Product name + discount / refund / return badges -->
                     <div>
-                        <strong><?php echo $this->escape($oi->name); ?></strong>
+                        <strong><?php echo $this->escape(MultilingualHelper::resolveLangMap($oi->name)); ?></strong>
 
                         <?php if ($hasDiscount) : ?>
                             <small class="text-muted ms-1">
-                                (−<?php echo ((float) ($oi->reduction_percent ?? 0)) > 0
-                                    ? number_format((float) $oi->reduction_percent, 0) . '%'
-                                    : ($oi->reduction_formatted ?? number_format((float) $oi->reduction_amount_tax_incl, 2)); ?>)
+                                (−<?php echo ((float) ($oi->discount_percent ?? 0)) > 0
+                                    ? number_format((float) $oi->discount_percent, 0) . '%'
+                                    : $this->escape($oi->reduction_formatted ?? ''); ?>)
                             </small>
                         <?php endif; ?>
 
@@ -75,14 +76,14 @@ $item = $this->currentItem;
 
                         <?php if ($hasReturn) : ?>
                             <span class="badge bg-info text-dark ms-1" style="font-size:0.7em">
-                                <?php echo Text::_('COM_ALFA_RETURNED'); ?> ×<?php echo (int) $oi->quantity_return; ?>
+                                <?php echo Text::_('COM_ALFA_RETURNED'); ?> ×<?php echo (int) $oi->quantity_returned; ?>
                             </span>
                         <?php endif; ?>
                     </div>
 
                     <!-- SKU / Reference -->
                     <div class="text-center text-mono">
-                        <?php echo $this->escape($oi->reference ?? '—'); ?>
+                        <?php echo $this->escape($oi->sku ?? '-'); ?>
                     </div>
 
                     <!-- Quantity -->
@@ -90,19 +91,19 @@ $item = $this->currentItem;
 
                     <!-- Unit price: tax incl above, excl below -->
                     <div class="text-end">
-                        <?php echo $oi->unit_price_tax_incl_formatted ?? number_format((float) $oi->unit_price_tax_incl, 2); ?>
+                        <?php echo $this->escape($oi->unit_price_tax_incl_formatted); ?>
                         <small class="d-block text-muted">
-                            <?php echo $oi->unit_price_tax_excl_formatted ?? number_format((float) $oi->unit_price_tax_excl, 2); ?>
+                            <?php echo $this->escape($oi->unit_price_tax_excl_formatted); ?>
                         </small>
                     </div>
 
                     <!-- Line total: tax incl above, excl below -->
                     <div class="text-end">
                         <strong>
-                            <?php echo $oi->total_price_tax_incl_formatted ?? number_format((float) $oi->total_price_tax_incl, 2); ?>
+                            <?php echo $this->escape($oi->total_price_tax_incl_formatted ?? ''); ?>
                         </strong>
                         <small class="d-block text-muted">
-                            <?php echo $oi->total_price_tax_excl_formatted ?? number_format((float) $oi->total_price_tax_excl, 2); ?>
+                            <?php echo $this->escape($oi->total_price_tax_excl_formatted ?? ''); ?>
                         </small>
                     </div>
 

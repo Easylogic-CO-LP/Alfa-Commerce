@@ -1,0 +1,1327 @@
+/*
+ * Design tokens
+ * Override any of these in your template CSS to retheme the entire module.
+ * Example: .mod-alfa-filters-wrapper { --alfa-filters-accent: #e63946; }
+ */
+
+.mod-alfa-filters-wrapper {
+
+    /* Spacing scale (4px base) */
+    --alfa-filters-space-xs: 0.25em;    /* 4px  */
+    --alfa-filters-space-sm: 0.5em;     /* 8px  */
+    --alfa-filters-space-md: 0.75em;    /* 12px */
+    --alfa-filters-space-lg: 1em;       /* 16px */
+    --alfa-filters-space-xl: 1.5em;     /* 24px */
+    --alfa-filters-space-2xl: 2em;      /* 32px */
+
+    /* The panel's own inset. Named so the module can expose it as a setting and
+       every mode (inline column or off-canvas) reads the same value. */
+    --alfa-filters-panel-padding: var(--alfa-filters-space-lg) var(--alfa-filters-space-lg) var(--alfa-filters-space-2xl);
+
+    /* Its inline half, on its own, because the desktop actions bar is a SIBLING of the
+       form: the shorthand above insets the sections, and the bar has to be given the same
+       inline value or Reset All hangs outside the per-section reset links. Kept in step by
+       the dispatcher, which writes both from the one panel_padding setting. */
+    --alfa-filters-panel-padding-inline: var(--alfa-filters-space-lg);
+
+    /* Typography */
+    --alfa-filters-text-xs: 0.8em;
+    --alfa-filters-text-sm: 0.875em;
+    --alfa-filters-text-base: 1em;
+    --alfa-filters-text-lg: 1.125em;
+    --alfa-filters-text-xl: 1.25em;
+    --alfa-filters-weight-normal: 400;
+    --alfa-filters-weight-medium: 500;
+    --alfa-filters-weight-semibold: 600;
+    --alfa-filters-legend-transform: none;
+
+    /* Colors
+       Each takes the storefront token when one is there, and keeps its own literal
+       when it is not, so the module looks exactly as it always did on its own, and
+       follows the shop (dark mode included) the moment Alfa Commerce is present.
+       The alfa tokens are themselves mapped from the template, so a visitor
+       switching to dark carries this panel with them; there is deliberately no
+       second dark palette here to drift out of step with the first.
+
+       The tints are mixed from currentColor rather than written as greys: a fixed
+       #f7f7f7 hover is invisible on a dark panel, a mix is right either way. */
+    /* Referenced by `.mod-alfa-filters-wrapper { color: var(--alfa-filters-text) }` since the
+       module was written, but never declared, so that rule was invalid and the
+       panel's text fell back to BLACK, whatever the page around it was doing. That
+       is why the filters stayed light-looking in dark mode. `inherit` is the
+       standalone answer; with the shop present it takes the shop's body colour. */
+    --alfa-filters-text: var(--alfa-surface-color, inherit);
+    --alfa-filters-accent: var(--alfa-action-primary-bg, #1a1a1a);
+    --alfa-filters-accent-hover: var(--alfa-action-primary-bg-hover, #000);
+    --alfa-filters-text-secondary: var(--alfa-muted-color, #717171);
+    --alfa-filters-text-muted: var(--alfa-muted-color, #999);
+    --alfa-filters-border: var(--alfa-hairline, #e0e0e0);
+    --alfa-filters-border-hover: color-mix(in srgb, currentColor 30%, var(--alfa-filters-border));
+    --alfa-filters-border-focus: var(--alfa-filters-accent);
+    --alfa-filters-surface: var(--alfa-surface, #fff);
+    --alfa-filters-surface-hover: color-mix(in srgb, currentColor 4%, var(--alfa-filters-surface));
+    --alfa-filters-surface-active: color-mix(in srgb, currentColor 8%, var(--alfa-filters-surface));
+    /* A scrim is dark behind both themes. */
+    --alfa-filters-overlay: rgba(0, 0, 0, 0.35);
+
+    /* Radius
+       One knob, one hierarchy. The scale is a ratio off the storefront's radius,
+       so rounding the site rounds the module too without a checkbox ending up as
+       round as a panel. At the shipped 6px these ratios reproduce the module's
+       previous 4 / 6 / 8 exactly. `full` is a shape, not a size; it stays put. */
+    --alfa-filters-radius-base: var(--alfa-radius, 6px);
+    --alfa-filters-radius-sm: calc(var(--alfa-filters-radius-base) * 0.66);
+    --alfa-filters-radius-md: var(--alfa-filters-radius-base);
+    --alfa-filters-radius-lg: calc(var(--alfa-filters-radius-base) * 1.33);
+    --alfa-filters-radius-full: 50%;
+    --alfa-filters-icon-btn-radius: var(--alfa-filters-radius-sm);  /* shared by toggle, price-apply, discount btns */
+
+    /* Transitions */
+    --alfa-filters-duration-fast: 120ms;
+    --alfa-filters-duration: 200ms;
+    --alfa-filters-duration-slow: 350ms;
+    --alfa-filters-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+
+    /* Checkbox / Radio */
+    --alfa-filters-check-size: 1.125rem;    /* 18px */
+    --alfa-filters-swatch-size: 1.5rem;     /* 24px - facet swatch chip */
+    --alfa-filters-thumb-size: 20px;        /* price-slider handle */
+    --alfa-filters-check-radius: calc(var(--alfa-filters-radius-base) * 0.5);
+    --alfa-filters-check-border-width: 1.5px;
+
+    /* Price slider */
+    --alfa-filters-track-height: 4px;
+    --alfa-filters-track-color: var(--alfa-filters-border);
+
+    /* Subcategory indent */
+    --alfa-filters-indent: var(--alfa-filters-space-lg);
+
+    /* Panel width (offcanvas) */
+    --alfa-filters-panel-width: 320px;
+
+    font-size: inherit;
+    color: var(--alfa-filters-text);
+}
+
+/*
+ * Offcanvas Toggler
+ */
+
+.alfa-filters-offcanvas-toggler {
+    display: block;
+    background-color: var(--mod-alfa-filters-toggler-color, var(--alfa-filters-accent));
+    color: var(--alfa-filters-surface);
+    border: none;
+    padding: var(--alfa-filters-space-sm) var(--alfa-filters-space-lg);
+    font-size: var(--alfa-filters-text-sm);
+    font-weight: var(--alfa-filters-weight-medium);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-radius: var(--alfa-filters-radius-md);
+    cursor: pointer;
+    transition: background-color var(--alfa-filters-duration) var(--alfa-filters-ease),
+                opacity var(--alfa-filters-duration) var(--alfa-filters-ease);
+    height: 100%;
+    width: 100%;
+}
+
+.alfa-filters-offcanvas-toggler:hover {
+    opacity: 0.85;
+}
+
+/*
+ * Fixed Position
+ */
+
+.mod-alfa-filters-wrapper.alfa-filters-fixed.top-left .alfa-filters-offcanvas-toggler{
+    position: fixed;
+    width: clamp(180px, 10vw, 220px);
+    height: clamp(45px, 5vw, 55px);
+    top: calc(0% + var(--mod-alfa-filters-vertical-offset));
+    left: calc(0% + var(--mod-alfa-filters-horizontal-offset));
+    z-index: 1000;
+}
+
+.mod-alfa-filters-wrapper.alfa-filters-fixed.top-right .alfa-filters-offcanvas-toggler{
+    position: fixed;
+    width: clamp(180px, 10vw, 220px);
+    height: clamp(45px, 5vw, 55px);
+    top: calc(0% + var(--mod-alfa-filters-vertical-offset));
+    left: calc(100% - var(--mod-alfa-filters-horizontal-offset));
+    transform: translateX(-100%);
+    z-index: 1000;
+}
+
+.mod-alfa-filters-wrapper.alfa-filters-fixed.bottom-left .alfa-filters-offcanvas-toggler{
+    position: fixed;
+    width: clamp(180px, 10vw, 220px);
+    height: clamp(45px, 5vw, 55px);
+    top: calc(100% - var(--mod-alfa-filters-vertical-offset));
+    left: calc(0% + var(--mod-alfa-filters-horizontal-offset));
+    transform: translateY(-100%);
+    z-index: 1000;
+}
+
+.mod-alfa-filters-wrapper.alfa-filters-fixed.bottom-right .alfa-filters-offcanvas-toggler{
+    position: fixed;
+    width: clamp(180px, 10vw, 220px);
+    height: clamp(45px, 5vw, 55px);
+    top: calc(100% - var(--mod-alfa-filters-vertical-offset));
+    left: calc(100% - var(--mod-alfa-filters-horizontal-offset));
+    transform: translateY(-100%) translateX(-100%);
+    z-index: 1000;
+}
+
+.mod-alfa-filters-wrapper.alfa-filters-fixed.top-center .alfa-filters-offcanvas-toggler{
+    position: fixed;
+    width: clamp(180px, 10vw, 220px);
+    height: clamp(45px, 5vw, 55px);
+    top: calc(0% + var(--mod-alfa-filters-vertical-offset));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
+
+.mod-alfa-filters-wrapper.alfa-filters-fixed.bottom-center .alfa-filters-offcanvas-toggler{
+    position: fixed;
+    width: clamp(180px, 10vw, 220px);
+    height: clamp(45px, 5vw, 55px);
+    top: calc(100% - var(--mod-alfa-filters-vertical-offset));
+    left: 50%;
+    transform: translateY(-100%) translateX(-50%);
+    z-index: 1000;
+}
+
+/*
+ * Overlay
+ */
+
+.alfa-filters-offcanvas {
+    position: fixed;
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1001;
+    display: flex;
+}
+
+.alfa-filters-offcanvas.alfa-filters-offcanvas--visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.alfa-filters-offcanvas::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--alfa-filters-overlay);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.alfa-filters-offcanvas.alfa-filters-offcanvas--visible-inner::after {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.alfa-filters-offcanvas.alfa-filters-offcanvas--animatable::after {
+    transition: opacity 0.4s var(--alfa-filters-ease);
+}
+
+/*
+ * Header
+ */
+
+.alfa-filters-offcanvas .alfa-filters-header {
+    display: flex;
+    align-items: center;
+    padding: var(--alfa-filters-space-sm) var(--alfa-filters-space-md);
+    border-bottom: 1px solid var(--alfa-filters-border);
+    min-height: 3rem;
+}
+
+.alfa-filters-header-title {
+    margin: 0;
+    font-size: var(--alfa-filters-text-lg);
+    font-weight: var(--alfa-filters-weight-semibold);
+    letter-spacing: -0.01em;
+}
+
+.af-reset-all {
+    display: none;
+    margin-left: var(--alfa-filters-space-sm);
+    background: none;
+    border: none;
+    color: var(--alfa-filters-text-muted);
+    font-size: var(--alfa-filters-text-xs);
+    cursor: pointer;
+    padding: var(--alfa-filters-space-xs) 0;
+    transition: color var(--alfa-filters-duration-fast);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.af-reset-all.is-visible {
+    display: inline-block;
+}
+
+.af-reset-all:hover {
+    color: var(--alfa-filters-text);
+}
+
+/*
+ * Desktop actions
+ */
+
+/* Revealed by the breakpoint CSS the dispatcher emits per instance; the bar
+   collapses to nothing while its button is hidden. */
+.alfa-filters-actions {
+    display: none;
+}
+
+/*
+ * Close Button
+ */
+
+.alfa-filters-offcanvas .alfa-filters-close-btn {
+    --alfa-filters-close-size: 2.5rem;
+    width: var(--alfa-filters-close-size);
+    height: var(--alfa-filters-close-size);
+    padding: 0;
+    background: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    cursor: pointer;
+}
+
+/*
+ * Scroll Disable
+ */
+
+html.alfa-filters-noscroll {
+    overflow: hidden;
+}
+
+/*
+ * Animatable Transition
+ */
+
+.alfa-filters-offcanvas.alfa-filters-offcanvas--animatable.zoomIn .alfa-filters-wrapper-inner,
+.alfa-filters-offcanvas.alfa-filters-offcanvas--animatable.fromRight .alfa-filters-wrapper-inner,
+.alfa-filters-offcanvas.alfa-filters-offcanvas--animatable.fromLeft .alfa-filters-wrapper-inner,
+.alfa-filters-offcanvas.alfa-filters-offcanvas--animatable.fromTop .alfa-filters-wrapper-inner {
+    transition: transform 0.4s var(--alfa-filters-ease), opacity 0.4s var(--alfa-filters-ease);
+}
+
+/*
+ * Animations
+ */
+
+.alfa-filters-wrapper-inner{
+    transition: width 0.25s ease;
+}
+
+.alfa-filters-offcanvas.fromLeft .alfa-filters-wrapper-inner {
+    width: var(--alfa-filters-panel-width);
+    height: 100%;
+    background: var(--alfa-filters-surface);
+    transform: translate3d(-100%, 0, 0);
+    will-change: transform, opacity;
+    contain: layout paint;
+    opacity: 0;
+    z-index: 1002;
+}
+
+.alfa-filters-offcanvas.alfa-filters-offcanvas--visible-inner.fromLeft .alfa-filters-wrapper-inner {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+}
+
+.alfa-filters-offcanvas.zoomIn .alfa-filters-wrapper-inner {
+    max-width: 800px;
+    width: 80%;
+    height: clamp(200px, 80%, 400px);
+    background: var(--alfa-filters-surface);
+    transform: scale(0.95);
+    will-change: transform, opacity;
+    contain: layout paint;
+    align-self: center;
+    margin-left: auto;
+    margin-right: auto;
+    opacity: 0;
+    z-index: 1002;
+    border-radius: var(--alfa-filters-radius-lg);
+}
+
+.alfa-filters-offcanvas.alfa-filters-offcanvas--visible-inner.zoomIn .alfa-filters-wrapper-inner {
+    transform: scale(1);
+    opacity: 1;
+}
+
+.alfa-filters-offcanvas.fromRight .alfa-filters-wrapper-inner {
+    width: var(--alfa-filters-panel-width);
+    height: 100%;
+    background: var(--alfa-filters-surface);
+    transform: translate3d(100%, 0, 0);
+    will-change: transform, opacity;
+    contain: layout paint;
+    margin-left: auto;
+    opacity: 0;
+    z-index: 1002;
+}
+
+.alfa-filters-offcanvas.alfa-filters-offcanvas--visible-inner.fromRight .alfa-filters-wrapper-inner {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+}
+
+.alfa-filters-offcanvas.fromTop .alfa-filters-wrapper-inner {
+    width: 100%;
+    height: 440px;
+    background: var(--alfa-filters-surface);
+    transform: translate3d(0, -100%, 0);
+    will-change: transform, opacity;
+    contain: layout paint;
+    transition: width 0.4s ease, height 0.4s ease;
+    margin-left: auto;
+    margin-right: auto;
+    align-self: flex-start;
+    opacity: 0;
+    z-index: 1002;
+}
+
+.alfa-filters-offcanvas.alfa-filters-offcanvas--visible-inner.fromTop .alfa-filters-wrapper-inner {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+}
+
+/*
+ * Form
+ */
+
+.mod-alfa-filters {
+    padding: var(--alfa-filters-panel-padding);
+    overflow-y: auto;
+    overflow-x: hidden;
+    font-size: var(--alfa-filters-text-base);  /* base size for all filter content; scales with parent */
+    height: var(--mod-alfa-filters-form-height);
+    display: flex;
+    flex-direction: column;
+    gap: var(--alfa-filters-space-xl);
+}
+
+.mod-alfa-filters fieldset {
+    margin: 0;
+    padding: 0;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--alfa-filters-space-xs);
+}
+
+/* Section headings (legends / labels) */
+
+.mod-alfa-filters legend,
+.af-ordering label,
+.af-limit label,
+.af-discount-amount label,
+.af-discount-percent label,
+.af-onsale span,
+.af-price-header span {
+    --alfa-filters-section-font-size: var(--alfa-filters-text-sm);
+    --alfa-filters-section-font-weight: var(--alfa-filters-weight-semibold);
+    --alfa-filters-section-color: var(--alfa-filters-text);
+    --alfa-filters-section-transform: var(--alfa-filters-legend-transform);
+    --alfa-filters-section-spacing: 0.03em;
+    --alfa-filters-section-padding-bottom: var(--alfa-filters-space-xs);
+    font-size: var(--alfa-filters-section-font-size);
+    font-weight: var(--alfa-filters-section-font-weight);
+    color: var(--alfa-filters-section-color);
+    text-transform: var(--alfa-filters-section-transform);
+    letter-spacing: var(--alfa-filters-section-spacing);
+    padding: 0 0 var(--alfa-filters-section-padding-bottom) 0;
+}
+
+/* Filter fieldset sections (category, manufacturer, etc.) */
+
+.mod-alfa-filters .af-fieldset {
+    padding-top: var(--alfa-filters-space-md);
+}
+
+.mod-alfa-filters .af-fieldset:first-child {
+    padding-top: 0;
+}
+
+.af-fieldset-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.af-fieldset-header legend {
+    float: none;
+    width: auto;
+}
+
+.af-fieldset-header .af-reset {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--alfa-filters-text-muted);
+    font-size: var(--alfa-filters-text-xs);
+    cursor: pointer;
+    padding: var(--alfa-filters-space-xs) 0;
+    transition: color var(--alfa-filters-duration-fast);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.af-fieldset-header .af-reset.is-visible {
+    display: inline-block;
+}
+
+.af-fieldset-header .af-reset:hover {
+    color: var(--alfa-filters-text);
+}
+
+.mod-alfa-filters button[type="submit"] {
+    display: block;
+    width: 100%;
+    background-color: var(--mod-alfa-filters-submit-color, var(--alfa-filters-accent));
+    color: var(--alfa-filters-surface);
+    border: none;
+    padding: var(--alfa-filters-space-md) var(--alfa-filters-space-lg);
+    font-size: var(--alfa-filters-text-sm);
+    font-weight: var(--alfa-filters-weight-medium);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-radius: var(--alfa-filters-radius-md);
+    cursor: pointer;
+    transition: background-color var(--alfa-filters-duration) var(--alfa-filters-ease);
+    margin-top: var(--alfa-filters-space-md);
+}
+
+.mod-alfa-filters button[type="submit"]:hover {
+    background-color: var(--mod-alfa-filters-submit-color-hover, var(--alfa-filters-accent-hover));
+}
+
+.mod-alfa-filters button[type="submit"]:disabled {
+    background-color: var(--alfa-filters-border);
+    color: var(--alfa-filters-text-muted);
+    cursor: not-allowed;
+}
+
+/*
+ * Filter List (Categories & Manufacturers)
+ */
+
+.mod-alfa-filters .af-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.mod-alfa-filters .af-option {
+    display: flex;
+    gap: var(--alfa-filters-space-sm);
+    padding: var(--alfa-filters-space-xs) 0;
+    align-items: center;
+}
+
+.mod-alfa-filters .af-label {
+    cursor: pointer;
+    font-size: var(--alfa-filters-text-base);
+    font-weight: var(--alfa-filters-weight-normal);
+    color: var(--alfa-filters-text);
+    transition: color var(--alfa-filters-duration-fast);
+}
+
+.mod-alfa-filters .af-label:hover {
+    color: var(--mod-alfa-filters-filter-text-color-hover);
+}
+
+.mod-alfa-filters .af-count {
+    --alfa-filters-count-font-size: var(--alfa-filters-text-xs);
+    /* The item's own colour, softened: a fixed grey cannot stay readable
+       against every panel background a merchant sets. */
+    --alfa-filters-count-color: currentColor;
+    opacity: .75;
+    cursor: pointer;
+    font-size: var(--alfa-filters-count-font-size);
+    color: var(--alfa-filters-count-color);
+    font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Facet render modes (params.filter_render_as)
+ *
+ * buttons / swatches keep the native checkbox for state, keyboard and screen
+ * readers: it is clipped, NOT display:none, so it stays focusable. The chip is
+ * painted from the input's :checked / :focus-visible state.
+ */
+
+.mod-alfa-filters .af-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--alfa-filters-space-xs);
+}
+
+.mod-alfa-filters .af-chip-list .af-item {
+    margin: 0;
+}
+
+/* Clip the native input instead of removing it: display:none would drop it from
+   the tab order and from the accessibility tree. Overriding the blanket
+   input[type=checkbox] sizing rule above needs !important: it sets one too. */
+.mod-alfa-filters input[type="checkbox"].af-chip-input {
+    position: absolute;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+.mod-alfa-filters .af-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--alfa-filters-space-xs);
+    padding: var(--alfa-filters-space-xs) var(--alfa-filters-space-sm);
+    border: var(--alfa-filters-check-border-width) solid var(--alfa-filters-border);
+    border-radius: var(--alfa-filters-radius-sm);
+    background: var(--alfa-filters-surface);
+    color: var(--alfa-filters-text);
+    font-size: var(--alfa-filters-text-base);
+    line-height: 1.2;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color var(--alfa-filters-duration-fast),
+                background-color var(--alfa-filters-duration-fast),
+                color var(--alfa-filters-duration-fast);
+}
+
+.mod-alfa-filters .af-chip:hover {
+    border-color: var(--mod-alfa-filters-checkbox-color-before, var(--alfa-filters-border));
+    color: var(--mod-alfa-filters-filter-text-color-hover);
+}
+
+.mod-alfa-filters .af-chip-input:checked + .af-chip {
+    border-color: var(--mod-alfa-filters-checkbox-color);
+    background: var(--mod-alfa-filters-checkbox-color);
+    color: var(--mod-alfa-filters-submit-color-text);
+}
+
+.mod-alfa-filters .af-chip-input:checked + .af-chip .af-count {
+    --alfa-filters-count-color: currentColor;
+}
+
+/* The focus ring the clipped input can no longer show for itself. */
+.mod-alfa-filters .af-chip-input:focus-visible + .af-chip {
+    outline: 2px solid var(--mod-alfa-filters-checkbox-color);
+    outline-offset: 2px;
+}
+
+/* swatches */
+
+.mod-alfa-filters .af-render-swatches .af-chip {
+    padding: var(--alfa-filters-space-xs);
+}
+
+.mod-alfa-filters .af-chip-swatch {
+    width: var(--alfa-filters-swatch-size);
+    height: var(--alfa-filters-swatch-size);
+    border-radius: var(--alfa-filters-radius-sm);
+    border: 1px solid var(--alfa-filters-border);
+    background-size: cover;
+    background-position: center;
+    flex-shrink: 0;
+}
+
+/* A value with no swatch_colors/swatch_image still needs a visible chip. */
+.mod-alfa-filters .af-chip-swatch[data-empty="1"] {
+    background-image: linear-gradient(
+        135deg,
+        var(--alfa-filters-surface) 45%,
+        var(--alfa-filters-border) 45%,
+        var(--alfa-filters-border) 55%,
+        var(--alfa-filters-surface) 55%
+    );
+}
+
+/* colour groups */
+
+/* A grouped colour list sits above whatever plain values remain, so it needs a little
+   air between the two rather than reading as one run-on row. */
+.mod-alfa-filters .af-color-groups {
+    margin-bottom: var(--alfa-filters-space-xs);
+}
+
+/* The chip's own swatch carries the gradient inline (1 colour = flat, 2 = diagonal
+   split, 3+ = equal hard-stop bands), so nothing here paints; this only sizes it. */
+.mod-alfa-filters .af-chip-more {
+    font-size: var(--alfa-filters-text-xs);
+    color: var(--alfa-filters-text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.mod-alfa-filters .af-chip-input:checked + .af-chip .af-chip-more {
+    color: currentColor;
+}
+
+/* select */
+
+/* The native multiple select: what renders before Choices dresses it, and all
+   that renders without JS. */
+.mod-alfa-filters .af-field-select {
+    width: 100%;
+    padding: var(--alfa-filters-space-xs);
+    border: var(--alfa-filters-check-border-width) solid var(--alfa-filters-border);
+    border-radius: var(--alfa-filters-radius-sm);
+    background: var(--alfa-filters-surface);
+    font-size: var(--alfa-filters-text-base);
+}
+
+.mod-alfa-filters .af-field-select:focus-visible {
+    outline: 2px solid var(--mod-alfa-filters-checkbox-color);
+    outline-offset: 1px;
+}
+
+.mod-alfa-filters .af-field-select option {
+    padding: var(--alfa-filters-space-xs);
+}
+
+/* Choices.js, themed through its own custom properties so the widget follows
+   the module tokens without a single rule fight: chips take the checked-chip
+   colours of the buttons mode, the list takes the panel's surface and border. */
+.mod-alfa-filters .choices {
+    --choices-guttering: 0;
+    --choices-font-size-lg: var(--alfa-filters-text-base);
+    --choices-font-size-md: var(--alfa-filters-text-sm);
+    --choices-font-size-sm: var(--alfa-filters-text-xs);
+    --choices-bg-color: var(--alfa-filters-surface);
+    --choices-bg-color-dropdown: var(--alfa-filters-surface);
+    --choices-keyline-color: var(--alfa-filters-border);
+    --choices-base-border: var(--alfa-filters-check-border-width) solid;
+    --choices-border-radius: var(--alfa-filters-radius-sm);
+    --choices-border-radius-item: var(--alfa-filters-radius-sm);
+    --choices-primary-color: var(--mod-alfa-filters-checkbox-color, var(--alfa-filters-accent));
+    --choices-item-color: var(--mod-alfa-filters-submit-color-text, var(--alfa-filters-surface));
+    --choices-highlighted-color: var(--alfa-filters-surface-hover);
+    --choices-input-height: 0;
+    --choices-inner-padding: var(--alfa-filters-space-xs) var(--alfa-filters-space-sm) 0;
+    --choices-input-padding: var(--alfa-filters-space-xs) 0;
+    --choices-input-margin-bottom: var(--alfa-filters-space-xs);
+    --choices-multiple-item-padding: 2px var(--alfa-filters-space-sm);
+    --choices-multiple-item-margin: var(--alfa-filters-space-xs);
+    --choices-dropdown-item-padding: var(--alfa-filters-space-sm);
+    --choices-z-index: 10;
+}
+
+/* The open list overlays the facets below it. */
+.mod-alfa-filters .choices.is-open {
+    z-index: 10;
+}
+
+.mod-alfa-filters .choices__inner,
+.mod-alfa-filters .choices__input {
+    color: inherit;
+}
+
+/*
+ * Categories - Subcategories
+ */
+
+.mod-alfa-filters-wrapper .af-children {
+    display: none;
+}
+
+.mod-alfa-filters-wrapper .af-children .af-list {
+    margin-left: var(--alfa-filters-indent);
+    padding-top: var(--alfa-filters-space-xs);
+}
+
+/*
+ * Checkbox & Radio
+ */
+
+.mod-alfa-filters input[type="checkbox"],
+.mod-alfa-filters input[type="radio"] {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+    flex-shrink: 0;
+    width: var(--alfa-filters-check-size) !important;
+    height: var(--alfa-filters-check-size) !important;
+    border: var(--alfa-filters-check-border-width) solid var(--mod-alfa-filters-checkbox-color-before, var(--alfa-filters-border));
+    background: var(--alfa-filters-surface);
+    display: grid;
+    place-content: center;
+    cursor: pointer;
+    transition: border-color var(--alfa-filters-duration-fast),
+                background-color var(--alfa-filters-duration-fast),
+                box-shadow var(--alfa-filters-duration-fast);
+}
+
+.mod-alfa-filters input[type="checkbox"] {
+    border-radius: var(--alfa-filters-check-radius);
+}
+
+.mod-alfa-filters input[type="radio"] {
+    border-radius: var(--alfa-filters-radius-full);
+}
+
+.mod-alfa-filters input[type="checkbox"]:hover,
+.mod-alfa-filters input[type="radio"]:hover {
+    border-color: var(--mod-alfa-filters-checkbox-color, var(--alfa-filters-accent));
+}
+
+.mod-alfa-filters input[type="checkbox"]::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+    transform: scale(0);
+    transform-origin: center;
+    transition: transform var(--alfa-filters-duration-fast) ease-in-out;
+    box-shadow: inset 1em 1em #fff;
+    background-color: CanvasText;
+}
+
+.mod-alfa-filters input[type="radio"]::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: var(--alfa-filters-radius-full);
+    transform: scale(0);
+    transition: transform var(--alfa-filters-duration-fast) ease-in-out;
+    box-shadow: inset 1em 1em #fff;
+    background-color: CanvasText;
+}
+
+.mod-alfa-filters input[type="checkbox"]:checked,
+.mod-alfa-filters input[type="radio"]:checked {
+    border-color: var(--mod-alfa-filters-checkbox-color, var(--alfa-filters-accent));
+    background-color: var(--mod-alfa-filters-checkbox-color, var(--alfa-filters-accent));
+}
+
+.mod-alfa-filters input[type="checkbox"]:checked::before,
+.mod-alfa-filters input[type="radio"]:checked::before {
+    transform: scale(1);
+}
+
+.mod-alfa-filters input[type="checkbox"]:disabled {
+    border-color: var(--alfa-filters-border);
+    background: var(--alfa-filters-surface-hover);
+    cursor: not-allowed;
+}
+
+/* Safari 9+, < 13.1 fallback */
+@supports (-webkit-marquee-repetition:infinite) and (object-fit:fill) {
+    .mod-alfa-filters input[type="checkbox"]:before { display: none; }
+    .mod-alfa-filters input[type="checkbox"]:checked {
+        border-color: var(--mod-alfa-filters-checkbox-color, var(--alfa-filters-accent));
+        background-color: var(--mod-alfa-filters-checkbox-color, var(--alfa-filters-accent));
+        accent-color: var(--mod-alfa-filters-checkbox-color, var(--alfa-filters-accent));
+    }
+    .mod-alfa-filters input[type="checkbox"] {
+        -webkit-appearance: checkbox;
+        appearance: checkbox;
+    }
+}
+
+/*
+ * Subcategory Toggle
+ */
+
+.af-toggle {
+    --alfa-filters-toggle-size: 1.75rem;
+    --alfa-filters-toggle-bg: var(--alfa-filters-surface-hover);
+    --alfa-filters-toggle-bg-hover: var(--alfa-filters-surface-active);
+    --alfa-filters-toggle-color: var(--mod-alfa-filters-subcategory-toggle-color, var(--alfa-filters-text-secondary));
+    --alfa-filters-toggle-radius: var(--alfa-filters-icon-btn-radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--alfa-filters-toggle-size);
+    height: var(--alfa-filters-toggle-size);
+    flex-shrink: 0;
+    padding: 0;
+    background-color: var(--alfa-filters-toggle-bg);
+    border: none;
+    cursor: pointer;
+    border-radius: var(--alfa-filters-toggle-radius);
+    transition: background-color var(--alfa-filters-duration) var(--alfa-filters-ease),
+                color var(--alfa-filters-duration) var(--alfa-filters-ease);
+    font: inherit;
+    color: var(--alfa-filters-toggle-color);
+    margin-left: auto;
+}
+
+.af-toggle:hover {
+    background-color: var(--alfa-filters-toggle-bg-hover);
+    color: var(--alfa-filters-toggle-color-hover);
+}
+
+.af-toggle svg {
+    width: 1rem;
+    height: 1rem;
+    transition: transform var(--alfa-filters-duration-slow) var(--alfa-filters-ease);
+}
+
+.af-toggle[aria-expanded="true"] svg {
+    transform: rotate(90deg);
+}
+
+/*
+ * Price Slider
+ */
+
+.af-price-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.af-price-header .af-price-reset {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--alfa-filters-text-muted);
+    font-size: var(--alfa-filters-text-xs);
+    cursor: pointer;
+    padding: var(--alfa-filters-space-xs) 0;
+    transition: color var(--alfa-filters-duration-fast);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.af-price-header .af-price-reset.is-visible {
+    display: inline-block;
+}
+
+.af-price-header .af-price-reset:hover {
+    color: var(--alfa-filters-text);
+}
+
+.mod-alfa-filters-wrapper .af-price-fieldset .af-range {
+    position: relative;
+    width: 100%;
+    height: 2.5rem;
+}
+
+.mod-alfa-filters-wrapper .af-price-fieldset .af-range-track {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+    height: var(--alfa-filters-track-height);
+    background: var(--alfa-filters-track-color);
+    border-radius: calc(var(--alfa-filters-track-height) / 2);
+}
+
+.mod-alfa-filters-wrapper .af-price-fieldset .af-range-highlight {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    height: var(--alfa-filters-track-height);
+    background: var(--alfa-filters-track-active-color);
+    border-radius: calc(var(--alfa-filters-track-height) / 2);
+}
+
+.mod-alfa-filters-wrapper .af-price-fieldset .af-range input[type="range"] {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+    /* As tall as the thumb it carries (thumb + its 2px border either side). The
+       input itself collapsed to the 4px track height, which is the box a touch
+       target is measured by; the thumb is a pseudo-element and does not count.
+       Nothing is intercepted by the taller box: the input stays pointer-events
+       none, only the thumb takes pointer events, and the box is still centred. */
+    height: calc(var(--alfa-filters-thumb-size) + 4px);
+    margin: 0;
+    pointer-events: none;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+}
+
+.mod-alfa-filters-wrapper .af-price-fieldset .af-range input[type="range"]::-webkit-slider-runnable-track {
+    /* The whole input, so the thumb centres in it without an offset. The visible
+       track is the .af-range-track element underneath; this one only positions. */
+    height: 100%;
+    background: transparent;
+}
+
+.mod-alfa-filters-wrapper .af-price-fieldset .af-range input[type="range"]::-webkit-slider-thumb {
+    pointer-events: auto;
+    -webkit-appearance: none;
+    appearance: none;
+    box-sizing: content-box;
+    width: var(--alfa-filters-thumb-size);
+    height: var(--alfa-filters-thumb-size);
+    background: var(--alfa-filters-surface);
+    border-radius: var(--alfa-filters-radius-full);
+    cursor: pointer;
+    border: 2px solid var(--alfa-filters-accent);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    transition: box-shadow var(--alfa-filters-duration-fast), transform var(--alfa-filters-duration-fast);
+}
+
+.mod-alfa-filters-wrapper .af-price-fieldset .af-range input[type="range"]::-webkit-slider-thumb:hover {
+    box-shadow: 0 0 0 4px rgba(26, 26, 26, 0.08), 0 1px 3px rgba(0, 0, 0, 0.12);
+    transform: scale(1.05);
+}
+
+.mod-alfa-filters-wrapper .af-price-fieldset .af-range input[type="range"]::-moz-range-thumb {
+    pointer-events: auto;
+    box-sizing: content-box;
+    width: var(--alfa-filters-thumb-size);
+    height: var(--alfa-filters-thumb-size);
+    background: var(--alfa-filters-surface);
+    border-radius: var(--alfa-filters-radius-full);
+    cursor: pointer;
+    border: 2px solid var(--alfa-filters-accent);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    transition: box-shadow var(--alfa-filters-duration-fast), transform var(--alfa-filters-duration-fast);
+}
+
+.mod-alfa-filters-wrapper .af-price-fieldset .af-range input[type="range"]::-moz-range-thumb:hover {
+    box-shadow: 0 0 0 4px rgba(26, 26, 26, 0.08), 0 1px 3px rgba(0, 0, 0, 0.12);
+    transform: scale(1.05);
+}
+
+.mod-alfa-filters-wrapper .af-price-fieldset .af-price-values {
+    display: flex;
+    justify-content: space-between;
+}
+
+.mod-alfa-filters-wrapper .af-price-fieldset .af-price-box {
+    font-weight: var(--alfa-filters-weight-medium);
+    color: var(--alfa-filters-text);
+    font-size: var(--alfa-filters-text-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 2.5rem;
+    flex: 1;
+}
+
+.af-price-fieldset .af-price-box input {
+    height: 100%;
+    width: 100%;
+    text-align: center;
+    border-radius: var(--alfa-filters-radius-md);
+    border: 1px solid var(--alfa-filters-border);
+    font-size: var(--alfa-filters-text-base);
+    font-weight: var(--alfa-filters-weight-medium);
+    font-variant-numeric: tabular-nums;
+    color: var(--alfa-filters-text);
+    background: var(--alfa-filters-surface);
+    transition: border-color var(--alfa-filters-duration-fast);
+}
+
+.af-price-fieldset .af-price-box input:focus {
+    outline: none;
+    border-color: var(--alfa-filters-border-focus);
+    box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.06);
+}
+
+.mod-alfa-filters-wrapper .af-price-fieldset .af-price-label {
+    color: var(--alfa-filters-text-muted);
+    font-weight: var(--alfa-filters-weight-normal);
+    font-size: var(--alfa-filters-text-xs);
+    margin-bottom: 2px;
+    /* Not display:none; that would take the label out of the accessibility tree
+       and leave the input it names unlabelled. Clipped instead: same look, the
+       name survives. */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.mod-alfa-filters-wrapper .af-price-search {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    gap: var(--alfa-filters-space-sm);
+    align-items: center;
+}
+
+.af-price-search input::-webkit-outer-spin-button,
+.af-price-search input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.af-price-search input[type=number] {
+    -moz-appearance: textfield;
+}
+
+/*
+ * Arrow Buttons (Price / Discount apply)
+ */
+
+.mod-alfa-filters-wrapper .af-price-search button[type='button'],
+.af-discount-amount button,
+.af-discount-percent button {
+    flex-shrink: 0;
+    aspect-ratio: 1;
+    width: 2.5rem;
+    border-radius: var(--alfa-filters-icon-btn-radius);
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid var(--alfa-filters-border);
+    cursor: pointer;
+    color: var(--alfa-filters-text-secondary);
+    transition: border-color var(--alfa-filters-duration-fast),
+                color var(--alfa-filters-duration-fast),
+                background-color var(--alfa-filters-duration-fast);
+}
+
+.mod-alfa-filters-wrapper .af-price-search button[type='button']:hover,
+.af-discount-amount-inner button[type='button']:hover,
+.af-discount-percent-inner button[type='button']:hover {
+    border-color: var(--alfa-filters-accent);
+    color: var(--alfa-filters-accent);
+    background-color: var(--alfa-filters-surface-hover);
+}
+
+.af-price-search .af-arrow-icon,
+.af-discount-amount .af-arrow-icon,
+.af-discount-percent .af-arrow-icon {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* Arrow SVG line transforms */
+.af-price-search .af-arrow-icon .line-bottom, .af-price-search .af-arrow-icon .line-top,
+.af-discount-amount .af-arrow-icon .line-bottom, .af-discount-amount .af-arrow-icon .line-top,
+.af-discount-percent .af-arrow-icon .line-bottom, .af-discount-percent .af-arrow-icon .line-top,
+.af-toggle .line-top, .af-toggle .line-bottom {
+    transform-origin: 150px 100px;
+}
+
+.af-price-search .af-arrow-icon .line-bottom,
+.af-discount-amount .af-arrow-icon .line-bottom,
+.af-discount-percent .af-arrow-icon .line-bottom,
+.af-toggle .line-bottom {
+    transform: rotate(35deg);
+}
+
+.af-price-search .af-arrow-icon .line-top,
+.af-discount-amount .af-arrow-icon .line-top,
+.af-discount-percent .af-arrow-icon .line-top,
+.af-toggle .line-top {
+    transform: rotate(-35deg);
+}
+
+/*
+ * Section Separators
+ * Consistent top-border pattern for all filter sections.
+ */
+
+.af-price,
+.af-ordering,
+.af-limit,
+.af-onsale,
+.af-discount-amount,
+.af-discount-percent {
+    padding-top: var(--alfa-filters-space-md);
+}
+
+/*
+ * Extra Filters (Onsale, Discounts)
+ */
+
+.af-onsale .btn-group.radio,
+.af-onsale legend,
+.af-onsale fieldset {
+    margin: 0;
+}
+
+.af-discount-amount-inner,
+.af-discount-percent-inner {
+    display: flex;
+    flex-direction: row;
+    gap: var(--alfa-filters-space-sm);
+    align-items: center;
+}
+
+.af-discount-amount,
+.af-discount-percent {
+    display: flex;
+    flex-direction: column;
+    gap: var(--alfa-filters-space-xs);
+}
+
+/*
+ * Ordering & Limit selects
+ */
+
+.af-ordering select,
+.af-limit select,
+.af-onsale label,
+.af-discount-amount input,
+.af-discount-percent input {
+    font-size: var(--alfa-filters-text-base);
+    font-family: var(--alfa-filters-font);
+}
+
+.af-ordering select,
+.af-limit select {
+    width: 100%;
+    padding: var(--alfa-filters-space-sm) var(--alfa-filters-space-md);
+    /* Room for the drop-down arrow, wherever it is drawn. */
+    padding-inline-end: 2rem;
+    border: 1px solid var(--alfa-filters-border);
+    border-radius: var(--alfa-filters-radius-md);
+    /* background-COLOR, not the shorthand: the shorthand also clears
+       background-image, which is where a framework-free template draws the
+       drop-down arrow. */
+    background-color: var(--alfa-filters-surface);
+    color: var(--alfa-filters-text);
+    font-weight: var(--alfa-filters-weight-normal);
+    cursor: pointer;
+    transition: border-color var(--alfa-filters-duration-fast);
+}
+
+.af-ordering select:focus,
+.af-limit select:focus {
+    outline: none;
+    border-color: var(--alfa-filters-border-focus);
+    box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.06);
+}
+
+.af-discount-amount input,
+.af-discount-percent input {
+    padding: var(--alfa-filters-space-sm) var(--alfa-filters-space-md);
+    border: 1px solid var(--alfa-filters-border);
+    border-radius: var(--alfa-filters-radius-md);
+    color: var(--alfa-filters-text);
+    background: var(--alfa-filters-surface);
+    transition: border-color var(--alfa-filters-duration-fast);
+}
+
+.af-discount-amount input:focus,
+.af-discount-percent input:focus {
+    outline: none;
+    border-color: var(--alfa-filters-border-focus);
+    box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.06);
+}
+
+/*
+ * Loading Animation
+ */
+
+.alfa-filters-loading-overlay {
+    position: fixed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    z-index: 1002;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--alfa-filters-duration) var(--alfa-filters-ease),
+                visibility var(--alfa-filters-duration) var(--alfa-filters-ease);
+}
+
+.alfa-filters-loading-overlay.is-active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.alfa-filters-loading-overlay svg,
+.alfa-filters-loading-overlay img {
+    --loading-size: clamp(80px, 12vw, 120px);
+    width: var(--loading-size);
+    height: auto;
+    object-fit: contain;
+}
+
+.af-loading-anim {
+    animation: var(--mod-alfa-filters-loading-animation);
+}
+
+@keyframes alfa-filters-spinner {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes alfa-filters-pulsate {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.6; }
+}
+
+/*
+ * Mobile Breakpoint
+ */
+
+@media (max-width: 440px) {
+    .alfa-filters-offcanvas.alfa-filters-offcanvas--visible-inner .alfa-filters-wrapper-inner {
+        width: 100%;
+        transition: width 0.25s ease;
+    }
+}
+
+@media (max-height: 600px) {
+    .alfa-filters-offcanvas.alfa-filters-offcanvas--visible-inner.fromTop .alfa-filters-wrapper-inner {
+        height: 100%;
+        transition: height 0.25s ease;
+    }
+}
+
+/*
+   Dark
+   The module's own dark values, so it is correct in both modes on its own: a page
+   that never loads com_alfa's palette still gets a readable panel instead of dark
+   text on a dark ground. Where the palette IS loaded it wins, so a merchant who
+   themes the shop still themes this module; these are the floor, not the ceiling.
+
+   Keyed on what the PAGE declares, never on the device alone: a visitor who picks
+   light on a dark laptop must get light. The third selector is the case where no
+   Alfa template is installed: neither attribute exists, so the device decides.
+   */
+:is(:root[data-theme="dark"], :root[data-theme-default="dark"]:not([data-theme]))
+.mod-alfa-filters-wrapper {
+    --alfa-filters-text: var(--alfa-surface-color, #e5e7eb);
+    --alfa-filters-accent: var(--alfa-action-primary-bg, #e5e7eb);
+    --alfa-filters-accent-hover: var(--alfa-action-primary-bg-hover, #f9fafb);
+    --alfa-filters-text-secondary: var(--alfa-muted-color, #9ca3af);
+    --alfa-filters-text-muted: var(--alfa-muted-color, #9ca3af);
+    --alfa-filters-border: var(--alfa-hairline, #374151);
+    --alfa-filters-surface: var(--alfa-surface, #1f2937);
+}
+
+@media (prefers-color-scheme: dark) {
+    :is(:root[data-theme="auto"],
+        :root[data-theme-default="auto"]:not([data-theme]),
+        :root:not([data-theme]):not([data-theme-default]))
+    .mod-alfa-filters-wrapper {
+        --alfa-filters-text: var(--alfa-surface-color, #e5e7eb);
+        --alfa-filters-accent: var(--alfa-action-primary-bg, #e5e7eb);
+        --alfa-filters-accent-hover: var(--alfa-action-primary-bg-hover, #f9fafb);
+        --alfa-filters-text-secondary: var(--alfa-muted-color, #9ca3af);
+        --alfa-filters-text-muted: var(--alfa-muted-color, #9ca3af);
+        --alfa-filters-border: var(--alfa-hairline, #374151);
+        --alfa-filters-surface: var(--alfa-surface, #1f2937);
+    }
+}

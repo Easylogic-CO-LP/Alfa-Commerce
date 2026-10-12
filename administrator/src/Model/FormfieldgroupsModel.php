@@ -11,17 +11,25 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
-use Joomla\CMS\MVC\Model\ListModel;
 
-class FormfieldgroupsModel extends ListModel
+class FormfieldgroupsModel extends AlfaListModel
 {
+    /**
+     * The admin-contract entity this list serves.
+     *
+     *
+     * @since  1.8.0
+     */
+    protected string $alfaEntity = 'formfieldgroup';
+
     public function __construct($config = [], ?MVCFactoryInterface $factory = null)
     {
         if (empty($config['filter_fields'])) {
             $config['filter_fields'] = [
                 'id',       'a.id',
-                'title',    'a.title',
+                'title',
                 'ordering', 'a.ordering',
                 'state',    'a.state',
             ];
@@ -45,7 +53,7 @@ class FormfieldgroupsModel extends ListModel
     }
 
     /**
-     * Build the cache store id, folding the search and state filters into the key.
+     * Build the cache store id, folding every active filter into the key.
      *
      * @param string $id An identifier string to prefix the store id.
      *
@@ -54,8 +62,26 @@ class FormfieldgroupsModel extends ListModel
      */
     protected function getStoreId($id = '')
     {
-        $id .= ':' . $this->getState('filter.search');
-        $id .= ':' . $this->getState('filter.state');
+        // Serialise EVERY filter into the cache identity, including filters a plugin
+        // declared through onAlfaAdminListFilters, which a hand-enumerated list would
+        // silently omit (stale cache + the contract's list phases skipping re-runs).
+        // Same discipline as the orders grid.
+        $filters = [];
+
+        // toArray(), not (array): the model State keeps LITERAL dotted keys, so an
+        // object cast returns its protected properties and matches nothing.
+        foreach ($this->getState()->toArray() as $key => $value) {
+            if (str_starts_with((string) $key, 'filter.')) {
+                $filters[$key] = \is_array($value) ? implode(',', $value) : (string) $value;
+            }
+        }
+
+        ksort($filters);
+
+        foreach ($filters as $key => $value) {
+            $id .= ':' . $key . '=' . $value;
+        }
+
         return parent::getStoreId($id);
     }
 
@@ -74,9 +100,21 @@ class FormfieldgroupsModel extends ListModel
         $query->select($this->getState('list.select', 'a.*'))
             ->from($db->quoteName('#__alfa_form_field_groups', 'a'));
 
-        // Count of fields assigned to each group — useful for delete confirmation UI.
+        // Count of fields assigned to each group: useful for delete confirmation UI.
         $query->select('(SELECT COUNT(*) FROM ' . $db->quoteName('#__alfa_form_fields')
             . ' WHERE group_id = a.id) AS field_count');
+
+        // MULTILINGUAL: resolve title / description in the active language from the
+        // per-language tables (LEFT JOIN + COALESCE; translatable cols no longer
+        // live in the main table).
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'a',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_form_field_groups',
+            langPrimaryColumn: 'id_form_field_group',
+            fields:            ['title', 'description'],
+        );
 
         $published = $this->getState('filter.state');
         if (is_numeric($published)) {
@@ -91,7 +129,9 @@ class FormfieldgroupsModel extends ListModel
                 $query->where('a.id = ' . (int) substr($search, 3));
             } else {
                 $search = $db->quote('%' . $db->escape($search, true) . '%');
-                $query->where('a.title LIKE ' . $search);
+                // HAVING: `title` is the COALESCE alias from the lang join, not a
+                // real column at WHERE time.
+                $query->having('(' . $db->quoteName('title') . ' LIKE ' . $search . ')');
             }
         }
 

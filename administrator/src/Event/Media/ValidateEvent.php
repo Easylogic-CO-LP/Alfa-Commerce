@@ -12,15 +12,15 @@
  * happens; the component then skips it and enqueues the error.
  *
  * Input (set by the component, read by the plugin):
- *   $event->getSource()        → absolute source path
- *   $event->getOrigin()        → media origin / context
- *   $event->getField()         → logical field name
- *   $event->getAllowedMimes()  → allowed source MIME types
+ *   $event->getSource()        -> absolute source path
+ *   $event->getOrigin()        -> media origin / context
+ *   $event->getField()         -> logical field name
+ *   $event->getAllowedMimes()  -> allowed source MIME types
  *
  * Output (set by the plugin, read by the component):
- *   $event->setValid(false);                 → veto the file
- *   $event->setError('…');                   → message to enqueue
- *   $event->isValid();  $event->getError();  → read back
+ *   $event->setValid(false);                 -> veto the file
+ *   $event->setError('...');                   -> message to enqueue
+ *   $event->isValid();  $event->getError();  -> read back
  *
  * @since  1.0.0
  */
@@ -38,9 +38,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Media;
  */
 class ValidateEvent extends MediaEvent
 {
-    // ═════════════════════════════════════════════════════════
-    //  INPUT — set by the component, read by the plugin
-    // ═════════════════════════════════════════════════════════
+    //  INPUT: set by the component, read by the plugin
 
     /**
      * Get the allowed source MIME types.
@@ -53,9 +51,7 @@ class ValidateEvent extends MediaEvent
         return (array) ($this->arguments['allowedMimes'] ?? []);
     }
 
-    // ═════════════════════════════════════════════════════════
-    //  OUTPUT — set by the plugin, read by the component
-    // ═════════════════════════════════════════════════════════
+    //  OUTPUT: set by the plugin, read by the component
 
     /**
      * Set whether the file is valid. Default is true.

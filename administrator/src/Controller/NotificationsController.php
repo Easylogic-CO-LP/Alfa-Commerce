@@ -13,37 +13,31 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
-use Joomla\CMS\MVC\Controller\AdminController;
+use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryEffectOutbox;
+use Joomla\CMS\Access\Exception\NotAllowed;
+use Joomla\CMS\Language\Text;
+use Joomla\CMS\MVC\Controller\BaseController;
+use Joomla\CMS\Router\Route;
+use Joomla\CMS\Session\Session;
 
 /**
- * Notifications list controller — list CRUD plus the async toolbar endpoints the
- * backend badge/panel use: `panel` (render the active list as JSON+HTML), `markRead`
- * and `dismiss`. All are backend-only and ACL-gated; reads go through
- * {@see \Alfa\Component\Alfa\Administrator\Model\NotificationsModel}, writes through
- * {@see NotificationHelper}.
+ * Notifications controller, the async endpoints behind the backend bell: `panel`
+ * (re-render the badge component), `markRead` and `dismiss`. The history screen is a
+ * plain display and needs no task of its own.
+ *
+ * A BaseController on purpose: an AdminController would also answer delete, publish,
+ * check-in and reordering tasks that this store has no use for, guarded only by the
+ * core permissions. Reading needs alfa.notifications.view; marking read and dismissing
+ * need alfa.notifications.edit.state and a row the user is allowed to see. Writes go
+ * through {@see NotificationHelper}.
  *
  * @since  1.0.0
  */
-class NotificationsController extends AdminController
+class NotificationsController extends BaseController
 {
     /**
-     * Proxy for getModel (defaults to the singular item model).
-     *
-     * @param string $name Model name.
-     * @param string $prefix Class prefix.
-     * @param array $config Configuration.
-     *
-     *
-     * @since  1.0.0
-     */
-    public function getModel($name = 'Notification', $prefix = 'Administrator', $config = ['ignore_request' => true]): object
-    {
-        return parent::getModel($name, $prefix, $config);
-    }
-
-    /**
      * Async endpoint for the toolbar badge. Returns the rendered badge COMPONENT (button
-     * + panel) as HTML — the same `renderBadge()` the toolbar uses on page load, so the
+     * + panel) as HTML: the same `renderBadge()` the toolbar uses on page load, so the
      * JS just swaps the node in place (no client-side building). `&open=1` preserves the
      * open state across the refresh.
      *
@@ -52,12 +46,23 @@ class NotificationsController extends AdminController
      */
     public function panel(): void
     {
-        $this->assertManage();
+        // State-touching async endpoint (runs the cached integrity sync): require the token.
+        if (!Session::checkToken('get')) {
+            $this->app->setHeader('status', '403 Forbidden', true);
+            $this->app->sendHeaders();
+            $this->app->close();
+        }
+
+        $this->assertCanView();
 
         // This async fetch (fired after page load by integrity-check.js) is where the
-        // 24h-cached integrity check runs — never during page render. Then it returns the
+        // 24h-cached integrity check runs, never during page render. Then it returns the
         // freshly-rendered component so the badge reloads with any change.
         SyncHelper::syncIntegrity();
+
+        // Same throttled pattern for stock movements still owed: a request that was cut
+        // off cannot warn about itself, so the bell fetch notices it; no scheduler needed.
+        InventoryEffectOutbox::syncNotice();
 
         $this->app->setHeader('Content-Type', 'text/html; charset=utf-8', true);
         $this->app->sendHeaders();
@@ -76,19 +81,20 @@ class NotificationsController extends AdminController
     public function markRead(): void
     {
         $this->checkToken();
-        $this->assertManage();
 
-        $id = (int) $this->input->getInt('id', 0);
+        $row = NotificationHelper::find(id: (int) $this->input->getInt('id', 0));
 
-        if ($id > 0) {
-            NotificationHelper::markRead(id: $id, userId: (int) $this->app->getIdentity()->id);
+        $this->assertCanChange(row: $row);
+
+        if ($row !== null) {
+            NotificationHelper::markRead(id: (int) $row->id, userId: (int) $this->app->getIdentity()->id);
         }
 
         $this->respondJson(['ok' => true]);
     }
 
     /**
-     * Dismiss a notification → archive it to history.
+     * Dismiss a notification -> archive it to history.
      *
      *
      * @since  1.0.0
@@ -97,27 +103,75 @@ class NotificationsController extends AdminController
     {
         // 'request' so both the badge POST and the history-view GET link work (token still required).
         $this->checkToken('request');
-        $this->assertManage();
 
-        $id = (int) $this->input->getInt('id', 0);
+        $row = NotificationHelper::find(id: (int) $this->input->getInt('id', 0));
 
-        if ($id > 0) {
-            NotificationHelper::dismiss(id: $id);
+        $this->assertCanChange(row: $row);
+
+        if ($row !== null) {
+            NotificationHelper::dismiss(id: (int) $row->id);
         }
 
-        $this->respondJson(['ok' => true]);
+        // The bell panel calls this over XHR and wants JSON; the history list
+        // links to it with a plain anchor, and a browser landing on a JSON body
+        // is a dead end; send that caller back to the list it came from.
+        if ($this->wantsJson()) {
+            $this->respondJson(['ok' => true]);
+        }
+
+        $this->app->enqueueMessage(Text::_('COM_ALFA_NOTIFY_DISMISSED_MSG'), 'message');
+        $this->setRedirect(Route::_('index.php?option=com_alfa&view=notifications', false));
     }
 
     /**
-     * Guard: the current user may manage com_alfa.
+     * Does this caller expect JSON (an explicit format, or a fetch/XHR request)?
      *
      *
      * @since  1.0.0
      */
-    private function assertManage(): void
+    private function wantsJson(): bool
     {
-        if (!$this->app->getIdentity()->authorise('core.manage', 'com_alfa')) {
-            throw new \Joomla\CMS\Access\Exception\NotAllowed(\Joomla\CMS\Language\Text::_('JERROR_ALERTNOAUTHOR'), 403);
+        if (\in_array($this->input->getWord('format', ''), ['json', 'raw'], true)) {
+            return true;
+        }
+
+        $server = $this->input->server;
+
+        return strtolower((string) $server->getString('HTTP_X_REQUESTED_WITH', '')) === 'xmlhttprequest'
+            || str_contains((string) $server->getString('HTTP_ACCEPT', ''), 'application/json');
+    }
+
+    /**
+     * Guard: the current user may see the notification centre.
+     *
+     *
+     * @throws NotAllowed When alfa.notifications.view is not granted.
+     *
+     * @since  1.10.0
+     */
+    private function assertCanView(): void
+    {
+        if (!NotificationHelper::canView()) {
+            throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
+        }
+    }
+
+    /**
+     * Guard: the current user may mark read and dismiss, and may see the row, when
+     * there is one. The id is only a number in the request; without the row check,
+     * anyone holding the permission could retire a notice meant for another group.
+     *
+     * @param object|null $row The notification from {@see NotificationHelper::find()}, or null.
+     *
+     *
+     * @throws NotAllowed When the permission is missing or the row is hidden from the user.
+     *
+     * @since  1.10.0
+     */
+    private function assertCanChange(?object $row): void
+    {
+        if (!NotificationHelper::canChangeState() || ($row !== null && !NotificationHelper::canSee(notification: $row))) {
+            throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
         }
     }
 

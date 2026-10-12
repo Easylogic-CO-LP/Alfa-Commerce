@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension type="plugin" group="console" method="upgrade">
+	<name>plg_console_alfainventory</name>
+	<copyright>(C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.</copyright>
+	<license>GNU General Public License version 3 or later; see LICENSE</license>
+	<author>Agamemnon Fakas</author>
+	<creationDate>2026</creationDate>
+	<authorEmail>info@easylogic.gr</authorEmail>
+	<authorUrl>http://easylogic.gr</authorUrl>
+	<version>1.0.0</version>
+	<description>PLG_CONSOLE_ALFAINVENTORY_XML_DESCRIPTION</description>
+	<namespace path="src">Alfa\Plugin\Console\Alfainventory</namespace>
+
+	<files>
+		<folder plugin="alfainventory">services</folder>
+		<folder>src</folder>
+	</files>
+	<languages folder="language">
+		<language tag="en-GB">en-GB/plg_console_alfainventory.ini</language>
+		<language tag="en-GB">en-GB/plg_console_alfainventory.sys.ini</language>
+	</languages>
+
+</extension>

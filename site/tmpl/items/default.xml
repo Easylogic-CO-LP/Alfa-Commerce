@@ -6,14 +6,84 @@
         </message>
     </layout>
 
+    <!-- Identity: this page IS the selected category (route identity -> Listing
+         Context: its URL, breadcrumbs and layouts). Optional: empty = general
+         listing. XOR with the categories preset below (identity wins). -->
+    <fields name="request" addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+        <fieldset
+                name="request"
+                label="COM_ALFA_MENU_ITEMS_CATEGORY_LABEL">
+            <field
+                    name="category_id"
+                    type="model"
+                    model="categories"
+                    column_value="id"
+                    column_text="name"
+                    label="COM_ALFA_MENU_ITEMS_CATEGORY_LABEL"
+                    description="COM_ALFA_MENU_ITEMS_CATEGORY_DESC">
+                <option value="">JGLOBAL_SELECT_AN_OPTION</option>
+            </field>
+        </fieldset>
+    </fields>
+
     <fields name="params">
-        <fieldset name="basic" label="COM_ALFA_MENU_DISPLAY_OPTIONS">
+        <fieldset
+                name="basic"
+                label="COM_ALFA_MENU_DISPLAY_OPTIONS"
+                addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
+                addruleprefix="Alfa\Component\Alfa\Administrator\Rule"
+        >
             <field
                     name="show_items_filters"
                     type="list"
                     useglobal="true"
                     label="COM_ALFA_CONFIG_SHOW_ITEMS_FILTERS"
                     description="COM_ALFA_CONFIG_SHOW_ITEMS_FILTERS_DESC"
+                    validate="options"
+            >
+                <option value="1">JYES</option>
+                <option value="0">JNO</option>
+            </field>
+
+            <!-- Bar on, facets off: the usual shape when mod_alfa_filters already
+                 shows the facets in a sidebar and the inline bar would repeat them. -->
+            <field
+                    name="show_items_field_facets"
+                    type="list"
+                    useglobal="true"
+                    label="COM_ALFA_CONFIG_SHOW_ITEMS_FIELD_FACETS"
+                    description="COM_ALFA_CONFIG_SHOW_ITEMS_FIELD_FACETS_DESC"
+                    showon="show_items_filters:1"
+                    validate="options"
+            >
+                <option value="1">JYES</option>
+                <option value="0">JNO</option>
+            </field>
+
+            <!-- Middle tier: empty falls through to the global config. Yes keeps the
+                 panel's Filter Options section closed while the listing is filtered
+                 (the visitor opens it with the button); No is core's auto-open. -->
+            <field
+                    name="collapse_items_filters_when_filtered"
+                    type="list"
+                    useglobal="true"
+                    label="COM_ALFA_CONFIG_COLLAPSE_ITEMS_FILTERS_WHEN_FILTERED"
+                    description="COM_ALFA_CONFIG_COLLAPSE_ITEMS_FILTERS_WHEN_FILTERED_DESC"
+                    showon="show_items_filters:1"
+                    validate="options"
+            >
+                <option value="1">JYES</option>
+                <option value="0">JNO</option>
+            </field>
+
+            <!-- Middle tier: empty falls through to the global config. Set No on a
+                 landing whose subcategory tiles must survive the visitor's filters. -->
+            <field
+                    name="hide_categories_when_filtered"
+                    type="list"
+                    useglobal="true"
+                    label="COM_ALFA_CONFIG_HIDE_CATEGORIES_WHEN_FILTERED"
+                    description="COM_ALFA_CONFIG_HIDE_CATEGORIES_WHEN_FILTERED_DESC"
                     validate="options"
             >
                 <option value="1">JYES</option>
@@ -31,6 +101,151 @@
                 <option value="1">JYES</option>
                 <option value="0">JNO</option>
             </field>
+
+            <!-- Placeholder fill, per listing. Empty falls through to the global
+                 config; No lets a landing show real pictures only, at the cost of
+                 the grid's alignment. -->
+            <field
+                    name="media_placeholder_items"
+                    type="list"
+                    useglobal="true"
+                    label="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_ITEMS_LABEL"
+                    description="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_ITEMS_DESC"
+                    validate="options"
+            >
+                <option value="1">JYES</option>
+                <option value="0">JNO</option>
+            </field>
+
+            <field
+                    name="media_placeholder_categories"
+                    type="list"
+                    useglobal="true"
+                    label="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_CATEGORIES_LABEL"
+                    description="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_CATEGORIES_DESC"
+                    validate="options"
+            >
+                <option value="1">JYES</option>
+                <option value="0">JNO</option>
+            </field>
+
+            <!-- Middle tier of the listing chain. A browsed category may still
+                 override these; empty falls through to the global config. -->
+            <field
+                    name="items_limit"
+                    type="listLimit"
+                    globalparam="items_limit"
+                    min="0"
+                    label="COM_ALFA_CONFIG_ITEMS_LIMIT"
+                    description="COM_ALFA_MENU_INHERIT_DESC"
+                    validate="listLimit"
+            />
+
+            <field
+                    name="items_limits"
+                    type="listLimits"
+                    globalparam="items_limits"
+                    label="COM_ALFA_CONFIG_ITEMS_LIMITS"
+                    description="COM_ALFA_MENU_INHERIT_DESC"
+                    validate="listLimits"
+            />
+
+            <field
+                    name="items_ordering"
+                    type="listOrdering"
+                    view="items"
+                    globalparam="items_ordering"
+                    label="COM_ALFA_CONFIG_ITEMS_ORDERING"
+                    description="COM_ALFA_MENU_INHERIT_DESC"
+                    validate="options"
+            />
+        </fieldset>
+
+        <!-- Locked constraints: visitors always see results matching these and
+             refine with the remaining open filters. One canonical source
+             (filter_items.xml) mounted by the field; new filters appear here
+             automatically. -->
+        <fieldset
+                name="presets"
+                label="COM_ALFA_MENU_FIELDSET_PRESETS"
+                addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+            <field
+                    name="presets"
+                    type="presetFilters"
+                    filter="raw"
+                    hiddenLabel="true"
+                    label="COM_ALFA_MENU_PRESET_FILTERS_LABEL"
+                    description="COM_ALFA_MENU_PRESET_FILTERS_DESC"
+            />
+        </fieldset>
+
+        <fieldset
+                name="layouts"
+                label="COM_ALFA_MENU_LAYOUTS_OPTIONS"
+                addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+
+            <field
+                    name="items_layout"
+                    type="viewLayout"
+                    view="items"
+                    inheritlabel="JGLOBAL_USE_GLOBAL"
+                    label="COM_ALFA_LAYOUT_ITEMS_LABEL"
+                    description="COM_ALFA_LAYOUT_ITEMS_DESC"
+            />
+
+            <field
+                    name="items_card_layout"
+                    type="subtemplate"
+                    view="items"
+                    slot="item"
+                    inheritlabel="JGLOBAL_USE_GLOBAL"
+                    label="COM_ALFA_LAYOUT_ITEMS_CARD_LABEL"
+            />
+
+            <field
+                    name="items_categories_layout"
+                    type="subtemplate"
+                    view="items"
+                    slot="categories"
+                    inheritlabel="JGLOBAL_USE_GLOBAL"
+                    label="COM_ALFA_LAYOUT_ITEMS_CATEGORIES_LABEL"
+            />
+
+            <field
+                    name="item_layout"
+                    type="viewLayout"
+                    view="item"
+                    inheritlabel="JGLOBAL_USE_GLOBAL"
+                    label="COM_ALFA_LAYOUT_ITEM_LABEL"
+                    description="COM_ALFA_LAYOUT_ITEM_DESC"
+            />
+
+            <field
+                    name="item_images_layout"
+                    type="subtemplate"
+                    view="item"
+                    slot="images"
+                    inheritlabel="JGLOBAL_USE_GLOBAL"
+                    label="COM_ALFA_LAYOUT_ITEM_IMAGES_LABEL"
+            />
+
+            <field
+                    name="item_manufacturers_layout"
+                    type="subtemplate"
+                    view="item"
+                    slot="manufacturers"
+                    inheritlabel="JGLOBAL_USE_GLOBAL"
+                    label="COM_ALFA_LAYOUT_ITEM_MANUFACTURERS_LABEL"
+            />
+
+            <field
+                    name="item_categories_layout"
+                    type="subtemplate"
+                    view="item"
+                    slot="categories"
+                    inheritlabel="JGLOBAL_USE_GLOBAL"
+                    label="COM_ALFA_LAYOUT_ITEM_CATEGORIES_LABEL"
+            />
         </fieldset>
     </fields>
 

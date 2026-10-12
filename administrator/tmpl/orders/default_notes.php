@@ -1,13 +1,13 @@
 <?php
 /**
- * Orders List — Detail Panel: Notes
+ * Orders List - Detail Panel: Notes
  *
  * Renders the notes section inside the detail panel.
  * Shows customer-visible note and internal (admin) note
  * when either is present.
  *
  * Receives per-row data via:
- *   $this->currentItem — order object (reads customer_note, note)
+ *   $this->currentItem - order object (reads customer_note, note)
  *
  * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>

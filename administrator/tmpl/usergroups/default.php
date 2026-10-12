@@ -1,10 +1,9 @@
 <?php
 /**
- * @version    1.0.1
- * @package    Com_Alfa
+ * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  2024 Easylogic CO LP
- * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
 defined('_JEXEC') or die;
@@ -14,6 +13,9 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Language\Text;
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\Columns;
+use Alfa\Component\Alfa\Administrator\Helper\Actions;
 $wa = $this->getDocument()->getWebAssetManager();
 $wa->useStyle('com_alfa.admin')
 	->useScript('com_alfa.admin');
@@ -37,7 +39,11 @@ $listDirn  = $this->escape($this->state->get('list.direction'));
                 		<?php echo \Joomla\CMS\Language\Text::_("JGLOBAL_NO_MATCHING_RESULTS"); ?>
                 	</div>
                 <?php else : ?>
-                <table class="table table-striped" id="usergroupList">
+<?php
+// Plugin-contributed columns. No anchors are declared for this grid yet, so every
+// contribution folds into Columns::END and renders after the last core column.
+$columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);
+?><?php echo $this->renderSlot('before-grid'); ?><?php echo Actions::bulkBar($this->pluginBulkActions ?? []); ?>                <table class="table table-striped" id="usergroupList">
                     <thead>
                     <tr>
                         <th class="w-1 text-center">
@@ -54,18 +60,12 @@ $listDirn  = $this->escape($this->state->get('list.direction'));
                         </th>
                         <th scope="col" class="w-3 d-none d-lg-table-cell" >
 							<?php echo HTMLHelper::_('searchtools.sort', 'JGRID_HEADING_ID', 'a.id', $listDirn, $listOrder); ?>
-                        </th>
+                        </th><?php echo Columns::heads($columnsByAnchor, Columns::END); ?><?php echo Actions::head($this->pluginRowActions ?? []); ?>
                     </tr>
                     </thead>
-                    <tfoot>
-                    <tr>
-                        <td colspan="6"> <?php echo $this->pagination->getListFooter(); ?>
-                        </td>
-                    </tr>
-                    </tfoot>
                     <tbody>
 					<?php foreach ($this->items as $i => $item) :
-						$canEdit = $user->authorise('core.edit', 'com_alfa');
+						$canEdit = AlfaHelper::can(section: 'usergroups', action: 'edit', user: $user);
 						?>
                         <tr class="row<?php echo $i % 2; ?>">
                             <td class="text-center">
@@ -83,7 +83,7 @@ $listDirn  = $this->escape($this->state->get('list.direction'));
                             </td>
 
                             <td class="text-center d-none d-md-table-cell">
-                                <span class="badge bg-light text-dark border"><?php echo (int) $item->usergroup_id; ?></span>
+                                <span class="badge bg-body-tertiary text-body-emphasis border"><?php echo (int) $item->usergroup_id; ?></span>
                             </td>
 
                             <td class="text-center d-none d-md-table-cell">
@@ -92,11 +92,13 @@ $listDirn  = $this->escape($this->state->get('list.direction'));
 
                             <td class="d-none d-lg-table-cell">
 								<?php echo $item->id; ?>
-                            </td>
+                            </td><?php echo Columns::cells($columnsByAnchor, Columns::END, $item); ?><?php echo Actions::cell($this->pluginRowActions ?? [], $i, $item); ?>
                         </tr>
 					<?php endforeach; ?>
                     </tbody>
                 </table>
+
+                <?php echo $this->pagination->getListFooter(); ?>
                 <?php endif; ?>
 				<?php echo $this->filterForm->renderControlFields(); ?>
             </div>

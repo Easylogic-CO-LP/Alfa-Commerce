@@ -35,39 +35,4 @@ class OrdersController extends AdminController
     {
         return parent::getModel($name, $prefix, $config);
     }
-
-    /**
-     * Method to clone existing Orders
-     *
-     * @return void
-     *
-     * @throws Exception
-     */
-    // public function duplicate()
-    // {
-    // 	// Check for request forgeries
-    // 	$this->checkToken();
-
-    // 	// Get id(s)
-    // 	$pks = $this->input->post->get('cid', array(), 'array');
-
-    // 	try
-    // 	{
-    // 		if (empty($pks))
-    // 		{
-    // 			throw new \Exception(Text::_('COM_ALFA_NO_ELEMENT_SELECTED'));
-    // 		}
-
-    // 		ArrayHelper::toInteger($pks);
-    // 		$model = $this->getModel();
-    // 		$model->duplicate($pks);
-    // 		$this->setMessage(Text::_('COM_ALFA_ITEMS_SUCCESS_DUPLICATED'));
-    // 	}
-    // 	catch (\Exception $e)
-    // 	{
-    // 		Factory::getApplication()->enqueueMessage($e->getMessage(), 'warning');
-    // 	}
-
-    // 	$this->setRedirect('index.php?option=com_alfa&view=orders');
-    // }
 }

@@ -1,0 +1,58 @@
+{
+    "uid": "com_alfa.welcome",
+    "version": 6,
+    "title": "COM_ALFA_GUIDEDTOUR_WELCOME_TITLE",
+    "description": "COM_ALFA_GUIDEDTOUR_WELCOME_DESC",
+    "extensions": [
+        "com_alfa"
+    ],
+    "url": "administrator/index.php?option=com_alfa",
+    "autostart": true,
+    "steps": [
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_WELCOME_STEP_1_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_WELCOME_STEP_1_DESC",
+            "position": "center",
+            "target": "",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_WELCOME_STEP_2_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_WELCOME_STEP_2_DESC",
+            "position": "bottom",
+            "target": ".setup-card",
+            "type": 2,
+            "interactive_type": 3,
+            "url": "administrator/index.php?option=com_alfa"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_WELCOME_STEP_3_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_WELCOME_STEP_3_DESC",
+            "position": "right",
+            "target": "#sidebarmenu",
+            "type": 2,
+            "interactive_type": 3,
+            "url": "administrator/index.php?option=com_alfa"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_WELCOME_STEP_4_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_WELCOME_STEP_4_DESC",
+            "position": "bottom",
+            "target": "#toolbar",
+            "type": 2,
+            "interactive_type": 3,
+            "url": "administrator/index.php?option=com_alfa"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_WELCOME_STEP_5_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_WELCOME_STEP_5_DESC",
+            "position": "bottom",
+            "target": ".header-tours",
+            "type": 2,
+            "interactive_type": 3,
+            "url": "administrator/index.php?option=com_alfa"
+        }
+    ],
+    "ordering": 10
+}

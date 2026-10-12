@@ -11,7 +11,9 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 
 defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\Helper\OrderEmailHelper;
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper as AdminAlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
+use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Field\EditorField;
@@ -23,21 +25,21 @@ use SimpleXMLElement;
 use Throwable;
 
 /**
- * EmailPositionsField — "email composer"
+ * EmailPositionsField: "email composer"
  *
  * Owns the full per-status, per-language email configuration for ONE
  * recipient role (customer or admin), rendered as a self-contained
  * composer (the OpeningtimesField pattern: custom getInput + custom
- * tabs + own CSS/JS asset — no joomla-tab).
+ * tabs + own CSS/JS asset; no joomla-tab).
  *
  * Layout:
- *   • Custom language tabs (one per installed content language) — no
+ *   - Custom language tabs (one per installed content language): no
  *     joomla-tab, so no MutationObserver / recall freeze.
- *   • Per language: a single-line Subject text input, then one Joomla
+ *   - Per language: a single-line Subject text input, then one Joomla
  *     WYSIWYG editor per position, with the items/totals block placed in
  *     the SAME order the layout renders them (the discovered sequence
- *     from OrderEmailHelper::discoverSequence).
- *   • A "variables" palette that inserts {tokens} into the focused editor
+ *     from EmailService::discoverSequence).
+ *   - A "variables" palette that inserts {tokens} into the focused editor
  *     / subject input (else copies to clipboard).
  *
  * The editors / subject input are the real form inputs, named
@@ -46,12 +48,10 @@ use Throwable;
  * flat keys into the per-language JSON column.
  *
  * Required XML attributes
- * -----------------------
  *   multilingual_table  Base table for the per-language JSON column.
  *   multilingual_pk     PK column in the per-language tables.
  *
  * Optional XML attributes
- * -----------------------
  *   email_layout        Fallback layout id driving discovery when no
  *                       sibling email_layout_<recipient> selection
  *                       exists. Defaults to 'emails.order.default'.
@@ -61,7 +61,7 @@ use Throwable;
 class EmailPositionsField extends EditorField
 {
     /**
-     * Field type id — must match filename + XML `type` attribute.
+     * Field type id: must match filename + XML `type` attribute.
      *
      * @var string
      */
@@ -86,9 +86,7 @@ class EmailPositionsField extends EditorField
      */
     private ?array $languagesCache = null;
 
-    // =========================================================================
     //  Lifecycle
-    // =========================================================================
 
     /**
      * Load existing position values from the per-language tables into
@@ -119,10 +117,11 @@ class EmailPositionsField extends EditorField
 
         // FormController::reload stashes the POSTed jform in user state and
         // REDIRECTS (GET), so on the reloaded request the unsaved data lives
-        // in user state, not POST — read state first, fall back to POST for
-        // the in-place redraw case.
+        // in user state, not POST: read state first, fall back to POST for
+        // the in-place redraw case. Only this status's own post: another
+        // status's kept edits never overlay this composer.
         $app = Factory::getApplication();
-        $posted = (array) $app->getUserState(self::EDIT_STATE_KEY, []);
+        $posted = KeptPost::forRecord(stateKey: self::EDIT_STATE_KEY, recordId: $itemId);
 
         if (empty($posted)) {
             $posted = (array) $app->getInput()->post->get('jform', [], 'raw');
@@ -131,7 +130,7 @@ class EmailPositionsField extends EditorField
         foreach ($languages as $langCode => $language) {
             $suffix = $this->snakeLang(langCode: (string) $langCode);
 
-            // Virgin = the per-language aux row does not exist yet — the first
+            // Virgin = the per-language aux row does not exist yet: the first
             // appearance of this status in this language. A saved status always
             // has a row (the `name` field is required), so row-presence is a
             // reliable "has been saved in this language" flag. Virgin languages
@@ -146,7 +145,7 @@ class EmailPositionsField extends EditorField
                 $decoded = $json !== null && $json !== '' ? json_decode($json, true) : null;
                 $perLang[$suffix] = is_array($decoded) ? $decoded : [];
             } else {
-                $perLang[$suffix] = OrderEmailHelper::defaultsForLanguage(layoutId: $layoutId, langTag: (string) $langCode);
+                $perLang[$suffix] = EmailService::defaultsForLanguage(layoutId: $layoutId, langTag: (string) $langCode);
             }
 
             // Overlay POSTed values (form reload / in-place redraw): keys are
@@ -166,9 +165,7 @@ class EmailPositionsField extends EditorField
         return $result;
     }
 
-    // =========================================================================
     //  Rendering
-    // =========================================================================
 
     /**
      * Build the composer: custom language tabs + one email-shaped
@@ -180,7 +177,7 @@ class EmailPositionsField extends EditorField
     protected function getInput(): string
     {
         $layoutId = $this->resolveSelectedLayout();
-        $sequence = OrderEmailHelper::discoverSequence($layoutId);
+        $sequence = EmailService::discoverSequence($layoutId);
         $languages = $this->getLanguages();
         $values = is_array($this->value) ? $this->value : [];
 
@@ -269,7 +266,7 @@ class EmailPositionsField extends EditorField
     }
 
     /**
-     * "Restore defaults" button — always shown (even before first save). The
+     * "Restore defaults" button: always shown (even before first save). The
      * JS reads this field's emitted defaults and refills the ACTIVE language
      * tab only, after a confirm. Scoped to one language so it never clobbers
      * other tabs the admin has already authored.
@@ -302,7 +299,7 @@ class EmailPositionsField extends EditorField
 
         foreach ($languages as $langCode => $language) {
             $suffix = $this->snakeLang(langCode: (string) $langCode);
-            $defaults[$suffix] = OrderEmailHelper::defaultsForLanguage(
+            $defaults[$suffix] = EmailService::defaultsForLanguage(
                 layoutId: $layoutId,
                 langTag:  (string) $langCode,
             );
@@ -318,7 +315,8 @@ class EmailPositionsField extends EditorField
      * Preview + Send-test buttons, right-aligned in the tab bar. They
      * open the per-recipient modals rendered by orderstatus/edit.php
      * (keyed by recipient derived from this field's name). Shown only
-     * once the status exists (a saved id is needed to preview/test).
+     * once the status exists (a saved id is needed to preview/test) and
+     * to a user who may view orders, which both tasks also ask.
      *
      *
      * @since  1.0.0
@@ -331,13 +329,18 @@ class EmailPositionsField extends EditorField
             return '';
         }
 
+        // Preview and send-test render a real order; edit.php draws their modals on the same check.
+        if (!AdminAlfaHelper::can(section: 'orders', action: 'view')) {
+            return '';
+        }
+
         $prefix = 'email_positions_';
         $recipient = str_starts_with($this->fieldname, $prefix)
             ? substr($this->fieldname, strlen($prefix))
             : 'customer';
         $r = htmlspecialchars($recipient, ENT_COMPAT, 'UTF-8');
 
-        // Base task URLs WITHOUT a language — the JS appends &lang=<active
+        // Base task URLs WITHOUT a language; the JS appends &lang=<active
         // composer tab> on click, so Preview/Send-test always target the
         // language you're editing (no in-modal language/recipient pickers).
         $root = Uri::base(true) . '/index.php?option=com_alfa&id=' . $statusId . '&recipient=' . $recipient;
@@ -357,7 +360,7 @@ class EmailPositionsField extends EditorField
     }
 
     /**
-     * One language's editing canvas — subject + the layout's positions
+     * One language's editing canvas: subject + the layout's positions
      * (Joomla WYSIWYG editors) and the items/totals struct block, placed
      * in the order the layout requests them (the discovered sequence).
      *
@@ -382,13 +385,13 @@ class EmailPositionsField extends EditorField
             . ($active ? '' : ' hidden') . '>';
         $html .= '<div class="aec-slots">';
 
-        // Subject — plain single-line input (not in the layout body).
+        // Subject: plain single-line input (not in the layout body).
         $html .= $this->renderSubjectInput(
             suffix: $suffix,
-            value:  (string) ($values[OrderEmailHelper::SUBJECT_POSITION] ?? ''),
+            value:  (string) ($values[EmailService::SUBJECT_POSITION] ?? ''),
         );
 
-        // Walk the sequence: position → editor slot; struct → items/totals
+        // Walk the sequence: position -> editor slot; struct -> items/totals
         // block, exactly where the layout renders them.
         $positions = [];
         foreach ($sequence as $entry) {
@@ -429,10 +432,10 @@ class EmailPositionsField extends EditorField
      */
     private function renderSubjectInput(string $suffix, string $value): string
     {
-        $name = $this->buildInputName(suffix: $suffix, position: OrderEmailHelper::SUBJECT_POSITION);
-        $id = $this->id . '_' . $suffix . '_' . OrderEmailHelper::SUBJECT_POSITION;
-        $label = htmlspecialchars($this->positionLabel(position: OrderEmailHelper::SUBJECT_POSITION), ENT_COMPAT, 'UTF-8');
-        $ph = htmlspecialchars($this->positionPlaceholder(position: OrderEmailHelper::SUBJECT_POSITION), ENT_COMPAT, 'UTF-8');
+        $name = $this->buildInputName(suffix: $suffix, position: EmailService::SUBJECT_POSITION);
+        $id = $this->id . '_' . $suffix . '_' . EmailService::SUBJECT_POSITION;
+        $label = htmlspecialchars($this->positionLabel(position: EmailService::SUBJECT_POSITION), ENT_COMPAT, 'UTF-8');
+        $ph = htmlspecialchars($this->positionPlaceholder(position: EmailService::SUBJECT_POSITION), ENT_COMPAT, 'UTF-8');
 
         return '<section class="aec-slot aec-slot--subject" data-pos="subject">'
             . '<div class="aec-slot-head"><span class="aec-tag">' . $label . '</span></div>'
@@ -467,7 +470,7 @@ class EmailPositionsField extends EditorField
 
         $html = '<section class="aec-slot" data-pos="' . htmlspecialchars($position, ENT_COMPAT, 'UTF-8') . '">';
         $html .= '<div class="aec-slot-head"><span class="aec-tag">' . $label . '</span></div>';
-        // buttons = false: hide the xtd-editor button row (Article/Image/…),
+        // buttons = false: hide the xtd-editor button row (Article/Image/...),
         // keep just the editor's own toolbar.
         $html .= $editor->display($name, $value, '100%', 200, 60, 8, false, $id);
         $html .= '</section>';
@@ -516,7 +519,7 @@ class EmailPositionsField extends EditorField
     }
 
     /**
-     * Hidden posting inputs for the section eye-toggles — ONE per section,
+     * Hidden posting inputs for the section eye-toggles: ONE per section,
      * emitted once (outside the language panels). The eye buttons inside the
      * struct blocks are JS controls that flip the matching input's value, so
      * there is exactly one posted value per section regardless of how many
@@ -559,8 +562,8 @@ class EmailPositionsField extends EditorField
 
     /**
      * Reduce a layout/partial id to a flat slug for the show-flag key:
-     * lower-cased, every run of non-alphanumerics → single underscore.
-     * Mirrors OrderEmailHelper's render-time slug so flags round-trip.
+     * lower-cased, every run of non-alphanumerics -> single underscore.
+     * Mirrors EmailService's render-time slug so flags round-trip.
      *
      *
      *
@@ -608,11 +611,11 @@ class EmailPositionsField extends EditorField
      */
     private function renderStruct(string $layoutId = '', bool $enabled = true): string
     {
-        // Label derived from the rendered partial id itself — no hardcoded
+        // Label derived from the rendered partial id itself: no hardcoded
         // family list, no per-block ini keys. Take the last dot-segment,
         // turn _/- into spaces and title-case it, faithful to the layout
-        // file: 'emails.partials.order_items' → "Order Items",
-        // 'emails.partials.order_payments' → "Order Payments". Empty id →
+        // file: 'emails.partials.order_items' -> "Order Items",
+        // 'emails.partials.order_payments' -> "Order Payments". Empty id ->
         // generic fallback.
         $title = $this->humaniseLayoutId(layoutId: $layoutId);
         $hint = Text::_('COM_ALFA_ORDEREMAIL_STRUCT_HINT');
@@ -655,7 +658,7 @@ class EmailPositionsField extends EditorField
     /**
      * Humanise a layout/partial id into a struct-block label: the last
      * dot-segment with underscores/hyphens turned to spaces and title-cased
-     * — faithful to the layout file name. Falls back to a generic label for
+     * (faithful to the layout file name). Falls back to a generic label for
      * an empty id.
      *
      * @param string $layoutId e.g. 'emails.partials.order_items'.
@@ -677,7 +680,7 @@ class EmailPositionsField extends EditorField
     }
 
     /**
-     * "Carried over from a previous layout" — non-empty positions the
+     * "Carried over from a previous layout": non-empty positions the
      * current layout no longer declares, rendered as editable slots so the
      * admin can migrate then clear them (empty ones self-clean on save).
      *
@@ -690,12 +693,12 @@ class EmailPositionsField extends EditorField
      */
     private function renderStale(\Joomla\CMS\Editor\Editor $editor, string $suffix, array $livePositions, array $values): string
     {
-        $skip = array_merge([OrderEmailHelper::SUBJECT_POSITION], $livePositions);
+        $skip = array_merge([EmailService::SUBJECT_POSITION], $livePositions);
         $stale = [];
 
         foreach ($values as $position => $value) {
             // `_`-prefixed keys (e.g. _show_<slug> section flags) are state,
-            // not content — never treat them as stale positions.
+            // not content; never treat them as stale positions.
             if (str_starts_with((string) $position, '_')) {
                 continue;
             }
@@ -725,7 +728,7 @@ class EmailPositionsField extends EditorField
     }
 
     /**
-     * The variables palette — grouped {token} chips that the JS inserts
+     * The variables palette: grouped {token} chips that the JS inserts
      * at the caret of the focused slot. Sourced from availableTokens().
      *
      *
@@ -733,7 +736,7 @@ class EmailPositionsField extends EditorField
      */
     private function renderVarsPalette(): string
     {
-        $groups = OrderEmailHelper::availableTokens();
+        $groups = EmailService::availableTokens();
 
         $groupLabels = [
             'order' => Text::_('COM_ALFA_ORDEREMAIL_TOKEN_GROUP_ORDER'),
@@ -776,12 +779,10 @@ class EmailPositionsField extends EditorField
         return $html;
     }
 
-    // =========================================================================
-    //  Private — helpers
-    // =========================================================================
+    //  Private: helpers
 
     /**
-     * Tab chip markup — flag image + native name.
+     * Tab chip markup: flag image + native name.
      *
      *
      *
@@ -857,7 +858,7 @@ class EmailPositionsField extends EditorField
     }
 
     /**
-     * Resolve the layout driving discovery — the sibling
+     * Resolve the layout driving discovery: the sibling
      * email_layout_<recipient> selection, else the XML / class default.
      *
      *
@@ -918,7 +919,7 @@ class EmailPositionsField extends EditorField
     }
 
     /**
-     * 'en-GB' → 'en_gb' (per-language table + form-key suffix).
+     * 'en-GB' -> 'en_gb' (per-language table + form-key suffix).
      *
      *
      *
@@ -959,7 +960,7 @@ class EmailPositionsField extends EditorField
 
     /**
      * Does the per-language aux row exist for this status? Used to detect a
-     * language's first appearance (virgin → seed defaults). Distinct from a
+     * language's first appearance (virgin -> seed defaults). Distinct from a
      * present-but-empty positions column, which must NOT reseed.
      *
      * @param string $table Per-language aux table (with `_<suffix>`).

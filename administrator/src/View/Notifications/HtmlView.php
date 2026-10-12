@@ -11,6 +11,9 @@ namespace Alfa\Component\Alfa\Administrator\View\Notifications;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
+use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
+use Alfa\Component\Alfa\Administrator\View\HasAdminEvents;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -18,13 +21,15 @@ use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 
 /**
- * Notification history view — the full, filterable/paginated list reached from the
+ * Notification history view: the full, filterable/paginated list reached from the
  * quick panel's "Show all". Read-only browsing of active + dismissed notifications.
  *
  * @since  1.0.0
  */
 class HtmlView extends BaseHtmlView
 {
+    use HasAdminEvents;
+
     protected $items;
 
     protected $pagination;
@@ -46,7 +51,11 @@ class HtmlView extends BaseHtmlView
      */
     public function display($tpl = null)
     {
-        if (!Factory::getApplication()->getIdentity()->authorise('core.manage', 'com_alfa')) {
+        // Assigned, not declared: the trait owns the property (see the Order view).
+        $this->alfaEntity = 'notification';
+
+        // The sidebar hides the link without this permission; this is the real boundary.
+        if (!NotificationHelper::canView()) {
             throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
         }
 
@@ -78,10 +87,12 @@ class HtmlView extends BaseHtmlView
     {
         $toolbar = $this->getDocument()->getToolbar();
 
-        ToolbarHelper::title(Text::_('COM_ALFA_NOTIFY_HISTORY_TITLE'), 'bell');
+        ToolbarHelper::title(Text::_('COM_ALFA_NOTIFY_HISTORY_TITLE'), 'generic');
 
         if (Factory::getApplication()->getIdentity()->authorise('core.admin', 'com_alfa')) {
             $toolbar->preferences('com_alfa');
         }
+
+        TourHelper::toolbarHelp($toolbar, $this->getName());
     }
 }

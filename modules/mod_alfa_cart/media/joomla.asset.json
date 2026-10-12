@@ -11,8 +11,7 @@
       "uri": "mod_alfa_cart/cart.js",
       "attributes": {
         "type": "module"
-      },
-      "version": "1.0.0"
+      }
     },
     {
       "name": "mod_alfa_cart.cart",

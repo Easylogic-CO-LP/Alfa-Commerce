@@ -3,25 +3,45 @@
 /**
  * Shipping cost calculation event.
  *
- * Fired by CartHelper::computeShipmentCosts() to let the active
+ * Fired by CartPluginDispatch::shippingCost() to let the active
  * shipment plugin provide shipping cost for the current cart.
  *
- * Plugins MUST call setShippingCost() with the tax-inclusive amount.
- * Plugins SHOULD call setShippingCostTaxExcl() with the tax-exclusive
- * amount when shipping is taxable. If not set, excl defaults to incl
- * (zero-tax shipping — the common case).
+ * A plugin answers with ONE of:
+ *   - setShippingCost($price): the price as the merchant configured it. What
+ *     it means (tax inside or on top) is the shop's shipping price entry mode,
+ *     and its tax is the method's shipping tax for the destination; core
+ *     applies both and states the charge as net, tax and gross;
+ *   - setShippingAmounts($net, $tax, $gross, $rate): a carrier that splits
+ *     the tax itself states the canonical amounts, which are taken as they are;
+ *   - setUnavailable($reasonKey): the carrier will not carry this cart.
+ * A refusal outranks both answers, and stated amounts outrank a price.
  *
  * Usage in plugin:
  *   public function onCalculateShippingCost($event): void
  *   {
- *       $cart   = $event->getCart();
  *       $method = $event->getMethod();
  *
- *       $costIncl = $this->calculateCost($cart, $method);
- *       $event->setShippingCost($costIncl);
+ *       $cart = $event->getCart();
  *
- *       // Optional: only if shipping is taxable
- *       $event->setShippingCostTaxExcl($costExcl);
+ *       // Where it is going, in two steps. Only some checkout fields hold a
+ *       // place, so read the one this method names and expand THAT; a method
+ *       // that names none inherits the shop's destination.
+ *       $fieldId = (int) $method->param('delivery_place_field');
+ *       $places  = $fieldId > 0
+ *           ? $this->placesFor((int) $cart->delivery()->field($fieldId)->int())
+ *           : $cart->delivery()->places();
+ *
+ *       $cost = $this->myRateLookup($cart->lines(), $places, $method->params());
+ *
+ *       // A carrier that cannot carry the cart says so instead of pricing it.
+ *       if ($cost === null) {
+ *           $event->setUnavailable('MY_PLUGIN_TOO_HEAVY');
+ *
+ *           return;
+ *       }
+ *
+ *       // The configured price; core applies the entry mode and the tax.
+ *       $event->setShippingCost($cost);
  *   }
  *
  * @package    Alfa Commerce
@@ -32,96 +52,172 @@
 
 namespace Alfa\Component\Alfa\Administrator\Event\Shipments;
 
-use BadMethodCallException;
-
 \defined('_JEXEC') or die;
+
+use Alfa\Component\Alfa\Administrator\Service\Cart\Plugin\ShippingCostRequest;
+use Alfa\Component\Alfa\Site\Service\Cart\Cart;
+use Alfa\Component\Alfa\Site\Service\Cart\Method;
 
 class CalculateShippingCostEvent extends ShipmentsEvent
 {
     /**
-     * Constructor — requires 'method' argument.
+     * What this carrier is being asked to price.
      *
-     * @param string $name Event name
-     * @param array $arguments Must include 'method' and 'shippingCost'
+     * Settled facts: the lines to carry, where to, what the merchandise comes
+     * to, and the cart, for the carrier that must measure the basket before it
+     * can name a price.
      *
-     * @throws BadMethodCallException If 'method' is missing
-     * @since  1.0.0
+     * The old prohibition was on asking the cart for a GRAND TOTAL, because a
+     * carrier reading a number its own answer decides is a question that never
+     * settles. That still holds and is still enforced, by what is handed over:
+     * Cart is a reader over the settled state and has no totals to give. The cart is
+     * safe here; CartComputation would not have been.
+     *
+     *
+     * @since  1.10.0
      */
-    public function __construct($name, array $arguments = [])
-    {
-        parent::__construct($name, $arguments);
-
-        if (!\array_key_exists('method', $this->arguments)) {
-            throw new BadMethodCallException(
-                "Argument 'method' of event {$name} is required but has not been provided",
-            );
-        }
-    }
-
-    /**
-     * Get the cart helper instance (subject).
-     *
-     * @return \Alfa\Component\Alfa\Site\Helper\CartHelper
-     * @since  1.0.0
-     */
-    public function getCart()
+    public function getRequest(): ShippingCostRequest
     {
         return $this->getSubject();
     }
 
     /**
-     * Setter validator for the 'method' argument.
+     * The method being rendered, entire.
      *
-     * @param mixed $value Shipment method object
-     * @return mixed
-     * @since  1.0.0
+     * Its id, type, name, description, configuration and anything else the
+     * record carries; see {@see Method}. One accessor rather than five,
+     * because a plugin should never be blocked from reading its own method by
+     * a getter the component has not written yet.
+     *
+     *
+     * @since  1.10.0
      */
-    protected function onSetMethod($value)
+    public function getMethod(): Method
     {
-        return $value;
+        return $this->getRequest()->method;
     }
 
     /**
-     * Get the shipment method configuration.
+     * The cart being quoted.
      *
-     * @return object Shipment method with params, type, etc.
-     * @since  1.0.0
+     * A convenience over `getRequest()->cart`, for carriers whose price depends
+     * on facts the named fields do not carry: a locker network that must know
+     * whether the basket fits its largest compartment, a courier that prices by
+     * destination address rather than by zone.
+     *
+     * THE REQUEST'S SCOPE STILL GOVERNS THE QUOTE. Where `lines` is narrower
+     * than the cart, `lines` is what is being priced; the cart is context, not
+     * a licence to quote for goods this request did not ask about.
+     *
+     *
+     * @since  1.10.0
      */
-    public function getMethod()
+    public function getCart(): Cart
     {
-        return $this->arguments['method'];
+        return $this->getRequest()->cart;
     }
 
-    // =====================================================================
-    // SHIPPING COST — TAX INCLUSIVE
-    // =====================================================================
+    //  Refusal
+    //
+    //  "This costs nothing" and "I cannot carry this" are different answers,
+    //  and until 1.10 a carrier had only one way to give either: the float
+    //  0.00. A carrier whose bands matched nothing therefore quoted zero, the
+    //  method stayed selectable, and the order froze at 0.00 carriage: the
+    //  shop shipped for free rather than declining the sale.
+    //
+    //  A carrier that cannot carry the cart calls setUnavailable() and does
+    //  NOT call setShippingCost(). Whatever cost was set before is discarded:
+    //  a refusal is not a price.
 
     /**
-     * Set shipping cost (tax inclusive).
+     * Refuse the cart: this carrier will not carry it at any price.
      *
-     * Plugins MUST call this. This is the primary shipping cost value.
+     * The reason is shown to the shopper when the selection is dropped and
+     * again if placement is attempted, so it must be a language KEY (a Greek
+     * shopper reads this), and it should say what would make the cart
+     * carriable ("too heavy for a locker"), not merely that it failed.
      *
-     * @param float $cost Shipping cost including tax
+     * NOTHING MAY EVER SEED AN ARGUMENT NAMED `unavailable` INTO THIS EVENT.
+     * Joomla's AbstractEvent re-sets every constructor-seeded argument through
+     * setArgument(), which dispatches to onSet<Ucfirst> or, failing that, to
+     * set<Ucfirst>, so a seed by that name would call THIS method during
+     * construction and refuse the cart before a plugin was booted. That is not
+     * hypothetical: seeding `shippingCost` did exactly that to the answer flag,
+     * which is why the dispatcher now seeds nothing at all.
+     *
+     * @param string $reasonKey Language key explaining the refusal.
+     *
+     *
+     * @since  1.10.0
+     */
+    public function setUnavailable(string $reasonKey = ''): void
+    {
+        $this->arguments['shippingUnavailable'] = true;
+        $this->arguments['shippingUnavailableReason'] = $reasonKey;
+        $this->arguments['shippingAnswered'] = true;
+    }
+
+    /**
+     * Whether the carrier refused the cart.
+     *
+     *
+     * @since  1.10.0
+     */
+    public function isUnavailable(): bool
+    {
+        return (bool) ($this->arguments['shippingUnavailable'] ?? false);
+    }
+
+    /**
+     * The language key explaining a refusal, or '' when none was given.
+     *
+     *
+     * @since  1.10.0
+     */
+    public function getUnavailableReason(): string
+    {
+        return (string) ($this->arguments['shippingUnavailableReason'] ?? '');
+    }
+
+    // The price, as the merchant configured it
+
+    /**
+     * Answer with the price as the merchant configured it.
+     *
+     * Its meaning is the shop's shipping price entry mode, never the plugin's:
+     * core reads it as the gross or as the net and taxes it with the method's
+     * shipping tax for the destination.
+     *
+     * A carrier that cannot carry the cart calls setUnavailable() instead;
+     * setting 0.00 here means FREE SHIPPING and is offered as such.
+     *
+     * @param float $cost The configured price.
      * @since  1.0.0
      */
     public function setShippingCost(float $cost): void
     {
         $this->arguments['shippingCost'] = $cost;
+        $this->arguments['shippingAnswered'] = true;
     }
 
     /**
-     * Joomla event setter hook — delegates to setShippingCost().
+     * Joomla event setter hook: delegates to setShippingCost().
      *
-     * @param float $cost Shipping cost including tax
+     * @param float $cost The configured price.
      * @since  1.0.0
      */
-    public function onSetShippingCost(float $cost): void
+    public function onSetShippingCost(float $cost): float
     {
+        // MUST return the value: AbstractEvent::setArgument stores the RETURN of an
+        // onSet<Arg> hook, so a void return would overwrite the constructor-seeded
+        // shippingCost with null (silently zeroing any non-zero base cost).
         $this->setShippingCost($cost);
+
+        return $cost;
     }
 
     /**
-     * Get shipping cost (tax inclusive).
+     * The configured price the carrier quoted.
      * @since  1.0.0
      */
     public function getShippingCost(): float
@@ -129,42 +225,70 @@ class CalculateShippingCostEvent extends ShipmentsEvent
         return (float) ($this->arguments['shippingCost'] ?? 0.0);
     }
 
-    // =====================================================================
-    // SHIPPING COST — TAX EXCLUSIVE
+    /**
+     * Whether the carrier answered at all: with a price, amounts or a refusal.
+     *
+     * SILENCE IS NOT FREE, AND THIS IS HOW THE DISPATCHER KNOWS. getShippingCost()
+     * cannot tell the two apart: a carrier quoting 0.00 and a carrier that never
+     * ran a line of pricing code both read as the float 0. So the answering
+     * setters mark this, and nothing else does; a hook that returns without
+     * calling one leaves it false and the quote fails closed.
+     *
+     * Deliberately NOT satisfied by the event's construction. The dispatcher
+     * seeds no cost, so there is no argument-seeding path that could mark a
+     * carrier as having answered before it was even booted.
+     *
+     *
+     * @since  1.10.0
+     */
+    public function hasAnswered(): bool
+    {
+        return (bool) ($this->arguments['shippingAnswered'] ?? false);
+    }
+
+    // STATED AMOUNTS: a carrier that splits the tax itself
     //
-    // Optional. If the plugin doesn't set this, it defaults to the
-    // tax-inclusive value (assumes zero tax on shipping — the common case).
-    // =====================================================================
+    // Kept under 'shippingStated'. No accessor may be named after that key
+    // (see setUnavailable()'s warning): Joomla routes set<Key>/get<Key> through
+    // setArgument/getArgument, and the dispatcher seeds nothing.
 
     /**
-     * Set shipping cost (tax exclusive).
+     * Answer with amounts this carrier split itself.
      *
-     * Call this when shipping is taxable and you know the pre-tax amount.
-     * If not called, getShippingCostTaxExcl() returns the incl value
-     * (zero-tax default).
+     * They are authoritative: no entry mode and no tax resolution is applied.
+     * Each amount is read exactly in the cart's currency (finer than it holds is
+     * refused, never rounded), the net and the tax must make the gross, and a
+     * charge that carries tax names its rate; otherwise the method is withdrawn
+     * for this cart.
      *
-     * @param float $cost Shipping cost excluding tax
-     * @since  1.0.0
+     * @param string|int|float $taxExcl The net charge.
+     * @param string|int|float $taxAmount The tax on it.
+     * @param string|int|float $taxIncl The gross charge.
+     * @param float $taxRate The rate the tax was charged at, in percent.
+     *
+     *
+     * @since  1.14.0
      */
-    public function setShippingCostTaxExcl(float $cost): void
+    public function setShippingAmounts(string|int|float $taxExcl, string|int|float $taxAmount, string|int|float $taxIncl, float $taxRate): void
     {
-        $this->arguments['shippingCostTaxExcl'] = $cost;
+        $this->arguments['shippingStated'] = [
+            'taxExcl' => $taxExcl,
+            'taxAmount' => $taxAmount,
+            'taxIncl' => $taxIncl,
+            'taxRate' => $taxRate,
+        ];
+        $this->arguments['shippingAnswered'] = true;
     }
 
     /**
-     * Get shipping cost (tax exclusive).
+     * The amounts a carrier stated, or null when it quoted a price instead.
      *
-     * Falls back to tax-inclusive value if not explicitly set.
-     * @since  1.0.0
+     * @return array{taxExcl: string|int|float, taxAmount: string|int|float, taxIncl: string|int|float, taxRate: float}|null
+     *
+     * @since  1.14.0
      */
-    public function getShippingCostTaxExcl(): float
+    public function statedAmounts(): ?array
     {
-        // If plugin set excl explicitly, use it
-        if (isset($this->arguments['shippingCostTaxExcl'])) {
-            return (float) $this->arguments['shippingCostTaxExcl'];
-        }
-
-        // Default: same as incl (zero tax on shipping)
-        return $this->getShippingCost();
+        return $this->arguments['shippingStated'] ?? null;
     }
 }

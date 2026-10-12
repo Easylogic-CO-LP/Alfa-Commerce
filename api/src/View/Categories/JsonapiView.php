@@ -27,10 +27,22 @@ class JsonApiView extends BaseApiView
      * @since  1.0.0
      */
     protected $fieldsToRenderItem = [
-        'ordering',
         'id',
+        'parent_id',
         'name',
+        'alias',
+        'desc',
+        'meta_title',
+        'meta_desc',
         'state',
+        'meta_data',
+        'robots',
+        'list_options',
+        'medias',
+        'publish_up',
+        'publish_down',
+        'ordering',
+        'translations',
     ];
 
     /**
@@ -40,9 +52,15 @@ class JsonApiView extends BaseApiView
      * @since  1.0.0
      */
     protected $fieldsToRenderList = [
-        'ordering',
         'id',
         'name',
+        'alias',
+        'parent_id',
         'state',
+        'item_count',
+        'publish_up',
+        'publish_down',
+        'modified',
+        'ordering',
     ];
 }

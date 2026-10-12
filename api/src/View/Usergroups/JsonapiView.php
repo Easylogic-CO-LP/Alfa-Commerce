@@ -27,9 +27,10 @@ class JsonApiView extends BaseApiView
      * @since  1.0.0
      */
     protected $fieldsToRenderItem = [
-        'state',
-        'ordering',
         'id',
+        'usergroup_id',
+        'prices_enable',
+        'prices_display',
         'name',
     ];
 
@@ -40,9 +41,9 @@ class JsonApiView extends BaseApiView
      * @since  1.0.0
      */
     protected $fieldsToRenderList = [
-        'state',
-        'ordering',
         'id',
-        'name',
+        'usergroup_id',
+        'prices_enable',
+        'core_title',
     ];
 }

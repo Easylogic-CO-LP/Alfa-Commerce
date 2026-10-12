@@ -4,7 +4,7 @@ defined('_JEXEC') or die;
 
 use Joomla\Registry\Registry;
 
-// FileLayout passes $displayData as a single array — pull the named
+// FileLayout passes $displayData as a single array; pull the named
 // keys ($field, $fieldParams, $item, $context, $value) into local scope.
 extract($displayData);
 

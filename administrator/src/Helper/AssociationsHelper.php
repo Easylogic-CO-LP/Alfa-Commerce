@@ -69,4 +69,38 @@ class AssociationsHelper extends AssociationExtensionHelper
     {
         return AssociationHelper::getAssociations((int) $id, $view);
     }
+
+    /**
+     * May the current user edit a record of this type from com_associations.
+     *
+     * Without it com_associations falls back to core.edit on com_alfa; Alfa decides by the
+     * type's own section instead.
+     *
+     * @param string $typeName The item type, e.g. 'item' or 'manufacturer'.
+     * @param int $id The record id.
+     *
+     * @return bool
+     *
+     * @since  1.10.0
+     */
+    public function allowEdit($typeName, $id)
+    {
+        return AlfaHelper::can(section: (string) $typeName, action: 'edit');
+    }
+
+    /**
+     * May the current user create a record of this type from com_associations.
+     *
+     * Replaces com_associations' core.create fallback with the type's own section.
+     *
+     * @param string $typeName The item type, e.g. 'item' or 'manufacturer'.
+     *
+     * @return bool
+     *
+     * @since  1.10.0
+     */
+    public function allowAdd($typeName)
+    {
+        return AlfaHelper::can(section: (string) $typeName, action: 'create');
+    }
 }

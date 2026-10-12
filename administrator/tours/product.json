@@ -1,0 +1,191 @@
+{
+    "uid": "com_alfa.product",
+    "version": 8,
+    "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_TITLE",
+    "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_DESC",
+    "extensions": [
+        "com_alfa"
+    ],
+    "url": "administrator/index.php?option=com_alfa&view=items",
+    "autostart": false,
+    "steps": [
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_1_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_1_DESC",
+            "position": "bottom",
+            "target": "",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=items"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_2_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_2_DESC",
+            "position": "right",
+            "target": "#sidebarmenu a[href*=\"option=com_alfa\"][href*=\"view=items\"]",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=items"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_3_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_3_DESC",
+            "position": "bottom",
+            "target": ".button-new",
+            "type": 2,
+            "interactive_type": 1,
+            "url": "administrator/index.php?option=com_alfa&view=items"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_4_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_4_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has([id^=\"jform_name_\"])",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_5_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_5_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_sku), #jform_sku",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_6_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_6_DESC",
+            "position": "top",
+            "target": ".control-group:not(.hidden):has([id^=\"jform_short_desc\"])",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_7_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_7_DESC",
+            "position": "left",
+            "target": ".control-group:not(.hidden):has(#jform_id_category_default), #jform_id_category_default",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_8_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_8_DESC",
+            "position": "left",
+            "target": ".control-group:not(.hidden):has(#jform_categories), #jform_categories",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_9_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_9_DESC",
+            "position": "bottom",
+            "target": "joomla-tab#myTab button[aria-controls=\"logistics\"]",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_10_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_10_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_manage_stock), #jform_manage_stock",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_11_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_11_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_stock), #jform_stock",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_12_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_12_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_stock_action), #jform_stock_action",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_13_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_13_DESC",
+            "position": "bottom",
+            "target": "joomla-tab#myTab button[aria-controls=\"combinations\"]",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_14_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_14_DESC",
+            "position": "top",
+            "target": "#combinations .alfa-prices",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_15_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_15_DESC",
+            "position": "top",
+            "target": "#combinations [data-price-add]",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_16_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_16_DESC",
+            "position": "top",
+            "target": "#combinations [data-variations-panel]",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_17_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_17_DESC",
+            "position": "left",
+            "target": "#combinations [data-bs-target=\"#combinationGeneratorModal\"]",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_18_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_18_DESC",
+            "position": "top",
+            "target": "#combinations [data-options-panel]",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_19_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_19_DESC",
+            "position": "top",
+            "target": "#combinations [data-info-panel]",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_20_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_20_DESC",
+            "position": "bottom",
+            "target": "joomla-tab#myTab button[aria-controls=\"dropzone\"]",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_21_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_21_DESC",
+            "position": "top",
+            "target": "#dropzone .media-dropzone, #dropzone",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=item&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_22_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_22_DESC",
+            "position": "bottom",
+            "target": "#toolbar",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=item&layout=edit"
+        }
+    ],
+    "ordering": 40
+}

@@ -50,12 +50,12 @@
     }
 
     .table-mobile-responsive tr {
-        border-bottom: 3px solid #000;
+        border-bottom: 3px solid var(--body-color, #000);
         display: block;
     }
 
     .table-mobile-responsive td {
-        border-bottom: 1px solid #ddd !important;
+        border-bottom: 1px solid var(--border-color, #ddd) !important;
         display: block;
         font-size: .8em;
         text-align: right;
@@ -78,3 +78,452 @@
 /* SHIPMENT COTS SUBFORM */
 .subform-repeatable.shrinked-repeatable-table thead th { width: 1% !important; }
 .subform-repeatable.shrinked-repeatable-table tbody td .controls { min-width:auto !important;max-width: 100px !important; }
+
+/* Items list "Available" cell: the salable number and its status badge read as
+ * one value, so they must not wrap apart at narrow widths. */
+.alfa-availability {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    white-space: nowrap;
+}
+
+.alfa-availability .badge {
+    font-weight: 500;
+}
+
+/* Derived read-out, not a field: muted so it never reads as something the
+ * merchant forgot to make editable. */
+.alfa-availability-value {
+    color: var(--secondary-color, #566370);
+}
+
+/* The figure and its badge are one value and must not wrap apart; the safety
+ * note sits on the line beneath, like every other qualified cell. */
+.alfa-availability-line {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    white-space: nowrap;
+}
+
+/* List cell with a qualifier: the value on its own line, the muted explanation
+ * beneath it. Side by side, a long SKU and its "3 variants" note compete for a
+ * narrow column and wrap mid-phrase; stacked, the value always reads first.
+ * One pattern for every cell that qualifies its number or code. */
+.alfa-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.3;
+}
+
+.alfa-cell-meta {
+    font-size: 0.78rem;
+    color: var(--secondary-color, #566370);
+}
+
+/* The inline-edit marker is a full-width flex box; inside a stacked cell it
+ * must still span the column so the pencil keeps its position. */
+.alfa-cell > .alfa-editable {
+    align-self: stretch;
+}
+
+/* Sub-groups inside a single flow: the Logistics tab is one subject, so a rule
+ * separates stock from shipping from purchase limits without fragmenting it
+ * into competing boxes. The rules are spacer fields in forms/item.xml, so the
+ * hairline has to escape the label column Joomla renders a spacer into. */
+.alfa-group-rule {
+    margin: 1.5rem 0 1rem;
+    border: 0;
+    border-top: 1px solid var(--border-color, #dee2e6);
+    opacity: 1;
+}
+
+/* Atum renders a spacer into the 240px label column and caps its hr at 380px
+ * (.control-group .control-label, .spacer hr). Both selectors have to be
+ * out-specified for the rule to read as a divider rather than a stray dash. */
+.control-group.field-spacer > .control-label {
+    inline-size: 100%;
+    max-inline-size: 100%;
+    padding-inline: 0;
+}
+
+.field-spacer > .controls {
+    display: none;
+}
+
+.spacer hr.alfa-group-rule {
+    inline-size: 100%;
+}
+
+/* Identity: three machine codes reading as one line, like the Studio's grid.
+ * The template just renders the fieldset; the columns are this rule. */
+.alfa-identity-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 0 1.5rem;
+}
+
+/* Cart rule condition builder
+   Scoped to the builder root so nothing leaks into the rest of the admin.
+   The point of the layout is that a condition reads as one sentence:
+   "Match by [Categories] [is one of] [Footwear]". */
+.alfa-conditions .alfa-condition-group {
+    border: 1px solid var(--border-color, #dfe3e8);
+    border-radius: .35rem;
+    padding: .75rem;
+    margin-bottom: .75rem;
+    background: var(--card-bg, #fff);
+}
+
+.alfa-conditions .alfa-condition-group-head {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    flex-wrap: wrap;
+    margin-bottom: .5rem;
+}
+
+.alfa-conditions .alfa-condition-group-head label {
+    margin: 0;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.alfa-conditions .alfa-condition-group-head input[type="number"] {
+    width: 6rem;
+    flex: 0 0 auto;
+}
+
+.alfa-conditions .alfa-condition-group-hint {
+    font-size: .85em;
+    color: var(--secondary-color, #6c757d);
+}
+
+.alfa-conditions .alfa-condition-row {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    flex-wrap: wrap;
+    padding: .4rem 0;
+}
+
+.alfa-conditions .alfa-condition-row + .alfa-condition-row {
+    border-top: 1px dashed var(--border-color, #dfe3e8);
+}
+
+.alfa-conditions .alfa-condition-lead {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.alfa-conditions .alfa-condition-row select:not([multiple]) {
+    width: auto;
+    flex: 0 0 auto;
+}
+
+/* The values picker takes the slack: it is the part with real content. */
+.alfa-conditions .alfa-condition-values {
+    flex: 1 1 18rem;
+    min-width: 12rem;
+}
+
+/* Groups are ANDed; say so between them rather than in a paragraph above. */
+.alfa-conditions .alfa-condition-group + .alfa-condition-group::before {
+    content: attr(data-and-label);
+    display: block;
+    margin: -1.15rem 0 .5rem;
+    font-size: .75em;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--secondary-color, #6c757d);
+}
+
+/* Refund rows in the order payment table.
+
+   Bootstrap's `.table-warning` paints a light amber row and pairs it with black
+   text through `--table-color`, but Atum's dark theme redefines that same
+   variable as `var(--body-color)`. The row keeps its light background and the
+   text turns white on it: the refunds on an order become unreadable the moment
+   an admin switches to dark. The subtle pair flips together, so it stays legible
+   in both. */
+tr.alfa-row-refund > * {
+    --table-bg: var(--warning-bg-subtle, #fff3cd);
+    --table-color: var(--warning-text-emphasis, #664d03);
+    background-color: var(--warning-bg-subtle, #fff3cd);
+    color: var(--warning-text-emphasis, #664d03);
+}
+
+/* Inline <code> inside an alert.
+
+   Bootstrap paints inline code in its pink accent, and Atum's dark alerts are
+   deep saturated panels: the pair measures 2.91:1, under AA for the file paths
+   our tools list inside those alerts. Lift the accent in dark only, so the
+   light admin keeps Bootstrap's own colour untouched. */
+:root[data-color-scheme="dark"] .alert code,
+:root[data-bs-theme="dark"] .alert code {
+    color: #f0a6c8;
+}
+
+/* "Refunded" payment badge.
+
+   Bootstrap has no purple contextual class, so the payment screens invented one.
+   It lived in an inline <style> inside the order EDIT layout, while the orders
+   LIST expander used the same class name; there the badge rendered with white
+   text and no background, i.e. invisible on a light page. Defining it with the
+   stylesheet both screens load is the fix; the pair is solid purple on white in
+   either colour scheme, so it needs no dark variant. */
+.badge.bg-purple {
+    background-color: #6f42c1 !important;
+    color: #fff;
+}
+
+/* Item-field facets in the admin filter bar
+   Joomla's filter bar stacks each declared field on its own row, which is right
+   for the four single filters above but wrong here: this ONE form field renders
+   one select per item-field, so a catalogue with six fields turned the bar into
+   six near-empty rows. They flow inline instead and wrap, each keeping a legible
+   minimum, so the bar grows by a line at a time rather than by a row per field. */
+/* Joomla lays the filter bar out as a CSS GRID, one cell per declared field,
+   so this one field, which renders N selects, was confined to a single 263px
+   column and stacked them vertically no matter what it did inside. The cell that
+   holds them spans the whole row instead; everything below is then free to flow. */
+.js-stools-container-filters:has(.item-field-filters) .js-stools-field-filter:has(> .item-field-filters),
+.js-stools-field-filter:has(> .item-field-filters) {
+    grid-column: 1 / -1;
+}
+
+.item-field-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+    inline-size: 100%;
+}
+
+.item-field-filter {
+    flex: 1 1 12rem;
+    min-inline-size: 12rem;
+    max-inline-size: 20rem;
+}
+
+.item-field-filter-label {
+    display: block;
+    margin-bottom: 0.15rem;
+    font-size: var(--alfa-filter-label-size, 0.8125rem);
+    color: var(--secondary-color);
+}
+
+/* The choices.js shell the fancy-select renders must not overflow its column. */
+.item-field-filter .choices,
+.item-field-filter .choices__inner {
+    inline-size: 100%;
+    max-inline-size: 100%;
+}
+
+/* Our own SVGs as inline icons: the same currentColor mask the injected sidebar
+   uses (see sidebar.css), so a button can carry a real Alfa menu icon instead of a
+   font glyph and still follow the text colour in light and dark. The file arrives
+   as --alfa-icon on the element, exactly as the sidebar layout sets it. */
+.alfa-icon {
+    display: inline-block;
+    inline-size: 1em;
+    block-size: 1em;
+    vertical-align: -0.125em;
+    background-color: currentColor;
+    -webkit-mask: var(--alfa-icon) center / contain no-repeat;
+    mask: var(--alfa-icon) center / contain no-repeat;
+}
+
+/*
+   Item search: the shared layouts/item/search.php.
+   The layout is shared by the order's item popup and the cart builder's line
+   popup, so its styling is shared too: one search box that looks the same on
+   both screens, overridable in one place.
+   */
+.product-search-container {
+    position: relative;
+}
+
+.product-search-results {
+    position: absolute;
+    z-index: 1050;
+    width: 100%;
+    max-height: 350px;
+    overflow-y: auto;
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border-color, #dee2e6);
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+    display: none;
+}
+
+.product-search-results.show {
+    display: block;
+}
+
+.product-result {
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-color-translucent, #f0f0f0);
+    transition: background .15s;
+}
+
+.product-result:hover {
+    background-color: var(--secondary-bg, #f8f9fa);
+}
+
+.product-result:last-child {
+    border-bottom: none;
+}
+
+.product-result-name {
+    font-weight: 600;
+    color: var(--emphasis-color, #212529);
+}
+
+.product-result-meta {
+    font-size: .85em;
+    color: var(--secondary-color, #6c757d);
+    margin-top: 2px;
+}
+
+.product-result-price {
+    font-weight: 600;
+    color: var(--success-text-emphasis, #198754);
+}
+
+.product-result-stock.low {
+    color: #dc3545;
+}
+
+.search-spinner {
+    display: none;
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.search-spinner.show {
+    display: block;
+}
+
+.no-results {
+    padding: 20px;
+    text-align: center;
+    color: var(--secondary-color, #6c757d);
+    font-style: italic;
+}
+
+.selected-product-header {
+    background: var(--tertiary-bg, #f8f9fa);
+    border: 1px solid var(--border-color, #dee2e6);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+}
+
+/* Reconciliation panel
+ *
+ * Atum styles a BARE <details> as a self-contained accordion block:
+ *
+ *   details { margin: 0 0 2rem; padding: .5rem 1rem;
+ *             background: var(--details-bg); border: var(--details-border);
+ *             border-radius: .25rem; }
+ *
+ * That is right for a standalone <details> and wrong for one used as the
+ * collapse mechanism INSIDE a card, which already supplies the background,
+ * the border, the radius and the spacing. Nested, it paints a second box
+ * inside the first and (the visible symptom) leaves 2rem of dead margin
+ * inside the card, so the card measures taller than its content and its
+ * box-shadow reads as detached from the header.
+ *
+ * Scoped to this panel on purpose. A global `details { margin: 0 }` would
+ * flatten every standalone accordion in the administrator to fix one card.
+ */
+#alfa-reconciliation-panel > details {
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: 0;
+    border-radius: 0;
+}
+
+/* The summary carries the card header, so it takes the card's own radius and
+   loses the marker indent Atum's list-item display adds. */
+#alfa-reconciliation-panel > details > summary {
+    border-radius: calc(0.25rem - 1px) calc(0.25rem - 1px) 0 0;
+}
+
+/* Closed: the header is the whole card, so it must round at the bottom too. */
+#alfa-reconciliation-panel > details:not([open]) > summary {
+    border-bottom: 0;
+    border-radius: calc(0.25rem - 1px);
+}
+
+/* Payment method setup checkup
+ *
+ * The same collapse as the reconciliation panel: the summary is the card
+ * header, the steps and "Check connection" open under it. The caret stands in
+ * for the marker the flex summary drops.
+ */
+.alfa-checkup > details {
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: 0;
+    border-radius: 0;
+}
+
+.alfa-checkup > details > summary {
+    cursor: pointer;
+    list-style: none;
+    border-radius: calc(0.25rem - 1px) calc(0.25rem - 1px) 0 0;
+}
+
+.alfa-checkup > details > summary::-webkit-details-marker {
+    display: none;
+}
+
+.alfa-checkup > details:not([open]) > summary {
+    border-bottom: 0;
+    border-radius: calc(0.25rem - 1px);
+}
+
+.alfa-checkup .alfa-checkup-caret {
+    display: inline-block;
+    transition: transform 0.15s ease-in-out;
+}
+
+.alfa-checkup > details:not([open]) .alfa-checkup-caret {
+    transform: rotate(-90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .alfa-checkup .alfa-checkup-caret {
+        transition: none;
+    }
+}
+
+/* Inline modal bodies
+ *
+ * Atum zeroes the padding of every modal body:
+ *
+ *   .modal-body            { padding: var(--modal-padding); }
+ *   .modal-dialog .modal-body { padding: 0; }     <- more specific, wins
+ *
+ * That is right for an IFRAME modal (Add Payment, Add Shipment, Add Order
+ * Item), because the page loaded inside the iframe brings its own padding and
+ * a second one would double it. It is wrong for a modal whose body is inline
+ * markup: that content then renders hard against the dialog edges, which is
+ * why Issue Document looked unpadded beside Add Payment.
+ *
+ * Joomla's modal layout sets data-iframe only when a url was passed, so it is
+ * an exact discriminator: restore the padding for inline bodies and leave
+ * every iframe modal alone. Twelve inline modals in this component were
+ * affected, not one.
+ */
+.joomla-modal:not([data-iframe]) .modal-body {
+    padding: 1rem;
+}

@@ -13,16 +13,21 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Joomla\CMS\Factory;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
-use Joomla\CMS\MVC\Model\ListModel;
 
 /**
  * Methods supporting a list of Places records.
  *
  * @since  1.0.0
  */
-class PlacesModel extends ListModel
+class PlacesModel extends AlfaListModel
 {
+    /**
+     * @var string The entity a plugin targets with $context->targets('place').
+     * @since  1.8.0
+     */
+    protected string $alfaEntity = 'place';
     /**
     * Constructor.
     *
@@ -175,15 +180,11 @@ class PlacesModel extends ListModel
     {
         $items = parent::getItems();
 
-        $items = AlfaHelper::addHierarchyData($items);
-
-        //		TROPOS 1
-        //		$categories = AlfaHelper::addHierarchyData($categories,'name','/');
-
-        //		TROPOS 2
-        //	    $nestedCategories = AlfaHelper::buildNestedArray($categories);
-        //		AlfaHelper::sort_nested_items($nestedCategories,'name','desc');
-        //	    $flattenArray = AlfaHelper::flatten_nested_items($nestedCategories,'id','/');
+        // Hierarchy enrichment drops rows whose ancestors fall outside the
+        // current page, fatal to API pagination; admin grids page from root.
+        if (!empty($items) && !Factory::getApplication()->isClient('api')) {
+            $items = AlfaHelper::addHierarchyData($items);
+        }
 
         return $items;
     }

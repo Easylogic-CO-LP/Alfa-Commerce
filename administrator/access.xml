@@ -1,17 +1,153 @@
 <?xml version="1.0" encoding="utf-8"?>
 <access component="com_alfa">
 	<section name="component">
+		<!--
+			Joomla's own two component rights: Configure (Options and this Permissions tab) and
+			Access Administration Interface (entering Alfa at all). Joomla checks both itself:
+			com_config, the component dispatcher and the admin menu, so they stay.
+
+			Everything else is Alfa's: each screen has its own view / create / edit / change
+			state / delete, checked through AlfaHelper::can(), and only the ones something
+			checks. The append-only movements ledger offers View alone. Carts offer Edit only to
+			take over a cart a storefront shopper created, asked together with Check out on
+			behalf and with Carts: View.
+			Joomla's Create, Delete, Edit, Edit State and Edit Own are not used anywhere in Alfa
+			and are not offered.
+
+			Nothing is granted at install: a Super User can do everything, every other group only
+			what a Super User grants here. Sections follow the admin menu, Tools last; plugin
+			permissions are placed next to their own menu entry (AlfarulesField).
+		-->
 		<action name="core.admin" title="JACTION_ADMIN" description="JACTION_ADMIN" />
 		<action name="core.manage" title="JACTION_MANAGE" description="JACTION_MANAGE" />
-		<action name="core.create" title="JACTION_CREATE" description="JACTION_CREATE" />
-		<action name="core.delete" title="JACTION_DELETE" description="JACTION_DELETE" />
-		<action name="core.edit" title="JACTION_EDIT" description="JACTION_EDIT" />
-		<action name="core.edit.state" title="JACTION_EDITSTATE" description="JACTION_EDITSTATE" />
-		<action name="core.edit.own" title="JACTION_EDITOWN" description="JACTION_EDITOWN" />
+
+		<action name="alfa.items.view" title="COM_ALFA_ACCESS_ITEMS_VIEW" description="COM_ALFA_ACCESS_ITEMS_VIEW_DESC" />
+		<action name="alfa.items.create" title="COM_ALFA_ACCESS_ITEMS_CREATE" description="COM_ALFA_ACCESS_ITEMS_CREATE_DESC" />
+		<action name="alfa.items.edit" title="COM_ALFA_ACCESS_ITEMS_EDIT" description="COM_ALFA_ACCESS_ITEMS_EDIT_DESC" />
+		<action name="alfa.items.edit.state" title="COM_ALFA_ACCESS_ITEMS_EDIT_STATE" description="COM_ALFA_ACCESS_ITEMS_EDIT_STATE_DESC" />
+		<action name="alfa.items.delete" title="COM_ALFA_ACCESS_ITEMS_DELETE" description="COM_ALFA_ACCESS_ITEMS_DELETE_DESC" />
+
+		<action name="alfa.categories.view" title="COM_ALFA_ACCESS_CATEGORIES_VIEW" description="COM_ALFA_ACCESS_CATEGORIES_VIEW_DESC" />
+		<action name="alfa.categories.create" title="COM_ALFA_ACCESS_CATEGORIES_CREATE" description="COM_ALFA_ACCESS_CATEGORIES_CREATE_DESC" />
+		<action name="alfa.categories.edit" title="COM_ALFA_ACCESS_CATEGORIES_EDIT" description="COM_ALFA_ACCESS_CATEGORIES_EDIT_DESC" />
+		<action name="alfa.categories.edit.state" title="COM_ALFA_ACCESS_CATEGORIES_EDIT_STATE" description="COM_ALFA_ACCESS_CATEGORIES_EDIT_STATE_DESC" />
+		<action name="alfa.categories.delete" title="COM_ALFA_ACCESS_CATEGORIES_DELETE" description="COM_ALFA_ACCESS_CATEGORIES_DELETE_DESC" />
+
+		<action name="alfa.manufacturers.view" title="COM_ALFA_ACCESS_MANUFACTURERS_VIEW" description="COM_ALFA_ACCESS_MANUFACTURERS_VIEW_DESC" />
+		<action name="alfa.manufacturers.create" title="COM_ALFA_ACCESS_MANUFACTURERS_CREATE" description="COM_ALFA_ACCESS_MANUFACTURERS_CREATE_DESC" />
+		<action name="alfa.manufacturers.edit" title="COM_ALFA_ACCESS_MANUFACTURERS_EDIT" description="COM_ALFA_ACCESS_MANUFACTURERS_EDIT_DESC" />
+		<action name="alfa.manufacturers.edit.state" title="COM_ALFA_ACCESS_MANUFACTURERS_EDIT_STATE" description="COM_ALFA_ACCESS_MANUFACTURERS_EDIT_STATE_DESC" />
+		<action name="alfa.manufacturers.delete" title="COM_ALFA_ACCESS_MANUFACTURERS_DELETE" description="COM_ALFA_ACCESS_MANUFACTURERS_DELETE_DESC" />
+
+		<action name="alfa.itemfields.view" title="COM_ALFA_ACCESS_ITEMFIELDS_VIEW" description="COM_ALFA_ACCESS_ITEMFIELDS_VIEW_DESC" />
+		<action name="alfa.itemfields.create" title="COM_ALFA_ACCESS_ITEMFIELDS_CREATE" description="COM_ALFA_ACCESS_ITEMFIELDS_CREATE_DESC" />
+		<action name="alfa.itemfields.edit" title="COM_ALFA_ACCESS_ITEMFIELDS_EDIT" description="COM_ALFA_ACCESS_ITEMFIELDS_EDIT_DESC" />
+		<action name="alfa.itemfields.edit.state" title="COM_ALFA_ACCESS_ITEMFIELDS_EDIT_STATE" description="COM_ALFA_ACCESS_ITEMFIELDS_EDIT_STATE_DESC" />
+		<action name="alfa.itemfields.delete" title="COM_ALFA_ACCESS_ITEMFIELDS_DELETE" description="COM_ALFA_ACCESS_ITEMFIELDS_DELETE_DESC" />
+
+		<action name="alfa.orders.view" title="COM_ALFA_ACCESS_ORDERS_VIEW" description="COM_ALFA_ACCESS_ORDERS_VIEW_DESC" />
+		<action name="alfa.orders.create" title="COM_ALFA_ACCESS_ORDERS_CREATE" description="COM_ALFA_ACCESS_ORDERS_CREATE_DESC" />
+		<action name="alfa.orders.edit" title="COM_ALFA_ACCESS_ORDERS_EDIT" description="COM_ALFA_ACCESS_ORDERS_EDIT_DESC" />
+		<action name="alfa.orders.edit.state" title="COM_ALFA_ACCESS_ORDERS_EDIT_STATE" description="COM_ALFA_ACCESS_ORDERS_EDIT_STATE_DESC" />
+		<action name="alfa.orders.delete" title="COM_ALFA_ACCESS_ORDERS_DELETE" description="COM_ALFA_ACCESS_ORDERS_DELETE_DESC" />
+
+		<action name="alfa.documents.view" title="COM_ALFA_ACCESS_DOCUMENTS_VIEW" description="COM_ALFA_ACCESS_DOCUMENTS_VIEW_DESC" />
+		<action name="alfa.documents.create" title="COM_ALFA_ACCESS_DOCUMENTS_CREATE" description="COM_ALFA_ACCESS_DOCUMENTS_CREATE_DESC" />
+		<action name="alfa.documents.edit" title="COM_ALFA_ACCESS_DOCUMENTS_EDIT" description="COM_ALFA_ACCESS_DOCUMENTS_EDIT_DESC" />
+		<action name="alfa.documents.edit.state" title="COM_ALFA_ACCESS_DOCUMENTS_EDIT_STATE" description="COM_ALFA_ACCESS_DOCUMENTS_EDIT_STATE_DESC" />
+		<action name="alfa.documents.delete" title="COM_ALFA_ACCESS_DOCUMENTS_DELETE" description="COM_ALFA_ACCESS_DOCUMENTS_DELETE_DESC" />
+		<!-- Void & Replace is a COMPOSITE DESTRUCTIVE financial operation: it
+		     voids an already-issued fiscal document and issues another in its
+		     place. It therefore carries its own explicit capability and is
+		     NEVER implied by holding Orders: Edit together with Sales
+		     Documents: Create, which is the pair that authorises ordinary
+		     manual issuance. The service enforces it; UI visibility is not
+		     authority. -->
+		<action name="alfa.documents.replace" title="COM_ALFA_ACCESS_DOCUMENTS_REPLACE" description="COM_ALFA_ACCESS_DOCUMENTS_REPLACE_DESC" />
+
+		<action name="alfa.carts.view" title="COM_ALFA_ACCESS_CARTS_VIEW" description="COM_ALFA_ACCESS_CARTS_VIEW_DESC" />
+		<action name="alfa.carts.edit" title="COM_ALFA_ACCESS_CARTS_EDIT" description="COM_ALFA_ACCESS_CARTS_EDIT_DESC" />
+		<action name="alfa.carts.delete" title="COM_ALFA_ACCESS_CARTS_DELETE" description="COM_ALFA_ACCESS_CARTS_DELETE_DESC" />
+		<action name="alfa.carts.checkout" title="COM_ALFA_ACCESS_CARTS_CHECKOUT" description="COM_ALFA_ACCESS_CARTS_CHECKOUT_DESC" />
+		<action name="alfa.carts.customprice" title="COM_ALFA_ACCESS_CARTS_CUSTOMPRICE" description="COM_ALFA_ACCESS_CARTS_CUSTOMPRICE_DESC" />
+
+		<action name="alfa.cartrules.view" title="COM_ALFA_ACCESS_CARTRULES_VIEW" description="COM_ALFA_ACCESS_CARTRULES_VIEW_DESC" />
+		<action name="alfa.cartrules.create" title="COM_ALFA_ACCESS_CARTRULES_CREATE" description="COM_ALFA_ACCESS_CARTRULES_CREATE_DESC" />
+		<action name="alfa.cartrules.edit" title="COM_ALFA_ACCESS_CARTRULES_EDIT" description="COM_ALFA_ACCESS_CARTRULES_EDIT_DESC" />
+		<action name="alfa.cartrules.edit.state" title="COM_ALFA_ACCESS_CARTRULES_EDIT_STATE" description="COM_ALFA_ACCESS_CARTRULES_EDIT_STATE_DESC" />
+		<action name="alfa.cartrules.delete" title="COM_ALFA_ACCESS_CARTRULES_DELETE" description="COM_ALFA_ACCESS_CARTRULES_DELETE_DESC" />
+
+		<action name="alfa.discounts.view" title="COM_ALFA_ACCESS_DISCOUNTS_VIEW" description="COM_ALFA_ACCESS_DISCOUNTS_VIEW_DESC" />
+		<action name="alfa.discounts.create" title="COM_ALFA_ACCESS_DISCOUNTS_CREATE" description="COM_ALFA_ACCESS_DISCOUNTS_CREATE_DESC" />
+		<action name="alfa.discounts.edit" title="COM_ALFA_ACCESS_DISCOUNTS_EDIT" description="COM_ALFA_ACCESS_DISCOUNTS_EDIT_DESC" />
+		<action name="alfa.discounts.edit.state" title="COM_ALFA_ACCESS_DISCOUNTS_EDIT_STATE" description="COM_ALFA_ACCESS_DISCOUNTS_EDIT_STATE_DESC" />
+		<action name="alfa.discounts.delete" title="COM_ALFA_ACCESS_DISCOUNTS_DELETE" description="COM_ALFA_ACCESS_DISCOUNTS_DELETE_DESC" />
+
+		<action name="alfa.locations.view" title="COM_ALFA_ACCESS_LOCATIONS_VIEW" description="COM_ALFA_ACCESS_LOCATIONS_VIEW_DESC" />
+		<action name="alfa.locations.create" title="COM_ALFA_ACCESS_LOCATIONS_CREATE" description="COM_ALFA_ACCESS_LOCATIONS_CREATE_DESC" />
+		<action name="alfa.locations.edit" title="COM_ALFA_ACCESS_LOCATIONS_EDIT" description="COM_ALFA_ACCESS_LOCATIONS_EDIT_DESC" />
+		<action name="alfa.locations.edit.state" title="COM_ALFA_ACCESS_LOCATIONS_EDIT_STATE" description="COM_ALFA_ACCESS_LOCATIONS_EDIT_STATE_DESC" />
+		<action name="alfa.locations.delete" title="COM_ALFA_ACCESS_LOCATIONS_DELETE" description="COM_ALFA_ACCESS_LOCATIONS_DELETE_DESC" />
+
+		<action name="alfa.inventorymovements.view" title="COM_ALFA_ACCESS_INVENTORYMOVEMENTS_VIEW" description="COM_ALFA_ACCESS_INVENTORYMOVEMENTS_VIEW_DESC" />
+
+		<action name="alfa.places.view" title="COM_ALFA_ACCESS_PLACES_VIEW" description="COM_ALFA_ACCESS_PLACES_VIEW_DESC" />
+		<action name="alfa.places.create" title="COM_ALFA_ACCESS_PLACES_CREATE" description="COM_ALFA_ACCESS_PLACES_CREATE_DESC" />
+		<action name="alfa.places.edit" title="COM_ALFA_ACCESS_PLACES_EDIT" description="COM_ALFA_ACCESS_PLACES_EDIT_DESC" />
+		<action name="alfa.places.edit.state" title="COM_ALFA_ACCESS_PLACES_EDIT_STATE" description="COM_ALFA_ACCESS_PLACES_EDIT_STATE_DESC" />
+		<action name="alfa.places.delete" title="COM_ALFA_ACCESS_PLACES_DELETE" description="COM_ALFA_ACCESS_PLACES_DELETE_DESC" />
+
+		<action name="alfa.currencies.view" title="COM_ALFA_ACCESS_CURRENCIES_VIEW" description="COM_ALFA_ACCESS_CURRENCIES_VIEW_DESC" />
+		<action name="alfa.currencies.create" title="COM_ALFA_ACCESS_CURRENCIES_CREATE" description="COM_ALFA_ACCESS_CURRENCIES_CREATE_DESC" />
+		<action name="alfa.currencies.edit" title="COM_ALFA_ACCESS_CURRENCIES_EDIT" description="COM_ALFA_ACCESS_CURRENCIES_EDIT_DESC" />
+		<action name="alfa.currencies.edit.state" title="COM_ALFA_ACCESS_CURRENCIES_EDIT_STATE" description="COM_ALFA_ACCESS_CURRENCIES_EDIT_STATE_DESC" />
+		<action name="alfa.currencies.delete" title="COM_ALFA_ACCESS_CURRENCIES_DELETE" description="COM_ALFA_ACCESS_CURRENCIES_DELETE_DESC" />
+
+		<action name="alfa.taxes.view" title="COM_ALFA_ACCESS_TAXES_VIEW" description="COM_ALFA_ACCESS_TAXES_VIEW_DESC" />
+		<action name="alfa.taxes.create" title="COM_ALFA_ACCESS_TAXES_CREATE" description="COM_ALFA_ACCESS_TAXES_CREATE_DESC" />
+		<action name="alfa.taxes.edit" title="COM_ALFA_ACCESS_TAXES_EDIT" description="COM_ALFA_ACCESS_TAXES_EDIT_DESC" />
+		<action name="alfa.taxes.edit.state" title="COM_ALFA_ACCESS_TAXES_EDIT_STATE" description="COM_ALFA_ACCESS_TAXES_EDIT_STATE_DESC" />
+		<action name="alfa.taxes.delete" title="COM_ALFA_ACCESS_TAXES_DELETE" description="COM_ALFA_ACCESS_TAXES_DELETE_DESC" />
+
+		<action name="alfa.payments.view" title="COM_ALFA_ACCESS_PAYMENTS_VIEW" description="COM_ALFA_ACCESS_PAYMENTS_VIEW_DESC" />
+		<action name="alfa.payments.create" title="COM_ALFA_ACCESS_PAYMENTS_CREATE" description="COM_ALFA_ACCESS_PAYMENTS_CREATE_DESC" />
+		<action name="alfa.payments.edit" title="COM_ALFA_ACCESS_PAYMENTS_EDIT" description="COM_ALFA_ACCESS_PAYMENTS_EDIT_DESC" />
+		<action name="alfa.payments.edit.state" title="COM_ALFA_ACCESS_PAYMENTS_EDIT_STATE" description="COM_ALFA_ACCESS_PAYMENTS_EDIT_STATE_DESC" />
+		<action name="alfa.payments.delete" title="COM_ALFA_ACCESS_PAYMENTS_DELETE" description="COM_ALFA_ACCESS_PAYMENTS_DELETE_DESC" />
+
+		<action name="alfa.shipments.view" title="COM_ALFA_ACCESS_SHIPMENTS_VIEW" description="COM_ALFA_ACCESS_SHIPMENTS_VIEW_DESC" />
+		<action name="alfa.shipments.create" title="COM_ALFA_ACCESS_SHIPMENTS_CREATE" description="COM_ALFA_ACCESS_SHIPMENTS_CREATE_DESC" />
+		<action name="alfa.shipments.edit" title="COM_ALFA_ACCESS_SHIPMENTS_EDIT" description="COM_ALFA_ACCESS_SHIPMENTS_EDIT_DESC" />
+		<action name="alfa.shipments.edit.state" title="COM_ALFA_ACCESS_SHIPMENTS_EDIT_STATE" description="COM_ALFA_ACCESS_SHIPMENTS_EDIT_STATE_DESC" />
+		<action name="alfa.shipments.delete" title="COM_ALFA_ACCESS_SHIPMENTS_DELETE" description="COM_ALFA_ACCESS_SHIPMENTS_DELETE_DESC" />
+
+		<action name="alfa.formfields.view" title="COM_ALFA_ACCESS_FORMFIELDS_VIEW" description="COM_ALFA_ACCESS_FORMFIELDS_VIEW_DESC" />
+		<action name="alfa.formfields.create" title="COM_ALFA_ACCESS_FORMFIELDS_CREATE" description="COM_ALFA_ACCESS_FORMFIELDS_CREATE_DESC" />
+		<action name="alfa.formfields.edit" title="COM_ALFA_ACCESS_FORMFIELDS_EDIT" description="COM_ALFA_ACCESS_FORMFIELDS_EDIT_DESC" />
+		<action name="alfa.formfields.edit.state" title="COM_ALFA_ACCESS_FORMFIELDS_EDIT_STATE" description="COM_ALFA_ACCESS_FORMFIELDS_EDIT_STATE_DESC" />
+		<action name="alfa.formfields.delete" title="COM_ALFA_ACCESS_FORMFIELDS_DELETE" description="COM_ALFA_ACCESS_FORMFIELDS_DELETE_DESC" />
+
+		<action name="alfa.orderstatuses.view" title="COM_ALFA_ACCESS_ORDERSTATUSES_VIEW" description="COM_ALFA_ACCESS_ORDERSTATUSES_VIEW_DESC" />
+		<action name="alfa.orderstatuses.create" title="COM_ALFA_ACCESS_ORDERSTATUSES_CREATE" description="COM_ALFA_ACCESS_ORDERSTATUSES_CREATE_DESC" />
+		<action name="alfa.orderstatuses.edit" title="COM_ALFA_ACCESS_ORDERSTATUSES_EDIT" description="COM_ALFA_ACCESS_ORDERSTATUSES_EDIT_DESC" />
+		<action name="alfa.orderstatuses.edit.state" title="COM_ALFA_ACCESS_ORDERSTATUSES_EDIT_STATE" description="COM_ALFA_ACCESS_ORDERSTATUSES_EDIT_STATE_DESC" />
+		<action name="alfa.orderstatuses.delete" title="COM_ALFA_ACCESS_ORDERSTATUSES_DELETE" description="COM_ALFA_ACCESS_ORDERSTATUSES_DELETE_DESC" />
+
+		<action name="alfa.users.view" title="COM_ALFA_ACCESS_USERS_VIEW" description="COM_ALFA_ACCESS_USERS_VIEW_DESC" />
+		<action name="alfa.users.create" title="COM_ALFA_ACCESS_USERS_CREATE" description="COM_ALFA_ACCESS_USERS_CREATE_DESC" />
+		<action name="alfa.users.edit" title="COM_ALFA_ACCESS_USERS_EDIT" description="COM_ALFA_ACCESS_USERS_EDIT_DESC" />
+		<action name="alfa.users.edit.state" title="COM_ALFA_ACCESS_USERS_EDIT_STATE" description="COM_ALFA_ACCESS_USERS_EDIT_STATE_DESC" />
+		<action name="alfa.users.delete" title="COM_ALFA_ACCESS_USERS_DELETE" description="COM_ALFA_ACCESS_USERS_DELETE_DESC" />
+
+		<action name="alfa.usergroups.view" title="COM_ALFA_ACCESS_USERGROUPS_VIEW" description="COM_ALFA_ACCESS_USERGROUPS_VIEW_DESC" />
+		<action name="alfa.usergroups.create" title="COM_ALFA_ACCESS_USERGROUPS_CREATE" description="COM_ALFA_ACCESS_USERGROUPS_CREATE_DESC" />
+		<action name="alfa.usergroups.edit" title="COM_ALFA_ACCESS_USERGROUPS_EDIT" description="COM_ALFA_ACCESS_USERGROUPS_EDIT_DESC" />
+		<action name="alfa.usergroups.edit.state" title="COM_ALFA_ACCESS_USERGROUPS_EDIT_STATE" description="COM_ALFA_ACCESS_USERGROUPS_EDIT_STATE_DESC" />
+		<action name="alfa.usergroups.delete" title="COM_ALFA_ACCESS_USERGROUPS_DELETE" description="COM_ALFA_ACCESS_USERGROUPS_DELETE_DESC" />
+
+		<action name="alfa.notifications.view" title="COM_ALFA_ACCESS_NOTIFICATIONS_VIEW" description="COM_ALFA_ACCESS_NOTIFICATIONS_VIEW_DESC" />
+		<action name="alfa.notifications.edit.state" title="COM_ALFA_ACCESS_NOTIFICATIONS_EDIT_STATE" description="COM_ALFA_ACCESS_NOTIFICATIONS_EDIT_STATE_DESC" />
 
 		<action name="alfa.tools" title="COM_ALFA_ACTION_TOOLS" description="COM_ALFA_ACTION_TOOLS_DESC" />
-
-		<action name="item.edit" title="COM_ALFA_ITEM_EDIT" description="COM_ALFA_ITEM_EDIT" />
-		<action name="item.delete" title="COM_ALFA_ITEM_DELETE" description="COM_ALFA_ITEM_DELETE" />
 	</section>
 </access>

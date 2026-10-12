@@ -1,11 +1,10 @@
 <?php
 
 /**
- * @version    1.0.1
- * @package    Com_Alfa
+ * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  2024 Easylogic CO LP
- * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
 namespace Alfa\Component\Alfa\Administrator\View\User;
@@ -13,10 +12,10 @@ namespace Alfa\Component\Alfa\Administrator\View\User;
 // No direct access
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\View\AlfaFormView as FormView;
 use Joomla\CMS\Factory;
-use Joomla\CMS\Helper\ContentHelper;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\MVC\View\FormView;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 
 /**
@@ -26,6 +25,12 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
  */
 class HtmlView extends FormView
 {
+    /**
+     * @var string The entity a plugin targets with $context->targets('user').
+     * @since  1.8.0
+     */
+    protected string $alfaEntity = 'user';
+
     /**
      * Render the edit form view.
      *
@@ -41,8 +46,7 @@ class HtmlView extends FormView
     }
 
     /**
-     * Prepare the view: load the com_alfa permission set and add the 'task' and
-     * base64 'return' control fields to the form.
+     * Prepare the view: add the 'task' and base64 'return' control fields to the form.
      *
      * @return void
      *
@@ -51,8 +55,6 @@ class HtmlView extends FormView
     protected function initializeView()
     {
         parent::initializeView();
-
-        $this->canDo = ContentHelper::getActions('com_alfa');
 
         $input = Factory::getApplication()->getInput();
 
@@ -77,22 +79,28 @@ class HtmlView extends FormView
         $isNew = ($this->item->id == 0);
         //$checkedOut = !(\is_null($this->item->checked_out) || $this->item->checked_out == $userId);
 
-        $canDo = $this->canDo;
+        $user = $this->getCurrentUser();
+        $canCreate = AlfaHelper::can(section: 'users', action: 'create', user: $user);
+        $canEdit = AlfaHelper::can(section: 'users', action: 'edit', user: $user);
 
         ToolbarHelper::title(Text::_('COM_ALFA_TITLE_USER'), 'generic');
 
-        // If not checked out, can save the item.
-        if ($canDo->get('core.edit') || ($canDo->get('core.create'))) {
+        // Apply reopens the saved record, which needs edit even when the record is new.
+        if ($isNew ? ($canCreate && $canEdit) : $canEdit) {
             ToolbarHelper::apply('user.apply', 'JTOOLBAR_APPLY');
+        }
+
+        // A new profile needs create, an existing one edit.
+        if ($isNew ? $canCreate : $canEdit) {
             ToolbarHelper::save('user.save', 'JTOOLBAR_SAVE');
         }
 
-        if ($canDo->get('core.create')) {
+        if ($canCreate) {
             ToolbarHelper::custom('user.save2new', 'save-new.png', 'save-new_f2.png', 'JTOOLBAR_SAVE_AND_NEW', false);
         }
 
-        // If an existing item, can save to a copy.
-        if (!$isNew && $canDo->get('core.create')) {
+        // Save as Copy reopens the new copy, so it needs edit as well as create.
+        if (!$isNew && $canCreate && $canEdit) {
             ToolbarHelper::custom('user.save2copy', 'save-copy.png', 'save-copy_f2.png', 'JTOOLBAR_SAVE_AS_COPY', false);
         }
 

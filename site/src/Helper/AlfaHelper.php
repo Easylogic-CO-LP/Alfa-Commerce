@@ -10,8 +10,10 @@
 namespace Alfa\Component\Alfa\Site\Helper;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Closure;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Plugin\PluginHelper;
 
 defined('_JEXEC') or die;
 
@@ -23,6 +25,14 @@ defined('_JEXEC') or die;
 class AlfaHelper
 {
     /**
+     * The published, plugin-enabled methods of one kind, read once per request.
+     *
+     * @var array<string, array>
+     * @since  1.10.0
+     */
+    private static array $loaded = [];
+
+    /**
      * Return the com_alfa component global parameters/settings.
      *
      * @return \Joomla\Registry\Registry The component parameters.
@@ -31,59 +41,230 @@ class AlfaHelper
      */
     public static function getGeneralSettings()
     {
-        // $cache = Factory::getCache('com_alfa','');
-        // $cacheKey = "com_alfa_settings";
-        // $cachedSettings = $cache->get($cacheKey);
-
-        // if(!empty($cachedSettings)) {
-        //     return $cachedSettings;
-        // }
-
         $settings = ComponentHelper::getParams('com_alfa');
-
-        // $cache->store($settings, $cacheKey);
 
         return $settings;
     }
 
     /**
-     *  Filters out the payment methods that are not common in all items.
+     * The published methods of one kind that apply to a context.
      *
+     * Every scope pivot (categories, manufacturers, user groups, users,
+     * places and, for payment methods, shipping methods) is an allow-list
+     * in which a 0 row means "no restriction". A method is offered when each
+     * dimension either holds the wildcard or meets the context. A dimension
+     * passed as null is not evaluated: the product page knows no delivery
+     * address or chosen shipping method, the checkout evaluates all of them.
      *
-     * @return array the common payment methods.
+     * The full published set is read once per request and kept, decoded, per
+     * kind; every call filters its own copy.
+     *
+     * Category and manufacturer restrictions are whole-order constraints:
+     * in a multi-line context ($lines) a restricted method is offered only
+     * when EVERY line is admitted; one line outside the restriction removes
+     * the method. A single product passes its own scope through
+     * $categories / $manufacturers, which is the one-line case of the same
+     * rule. A context with no line at all is admitted by unrestricted
+     * methods only.
+     *
+     * @param array $categories Category ids of the single product in scope (ignored when $lines is given).
+     * @param array $manufacturers Manufacturer ids of the single product in scope (ignored when $lines is given).
+     * @param array $usergroups The visitor's user group ids.
+     * @param int $userId The visitor's user id, 0 for a guest.
+     * @param string $baseTable 'payment' or 'shipment'.
+     * @param array|Closure|null $placeIds The delivery place and its ancestors; null = not
+     *                                     evaluated. A Closure is called with each method row and
+     *                                     answers for THAT method, so a method reading the
+     *                                     destination from a field of its own is filtered against
+     *                                     the same chain it will later be quoted and placed against.
+     * @param int|null $shipmentId The chosen shipping method, 0 when none is chosen; null = not evaluated (payment methods only).
+     * @param array|null $lines Per-line scopes of a cart, [['categories' => int[], 'manufacturers' => int[]], ...]; null = the single product scope.
+     *
+     * @return array The offered methods keyed by id, in administration order.
+     *
      * @since  1.0.0
      */
-    public static function getFilteredMethods($categories, $manufacturers, $usergroups, $userId, $baseTable = 'payment')
+    public static function getFilteredMethods($categories, $manufacturers, $usergroups, $userId, $baseTable = 'payment', array|Closure|null $placeIds = null, ?int $shipmentId = null, ?array $lines = null)
     {
-        $categories[] = 0; //to support all categories for payment method
-        $manufacturers[] = 0; //to support all manufacturers for payment method
-        $usergroups[] = 0; //to support all usergroups for payment method
-        // $users[] = 0; //to support all users for payment method
+        $scopes = $lines ?? [['categories' => (array) $categories, 'manufacturers' => (array) $manufacturers]];
 
-        // GET ALL PAYMENT METHODS
+        // No line to admit: only unrestricted methods qualify.
+        if ($scopes === []) {
+            $scopes = [['categories' => [], 'manufacturers' => []]];
+        }
+
+        $offered = [];
+
+        foreach (self::loadedMethods($baseTable) as $id => $method) {
+            if (
+                !self::everyLineAllowed($method, $scopes)
+                || !self::scopeAllows($method->usergroups, (array) $usergroups)
+                || !self::scopeAllows($method->users, [(int) $userId])
+            ) {
+                continue;
+            }
+
+            // PER METHOD WHEN THE CALLER CAN ANSWER PER METHOD. A shop has one
+            // destination, but a single carrier may read its own (a locker
+            // network asks where the LOCKER is) and the offer filter has to
+            // use that method's chain, not the shop's, or it offers a carrier
+            // it will refuse at the quote (or hides one it would have carried).
+            $places = $placeIds instanceof Closure ? $placeIds($method) : $placeIds;
+
+            if ($places !== null && !self::scopeAllows($method->places, $places)) {
+                continue;
+            }
+
+            // A payment method restricted to shipping methods needs one of
+            // them chosen: with none chosen, or a cart that does not ship,
+            // only its wildcard row can match.
+            if (
+                $baseTable === 'payment'
+                && $shipmentId !== null
+                && !self::scopeAllows($method->shipments, $shipmentId > 0 ? [$shipmentId] : [])
+            ) {
+                continue;
+            }
+
+            $offered[$id] = $method;
+        }
+
+        return $offered;
+    }
+
+    /**
+     * Whether a method's category and manufacturer restrictions admit
+     * EVERY line of the context. A wildcard row admits every line at once;
+     * a restricted dimension must be met by each line on its own.
+     *
+     * @param object $method The loaded method (categories / manufacturers comma lists).
+     * @param array $lines Per-line scopes: [['categories' => int[], 'manufacturers' => int[]], ...].
+     *
+     * @return bool True when every line is admitted on both dimensions.
+     *
+     * @since  1.0.0
+     */
+    private static function everyLineAllowed(object $method, array $lines): bool
+    {
+        foreach ($lines as $line) {
+            if (
+                !self::scopeAllows($method->categories, (array) ($line['categories'] ?? []))
+                || !self::scopeAllows($method->manufacturers, (array) ($line['manufacturers'] ?? []))
+            ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Every published method of one kind whose plugin is enabled: the set a
+     * cart could ever offer, before any narrowing by lines, audience,
+     * destination or carrier.
+     *
+     * FOR WHAT MUST NOT DEPEND ON THE CART. The cart page declares each
+     * method plugin's assets from this list rather than from the offer: the
+     * offer narrows as the shopper types an address or removes a line, and a
+     * script cannot be added to a page after its head is compiled. This list
+     * changes only when the merchant publishes something.
+     *
+     * @param string $baseTable 'payment' or 'shipment'.
+     *
+     * @return array The methods keyed by id, in administration order.
+     *
+     * @since  1.10.0
+     */
+    public static function getPublishedMethods(string $baseTable): array
+    {
+        return self::loadedMethods($baseTable);
+    }
+
+    /**
+     * One read per kind per request, shared by every filter over it.
+     *
+     * @param string $baseTable 'payment' or 'shipment'.
+     *
+     *
+     * @since  1.10.0
+     */
+    private static function loadedMethods(string $baseTable): array
+    {
+        return self::$loaded[$baseTable] ??= self::loadMethods($baseTable);
+    }
+
+    /**
+     * Whether an allow-list admits a context: it holds the wildcard row (0)
+     * or shares at least one id with the context. A method with no row at
+     * all on a dimension admits nothing.
+     *
+     * @param string|null $allowed The pivot ids as a comma list, as read by loadMethods().
+     * @param array $given The context ids.
+     *
+     * @return bool True when the context is admitted.
+     *
+     * @since  1.0.0
+     */
+    private static function scopeAllows(?string $allowed, array $given): bool
+    {
+        if ($allowed === null || $allowed === '') {
+            return false;
+        }
+
+        $allowedIds = array_map('intval', explode(',', $allowed));
+
+        if (in_array(0, $allowedIds, true)) {
+            return true;
+        }
+
+        return array_intersect($allowedIds, array_map('intval', $given)) !== [];
+    }
+
+    /**
+     * Read every published method of one kind with each scope pivot as a
+     * comma list (one correlated subquery per pivot, so a method with many
+     * rows on several pivots never multiplies) and its settings decoded.
+     *
+     * @param string $baseTable 'payment' or 'shipment'.
+     *
+     * @return array The methods keyed by id, in administration order.
+     *
+     * @since  1.0.0
+     */
+    private static function loadMethods(string $baseTable): array
+    {
         $db = Factory::getContainer()->get('DatabaseDriver');
-        $query = $db->getQuery(true);
-
-        $query
-            ->select('m.*')  // Select all payment method fields
-            ->select('GROUP_CONCAT(DISTINCT mc.category_id) AS categories')  // Get all unique categories for the payment
-            ->select('GROUP_CONCAT(DISTINCT mm.manufacturer_id) AS manufacturers')  // Get all unique manufacturers for the payment
-            ->select('GROUP_CONCAT(DISTINCT mu.user_id) AS users')  // Get all unique manufacturers for the payment
-            ->select('GROUP_CONCAT(DISTINCT mug.usergroup_id) AS groups')  // Get all unique manufacturers for the payment
-            ->from('#__alfa_' . $baseTable . 's AS m')  // Main table
-
-            // Join related tables
-            ->join('LEFT', '#__alfa_' . $baseTable . '_categories AS mc ON mc.' . $baseTable . '_id = m.id')
-            ->join('LEFT', '#__alfa_' . $baseTable . '_manufacturers AS mm ON mm.' . $baseTable . '_id = m.id')
-            ->join('LEFT', '#__alfa_' . $baseTable . '_users AS mu ON mu.' . $baseTable . '_id = m.id')
-            ->join('LEFT', '#__alfa_' . $baseTable . '_usergroups AS mug ON mug.' . $baseTable . '_id = m.id')
+        $query = $db->getQuery(true)
+            ->select('m.*')
+            ->from($db->quoteName('#__alfa_' . $baseTable . 's', 'm'))
             ->where('m.state = 1')
+            ->order('m.ordering ASC, m.id ASC');
 
-            // Group by payment method ID to combine categories and manufacturers
-            ->group('m.id');
+        $pivots = [
+            'categories' => ['#__alfa_' . $baseTable . '_categories', 'category_id'],
+            'manufacturers' => ['#__alfa_' . $baseTable . '_manufacturers', 'manufacturer_id'],
+            'users' => ['#__alfa_' . $baseTable . '_users', 'user_id'],
+            'usergroups' => ['#__alfa_' . $baseTable . '_usergroups', 'usergroup_id'],
+            'places' => ['#__alfa_' . $baseTable . '_places', 'place_id'],
+        ];
 
-        // MULTILINGUAL: resolve the method name + description in the active
-        // language. 1:1 join on m.id, so the GROUP BY above is unaffected.
+        if ($baseTable === 'payment') {
+            $pivots['shipments'] = ['#__alfa_payment_shipments', 'shipment_id'];
+        }
+
+        foreach ($pivots as $alias => [$table, $column]) {
+            MultilingualHelper::addRelatedIdsToQuery(
+                query:         $query,
+                mainAlias:     'm',
+                mainPk:        'id',
+                junctionTable: $table,
+                junctionFk:    $baseTable . '_id',
+                junctionValue: $column,
+                selectAlias:   $alias,
+            );
+        }
+
+        // Name and description in the active language (1:1 join).
         MultilingualHelper::addMultilingualJoinToQuery(
             query:             $query,
             mainAlias:         'm',
@@ -93,45 +274,43 @@ class AlfaHelper
             fields:            ['name', 'description'],
         );
 
-        $db->setQuery($query);
-        $filteredMethods = $db->loadObjectList('id');
+        $methods = $db->setQuery($query)->loadObjectList('id') ?: [];
 
-        // FILTER PAYMENT METHODS
-        // Compare ids given with payment ids.
-        foreach ($filteredMethods as $index => $method) {
-            $isValid = true;
-
-            $methodCategories = explode(',', $method->categories);
-            $methodManufacturers = explode(',', $method->manufacturers);
-            $methodUsers = explode(',', $method->users);
-            $methodUsersgroups = explode(',', $method->groups);
-
-            //if payment method don't have common categories with those given turn is valid to false to unset it
-            if (empty(array_intersect($categories, $methodCategories))) {
-                $isValid = false;
-            }
-
-            //if payment method dont have common manufacturers with those given turn is valid to false to unset it
-            if (empty(array_intersect($manufacturers, $methodManufacturers))) {
-                $isValid = false;
-            }
-
-            //if payment method don't have common manufacturers with those given turn is valid to false to unset it
-            if (empty(array_intersect($usergroups, $methodUsersgroups))) {
-                $isValid = false;
-            }
-
-            // check if 0 is setted on method to allow all users or at list the user is inside the users array of the method
-            if (!in_array(0, $methodUsers) && !in_array($userId, $methodUsers)) {
-                $isValid = false;
-            }
-
-            if (!$isValid) {
-                unset($filteredMethods[$index]);
-            }
+        // ONE shape for a method's settings everywhere: the administration
+        // model hands `params` back decoded, so this path decodes too, and a
+        // plugin reading $event->getMethod()->params never has to ask which
+        // shape it holds. json_decode(), never Registry: Registry throws on
+        // malformed JSON (one corrupt row would take every product and
+        // checkout page down) and INI-parses text that is not JSON at all.
+        foreach ($methods as $method) {
+            $method->params = json_decode((string) $method->params, true) ?: [];
+            $method->shipments ??= null;
         }
 
-        return $filteredMethods;
+        // A METHOD WHOSE PLUGIN IS SWITCHED OFF IS NOT A METHOD.
+        //
+        // Two separate switches decide whether a method exists commercially and
+        // this query only ever read one of them: `m.state` is the merchant
+        // publishing the METHOD, while #__extensions.enabled is the merchant
+        // enabling the PLUGIN that implements it. Disabling a gateway plugin
+        // removed it from the admin type dropdown and reddened the setup
+        // checklist, but left its published method row offered on the cart,
+        // selectable, priced, and booted at placement, while the return and
+        // webhook endpoints were already correctly closed against exactly this
+        // (see Controller/PaymentController's isEnabled guard). The outbound
+        // half stayed open, so a buyer could be sent to a withdrawn gateway,
+        // pay, and come back to a dead endpoint.
+        //
+        // PluginHelper::isEnabled() is the same authority those endpoints use:
+        // core, cached for the request, and it answers false for a plugin that
+        // is disabled, uninstalled or in the wrong group alike, so this fails
+        // closed on all three.
+        $group = 'alfa-' . $baseTable . 's';
+
+        return array_filter(
+            $methods,
+            static fn ($method): bool => PluginHelper::isEnabled($group, (string) ($method->type ?? '')),
+        );
     }
 
     /**
@@ -191,8 +370,4 @@ class AlfaHelper
 
         return $html ?? '';
     }
-    //	public function pluginLayout($fileName){
-    //		$path = dirname(PluginHelper::getLayoutPath($this->_type, $this->_name, $fileName));
-    //		return new FileLayout($fileName,$path);
-    //	}
 }

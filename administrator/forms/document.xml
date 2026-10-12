@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Alfa Commerce: the sales-document issue form.
+
+    WHY THIS FILE EXISTS AT ALL. The issue modal used to be hand-written markup
+    inside the order screen, which sits inside the order's own <form>. Nested
+    forms are invalid HTML, so it could not be a form: it was a <div> whose
+    fields were copied into a runtime-built form by ~58 lines of JavaScript that
+    re-implemented three things the browser already does by spec (unchecked
+    checkboxes, disabled fields, hidden blocks). It is now an ordinary Joomla
+    form in its own document, exactly like the shipment and payment modals.
+
+    THE CONDITIONALS ARE showon, AND THEIR VALUES ARE NOT HARDCODED. What shows
+    when is a property of the document TYPE (its family, whether it is fiscal,
+    whether it supports movement), never its alias. Those properties live in the
+    type registry, so the alias lists in every showon below are written at
+    runtime by the view (see OrderModel::documentIssueForm()), which asks the
+    registry and fills them in. A pack that adds a credit type gets the credit
+    behaviour without anyone editing this file.
+
+    @package    Alfa Commerce
+    @author     Agamemnon Fakas <info@easylogic.gr>
+    @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+    @license    GNU General Public License version 3 or later; see LICENSE
+-->
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+
+    <fieldset name="document">
+
+        <!-- Not input: the order the picks below are issued against. The
+             task reads it, and DocumentLinesField/DocumentChargesField read
+             it from the form to know whose lines to offer. -->
+        <field name="id_order" type="hidden"/>
+
+        <field
+                name="doc_type"
+                type="DocumentType"
+                label="COM_ALFA_SERIES_FIELD_DOC_TYPE"
+                required="true"
+                class="form-select"
+        />
+
+        <field
+                name="id_series"
+                type="list"
+                label="COM_ALFA_SERIES_FIELD_CODE"
+                required="true"
+                class="form-select"
+        />
+
+        <!-- Credit only. The showon alias list is filled by the view from the
+             registry's family property. -->
+        <field
+                name="id_corrects"
+                type="DocumentCorrects"
+                label="COM_ALFA_DOCUMENTS_FIELD_CORRECTS"
+        />
+
+        <field
+                name="credit_destination"
+                type="list"
+                label="COM_ALFA_DOCUMENTS_FIELD_CREDIT_DESTINATION"
+                class="form-select"
+        />
+
+        <!-- Sales types that also support movement: one document that is both
+             the invoice and the delivery note. A Yes/No switch, the shape every
+             other boolean in the component wears, and the control the movement
+             block's showon watches. -->
+        <field
+                name="is_combined"
+                type="radio"
+                layout="joomla.form.field.radio.switcher"
+                default="0"
+                filter="integer"
+                label="COM_ALFA_DOCUMENTS_FIELD_COMBINED"
+        >
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <!-- The lines picker. Custom-rendered because it is a table of lines
+             with a quantity per line and what is left beside it, not
+             something a list field can express. A sales document lists the
+             order's lines; a credit lists the lines of the document it
+             corrects, with that document's frozen names and prices. -->
+        <field
+                name="lines"
+                type="DocumentLines"
+                label="COM_ALFA_DOCUMENTS_MODAL_LINES"
+        />
+
+        <!-- The order's non-item money: shipping, fees and cart-rule
+             discounts with an unclaimed balance. Each is a consumable
+             balance, claimed once across all partial documents, so this is
+             a picker over remainders, again not a list field's shape. -->
+        <field
+                name="charges"
+                type="DocumentCharges"
+                label="COM_ALFA_DOCUMENTS_MODAL_CHARGES"
+        />
+
+        <!-- Fiscal types only: the buyer block is frozen onto the document.
+             The heading is a spacer FIELD carrying the same showon as the
+             fields under it, not a <fieldset> wrapper: a wrapper stays on
+             screen as an empty bordered box when its contents are hidden. -->
+        <field
+                name="buyer_heading"
+                type="spacer"
+                label="COM_ALFA_DOCUMENTS_MODAL_BUYER"
+        />
+
+        <!-- Credit types only: the buyer a credit is made out to is the one
+             the corrected document froze, shown
+             read-only per correctable document and never posted. The editable
+             buyer fields below belong to every other type. -->
+        <field
+                name="credit_buyer"
+                type="DocumentCreditBuyer"
+                label="COM_ALFA_DOCUMENTS_MODAL_BUYER"
+        />
+
+        <field
+                name="buyer_name"
+                type="text"
+                label="COM_ALFA_DOCUMENTS_FIELD_BUYER_NAME"
+                class="form-control"
+        />
+
+        <!-- Only for types that require a tax id. -->
+        <field
+                name="buyer_vat_number"
+                type="text"
+                label="COM_ALFA_DOCUMENTS_FIELD_BUYER_VAT"
+                class="form-control"
+        />
+
+        <field
+                name="buyer_tax_office"
+                type="text"
+                label="COM_ALFA_DOCUMENTS_FIELD_BUYER_TAX_OFFICE"
+                class="form-control"
+        />
+
+        <field
+                name="buyer_activity"
+                type="text"
+                label="COM_ALFA_DOCUMENTS_FIELD_BUYER_ACTIVITY"
+                class="form-control"
+        />
+
+        <field
+                name="buyer_email"
+                type="email"
+                label="JGLOBAL_EMAIL"
+                class="form-control"
+        />
+
+        <!-- Movement-capable types only; same spacer-led group. -->
+        <field
+                name="movement_heading"
+                type="spacer"
+                label="COM_ALFA_DOCUMENTS_MODAL_MOVEMENT"
+        />
+
+        <field
+                name="movement_purpose"
+                type="list"
+                label="COM_ALFA_DOCUMENTS_FIELD_MOVEMENT_PURPOSE"
+                default="1"
+                class="form-select"
+        >
+            <option value="">COM_ALFA_DOCUMENTS_CORRECTS_NONE</option>
+            <option value="1">COM_ALFA_MOVEMENT_PURPOSE_SALE</option>
+            <option value="5">COM_ALFA_MOVEMENT_PURPOSE_RETURN</option>
+            <option value="6">COM_ALFA_MOVEMENT_PURPOSE_STORAGE</option>
+        </field>
+
+        <field
+                name="carrier_name"
+                type="text"
+                label="COM_ALFA_DOCUMENTS_FIELD_CARRIER"
+                class="form-control"
+        />
+
+        <field
+                name="vehicle_number"
+                type="text"
+                label="COM_ALFA_DOCUMENTS_FIELD_VEHICLE"
+                class="form-control"
+        />
+
+
+
+        <field
+                name="print_note"
+                type="textarea"
+                label="COM_ALFA_DOCUMENTS_FIELD_PRINT_NOTE"
+                rows="2"
+                class="form-control"
+        />
+
+    </fieldset>
+
+</form>

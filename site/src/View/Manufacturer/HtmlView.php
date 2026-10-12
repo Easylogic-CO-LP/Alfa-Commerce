@@ -46,28 +46,27 @@ class HtmlView extends BaseHtmlView
     public function display($tpl = null)
     {
         $app = Factory::getApplication();
-        $user = $app->getIdentity();
 
         $this->state = $this->get('State');
         $this->item = $this->get('Item');
+
+        // An invalid/unpublished manufacturer id must 404, not fatal later when the
+        // template reads $this->item->name on null.
+        if (empty($this->item)) {
+            throw new Exception(Text::_('JGLOBAL_RESOURCE_NOT_FOUND'), 404);
+        }
+
         $this->params = $app->getParams('com_alfa');
 
-        /* if (!empty($this->item))
-         {
-
-         }*/
+        // Alternative main layout: explicit menu/request layout wins, otherwise the
+        // menu-merged params (menu item, then global config) decide.
+        if ($this->getLayout() === 'default' && ($layout = $this->params->get('manufacturer_layout'))) {
+            $this->setLayout($layout);
+        }
 
         // Check for errors.
         if (count($errors = $this->get('Errors'))) {
             throw new Exception(implode("\n", $errors));
-        }
-
-        if ($this->_layout == 'edit') {
-            $authorised = $user->authorise('core.create', 'com_alfa');
-
-            if ($authorised !== true) {
-                throw new Exception(Text::_('JERROR_ALERTNOAUTHOR'));
-            }
         }
 
         $this->_prepareDocument();

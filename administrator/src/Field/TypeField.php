@@ -4,7 +4,6 @@
  * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
  *
- * @copyright   (C) 2016 Open Source Matters, Inc. <https://www.joomla.org>
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
@@ -91,7 +90,7 @@ class TypeField extends ListField
         // Load scripts
         Factory::getApplication()->getDocument()->getWebAssetManager()
             ->useScript('com_alfa.admin-field-typehaschanged')
-            ->useScript('webcomponent.core-loader');
+            ->useScript('com_alfa.core-loader');
 
         return $options;
     }

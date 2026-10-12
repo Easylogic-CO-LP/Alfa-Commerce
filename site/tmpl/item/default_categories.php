@@ -33,11 +33,11 @@
             <div class="item-list-entry item-category">
                 <a href="<?php echo $categoryUrl; ?>">
                     <div class="item-list-entry-name item-category-name">
-                        <?php echo $category['name']; ?>
+                        <?php echo $this->escape($category['name']); ?>
                     </div>
                     <?php if ($firstImage) : ?>
                         <div class="item-list-entry-image item-category-image">
-                            <img src="<?php echo $firstImage->url; ?>" alt="<?php echo $imageAlt; ?>">
+                            <img src="<?php echo $this->escape($firstImage->url); ?>" alt="<?php echo $this->escape($imageAlt); ?>">
                         </div>
                     <?php endif; ?>
                 </a>

@@ -28,11 +28,13 @@ class JsonApiView extends BaseApiView
      */
     protected $fieldsToRenderItem = [
         'id',
-        'ordering',
         'name',
-        'state',
         'code2',
         'code3',
+        'currency_id',
+        'parent_id',
+        'state',
+        'ordering',
     ];
 
     /**
@@ -43,10 +45,13 @@ class JsonApiView extends BaseApiView
      */
     protected $fieldsToRenderList = [
         'id',
-        'ordering',
         'name',
-        'state',
         'code2',
         'code3',
+        'currency_id',
+        'currency_name',
+        'parent_id',
+        'state',
+        'ordering',
     ];
 }

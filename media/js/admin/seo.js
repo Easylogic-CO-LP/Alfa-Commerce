@@ -1,7 +1,7 @@
 /**
  * SEO Preview with AJAX - Simplified Version
  *
- * @package Com_Alfa
+ * @package Alfa Commerce
  * @subpackage Administrator
  * @version 4.0.0
  */
@@ -75,7 +75,7 @@
 
             this.debounceTimer = null;
 
-            // Container is supplied by the bootstrapper — initialise directly.
+            // Container is supplied by the bootstrapper; initialise directly.
             this.init();
         }
 
@@ -169,7 +169,7 @@
         waitForEditor(fieldId) {
             const textarea = document.getElementById(fieldId);
 
-            // No editor wrapper — plain textarea, attach immediately
+            // No editor wrapper: plain textarea, attach immediately
             if (!textarea || textarea.closest('joomla-editor-none')) {
                 this.attachEditorListener(fieldId);
                 return;
@@ -397,7 +397,7 @@
         }
     }
 
-    // Initialize on DOM ready — one instance per preview container (each language
+    // Initialize on DOM ready: one instance per preview container (each language
     // tab renders its own container with its own options key).
     document.addEventListener('DOMContentLoaded', function() {
         const containers = document.querySelectorAll('[data-seo-preview-container]');

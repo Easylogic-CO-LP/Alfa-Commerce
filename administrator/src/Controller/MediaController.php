@@ -4,17 +4,49 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Joomla\CMS\Application\CMSApplicationInterface;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
-use Joomla\CMS\MVC\Controller\FormController;
+use Joomla\CMS\MVC\Controller\BaseController;
+use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 use Joomla\CMS\Response\JsonResponse;
+use Joomla\CMS\Session\Session;
 use Joomla\CMS\Uri\Uri;
+use Joomla\Input\Input;
 use RuntimeException;
 use stdClass;
 
-class MediaController extends FormController
+/**
+ * AJAX tile rendering for the MediaZone field of the item, category and manufacturer forms.
+ *
+ * A plain controller: there is no media record to add, edit or save, so none of
+ * FormController's tasks belong here. getSource is the only task.
+ *
+ * @since  1.0.0
+ */
+class MediaController extends BaseController
 {
+    /**
+     * Keep prepareExistingMedia() off the task map. It stays public only because
+     * MediaZoneField calls it on an instance; it is not a request endpoint.
+     *
+     * @param array $config An optional associative array of configuration settings.
+     * @param MVCFactoryInterface|null $factory The factory.
+     * @param CMSApplicationInterface|null $app The Application for the dispatcher.
+     * @param Input|null $input The Input object for the request.
+     *
+     * @since  1.10.0
+     */
+    public function __construct($config = [], ?MVCFactoryInterface $factory = null, ?CMSApplicationInterface $app = null, ?Input $input = null)
+    {
+        parent::__construct($config, $factory, $app, $input);
+
+        $this->unregisterTask('prepareExistingMedia');
+    }
+
     /**
      * Media Controller - AJAX getSource Method
      * Handles business logic and prepares data for template
@@ -24,6 +56,18 @@ class MediaController extends FormController
     public function getSource()
     {
         $app = Factory::getApplication();
+
+        // CSRF: this endpoint renders markup and performs an outbound URL check,
+        // so it must not be reachable through a forged cross-site request.
+        if (!Session::checkToken()) {
+            echo new JsonResponse(null, Text::_('JINVALID_TOKEN_NOTICE'), true);
+            $app->close();
+        }
+
+        if (!$this->mayUseMediaZone()) {
+            echo new JsonResponse(null, Text::_('JLIB_APPLICATION_ERROR_ACCESS_FORBIDDEN'), true);
+            $app->close();
+        }
 
         $mediaData = $this->input->post->get('mediaData', '', 'string');
         $type = $this->input->post->get('type', '', 'string');
@@ -156,7 +200,7 @@ class MediaController extends FormController
      * @return array Result with 'valid' (bool), 'message' (string) and 'http_code' (int|null)
      * @since  1.0.0
      */
-    public function validateUrl(string $url): array
+    protected function validateUrl(string $url): array
     {
         $response = ['valid' => false, 'message' => '', 'http_code' => null];
 
@@ -165,14 +209,27 @@ class MediaController extends FormController
             return $response;
         }
 
-        $scheme = (new Uri($url))->getScheme();
+        $uri = new Uri($url);
+        $scheme = $uri->getScheme();
         if (!in_array(strtolower($scheme), ['http', 'https'], true)) {
             $response['message'] = 'Only HTTP/HTTPS URLs are allowed';
             return $response;
         }
 
+        // SSRF guard: the target must resolve exclusively to public, routable
+        // addresses, never loopback, link-local (cloud metadata) or private nets.
+        if (!$this->isPublicHost($uri->getHost())) {
+            $response['message'] = Text::_('COM_ALFA_MEDIA_ERROR_URL_NOT_ALLOWED');
+            return $response;
+        }
+
         try {
-            $httpResponse = (new \Joomla\Http\HttpFactory())->getHttp()->head($url, [], 10);
+            // Do NOT follow redirects: isPublicHost() only vetted the initial host,
+            // and a public host may 3xx-redirect to an internal target (loopback,
+            // cloud metadata). Stopping at the redirect keeps the SSRF guard honest.
+            $httpOptions = new \Joomla\Registry\Registry();
+            $httpOptions->set('follow_location', false);
+            $httpResponse = (new \Joomla\Http\HttpFactory())->getHttp($httpOptions)->head($url, [], 10);
             $valid = ($httpResponse->getStatusCode() >= 200 && $httpResponse->getStatusCode() < 400);
 
             $response['valid'] = $valid;
@@ -184,5 +241,80 @@ class MediaController extends FormController
             $response['message'] = 'Connection failed: ' . $e->getMessage();
             return $response;
         }
+    }
+
+    /**
+     * May the current user work in a form that carries a MediaZone field: create or edit on
+     * items, categories or manufacturers.
+     *
+     * The request does not say which form is open, so any of the three qualifies. The tile is
+     * markup only; nothing is stored until that form itself is saved under its own permission.
+     *
+     *
+     * @since  1.10.0
+     */
+    private function mayUseMediaZone(): bool
+    {
+        $user = $this->app->getIdentity();
+
+        foreach (['items', 'categories', 'manufacturers'] as $section) {
+            if (
+                AlfaHelper::can(section: $section, action: 'edit', user: $user)
+                || AlfaHelper::can(section: $section, action: 'create', user: $user)
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Whether a host resolves exclusively to public, routable IP addresses.
+     *
+     * SSRF guard for outbound requests: a host that resolves (in whole or in
+     * part) to a loopback, link-local or private-range address is not public.
+     *
+     * @param string $host Hostname or IP literal from the target URL.
+     *
+     * @return bool True only when every resolved address is public.
+     *
+     * @since  1.3.1
+     */
+    private function isPublicHost(string $host): bool
+    {
+        if ($host === '') {
+            return false;
+        }
+
+        $ips = [];
+
+        if (filter_var($host, FILTER_VALIDATE_IP)) {
+            $ips[] = $host;
+        } else {
+            foreach (@dns_get_record($host, DNS_A | DNS_AAAA) ?: [] as $record) {
+                $ips[] = $record['ip'] ?? $record['ipv6'] ?? null;
+            }
+
+            // Fallback when dns_get_record yields nothing usable.
+            if (empty(array_filter($ips))) {
+                $resolved = gethostbyname($host);
+                $ips = $resolved !== $host ? [$resolved] : [];
+            }
+        }
+
+        $ips = array_filter($ips);
+
+        if (empty($ips)) {
+            return false;
+        }
+
+        foreach ($ips as $ip) {
+            if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

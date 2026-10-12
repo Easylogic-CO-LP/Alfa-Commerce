@@ -9,14 +9,14 @@
  * Execute Payment Action Event
  *
  * Carries both the INPUT (action, payment, order, data) and the
- * OUTPUT (layout, message, refresh, redirect) — same pattern as
+ * OUTPUT (layout, message, refresh, redirect), same pattern as
  * LayoutEvent in the frontend. No separate result object needed.
  *
  * Input (set by controller, read by plugin):
- *   $event->getAction()   → 'mark_paid', 'view_details', etc.
- *   $event->getPayment()  → Payment record with params->type
- *   $event->getOrder()    → Order record
- *   $event->getData()     → Additional data from JS
+ *   $event->getAction()   -> 'mark_paid', 'view_details', etc.
+ *   $event->getPayment()  -> Payment record with params->type
+ *   $event->getOrder()    -> Order record
+ *   $event->getData()     -> Additional data from JS
  *
  * Output (set by plugin, read by controller):
  *   $event->setLayout('action_view_details');
@@ -30,15 +30,14 @@
 
 namespace Alfa\Component\Alfa\Administrator\Event\Payments;
 
+use Alfa\Component\Alfa\Site\Service\Order\Order;
 use Joomla\CMS\Event\AbstractImmutableEvent;
 
 defined('_JEXEC') or die;
 
 class ExecutePaymentActionEvent extends AbstractImmutableEvent
 {
-    // ═════════════════════════════════════════════════════════
-    //  INPUT — set by controller, read by plugin
-    // ═════════════════════════════════════════════════════════
+    //  INPUT: set by controller, read by plugin
 
     /**
      * Get the action ID requested (e.g. 'mark_paid', 'view_details').
@@ -68,9 +67,9 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
      *
      * @since  1.0.0
      */
-    public function getOrder(): object
+    public function getOrder(): Order
     {
-        return $this->arguments['order'];
+        return Order::of($this->arguments['order']);
     }
 
     /**
@@ -84,11 +83,9 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
         return $this->arguments['data'] ?? [];
     }
 
-    // ═════════════════════════════════════════════════════════
-    //  OUTPUT — set by plugin, read by controller
-    // ═════════════════════════════════════════════════════════
+    //  OUTPUT: set by plugin, read by controller
 
-    // ── Success / Error ──────────────────────────────────────
+    // Success / Error
 
     /**
      * Set whether the action succeeded. Default is true.
@@ -144,7 +141,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
         $this->arguments['message'] = $message;
     }
 
-    // ── Navigation ───────────────────────────────────────────
+    // Navigation
 
     /**
      * Set whether to reload the page after the action.
@@ -188,7 +185,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
         return $this->arguments['redirect'] ?? null;
     }
 
-    // ── Layout (same pattern as LayoutEvent) ─────────────────
+    // Layout (same pattern as LayoutEvent)
 
     /**
      * Set the layout filename (without .php).
@@ -242,6 +239,48 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
     }
 
     /**
+     * Add a footer button to the action popup, declared here, not inside the
+     * layout HTML. A button can close the popup, close + refresh, or RUN
+     * another action of THIS entity in the SAME popup (for confirm dialogs and
+     * step-by-step flows: each step saves, then loads the next via its action).
+     *
+     *   $event->addButton('Cancel');                                  // close
+     *   $event->addButton('Done', ['reload' => true]);                // close + refresh
+     *   $event->addButton('Refund', ['action' => 'do_refund', 'class' => 'btn-danger']);
+     *
+     * @param string $label Button label.
+     * @param array $opts ['action'=>string, 'data'=>array, 'reload'=>bool, 'class'=>string]
+     *
+     * @return static For chaining.
+     *
+     * @since  1.3.0
+     */
+    public function addButton(string $label, array $opts = []): static
+    {
+        $buttons = $this->arguments['buttons'] ?? [];
+        $buttons[] = [
+            'label' => $label,
+            'action' => $opts['action'] ?? null,
+            'data' => $opts['data'] ?? [],
+            'reload' => !empty($opts['reload']),
+            'class' => $opts['class'] ?? 'btn-primary',
+        ];
+        $this->arguments['buttons'] = $buttons;
+
+        return $this;
+    }
+
+    /**
+     * @return array The declared footer buttons.
+     *
+     * @since  1.3.0
+     */
+    public function getButtons(): array
+    {
+        return $this->arguments['buttons'] ?? [];
+    }
+
+    /**
      * Set the modal title for when the layout is shown in a popup.
      *
      *
@@ -261,7 +300,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
         return $this->arguments['modalTitle'] ?? null;
     }
 
-    // ── HTML (set by controller after rendering layout) ──────
+    // HTML (set by controller after rendering layout)
 
     /**
      * Set rendered HTML. Used by the controller, not by plugins.
@@ -284,14 +323,12 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
         return $this->arguments['html'] ?? null;
     }
 
-    // ═════════════════════════════════════════════════════════
     //  SERIALIZATION (used by controller to build JSON response)
-    // ═════════════════════════════════════════════════════════
 
     /**
      * Serialize the response fields to an array.
      *
-     * Only includes output fields — input fields (action, payment, etc.)
+     * Only includes output fields; input fields (action, payment, etc.)
      * are not sent to the client.
      *
      *
@@ -300,7 +337,6 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
     public function toResponseArray(): array
     {
         $result = [
-            'success' => $this->isSuccess(),
             'message' => $this->getMessage(),
             'refresh' => $this->getRefresh(),
             'html' => $this->getHtml(),
@@ -308,9 +344,15 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
             'redirect' => $this->getRedirectUrl(),
         ];
 
-        return array_filter($result, function ($v) {
+        $result = array_filter($result, function ($v) {
             return $v !== null && $v !== false && $v !== '';
         });
+
+        // success is ALWAYS present, even when false: the filter strips a false value
+        // and a client checking `res.success !== false` would read a failure as success.
+        $result['success'] = $this->isSuccess();
+
+        return $result;
     }
 
     /**

@@ -9,10 +9,10 @@
 
 namespace Alfa\Plugin\AlfaFormFields\Textarea\Extension;
 
-use Alfa\Component\Alfa\Administrator\Plugin\FieldsPlugin;
+use Alfa\Component\Alfa\Administrator\Plugin\FormFieldsPlugin;
 
 defined('_JEXEC') or die;
 
-final class Textarea extends FieldsPlugin
+final class Textarea extends FormFieldsPlugin
 {
 }

@@ -9,13 +9,16 @@
 
 namespace Alfa\Module\AlfaCart\Site\Helper;
 
-use Alfa\Component\Alfa\Site\Helper\CartHelper;
+use Alfa\Component\Alfa\Administrator\Service\Cart\CartResolution;
 use Alfa\Component\Alfa\Site\Helper\PriceSettings;
+use Alfa\Component\Alfa\Site\Service\Cart\CartService;
 use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Helper\ModuleHelper;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\FileLayout;
 use Joomla\CMS\Response\JsonResponse;
+use Joomla\CMS\Session\Session;
 use Joomla\Registry\Registry;
 
 defined('_JEXEC') or die;
@@ -42,11 +45,10 @@ class AlfaCartHelper
         $lang->load('mod_alfa_cart');
         $lang->load('com_alfa');
 
-        $cart = new CartHelper();
-        //        $isEmpty = $cart->isEmpty();
+        $snapshot = CartService::ambient()->read(CartResolution::Current);
 
         $displayData = [
-            'cart' => $cart,
+            'snapshot' => $snapshot,
             'priceSettings' => $priceSettings,
         ];
 
@@ -54,8 +56,8 @@ class AlfaCartHelper
         $result = $layout->render($displayData);
         $response_data = [
             'tmpl' => $result,
-            'total_quantity' => $cart->getTotalQuantity(),
-            'total_items' => $cart->getTotalItems(),
+            'total_quantity' => $snapshot->quantity,
+            'total_items' => $snapshot->itemCount,
             'priceSettings' => $priceSettings,
             // 'isEmpty' => $isEmpty
         ];
@@ -76,7 +78,7 @@ class AlfaCartHelper
      * @throws Exception
      * @since  1.0.0
      */
-    public static function getAjax()
+    public static function setQuantityAjax()
     {
         if (!$module = ModuleHelper::getModule('mod_alfa_cart')) {
             return;
@@ -85,35 +87,41 @@ class AlfaCartHelper
         $app = Factory::getApplication();
         $input = $app->input;
 
+        // CSRF: this mutates the cart, so a forged cross-site request must be rejected.
+        if (!Session::checkToken('post')) {
+            header('Content-Type: application/json');
+            echo new JsonResponse(null, Text::_('JINVALID_TOKEN_NOTICE'), true);
+            $app->close();
+        }
+
         $params = new Registry($module->params);
 
         $lang = $app->getLanguage();
         $lang->load('mod_alfa_cart');
         $lang->load('com_alfa');
 
-        $cartItems = [];
-
         $app->getSession()->set('application.queue', $app->getMessageQueue());
 
-        $errorOccured = false;
-
-        $itemId = $input->getInt('id_item', 0);
+        $lineId = $input->getInt('id_line', 0);
         $quantity = $input->getInt('quantity', 1);
-        $userId = Factory::getApplication()->getIdentity()->id;
 
         $priceSettings = self::buildPriceSettings($params);
 
-        $cart = new CartHelper();
+        // Line-based SET (not add): the quantity is clamped to stock and the
+        // line removed when it reaches 0, and ownership is scoped to this cart.
+        // What comes back is the verdict and a reading of the cart the change
+        // left behind, never the thing that made it.
+        $outcome = CartService::ambient()->setLineQuantity($lineId, $quantity);
+        $errorOccurred = !$outcome->succeeded;
+        $snapshot = $outcome->snapshot;
 
-        $errorOccured = !$cart->addToCart($itemId, $quantity);
-
-        $result = '';
-
-        $isEmpty = $cart->isEmpty();
-
+        // The drawer answers every change, a refused one included, with the
+        // cart as it stands and what the cart said about the change inside it,
+        // taken off the queue so it is said once.
         $displayData = [
-            'cart' => $cart,
+            'snapshot' => $snapshot,
             'priceSettings' => $priceSettings,
+            'messages' => $app->getMessageQueue(true),
         ];
 
         $layout = new FileLayout('default_items', JPATH_ROOT . '/modules/mod_alfa_cart/tmpl/');
@@ -121,13 +129,16 @@ class AlfaCartHelper
 
         $response_data = [
             'tmpl' => $result,
-            'total_quantity' => $cart->getTotalQuantity(),
-            'total_items' => $cart->getTotalItems(),
-            // 'isEmpty' => $isEmpty
+            'total_quantity' => $snapshot->quantity,
+            'total_items' => $snapshot->itemCount,
         ];
 
         header('Content-Type: application/json');
-        $response = new JsonResponse($response_data, $errorOccured ? 'Item Failed to be updated!' : 'Item successfully updated!', $errorOccured);
+        $response = new JsonResponse(
+            $response_data,
+            $errorOccurred ? Text::_('MOD_ALFA_CART_UPDATE_FAILED') : Text::_('MOD_ALFA_CART_UPDATE_SUCCESS'),
+            $errorOccurred,
+        );
         echo $response;
 
         $app->close();

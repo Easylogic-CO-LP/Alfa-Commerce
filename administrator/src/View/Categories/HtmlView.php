@@ -1,11 +1,10 @@
 <?php
 
 /**
- * @version    1.0.1
- * @package    Com_Alfa
+ * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  2024 Easylogic CO LP
- * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
 namespace Alfa\Component\Alfa\Administrator\View\Categories;
@@ -14,7 +13,9 @@ namespace Alfa\Component\Alfa\Administrator\View\Categories;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Extension\AlfaComponent;
-use Joomla\CMS\Helper\ContentHelper;
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
+use Alfa\Component\Alfa\Administrator\View\HasAdminEvents;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 use Joomla\CMS\Toolbar\ToolbarHelper;
@@ -26,6 +27,8 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
  */
 class HtmlView extends BaseHtmlView
 {
+    use HasAdminEvents;
+
     protected $items;
 
     protected $pagination;
@@ -46,6 +49,9 @@ class HtmlView extends BaseHtmlView
      */
     public function display($tpl = null)
     {
+        // Assigned, not declared: the trait owns the property (see the Order view).
+        $this->alfaEntity = 'category';
+
         $model = $this->getModel();
 
         $this->items = $model->getItems();
@@ -73,16 +79,21 @@ class HtmlView extends BaseHtmlView
      */
     protected function addToolbar()
     {
-        $canDo = ContentHelper::getActions('com_alfa');
+        $user = $this->getCurrentUser();
+        $canCreate = AlfaHelper::can(section: 'categories', action: 'create', user: $user);
+        $canEdit = AlfaHelper::can(section: 'categories', action: 'edit', user: $user);
+        $canChange = AlfaHelper::can(section: 'categories', action: 'edit.state', user: $user);
+        $canDelete = AlfaHelper::can(section: 'categories', action: 'delete', user: $user);
         $toolbar = $this->getDocument()->getToolbar();
 
         ToolbarHelper::title(Text::_('COM_ALFA_TITLE_CATEGORIES'), 'generic');
 
-        if ($canDo->get('core.create')) {
+        if ($canCreate) {
             $toolbar->addNew('category.add');
         }
 
-        if ($canDo->get('core.edit.state')) {
+        // State changes need edit.state; batch and check-in are editing and need edit.
+        if ($canChange || $canEdit) {
             $dropdown = $toolbar->dropdownButton('status-group')
                 ->text('JTOOLBAR_CHANGE_STATUS')
                 ->toggleSplit(false)
@@ -92,34 +103,43 @@ class HtmlView extends BaseHtmlView
 
             $childBar = $dropdown->getChildToolbar();
 
-            $childBar->publish('categories.publish')->listCheck(true);
-            $childBar->unpublish('categories.unpublish')->listCheck(true);
-            $childBar->archive('categories.archive')->listCheck(true);
+            if ($canChange) {
+                $childBar->publish('categories.publish')->listCheck(true);
+                $childBar->unpublish('categories.unpublish')->listCheck(true);
+                $childBar->archive('categories.archive')->listCheck(true);
 
-            if ($this->state->get('filter.state') != AlfaComponent::CONDITION_TRASHED) {
-                $childBar->trash('categories.trash')->listCheck(true);
+                if ($this->state->get('filter.state') != AlfaComponent::CONDITION_TRASHED) {
+                    $childBar->trash('categories.trash')->listCheck(true);
+                }
             }
 
-            if ($this->state->get('filter.state') == AlfaComponent::CONDITION_TRASHED && $canDo->get('core.delete')) {
-                // If this component does not use state then show a direct delete button as we can not trash
-                $toolbar->delete('categories.delete')
-                    ->text('JTOOLBAR_EMPTY_TRASH')
-                    ->message('JGLOBAL_CONFIRM_DELETE')
+            if ($canEdit) {
+                $childBar->popupButton('batch', 'JTOOLBAR_BATCH')
+                    ->popupType('inline')
+                    ->textHeader(Text::_('COM_ALFA_BATCH_OPTIONS'))
+                    ->url('#joomla-dialog-batch')
+                    ->modalWidth('800px')
+                    ->modalHeight('fit-content')
                     ->listCheck(true);
+
+                $childBar->checkin('categories.checkin')->listCheck(true);
             }
-
-            //			$childBar->standardButton('duplicate')
-            //				->text('JTOOLBAR_DUPLICATE')
-            //				->icon('fas fa-copy')
-            //				->task('categories.duplicate')
-            //				->listCheck(true);
-
-            $childBar->checkin('categories.checkin')->listCheck(true);
         }
 
-        if ($canDo->get('core.admin')) {
+        // Emptying the trash is a delete, whatever the user may do to states.
+        if ($this->state->get('filter.state') == AlfaComponent::CONDITION_TRASHED && $canDelete) {
+            $toolbar->delete('categories.delete')
+                ->text('JTOOLBAR_EMPTY_TRASH')
+                ->message('JGLOBAL_CONFIRM_DELETE')
+                ->listCheck(true);
+        }
+
+        // Options are com_config's screen, which asks core.admin itself.
+        if ($user->authorise('core.admin', 'com_alfa')) {
             $toolbar->preferences('com_alfa');
         }
+
+        TourHelper::toolbarHelp($toolbar, $this->getName());
         \Alfa\Component\Alfa\Administrator\Helper\NotificationHelper::toolbarBadge($toolbar);
     }
 }

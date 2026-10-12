@@ -1,7 +1,109 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+     STANDARD SHIPMENT PLUGIN: METHOD SETTINGS (reference)
+
+    Everything a merchant configures per shipping METHOD lives here. Copy this
+    file when starting a carrier of your own.
+
+    Two rules that are not negotiable
+
+    1. EVERYTHING GOES INSIDE <fields name="shipmentsparams">. A field declared
+       outside it renders, the merchant fills it in, and it is silently
+       discarded on save: the value is never seeded back and never written.
+       (For a payment plugin the wrapper is "paymentsparams".)
+
+    2. EACH <fieldset> BECOMES A TAB, in the order they appear in this file.
+       Give it a `label` language key or the tab falls back to a title-cased
+       version of the fieldset name.
+
+    Field types the component provides
+
+    All of them need addfieldprefix="Alfa\Component\Alfa\Administrator\Field",
+    which is how Joomla finds the class. Get that wrong and Joomla does NOT
+    complain: it silently substitutes a plain text box that validates nothing.
+
+    checkoutfield: pick one of the SHOP'S OWN checkout fields.
+        Use it for anything whose column you cannot know: the postcode you
+        price by, the phone a courier texts, the country a locker is in.
+
+            <field name="postcode_field" type="checkoutfield"
+                   addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
+                   types="text" sections="shipping"
+                   label="..." description="...">
+                <option value="">- Not selected -</option>
+            </field>
+
+        types=       restrict to field types: text, tel, country, email, ...
+                     ALWAYS restrict. types="tel" is what guarantees the value
+                     you read has been validated as a phone number.
+        sections=    shipping | billing | registration: which checkout section.
+        multiple=    offer several; read them with $cart->delivery()->fields()
+                     or ->firstFilled().
+
+        IT SAVES THE FIELD'S ID, NOT THE COLUMN NAME. Renaming a field rewrites
+        the name and ALTERs the column; an id does not move. Read it back with
+        $cart->delivery()->field($savedId), which resolves the id to a live
+        column every time; a deleted field answers "missing", never a stale
+        value.
+
+        GIVE EVERY OPTIONAL PICKER AN <option value="">. Without one the first
+        matching field is preselected and saved without the merchant touching
+        it, which is how a postcode setting came to hold the id of the name
+        field. With required="true", leaving it empty is refused by Joomla's own
+        validation.
+
+    telephone: a phone number the MERCHANT types, in your own settings.
+        Same treatment a customer's number gets at checkout: validated on save
+        and stored in E.164 (+306912345678, no spaces, no dashes).
+
+            <field name="contact_phone" type="telephone"
+                   addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
+                   default_region="GR" require_mobile="0"
+                   label="..." description="..."/>
+
+        default_region=   how to read a number typed without a country code.
+                          Omit it and the SHOP'S default country is used; if the
+                          shop has not set one, a number without a country code
+                          is refused rather than guessed at.
+        allowed_regions=  comma-separated ISO codes to accept.
+        require_mobile=   1 to refuse landlines.
+        store_format=     e164 (default) | international | national | rfc3966.
+                          Leave it alone. Only e164 is unambiguous; `national`
+                          throws the country away and cannot get it back.
+
+        It brings its own filter AND rule, so declaring the type is the whole
+        contract. (A filter transforms, a rule accepts or refuses; a rule that
+        tries to rewrite a value writes into a copy that is thrown away.)
+
+    categories model="places": pick places (countries, regions, towns).
+        See cost-per-place below. Match a delivery against the WHOLE chain with
+        $this->placesFor($placeId), never against the id alone: a zone naming a
+        country has to match an order going to a town inside it.
+
+    And from Joomla, the ones worth knowing
+
+    subform multiple="true"  repeatable rows (the cost table below).
+    sql                      populate a list from a query (payment methods, ...).
+    password                 a secret; use it for API keys, never type="text".
+    note                     guidance in the form itself, with showon= to make
+                             it appear only when it is relevant.
+    color, number, radio layout="joomla.form.field.radio.switcher"
+    useglobal="true"         inherit a com_alfa global of the SAME field name;
+                             Joomla draws "Use Global (...)" and resolves it for
+                             you. The names must match; that is how it resolves.
+    showon="other_field:1"   show only when another field has a value.
+
+    Reading any of it back
+
+        $method->param('postcode_field')        one value, already decoded
+        $method->params()                       all of them
+
+    See ShipmentsPlugin's class docblock for the cart, the destination, the
+    pricing primitives and the three error surfaces.
+-->
 <form>
     <fields name="shipmentsparams">
-        <fieldset name="shipmentsparams">
+        <fieldset name="shipmentsparams" label="PLG_ALFA_SHIPMENTS_STANDARD_FIELDSET_SETTINGS">
 
             <field
                     name="cost-per-place"
@@ -29,7 +131,6 @@
                            label="COM_ALFA_FORM_CATEGORY_PLACE_LBL">
                       <!--      <option value="0">COM_ALFA_FROM_PLACE_NO_OPTION</option>-->
                     </field>
-
 
                     <field
                             name="costs"
@@ -96,7 +197,6 @@
                                     label="COM_ALFA_FORM_SHIPMENT_DEPTH_MAX"
                             />
 
-
                             <field
                                     name="amount-start"
                                     type="number"
@@ -115,7 +215,6 @@
                                     label="COM_ALFA_FORM_SHIPMENT_AMOUNT_END"
                             />
 
-
                             <field
                                     name="cost"
                                     type="number"
@@ -131,6 +230,116 @@
 
                 </form>
 
+            </field>
+
+            <!--
+                Where a tracking number can be looked up, as a TEMPLATE rather
+                than a stored URL. The number and the carrier live on the
+                shipment row; only the endpoint is configuration, so when a
+                carrier moves it one edit here repairs every order ever placed
+                instead of leaving dead links on historic shipments.
+
+                Placeholders: {tracking_number}, {carrier_name}
+            -->
+            <!--
+                WHICH CHECKOUT FIELD CARRIES WHAT THIS CARRIER PRICES BY.
+
+                The component holds no postcode concept and hardcodes no column:
+                a postcode is a CARRIER's input, not the cart's, and a shop that
+                delivers to lockers or collects in store has none at all. So the
+                carrier says which field carries it, here, and reads the value
+                off the cart at quote time.
+
+                Leave a picker empty and that input is simply absent: the
+                carrier is told "missing", not handed a zero that looks like an
+                address. Cost rows whose band is unrestricted still match; rows
+                with a real band do not.
+            -->
+            <field
+                    name="postcode_field"
+                    type="checkoutfield"
+                    addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
+                    types="text"
+                    sections="shipping,billing"
+                    label="PLG_ALFA_SHIPMENTS_STANDARD_POSTCODE_FIELD_LABEL"
+                    description="PLG_ALFA_SHIPMENTS_STANDARD_POSTCODE_FIELD_DESC"
+            >
+                <option value="">PLG_ALFA_SHIPMENTS_STANDARD_FIELD_NONE</option>
+            </field>
+
+
+            <field
+                    name="tracking_url_template"
+                    type="url"
+                    filter="url"
+                    label="PLG_ALFA_SHIPMENTS_STANDARD_TRACKING_URL_TEMPLATE"
+                    description="PLG_ALFA_SHIPMENTS_STANDARD_TRACKING_URL_TEMPLATE_DESC"
+                    hint="https://carrier.example/track?no={tracking_number}"
+            />
+
+            <!--
+                Order-status automation map. Each shipment plugin declares ONLY
+                the phases its lifecycle actually reaches, as fields named
+                status_on_<status>. The core funnel (ShipmentLedger::update)
+                reads these conventional keys from the method's params whenever
+                a shipment status changes and runs the transition through
+                Transition: stock, downloads, emails and activity log all fire
+                from that single path. Empty = no automatic change (admin
+                drives the order manually). The standard plugin reaches
+                shipped / delivered / returned / cancelled via its admin
+                actions and the shipment form.
+            -->
+
+            <field
+                    name="status_on_shipped"
+                    type="model"
+                    model="orderstatuses"
+                    column_value="id"
+                    column_text="name"
+                    orderBy="ordering"
+                    label="PLG_ALFA_SHIPMENTS_STANDARD_STATUS_ON_SHIPPED_LABEL"
+                    description="PLG_ALFA_SHIPMENTS_STANDARD_STATUS_ON_SHIPPED_DESC"
+            >
+                <option value="">PLG_ALFA_SHIPMENTS_STANDARD_STATUS_NO_CHANGE</option>
+            </field>
+
+            <field
+                    name="status_on_delivered"
+                    type="model"
+                    model="orderstatuses"
+                    column_value="id"
+                    column_text="name"
+                    orderBy="ordering"
+                    label="PLG_ALFA_SHIPMENTS_STANDARD_STATUS_ON_DELIVERED_LABEL"
+                    description="PLG_ALFA_SHIPMENTS_STANDARD_STATUS_ON_DELIVERED_DESC"
+            >
+                <option value="">PLG_ALFA_SHIPMENTS_STANDARD_STATUS_NO_CHANGE</option>
+            </field>
+
+            <field
+                    name="status_on_returned"
+                    type="model"
+                    model="orderstatuses"
+                    column_value="id"
+                    column_text="name"
+                    orderBy="ordering"
+                    label="PLG_ALFA_SHIPMENTS_STANDARD_STATUS_ON_RETURNED_LABEL"
+                    description="PLG_ALFA_SHIPMENTS_STANDARD_STATUS_ON_RETURNED_DESC"
+            >
+                <option value="">PLG_ALFA_SHIPMENTS_STANDARD_STATUS_NO_CHANGE</option>
+            </field>
+
+            <field
+                    name="status_on_cancelled"
+                    type="model"
+                    model="orderstatuses"
+                    column_value="id"
+                    column_text="name"
+                    orderBy="ordering"
+                    label="PLG_ALFA_SHIPMENTS_STANDARD_STATUS_ON_CANCELLED_LABEL"
+                    description="PLG_ALFA_SHIPMENTS_STANDARD_STATUS_ON_CANCELLED_DESC"
+            >
+                <option value="">PLG_ALFA_SHIPMENTS_STANDARD_STATUS_NO_CHANGE</option>
             </field>
         </fieldset>
     </fields>

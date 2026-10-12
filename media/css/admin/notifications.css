@@ -1,61 +1,76 @@
 /**
- * Alfa Admin — Notification Center (toolbar badge + quick panel).
+ * Alfa Admin: Notification Center (toolbar badge + quick panel).
  * Loaded by layouts/notifications/badge.php. Refined, minimal, professional:
  * monochrome base, semantic severity accents, animated popover.
  *
- * All selectors are `alfa-notify-*` namespaced on purpose — the admin DOM is full of
+ * All selectors are `alfa-notify-*` namespaced on purpose: the admin DOM is full of
  * Bootstrap/Atum classes (.badge, .dropdown, .count, .item); prefixing avoids both
  * inheriting their styles and leaking onto other extensions.
  *
- * @package  Com_Alfa
+ * @package  Alfa Commerce
  * @since  1.0.0
  */
 
-/* The component wrapper — the button sits inline in the toolbar; the panel inside is
+/* The component wrapper: the button sits inline in the toolbar; the panel inside is
    position:fixed (out of flow), so the wrapper hugs just the button. The gap from the
-   previous toolbar button lives here, on our OWN element — no override, no !important. */
+   previous toolbar button lives here, on our OWN element; no override, no !important. */
 .alfa-notify { display: inline-flex; align-items: center; margin-inline-start: .5rem; }
-/* On the collapsed (stacked) toolbar the bell is full-width per line — drop the gap. */
+/* On the collapsed (stacked) toolbar the bell is full-width per line; drop the gap. */
 @media (width <= 575.98px) {
     .alfa-notify { margin-inline-start: 0; }
 }
 
-/* The bell is a real Joomla toolbar button (btn btn-action) — it inherits the toolbar
+/* The bell is a real Joomla toolbar button (btn btn-action); it inherits the toolbar
    button look + the mobile collapse (icon + label per line). We only add the inline
    count pill and its severity colour. */
 .alfa-notify .alfa-notify-btn { position: relative; display: inline-flex; align-items: center; gap: 6px; }
 .alfa-notify .alfa-notify-btn:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
-/* Atum adds a ::after separator to .btn-action toolbar buttons — drop it for the bell. */
+/* Atum adds a ::after separator to .btn-action toolbar buttons; drop it for the bell. */
 .subhead .btn.btn-action.alfa-notify-btn::after { display: none; content: none; }
 
-/* Count pill — scoped under the button (.alfa-notify-btn .alfa-notify-count = 0,2,0) so
+/* Count pill: scoped under the button (.alfa-notify-btn .alfa-notify-count = 0,2,0) so
    it beats Atum's generic `.btn span` (0,1,1) by SPECIFICITY, not !important. Crucially,
    leaving `display` un-!important lets the inline `display:none` (rendered when count is
    0) actually hide the pill. */
 .alfa-notify .alfa-notify-btn .alfa-notify-count {
     display: inline-flex; align-items: center; justify-content: center;
     min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
-    font-size: 11px; font-weight: 700; line-height: 1; color: #fff; background: #64748b;
+    font-size: 11px; font-weight: 700; line-height: 1; color: #fff; background: #475569;
 }
-.alfa-notify .alfa-notify-btn[data-severity="info"]    .alfa-notify-count { background: #0ea5e9; }
-.alfa-notify .alfa-notify-btn[data-severity="success"] .alfa-notify-count { background: #16a34a; }
-.alfa-notify .alfa-notify-btn[data-severity="warning"] .alfa-notify-count { background: #d97706; color: #1a1206; }
-.alfa-notify .alfa-notify-btn[data-severity="danger"]  .alfa-notify-count { background: #dc2626; animation: alfa-notify-pulse 2.2s ease-in-out infinite; }
+/* ONE text colour for every severity (white), with each background dark enough to
+   carry it at 11px/700. Measured contrast (WCAG AA needs 4.5:1 for text this size):
+     neutral #475569 7.58:1   info #0369a1 5.93:1   success #15803d 5.02:1
+     warning #b45309 5.02:1   danger  #b91c1c 6.47:1
+   The previous palette failed on two of them (info 2.77:1, success 3.30:1) and made
+   warning the odd one out with near-black text, which then flipped to unreadable
+   white (3.19:1) the moment Atum recoloured the button on hover/open. White at rest
+   makes that flip a no-op. */
+.alfa-notify .alfa-notify-btn[data-severity="info"]    .alfa-notify-count { background: #0369a1; }
+.alfa-notify .alfa-notify-btn[data-severity="success"] .alfa-notify-count { background: #15803d; }
+.alfa-notify .alfa-notify-btn[data-severity="warning"] .alfa-notify-count { background: #b45309; }
+.alfa-notify .alfa-notify-btn[data-severity="danger"]  .alfa-notify-count { background: #b91c1c; animation: alfa-notify-pulse 2.2s ease-in-out infinite; }
 
 @keyframes alfa-notify-pulse {
-    0%   { box-shadow: 0 0 0 0 rgba(220, 38, 38, .45); }
-    70%  { box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+    0%   { box-shadow: 0 0 0 0 rgba(185, 28, 28, .45); }
+    70%  { box-shadow: 0 0 0 6px rgba(185, 28, 28, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(185, 28, 28, 0); }
 }
 
-/* Popover — rendered in place inside the component but position:fixed, anchored +
+/* Popover: rendered in place inside the component but position:fixed, anchored +
    viewport-clamped by JS (top/left/width set inline) so it floats above everything.
    Every panel rule is scoped under .alfa-notify (0,2,0) so component styles beat the
-   Atum template by specificity — no !important needed. */
+   Atum template by specificity; no !important needed. */
 .alfa-notify .alfa-notify-dropdown {
     position: fixed; top: 0; left: 0;
-    width: 380px; max-width: calc(100vw - 16px); background: #fff; color: #0f172a;
-    border: 1px solid #e0e5ea; border-radius: 12px;
+    width: 380px; max-width: calc(100vw - 16px);
+    /* --body-bg, NOT --card-bg: Atum defines --card-bg as #ffffffb3 (white at 70%
+       ALPHA), so a card tints whatever sits behind it. That is right for a card in
+       the page flow and wrong for a popover that floats over arbitrary content: the
+       page showed straight through it. The `#fff` fallback never helped, because the
+       token IS set, just translucent. --body-bg is opaque and still flips with the
+       colour scheme (unlike --white, which never does). */
+    background: var(--body-bg, #fff); color: var(--body-color, #0f172a);
+    border: 1px solid var(--border-color, #e0e5ea); border-radius: 12px;
     box-shadow: 0 10px 15px -3px rgba(15, 23, 42, .12), 0 4px 6px -4px rgba(15, 23, 42, .1);
     z-index: 1100; overflow: hidden;
     opacity: 0; transform: translateY(-6px) scale(.98); transform-origin: top right; pointer-events: none;
@@ -65,30 +80,39 @@
 
 .alfa-notify .alfa-notify-head {
     display: flex; align-items: baseline; justify-content: space-between;
-    padding: 12px 16px; border-bottom: 1px solid #e0e5ea;
+    padding: 12px 16px; border-bottom: 1px solid var(--border-color, #e0e5ea);
     font-weight: 600; font-size: 13px; letter-spacing: .01em;
 }
-.alfa-notify .alfa-notify-head small { font-weight: 500; color: #64748b; font-size: 11px; }
+.alfa-notify .alfa-notify-head small { font-weight: 500; color: var(--secondary-color, #64748b); font-size: 11px; }
 
-.alfa-notify .alfa-notify-list { list-style: none; margin: 0; padding: 4px; max-height: 60vh; overflow-y: auto; }
+/* A flex column purely for the gap: the rows carry rounded, tinted backgrounds
+   (hover, and a blue wash while unread), so with no space between them two
+   adjacent unread rows merge into one block and you cannot see where one
+   notification ends. The gap IS the separator: no divider rule needed, which
+   also avoids a hairline cutting through those rounded corners. */
+.alfa-notify .alfa-notify-list {
+    list-style: none; margin: 0; padding: 4px; max-height: 60vh; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 2px;
+}
 .alfa-notify .alfa-notify-item { display: flex; gap: 10px; padding: 10px 12px; border-radius: 8px; transition: background-color .12s ease; }
 .alfa-notify .alfa-notify-item:hover { background: rgba(15, 23, 42, .04); }
 .alfa-notify .alfa-notify-item.is-unread { background: rgba(37, 99, 235, .05); }
 .alfa-notify .alfa-notify-item.is-unread:hover { background: rgba(37, 99, 235, .08); }
 
-.alfa-notify .alfa-notify-dot { flex: 0 0 auto; width: 8px; height: 8px; margin-top: 5px; border-radius: 50%; background: #64748b; }
-.alfa-notify .alfa-notify-dot.sev-info { background: #0ea5e9; }
-.alfa-notify .alfa-notify-dot.sev-success { background: #16a34a; }
-.alfa-notify .alfa-notify-dot.sev-warning { background: #d97706; }
-.alfa-notify .alfa-notify-dot.sev-danger { background: #dc2626; }
+/* Same five colours as the count pill: one severity palette, not two. */
+.alfa-notify .alfa-notify-dot { flex: 0 0 auto; width: 8px; height: 8px; margin-top: 5px; border-radius: 50%; background: #475569; }
+.alfa-notify .alfa-notify-dot.sev-info { background: #0369a1; }
+.alfa-notify .alfa-notify-dot.sev-success { background: #15803d; }
+.alfa-notify .alfa-notify-dot.sev-warning { background: #b45309; }
+.alfa-notify .alfa-notify-dot.sev-danger { background: #b91c1c; }
 
 .alfa-notify .alfa-notify-body { min-width: 0; flex: 1 1 auto; }
-.alfa-notify .alfa-notify-title { font-size: 13px; font-weight: 600; line-height: 1.3; color: #0f172a; word-break: break-word; }
-.alfa-notify .alfa-notify-msg { font-size: 12px; line-height: 1.45; color: #475569; margin-top: 2px; word-break: break-word; }
+.alfa-notify .alfa-notify-title { font-size: 13px; font-weight: 600; line-height: 1.3; color: var(--body-color, #0f172a); word-break: break-word; }
+.alfa-notify .alfa-notify-msg { font-size: 12px; line-height: 1.45; color: var(--secondary-color, #475569); margin-top: 2px; word-break: break-word; }
 .alfa-notify .alfa-notify-meta { display: flex; gap: 10px; align-items: center; margin-top: 5px; }
-.alfa-notify .alfa-notify-link { font-size: 11.5px; font-weight: 600; color: #2563eb; text-decoration: none; }
+.alfa-notify .alfa-notify-link { font-size: 11.5px; font-weight: 600; color: var(--link-color, #2563eb); text-decoration: none; }
 .alfa-notify .alfa-notify-link:hover { text-decoration: underline; }
-.alfa-notify .alfa-notify-time { font-size: 11px; color: #94a3b8; }
+.alfa-notify .alfa-notify-time { font-size: 11px; color: var(--secondary-color, #94a3b8); }
 
 .alfa-notify .alfa-notify-actions { flex: 0 0 auto; display: flex; gap: 2px; align-items: flex-start; opacity: 0; transition: opacity .12s ease; }
 .alfa-notify .alfa-notify-item:hover .alfa-notify-actions,
@@ -96,17 +120,17 @@
 .alfa-notify .alfa-notify-act {
     display: inline-flex; align-items: center; justify-content: center;
     width: 24px; height: 24px; border: 0; border-radius: 6px; background: transparent;
-    color: #64748b; cursor: pointer; font-size: 12px;
+    color: var(--secondary-color, #64748b); cursor: pointer; font-size: 12px;
     transition: background-color .12s ease, color .12s ease;
 }
 .alfa-notify .alfa-notify-act:hover { background: rgba(15, 23, 42, .08); color: #0f172a; }
 
-.alfa-notify .alfa-notify-empty { padding: 28px 16px; text-align: center; color: #94a3b8; font-size: 12.5px; }
-.alfa-notify .alfa-notify-empty .alfa-notify-empty-ico { display: block; font-size: 22px; color: #cbd5e1; margin-bottom: 6px; }
+.alfa-notify .alfa-notify-empty { padding: 28px 16px; text-align: center; color: var(--secondary-color, #94a3b8); font-size: 12.5px; }
+.alfa-notify .alfa-notify-empty .alfa-notify-empty-ico { display: block; font-size: 22px; color: var(--secondary-color, #cbd5e1); margin-bottom: 6px; }
 
-.alfa-notify .alfa-notify-foot { padding: 8px; border-top: 1px solid #e0e5ea; text-align: center; }
-.alfa-notify .alfa-notify-foot a { font-size: 12px; font-weight: 600; color: #334155; text-decoration: none; }
-.alfa-notify .alfa-notify-foot a:hover { color: #0f172a; text-decoration: underline; }
+.alfa-notify .alfa-notify-foot { padding: 8px; border-top: 1px solid var(--border-color, #e0e5ea); text-align: center; }
+.alfa-notify .alfa-notify-foot a { font-size: 12px; font-weight: 600; color: var(--body-color, #334155); text-decoration: none; }
+.alfa-notify .alfa-notify-foot a:hover { color: var(--emphasis-color, #0f172a); text-decoration: underline; }
 
 @media (prefers-reduced-motion: reduce) {
     .alfa-notify .alfa-notify-dropdown, .alfa-notify .alfa-notify-count, .alfa-notify .alfa-notify-btn, .alfa-notify .alfa-notify-item, .alfa-notify .alfa-notify-act { transition: none; animation: none; }

@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Document numbering series edit form.
+
+    Counter columns (current_year, last_issued_at) are NOT here; they are
+    owned by the issue transaction. next_number is form-editable only while
+    the series has no issued documents (SeriesModel locks it afterwards).
+-->
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+    <fieldset name="series">
+
+        <!-- Registry-driven: options come from the visible
+             #__alfa_document_types rows; values are the immutable aliases. -->
+        <field
+                name="doc_type"
+                type="DocumentType"
+                required="true"
+                label="COM_ALFA_SERIES_FIELD_DOC_TYPE"
+                description="COM_ALFA_SERIES_FIELD_DOC_TYPE_DESC"
+                default="core.invoice"
+                onchange="Joomla.typeHasChanged(this);"
+        />
+
+        <field
+                name="code"
+                type="text"
+                required="true"
+                maxlength="20"
+                label="COM_ALFA_SERIES_FIELD_CODE"
+                description="COM_ALFA_SERIES_FIELD_CODE_DESC"
+        />
+
+        <field
+                name="title"
+                type="text"
+                maxlength="255"
+                label="COM_ALFA_SERIES_FIELD_TITLE"
+                description="COM_ALFA_SERIES_FIELD_TITLE_DESC"
+        />
+
+        <field
+                name="prefix"
+                type="text"
+                maxlength="20"
+                label="COM_ALFA_SERIES_FIELD_PREFIX"
+                description="COM_ALFA_SERIES_FIELD_PREFIX_DESC"
+        />
+
+        <field
+                name="padding"
+                type="number"
+                min="1"
+                max="12"
+                default="6"
+                label="COM_ALFA_SERIES_FIELD_PADDING"
+                description="COM_ALFA_SERIES_FIELD_PADDING_DESC"
+        />
+
+        <field
+                name="next_number"
+                type="number"
+                min="1"
+                default="1"
+                label="COM_ALFA_SERIES_FIELD_NEXT_NUMBER"
+                description="COM_ALFA_SERIES_FIELD_NEXT_NUMBER_DESC"
+        />
+
+        <field
+                name="year_scoped"
+                type="radio"
+                layout="joomla.form.field.radio.switcher"
+                default="0"
+                label="COM_ALFA_SERIES_FIELD_YEAR_SCOPED"
+                description="COM_ALFA_SERIES_FIELD_YEAR_SCOPED_DESC"
+        >
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <field
+                name="branch_code"
+                type="text"
+                maxlength="20"
+                label="COM_ALFA_SERIES_FIELD_BRANCH_CODE"
+                description="COM_ALFA_SERIES_FIELD_BRANCH_CODE_DESC"
+        />
+
+        <field
+                name="is_default"
+                type="radio"
+                layout="joomla.form.field.radio.switcher"
+                default="0"
+                label="COM_ALFA_SERIES_FIELD_IS_DEFAULT"
+                description="COM_ALFA_SERIES_FIELD_IS_DEFAULT_DESC"
+        >
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <field
+                name="layout"
+                type="DocumentLayout"
+                label="COM_ALFA_SERIES_FIELD_LAYOUT"
+                description="COM_ALFA_SERIES_FIELD_LAYOUT_DESC"
+        />
+
+        <!-- The composer's editors/eye-toggles post flat sibling keys
+             (positions_<lang>_<slot>, positions_showstruct_<slug>) that
+             SeriesModel::save bundles into the JSON column; nothing posts
+             under this name, so drop any forged direct value. -->
+        <field
+                name="positions"
+                type="DocumentPositions"
+                filter="unset"
+                label="COM_ALFA_SERIES_FIELD_POSITIONS"
+                description="COM_ALFA_SERIES_FIELD_POSITIONS_DESC"
+        />
+
+        <field
+                name="state"
+                type="list"
+                label="JSTATUS"
+                default="1"
+                class="form-select-color-state"
+                size="1"
+        >
+            <option value="1">JPUBLISHED</option>
+            <option value="0">JUNPUBLISHED</option>
+        </field>
+
+        <!-- Issuer identity of THIS series: self-contained (no global
+             fallback), frozen onto every document at issue. Multi-branch
+             shops give each branch's series its own block; multivendor
+             later plugs vendor identity into the same fields. -->
+        <field
+                name="seller_name"
+                type="text"
+                required="true"
+                size="80"
+                label="COM_ALFA_SERIES_FIELD_SELLER_NAME"
+                description="COM_ALFA_SERIES_FIELD_SELLER_NAME_DESC"
+        />
+
+        <field
+                name="seller_vat_number"
+                type="text"
+                size="20"
+                label="COM_ALFA_SERIES_FIELD_SELLER_VAT"
+                description="COM_ALFA_SERIES_FIELD_SELLER_VAT_DESC"
+        />
+
+        <field
+                name="seller_tax_office"
+                type="text"
+                size="60"
+                label="COM_ALFA_SERIES_FIELD_SELLER_TAX_OFFICE"
+                description="COM_ALFA_SERIES_FIELD_SELLER_TAX_OFFICE_DESC"
+        />
+
+        <field
+                name="seller_activity"
+                type="text"
+                size="120"
+                label="COM_ALFA_SERIES_FIELD_SELLER_ACTIVITY"
+                description="COM_ALFA_SERIES_FIELD_SELLER_ACTIVITY_DESC"
+        />
+
+        <field
+                name="seller_address"
+                type="textarea"
+                rows="3"
+                label="COM_ALFA_SERIES_FIELD_SELLER_ADDRESS"
+                description="COM_ALFA_SERIES_FIELD_SELLER_ADDRESS_DESC"
+        />
+
+        <field
+                name="seller_extra"
+                type="textarea"
+                rows="3"
+                label="COM_ALFA_SERIES_FIELD_SELLER_EXTRA"
+                description="COM_ALFA_SERIES_FIELD_SELLER_EXTRA_DESC"
+        />
+
+        <field name="id" type="hidden"/>
+    </fieldset>
+</form>

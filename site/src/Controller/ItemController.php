@@ -13,10 +13,8 @@ namespace Alfa\Component\Alfa\Site\Controller;
 
 use Joomla\CMS\MVC\Controller\BaseController;
 
-// use \Alfa\Component\Alfa\Site\Helper\ProductHelper;
-
 /**
- * Item class.
+ * Item controller: storefront product page dispatch.
  *
  * @since  1.0.0
  */

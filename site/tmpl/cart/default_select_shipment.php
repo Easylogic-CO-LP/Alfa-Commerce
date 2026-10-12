@@ -7,16 +7,30 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
-use Alfa\Component\Alfa\Site\Helper\PluginLayoutHelper;
+\defined('_JEXEC') or die;
 
-$cart = !empty($displayData) ? $displayData : $this->cart;
+use Alfa\Component\Alfa\Site\Helper\Layout;
+use Joomla\CMS\Language\Text;
 
+// A reading, not the cart. The layouts each carrier asked for come with it,
+// looked up by method id rather than hung on the method object.
+$snapshot  = !empty($displayData) ? $displayData : $this->snapshot;
+$shipments = $snapshot->offers->shipments;
 ?>
-<div class="mb-3" data-cart-shipments>
+<div class="cart-methods" data-cart-shipments>
+
+	<?php foreach ($snapshot->offers->notices('shipment') as $notice) : ?>
+        <p class="cart-methods-notice" role="status"><?php echo htmlspecialchars($notice, ENT_QUOTES, 'UTF-8'); ?></p>
+	<?php endforeach; ?>
+
+	<?php if ($shipments === []) : ?>
+        <p class="cart-methods-empty"><?php echo Text::_('COM_ALFA_CART_NO_SHIPMENT_AVAILABLE'); ?></p>
+	<?php endif; ?>
 
 	<?php
-	foreach ($cart->getShipmentMethods() as $shipment):
-		$checked = $cart->getData()->id_shipment == $shipment->id ? 'checked' : '';
+	foreach ($shipments as $shipment):
+		$checked = $snapshot->offers->selectedShipmentId === (int) $shipment->id ? 'checked' : '';
+		$view = $snapshot->offers->viewFor('shipment', (int) $shipment->id);
 		?>
         <div>
             <input
@@ -34,18 +48,9 @@ $cart = !empty($displayData) ? $displayData : $this->cart;
 
             <p><?php echo htmlspecialchars($shipment->description, ENT_QUOTES, 'UTF-8'); ?></p>
 
-			<?php
-			// TODO: Error handling for missing template.
-			echo PluginLayoutHelper::pluginLayout(
-				$shipment->events->onCartView->getLayoutPluginType(),
-				$shipment->events->onCartView->getLayoutPluginName(),
-				$shipment->events->onCartView->getLayout()
-			)->render($shipment->events->onCartView->getLayoutData());
-			?>
-
-
-            <!--            --><?php //echo $shipment->event->onCartView;
-			?>
+			<?php if ($view !== null) : ?>
+				<?php echo Layout::render($view->layout, $view->layoutData, $view->pluginType, $view->pluginName); ?>
+			<?php endif; ?>
 
         </div>
 	<?php endforeach ?>

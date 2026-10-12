@@ -1,0 +1,168 @@
+/**
+ * Alfa Commerce: the storefront palette.
+ *
+ * Every Alfa extension paints from these tokens and declares none of its own
+ * colours: one definition, so the cart, the filters and the item page cannot
+ * drift apart, and a merchant retheming the shop moves all of them at once.
+ *
+ * It lives apart from general.css because a MODULE needs the palette on pages
+ * where the component never renders: a cart in the header of a contact page has
+ * no com_alfa CSS otherwise, and would sit there with no tokens at all. Modules
+ * depend on this file by name:
+ *
+ *     $wa->getRegistry()->addExtensionRegistryFile('com_alfa');
+ *     $wa->useStyle('com_alfa.tokens');
+ *
+ * A template overrides any of it; see the dark-mode contract at the foot.
+ */
+
+:root {
+    --alfa-action-primary-bg: #333;
+    --alfa-action-primary-bg-hover: #1a1a1a;
+    --alfa-action-primary-color: #fff;
+    --alfa-action-secondary-bg: #6b7280;
+    --alfa-action-secondary-bg-hover: #4b5563;
+    --alfa-action-secondary-color: #fff;
+    --alfa-action-danger-bg: #b91c1c;
+    --alfa-action-danger-bg-hover: #991b1b;
+    --alfa-action-danger-color: #fff;
+    /* Status. `error` was here already; the other three arrive with it so a
+       message never has to reach for a literal. */
+    --alfa-error-color: #b91c1c;
+    --alfa-success-color: #15803d;
+    --alfa-warning-color: #b45309;
+    --alfa-info-color: #1d4ed8;
+    /* A panel lifted off the page (a product card, a summary box) and the text
+       on it. Both are needed: a card that keeps a white background on a dark page
+       is the one thing a colour scheme cannot paper over. */
+    --alfa-surface: #ffffff;
+    /* No light value on purpose. `--alfa-surface-color: inherit` READS as a default
+       but is guaranteed-invalid on :root (a custom property cannot inherit what its
+       parent never had), so it resolved to nothing and every consumer fell through to
+       its own fallback anyway. Left undefined, that fallback (`inherit`) is the honest
+       statement: on a light page the storefront takes the page's own text colour. The
+       dark cut below DOES set it, because there the colour must be stated. */
+    /* Text that should recede: a field label beside its value, a meta line. */
+    --alfa-muted-color: #6b7280;
+    /* The mark on a chosen option: a selected variant, a picked swatch. Not an
+       action colour: nothing is being commanded, something is being shown. */
+    --alfa-selected: #1a73e8;
+    /* A sale tag. Its own token, not the danger red: nothing is wrong, and a
+       merchant who wants green sale tags should not have to restyle errors. */
+    --alfa-sale-bg: #c0392b;
+    --alfa-sale-color: #ffffff;
+    --alfa-hairline: #e2e2e2;
+    /* Square by default, so nothing about the current look changes. A template
+       sets this once and every storefront control follows it, instead of the
+       component's buttons disagreeing with the template's own. */
+    --alfa-radius: 0;
+
+    /* A drawer, an overlay or a floating popup is not a button. Controls are square
+       by default above, because square is the neutral choice a template opts out of;
+       a panel that size reads as broken with no rounding at all, and every module
+       had picked its own value for exactly that reason. One token, so they agree. */
+    --alfa-radius-panel: 8px;
+
+    /* How tall an interactive control stands. Add to cart and the quantity stepper
+       sit side by side and were 48px against 40px; one token so they agree, and so
+       a template can size every storefront control at once. */
+    --alfa-control-height: 2.5rem;
+
+    /* Which mode the page is in, resolved once here so nothing else has to work it
+       out. CSS can query it, and JS can simply ask:
+
+           getComputedStyle(document.documentElement)
+               .getPropertyValue('--alfa-scheme').trim()   // 'light' | 'dark'
+
+       A module needing the mode for something CSS cannot express (a chart palette,
+       a map style, which logo to swap in) reads this instead of re-deriving the
+       attribute-plus-media-query logic and getting a different answer. */
+    --alfa-scheme: light;
+}
+
+/* alfa-dark-cut
+   The dark half of the palette, so the storefront does not depend on one template
+   for it. Every extension that reads --alfa-* follows this without containing a
+   dark value of its own, which is the point: one place to change, and the cart,
+   the filters and the item page cannot drift apart.
+
+   Gated on the page SAYING it is dark, never on the device alone. A visitor whose
+   laptop is dark, on a template with no dark mode, must not get a dark cart panel
+   sitting on a white page; that is the bug this selector shape exists to avoid.
+   Any template opts in with one attribute on <html>:
+
+       data-theme="dark"            the visitor chose dark
+       data-theme-default="dark"    the site starts dark, visitor has not chosen
+       data-theme[-default]="auto"  follow the device (the media query below)
+
+   `color-scheme` is deliberately NOT set here: it repaints the whole page's form
+   controls and scrollbars, which belongs to the template, not to the storefront. */
+:is(:root[data-theme="dark"], :root[data-theme-default="dark"]:not([data-theme])) {
+    --alfa-action-primary-bg: #e5e7eb;
+    --alfa-action-primary-bg-hover: #f9fafb;
+    --alfa-action-primary-color: #111827;
+    --alfa-action-secondary-bg: #4b5563;
+    --alfa-action-secondary-bg-hover: #6b7280;
+    --alfa-action-secondary-color: #f9fafb;
+    --alfa-error-color: #f87171;
+    --alfa-success-color: #4ade80;
+    --alfa-warning-color: #fbbf24;
+    --alfa-info-color: #60a5fa;
+    --alfa-surface: #1f2937;
+    --alfa-surface-color: #e5e7eb;
+    --alfa-muted-color: #9ca3af;
+    --alfa-selected: #93c5fd;
+    --alfa-hairline: #374151;
+    --alfa-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+    :is(:root[data-theme="auto"], :root[data-theme-default="auto"]:not([data-theme])) {
+        --alfa-action-primary-bg: #e5e7eb;
+        --alfa-action-primary-bg-hover: #f9fafb;
+        --alfa-action-primary-color: #111827;
+        --alfa-action-secondary-bg: #4b5563;
+        --alfa-action-secondary-bg-hover: #6b7280;
+        --alfa-action-secondary-color: #f9fafb;
+        --alfa-error-color: #f87171;
+        --alfa-success-color: #4ade80;
+        --alfa-warning-color: #fbbf24;
+        --alfa-info-color: #60a5fa;
+        --alfa-surface: #1f2937;
+        --alfa-surface-color: #e5e7eb;
+        --alfa-muted-color: #9ca3af;
+        --alfa-selected: #93c5fd;
+        --alfa-hairline: #374151;
+        --alfa-scheme: dark;
+    }
+}
+
+/*
+   When a module wants its own dark colours
+
+   Inheriting the palette is the default, not a rule. A module whose colours are
+   genuinely its own (the enterprise search's gold, a brand accent) overrides its
+   own tokens under the same two selectors, and nothing else in the storefront moves:
+
+       :is(:root[data-theme="dark"],
+           :root[data-theme-default="dark"]:not([data-theme])) .alfa-es {
+           --alfa-es-bg: #0b1020;
+           --alfa-es-accent: #f0c674;
+       }
+
+       @media (prefers-color-scheme: dark) {
+           :is(:root[data-theme="auto"],
+               :root[data-theme-default="auto"]:not([data-theme])) .alfa-es {
+               --alfa-es-bg: #0b1020;
+               --alfa-es-accent: #f0c674;
+           }
+       }
+
+   Both blocks, always. The first is the visitor's explicit choice, the second is
+   "follow the device", and a `prefers-color-scheme` query on its own would override
+   a visitor who asked for light, which is the bug this shape exists to prevent.
+
+   The same two selectors are how a MERCHANT retints one module in dark without
+   touching the others; scope to `.mod-alfa-cart`, or to a single instance's
+   `.mod-alfa-filters-146`, and only that module follows.
+   */

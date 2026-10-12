@@ -15,9 +15,9 @@ defined('_JEXEC') or die;
  * Single source of truth for per-entity multilingual alias (URL slug) handling.
  *
  * Both consumers read from here so they can never drift:
- *   - each edit-model's save() — passes FIELDS/SCOPE for its table to
+ *   - each edit-model's save(): passes FIELDS/SCOPE for its table to
  *     MultilingualHelper::saveMultilingualData();
- *   - SyncHelper / the Tools backfill — uses the same maps to copy + de-duplicate
+ *   - SyncHelper / the Tools backfill: uses the same maps to copy + de-duplicate
  *     aliases across languages.
  *
  * To make a new entity's alias translatable, add its table here.
@@ -27,7 +27,7 @@ defined('_JEXEC') or die;
 final class MultilingualAliasConfig
 {
     /**
-     * URL-slug field(s) per table — the alias fields to generate on save and
+     * URL-slug field(s) per table: the alias fields to generate on save and
      * de-duplicate on backfill. Tables absent here have no slug field.
      *
      * @var array<string, string[]>
@@ -38,6 +38,7 @@ final class MultilingualAliasConfig
         '#__alfa_categories' => ['alias'],
         '#__alfa_items' => ['alias'],
         '#__alfa_manufacturers' => ['alias'],
+        '#__alfa_item_field_values' => ['alias'],
     ];
 
     /**
@@ -51,5 +52,7 @@ final class MultilingualAliasConfig
      */
     public const SCOPE = [
         '#__alfa_categories' => ['parent_id'],
+        // Value aliases only need to be unique within their field (per language).
+        '#__alfa_item_field_values' => ['item_field_id'],
     ];
 }

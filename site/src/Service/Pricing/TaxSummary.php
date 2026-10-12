@@ -77,16 +77,20 @@ class TaxSummary
 
     /**
      * Export the tax summary (total, effective rate, count, applied taxes) as a plain array.
+     *
+     * The total is money text and the effective rate its decimal text
+     * ({@see PublishedDecimal}), the rate read at the fifteen significant digits
+     * the engine's float carries.
      * @since  1.0.0
      */
     public function toArray(): array
     {
         return [
             'total' => [
-                'amount' => $this->total->getAmount(),
+                'amount' => PublishedDecimal::money($this->total),
                 'formatted' => $this->total->format(),
             ],
-            'effective_rate' => $this->effectiveRate,
+            'effective_rate' => PublishedDecimal::decimal(ExactAmount::ofNumber($this->effectiveRate)),
             'count' => $this->getCount(),
             'applied' => array_map(fn ($t) => $t->toArray(), $this->applied),
         ];

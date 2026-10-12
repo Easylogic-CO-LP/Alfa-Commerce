@@ -28,6 +28,15 @@ $input = $app->input;
 $shouldClose  = $input->getInt('close', 1) == 1;
 $shouldReload = $input->getInt('reload', 1) == 1;
 
+// The outcome belongs to the page the opener reloads: this one closes as it
+// loads, so a message shown only here is never read (C-6). The queue is read
+// and put back in the session, where that next page takes it from; this page
+// still renders its own copy before it closes. A close that reloads nothing
+// keeps nothing, so no stale message turns up on some later page.
+if ($shouldReload) {
+	$app->getSession()->set('application.queue', $app->getMessageQueue());
+}
+
 $returnData = [
 	'messageType'  => 'alfa:order-item-action',
 	'action'       => '',
@@ -41,7 +50,7 @@ $returnData = [
 
 $this->document->addScriptOptions('alfa.orderitem.modal.return', $returnData);
 
-$message = "SUCCESS";
+$message = Text::_('COM_ALFA_MODAL_RETURN_DONE');
 ?>
 
 <div class="container-fluid">
@@ -70,13 +79,9 @@ $message = "SUCCESS";
 
         const dataToReturn = Joomla.getOptions('alfa.orderitem.modal.return', {});
 
-        console.log('[Order Item Return] Page loaded');
-        console.log('[Order Item Return] Will send to parent:', dataToReturn);
-
         function notifyParent() {
             if (window.parent && window.parent !== window) {
-                window.parent.postMessage(dataToReturn, '*');
-                console.log('[Order Item Return] Message sent to parent');
+                window.parent.postMessage(dataToReturn, window.location.origin);
             } else {
                 console.warn('[Order Item Return] No parent window found');
             }

@@ -3,7 +3,6 @@
 /**
  * Alfa Commerce
  *
- * @copyright  (C) 2023 Open Source Matters, Inc. <https://www.joomla.org>
  * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
@@ -117,5 +116,28 @@ class PrepareDomEvent extends FieldsEvent
     public function getForm(): Form
     {
         return $this->arguments['form'];
+    }
+
+    /**
+     * The FieldsHelper context the form is prepared for ('' when the caller
+     * did not say; a field then behaves as in an unknown context).
+     *
+     *
+     * @since  1.10.0
+     */
+    public function getContext(): string
+    {
+        return (string) ($this->arguments['context'] ?? '');
+    }
+
+    /**
+     * The customer the form is built for (0 = guest / unknown).
+     *
+     *
+     * @since  1.10.0
+     */
+    public function getUserId(): int
+    {
+        return (int) ($this->arguments['userId'] ?? 0);
     }
 }

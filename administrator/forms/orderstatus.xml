@@ -12,7 +12,7 @@
 
         <!-- Customer-facing status name. Internal `name` stays the admin
              label; this is what {status_customer} renders in customer
-             emails. Required — no fallback. -->
+             emails. Required; no fallback. -->
         <field name="name_customer" type="MultilingualText"
                multilingual_table="#__alfa_orders_statuses" multilingual_pk="id_orderstatus"
                maxlength="400" filter="safehtml" required="true" translateLabel="true"
@@ -83,8 +83,8 @@
       Role flags. At most ONE row in #__alfa_orders_statuses may have each
       flag set to 1; OrderstatusModel::save() enforces this on persist
       (cross-row uniqueness). Within a single row the three roles are also
-      mutually exclusive — a status can't be both "brand-new order" and
-      "cancellation" — so each field's `showon` hides the other two when
+      mutually exclusive (a status can't be both "brand-new order" and
+      "cancellation"), so each field's `showon` hides the other two when
       one is ticked. The cross-row and within-row guards together mean
       OrderStatusHelper can lookup by flag and trust exactly one winner.
   -->
@@ -120,11 +120,85 @@
   </fieldset>
 
   <!--
-      Status-change emails. When notify_customer = 1, OrderEmailHelper
+      Sales documents. Declarative auto-issue triggers, consumed on
+      transition INTO this status, same placement philosophy as the email
+      settings. The listener never blocks the transition: missing data
+      (e.g. a required buyer tax ID for an invoice) skips issuance and pushes an admin
+      notification instead. Inert while documents_issuer = external.
+  -->
+  <fieldset name="documents" label="COM_ALFA_FORM_FIELDSET_ORDER_STATUS_DOCUMENTS">
+
+      <!-- THE sales-document trigger: rule rows evaluated top-down per
+           order entering this status, first matching row wins (empty
+           groups = catch-all). The series picker implies the document
+           type. No rows / no match = no sales document. Stored as JSON
+           on the status row (OrderstatusModel::save encodes);
+           AutoIssuePolicy::resolveRules consumes it. -->
+      <field name="issues_doc_rules" type="subform" multiple="true"
+             layout="joomla.form.field.subform.repeatable-table"
+             formsource="administrator/components/com_alfa/forms/orderstatus_doc_rule.xml"
+             label="COM_ALFA_FORM_LBL_ORDER_STATUS_DOC_RULES"
+             description="COM_ALFA_FORM_LBL_ORDER_STATUS_DOC_RULES_DESC"/>
+
+      <!-- Status gates: a status declares what it requires; the live facts
+           (payment ledger + current total) answer. Nothing is stored. -->
+      <field name="requires_paid" type="radio" default="0"
+             layout="joomla.form.field.radio.switcher"
+             label="COM_ALFA_FORM_LBL_ORDER_STATUS_REQUIRES_PAID"
+             description="COM_ALFA_FORM_LBL_ORDER_STATUS_REQUIRES_PAID_DESC">
+          <option value="0">JNO</option>
+          <option value="1">JYES</option>
+      </field>
+
+      <field name="allow_unpaid_exception" type="radio" default="0"
+             layout="joomla.form.field.radio.switcher"
+             label="COM_ALFA_FORM_LBL_ORDER_STATUS_ALLOW_UNPAID_EXCEPTION"
+             description="COM_ALFA_FORM_LBL_ORDER_STATUS_ALLOW_UNPAID_EXCEPTION_DESC"
+             showon="requires_paid:1">
+          <option value="0">JNO</option>
+          <option value="1">JYES</option>
+      </field>
+
+      <field name="grants_downloads" type="radio" default="0"
+             layout="joomla.form.field.radio.switcher"
+             label="COM_ALFA_FORM_LBL_ORDER_STATUS_GRANTS_DOWNLOADS"
+             description="COM_ALFA_FORM_LBL_ORDER_STATUS_GRANTS_DOWNLOADS_DESC">
+          <option value="0">JNO</option>
+          <option value="1">JYES</option>
+      </field>
+
+      <field name="documents_require_paid" type="radio" default="0"
+             layout="joomla.form.field.radio.switcher"
+             label="COM_ALFA_FORM_LBL_ORDER_STATUS_DOCUMENTS_REQUIRE_PAID"
+             description="COM_ALFA_FORM_LBL_ORDER_STATUS_DOCUMENTS_REQUIRE_PAID_DESC">
+          <option value="0">JNO</option>
+          <option value="1">JYES</option>
+      </field>
+
+      <field name="issues_delivery_note" type="radio" default="0"
+             layout="joomla.form.field.radio.switcher"
+             label="COM_ALFA_FORM_LBL_ORDER_STATUS_ISSUES_DELIVERY_NOTE"
+             description="COM_ALFA_FORM_LBL_ORDER_STATUS_ISSUES_DELIVERY_NOTE_DESC">
+          <option value="0">JNO</option>
+          <option value="1">JYES</option>
+      </field>
+
+      <field name="attach_document_pdf" type="radio" default="0"
+             layout="joomla.form.field.radio.switcher"
+             label="COM_ALFA_FORM_LBL_ORDER_STATUS_ATTACH_DOCUMENT_PDF"
+             description="COM_ALFA_FORM_LBL_ORDER_STATUS_ATTACH_DOCUMENT_PDF_DESC">
+          <option value="0">JNO</option>
+          <option value="1">JYES</option>
+      </field>
+
+  </fieldset>
+
+  <!--
+      Status-change emails. When notify_customer = 1, EmailService
       sends the per-language subject/body to the customer on transition
       INTO this status. notify_admin does the same for the Joomla site
       email (admin notification). Both flags + their template fields
-      are independent — admin can configure customer-only, admin-only,
+      are independent: admin can configure customer-only, admin-only,
       or both. Subject/body fields are MultilingualText / Editor so each
       language's template lives in `#__alfa_orders_statuses_<langtag>`.
   -->
@@ -148,7 +222,7 @@
 
       <!-- Wrapper layout for the customer email. Drives which position
            editors appear below (the positions the layout requests via
-           $position()/$hasPosition()). Read back by EmailPositionsField + OrderEmailHelper. -->
+           $position()/$hasPosition()). Read back by EmailPositionsField + EmailService. -->
       <field name="email_layout_customer" type="OrderStatusEmailLayout"
              default="emails.order.default"
              label="COM_ALFA_FORM_LBL_ORDER_STATUS_EMAIL_LAYOUT_CUSTOMER"
@@ -167,7 +241,7 @@
   </fieldset>
 
   <!--
-      Admin-side notification. Multi-user picker → join table; each
+      Admin-side notification. Multi-user picker -> join table; each
       picked user receives the admin email separately. Empty list =
       no admin email. SqlField key_field / value_field are explicit
       because Joomla defaults the latter to the field's `name`, which
@@ -186,7 +260,7 @@
              label="COM_ALFA_FORM_LBL_ORDER_STATUS_ADMIN_RECIPIENTS"
              description="COM_ALFA_FORM_LBL_ORDER_STATUS_ADMIN_RECIPIENTS_DESC"/>
 
-      <!-- Wrapper layout for the admin email — see customer note above. -->
+      <!-- Wrapper layout for the admin email. See customer note above. -->
       <field name="email_layout_admin" type="OrderStatusEmailLayout"
              default="emails.order.default"
              label="COM_ALFA_FORM_LBL_ORDER_STATUS_EMAIL_LAYOUT_ADMIN"

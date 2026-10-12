@@ -2,7 +2,8 @@
 <form>
     <fields name="filter">
         <field name="search" type="text" description="COM_ALFA_SEARCH_FILTER_SUBMIT"
-               label="COM_USERS_FILTER_SEARCH_DESC"
+               label="COM_ALFA_FILTER_SEARCH_LABEL"
+               hint="COM_ALFA_ORDERSTATUSES_SEARCH_PLACEHOLDER"
                class="js-stools-search-string" />
 
         <field name="state"
@@ -30,14 +31,12 @@
             <option value="">JGLOBAL_SORT_BY</option>
             <option value="a.id ASC">COM_ALFA_ID_ASC</option>
             <option value="a.id DESC">COM_ALFA_ID_DESC</option>
-            <option value="a.name ASC">COM_ALFA_NAME_ASC</option>
-            <option value="a.name DESC">COM_ALFA_NAME_DESC</option>
+            <option value="name ASC">COM_ALFA_NAME_ASC</option>
+            <option value="name DESC">COM_ALFA_NAME_DESC</option>
             <option value="a.color ASC">COM_ALFA_COLOR_ASC</option>
             <option value="a.color DESC">COM_ALFA_COLOR_DESC</option>
             <option value="a.bg_color ASC">COM_ALFA_BACKGROUND_COLOR_ASC</option>
             <option value="a.bg_color DESC">COM_ALFA_BACKGROUND_COLOR_DESC</option>
-            <option value="a.stock_action ASC">COM_ALFA_STOCK_ACTION_ASC</option>
-            <option value="a.stock_action DESC">COM_ALFA_STOCK_ACTION_DESC</option>
 
         </field>
 

@@ -1,0 +1,159 @@
+{
+    "uid": "com_alfa.discounts",
+    "version": 5,
+    "ordering": 180,
+    "title": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_TITLE",
+    "description": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_DESC",
+    "extensions": [
+        "com_alfa"
+    ],
+    "url": "administrator/index.php?option=com_alfa&view=discounts",
+    "autostart": false,
+    "steps": [
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_1_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_1_DESC",
+            "position": "bottom",
+            "target": "",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=discounts"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_2_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_2_DESC",
+            "position": "right",
+            "target": "#sidebarmenu a[href*=\"option=com_alfa\"][href*=\"view=discounts\"]",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=discounts"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_3_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_3_DESC",
+            "position": "bottom",
+            "target": ".button-new",
+            "type": 2,
+            "url": "administrator/index.php?option=com_alfa&view=discounts",
+            "interactive_type": 1
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_4_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_4_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has([id^=\"jform_name_\"])",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=discount&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_5_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_5_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_value), #jform_value",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=discount&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_6_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_6_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_is_amount), #jform_is_amount",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=discount&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_7_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_7_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_apply_before_tax), #jform_apply_before_tax",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=discount&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_8_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_8_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_behavior), #jform_behavior",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=discount&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_9_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_9_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_publish_up), #jform_publish_up",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=discount&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_10_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_10_DESC",
+            "position": "top",
+            "target": ".control-group:not(.hidden):has(#jform_categories), #jform_categories",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=discount&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_11_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_11_DESC",
+            "position": "top",
+            "target": ".control-group:not(.hidden):has(#jform_manufacturers), #jform_manufacturers",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=discount&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_12_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_12_DESC",
+            "position": "top",
+            "target": ".control-group:not(.hidden):has(#jform_places), #jform_places",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=discount&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_13_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_13_DESC",
+            "position": "top",
+            "target": ".control-group:not(.hidden):has(#jform_usergroups), #jform_usergroups",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=discount&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_14_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_14_DESC",
+            "position": "top",
+            "target": ".control-group:not(.hidden):has(#jform_users), #jform_users",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=discount&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_15_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_15_DESC",
+            "position": "bottom",
+            "target": "joomla-tab#myTab button[aria-controls=\"advanced\"]",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=discount&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_16_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_16_DESC",
+            "position": "top",
+            "target": ".control-group:not(.hidden):has(#jform_tag_list_show), #jform_tag_list_show",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=discount&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_17_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_17_DESC",
+            "position": "top",
+            "target": ".control-group:not(.hidden):has(#jform_tag_bg), #jform_tag_bg",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=discount&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_18_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_18_DESC",
+            "position": "bottom",
+            "target": "#toolbar",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=discount&layout=edit"
+        }
+    ]
+}

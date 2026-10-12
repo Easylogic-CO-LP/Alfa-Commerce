@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<form>
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
     <fields name="filter">
         <field name="search" type="text" description="COM_ALFA_SEARCH_FILTER_SUBMIT"
-               label="COM_USERS_FILTER_SEARCH_DESC"
+               label="COM_ALFA_FILTER_SEARCH_LABEL"
+               hint="COM_ALFA_FORMFIELDS_SEARCH_PLACEHOLDER"
                class="js-stools-search-string" />
 
         <field name="state"
@@ -15,12 +16,14 @@
         </field>
 
         <field name="group_id"
-               type="sql"
+               type="model"
+               model="formfieldgroups"
+               column_value="id"
+               column_text="title"
+               orderBy="a.ordering"
                label="COM_ALFA_FORM_LBL_FIELD_GROUP"
                description="COM_ALFA_FORM_DESC_FIELD_GROUP"
-               onchange="this.form.submit();"
-               query="SELECT id AS value, CONCAT(title, IF(state = 0, ' (disabled)', '')) AS text FROM #__alfa_form_field_groups ORDER BY ordering ASC"
-               key_field="value" value_field="text">
+               onchange="this.form.submit();">
             <option value="">COM_ALFA_FILTER_FIELD_GROUP</option>
             <option value="0">COM_ALFA_FORM_OPTION_FIELD_GROUP_NONE</option>
         </field>
@@ -37,7 +40,7 @@
                default="a.id DESC"
         >
             <option value="">JGLOBAL_SORT_BY</option>
-            <option value="a.ordering ASC">COM_ALFA_ORDERING_ASC</option><option value="a.ordering DESC">COM_ALFA_ORDERING_DESC</option><option value="a.id ASC">COM_ALFA_ID_ASC</option><option value="a.id DESC">COM_ALFA_ID_DESC</option><option value="a.name ASC">COM_ALFA_NAME_ASC</option><option value="a.name DESC">COM_ALFA_NAME_DESC</option><option value="a.state ASC">COM_ALFA_STATE_ASC</option><option value="a.state DESC">COM_ALFA_STATE_DESC</option>
+            <option value="a.ordering ASC">COM_ALFA_ORDERING_ASC</option><option value="a.ordering DESC">COM_ALFA_ORDERING_DESC</option><option value="a.id ASC">COM_ALFA_ID_ASC</option><option value="a.id DESC">COM_ALFA_ID_DESC</option><option value="name ASC">COM_ALFA_NAME_ASC</option><option value="name DESC">COM_ALFA_NAME_DESC</option><option value="a.state ASC">COM_ALFA_STATE_ASC</option><option value="a.state DESC">COM_ALFA_STATE_DESC</option>
 
         </field>
 

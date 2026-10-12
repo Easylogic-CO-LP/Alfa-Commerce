@@ -19,14 +19,14 @@ use Joomla\CMS\Router\Route;
 use Throwable;
 
 /**
- * Controller for the Tools → Media maintenance view.
+ * Controller for the Tools -> Media maintenance view.
  *
  * @since  1.0.0
  */
 class ToolsmediaController extends BaseController
 {
     /**
-     * Delete the selected media rows (and their files) — orphan / missing-file
+     * Delete the selected media rows (and their files): orphan / missing-file
      * cleanup. Gated by the alfa.tools permission.
      *
      *
@@ -93,7 +93,7 @@ class ToolsmediaController extends BaseController
     /**
      * Delete every untracked upload file (a file on disk with no #__alfa_media
      * row) across all pages. Unlike the orphan/missing actions this works on
-     * file paths, not row ids — deleteUntrackedFiles() re-validates each path is
+     * file paths, not row ids; deleteUntrackedFiles() re-validates each path is
      * inside the upload root and still untracked before removing it. Gated by the
      * alfa.tools permission.
      *

@@ -7,19 +7,43 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
-use Alfa\Component\Alfa\Site\Helper\PluginLayoutHelper;
+\defined('_JEXEC') or die;
 
-$cart = !empty($displayData) ? $displayData : $this->cart;
+use Alfa\Component\Alfa\Site\Helper\Layout;
+use Joomla\CMS\Language\Text;
 
+// A reading, not the cart. The layouts each method asked for come with it,
+// looked up by method id rather than hung on the method object.
+$snapshot = !empty($displayData) ? $displayData : $this->snapshot;
+$payments = $snapshot->offers->payments;
+$shipmentChosen = $snapshot->offers->selectedShipmentId > 0;
+
+// Nothing offered: with a shipping method chosen, none is allowed with it;
+// with none chosen yet, only payment methods tied to a shipping method
+// exist and the choice comes first.
+$emptyKey = match (true) {
+    $shipmentChosen                   => 'COM_ALFA_CART_NO_PAYMENT_FOR_SHIPMENT',
+    $snapshot->offers->hasShipments    => 'COM_ALFA_CART_PAYMENT_CHOOSE_SHIPMENT_FIRST',
+    default                           => 'COM_ALFA_CART_NO_PAYMENT_AVAILABLE',
+};
 ?>
 
-<div class="mb-3" data-cart-payments>
+<div class="cart-methods" data-cart-payments>
+
+	<?php foreach ($snapshot->offers->notices('payment') as $notice) : ?>
+        <p class="cart-methods-notice" role="status"><?php echo htmlspecialchars($notice, ENT_QUOTES, 'UTF-8'); ?></p>
+	<?php endforeach; ?>
+
+	<?php if ($payments === []) : ?>
+        <p class="cart-methods-empty"><?php echo Text::_($emptyKey); ?></p>
+	<?php endif; ?>
 
 	<?php
 
-	foreach ($cart->getPaymentMethods() as $payment):
+	foreach ($payments as $payment):
 
-		$checked = $cart->getData()->id_payment == $payment->id ? 'checked' : '';
+		$checked = $snapshot->offers->selectedPaymentId === (int) $payment->id ? 'checked' : '';
+		$view = $snapshot->offers->viewFor('payment', (int) $payment->id);
 		?>
         <div>
             <input
@@ -37,14 +61,9 @@ $cart = !empty($displayData) ? $displayData : $this->cart;
 
             <p><?php echo htmlspecialchars($payment->description, ENT_QUOTES, 'UTF-8'); ?></p>
 
-			<?php
-			// TODO: Error handling for missing template.
-			echo PluginLayoutHelper::pluginLayout(
-				$payment->events->onCartView->getLayoutPluginType(),
-				$payment->events->onCartView->getLayoutPluginName(),
-				$payment->events->onCartView->getLayout()
-			)->render($payment->events->onCartView->getLayoutData());
-			?>
+			<?php if ($view !== null) : ?>
+				<?php echo Layout::render($view->layout, $view->layoutData, $view->pluginType, $view->pluginName); ?>
+			<?php endif; ?>
 
         </div>
 	<?php endforeach ?>

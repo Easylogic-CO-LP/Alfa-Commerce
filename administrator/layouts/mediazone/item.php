@@ -5,7 +5,7 @@
 	 *
 	 * Media Item Template
 	 * Displays a single media card with preview and edit controls.
-	 * Layout id: mediazone.item — rendered by MediaZoneField, grid.php and the
+	 * Layout id: mediazone.item, rendered by MediaZoneField, grid.php and the
 	 * media.getSource AJAX endpoint (renamed from the former dropmedia.php).
 	 *
 	 * @var object $media Media object with:

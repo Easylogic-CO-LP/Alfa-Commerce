@@ -1,19 +1,19 @@
 <?php
 /**
- * Order Edit — Shipments Tab (Auto-Discovery + Merge Map)
+ * Order Edit: Shipments Tab (Auto-Discovery + Merge Map)
  *
  * Columns are auto-generated from order_shipments.xml subform fields.
  * Adding a field to the XML automatically adds it to this table.
  *
  * Three configuration arrays at the top control the layout:
  *
- *   $mergeMap   — Which fields share a table cell. The "primary" field
+ *   $mergeMap   - Which fields share a table cell. The "primary" field
  *                 gets the column header; "children" render below it.
  *
- *   $renderMap  — Custom HTML rendering per field name. Provides badges,
+ *   $renderMap  - Custom HTML rendering per field name. Provides badges,
  *                 monospace formatting, coloured dates, etc.
  *
- * To reorganize the table, just edit the two arrays — no need to touch
+ * To reorganize the table, just edit the two arrays; no need to touch
  * the rendering loop below.
  *
  * @package    Alfa Commerce
@@ -24,19 +24,25 @@
  * @since  1.0.0
  */
 
+\defined('_JEXEC') or die;
+
 use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\PluginLayoutHelper;
+use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Joomla\CMS\Router\Route;
+
+// Adding, editing and running plugin actions on shipments are order edits.
+$canEditOrder = AlfaHelper::can(section: 'orders', action: 'edit', user: $this->getCurrentUser());
 
 // Load shipment data from the order and the form field definitions
 $shipments         = $this->order->shipments;
 $shipments_subform = $this->form->getField('shipments')->loadSubForm();
 $shipmentFields    = $shipments_subform->getFieldset();
 
-// =====================================================================
-//  MERGE MAP — Which fields share a table cell
+//  MERGE MAP - Which fields share a table cell
 //
 //  Format: 'primary_field' => ['child1', 'child2', ...]
 //
@@ -49,35 +55,32 @@ $shipmentFields    = $shipments_subform->getFieldset();
 //
 //  Example results:
 //    'id_shipment_method' => ['status']
-//    → Cell shows:  test
-//                   [Shipped]   ← badge below
+//    -> Cell shows:  test
+//                   [Shipped]   <- badge below
 //
 //    'added' => ['shipped', 'delivered']
-//    → Cell shows:  2026-03-04 17:55
-//                   Shipped: 2026-03-05 10:45   ← blue
-//                   Delivered: 2026-03-05 14:30 ← green bold
-// =====================================================================
+//    -> Cell shows:  2026-03-04 17:55
+//                   Shipped: 2026-03-05 10:45   <- blue
+//                   Delivered: 2026-03-05 14:30 <- green bold
 $mergeMap = [
 	'id_shipment_method'     => ['status'],                     // Method name + status badge
-	'shipping_cost_tax_incl' => ['shipping_cost_tax_excl'],     // Cost incl + excl below
+	'shipping_cost_tax_incl' => ['shipping_cost_tax_excl', 'shipping_tax_rate'], // Cost incl, excl and VAT rate below
 	'tracking_number'        => ['carrier_name'],               // Tracking code + carrier name
 	'added'                  => ['shipped', 'delivered'],       // All dates stacked
 ];
 
-// =====================================================================
-//  RENDER MAP — Custom HTML rendering per field name
+//  RENDER MAP - Custom HTML rendering per field name
 //
-//  Format: 'field_name' => function($value, $shipment, $escape) → string
+//  Format: 'field_name' => function($value, $shipment, $escape) -> string
 //
 //  Each function receives:
-//    $value    — The field's value from the shipment object
-//    $shipment — The full shipment object (for cross-field access)
-//    $escape   — Callable that escapes HTML
+//    $value    - The field's value from the shipment object
+//    $shipment - The full shipment object (for cross-field access)
+//    $escape   - Callable that escapes HTML
 //
 //  Return an HTML string. Fields NOT listed here fall through to:
-//    1. Money objects → $value->format()
-//    2. Everything else → $this->escape($value)
-// =====================================================================
+//    1. Money objects -> $value->format()
+//    2. Everything else -> $this->escape($value)
 
 // Badge class lookups for shipment status values
 $statusBadges = [
@@ -94,7 +97,7 @@ $escape = function (string $value): string {
 
 $renderMap = [
 
-	// ── Shipment method: #ID + snapshot name ────────────────
+	// Shipment method: #ID + snapshot name
 	// Shows the shipment record ID prominently so the admin can
 	// identify which shipment is referenced in activity logs.
 	// The method name comes from the snapshot (survives method deletion).
@@ -104,49 +107,56 @@ $renderMap = [
 		return '<strong>#' . $id . '</strong> ' . $name;
 	},
 
-	// ── Status: coloured badge ──────────────────────────────
+	// Status: coloured badge
 	'status' => function ($value) use ($statusBadges) {
 		$badgeClass = $statusBadges[(string) $value] ?? 'bg-secondary';
 		return '<span class="badge ' . $badgeClass . '" style="font-size:0.9em">'
 			. ucfirst((string) $value) . '</span>';
 	},
 
-	// ── Cost tax incl: bold ─────────────────────────────────
+	// Cost tax incl: bold
 	'shipping_cost_tax_incl' => function ($value) {
 		if (is_object($value) && method_exists($value, 'format')) {
 			return '<strong>' . $value->format() . '</strong>';
 		}
-		return '<strong>€' . number_format((float) $value, 2, ',', '.') . '</strong>';
+		// A cost that is not money names no currency: the notice in its
+		// place, never a number under a currency sign.
+		return '<strong>' . htmlspecialchars(OrderCurrency::notice(), ENT_QUOTES, 'UTF-8') . '</strong>';
 	},
 
-	// ── Cost tax excl: smaller muted text ───────────────────
+	// Cost tax excl: smaller muted text
 	'shipping_cost_tax_excl' => function ($value) {
 		if (is_object($value) && method_exists($value, 'format')) {
 			return '<small>' . $value->format() . '</small>';
 		}
-		return '<small>€' . number_format((float) $value, 2, ',', '.') . '</small>';
+		return '<small>' . htmlspecialchars(OrderCurrency::notice(), ENT_QUOTES, 'UTF-8') . '</small>';
 	},
 
-	// ── Tracking number: monospace code styling ─────────────
+	// VAT rate the charge was taxed at
+	'shipping_tax_rate' => function ($value) {
+		return '<small>' . Text::sprintf('COM_ALFA_SHIPPING_TAX_RATE_SHORT', htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8')) . '</small>';
+	},
+
+	// Tracking number: monospace code styling
 	'tracking_number' => function ($value, $shipment, $escape) {
 		if (!empty($value)) {
 			return '<code>' . $escape($value) . '</code>';
 		}
-		return '<span class="text-muted">—</span>';
+		return '<span class="text-muted">-</span>';
 	},
 
-	// ── Carrier name: plain text (empty returns nothing) ────
+	// Carrier name: plain text (empty returns nothing)
 	'carrier_name' => function ($value, $shipment, $escape) {
 		return !empty($value) ? $escape($value) : '';
 	},
 
-	// ── Items: each product on its own line ─────────────────
+	// Items: each product on its own line
 	// The value is a comma-separated string from getShipmentItemNames().
 	// Split by comma and render each product as a separate line
 	// for readability instead of one long wrapping string.
 	'items' => function ($value, $shipment, $escape) {
 		if (empty($value)) {
-			return '<span class="text-muted">—</span>';
+			return '<span class="text-muted">-</span>';
 		}
 
 		// Split the comma-separated string into individual products
@@ -162,7 +172,7 @@ $renderMap = [
 		return '<small>' . implode('<br>', $lines) . '</small>';
 	},
 
-	// ── Weight: formatted with kg unit ──────────────────────
+	// Weight: formatted with kg unit
 	'weight' => function ($value) {
 		// Handle Money objects (shouldn't be, but defensive)
 		if (is_object($value) && method_exists($value, 'getAmount')) {
@@ -170,15 +180,15 @@ $renderMap = [
 		}
 		return ((float) $value > 0)
 			? number_format((float) $value, 2) . ' kg'
-			: '<span class="text-muted">—</span>';
+			: '<span class="text-muted">-</span>';
 	},
 
-	// ── Date added: standard formatted date ─────────────────
+	// Date added: standard formatted date
 	'added' => function ($value) {
 		return !empty($value) ? HTMLHelper::_('date', $value, 'Y-m-d H:i') : '';
 	},
 
-	// ── Shipped date: blue tinted with label ────────────────
+	// Shipped date: blue tinted with label
 	'shipped' => function ($value) {
 		if (empty($value)) {
 			return '';
@@ -189,7 +199,7 @@ $renderMap = [
 			. '</span>';
 	},
 
-	// ── Delivered date: green bold with label ───────────────
+	// Delivered date: green bold with label
 	'delivered' => function ($value) {
 		if (empty($value)) {
 			return '';
@@ -201,12 +211,10 @@ $renderMap = [
 	},
 ];
 
-// =====================================================================
-//  BUILD LOOKUP TABLES
+//  Build lookup tables
 //
 //  Computed once from the merge map. Used during the rendering loop
 //  to skip child fields (they're rendered inside their parent's cell).
-// =====================================================================
 $childFields = [];
 foreach ($mergeMap as $primary => $children) {
 	foreach ($children as $child) {
@@ -220,9 +228,7 @@ foreach ($mergeMap as $primary => $children) {
     .merge-child { font-size: 0.82em; color: #6c757d; margin-top: 2px; }
 </style>
 
-<!-- ═══════════════════════════════════════════════════════════════ -->
 <!--  SECTION HEADER: Title + Add Shipment button                   -->
-<!-- ═══════════════════════════════════════════════════════════════ -->
 <div class="row mt-4">
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center mb-3">
@@ -233,20 +239,20 @@ foreach ($mergeMap as $primary => $children) {
                     <span class="badge bg-secondary"><?php echo count($shipments); ?></span>
 				<?php endif; ?>
             </h3>
+            <?php if ($canEditOrder) : ?>
             <a href="#addShipmentModal" data-bs-toggle="modal" class="btn btn-success">
                 <span class="icon-plus"></span> <?php echo Text::_('COM_ALFA_ADD_SHIPMENT'); ?>
             </a>
+            <?php endif; ?>
         </div>
     </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════ -->
 <!--  SHIPMENTS TABLE                                               -->
-<!-- ═══════════════════════════════════════════════════════════════ -->
 <?php if (!empty($shipments)): ?>
     <table class="table table-striped table-bordered">
 
-        <!-- ── TABLE HEADER ────────────────────────────────────── -->
+        <!-- Table header -->
         <!-- Auto-generated from XML fields.                        -->
         <!-- Skips: hidden fields and child fields.                  -->
         <thead>
@@ -270,7 +276,7 @@ foreach ($mergeMap as $primary => $children) {
         </tr>
         </thead>
 
-        <!-- ── TABLE BODY ─────────────────────────────────────── -->
+        <!-- Table body -->
         <tbody id="shipment-rows">
 		<?php foreach ($shipments as $shipment): ?>
 			<?php
@@ -283,7 +289,7 @@ foreach ($mergeMap as $primary => $children) {
 
 			// Plugin action buttons (Mark Shipped, Delivered, etc.)
 			$actions    = ActionRegistry::getShipmentActions($shipment, $this->order);
-			$pluginType = $shipment->params->type ?? 'standard';
+			$pluginType = ActionRegistry::methodType($shipment, 'shipment_method_type');
 			?>
             <tr>
 
@@ -301,7 +307,7 @@ foreach ($mergeMap as $primary => $children) {
 					?>
                     <td>
 						<?php
-						// ── STEP 1: Render the primary field ────────
+						// STEP 1: Render the primary field
 						// Check renderMap for custom rendering, otherwise
 						// fall through to Money::format() or escape()
 						if (isset($renderMap[$fieldName])) {
@@ -312,7 +318,7 @@ foreach ($mergeMap as $primary => $children) {
 							echo $this->escape($value);
 						}
 
-						// ── STEP 2: Render merged children below ────
+						// STEP 2: Render merged children below
 						// If this field has children in the mergeMap,
 						// render each one inside a <div class="merge-child">
 						if (isset($mergeMap[$fieldName])) {
@@ -338,9 +344,10 @@ foreach ($mergeMap as $primary => $children) {
                     </td>
 				<?php endforeach; ?>
 
-                <!-- ── Actions cell ───────────────────────────── -->
+                <!-- Actions cell -->
                 <td>
                     <!-- Edit button (icon-only to save space) -->
+                    <?php if ($canEditOrder) : ?>
                     <div class="btn-group me-1" role="group">
                         <a href="#<?php echo $modalId; ?>"
                            data-bs-toggle="modal"
@@ -349,9 +356,10 @@ foreach ($mergeMap as $primary => $children) {
                             <span class="icon-edit"></span>
                         </a>
                     </div>
+                    <?php endif; ?>
 
                     <!-- Plugin action buttons (Mark Shipped, Delivered, etc.) -->
-					<?php if (!empty($actions)): ?>
+					<?php if ($canEditOrder && !empty($actions)): ?>
                         <div class="btn-group" role="group">
 							<?php foreach ($actions as $action):
 								$buttonLayout = PluginLayoutHelper::pluginLayout(
@@ -390,10 +398,8 @@ foreach ($mergeMap as $primary => $children) {
     </div>
 <?php endif; ?>
 
-<!-- ═══════════════════════════════════════════════════════════════ -->
 <!--  ADD SHIPMENT MODAL                                            -->
 <!--  Opens the edit_shipment.php form with id=0 for a new record.  -->
-<!-- ═══════════════════════════════════════════════════════════════ -->
 <?php
 $addShipmentUrl = Route::_(sprintf(
 	'index.php?option=com_alfa&view=order&layout=edit_shipment&tmpl=component&id=0&id_order=%d',
@@ -411,8 +417,7 @@ echo HTMLHelper::_(
 );
 ?>
 
-<!-- ═══════════════════════════════════════════════════════════════ -->
-<!--  MODAL COMMUNICATION — postMessage between iframe and parent   -->
+<!--  MODAL COMMUNICATION - postMessage between iframe and parent   -->
 <!--                                                                 -->
 <!--  When a shipment is saved or an action is executed inside the   -->
 <!--  modal iframe, the iframe sends a postMessage to the parent:    -->
@@ -422,7 +427,6 @@ echo HTMLHelper::_(
 <!--  This script listens for that message and:                      -->
 <!--    1. Closes the modal (if shouldClose)                         -->
 <!--    2. Reloads the order page (if shouldReload)                  -->
-<!-- ═══════════════════════════════════════════════════════════════ -->
 <script>
     (function() {
         'use strict';
@@ -436,6 +440,11 @@ echo HTMLHelper::_(
          *   - The modal should close (shouldClose = true)
          */
         window.addEventListener('message', function(event) {
+            // Only accept messages from our own origin (the shipment modals are same-origin).
+            if (event.origin !== window.location.origin) {
+                return;
+            }
+
             // Only handle messages from our shipment modals
             if (event.data.messageType !== 'alfa:shipment-action') {
                 return;
@@ -467,9 +476,7 @@ echo HTMLHelper::_(
             }
 
             // Show Joomla's built-in loading spinner
-            document.body.appendChild(document.createElement('joomla-core-loader'));
-
-            // Set the task to "reload" — the controller handles this by
+            // Set the task to "reload"; the controller handles this by
             // re-rendering the edit page without saving
             var taskInput = orderForm.querySelector('input[name=task]');
             var url = new URL(window.location.href);
@@ -479,15 +486,16 @@ echo HTMLHelper::_(
                 taskInput.value = view + '.reload';
             }
 
-            orderForm.submit();
+            // Painted first, then submitted; see Alfa.loader.showThen().
+            Alfa.loader.showThen(() => orderForm.submit());
         }
 
         /**
          * Close a Bootstrap modal by its shipment ID.
          *
-         * Maps shipmentId → modal element ID:
-         *   shipmentId = 0  → 'addShipmentModal' (the "Add Shipment" modal)
-         *   shipmentId = 5  → 'shipmentModal-5' (edit modal for shipment #5)
+         * Maps shipmentId -> modal element ID:
+         *   shipmentId = 0  -> 'addShipmentModal' (the "Add Shipment" modal)
+         *   shipmentId = 5  -> 'shipmentModal-5' (edit modal for shipment #5)
          *
          * @param {number} shipmentId  The shipment row PK (0 for new)
          * @since  1.0.0

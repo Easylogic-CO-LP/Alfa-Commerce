@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-    Standard Shipment Plugin — Log Schema
+    Standard Shipment Plugin - Log Schema
 
     Defines plugin-specific columns for #__alfa_shipments_standard_logs.
 
@@ -30,7 +30,7 @@
             <field name="status" mysql_type="varchar(20)" default="NULL"/>
 
             <!-- Shipping cost at time of action -->
-            <field name="shipment_total" mysql_type="decimal(20,6)" default="0.000000"/>
+            <field name="shipment_total" mysql_type="decimal(24,8)" default="0.00000000"/>
 
             <!-- Currency code -->
             <field name="currency" mysql_type="char(3)" default="NULL"/>

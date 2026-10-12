@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extension type="plugin" group="alfa-payments" method="upgrade">
-	<name>plg_alfa-payments_standard</name>
+	<name>PLG_ALFA_PAYMENTS_STANDARD</name>
 	<copyright>(C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.</copyright>
 	<license>GNU General Public License version 3 or later; see LICENSE</license>
 	<author>Agamemnon Fakas</author>
-	<creationDate>2016-03</creationDate>
-	<copyright>(C) 2016 Open Source Matters, Inc.</copyright>
-	<license>GNU General Public License version 3 or later; see LICENSE</license>
+	<creationDate>2024</creationDate>
 	<authorEmail>info@easylogic.gr</authorEmail>
 	<authorUrl>http://easylogic.gr</authorUrl>
 	<version>1.0.2</version>
@@ -17,31 +15,19 @@
 		<folder>src</folder>
 		<folder>tmpl</folder>
 		<folder>params</folder>
-	</files>
+    </files>
+    <languages folder="language">
+        <language tag="en-GB">en-GB/plg_alfa-payments_standard.ini</language>
+        <language tag="en-GB">en-GB/plg_alfa-payments_standard.sys.ini</language>
+    </languages>
+	<media destination="plg_alfa-payments_standard" folder="media">
+		<folder>js</folder>
+		<filename>joomla.asset.json</filename>
+	</media>
 
-	<languages folder="language">
-		<language tag="en-GB">en-GB/plg_alfa-payments_standard.ini</language>
-		<language tag="en-GB">en-GB/plg_alfa-payments_standard.sys.ini</language>
-	</languages>
 	<config>
 		<fields name="params">
 			<fieldset name="basic">
-				<!-- <field
-					name="test"
-					type="list"
-					label="Test field"
-					>
-					<option value="0">JNO</option>
-					<option value="1">JYES</option>
-					<option value="2">TEST</option>
-				</field>
-
-				<field
-					name="maxlength"
-					type="number"
-					label="Test number field"
-					filter="integer"
-				/> -->
 			</fieldset>
 		</fields>
 	</config>

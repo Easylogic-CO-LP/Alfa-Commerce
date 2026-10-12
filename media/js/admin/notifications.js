@@ -1,20 +1,19 @@
 /**
- * Alfa Admin — Notification Center (toolbar badge + quick panel)
- * ---------------------------------------------------------------------------
+ * Alfa Admin: Notification Center (toolbar badge + quick panel)
  * LAYOUT-DRIVEN component. The whole thing (button + panel) is server-rendered as one
- * `.alfa-notify` node by the badge layout; this script never builds content — on refresh
+ * `.alfa-notify` node by the badge layout; this script never builds content; on refresh
  * it re-fetches that same layout and swaps the node in place. All state is declarative:
  * the panel carries `data-open`, so the server renders it open/closed and the JS only
  * re-positions. The panel is position:fixed and rendered in place (not moved to <body>);
  * the JS just sets its top/left from the button.
  *
- * NOTE: unrelated to Alfa.notify() (toast.js) — that is transient toasts; this is the
+ * NOTE: unrelated to Alfa.notify() (toast.js): that is transient toasts; this is the
  * persistent notification centre.
  *
  * Public API:   window.alfaNotifications.refresh()
- * Live refresh: 'alfa-notifications-changed' event · postMessage {alfaNotifications:'refresh'} · poll
+ * Live refresh: 'alfa-notifications-changed' event - postMessage {alfaNotifications:'refresh'} - poll
  *
- * @package  Com_Alfa
+ * @package  Alfa Commerce
  * @since  1.0.0
  */
 (function () {
@@ -28,7 +27,7 @@
 
     /**
      * The contract with the badge/panel layouts (badge.php, panel.php). Every selector
-     * and state token the script touches lives here — change the markup, change one line.
+     * and state token the script touches lives here: change the markup, change one line.
      */
     var SEL = {
         root:      '.alfa-notify',              // component wrapper (the swapped node)
@@ -74,7 +73,7 @@
     }
 
     /**
-     * Set the panel's open state — updates both the data attribute (so a refresh can
+     * Set the panel's open state: updates both the data attribute (so a refresh can
      * read + preserve it) and the visibility class.
      *
      * @param {boolean} state
@@ -168,7 +167,7 @@
             });
         });
 
-        // The markup may arrive already-open (preserved across a refresh) — re-anchor it.
+        // The markup may arrive already-open (preserved across a refresh): re-anchor it.
         if (isOpen()) {
             position();
         }
@@ -206,10 +205,10 @@
     /**
      * Re-fetch the badge layout (passing the current open state so it comes back open if
      * it was open) and swap the whole `.alfa-notify` node in place. This is the only way
-     * content changes — no DOM is built here. The endpoint also runs the integrity sync.
+     * content changes; no DOM is built here. The endpoint also runs the integrity sync.
      */
     function refresh() {
-        var url = opts.panelUrl + '&' + SEL.openParam + '=' + (isOpen() ? 1 : 0);
+        var url = opts.panelUrl + '&' + SEL.openParam + '=' + (isOpen() ? 1 : 0) + '&' + opts.token + '=1';
 
         fetch(url, {
             credentials: 'same-origin',
@@ -243,7 +242,7 @@
 
     /**
      * Bootstrap: resolve options, grab the server-rendered component, bind it, and expose
-     * the refresh API + live-refresh triggers. No initial fetch — the markup is already
+     * the refresh API + live-refresh triggers. No initial fetch: the markup is already
      * rendered; integrity-check.js calls refresh() after load.
      */
     function init() {
@@ -264,7 +263,7 @@
         window.alfaNotifications = { refresh: refresh };
         window.addEventListener('alfa-notifications-changed', refresh);
         window.addEventListener('message', function (e) {
-            // Only trust same-origin messages (or a same-window post) — never act on a
+            // Only trust same-origin messages (or a same-window post); never act on a
             // refresh request from an arbitrary origin.
             var sameOrigin = e.origin === window.location.origin;
             var sameWindow = !e.origin && e.source === window;

@@ -1,17 +1,16 @@
 /**
- * Alfa Admin — background integrity check.
- * ---------------------------------------------------------------------------
+ * Alfa Admin: background integrity check.
  * Independent of the notification UI on purpose. The badge + panel are server-rendered
  * (instant, no flicker); after the page has loaded this asks the notification centre to
- * refresh once — that refresh hits the panel endpoint, which runs the 24h-cached
+ * refresh once; that refresh hits the panel endpoint, which runs the 24h-cached
  * integrity check (CDN fetch + file hashing) server-side and returns the fresh component.
  * So the one potentially-slow check never touches page render, and the badge updates only
  * if the integrity state actually changed.
  *
- * Event-driven, no polling: it triggers as soon as the notification centre is ready —
+ * Event-driven, no polling: it triggers as soon as the notification centre is ready:
  * either it already is (immediate) or on its 'alfa-notifications-ready' event.
  *
- * @package  Com_Alfa
+ * @package  Alfa Commerce
  * @since  1.0.0
  */
 (function () {
@@ -39,7 +38,7 @@
         }
     }
 
-    // Defer to after page load — this is a background task, not part of render.
+    // Defer to after page load; this is a background task, not part of render.
     if (document.readyState === 'complete') {
         start();
     } else {

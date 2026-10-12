@@ -1,0 +1,57 @@
+{
+    "uid": "com_alfa.notifications",
+    "version": 3,
+    "title": "COM_ALFA_GUIDEDTOUR_NOTIFICATIONS_TITLE",
+    "description": "COM_ALFA_GUIDEDTOUR_NOTIFICATIONS_DESC",
+    "extensions": [
+        "com_alfa"
+    ],
+    "url": "administrator/index.php?option=com_alfa&view=notifications",
+    "autostart": false,
+    "steps": [
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_NOTIFICATIONS_STEP_1_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_NOTIFICATIONS_STEP_1_DESC",
+            "position": "right",
+            "target": "#sidebarmenu a[href*=\"option=com_alfa\"][href*=\"view=notifications\"]",
+            "type": 2,
+            "interactive_type": 1,
+            "url": "administrator/index.php?option=com_alfa&view=notifications"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_NOTIFICATIONS_STEP_2_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_NOTIFICATIONS_STEP_2_DESC",
+            "position": "top",
+            "target": "#notificationList, #adminForm",
+            "type": 2,
+            "interactive_type": 3,
+            "url": "administrator/index.php?option=com_alfa&view=notifications"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_NOTIFICATIONS_STEP_3_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_NOTIFICATIONS_STEP_3_DESC",
+            "position": "bottom",
+            "target": ".js-stools-btn-filter, #filter_search",
+            "type": 2,
+            "interactive_type": 3,
+            "url": "administrator/index.php?option=com_alfa&view=notifications"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_NOTIFICATIONS_STEP_4_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_NOTIFICATIONS_STEP_4_DESC",
+            "position": "top",
+            "target": "#notificationList, #adminForm",
+            "type": 2,
+            "interactive_type": 3,
+            "url": "administrator/index.php?option=com_alfa&view=notifications"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_NOTIFICATIONS_STEP_5_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_NOTIFICATIONS_STEP_5_DESC",
+            "position": "bottom",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=notifications"
+        }
+    ],
+    "ordering": 250
+}

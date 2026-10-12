@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <form>
-    <fields name="fieldsparams">
+    <fields name="formfieldsparams">
         <fieldset name="fieldparams" label="COM_ALFA_FIELDS_PARAMS_TAB">
             <field
                 addfieldprefix="Alfa\Component\Alfa\Administrator\Field"

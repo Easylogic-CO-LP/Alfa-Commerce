@@ -1,0 +1,51 @@
+{
+  "$schema": "https://developer.joomla.org/schemas/json-schema/web_assets.json",
+  "name": "mod_alfa_items",
+  "version": "1.0.0",
+  "description": "Alfa Items module: tabs, grid or slider of catalogue cards.",
+  "license": "GPL-3.0-or-later",
+  "assets": [
+    {
+      "name": "mod_alfa_items.items",
+      "type": "style",
+      "uri": "mod_alfa_items/items.css"
+    },
+    {
+      "name": "mod_alfa_items.items",
+      "type": "script",
+      "uri": "mod_alfa_items/items.js",
+      "dependencies": [
+        "core"
+      ],
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "mod_alfa_items.keen-slider",
+      "type": "style",
+      "uri": "mod_alfa_items/keen-slider.min.css"
+    },
+    {
+      "name": "mod_alfa_items.keen-slider",
+      "type": "script",
+      "uri": "mod_alfa_items/keen-slider.min.js",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "mod_alfa_items.look-editor",
+      "type": "style",
+      "uri": "mod_alfa_items/look-editor.css"
+    },
+    {
+      "name": "mod_alfa_items.look-editor",
+      "type": "script",
+      "uri": "mod_alfa_items/look-editor.js",
+      "attributes": {
+        "defer": true
+      }
+    }
+  ]
+}

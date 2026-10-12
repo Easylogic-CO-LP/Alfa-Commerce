@@ -11,9 +11,12 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFormPermissions;
 use Joomla\CMS\MVC\Controller\FormController;
 
 class FormfieldgroupController extends FormController
 {
+    use HasFormPermissions;
+
     protected $view_list = 'formfieldgroups';
 }

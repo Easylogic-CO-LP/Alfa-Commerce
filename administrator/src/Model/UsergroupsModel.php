@@ -5,10 +5,15 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
-use Joomla\CMS\MVC\Model\ListModel;
 
-class UsergroupsModel extends ListModel
+class UsergroupsModel extends AlfaListModel
 {
+    /**
+     * @var string The entity a plugin targets with $context->targets('usergroup').
+     * @since  1.8.0
+     */
+    protected string $alfaEntity = 'usergroup';
+
     public function __construct($config = [], ?MVCFactoryInterface $factory = null)
     {
         if (empty($config['filter_fields'])) {

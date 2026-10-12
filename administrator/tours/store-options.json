@@ -1,0 +1,70 @@
+{
+    "uid": "com_alfa.store-options",
+    "version": 2,
+    "ordering": 15,
+    "title": "COM_ALFA_GUIDEDTOUR_STORE_OPTIONS_TITLE",
+    "description": "COM_ALFA_GUIDEDTOUR_STORE_OPTIONS_DESC",
+    "extensions": [
+        "com_alfa"
+    ],
+    "url": "administrator/index.php?option=com_config&view=component&component=com_alfa",
+    "autostart": false,
+    "steps": [
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_STORE_OPTIONS_STEP_1_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_STORE_OPTIONS_STEP_1_DESC",
+            "position": "bottom",
+            "target": "",
+            "type": 0,
+            "url": "administrator/index.php?option=com_config&view=component&component=com_alfa"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_STORE_OPTIONS_STEP_2_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_STORE_OPTIONS_STEP_2_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_store_name), #jform_store_name",
+            "type": 0,
+            "url": "administrator/index.php?option=com_config&view=component&component=com_alfa"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_STORE_OPTIONS_STEP_3_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_STORE_OPTIONS_STEP_3_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_store_email), #jform_store_email",
+            "type": 0,
+            "url": "administrator/index.php?option=com_config&view=component&component=com_alfa"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_STORE_OPTIONS_STEP_4_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_STORE_OPTIONS_STEP_4_DESC",
+            "position": "bottom",
+            "target": "joomla-tab button[aria-controls=\"currencies\"]",
+            "type": 0,
+            "url": "administrator/index.php?option=com_config&view=component&component=com_alfa"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_STORE_OPTIONS_STEP_5_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_STORE_OPTIONS_STEP_5_DESC",
+            "position": "bottom",
+            "target": "joomla-tab button[aria-controls=\"mediazone\"]",
+            "type": 0,
+            "url": "administrator/index.php?option=com_config&view=component&component=com_alfa"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_STORE_OPTIONS_STEP_6_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_STORE_OPTIONS_STEP_6_DESC",
+            "position": "bottom",
+            "target": "joomla-tab button[aria-controls=\"permissions\"]",
+            "type": 0,
+            "url": "administrator/index.php?option=com_config&view=component&component=com_alfa"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_STORE_OPTIONS_STEP_7_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_STORE_OPTIONS_STEP_7_DESC",
+            "position": "bottom",
+            "target": "#toolbar",
+            "type": 0,
+            "url": "administrator/index.php?option=com_config&view=component&component=com_alfa"
+        }
+    ]
+}

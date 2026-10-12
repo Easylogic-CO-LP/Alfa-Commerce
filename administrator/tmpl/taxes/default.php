@@ -15,6 +15,9 @@ use Joomla\CMS\Router\Route;
 use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Session\Session;
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\Actions;
+use Alfa\Component\Alfa\Administrator\Helper\Columns;
 
 $wa = $this->getDocument()->getWebAssetManager();
 $wa->useStyle('com_alfa.admin')
@@ -34,6 +37,10 @@ if ($saveOrder && !empty($this->items)) {
     HTMLHelper::_('draggablelist.draggable');
 }
 
+// Plugin-declared columns (onAlfaAdminListColumns). END-only folding: every
+// contributed column lands after the last core column, the table stays rectangular.
+$columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);
+
 
 ?>
 
@@ -44,7 +51,8 @@ if ($saveOrder && !empty($this->items)) {
             <div id="j-main-container" class="j-main-container">
                 <?php echo LayoutHelper::render('joomla.searchtools.default', array('view' => $this)); ?>
 
-                <div class="clearfix"></div>
+                <div class="clearfix"></div><?php echo $this->renderSlot('before-grid'); ?><?php echo Actions::bulkBar($this->pluginBulkActions ?? []); ?>
+
                 <?php if (empty($this->items)) : ?>
                 	<div class="alert alert-info">
                 		<span class="icon-info-circle" aria-hidden="true"></span><span class="visually-hidden"><?php echo \Joomla\CMS\Language\Text::_("INFO"); ?></span>
@@ -89,7 +97,7 @@ if ($saveOrder && !empty($this->items)) {
                         </th>
 
                         <th scope="col" class="left">
-                            <?php echo Text::_('COM_ALFA_TAXES_CATEGORIES'); ?>
+                            <?php echo Text::_('COM_ALFA_TAXES_MANUFACTURERS'); ?>
                         </th>
 
                         <th scope="col" class="left">
@@ -106,23 +114,16 @@ if ($saveOrder && !empty($this->items)) {
 
                         <th scope="col" class="w-3 d-none d-lg-table-cell" >
 
-                            <?php echo HTMLHelper::_('searchtools.sort',  'JGRID_HEADING_ID', 'a.id', $listDirn, $listOrder); ?>					</th>
+                            <?php echo HTMLHelper::_('searchtools.sort',  'JGRID_HEADING_ID', 'a.id', $listDirn, $listOrder); ?>					</th><?php echo Columns::heads($columnsByAnchor, Columns::END); ?><?php echo Actions::head($this->pluginRowActions ?? []); ?>
+
                     </tr>
                     </thead>
-                    <tfoot>
-                    <tr>
-                        <td colspan="<?php echo isset($this->items[0]) ? count(get_object_vars($this->items[0])) : 10; ?>">
-                            <?php echo $this->pagination->getListFooter(); ?>
-                        </td>
-                    </tr>
-                    </tfoot>
                     <tbody <?php if (!empty($saveOrder)) :?> class="js-draggable" data-url="<?php echo $saveOrderingUrl; ?>" data-direction="<?php echo strtolower($listDirn); ?>" <?php endif; ?>>
                     <?php foreach ($this->items as $i => $item) :
                         $ordering   = ($listOrder == 'a.ordering');
-                        $canCreate  = $user->authorise('core.create', 'com_alfa');
-                        $canEdit    = $user->authorise('core.edit', 'com_alfa');
-                        $canCheckin = $user->authorise('core.manage', 'com_alfa');
-                        $canChange  = $user->authorise('core.edit.state', 'com_alfa');
+                        $canEdit    = AlfaHelper::can(section: 'taxes', action: 'edit', user: $user);
+                        $canCheckin = $canEdit; // check-in is part of editing
+                        $canChange  = AlfaHelper::can(section: 'taxes', action: 'edit.state', user: $user);
                         ?>
                         <tr class="row<?php echo $i % 2; ?>" data-draggable-group='1' data-transition>
                             <td class="text-center">
@@ -166,7 +167,7 @@ if ($saveOrder && !empty($this->items)) {
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <?php echo $item->value . '%'; ?>
+                                <?php echo AlfaHelper::decimalDisplay($item->value) . '%'; ?>
                             </td>
 
                             <td>
@@ -217,13 +218,16 @@ if ($saveOrder && !empty($this->items)) {
                             <td class="d-none d-lg-table-cell">
                                 <?php echo $item->id; ?>
 
-                            </td>
+                            </td><?php echo Columns::cells($columnsByAnchor, Columns::END, $item); ?><?php echo Actions::cell($this->pluginRowActions ?? [], $i, $item); ?>
+
 
 
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
                 </table>
+
+                <?php echo $this->pagination->getListFooter(); ?>
                 <?php endif; ?>
 
                 <?php echo $this->filterForm->renderControlFields(); ?>

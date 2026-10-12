@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+	<fields name="params">
+		<fieldset name="task_params">
+			<field name="seconds" type="number"
+			       label="PLG_TASK_ALFAPRICESETS_SECONDS_LABEL"
+			       description="PLG_TASK_ALFAPRICESETS_SECONDS_DESC"
+			       default="20" min="1" max="600" filter="integer"/>
+		</fieldset>
+	</fields>
+</form>

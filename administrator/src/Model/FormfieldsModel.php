@@ -14,15 +14,22 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
-use Joomla\CMS\MVC\Model\ListModel;
 
 /**
  * Methods supporting a list of Items records.
  *
  * @since  1.0.0
  */
-class FormFieldsModel extends ListModel
+class FormfieldsModel extends AlfaListModel
 {
+    /**
+     * The admin-contract entity this list serves.
+     *
+     *
+     * @since  1.8.0
+     */
+    protected string $alfaEntity = 'formfield';
+
     protected $orderUserInfoTableName = '#__alfa_user_info';
 
     /**
@@ -42,7 +49,7 @@ class FormFieldsModel extends ListModel
                 'created_by', 'a.created_by',
                 'modified_by', 'a.modified_by',
                 'state', 'a.state',
-                // Translatable — resolved via the lang-table COALESCE alias.
+                // Translatable: resolved via the lang-table COALESCE alias.
                 'name',
             ];
         }
@@ -83,11 +90,25 @@ class FormFieldsModel extends ListModel
      */
     protected function getStoreId($id = '')
     {
-        // Compile the store id.
-        $id .= ':' . $this->getState('filter.search');
-        $id .= ':' . $this->getState('filter.state');
-        $id .= ':' . $this->getState('filter.context');
-        $id .= ':' . $this->getState('filter.group_id');
+        // Serialise EVERY filter into the cache identity, including filters a plugin
+        // declared through onAlfaAdminListFilters, which a hand-enumerated list would
+        // silently omit (stale cache + the contract's list phases skipping re-runs).
+        // Same discipline as the orders grid.
+        $filters = [];
+
+        // toArray(), not (array): the model State keeps LITERAL dotted keys, so an
+        // object cast returns its protected properties and matches nothing.
+        foreach ($this->getState()->toArray() as $key => $value) {
+            if (str_starts_with((string) $key, 'filter.')) {
+                $filters[$key] = \is_array($value) ? implode(',', $value) : (string) $value;
+            }
+        }
+
+        ksort($filters);
+
+        foreach ($filters as $key => $value) {
+            $id .= ':' . $key . '=' . $value;
+        }
 
         return parent::getStoreId($id);
     }
@@ -112,11 +133,23 @@ class FormFieldsModel extends ListModel
             ),
         );
 
-        $query->select('g.title AS group_title, g.state AS group_state');
+        $query->select('g.state AS group_state');
 
         $query->from($db->qn('#__alfa_form_fields', 'a'))
-            ->join('LEFT', $db->qn('#__alfa_form_field_groups', 'g') . ' ON g.id = a.group_id')
-            ->order('ordering ASC');
+            ->join('LEFT', $db->qn('#__alfa_form_field_groups', 'g') . ' ON g.id = a.group_id');
+
+        // The per-language group-title table is created lazily on first save, so it may
+        // not exist yet (e.g. an admin language added after the groups). Join it only
+        // when present; otherwise group_title is NULL rather than erroring the whole
+        // list (the sibling addMultilingualJoinToQuery below does the same check).
+        $groupLangTable = '#__alfa_form_field_groups_' . MultilingualHelper::getCurrentLanguageTag();
+
+        if (in_array($db->replacePrefix($groupLangTable), $db->getTableList(), true)) {
+            $query->select('gl.title AS group_title')
+                ->join('LEFT', $db->qn($groupLangTable, 'gl') . ' ON gl.id_form_field_group = g.id');
+        } else {
+            $query->select('NULL AS group_title');
+        }
 
         // MULTILINGUAL: resolve the field name in the active language from the
         // per-language tables (LEFT JOIN + COALESCE keeps untranslated rows).
@@ -128,26 +161,6 @@ class FormFieldsModel extends ListModel
             langPrimaryColumn: 'id_formfield',
             fields:            ['name'],
         );
-
-        // Select the required fields from the table.
-        //        $query->select(
-        //            $this->getState(
-        //                'list.select', 'DISTINCT a.*'
-        //            )
-        //        );
-        //        $query->from('`#__alfa_form_fields` AS a');
-        //
-        //        // Join over the users for the checked out user
-        //        $query->select("uc.name AS uEditor");
-        //        $query->join("LEFT", "#__users AS uc ON uc.id=a.checked_out");
-        //
-        //        // Join over the user field 'created_by'
-        //        $query->select('`created_by`.name AS `created_by`');
-        //        $query->join('LEFT', '#__users AS `created_by` ON `created_by`.id = a.`created_by`');
-        //
-        //        // Join over the user field 'modified_by'
-        //        $query->select('`modified_by`.name AS `modified_by`');
-        //        $query->join('LEFT', '#__users AS `modified_by` ON `modified_by`.id = a.`modified_by`');
 
         // Filter by published state
         $published = $this->getState('filter.state');
@@ -172,14 +185,18 @@ class FormFieldsModel extends ListModel
                 $query->where('a.id = ' . (int) substr($search, 3));
             } else {
                 $search = $db->Quote('%' . $db->escape($search, true) . '%');
-                // HAVING — `name` is the COALESCE alias from the lang join.
+                // HAVING: `name` is the COALESCE alias from the lang join.
                 $query->having('( ' . $db->quoteName('name') . ' LIKE ' . $search . ' )');
             }
         }
 
-        // Add the list ordering clause.
-        $orderCol = $this->state->get('list.ordering', 'id');
-        $orderDirn = $this->state->get('list.direction', 'DESC');
+        // Add the list ordering clause. Default 'ordering'/'ASC' preserves the
+        // previous hardcoded admin drag-order when no explicit sort is
+        // requested; unlike the old hardcode, an explicit list.ordering (from
+        // the admin column headers or the API's list[ordering]) now actually
+        // becomes the primary sort key instead of a tie-breaker after it.
+        $orderCol = $this->state->get('list.ordering', 'ordering');
+        $orderDirn = $this->state->get('list.direction', 'ASC');
 
         if ($orderCol && $orderDirn) {
             $query->order($db->escape($orderCol . ' ' . $orderDirn));
@@ -204,5 +221,5 @@ class FormFieldsModel extends ListModel
     // Delete is handled by FormfieldModel (single-item); the list controller
     // routes list-delete actions through that model so #__alfa_user_info columns
     // are dropped alongside the form_fields rows. No list-level delete override
-    // is needed — adding one risks divergence from the single-model path.
+    // is needed: adding one risks divergence from the single-model path.
 }

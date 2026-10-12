@@ -17,7 +17,9 @@ use \Joomla\CMS\Language\Text;
 
 $wa = $this->document->getWebAssetManager();
 $wa->useScript('keepalive')
-	->useScript('form.validate');
+	->useScript('form.validate')
+	->useScript('com_alfa.validate.engine')
+	->useStyle('com_alfa.validate');
 
 $input = Factory::getApplication()->getInput();
 
@@ -25,18 +27,9 @@ $input = Factory::getApplication()->getInput();
 
 <form
         action="<?php echo Route::_('index.php?option=com_alfa&layout=edit&id=' . (int) $this->item->id); ?>"
-        method="post" enctype="multipart/form-data" name="adminForm" id="place-form"
+        method="post" enctype="multipart/form-data" name="adminForm" id="currency-form"
         class="form-validate form-horizontal"
-        aria-label="<?php echo Text::_('COM_ALFA_PLACE_FORM_TITLE_' . ((int)$this->item->id === 0 ? 'NEW' : 'EDIT'), true); ?>">
-
-    <div class="row title-alias form-vertical mb-3">
-        <div class="col-12 col-md-6">
-			<?php echo $this->form->renderField('name'); ?>
-        </div>
-        <div class="col-12 col-md-6">
-			<?php echo $this->form->renderField('alias'); ?>
-        </div>
-    </div>
+        aria-label="<?php echo Text::_('COM_ALFA_CURRENCY_FORM_TITLE_' . ((int)$this->item->id === 0 ? 'NEW' : 'EDIT'), true); ?>">
 
 	<?php echo HTMLHelper::_('uitab.startTabSet', 'myTab', ['active' => 'general', 'recall' => true, 'breakpoint' => 768]); ?>
 
@@ -48,7 +41,7 @@ $input = Factory::getApplication()->getInput();
 	        <?php echo $this->form->renderField('symbol'); ?>
 	        <?php echo $this->form->renderField('number'); ?>
 
-	        <?php echo $this->form->renderField('decimal_symbol'); ?>
+	        <?php echo $this->form->renderField('decimal_separator'); ?>
 	        <?php echo $this->form->renderField('thousand_separator'); ?>
 	        <?php echo $this->form->renderField('decimal_place'); ?>
 	        <?php echo $this->form->renderField('format_pattern'); ?>
@@ -66,7 +59,8 @@ $input = Factory::getApplication()->getInput();
 
 	<?php echo HTMLHelper::_('uitab.endTab'); ?>
 
-	<?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'publishing', Text::_('COM_ALFA_FIELDSET_PUBLISHING_SEO')); ?>
+	<?php // This tab holds publishing data only; no SEO fields exist for a currency. ?>
+	<?php echo HTMLHelper::_('uitab.addTab', 'myTab', 'publishing', Text::_('JGLOBAL_FIELDSET_PUBLISHING')); ?>
 
     <div class="row">
         <div class="col-12">
@@ -87,7 +81,25 @@ $input = Factory::getApplication()->getInput();
         </div>
 
     </div>
-	<?php echo HTMLHelper::_('uitab.endTab'); ?>
+	<?php echo HTMLHelper::_('uitab.endTab'); ?><?php
+// CONTRIBUTED TABS. A plugin that loads a named <fieldset> into this form through
+// onAlfaAdminForm gets it rendered here as its own tab: the entity-screen counterpart of the
+// Panel form template's rule that a new fieldset is a new tab. Only contributions can appear:
+// the form's own fieldset is anonymous, and Form::getFieldsets() returns named ones only, so
+// with no contributing plugin this loop emits nothing at all.
+foreach ($this->form->getFieldsets() as $fieldset) {
+	$fieldsetLabel = !empty($fieldset->label)
+		? Text::_($fieldset->label)
+		: ucwords(str_replace('_', ' ', $fieldset->name));
+
+	echo HTMLHelper::_('uitab.addTab', 'myTab', 'plg-' . $fieldset->name, $fieldsetLabel);
+	echo '<div class="row"><div class="col-12"><fieldset class="options-form"><legend>'
+		. $fieldsetLabel . '</legend><div>'
+		. $this->form->renderFieldset($fieldset->name)
+		. '</div></fieldset></div></div>';
+	echo HTMLHelper::_('uitab.endTab');
+}
+?>
 
 
 	<?php echo HTMLHelper::_('uitab.endTabSet'); ?>

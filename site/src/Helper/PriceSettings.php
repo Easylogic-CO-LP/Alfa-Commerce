@@ -1,232 +1,20 @@
 <?php
 
 /**
- * Price Settings Helper - Production Ready
- *
- * @package    Com_Alfa
- * @subpackage Site
- * @since  1.0.0
- * @author     Agamemnon Fakas
- * @copyright  2025 Easylogic CO LP
- * @license    GNU General Public License version 2 or later
- *
- * FEATURES:
- * - Zero-error guarantee with comprehensive validation
- * - Static caching for optimal performance (1 query/request max)
- * - Fluent API with method chaining support
- * - Smart element name matching with alias resolution
- * - Professional error handling with logging
- * - Three-tier API (beginner/intermediate/advanced)
- *
- * ============================================================================
- * USAGE EXAMPLES
- * ============================================================================
- *
- * BASIC USAGE (Beginner-Friendly):
- * ```php
- * use Alfa\Component\Alfa\Site\Helper\PriceSettings;
- *
- * // Auto-resolved by user group (most common)
- * $settings = PriceSettings::get();
- *
- * // Preset configurations
- * $settings = PriceSettings::minimal();  // Final price only, no label
- * $settings = PriceSettings::compact();  // All prices, no labels
- * $settings = PriceSettings::full();     // Everything with labels
- * ```
- *
- * FILTERING (Simple Control):
- * ```php
- * // Show only specific elements (hide everything else)
- * $settings = PriceSettings::only('final');
- * $settings = PriceSettings::only('base', 'discount', 'final');
- * $settings = PriceSettings::only('base', 'subtotal', 'tax', 'total');
- *
- * // Hide specific elements (show everything else)
- * $settings = PriceSettings::except('tax');
- * $settings = PriceSettings::except('base', 'tax');
- * $settings = PriceSettings::except('subtotal', 'base_with_tax');
- * ```
- *
- * BUILDER PATTERN (Advanced Control):
- * ```php
- * // Fine-grained control with chaining
- * $settings = PriceSettings::make()
- *     ->show('base')              // Show with label
- *     ->show('discount', false)   // Show without label
- *     ->show('final', true)       // Show with label
- *     ->hide('tax')               // Hide completely
- *     ->get();
- *
- * // Show everything without labels
- * $settings = PriceSettings::make()
- *     ->show('base', false)
- *     ->show('discount', false)
- *     ->show('subtotal', false)
- *     ->show('tax', false)
- *     ->show('final', false)
- *     ->get();
- * ```
- *
- * TEMPLATE OVERRIDES:
- * ```php
- * // In template file: templates/yourtemplate/html/com_alfa/items/default.php
- *
- * // Example 1: Hide tax on this page only
- * $priceSettings = PriceSettings::except('tax');
- *
- * // Example 2: Show only final price for sale items
- * $priceSettings = PriceSettings::minimal();
- *
- * // Example 3: Custom configuration
- * $priceSettings = PriceSettings::make()
- *     ->show('base')
- *     ->show('discount', false)
- *     ->show('final')
- *     ->get();
- *
- * // Use in layout
- * foreach ($this->items as $item) {
- *     echo LayoutHelper::render('price', [
- *         'item' => $item,
- *         'settings' => $priceSettings,
- *     ]);
- * }
- * ```
- *
- * MODULE USAGE:
- * ```php
- * // In module: mod_alfa_products/tmpl/default.php
- *
- * // Get settings once for all items
- * $settings = PriceSettings::compact(); // or any method
- *
- * foreach ($items as $item) {
- *     echo LayoutHelper::render('price', [
- *         'item' => $item,
- *         'settings' => $settings,
- *     ]);
- * }
- * ```
- *
- * CONDITIONAL SETTINGS:
- * ```php
- * // Different settings based on context
- *
- * // Example 1: By device
- * $isMobile = $app->client->mobile;
- * $settings = $isMobile ? PriceSettings::minimal() : PriceSettings::compact();
- *
- * // Example 2: By category
- * if ($categoryId == 5) {
- *     $settings = PriceSettings::full();  // Electronics - show all details
- * } else {
- *     $settings = PriceSettings::compact();  // Others - compact view
- * }
- *
- * // Example 3: By user group
- * $user = Factory::getApplication()->getIdentity();
- * if (in_array(8, $user->groups)) {
- *     $settings = PriceSettings::full();  // Wholesale - show breakdown
- * } else {
- *     $settings = PriceSettings::only('final');  // Retail - just price
- * }
- *
- * // Example 4: By page type
- * $view = $app->input->get('view');
- * $settings = ($view == 'item')
- *     ? PriceSettings::full()      // Detail page - full breakdown
- *     : PriceSettings::compact();  // List page - compact
- * ```
- *
- * ELEMENT ALIASES (All These Work):
- * ```php
- * // Final price - many ways
- * PriceSettings::only('final');
- * PriceSettings::only('final_price');
- * PriceSettings::only('total');
- * PriceSettings::only('price');
- *
- * // Discount - aliases
- * PriceSettings::only('discount');
- * PriceSettings::only('savings');
- *
- * // Tax - variations
- * PriceSettings::only('tax');
- * PriceSettings::only('vat');
- *
- * // Base price - aliases
- * PriceSettings::only('base');
- * PriceSettings::only('original');
- *
- * // Subtotal - variations
- * PriceSettings::only('subtotal');
- * PriceSettings::only('sub');
- * ```
- *
- * ERROR HANDLING (Automatic):
- * ```php
- * // Invalid element names are silently ignored - NO ERRORS!
- * $settings = PriceSettings::only('final', 'xyz', 'abc');
- * // Result: Shows 'final', ignores 'xyz' and 'abc'
- *
- * // Typos are OK
- * $settings = PriceSettings::only('tottal'); // Ignored, no crash
- *
- * // Database failures automatically fallback to global
- * $settings = PriceSettings::get(); // Always works, never throws
- * ```
- *
- * PERFORMANCE:
- * ```php
- * // Static cache - called 1000 times = 1 database query!
- * for ($i = 0; $i < 1000; $i++) {
- *     $settings = PriceSettings::get(); // Uses cache after first call
- * }
- *
- * // Get settings once, use many times
- * $settings = PriceSettings::compact();
- * foreach ($items as $item) {
- *     // Zero queries here - settings already resolved
- *     echo LayoutHelper::render('price', [
- *         'item' => $item,
- *         'settings' => $settings,
- *     ]);
- * }
- * ```
- *
- * COMMON PATTERNS:
- * ```php
- * // Pattern 1: Sidebar widget (minimal)
- * $settings = PriceSettings::minimal();
- *
- * // Pattern 2: Product grid (compact)
- * $settings = PriceSettings::compact();
- *
- * // Pattern 3: Product details (full)
- * $settings = PriceSettings::full();
- *
- * // Pattern 4: Hide tax globally
- * $settings = PriceSettings::except('tax');
- *
- * // Pattern 5: Show price only (no breakdown)
- * $settings = PriceSettings::only('final');
- *
- * // Pattern 6: Show base and final (compare prices)
- * $settings = PriceSettings::only('base', 'final');
- *
- * // Pattern 7: Show discount highlight
- * $settings = PriceSettings::only('base', 'discount', 'final');
- * ```
+ * @package    Alfa Commerce
+ * @author     Agamemnon Fakas <info@easylogic.gr>
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
 namespace Alfa\Component\Alfa\Site\Helper;
 
+use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
 use Exception;
-use Joomla\CMS\Access\Access;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
+use Joomla\CMS\User\User;
 
 defined('_JEXEC') or die;
 
@@ -236,6 +24,10 @@ defined('_JEXEC') or die;
  * Manages price visibility settings with user group resolution and global fallback.
  * Implements static caching to minimize database queries and comprehensive error
  * handling to ensure zero runtime failures.
+ *
+ * Entry points: get() resolves the current user's settings, minimal() is the
+ * final-price-only preset, and make() returns a PriceSettingsBuilder for
+ * per-element control.
  *
  * @since  1.0.0
  */
@@ -331,9 +123,7 @@ class PriceSettings
         'calculation' => 'price_breakdown',
     ];
 
-    // ========================================================================
-    // PRIMARY API
-    // ========================================================================
+    // Primary API
 
     /**
      * Get price settings for specified user
@@ -351,6 +141,8 @@ class PriceSettings
      */
     public static function get(?int $userId = null): array
     {
+        $user = null;
+
         // Resolve user ID
         if ($userId === null) {
             try {
@@ -368,16 +160,9 @@ class PriceSettings
             return self::$userCache[$cacheKey];
         }
 
-        // Guest user - use global settings - to be removed
-        // if ($userId <= 0) {
-        //     print_r('global');
-        //     $settings = self::global();
-        //     self::$userCache[$cacheKey] = $settings;
-        //     return $settings;
-        // }
-
-        // Resolve from user groups
-        $settings = self::resolveUserGroup($userId);
+        // Resolve from user groups: the visitor as already loaded, or the
+        // account the caller named.
+        $settings = self::resolveUserGroup(customer: $user ?? new User(identifier: (int) $userId));
 
         // Cache and return
         self::$userCache[$cacheKey] = $settings;
@@ -392,7 +177,7 @@ class PriceSettings
      * @return array Global settings array
      * @since  1.0.0
      */
-    public static function global(): array
+    private static function global(): array
     {
         if (self::$globalCache !== null) {
             return self::$globalCache;
@@ -414,9 +199,7 @@ class PriceSettings
         }
     }
 
-    // ========================================================================
-    // PRESET METHODS
-    // ========================================================================
+    // Preset methods
 
     /**
      * Minimal preset configuration
@@ -435,98 +218,7 @@ class PriceSettings
         return $settings;
     }
 
-    /**
-     * Compact preset configuration
-     *
-     * Uses current user's settings but removes all labels.
-     * Suitable for product listings and grid views.
-     *
-     * @return array Settings array
-     * @since  1.0.0
-     */
-    public static function compact(): array
-    {
-        return self::removeLabels(self::get());
-    }
-
-    /**
-     * Full preset configuration
-     *
-     * Shows all price elements with labels.
-     * Suitable for detailed product pages.
-     *
-     * @return array Settings array
-     * @since  1.0.0
-     */
-    public static function full(): array
-    {
-        $settings = [];
-        foreach (self::FIELDS as $field) {
-            $settings[$field] = 1;
-        }
-        return $settings;
-    }
-
-    // ========================================================================
-    // SIMPLE FILTER METHODS
-    // ========================================================================
-
-    /**
-     * Show only specified elements (hide all others)
-     *
-     * Accepts element names with smart matching - aliases and common
-     * variations are automatically resolved. Invalid element names
-     * are silently ignored to prevent errors.
-     *
-     * @param string ...$elements Element names to show
-     *
-     * @return array Settings array
-     * @since  1.0.0
-     */
-    public static function only(string ...$elements): array
-    {
-        $settings = self::hideAll();
-
-        foreach ($elements as $element) {
-            $field = self::resolve($element);
-            if ($field !== null) {
-                $settings[$field . '_show'] = 1;
-                $settings[$field . '_show_label'] = 1;
-            }
-        }
-
-        return $settings;
-    }
-
-    /**
-     * Hide specified elements (show all others)
-     *
-     * Starts with current user's settings and hides specified elements.
-     * Invalid element names are silently ignored.
-     *
-     * @param string ...$elements Element names to hide
-     *
-     * @return array Settings array
-     * @since  1.0.0
-     */
-    public static function except(string ...$elements): array
-    {
-        $settings = self::get();
-
-        foreach ($elements as $element) {
-            $field = self::resolve($element);
-            if ($field !== null) {
-                $settings[$field . '_show'] = 0;
-                $settings[$field . '_show_label'] = 0;
-            }
-        }
-
-        return $settings;
-    }
-
-    // ========================================================================
-    // BUILDER PATTERN
-    // ========================================================================
+    // Builder pattern
 
     /**
      * Create fluent settings builder
@@ -541,52 +233,29 @@ class PriceSettings
         return new PriceSettingsBuilder();
     }
 
-    // ========================================================================
-    // INTERNAL RESOLUTION METHODS
-    // ========================================================================
-
-    /**
-     * Resolve element name to internal field name
-     *
-     * Performs case-insensitive matching with normalization of spaces,
-     * hyphens, and underscores. Returns null for unrecognized names.
-     *
-     * @param string $element User-provided element name
-     *
-     * @return string|null Internal field name or null if not found
-     * @since  1.0.0
-     */
-    private static function resolve(string $element): ?string
-    {
-        // Normalize: lowercase, remove separators
-        $normalized = strtolower(trim($element));
-        $normalized = str_replace([' ', '-', '_'], '', $normalized);
-
-        // Match against aliases
-        foreach (self::ALIASES as $alias => $field) {
-            if (str_replace('_', '', $alias) === $normalized) {
-                return $field;
-            }
-        }
-
-        return null;
-    }
+    // Internal resolution methods
 
     /**
      * Resolve settings from user group configuration
      *
      * Queries user group price settings table and merges with global settings.
+     * A group's settings reach every customer who holds the group: its own
+     * members, the members of every group under it and, for the guest group
+     * and the groups above it, a visitor with no account. Among several such
+     * groups with settings enabled, the NEAREST decides: the deepest in the
+     * group tree (the customer's own group before its parent, Public last),
+     * and between two at the same depth, in unrelated branches, the higher id.
      * Falls back to global settings on any failure.
      *
-     * @param int $userId User ID
+     * @param User $customer The customer whose groups decide.
      *
      * @return array Resolved settings array
      * @since  1.0.0
      */
-    private static function resolveUserGroup(int $userId): array
+    private static function resolveUserGroup(User $customer): array
     {
         try {
-            $groups = Access::getGroupsByUser($userId, false); //we could also use $user->groups variable
+            $groups = PriceContext::customerGroups(customer: $customer);
 
             if (empty($groups)) {
                 return self::global();
@@ -594,14 +263,31 @@ class PriceSettings
 
             $db = Factory::getContainer()->get('DatabaseDriver');
             $query = $db->getQuery(true)
-                ->select($db->quoteName('prices_display'))
+                ->select($db->quoteName(['usergroup_id', 'prices_display']))
                 ->from('#__alfa_usergroups')
                 ->whereIn($db->quoteName('usergroup_id'), $groups)
                 ->where('prices_enable = 1')
-                ->order('usergroup_id DESC')
-                ->setLimit(1);
-            $db->setQuery($query);
-            $pricesDisplay = $db->loadResult();
+                ->order([$db->quoteName('usergroup_id'), $db->quoteName('id')]);
+            $displays = $db->setQuery($query)->loadAssocList('usergroup_id', 'prices_display') ?: [];
+
+            if ($displays === []) {
+                return self::global();
+            }
+
+            // The nearest group with settings of its own: the deepest in the tree,
+            // then the higher id. The tree is read only when there is a choice.
+            $nearest = array_key_last($displays);
+
+            if (\count($displays) > 1) {
+                $depth = array_map('count', PriceContext::groupLineages(groupIds: array_keys($displays)));
+                $rank = static fn (int $groupId): array => [$depth[$groupId] ?? 0, $groupId];
+                $nearest = array_reduce(
+                    array_keys($displays),
+                    static fn (?int $best, int $groupId): int => $best === null || $rank($groupId) > $rank($best) ? $groupId : $best,
+                );
+            }
+
+            $pricesDisplay = $displays[$nearest];
 
             if (!$pricesDisplay) {
                 return self::global();
@@ -644,9 +330,7 @@ class PriceSettings
         return $merged;
     }
 
-    // ========================================================================
-    // UTILITY METHODS
-    // ========================================================================
+    // Utility methods
 
     /**
      * Create settings array with all elements hidden
@@ -659,24 +343,6 @@ class PriceSettings
         $settings = [];
         foreach (self::FIELDS as $field) {
             $settings[$field] = 0;
-        }
-        return $settings;
-    }
-
-    /**
-     * Remove all label visibility flags from settings
-     *
-     * @param array $settings Settings array to modify
-     *
-     * @return array Settings array with all labels hidden
-     * @since  1.0.0
-     */
-    private static function removeLabels(array $settings): array
-    {
-        foreach (self::FIELDS as $field) {
-            if (strpos($field, '_show_label') !== false) {
-                $settings[$field] = 0;
-            }
         }
         return $settings;
     }
@@ -718,150 +384,5 @@ class PriceSettings
         } catch (Exception $e) {
             // Logging failed - continue silently
         }
-    }
-
-    /**
-     * Clear static cache
-     *
-     * Primarily for testing purposes; cache is automatically
-     * cleared between requests.
-     *
-     * @since  1.0.0
-     */
-    public static function clearCache(): void
-    {
-        self::$userCache = [];
-        self::$globalCache = null;
-    }
-}
-
-/**
- * Price Settings Builder
- *
- * Provides fluent, chainable API for constructing price visibility settings
- * with fine-grained control. Invalid element names are silently ignored
- * to prevent chain breakage.
- *
- * @since  1.0.0
- */
-class PriceSettingsBuilder
-{
-    /**
-     * Settings being constructed
-     *
-     * @var array
-     * @since  1.0.0
-     */
-    private $settings = [];
-
-    /**
-     * Constructor
-     *
-     * Initializes settings with all elements hidden.
-     *
-     * @since  1.0.0
-     */
-    public function __construct()
-    {
-        foreach (PriceSettings::FIELDS as $field) {
-            $this->settings[$field] = 0;
-        }
-    }
-
-    /**
-     * Show specified element
-     *
-     * Invalid element names are silently ignored to maintain chain integrity.
-     *
-     * @param string $element Element name
-     * @param bool $withLabel Show label (default: true)
-     *
-     * @return self Builder instance for chaining
-     * @since  1.0.0
-     */
-    public function show(string $element, bool $withLabel = true): self
-    {
-        $field = $this->resolveField($element);
-
-        if ($field !== null) {
-            $this->settings[$field . '_show'] = 1;
-            $this->settings[$field . '_show_label'] = $withLabel ? 1 : 0;
-        }
-
-        return $this;
-    }
-
-    /**
-     * Hide specified element
-     *
-     * Invalid element names are silently ignored.
-     *
-     * @param string $element Element name
-     *
-     * @return self Builder instance for chaining
-     * @since  1.0.0
-     */
-    public function hide(string $element): self
-    {
-        $field = $this->resolveField($element);
-
-        if ($field !== null) {
-            $this->settings[$field . '_show'] = 0;
-            $this->settings[$field . '_show_label'] = 0;
-        }
-
-        return $this;
-    }
-
-    /**
-     * Remove all label visibility
-     *
-     * @return self Builder instance for chaining
-     * @since  1.0.0
-     */
-    public function withoutLabels(): self
-    {
-        foreach (PriceSettings::FIELDS as $field) {
-            if (strpos($field, '_show_label') !== false) {
-                $this->settings[$field] = 0;
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * Build and return final settings array
-     *
-     * @return array Complete settings array
-     * @since  1.0.0
-     */
-    public function get(): array
-    {
-        return $this->settings;
-    }
-
-    /**
-     * Resolve element name to internal field name
-     *
-     * Duplicates PriceSettings::resolve() logic for builder independence.
-     *
-     * @param string $element Element name
-     *
-     * @return string|null Field name or null if not found
-     * @since  1.0.0
-     */
-    private function resolveField(string $element): ?string
-    {
-        $normalized = strtolower(trim($element));
-        $normalized = str_replace([' ', '-', '_'], '', $normalized);
-
-        foreach (PriceSettings::ALIASES as $alias => $field) {
-            if (str_replace('_', '', $alias) === $normalized) {
-                return $field;
-            }
-        }
-
-        return null;
     }
 }

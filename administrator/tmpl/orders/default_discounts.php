@@ -1,13 +1,13 @@
 <?php
 /**
- * Orders List — Detail Panel: Discounts
+ * Orders List - Detail Panel: Discounts
  *
  * Renders the discounts / cart rules section inside the detail panel.
  * Shows each applied discount with its name, tax-excl value,
  * and a "Free Shipping" badge when applicable.
  *
  * Receives per-row data via:
- *   $this->currentItem — order object (reads _discounts[])
+ *   $this->currentItem - order object (reads _discounts[])
  *
  * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
@@ -25,12 +25,12 @@ $item = $this->currentItem;
 
     <div class="dp-hdr dp-hdr-discounts">
         <?php echo Text::_('COM_ALFA_DISCOUNTS'); ?>
-        <span class="badge bg-light text-dark"><?php echo count($item->_discounts); ?></span>
+        <span class="badge bg-body-tertiary text-body-emphasis"><?php echo count($item->_discounts); ?></span>
     </div>
 
     <?php foreach ($item->_discounts as $di => $cr) : ?>
         <div style="padding:6px 12px;
-                    <?php echo $di > 0 ? 'border-top:1px solid #f0f0f0;' : ''; ?>
+                    <?php echo $di > 0 ? 'border-top:1px solid var(--border-color-translucent, #f0f0f0);' : ''; ?>
                     font-size:0.88em;
                     display:flex;
                     justify-content:space-between;
@@ -42,7 +42,7 @@ $item = $this->currentItem;
             <span>
                 <!-- Discount value (tax excl) -->
                 <strong class="text-danger">
-                    −<?php echo $cr->value_formatted ?? number_format((float) $cr->value_tax_excl, 2); ?>
+                    −<?php echo $this->escape($cr->value_formatted ?? ''); ?>
                 </strong>
 
                 <!-- Free shipping indicator -->

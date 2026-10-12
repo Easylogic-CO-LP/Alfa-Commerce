@@ -3,7 +3,8 @@
 namespace Alfa\Plugin\AlfaFormFields\Choice\Extension;
 
 use Alfa\Component\Alfa\Administrator\Event\Fields\PrepareDomEvent;
-use Alfa\Component\Alfa\Administrator\Plugin\FieldsPlugin;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Plugin\FormFieldsPlugin;
 use DOMElement;
 use Joomla\CMS\Document\HtmlDocument;
 use Joomla\CMS\Event\Application\BeforeCompileHeadEvent;
@@ -12,7 +13,7 @@ use Joomla\Registry\Registry;
 
 defined('_JEXEC') or die;
 
-final class Choice extends FieldsPlugin
+final class Choice extends FormFieldsPlugin
 {
     public static function getSubscribedEvents(): array
     {
@@ -56,16 +57,25 @@ final class Choice extends FieldsPlugin
         $variant = (string) $params->get('button_style', 'solid');
         $layoutMod = (string) $params->get('layout_mode', 'vertical');
 
-        // FieldsPlugin::prepareDom() already copied params onto the node. The key
-        // `layout` is a reserved JForm attribute (JLayout id) — if it leaked
+        // FormFieldsPlugin::prepareDom() already copied params onto the node. The key
+        // `layout` is a reserved JForm attribute (JLayout id); if it leaked
         // through it overrides the field class's $layout = 'layouts.button'
-        // and FileLayout searches for `vertical.php` (which doesn't exist) → empty render.
+        // and FileLayout searches for `vertical.php` (which doesn't exist) -> empty render.
         // We renamed our param to `layout_mode`, but strip any stale `layout` attribute as a safety net.
         if ($node->hasAttribute('layout')) {
             $node->removeAttribute('layout');
         }
 
-        // render_as → native or own type + extra attrs.
+        // The base class also copied `placeholder` onto the node, where nothing reads it:
+        // Joomla's form field takes a placeholder from `hint`. A text stored for a language
+        // that is no longer installed arrives as an uncollapsed map, never a string.
+        $placeholder = trim($this->inCurrentLanguage($params->get('placeholder', '')));
+
+        if ($node->hasAttribute('placeholder')) {
+            $node->removeAttribute('placeholder');
+        }
+
+        // render_as -> native or own type + extra attrs.
         // Native modes (list/radio/checkboxes) need no class of ours; Joomla
         // resolves them directly. Custom modes (button/buttonmulti) need the
         // field prefix so FormHelper finds ButtonField / ButtonmultiField.
@@ -88,6 +98,12 @@ final class Choice extends FieldsPlugin
             $node->setAttribute('layout', $layout);
         }
 
+        // The fancy multi-select prints its placeholder from `hint`. Only there: what a
+        // plain select shows before a choice is made is not decided by this attribute.
+        if ($renderAs === 'multiselect' && $placeholder !== '') {
+            $node->setAttribute('hint', $placeholder);
+        }
+
         // Multi-mode fields get min/max + the choice validator.
         $isMulti = in_array($renderAs, ['multiselect', 'checkbox', 'button-multi'], true);
 
@@ -105,7 +121,7 @@ final class Choice extends FieldsPlugin
             // not the validate="X" attribute (server-side only). Without this
             // class, setHandler('choice') is never invoked. Note: for fieldset
             // render modes (checkbox/button-multi), validate.js still skips
-            // handler calls because fieldset.value is undefined — so client min/max
+            // handler calls because fieldset.value is undefined, so client min/max
             // for those modes is enforced by choice.js's own submit listener
             // separately. multiselect (a real <select> element) DOES go through
             // the handler chain and benefits from this class.
@@ -122,10 +138,10 @@ final class Choice extends FieldsPlugin
             $node->setAttribute('layout_mode', $layoutMod);
         }
 
-        // Options pass through as <option> children — JForm picks them up via xpath.
+        // Options pass through as <option> children; JForm picks them up via xpath.
         foreach ((array) $params->get('options', []) as $opt) {
             $value = is_object($opt) ? ($opt->value ?? '') : ($opt['value'] ?? '');
-            $text = is_object($opt) ? ($opt->text ?? '') : ($opt['text'] ?? '');
+            $text = $this->inCurrentLanguage(is_object($opt) ? ($opt->text ?? '') : ($opt['text'] ?? ''));
 
             if ($value === '' && $text === '') {
                 continue;
@@ -138,5 +154,21 @@ final class Choice extends FieldsPlugin
         }
 
         return $node;
+    }
+
+    /**
+     * A translatable param as one string. The base class has already collapsed every
+     * map of INSTALLED languages; what is still a map here was stored for a language that
+     * is gone, and is read the way every language map is: this language, the default,
+     * else whatever it holds.
+     *
+     * @param mixed $value The param value: a string, or an uncollapsed {lang: text} map.
+     *
+     *
+     * @since  1.10.0
+     */
+    private function inCurrentLanguage(mixed $value): string
+    {
+        return is_scalar($value) ? (string) $value : MultilingualHelper::resolveLangMap((array) $value);
     }
 }

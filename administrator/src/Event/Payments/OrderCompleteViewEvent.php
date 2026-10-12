@@ -3,7 +3,6 @@
 /**
  * Alfa Commerce
  *
- * @copyright  (C) 2023 Open Source Matters, Inc. <https://www.joomla.org>
  * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
@@ -11,6 +10,8 @@
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\Payments;
+
+use Alfa\Component\Alfa\Site\Service\Order\Order;
 
 // phpcs:disable PSR1.Files.SideEffects
 \defined('_JEXEC') or die;
@@ -30,8 +31,8 @@ class OrderCompleteViewEvent extends PaymentsLayoutEvent
      *
      * @since  1.0.0
      */
-    public function getOrder()
+    public function getOrder(): Order
     {
-        return $this->getSubject();
+        return Order::of($this->getSubject());
     }
 }

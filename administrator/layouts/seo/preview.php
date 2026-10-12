@@ -12,7 +12,6 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Factory;
 /**
  * Layout variables
- * -----------------
  * @var   object $displayData Data passed from the layout caller
  * @var   string $displayData ->url            The current page URL
  * @var   string $displayData ->title          The page title
@@ -50,7 +49,7 @@ $robots       = $displayData->robots ?? '';
 
 // Per-language instance suffix (set by the seo.multilingual wrapper). Keeps the
 // script-options key and the focus-keyword input id unique when several previews
-// — one per content language — render on the same page in a tabset.
+// (one per content language) render on the same page in a tabset.
 $lang       = $displayData->lang ?? '';
 $suffix     = $lang !== '' ? '-' . $lang : '';
 $optionsKey = 'seo-preview' . $suffix;
@@ -189,7 +188,7 @@ $statusConfig = [
 <div class="seo-preview-container mt-4 card border-0 shadow-sm" data-seo-preview-container
      data-seo-options-key="<?php echo htmlspecialchars($optionsKey, ENT_QUOTES, 'UTF-8'); ?>">
     <!-- Header with Score Badge -->
-    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3"
+    <div class="card-header bg-body border-bottom d-flex justify-content-between align-items-center py-3"
          data-seo-preview-header>
         <h5 class="mb-0 fw-semibold">
             <span class="icon-search text-primary me-2"></span>
@@ -219,7 +218,7 @@ $statusConfig = [
             </button>
         </div>
 
-        <!-- Focus Keyword Input (UI Only - Google Style Search) -->
+        <!-- Focus Keyword Input (UI Only - Search Engine Style) -->
         <div class="seo-focus-keyword-wrapper">
             <div class="input-group">
                 <span class="input-group-text">
@@ -248,17 +247,17 @@ $statusConfig = [
         <div class="mb-4">
             <div class="seo-google-preview p-3 rounded">
                 <div class="seo-preview-url mb-1">
-                    <span style="color: #5f6368;">https://</span>
-                    <span style="color: #202124;"
+                    <span style="color: var(--seo-text-muted, #5f6368);">https://</span>
+                    <span style="color: var(--seo-text, #202124);"
                           data-seo-domain><?php echo htmlspecialchars($domain, ENT_QUOTES, 'UTF-8'); ?></span>
-                    <span style="color: #5f6368;"
+                    <span style="color: var(--seo-text-muted, #5f6368);"
                           data-seo-path><?php echo htmlspecialchars($path, ENT_QUOTES, 'UTF-8'); ?></span>
                 </div>
                 <div class="seo-preview-title mb-1">
                     <span data-seo-title><?php echo htmlspecialchars($titleDisplay, ENT_QUOTES, 'UTF-8'); ?></span>
                 </div>
                 <div class="seo-preview-description">
-                    <span class="seo-date"><?php echo $currentDate; ?> — </span>
+                    <span class="seo-date"><?php echo $currentDate; ?> - </span>
                     <span data-seo-description><?php echo htmlspecialchars($descDisplay, ENT_QUOTES, 'UTF-8'); ?></span>
                 </div>
             </div>

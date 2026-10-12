@@ -6,9 +6,7 @@
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
  *
- * ─────────────────────────────────────────────────────────────────
- *  Order-status notification — minimal HTML email layout
- * ─────────────────────────────────────────────────────────────────
+ *  Order-status notification: minimal HTML email layout
  *
  *  Joomla layout (id: emails.order.default). Override at:
  *    templates/<template>/html/layouts/com_alfa/emails/order/default.php
@@ -17,34 +15,34 @@
  *  emails.order.<name>); they appear in the OrderStatusEmailLayout picker.
  *
  *  Helper API (extracted from $displayData at the top):
- *    $position($name)        — admin-fillable content slot. Calling it here
+ *    $position($name)        - admin-fillable content slot. Calling it here
  *                              = a new editor on the form (discovered via a
  *                              collector render) + a per-recipient show/hide
  *                              toggle. Tokens inside resolve later.
- *    $hasPosition($name)     — true when that slot has content (guard
+ *    $hasPosition($name)     - true when that slot has content (guard
  *                              wrappers, like Joomla's countModules()).
- *    $render($id, $data?)    — render a sub-layout, e.g.
+ *    $render($id, $data?)    - render a sub-layout, e.g.
  *                              $render('emails.partials.order_items'). Each
  *                              distinct $render also gets a show/hide toggle.
- *    $order, $items, $status, $tokens, $recipient, $langTag — raw data.
+ *    $order, $items, $status, $tokens, $recipient, $langTag - raw data.
  *
- *  ── Variables you can drop into any position or subject ──────────────
+ *  Variables you can drop into any position or subject
  *  Resolved in ONE central pass after the layout composes (so positions,
  *  partials and the layout's own text all substitute alike):
  *
  *    Site     {{SITE_NAME}}  {{SITE_URL}}   (also {site_name} / {site_url})
  *    Order    {order_id}  {order_number}  {order_date}  {order_total}
- *    Status   {status}            — internal name (admin-facing)
- *             {status_customer}   — customer-facing name (required)
- *    Methods  {payment_method}    — the order's chosen payment method
- *             {shipment_method}   — the order's chosen shipment method
+ *    Status   {status}            - internal name (admin-facing)
+ *             {status_customer}   - customer-facing name (required)
+ *    Methods  {payment_method}    - the order's chosen payment method
+ *             {shipment_method}   - the order's chosen shipment method
  *    Customer {user_name}  {user_email}  {user_username}  {user_registered}
- *    Fields   {field_<key>}       — any published Alfa form field
+ *    Fields   {field_<key>}       - any published Alfa form field
  *
- *  Items, totals, payments and shipments are TABLES, not tokens — they are
+ *  Items, totals, payments and shipments are TABLES, not tokens; they are
  *  rendered structurally via $render('emails.partials.<name>') below.
  *
- *  Intentionally generic — system fonts only, grayscale palette, thin
+ *  Intentionally generic: system fonts only, grayscale palette, thin
  *  hairlines, no accent colour. Designed to look at home next to any
  *  shop's brand. Sites that want personality drop an override copy of
  *  this file and re-skin to taste; everything they need to substitute
@@ -53,13 +51,13 @@
  *
  *  Email-client notes:
  *
- *  • Outer scaffold is table-based — Outlook desktop renders with the
- *    Word HTML engine, which ignores flex/grid/most modern CSS.
- *  • Every visible element has inline `style="…"` because Gmail strips
+ *  - Outer scaffold is table-based: a major desktop mail client renders with the
+ *    a word-processor HTML engine, which ignores flex/grid/most modern CSS.
+ *  - Every visible element has inline `style="..."` because some webmail clients strip
  *    the <head> <style> block on quoted-reply renders. The block at
  *    the top is best-effort progressive enhancement (dark mode, media
  *    queries, and admin-authored-body typography).
- *  • System font stack — no web fonts. Most clients strip them, and
+ *  - System font stack: no web fonts. Most clients strip them, and
  *    "neutral" is the point here: stay out of the way of the shop's
  *    own typography on landing pages.
  */
@@ -106,7 +104,7 @@ extract($displayData);
 
         body { margin: 0; padding: 0; width: 100% !important; background: var(--email-page); }
 
-        /* Body-content typography — applies inside .email__body so any
+        /* Body-content typography: applies inside .email__body so any
            HTML the admin pastes into a position gets sensible defaults. */
         .email__body p { margin: 0 0 1em 0; font-size: 15px; line-height: 1.65; color: var(--email-ink); }
         .email__body p:last-child { margin-bottom: 0; }
@@ -150,7 +148,7 @@ extract($displayData);
 </head>
 <body style="margin:0;padding:0;width:100%;background-color:#f3f4f6;color:#111827;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
 
-    <?php // Preheader — the hidden inbox-preview snippet email clients show
+    <?php // Preheader: the hidden inbox-preview snippet email clients show
           // next to the subject. Site name; structural, not an admin slot. ?>
     <div style="display:none;font-size:1px;color:#f3f4f6;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">
         {{SITE_NAME}}
@@ -162,11 +160,11 @@ extract($displayData);
 
                 <table role="presentation" class="email__shell" cellpadding="0" cellspacing="0" border="0" width="600" style="width:600px;max-width:600px;background-color:#ffffff;border:1px solid #e5e7eb;">
 
-                    <?php // Header — the email's top/brand slot (editable
+                    <?php // Header: the email's top/brand slot (editable
                           // position). Default seeds {site_name}; an admin can
                           // put a logo <img> or tagline. The <h1> is structure. ?>
                     <?php if ($hasPosition('header')) : ?>
-                    <!-- ─── Header ─── -->
+                    <!-- Header -->
                     <tr>
                         <td class="email__pad" align="left" style="padding:36px 44px 4px 44px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
                             <h1 class="email__masthead-title" style="margin:0;padding:0;font-weight:600;font-size:24px;line-height:1.2;letter-spacing:-0.01em;color:#111827;">
@@ -185,9 +183,9 @@ extract($displayData);
                         </td>
                     </tr>
 
-                    <?php // ─── Positions ───
+                    <?php // Positions
                           // Body content the admin authors. Order:
-                          //   header → intro → [items/totals] → outro → legal
+                          //   header -> intro -> [items/totals] -> outro -> legal
                           // header is the brand top slot; intro is the message
                           // (greeting + status line); outro follows the table;
                           // legal is the muted fine-print footer. ?>
@@ -199,7 +197,7 @@ extract($displayData);
                     </tr>
                     <?php endif; ?>
 
-                    <?php // Order items + totals — STRUCTURE owned by this layout.
+                    <?php // Order items + totals: STRUCTURE owned by this layout.
                           // The layout names the partial + args; swap the id or
                           // override the partial to restyle. Skipped for itemless
                           // orders. The outro position follows the table. ?>
@@ -216,7 +214,7 @@ extract($displayData);
                     </tr>
                     <?php endif; ?>
 
-                    <?php // Payments + shipments — STRUCTURE owned by the layout,
+                    <?php // Payments + shipments: STRUCTURE owned by the layout,
                           // each a list of rows. Skipped when the order has none. ?>
                     <?php if (!empty($payments)) : ?>
                     <tr>
@@ -229,6 +227,16 @@ extract($displayData);
                     <tr>
                         <td class="email__pad" style="padding:6px 44px 0 44px;">
                             <?php echo $render('emails.partials.order_shipments', ['shipments' => $shipments]); ?>
+                        </td>
+                    </tr>
+                    <?php endif; ?>
+
+                    <?php // Purchased downloads: only populated on the genuine
+                          // customer send (never admin/preview renders). ?>
+                    <?php if (!empty($downloads)) : ?>
+                    <tr>
+                        <td class="email__pad" style="padding:6px 44px 0 44px;">
+                            <?php echo $render('emails.partials.order_downloads', ['downloads' => $downloads]); ?>
                         </td>
                     </tr>
                     <?php endif; ?>
@@ -250,7 +258,7 @@ extract($displayData);
                         </td>
                     </tr>
 
-                    <!-- ─── Standing legal / fine-print position ─── -->
+                    <!-- Standing legal / fine-print position -->
                     <?php if ($hasPosition('legal')) : ?>
                     <tr>
                         <td class="email__pad email__body" align="left" style="padding:20px 44px 32px 44px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;line-height:1.55;color:#6b7280;">

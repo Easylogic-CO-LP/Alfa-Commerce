@@ -4,15 +4,15 @@
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
  *
- * EmailPositionsField — "email composer" behaviour
+ * EmailPositionsField: "email composer" behaviour
  *
- *  - Custom language tabs (toggle .aec-panel by data-lang) — no joomla-tab.
+ *  - Custom language tabs (toggle .aec-panel by data-lang); no joomla-tab.
  *    The active tab is remembered (sessionStorage) so it survives the
  *    layout-change reload.
  *  - Each position is a Joomla WYSIWYG editor (the form input); subject is
  *    a plain text input. We don't touch the editors' own toolbars.
- *  - Variables palette: click a chip → insert the {token} into whatever is
- *    focused — the active TinyMCE editor, else the focused subject input,
+ *  - Variables palette: click a chip -> insert the {token} into whatever is
+ *    focused: the active TinyMCE editor, else the focused subject input,
  *    else copy to clipboard.
  *  - Section eye toggles: per-recipient show/hide for each structural block
  *    (items/payments/shipments), driving one hidden flag input per section.
@@ -42,8 +42,8 @@
         toast(text);
     }
 
-    /* ---------- tabs ---------- */
-    // Activate a language tab + its panel (pure visibility toggle — inactive
+    /* tabs */
+    // Activate a language tab + its panel (pure visibility toggle; inactive
     // panels stay laid out via CSS absolute/visibility:hidden, so revealing
     // one never re-layouts or focuses a TinyMCE editor). When `remember`,
     // persist the choice so it survives the layout-change reload (a full
@@ -83,14 +83,14 @@
         });
     }
 
-    /* ---------- subject inputs ---------- */
+    /* subject inputs */
     function initSubjects(root) {
         root.querySelectorAll('.aec-subject').forEach(function (inp) {
             inp.addEventListener('focus', function () { lastInput = inp; });
         });
     }
 
-    /* ---------- variables palette ---------- */
+    /* variables palette */
     function initVars(root) {
         root.querySelectorAll('.aec-chip').forEach(function (chip) {
             chip.addEventListener('mousedown', function (e) { e.preventDefault(); }); // keep focus/selection
@@ -138,7 +138,7 @@
         try { inp.setSelectionRange(pos, pos); } catch (err) {}
     }
 
-    /* ---------- restore defaults ---------- */
+    /* restore defaults */
     // Refill the ACTIVE language tab from this field's emitted defaults
     // (alfaEmailDefaults[fieldId][langSuffix] = { position: html }). Scoped
     // to one language; confirms before overwriting.
@@ -180,8 +180,8 @@
         });
     }
 
-    /* ---------- section eye toggles ---------- */
-    // Each struct block (items/payments/shipments/…) has an eye button.
+    /* section eye toggles */
+    // Each struct block (items/payments/shipments/...) has an eye button.
     // Clicking it flips that section's single hidden flag input and dims
     // every copy of the block (the block repeats once per language panel),
     // swapping the icon eye <-> eye-slash. One posted value per section.
@@ -209,7 +209,7 @@
         });
     }
 
-    /* ---------- preview / send-test buttons ---------- */
+    /* preview / send-test buttons */
     // Point the modal iframe at the chosen recipient + the ACTIVE language
     // tab, so there are no in-modal language/recipient pickers.
     function initActions() {
@@ -235,7 +235,7 @@
         });
     }
 
-    /* ---------- boot ---------- */
+    /* boot */
     function init() {
         document.querySelectorAll('.aec').forEach(function (root) {
             initTabs(root);

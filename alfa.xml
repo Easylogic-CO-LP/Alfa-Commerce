@@ -7,7 +7,14 @@
     <author>Agamemnon Fakas</author>
     <authorEmail>info@easylogic.gr</authorEmail>
     <authorUrl>https://easylogic.gr</authorUrl>
-    <version>1.2.1</version>
+    <!-- 2.0.0 is the first stable release and the schema baseline. script.php's preflight()
+         reads the installed alfa.xml before any file is copied and REFUSES the install over
+         anything older than 2.0.0: the 1.x betas have no schema baseline to update from.
+         From 2.0.0 on Joomla tracks the schema through <update> below: an install records
+         the newest file in sql/updates/mysql, an update runs every file newer than the
+         recorded version. A schema change therefore goes into install.mysql.utf8.sql (fresh
+         installs) AND into a new sql/updates/mysql/<version>.sql (installed sites). -->
+    <version>2.0.0</version>
     <description>The smartest,fastest and easiest ecommerce solution for companies developed with love by Easylogic.</description>
     <namespace path="src">Alfa\Component\Alfa</namespace>
 
@@ -18,16 +25,16 @@
             <file driver="mysql" charset="utf8">sql/install.mysql.utf8.sql</file>
         </sql>
     </install>
-    <update> <!-- Runs on update -->
+    <!-- No uninstall SQL, on purpose: uninstalling keeps every Alfa table and its data, and
+         installing the same schema again reconnects it (script.php preflight reads the schema
+         version kept in #__alfa_meta). Joomla would also run an uninstall SQL as the rollback
+         of a failed install, over tables that may hold a shop's data. Removing the data is an
+         explicit administrator action, never the uninstaller's. -->
+    <update> <!-- Runs on update: every sql/updates/mysql/<version>.sql newer than the recorded schema -->
         <schemas>
             <schemapath type="mysql">sql/updates/mysql</schemapath>
         </schemas>
     </update>
-    <uninstall> <!-- Runs on uninstall -->
-        <sql>
-            <file driver="mysql" charset="utf8">sql/uninstall.mysql.utf8.sql</file>
-        </sql>
-    </uninstall>
 
     <api>
 		<files folder="api">
@@ -52,48 +59,17 @@
     </languages>
     <administration>
         <menu>COM_ALFA</menu>
-        <submenu>
-
-            <menu link="option=com_alfa&amp;view=categories" view="categories" alt="Alfa/Categories">COM_ALFA_TITLE_CATEGORIES</menu>
-
-            <menu link="option=com_alfa&amp;view=items" view="items" alt="Alfa/Items">COM_ALFA_TITLE_ITEMS</menu>
-
-            <menu link="option=com_alfa&amp;view=formfields" view="formfields" alt="Alfa/Formfields">COM_ALFA_TITLE_FORM_FIELDS</menu>
-
-            <menu link="option=com_alfa&amp;view=orders" view="orders" alt="Alfa/Orders">COM_ALFA_TITLE_ORDERS</menu>
-
-            <menu link="option=com_alfa&amp;view=orderstatuses" view="orderstatuses" alt="Alfa/Orderstatuses">COM_ALFA_TITLE_ORDER_STATUSES</menu>
-
-            <menu link="option=com_alfa&amp;view=coupons" view="coupons" alt="Alfa/Coupons">COM_ALFA_TITLE_COUPONS</menu>
-
-            <menu link="option=com_alfa&amp;view=users" view="users" alt="Alfa/Users">COM_ALFA_TITLE_USERS</menu>
-
-            <menu link="option=com_alfa&amp;view=usergroups" view="usergroups" alt="Alfa/Usergroups">COM_ALFA_TITLE_USERGROUPS</menu>
-
-            <menu link="option=com_alfa&amp;view=customs" view="customs" alt="Alfa/Customs">COM_ALFA_TITLE_CUSTOMS</menu>
-
-			<menu link="option=com_alfa&amp;view=manufacturers" view="manufacturers" alt="Alfa/Manufacturers">COM_ALFA_TITLE_MANUFACTURERS</menu>
-
-			<menu link="option=com_alfa&amp;view=shipments" view="shipments" alt="Alfa/Shipments">COM_ALFA_TITLE_SHIPMENTS</menu>
-
-            <menu link="option=com_alfa&amp;view=payments" view="payments" alt="Alfa/Payments">COM_ALFA_TITLE_PAYMENTS</menu>
-
-		    <menu link="option=com_alfa&amp;view=taxes" view="taxes" alt="Alfa/Taxes">COM_ALFA_TITLE_TAXES</menu>
-
-            <menu link="option=com_alfa&amp;view=discounts" view="discounts" alt="Alfa/Discounts">COM_ALFA_TITLE_DISCOUNTS</menu>
-
-		    <menu link="option=com_alfa&amp;view=places" view="places" alt="Alfa/Places">COM_ALFA_TITLE_PLACES</menu>
-
-			<menu link="option=com_alfa&amp;view=currencies" view="currencies" alt="Alfa/Currencies">COM_ALFA_TITLE_CURRENCIES</menu>
-
-            <menu link="option=com_alfa&amp;view=notifications" view="notifications" alt="Alfa/Notifications">COM_ALFA_NOTIFY_HISTORY_TITLE</menu>
-
-            <menu link="option=com_alfa&amp;view=tools" view="tools" alt="Alfa/Tools">COM_ALFA_TITLE_TOOLS</menu>
-
-        </submenu>
+        <!--
+            No <submenu> here on purpose. The admin menu is declared in menu.xml + built by
+            MenuBuilder (core items + plugin onAlfaBuildMenu entries), and MenuInjector places
+            it into Joomla's native sidebar on every page, so it is dynamic, icon-rich and
+            plugin-extensible instead of a fixed set of DB menu rows.
+        -->
         <files folder="administrator">
             <filename>access.xml</filename>
             <filename>config.xml</filename>
+            <!-- The admin sidebar is built from this, not from <submenu> rows. -->
+            <filename>menu.xml</filename>
             <filename>LICENSE</filename>
             <folder>files</folder>
             <folder>forms</folder>
@@ -102,6 +78,11 @@
             <folder>services</folder>
             <folder>layouts</folder>
             <folder>sql</folder>
+            <!-- Guided tours: the JSON files ARE the source of truth (TourSeeder
+                 deletes any com_alfa tour it cannot find a file for), and core
+                 loads each tour's INI from the component folder. -->
+            <folder>tours</folder>
+            <folder>language</folder>
         </files>
         <languages folder="administrator/languages">
 
@@ -127,13 +108,44 @@
         <plugin group="alfa-form-fields" plugin="text"/>
         <plugin group="alfa-form-fields" plugin="textarea"/>
         <plugin group="alfa-form-fields" plugin="choice"/>
+        <plugin group="alfa-form-fields" plugin="country"/>
+
+        <plugin group="alfa-item-fields" plugin="choice"/>
+
+        <!--
+            NO SEARCH ENGINE IS BUNDLED, deliberately.
+
+            Alfa Commerce always searches the catalogue: the component ships a complete
+            search over the live product tables, which needs no index, no rebuild and no
+            configuration. What it does not ship is a search ENGINE.
+
+            An engine is a separately licensed extension. plg_alfa-search_indexed prepares a
+            denormalised copy of the catalogue and searches that instead: faster on a
+            large catalogue, and able to search descriptive text the live search does not
+            cover. It is installed by the merchant, not by this manifest.
+
+            What core DOES ship is the contract every engine implements:
+            SearchEngineInterface, SearchIndexerInterface, SearchProviderInterface,
+            SearchDocument, SearchScope,
+            the registry and the rebuild orchestration, so an engine is an
+            implementation of a published API rather than a patch to the component.
+        -->
+
         <plugin  group="system" plugin="alfasync"/>
+
+        <!-- Prepares the list prices of new combinations of customer groups (a scheduled task). -->
+        <plugin group="task" plugin="alfapricesets"/>
+
+        <plugin group="console" plugin="alfainventory"/>
 
     </plugins>
 
     <modules>
         <module module="mod_alfa_cart" />
 		<module module="mod_alfa_search" />
+        <module module="mod_alfa_filters" />
+        <module module="mod_alfa_items" />
+        <module module="mod_easy_articles" />
 	</modules>
 
     <libraries>

@@ -10,8 +10,8 @@ use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
 
 // Events are auto-wired from Tel::getSubscribedEvents() (inherited empty default
-// from FieldsPlugin via SubscriberInterface). Do NOT pass a DispatcherInterface
-// to the constructor — that pattern is E_USER_DEPRECATED in Joomla 5+ and removed
+// from FormFieldsPlugin via SubscriberInterface). Do NOT pass a DispatcherInterface
+// to the constructor; that pattern is E_USER_DEPRECATED in Joomla 5+ and removed
 // in Joomla 7. See libraries/src/Plugin/CMSPlugin.php:133.
 
 return new class () implements ServiceProviderInterface {

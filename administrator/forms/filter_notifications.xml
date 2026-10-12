@@ -2,7 +2,8 @@
 <form>
     <fields name="filter">
         <field name="search" type="text"
-               label="COM_ALFA_SEARCH_FILTER_SUBMIT"
+               label="COM_ALFA_FILTER_SEARCH_LABEL"
+               hint="COM_ALFA_NOTIFICATIONS_SEARCH_PLACEHOLDER"
                description="COM_ALFA_SEARCH_FILTER_SUBMIT"
                class="js-stools-search-string" />
 
@@ -16,7 +17,7 @@
         <field name="severity" type="list"
                label="COM_ALFA_NOTIFY_COL_SEVERITY"
                onchange="this.form.submit();">
-            <option value="">JOPTION_SELECT_ALL</option>
+            <option value="">COM_ALFA_NOTIFY_FILTER_SEVERITY_ANY</option>
             <option value="danger">COM_ALFA_NOTIFY_SEVERITY_DANGER</option>
             <option value="warning">COM_ALFA_NOTIFY_SEVERITY_WARNING</option>
             <option value="info">COM_ALFA_NOTIFY_SEVERITY_INFO</option>
@@ -26,7 +27,7 @@
         <field name="read" type="list"
                label="COM_ALFA_NOTIFY_FILTER_READ"
                onchange="this.form.submit();">
-            <option value="">JOPTION_SELECT_ALL</option>
+            <option value="">COM_ALFA_NOTIFY_FILTER_READ_ANY</option>
             <option value="unread">COM_ALFA_NOTIFY_UNREAD</option>
             <option value="read">COM_ALFA_NOTIFY_READ</option>
         </field>

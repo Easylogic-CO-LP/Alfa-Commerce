@@ -11,6 +11,10 @@
  * Defines an action button for the admin order edit page.
  * Supports fluent API and array construction.
  *
+ * An action changes state unless it declares itself read-only: every
+ * dispatcher answers a state-changing action only from a POST, so an action
+ * that forgets to declare anything cannot be run from a link.
+ *
  * Path: administrator/components/com_alfa/src/Plugin/PluginAction.php
  *
  * @since  1.0.0
@@ -64,6 +68,12 @@ class PluginAction
     /** @var string Modal size: sm, md, lg, xl */
     public string $modal_size;
 
+    /** @var bool Does running this action change state? True unless declared read-only. */
+    public bool $mutates;
+
+    /** @var array<string, scalar> Fields posted with the action when it runs */
+    public array $data;
+
     /**
      * Constructor.
      *
@@ -81,17 +91,17 @@ class PluginAction
         $this->confirmation_message = $config['confirmation_message'] ?? null;
         $this->enabled = $config['enabled'] ?? true;
         $this->tooltip = $config['tooltip'] ?? null;
+        $this->mutates = $config['mutates'] ?? true;
         $this->metadata = $config['metadata'] ?? [];
         $this->priority = $config['priority'] ?? 100;
         $this->button_layout = $config['button_layout'] ?? null;
         $this->response_layout = $config['response_layout'] ?? null;
         $this->modal_title = $config['modal_title'] ?? null;
         $this->modal_size = $config['modal_size'] ?? 'md';
+        $this->data = $config['data'] ?? [];
     }
 
-    // =========================================================================
     //  FLUENT SETTERS - Chain with $event->add() for clean API
-    // =========================================================================
 
     /**
      * Set the icon name (e.g. 'checkmark', 'truck', 'eye').
@@ -128,10 +138,69 @@ class PluginAction
      * @return static For chaining
      * @since  1.0.0
      */
+
     public function confirm(string $message): static
     {
         $this->requires_confirmation = true;
         $this->confirmation_message = $message;
+
+        return $this;
+    }
+
+    /**
+     * Fields posted with the action when it runs.
+     *
+     * A confirmation names what the action will do ("Refund 40,00 €"), but the
+     * page may be stale by the time the operator clicks. Posting the figure
+     * the confirmation was built from lets the handler refuse a moved one
+     * instead of acting on a figure nobody confirmed.
+     *
+     * @param array<string, scalar> $fields Field name => value.
+     *
+     *
+     * @since  1.14.0
+     */
+    public function data(array $fields): static
+    {
+        $this->data = $fields;
+
+        return $this;
+    }
+
+    /**
+     * Mark the action as state-changing, which every action is until it
+     * declares itself read-only.
+     *
+     * A state-changing action may not be executed by a bare GET and may not
+     * run twice for the same click: the order-action page and the Tools
+     * endpoint require a POST carrying a one-time key (`once`), and a chunked
+     * tool presents a fresh key with every request, its sizing pass included.
+     * The item-field endpoint requires a POST.
+     *
+     *
+     * @since  1.10.0
+     */
+    public function mutating(): static
+    {
+        $this->mutates = true;
+
+        return $this;
+    }
+
+    /**
+     * Declare the action read-only: running it changes no record, so it may
+     * also be opened by GET (details, logs, a form that only asks).
+     *
+     * Declare it only for an action that writes nothing whatever the request
+     * carries: an action whose handler writes when the request names a value
+     * stays state-changing.
+     *
+     *
+     * @since  1.14.0
+     */
+    public function readOnly(): static
+    {
+        $this->mutates = false;
 
         return $this;
     }
@@ -224,9 +293,7 @@ class PluginAction
         return $this;
     }
 
-    // =========================================================================
-    //  UTILITY
-    // =========================================================================
+    //  Utility
 
     /**
      * Check if the action has a response layout (will show a modal).

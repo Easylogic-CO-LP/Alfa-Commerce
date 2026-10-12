@@ -9,14 +9,14 @@
  * Execute Shipment Action Event
  *
  * Carries both the INPUT (action, shipment, order, data) and the
- * OUTPUT (layout, message, refresh, redirect) — same pattern as
+ * OUTPUT (layout, message, refresh, redirect), same pattern as
  * LayoutEvent in the frontend. No separate result object needed.
  *
  * Input (set by controller, read by plugin):
- *   $event->getAction()    → 'mark_shipped', 'track', etc.
- *   $event->getShipment()  → Shipment record with params->type
- *   $event->getOrder()     → Order record
- *   $event->getData()      → Additional data from JS
+ *   $event->getAction()    -> 'mark_shipped', 'track', etc.
+ *   $event->getShipment()  -> Shipment record with params->type
+ *   $event->getOrder()     -> Order record
+ *   $event->getData()      -> Additional data from JS
  *
  * Output (set by plugin, read by controller):
  *   $event->setLayout('action_tracking');
@@ -30,15 +30,15 @@
 
 namespace Alfa\Component\Alfa\Administrator\Event\Shipments;
 
+use Alfa\Component\Alfa\Site\Service\Order\Order;
+use Alfa\Component\Alfa\Site\Service\Order\Shipment;
 use Joomla\CMS\Event\AbstractImmutableEvent;
 
 defined('_JEXEC') or die;
 
 class ExecuteShipmentActionEvent extends AbstractImmutableEvent
 {
-    // ═════════════════════════════════════════════════════════
-    //  INPUT — set by controller, read by plugin
-    // ═════════════════════════════════════════════════════════
+    //  INPUT: set by controller, read by plugin
 
     /**
      * Get the action ID requested (e.g. 'mark_shipped', 'track').
@@ -63,14 +63,38 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
     }
 
     /**
+     * The shipment this event is about, as the canonical reader.
+     *
+     *     $shipment = $event->getOrderShipment();
+     *     $locker = $shipment->pluginData()->getString(key: 'locker_id', default: '');
+     *
+     * THE EXACT ONE, not "a shipment of this order". An order can be split
+     * across parcels, so a handler that went to the order and took the first
+     * shipment would work until the day a shop split one, and then quietly
+     * label the wrong parcel. This event knows which shipment it concerns and
+     * hands that one over.
+     *
+     * {@see self::getShipment()} remains the raw record, which is what carries
+     * the method's own settings (`->params`); this is the same row read through
+     * the reader, so nothing is decoded twice.
+     *
+     *
+     * @since  1.10.0
+     */
+    public function getOrderShipment(): Shipment
+    {
+        return Shipment::of($this->arguments['shipment']);
+    }
+
+    /**
      * Get the order record.
      *
      *
      * @since  1.0.0
      */
-    public function getOrder(): object
+    public function getOrder(): Order
     {
-        return $this->arguments['order'];
+        return Order::of($this->arguments['order']);
     }
 
     /**
@@ -84,11 +108,9 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
         return $this->arguments['data'] ?? [];
     }
 
-    // ═════════════════════════════════════════════════════════
-    //  OUTPUT — set by plugin, read by controller
-    // ═════════════════════════════════════════════════════════
+    //  OUTPUT: set by plugin, read by controller
 
-    // ── Success / Error ──────────────────────────────────────
+    // Success / Error
 
     /**
      * Set whether the action succeeded. Default is true.
@@ -144,7 +166,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
         $this->arguments['message'] = $message;
     }
 
-    // ── Navigation ───────────────────────────────────────────
+    // Navigation
 
     /**
      * Set whether to reload the page after the action.
@@ -188,7 +210,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
         return $this->arguments['redirect'] ?? null;
     }
 
-    // ── Layout (same pattern as LayoutEvent) ─────────────────
+    // Layout (same pattern as LayoutEvent)
 
     /**
      * Set the layout filename (without .php).
@@ -240,6 +262,48 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
     }
 
     /**
+     * Add a footer button to the action popup, declared here, not inside the
+     * layout HTML. A button can close the popup, close + refresh, or RUN
+     * another action of THIS entity in the SAME popup (for confirm dialogs and
+     * step-by-step flows: each step saves, then loads the next via its action).
+     *
+     *   $event->addButton('Cancel');                                  // close
+     *   $event->addButton('Done', ['reload' => true]);                // close + refresh
+     *   $event->addButton('Mark delivered', ['action' => 'mark_delivered']);
+     *
+     * @param string $label Button label.
+     * @param array $opts ['action'=>string, 'data'=>array, 'reload'=>bool, 'class'=>string]
+     *
+     * @return static For chaining.
+     *
+     * @since  1.3.0
+     */
+    public function addButton(string $label, array $opts = []): static
+    {
+        $buttons = $this->arguments['buttons'] ?? [];
+        $buttons[] = [
+            'label' => $label,
+            'action' => $opts['action'] ?? null,
+            'data' => $opts['data'] ?? [],
+            'reload' => !empty($opts['reload']),
+            'class' => $opts['class'] ?? 'btn-primary',
+        ];
+        $this->arguments['buttons'] = $buttons;
+
+        return $this;
+    }
+
+    /**
+     * @return array The declared footer buttons.
+     *
+     * @since  1.3.0
+     */
+    public function getButtons(): array
+    {
+        return $this->arguments['buttons'] ?? [];
+    }
+
+    /**
      * Set the modal title for when the layout is shown in a popup.
      *
      *
@@ -259,7 +323,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
         return $this->arguments['modalTitle'] ?? null;
     }
 
-    // ── HTML (set by controller after rendering layout) ──────
+    // HTML (set by controller after rendering layout)
 
     /**
      * Set rendered HTML. Used by the controller, not by plugins.
@@ -282,9 +346,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
         return $this->arguments['html'] ?? null;
     }
 
-    // ═════════════════════════════════════════════════════════
     //  SERIALIZATION (used by controller to build JSON response)
-    // ═════════════════════════════════════════════════════════
 
     /**
      * Serialize the response fields to an array.
@@ -295,7 +357,6 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
     public function toResponseArray(): array
     {
         $result = [
-            'success' => $this->isSuccess(),
             'message' => $this->getMessage(),
             'refresh' => $this->getRefresh(),
             'html' => $this->getHtml(),
@@ -303,9 +364,15 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
             'redirect' => $this->getRedirectUrl(),
         ];
 
-        return array_filter($result, function ($v) {
+        $result = array_filter($result, function ($v) {
             return $v !== null && $v !== false && $v !== '';
         });
+
+        // success is ALWAYS present, even when false: the filter strips a false value
+        // and a client checking `res.success !== false` would read a failure as success.
+        $result['success'] = $this->isSuccess();
+
+        return $result;
     }
 
     /**
