@@ -1,0 +1,187 @@
+/**
+ * @package    Alfa Commerce
+ * @author     Agamemnon Fakas <info@easylogic.gr>
+ *
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
+ */
+
+/* Inline quick-edit cells in admin lists. Flex + full width in BOTH states so
+ * opening the editor never changes the box (no display switch -> no 1px reflow
+ * jump of the title), while the editor can still fill the column. */
+.alfa-editable {
+    position: relative;
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.alfa-edit-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 1px solid var(--border-color, #e2e6ea);
+    border-radius: 8px;
+    background: var(--card-bg, #fff);
+    color: var(--secondary-color, #566370);
+    cursor: pointer;
+    opacity: 0;
+    transform: scale(0.85);
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+    transition: opacity 0.15s ease, transform 0.15s ease, color 0.15s ease,
+        background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Reveal on row hover / keyboard focus, then read as a real, tappable control. */
+tr:hover .alfa-edit-trigger,
+.alfa-editable:focus-within .alfa-edit-trigger {
+    opacity: 1;
+    transform: none;
+}
+
+.alfa-edit-trigger:hover {
+    color: #fff;
+    background: var(--link-color, #2a69b8);
+    border-color: var(--link-color, #2a69b8);
+    box-shadow: 0 3px 8px rgba(42, 105, 184, 0.3);
+}
+
+.alfa-edit-trigger:active {
+    transform: scale(0.92);
+}
+
+.alfa-edit-trigger:focus-visible {
+    opacity: 1;
+    outline: 2px solid var(--link-color, #2a69b8);
+    outline-offset: 2px;
+}
+
+.alfa-edit-trigger > svg {
+    width: 15px;
+    height: 15px;
+}
+
+.alfa-editable.is-saving {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* The editor is the only visible flex child while editing, so it fills the
+ * column, giving .ml-field-item a stable width and pinning the flag inside the
+ * input exactly like the edit form. No fixed width, no display switch. */
+.alfa-inline-editor {
+    flex: 1 1 100%;
+    width: 100%;
+}
+
+/* Scoped to the editor and qualified by the element, because the admin
+ * template styles number inputs with a specificity a bare .alfa-inline-input
+ * loses to, which left the input at its intrinsic width while the language /
+ * location label, pinned to the WRAPPER's right edge, floated outside it. */
+.alfa-inline-editor input.alfa-inline-input,
+.alfa-inline-editor .alfa-inline-input {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+}
+
+/* One-line explanation under a scalar inline input (what the value is used
+ * for, what the number the merchant is typing actually means). */
+.alfa-inline-hint {
+    margin-top: 0.25rem;
+    font-size: 0.78rem;
+    line-height: 1.3;
+    color: var(--secondary-color, #566370);
+}
+
+.alfa-inline-actions {
+    display: flex;
+    gap: 0.35rem;
+    justify-content: flex-end;
+    margin-top: 0.4rem;
+}
+
+/* Tree rows (Categories list): the depth prefix and the editable marker must
+ * share one line. The marker is a full-width flex box, so as a bare sibling of
+ * a text node it would start on a line of its own. */
+.alfa-tree-row {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.alfa-tree-prefix {
+    flex: 0 0 auto;
+    white-space: pre;
+    color: var(--secondary-color, #7b8894);
+}
+
+.alfa-tree-row > .alfa-editable {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* Per-location stock editor: the location name sits where a language flag sits
+ * in the multilingual editor, so it must not be an image-sized box. */
+.alfa-inline-location {
+    max-width: 45%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.alfa-inline-location.is-unpublished {
+    font-style: italic;
+    opacity: 0.7;
+}
+
+/* Loading: the editor is fetched on demand, so the trigger itself becomes the
+ * progress indicator until the markup arrives and replaces it. .is-editing is
+ * set before the request and cleared when the editor closes, so no JS is needed
+ * beyond what already runs. Pinned visible because the trigger is otherwise
+ * only revealed on row hover; the pointer often leaves while it loads. */
+.alfa-editable.is-editing .alfa-edit-trigger {
+    opacity: 1;
+    transform: none;
+    pointer-events: none;
+    cursor: progress;
+}
+
+.alfa-editable.is-editing .alfa-edit-trigger > svg {
+    display: none;
+}
+
+.alfa-editable.is-editing .alfa-edit-trigger::after {
+    content: "";
+    width: 13px;
+    height: 13px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: alfa-inline-spin 0.6s linear infinite;
+}
+
+@keyframes alfa-inline-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* A spinner is decoration; never animate it for someone who asked us not to. */
+@media (prefers-reduced-motion: reduce) {
+    .alfa-editable.is-editing .alfa-edit-trigger::after {
+        animation: none;
+        border-right-color: currentColor;
+        opacity: 0.5;
+    }
+}
+
+/* The editor fills its cell, but a list column can be very wide (the Categories
+ * name column carries almost the whole table width). Uncapped, the inputs
+ * stretch far past a readable measure and the pinned language flag drifts a
+ * long way from the text it belongs to. */
+.alfa-inline-editor {
+    max-width: 34rem;
+}

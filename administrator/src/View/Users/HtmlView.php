@@ -1,11 +1,10 @@
 <?php
 
 /**
- * @version    1.0.1
- * @package    Com_Alfa
+ * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  2024 Easylogic CO LP
- * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
 namespace Alfa\Component\Alfa\Administrator\View\Users;
@@ -13,8 +12,8 @@ namespace Alfa\Component\Alfa\Administrator\View\Users;
 // No direct access
 defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\View\HtmlView as BaseHtmlView;
-use Joomla\CMS\Helper\ContentHelper;
+use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
+use Alfa\Component\Alfa\Administrator\View\AlfaHtmlView as BaseHtmlView;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 
@@ -25,6 +24,12 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
  */
 class HtmlView extends BaseHtmlView
 {
+    /**
+     * @var string The entity a plugin targets with $context->targets('user').
+     * @since  1.8.0
+     */
+    protected string $alfaEntity = 'user';
+
     protected $items;
 
     protected $pagination;
@@ -72,19 +77,16 @@ class HtmlView extends BaseHtmlView
      */
     protected function addToolbar()
     {
-        $canDo = ContentHelper::getActions('com_alfa');
         $toolbar = $this->getDocument()->getToolbar();
 
-        ToolbarHelper::title(Text::_('COM_ALFA_TITLE_USERS'), 'person');
+        ToolbarHelper::title(Text::_('COM_ALFA_TITLE_USERS'), 'generic');
 
-        //Add new User Button
-        //        if ($canDo->get('core.create')) {
-        //            $toolbar->addNew('user.add');
-        //        }
-
-        if ($canDo->get('core.admin')) {
+        // Options opens com_config, which itself requires core.admin.
+        if ($this->getCurrentUser()->authorise('core.admin', 'com_alfa')) {
             $toolbar->preferences('com_alfa');
         }
+
+        TourHelper::toolbarHelp($toolbar, $this->getName());
         \Alfa\Component\Alfa\Administrator\Helper\NotificationHelper::toolbarBadge($toolbar);
     }
 }

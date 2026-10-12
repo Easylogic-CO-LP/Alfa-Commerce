@@ -3,9 +3,9 @@
     <name>mod_alfa_search</name>
     <author>Alex K</author>
     <creationDate>2024-8-26</creationDate>
-    <copyright>(C) 2024 Open Source Matters, Inc.</copyright>
+    <copyright>(C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.</copyright>
     <license>GNU General Public License version 3 or later; see LICENSE</license>
-    <authorEmail>alexkapnotidis@gmail.com</authorEmail>
+    <authorEmail>info@easylogic.gr</authorEmail>
     <version>1.0.0</version>
     <description>MOD_ALFA_SEARCH_DESC</description>
     <namespace path="src">Alfa\Module\AlfaSearch</namespace>
@@ -90,6 +90,27 @@
                 </field>
 
                 <field
+                        name="show_suggestions"
+                        type="radio"
+                        label="MOD_ALFA_SEARCH_SHOW_SUGGESTIONS_LBL"
+                        description="MOD_ALFA_SEARCH_SHOW_SUGGESTIONS_DESC"
+                        default="1"
+                        layout="joomla.form.field.radio.switcher">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+
+                <field
+                        type="number"
+                        name="suggestions_limit"
+                        label="MOD_ALFA_SEARCH_SUGGESTIONS_LIMIT_LBL"
+                        default="8"
+                        min="1"
+                        step="1"
+                        showon="show_suggestions:1"
+                />
+
+                <field
                         type="number"
                         name="manufacturers_limit"
                         label="MOD_ALFA_MANUFACTURERS_LIMIT_LBL"
@@ -147,6 +168,88 @@
                 <!--                </field>-->
                 <!--   description length -->
             </fieldset>
+            <fieldset name="style" label="MOD_ALFA_SEARCH_STYLE_FIELDSET">
+
+                <field type="note" name="style_note"
+                       label="MOD_ALFA_SEARCH_STYLE_NOTE"
+                       description="MOD_ALFA_SEARCH_STYLE_NOTE_DESC"
+                       class="alert alert-info" />
+
+                <field name="style_surface"
+                       type="color"
+                       format="hex"
+                       default=""
+                       label="MOD_ALFA_SEARCH_STYLE_SURFACE_LBL"
+                       description="MOD_ALFA_SEARCH_STYLE_SURFACE_DESC"
+                />
+
+                <field name="style_text"
+                       type="color"
+                       format="hex"
+                       default=""
+                       label="MOD_ALFA_SEARCH_STYLE_TEXT_LBL"
+                       description="MOD_ALFA_SEARCH_STYLE_TEXT_DESC"
+                />
+
+                <field name="style_muted"
+                       type="color"
+                       format="hex"
+                       default=""
+                       label="MOD_ALFA_SEARCH_STYLE_MUTED_LBL"
+                       description="MOD_ALFA_SEARCH_STYLE_MUTED_DESC"
+                />
+
+                <field name="style_muted_dark"
+                       type="color"
+                       format="hex"
+                       default=""
+                       label="MOD_ALFA_SEARCH_STYLE_MUTED_DARK_LBL"
+                       description="MOD_ALFA_SEARCH_STYLE_MUTED_DARK_DESC"
+                />
+
+                <field name="style_text_dark"
+                       type="color"
+                       format="hex"
+                       default=""
+                       label="MOD_ALFA_SEARCH_STYLE_TEXT_DARK_LBL"
+                       description="MOD_ALFA_SEARCH_STYLE_TEXT_DARK_DESC"
+                />
+
+                <field name="style_surface_dark"
+                       type="color"
+                       format="hex"
+                       default=""
+                       label="MOD_ALFA_SEARCH_STYLE_SURFACE_DARK_LBL"
+                       description="MOD_ALFA_SEARCH_STYLE_SURFACE_DARK_DESC"
+                />
+
+                <field name="style_hairline"
+                       type="color"
+                       format="hex"
+                       default=""
+                       label="MOD_ALFA_SEARCH_STYLE_HAIRLINE_LBL"
+                       description="MOD_ALFA_SEARCH_STYLE_HAIRLINE_DESC"
+                />
+
+                <field name="style_hairline_dark"
+                       type="color"
+                       format="hex"
+                       default=""
+                       label="MOD_ALFA_SEARCH_STYLE_HAIRLINE_DARK_LBL"
+                       description="MOD_ALFA_SEARCH_STYLE_HAIRLINE_DARK_DESC"
+                />
+
+                <field name="style_radius"
+                       type="number"
+                       min="0"
+                       max="80"
+                       step="1"
+                       default=""
+                       label="MOD_ALFA_SEARCH_STYLE_RADIUS_LBL"
+                       description="MOD_ALFA_SEARCH_STYLE_RADIUS_DESC"
+                />
+            </fieldset>
+
             <fieldset name="advanced">
                 <field
                         name="layout"

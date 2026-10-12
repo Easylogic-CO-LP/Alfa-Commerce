@@ -1,0 +1,114 @@
+/**
+ * Alfa Commerce: admin menu injected into Joomla's native #sidebarmenu.
+ *
+ * The markup reuses Joomla's own sidebar classes (item / no-dropdown / sidebar-item-title
+ * / mm-active) so it inherits native chrome; this only adds what is ours: the currentColor
+ * mask icons, the section dividers, and the active/hover polish. Monochrome by design: the
+ * icon takes the sidebar's text colour, so it is correct in light and dark alike.
+ */
+
+/* Icon: a single-colour SVG painted as a mask, so it follows the menu text colour. We do
+   NOT reuse Joomla's icon-* classes (they carry a font glyph that would collide); we only
+   borrow the native spacing (margin: 0 .85rem) so our titles line up exactly with the
+   CMS menu's. */
+.alfa-menu-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin: 0 0.85rem;
+    background-color: currentColor;
+    -webkit-mask: var(--alfa-icon) center / contain no-repeat;
+    mask: var(--alfa-icon) center / contain no-repeat;
+    opacity: 0.85;
+    transition: opacity 0.12s ease;
+}
+
+#sidebarmenu .alfa-nav .no-dropdown,
+#sidebarmenu .alfa-jump .no-dropdown {
+    display: flex;
+    align-items: center;
+}
+
+#sidebarmenu .alfa-nav .no-dropdown:hover .alfa-menu-icon,
+#sidebarmenu .alfa-nav .no-dropdown:focus .alfa-menu-icon,
+#sidebarmenu .alfa-nav .mm-active .alfa-menu-icon {
+    opacity: 1;
+}
+
+/* Active screen: a crisp accent bar, on top of Joomla's own active highlight. Defaults to
+   the item's own colour (currentColor) so it stays theme-adaptive: light on the dark
+   sidebar, dark on a light one; a theme can set --alfa-accent for a brand colour. */
+#sidebarmenu .alfa-nav .item.current > .mm-active {
+    box-shadow: inset 3px 0 0 0 var(--alfa-accent, currentColor);
+    font-weight: 600;
+}
+
+/* Section header: a small uppercase label with a hairline above it, so the header and the
+   separator are one clean element. Aligned to the native item-text indent (3rem) and using
+   Joomla's own section-label colour, so it sits exactly like a native menuitem-group. */
+#sidebarmenu .alfa-nav .alfa-menu-header {
+    margin: 0;
+    padding: 0.75rem 1rem 0.3rem;
+    padding-inline-start: 3rem;
+    list-style: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.11);
+}
+
+#sidebarmenu .alfa-nav .alfa-menu-header > span {
+    color: var(--main-nav-item-title);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+/* Forward arrow on the "Alfa Commerce" jump entry: mirrors the native has-arrow chevron,
+   pushed to the end, as a real SVG. */
+#sidebarmenu .alfa-menu-arrow {
+    margin-inline-start: auto;
+    flex: 0 0 2rem;
+    width: 2rem;
+    height: 1rem;
+    background-color: currentColor;
+    -webkit-mask: var(--alfa-icon) center / 1rem no-repeat;
+    mask: var(--alfa-icon) center / 1rem no-repeat;
+    opacity: 0.6;
+}
+
+/* The Back item reads as chrome, a shade quieter than the entries. */
+#sidebarmenu .alfa-nav .alfa-back .no-dropdown {
+    opacity: 0.7;
+}
+
+#sidebarmenu .alfa-nav .alfa-back .no-dropdown:hover {
+    opacity: 1;
+}
+
+/* Light admin themes: soften the header hairline so it stays a hairline, not a gap. */
+:root:not([data-color-scheme="dark"]):not([data-bs-theme="dark"])
+#sidebarmenu .alfa-nav .alfa-menu-header {
+    border-top-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Collapsed rail
+
+   Atum answers the collapse by hiding each item's label (.sidebar-item-title)
+   and letting the icon hold the row's height. A section header has no icon: its
+   height IS its text, so display:none would take the row away and shift every
+   icon below it out of the rhythm the rail depends on.
+
+   Measured at 48px rail width, the label began at x=48 and ran to x=86, painted
+   entirely outside the rail, which is what shows through. So: keep the box, drop
+   the ink. The border-top stays and becomes the divider between sections, which
+   is the most a 3rem rail can honestly say, and the row keeps its exact height. */
+
+.closed #sidebarmenu .alfa-nav .alfa-menu-header {
+    padding-inline: 0;
+    max-inline-size: 3rem;
+    overflow: hidden;
+}
+
+.closed #sidebarmenu .alfa-nav .alfa-menu-header > span {
+    visibility: hidden;
+}

@@ -11,13 +11,19 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Field\MultilingualFieldInterface;
+use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\OutputFilter;
+use Joomla\CMS\Form\Form;
+use Joomla\CMS\Form\FormHelper;
+use Joomla\CMS\Language\LanguageFactoryInterface;
 use Joomla\CMS\Language\LanguageHelper;
 use Joomla\CMS\Log\Log;
 use Joomla\String\StringHelper;
 use RuntimeException;
+use SimpleXMLElement;
 use Throwable;
 
 /**
@@ -25,13 +31,12 @@ use Throwable;
  *
  * Central utility for all multilingual read / write operations in the Alfa component.
  *
- * DATA MODEL
- * ----------
+ * Data model
  * Every translatable entity has one auxiliary table per installed language:
- *   #__alfa_items_en_gb,  #__alfa_items_el_gr, …
+ *   #__alfa_items_en_gb,  #__alfa_items_el_gr, ...
  *
  * Each lang table shares a single PK column (e.g. "id_item") with the parent
- * table and stores one column per translatable field (name, alias, short_desc …).
+ * table and stores one column per translatable field (name, alias, short_desc ...).
  * Tables and columns are created / migrated automatically on first save.
  *
  * The main table (e.g. #__alfa_categories) does NOT need to store translatable
@@ -39,49 +44,43 @@ use Throwable;
  * column, so passing name_en_gb or even name in $data causes no errors.
  * All translatable data lives exclusively in the language tables.
  *
- * FORM FIELD NAMING CONVENTION
- * ----------------------------
+ * Form field naming convention
  * Translatable form fields must follow the pattern:  fieldName_langCode
  * Example POST keys:  name_en_gb,  alias_el_gr,  meta_title_en_gb
  * The MultilingualTextField form-field type generates this naming automatically.
  *
- * ALIAS / SLUG FIELDS
- * -------------------
- * Alias is a translatable field — every language stores its own URL-safe alias
+ * Alias / slug fields
+ * Alias is a translatable field: every language stores its own URL-safe alias
  * in its lang table.  Fields listed in $aliasFields are treated as slugs:
  * auto-generated from name/title when blank and sanitised via OutputFilter.
  * Default: ['alias'].  Pass [] to opt out entirely.
  *
- * MAIN TABLE ALIAS
- * ----------------
- * Alias is a fully translatable field — it lives ONLY in the language tables
+ * Main table alias
+ * Alias is a fully translatable field: it lives ONLY in the language tables
  * (one per-language slug each). The main table keeps NO alias column and there
  * is NO fallback to it: every alias read (lists, routing) goes through the
  * language tables. Models must never write alias to the main table.
  *
- * LIST QUERY JOINS
- * ----------------
+ * List query joins
  * addMultilingualJoinToQuery() joins the current-language table and optionally
- * the default-language table. The COALESCE reads ONLY from language tables —
+ * the default-language table. The COALESCE reads ONLY from language tables;
  * it does NOT fall back to the main table column since translatable fields
  * no longer exist there.
  *
- * LIST QUERY — RELATED ENTITY IDS
- * ---------------------------------
+ * List query: related entity IDs
  * addRelatedIdsToQuery() adds one correlated scalar subquery per relationship.
- * No JOIN or GROUP BY on the outer query — pagination totals stay correct.
+ * No JOIN or GROUP BY on the outer query; pagination totals stay correct.
  * Full records are resolved in getItems() after pagination via fetchRelated().
  *
- * GETITEMS — RELATED ENTITY ENRICHMENT
- * --------------------------------------
- * Three methods handle post-pagination enrichment — use whichever fits the model:
+ * getItems: related entity enrichment
+ * Three methods handle post-pagination enrichment; use whichever fits the model:
  *
  * fetchRelated()  Pure data, no mutation. Fires one query per relationship,
  *                 returns a [$itemId => [$relatedId => $record]] map.
  *                 Call before the foreach loop so all DB work is grouped.
  *
  * bindRelated()   Pure assignment, no DB. Binds one map onto one item.
- *                 Call inside the foreach loop — one call per relationship.
+ *                 Call inside the foreach loop, one call per relationship.
  *                 All other per-item logic (prices, links, media) goes in
  *                 the same loop.
  *
@@ -89,19 +88,17 @@ use Throwable;
  *                 Use when no extra per-item logic is needed.
  *
  * FIELD SEMANTICS FOR getRecordsByIds() / fetchRelated() / loadRelated()
- * -----------------------------------------------------------------------
- * $fields     — structural (non-translatable) columns read directly from the
+ * $fields     - structural (non-translatable) columns read directly from the
  *               main table. Same value in every language.
  *               e.g. ['alias', 'image', 'ordering']
- * $langFields — translatable columns whose value differs per language.
+ * $langFields - translatable columns whose value differs per language.
  *               When $langTableBase is set: resolved through lang tables via
- *               COALESCE (current language → default language → empty string).
+ *               COALESCE (current language -> default language -> empty string).
  *               When $langTableBase is '' (non-translatable table e.g. #__users):
  *               selected directly from the main table without any join.
  *               e.g. ['name', 'description']
  *
- * LOGGING
- * -------
+ * Logging
  * All messages go to  logs/com_alfa.php  under category "com_alfa.multilingual"
  * using the consistent format:
  *   [MultilingualHelper::methodName] Human-readable message
@@ -110,12 +107,19 @@ use Throwable;
  */
 class MultilingualHelper
 {
-    // =========================================================================
     //  Constants
-    // =========================================================================
 
     /** Joomla log category for every log() call in this class. */
     private const LOG_CATEGORY = 'com_alfa.multilingual';
+
+    /**
+     * Request-scoped content language, set by the API dispatcher from ?lang=.
+     * null = follow the application's UI language (site/admin behaviour).
+     *
+     *
+     * @since  1.9.0
+     */
+    private static ?string $contentLanguageOverride = null;
 
     /**
      * Substrings that map a column to LONGTEXT instead of VARCHAR(255).
@@ -126,9 +130,159 @@ class MultilingualHelper
         'positions', 'json',
     ];
 
-    // =========================================================================
     //  Public API
-    // =========================================================================
+
+    /**
+     * Declare one storage field per language for every translatable field on a form.
+     *
+     * A multilingual field draws jform[short_desc_el_gr] while the XML declares only short_desc,
+     * and Joomla carries declared fields and nothing else: Form::filter() copies a key only when
+     * a field matched it, and Form::bindLevel() keeps a scalar only when findField() does. The
+     * typed translations were therefore stripped out of the validated data, stripped again out of
+     * the session stash a failed save writes, and could not be bound back at render time, so the
+     * fields fell through to their language-table read and a failed save repainted the form from
+     * the stored row, silently discarding the edit and re-saving the old text.
+     *
+     * NOTHING HAS TO BE LISTED HERE. A form's translatable fields are the ones bound to a
+     * language table (the xpath), and a field type joins the contract by implementing
+     * {@see MultilingualFieldInterface}. Adding a translatable field is an XML edit and nothing
+     * else; adding a field TYPE is a class and nothing else.
+     *
+     * Call it from preprocessForm(), the last hook before binding, so a field declared here is a
+     * real field for filtering, validation, the stash and binding alike.
+     *
+     * @param Form $form The edit form to complete.
+     *
+     *
+     * @since  1.10.0
+     */
+    public static function declareStorageFields(Form $form): void
+    {
+        $xml = $form->getXml();
+
+        if (!$xml instanceof SimpleXMLElement) {
+            return;
+        }
+
+        // Root level only, and only what a language table backs. A grouped or subform field
+        // renders a name no flat root key could ever fill, and a field with no language table
+        // carries its translations inline under its own declared name.
+        $owners = $xml->xpath('//field[@name][@type][@multilingual_table][not(ancestor::field)][not(ancestor::fields[@name])]') ?: [];
+
+        foreach ($owners as $owner) {
+            // The field class says whether it posts one key per language. EmailPositions is why
+            // the question is asked of the class and not of the XML: it is bound to a language
+            // table too, but posts <field>_<lang>_<slot>, which is a different shape.
+            if (!FormHelper::loadFieldType((string) $owner['type']) instanceof MultilingualFieldInterface) {
+                continue;
+            }
+
+            $name = (string) $owner['name'];
+
+            // The owner's filter governs its translations too, so the form XML stays the single
+            // lever: filter="safehtml" on the field now actually reaches the stored translation.
+            // Unfiltered is the deliberate default: an editor's HTML must reach the database the
+            // way it always has, and an ABSENT filter attribute is not the same thing: Joomla
+            // falls through to InputFilter and would strip every tag.
+            $filter = (string) ($owner['filter'] ?? '') ?: 'raw';
+
+            foreach (self::getLanguageTags() as $tag) {
+                $storageName = self::buildLangFieldKey($name, $tag);
+
+                // Form::setField() appends a duplicate rather than skipping it, so the guard has
+                // to be explicit, and a form that declares its own key of that name keeps it.
+                if ($form->getField($storageName) !== false) {
+                    continue;
+                }
+
+                // Appended straight onto the form ROOT, which is where Form::setField() lands a
+                // field whose fieldset does not exist, but without the eight whole-document
+                // xpath queries its syncPaths() runs per call to re-read addfieldpath/prefix
+                // attributes this node does not carry (128 of them on the item form alone). At
+                // root the storage fields sit outside every fieldset, so getFieldsets() grows no
+                // phantom tab and renderFieldset() can never draw one.
+                $element = $xml->addChild('field');
+                $element->addAttribute('name', $storageName);
+                $element->addAttribute('type', 'MultilingualStorage');
+                $element->addAttribute('filter', $filter);
+            }
+        }
+    }
+
+    /**
+     * Merge the raw jform POST back over validated form data without discarding the validation.
+     *
+     * Joomla's filter pass emits declared fields and nothing else, so a key the form does not
+     * declare never reaches the model. A blanket array_merge($validated, $raw) would recover
+     * those keys but also overwrite every validated field with its raw value and resurrect the
+     * housekeeping fields the form deliberately unsets, defeating the whole form filter.
+     *
+     * This recovers ONLY the keys the form did not already validate: each declared field keeps
+     * its filtered value, the never-trust fields are never taken from the client, and a field
+     * the form unset at runtime is never restored from the request that was just refused.
+     *
+     * NOT FOR TRANSLATIONS. The per-language keys used to arrive here, and were re-cleaned here
+     * to match their base field's safehtml. They are declared form fields now
+     * ({@see self::declareStorageFields()}), so they are already in $validated with their own
+     * filter applied and this method skips them like any other validated key. Column-mode
+     * translations have exactly one path (declared sibling, Joomla's filter and validation,
+     * validated data, form state) and no raw-POST route back in.
+     *
+     * @param array $validated Data returned by the form validate()/filter() pass.
+     * @param array $raw Raw jform POST array (filter 'raw').
+     * @param Form|null $form Entity form, asked which fields it unsets.
+     *
+     * @return array The merged data safe to pass to the table.
+     *
+     * @since  1.3.1
+     */
+    public static function mergeValidatedFormData(array $validated, array $raw, ?Form $form = null): array
+    {
+        // A FLOOR, for the case where no form is available to ask. These three
+        // are unset by every entity form, so they are named outright.
+        static $neverTrust = ['checked_out', 'checked_out_time', 'modified_by'];
+
+        // EVERY field the form unsets, asked of the form rather than listed here.
+        //
+        // This loop used to collect only the safehtml names, and the hard-coded
+        // trio above was the whole guard. That conflates "never declared" with
+        // "deliberately dropped": a model may unset a field AT RUNTIME (
+        // SeriesModel does exactly that, making next_number and doc_type
+        // read-only once the series has issued documents), and the recovery below
+        // then restored both from the client verbatim, so a fiscal counter could
+        // be rewritten by the same POST the guard had just refused. Measured:
+        // 501 -> 999999 on a series with an issued document.
+        //
+        // Static declarations are covered too, which closes cartrule.xml's
+        // created_by/modified: authorship, the very thing this comment has
+        // always claimed to protect.
+        $unsetFields = [];
+
+        if ($form !== null) {
+            foreach ($form->getFieldset() as $field) {
+                $name = (string) $field->getAttribute('name');
+
+                if ($name !== '' && strtolower((string) $field->getAttribute('filter')) === 'unset') {
+                    $unsetFields[$name] = true;
+                }
+            }
+        }
+
+        foreach ($raw as $key => $value) {
+            // Keep every validated field; never resurrect a field the form unset.
+            if (
+                array_key_exists($key, $validated)
+                || \in_array($key, $neverTrust, true)
+                || isset($unsetFields[$key])
+            ) {
+                continue;
+            }
+
+            $validated[$key] = $value;
+        }
+
+        return $validated;
+    }
 
     /**
      * Save multilingual data for one record.
@@ -140,14 +294,13 @@ class MultilingualHelper
      * Prefer passing $data explicitly (the model already has it).
      * The POST fallback exists only for utility / CLI call-sites.
      *
-     * ALIAS / SLUG FIELDS
-     * -------------------
+     * Alias / slug fields
      * Fields listed in $aliasFields are treated as URL slugs: auto-generated
      * from name/title when blank, sanitised, then made UNIQUE per language
-     * (incrementing -2, -3, … on collision). Uniqueness is scoped by the
-     * main-table columns in $aliasUniqueScope — pass e.g. ['parent_id'] so a
+     * (incrementing -2, -3, ... on collision). Uniqueness is scoped by the
+     * main-table columns in $aliasUniqueScope: pass e.g. ['parent_id'] so a
      * category alias is only unique within its parent. Pass [] for global
-     * uniqueness across the whole language table — required for entities like
+     * uniqueness across the whole language table, required for entities like
      * items, which can belong to many categories and so need a site-wide-unique
      * slug for unambiguous routing.
      *
@@ -186,7 +339,7 @@ class MultilingualHelper
         $app = Factory::getApplication();
 
         if (empty($data)) {
-            // Safety-net fallback — callers should always pass $data explicitly.
+            // Safety-net fallback: callers should always pass $data explicitly.
             $data = $app->input->get('jform', [], 'raw');
         }
 
@@ -200,7 +353,6 @@ class MultilingualHelper
         }
 
         $db = self::getDb();
-        $existingTables = self::fetchTableList(db: $db);
         $langCodes = self::buildLangCodeList(
             languages: LanguageHelper::getLanguages('lang_code'),
         );
@@ -220,42 +372,52 @@ class MultilingualHelper
             return false;
         }
 
-        $db->transactionStart();
+        // NESTED-CAPABLE CODE NESTS AS A SAVEPOINT, NEVER AS A SECOND
+        // START TRANSACTION.
+        //
+        // This helper is called from inside save paths that have already opened
+        // a transaction. A bare transactionStart() there issues a second START
+        // TRANSACTION, which MySQL treats as an IMPLICIT COMMIT of the caller's
+        // open work, and Joomla's depth counter is reset to 1, so the caller's
+        // later commit/rollback operates on THIS block instead of its own.
+        //
+        // Measured: a combination-grid save that failed after its delete
+        // cascade left the variants deleted, their price rows gone and their
+        // inventory zeroed, while the operator was shown an error and the outer
+        // rollback had nothing left to undo.
+        //
+        // All three calls must agree: starting as a savepoint but committing
+        // without one would commit the caller's transaction early, which is the
+        // same defect wearing a different hat.
+        //
+        // NO DDL BETWEEN A transactionStart() AND ITS COMMIT, for the same reason.
+        // MySQL commits implicitly on CREATE/ALTER TABLE, and Joomla's depth counter
+        // never finds out. The tables and columns this save needs are therefore
+        // made here, before the transaction; a caller that has ALREADY opened one
+        // runs {@see self::ensureLangSchemaForData()} before it does, and this
+        // call then finds nothing left to do.
+        self::ensureLangSchemaForData(
+            tableName:         $tableName,
+            primaryColumnName: $primaryColumnName,
+            data:              $data,
+        );
+
+        $db->transactionStart(true);
 
         try {
             foreach ($languageData as $langCode => $langFields) {
                 $langTableName = $db->replacePrefix($tableName . '_' . $langCode);
-
-                if (!in_array($langTableName, $existingTables, true)) {
-                    self::createLangTable(
-                        db:                $db,
-                        langTableName:     $langTableName,
-                        primaryColumnName: $primaryColumnName,
-                        fields:            $langFields,
-                    );
-                    $existingTables[] = $langTableName;
-                    self::log(
-                        callerMethod: __METHOD__,
-                        message:      'Created language table "' . $langTableName . '".',
-                        priority:     Log::INFO,
-                    );
-                } else {
-                    self::ensureColumnsExist(
-                        db:            $db,
-                        langTableName: $langTableName,
-                        fields:        $langFields,
-                    );
-                }
 
                 $processedFields = self::applyFallbackAndSlugs(
                     fields:       $langFields,
                     fallbackData: $fallbackData,
                     aliasFields:  $aliasFields,
                     app:          $app,
+                    langCode:     $langCode,
                 );
 
                 // Make each alias slug unique within this language table (scoped
-                // by $uniqueScope), incrementing -2/-3/… on collision.
+                // by $uniqueScope), incrementing -2/-3/... on collision.
                 $processedFields = self::ensureUniqueSlugs(
                     db:                $db,
                     langTableName:     $langTableName,
@@ -284,9 +446,9 @@ class MultilingualHelper
                 );
             }
 
-            $db->transactionCommit();
+            $db->transactionCommit(true);
         } catch (Throwable $e) {
-            $db->transactionRollback();
+            TransactionState::rollBackLevel(db: $db, failure: $e);
             self::log(
                 callerMethod: __METHOD__,
                 message:      'Transaction rolled back: ' . $e->getMessage(),
@@ -305,7 +467,7 @@ class MultilingualHelper
     /**
      * Load all multilingual data for one record, keyed by lower-snake language code.
      *
-     * Returns:  [ 'en_gb' => ['name' => '…', 'alias' => '…'], 'el_gr' => […], … ]
+     * Returns:  [ 'en_gb' => ['name' => '...', 'alias' => '...'], 'el_gr' => [...], ... ]
      * Languages whose tables do not yet exist are silently skipped.
      *
      *
@@ -341,7 +503,7 @@ class MultilingualHelper
             $langTableName = $db->replacePrefix($tableName . '_' . $langCode);
 
             if (!in_array($langTableName, $existingTables, true)) {
-                continue; // No translations for this language yet — not an error.
+                continue; // No translations for this language yet; not an error.
             }
 
             try {
@@ -372,8 +534,8 @@ class MultilingualHelper
      * Flatten the structured output of getMultilingualData() into a single-level
      * array that can be merged directly into a Joomla item object / form data.
      *
-     * Input:   [ 'en_gb' => ['name' => 'Foo', 'alias' => 'foo'], … ]
-     * Output:  [ 'name_en_gb' => 'Foo', 'alias_en_gb' => 'foo', … ]
+     * Input:   [ 'en_gb' => ['name' => 'Foo', 'alias' => 'foo'], ... ]
+     * Output:  [ 'name_en_gb' => 'Foo', 'alias_en_gb' => 'foo', ... ]
      *
      * @param array $multilingualData Return value of getMultilingualData().
      *
@@ -399,7 +561,7 @@ class MultilingualHelper
      *
      * Combines getMultilingualData() + flattenForFormData() into a single call.
      *
-     * Output:  [ 'name_en_gb' => 'Foo', 'alias_en_gb' => 'foo', 'name_el_gr' => '…', … ]
+     * Output:  [ 'name_en_gb' => 'Foo', 'alias_en_gb' => 'foo', 'name_el_gr' => '...', ... ]
      *
      *
      * @return array Flat key-value pairs ready for object property assignment.
@@ -423,10 +585,10 @@ class MultilingualHelper
     /**
      * Load all multilingual data for one record and bind it directly onto the item object.
      *
-     * This is the single method models should call in getItem() — no foreach needed.
+     * This is the single method models should call in getItem(); no foreach needed.
      * Flat keys (e.g. name_en_gb, alias_el_gr) are set as properties on $item directly.
      *
-     * In PHP, objects are passed by handle so no & reference is needed —
+     * In PHP, objects are passed by handle so no & reference is needed:
      * property assignments inside this method mutate the same object the caller holds.
      *
      * Usage in any model's getItem():
@@ -457,7 +619,7 @@ class MultilingualHelper
      *
      * Joins the current-language table and, when it differs from the default,
      * also the default-language table. The COALESCE reads ONLY from language
-     * tables — it does NOT fall back to the main table column because
+     * tables; it does NOT fall back to the main table column because
      * translatable fields no longer exist there.
      *
      * LEFT JOIN (not INNER JOIN) is intentional: records without a translation
@@ -505,6 +667,14 @@ class MultilingualHelper
         $defaultExists = in_array($defaultTable, $existingTables, true);
         $hasDefault = ($currentTag !== $defaultTag && $defaultExists);
 
+        // Column presence per resolved table. A translatable field added to a form
+        // materialises its per-language column only on the first save/read through
+        // MultilingualHelper; until then the column is absent. Selecting it in this
+        // raw JOIN would be a fatal "Unknown column", so a field missing from BOTH
+        // tables is emitted as an empty-string placeholder (same as a missing table).
+        $currentCols = $currentExists ? self::fetchColumnList($db, $currentTable) : [];
+        $defaultCols = $hasDefault ? self::fetchColumnList($db, $defaultTable) : [];
+
         if ($currentExists) {
             $query->join(
                 'LEFT',
@@ -524,26 +694,26 @@ class MultilingualHelper
         foreach ($fields as $field) {
             $parts = [];
 
-            if ($currentExists) {
+            if ($currentExists && in_array($field, $currentCols, true)) {
                 $parts[] = "NULLIF(`{$currentTag}`.`{$field}`, '')";
             }
 
-            if ($hasDefault) {
+            if ($hasDefault && in_array($field, $defaultCols, true)) {
                 $parts[] = "NULLIF(`lang_default`.`{$field}`, '')";
             }
 
             // NOTE: We do NOT fall back to `{$mainAlias}`.`{$field}` here.
-            // Translatable fields no longer exist in the main table — they live
+            // Translatable fields no longer exist in the main table; they live
             // exclusively in the language tables. The main table only holds
             // structural (non-translatable) columns.
             if (empty($parts)) {
-                // No language table exists yet — emit an empty string placeholder
+                // No language table exists yet: emit an empty string placeholder
                 // so the SELECT does not break on fresh installs.
                 $query->select("'' AS `{$field}`");
                 continue;
             }
 
-            // Coalesce to '' last so the column is NEVER NULL — restores the old
+            // Coalesce to '' last so the column is NEVER NULL: restores the old
             // main-table DEFAULT '' behaviour and keeps templates safe on PHP 8.1+
             // (passing null to nl2br/htmlspecialchars/etc. is deprecated).
             $coalesce = 'COALESCE(' . implode(', ', $parts) . ", '')";
@@ -563,8 +733,7 @@ class MultilingualHelper
      *    FROM `#__alfa_shipment_categories` AS `j`
      *    WHERE `j`.`shipment_id` = `a`.`id`) AS `category_ids`
      *
-     * WHY SUBQUERY INSTEAD OF JOIN + GROUP_CONCAT?
-     * ---------------------------------------------
+     * Why subquery instead of join + GROUP_CONCAT?
      * A JOIN + GROUP_CONCAT on the outer query requires a GROUP BY clause.
      * GROUP BY forces MySQL to materialise the full result set before applying
      * LIMIT, which breaks pagination performance and conflicts with DISTINCT a.*
@@ -590,10 +759,9 @@ class MultilingualHelper
      * @param string $mainAlias Alias of the outer table     (e.g. 'a').
      * @param string $mainPk PK on the outer table        (e.g. 'id').
      * @param string $junctionTable Junction/relationship table  (e.g. '#__alfa_shipment_categories').
-     * @param string $junctionFk FK junction → outer table    (e.g. 'shipment_id').
-     * @param string $junctionValue FK junction → related table  (e.g. 'category_id').
+     * @param string $junctionFk FK junction -> outer table    (e.g. 'shipment_id').
+     * @param string $junctionValue FK junction -> related table  (e.g. 'category_id').
      * @param string $selectAlias Output column alias          (e.g. 'category_ids').
-     *
      *
      * @since  1.0.0
      */
@@ -621,28 +789,26 @@ class MultilingualHelper
      * Fetch records from any table by a list of IDs with optional language resolution.
      *
      * The single batch loader for post-pagination enrichment. Called internally
-     * by fetchRelated() — can also be called directly when you need a keyed map
+     * by fetchRelated(); can also be called directly when you need a keyed map
      * without the relationship binding step.
      *
-     * FIELD SEMANTICS
-     * ---------------
+     * Field semantics
      * $fields (structural, non-translatable)
-     *   Columns whose value is identical in every language — e.g. alias, image, ordering.
+     *   Columns whose value is identical in every language, e.g. alias, image, ordering.
      *   Always selected directly from $table regardless of lang configuration.
      *
      * $langFields (translatable)
-     *   Columns whose value differs per language — e.g. name, description.
+     *   Columns whose value differs per language, e.g. name, description.
      *   When $langTableBase is set: resolved through lang tables via COALESCE:
-     *     current language → default language → empty string.
+     *     current language -> default language -> empty string.
      *   When $langTableBase is '' (non-translatable table such as Joomla core #__users):
-     *     selected directly from $table — no lang join performed.
+     *     selected directly from $table; no lang join performed.
      *
-     * LANG TABLE ALIASES
-     * ------------------
+     * Lang table aliases
      * 'lc' = lang current table, 'ld' = lang default table.
-     * Short and unambiguous — never clash with the main table alias 'r'.
+     * Short and unambiguous; never clash with the main table alias 'r'.
      *
-     * Usage — Alfa translatable table:
+     * Usage - Alfa translatable table:
      *   $map = MultilingualHelper::getRecordsByIds(
      *       db:                $db,
      *       ids:               [1, 4, 7],
@@ -652,16 +818,16 @@ class MultilingualHelper
      *       langPrimaryColumn: 'id_category',
      *       langFields:        ['name', 'description'],  // translatable
      *   );
-     *   // Returns: [1 => ['id'=>1, 'alias'=>'…', 'image'=>'…', 'name'=>'…', 'description'=>'…'], …]
+     *   // Returns: [1 => ['id'=>1, 'alias'=>'...', 'image'=>'...', 'name'=>'...', 'description'=>'...'], ...]
      *
-     * Usage — Joomla core table (no translation):
+     * Usage - Joomla core table (no translation):
      *   $map = MultilingualHelper::getRecordsByIds(
      *       db:         $db,
      *       ids:        [5, 12],
      *       table:      '#__users',
      *       langFields: ['name'],
      *   );
-     *   // Returns: [5 => ['id'=>5, 'name'=>'John'], …]
+     *   // Returns: [5 => ['id'=>5, 'name'=>'John'], ...]
      *
      * @param object $db Joomla DatabaseDriver.
      * @param int[] $ids PKs to load.
@@ -690,11 +856,11 @@ class MultilingualHelper
             return [];
         }
 
-        // 'r' — short neutral alias, never clashes with any caller's scope.
+        // 'r': short neutral alias, never clashes with any caller's scope.
         $alias = 'r';
         $selectParts = [$db->qn("{$alias}.{$idColumn}")];
 
-        // Structural fields — always read directly from the main table.
+        // Structural fields: always read directly from the main table.
         foreach ($fields as $field) {
             $selectParts[] = $db->qn("{$alias}.{$field}");
         }
@@ -704,7 +870,7 @@ class MultilingualHelper
             ->whereIn("{$alias}.{$idColumn}", array_unique(array_map('intval', $ids)));
 
         if (!empty($langTableBase) && !empty($langPrimaryColumn)) {
-            // ── Translatable table — resolve via lang tables ───────────────────
+            // Translatable table: resolve via lang tables
             $existingTables = self::fetchTableList($db);
             $currentTag = self::getCurrentLanguageTag();
             $defaultTag = self::getDefaultLanguageTag();
@@ -744,9 +910,9 @@ class MultilingualHelper
                 }
 
                 // Degradation:
-                //   Both tables exist → COALESCE(NULLIF(current), NULLIF(default))
-                //   Only current      → NULLIF(current)
-                //   Neither exists    → literal '' (fresh-install safety net)
+                //   Both tables exist -> COALESCE(NULLIF(current), NULLIF(default))
+                //   Only current      -> NULLIF(current)
+                //   Neither exists    -> literal '' (fresh-install safety net)
                 $selectParts[] = match (count($parts)) {
                     0 => $db->q('') . ' AS ' . $db->qn($field),
                     1 => $parts[0] . ' AS ' . $db->qn($field),
@@ -754,7 +920,7 @@ class MultilingualHelper
                 };
             }
         } else {
-            // ── Non-translatable table — select fields directly ────────────────
+            // Non-translatable table: select fields directly
             // e.g. #__users is Joomla core with no lang auxiliary tables.
             foreach ($langFields as $field) {
                 $selectParts[] = $db->qn("{$alias}.{$field}");
@@ -769,42 +935,39 @@ class MultilingualHelper
     /**
      * Fetch related records for ONE relationship across a set of items.
      *
-     * Pure data method — no mutation. Fires one DB query via getRecordsByIds()
+     * Pure data method: no mutation. Fires one DB query via getRecordsByIds()
      * and returns a map keyed by the main item's PK. All DB work for this
      * relationship happens here. Call once per relationship before the
      * getItems() foreach loop, then pass each result to bindRelated() inside
      * the loop.
      *
-     * INDEXING
-     * --------
+     * Indexing
      * Outer key: the main item's PK ($item->$itemPk, default 'id').
-     *            e.g. the shipment ID — NOT the junction FK (shipment_id).
+     *            e.g. the shipment ID, NOT the junction FK (shipment_id).
      *            The junction FK was consumed in getListQuery() to build the
      *            GROUP_CONCAT string and is no longer needed here.
      * Inner key: the related record's own PK.
      * Order:     matches the original GROUP_CONCAT string.
      *
      * Return shape
-     * ------------
      * [
      *   $itemId => [
-     *     $relatedId => ['id' => …, 'name' => '…', 'alias' => '…'],
-     *     …
+     *     $relatedId => ['id' => ..., 'name' => '...', 'alias' => '...'],
+     *     ...
      *   ],
-     *   …
+     *   ...
      * ]
      *
-     * Returns [] when no items carry any IDs for this relationship —
+     * Returns [] when no items carry any IDs for this relationship;
      * bindRelated() handles that gracefully by assigning [] to the property.
      *
-     * FIELD SEMANTICS — same as getRecordsByIds()
-     * --------------------------------------------
-     * $fields     → structural (non-translatable): ['alias', 'image', 'ordering']
-     * $langFields → translatable: ['name', 'description']
+     * FIELD SEMANTICS: same as getRecordsByIds()
+     * $fields     -> structural (non-translatable): ['alias', 'image', 'ordering']
+     * $langFields -> translatable: ['name', 'description']
      * When $langTableBase is '' (e.g. #__users): $langFields selected directly.
      *
      * @param object $db Joomla DatabaseDriver.
-     * @param object[] $items Paginated item objects — not mutated.
+     * @param object[] $items Paginated item objects, not mutated.
      * @param string $idsProperty Item property with the GROUP_CONCAT string (e.g. 'category_ids').
      * @param string $table Related entity table                        (e.g. '#__alfa_categories').
      * @param string $itemPk Item PK property used as the outer map key (default 'id').
@@ -834,7 +997,7 @@ class MultilingualHelper
             return [];
         }
 
-        // ── Collect all unique IDs for this relationship across the full page ──
+        // Collect all unique IDs for this relationship across the full page
         $allIds = [];
 
         foreach ($items as $item) {
@@ -853,7 +1016,7 @@ class MultilingualHelper
             return [];
         }
 
-        // ── One query for all records of this relationship on this page ───────
+        // One query for all records of this relationship on this page
         $records = self::getRecordsByIds(
             db:                $db,
             ids:               $allIds,
@@ -865,7 +1028,7 @@ class MultilingualHelper
             langFields:        $langFields,
         );
 
-        // ── Build the per-item map ────────────────────────────────────────────
+        // Build the per-item map
         // Outer key: $item->$itemPk (e.g. shipment ID, NOT the junction FK).
         // Inner key: related record PK.
         // Order preserved from the original GROUP_CONCAT string.
@@ -893,24 +1056,24 @@ class MultilingualHelper
     /**
      * Bind one pre-fetched relationship map onto a single item.
      *
-     * Pure assignment — no DB calls. Designed to be called inside the
+     * Pure assignment: no DB calls. Designed to be called inside the
      * getItems() foreach loop once per relationship, alongside any other
      * per-item logic (prices, links, media, etc.) that runs in the same pass.
      *
-     * Always assigns the property — even [] when the item has no related
-     * records — so templates never receive undefined property warnings.
+     * Always assigns the property (even [] when the item has no related
+     * records), so templates never receive undefined property warnings.
      *
      * Usage inside getItems():
      *
-     *   // All DB work grouped before the loop — one call per relationship:
-     *   $catMap = MultilingualHelper::fetchRelated($db, $items, 'category_ids', …);
-     *   $manMap = MultilingualHelper::fetchRelated($db, $items, 'manufacturer_ids', …);
+     *   // All DB work grouped before the loop, one call per relationship:
+     *   $catMap = MultilingualHelper::fetchRelated($db, $items, 'category_ids', ...);
+     *   $manMap = MultilingualHelper::fetchRelated($db, $items, 'manufacturer_ids', ...);
      *
-     *   // One loop — bind all relationships + any per-item logic:
+     *   // One loop, bind all relationships + any per-item logic:
      *   foreach ($items as $item) {
      *       MultilingualHelper::bindRelated($item, 'categories',    $catMap);
      *       MultilingualHelper::bindRelated($item, 'manufacturers', $manMap);
-     *       $item->link = Route::_(…); // other per-item work here
+     *       $item->link = Route::_(...); // other per-item work here
      *   }
      *
      * @param object $item Mutated in place.
@@ -922,7 +1085,7 @@ class MultilingualHelper
      */
     public static function bindRelated(object $item, string $property, array $map): void
     {
-        // Always assign — even [] — so templates never see an undefined property.
+        // Always assign (even []), so templates never see an undefined property.
         $item->$property = $map[(int) $item->id] ?? [];
     }
 
@@ -933,7 +1096,7 @@ class MultilingualHelper
      * for models that have no additional per-item logic to run in getItems().
      *
      * When you need extra per-item work (prices, links, media, etc.) in the
-     * same loop, use fetchRelated() + bindRelated() separately instead — see
+     * same loop, use fetchRelated() + bindRelated() separately instead; see
      * ShipmentsModel::getItems() for the recommended two-step pattern.
      *
      * @param object[] $items Mutated in place.
@@ -978,32 +1141,211 @@ class MultilingualHelper
 
     /**
      * Return the current request language tag in lower-snake format.
-     * Example:  "en-GB"  →  "en_gb"
+     * Example:  "en-GB"  ->  "en_gb"
      *
      * @since  1.0.0
      */
     public static function getCurrentLanguageTag(): string
     {
+        // An explicit CONTENT language wins over the UI language. The two are
+        // one axis in the site/admin apps, but not in the API: a client asks
+        // for Greek product data without wanting Greek error prose. Swapping
+        // the app's Language object instead would un-translate every Text::
+        // string for the rest of the request.
+        if (self::$contentLanguageOverride !== null) {
+            return self::$contentLanguageOverride;
+        }
+
         return self::normaliseTag(
             tag: Factory::getApplication()->getLanguage()->getTag(),
         );
     }
 
     /**
+     * Pin the language every translatable read resolves in, independently of
+     * the application's UI language. Request-scoped; pass null to clear.
+     *
+     * @param string|null $tag Content language (lang_code or snake), or null.
+     *
+     *
+     * @since  1.9.0
+     */
+    public static function setContentLanguage(?string $tag): void
+    {
+        self::$contentLanguageOverride = ($tag === null || $tag === '')
+            ? null
+            : self::normaliseTag(tag: $tag);
+    }
+
+    /**
+     * The pinned content language, or null when following the UI language.
+     *
+     *
+     * @since  1.9.0
+     */
+    public static function getContentLanguageOverride(): ?string
+    {
+        return self::$contentLanguageOverride;
+    }
+
+    /**
      * Return the site's default language tag in lower-snake format.
-     * Falls back to "en_gb" when no language is explicitly marked as default.
+     *
+     * Resolved from the site configuration, confirmed against the published content
+     * languages, and only then falling back: first to the lowest-ordered published
+     * content language, finally to "en_gb".
+     *
+     * The previous implementation looked for a `default` flag on the rows returned by
+     * LanguageHelper::getLanguages(). Those rows come from `SELECT *` on `#__languages`,
+     * which has no such column, so the test was never true and this method always
+     * returned "en_gb", correct only by coincidence on installs whose default already
+     * is en-GB, and silently wrong everywhere else. Since this tag drives every
+     * multilingual fallback, a wrong answer here surfaces as missing translations
+     * rather than as an error.
+     *
+     * Reads the configuration and the database directly rather than through
+     * LanguageHelper, which requires a running application: this must stay callable
+     * from CLI and cron, where index rebuilds run.
+     *
+     * @return string e.g. "en_gb"
      *
      * @since  1.0.0
      */
     public static function getDefaultLanguageTag(): string
     {
-        foreach (LanguageHelper::getLanguages('lang_code') as $langCode => $language) {
-            if (!empty($language->default)) {
-                return self::normaliseTag(tag: $langCode);
+        static $resolved = null;
+
+        if ($resolved !== null) {
+            return $resolved;
+        }
+
+        $published = [];
+
+        try {
+            $db = Factory::getContainer()->get('DatabaseDriver');
+            $query = $db->getQuery(true)
+                ->select($db->quoteName('lang_code'))
+                ->from($db->quoteName('#__languages'))
+                ->where($db->quoteName('published') . ' = 1')
+                ->order($db->quoteName('ordering') . ' ASC');
+
+            foreach ((array) $db->setQuery($query)->loadColumn() as $langCode) {
+                $published[] = self::normaliseTag(tag: (string) $langCode);
+            }
+        } catch (Throwable $e) {
+            Log::add('Alfa: unable to read content languages: ' . $e->getMessage(), Log::WARNING, 'com_alfa');
+        }
+
+        $configured = '';
+
+        try {
+            $configured = (string) Factory::getContainer()->get('config')->get('language', '');
+        } catch (Throwable) {
+            // No configuration available; fall through to the default below.
+        }
+
+        // An absent setting is not "unknown": Joomla itself treats the site language as
+        // en-GB when it is not configured, and this must not disagree with the CMS.
+        $configured = $configured !== '' ? self::normaliseTag(tag: $configured) : 'en_gb';
+
+        if (\in_array($configured, $published, true)) {
+            return $resolved = $configured;
+        }
+
+        // Configured language is not a published content language; prefer a real one
+        // over a tag nothing is translated into.
+        return $resolved = ($published[0] ?? 'en_gb');
+    }
+
+    /**
+     * Resolve a language key to the first non-empty translation across the
+     * fallback chain: requested -> en-GB -> first installed content language.
+     *
+     * The untranslated-key guard applies: a language that echoes the key back
+     * (no .ini entry) counts as no translation. Returns '' when nothing in the
+     * chain translates the key.
+     *
+     * Shared by the order-email and document default-content composers, which
+     * seed editable HTML from the packaged .ini defaults; both used to carry a
+     * verbatim copy of this mechanism.
+     *
+     * @param string $key Language constant (fully qualified, e.g.
+     *                    'COM_ALFA_ORDEREMAIL_DEFAULT_SUBJECT').
+     * @param string $langTag Requested content language (e.g. 'el-GR').
+     *
+     * @return string First translation found, or '' when none.
+     *
+     * @since  1.0.0
+     */
+    public static function firstTranslated(string $key, string $langTag): string
+    {
+        foreach (self::languageFallbackChain(langTag: $langTag) as $tag) {
+            $value = self::translateInLanguage(key: $key, langTag: $tag);
+
+            if ($value !== '') {
+                return $value;
             }
         }
 
-        return 'en_gb';
+        return '';
+    }
+
+    /**
+     * Language fallback chain for default resolution: requested -> en-GB ->
+     * first installed content language. Deduped, empties dropped.
+     *
+     * @param string $langTag Requested language tag.
+     *
+     * @return string[]
+     *
+     * @since  1.0.0
+     */
+    private static function languageFallbackChain(string $langTag): array
+    {
+        $chain = [$langTag, 'en-GB'];
+
+        $installed = array_keys(LanguageHelper::getLanguages('lang_code') ?: []);
+
+        if (!empty($installed)) {
+            $chain[] = (string) $installed[0];
+        }
+
+        return array_values(array_unique(array_filter($chain)));
+    }
+
+    /**
+     * Translate one key in a specific language, with the untranslated-key
+     * guard: a Language that echoes the key back (no .ini entry) yields ''.
+     *
+     * The Language instance is loaded once per tag and cached for the
+     * request; seeding touches the same few tags repeatedly.
+     *
+     * @param string $key Language constant.
+     * @param string $langTag Language to resolve in.
+     *
+     * @return string Translated text, or '' when untranslated.
+     *
+     * @since  1.0.0
+     */
+    private static function translateInLanguage(string $key, string $langTag): string
+    {
+        static $cache = [];
+
+        if (!isset($cache[$langTag])) {
+            // LanguageFactory (not the deprecated Language::getInstance):
+            // a standalone instance for $langTag, independent of the admin's
+            // current language, so seeding resolves each content language's
+            // own .ini.
+            $language = Factory::getContainer()
+                ->get(LanguageFactoryInterface::class)
+                ->createLanguage($langTag);
+            $language->load(extension: 'com_alfa', basePath: JPATH_ADMINISTRATOR);
+            $cache[$langTag] = $language;
+        }
+
+        $value = $cache[$langTag]->_($key);
+
+        return $value === $key ? '' : $value;
     }
 
     /**
@@ -1019,12 +1361,12 @@ class MultilingualHelper
     /**
      * Recursively collapse every embedded multilingual map to the current
      * language. A "multilingual map" is an associative array whose keys are all
-     * installed language codes (e.g. {"en_gb":"Red","el_gr":"Κόκκινο"}); it is
+     * installed language codes (e.g. {"en_gb":"Red","fr_fr":"Rouge"}); it is
      * replaced by the current language's value, falling back to the default
      * language, then any non-empty value, then ''.
      *
      * Used to resolve plugin params / field definitions that store translations
-     * inline as JSON (the value/JSON storage mode of MultilingualText) — so the
+     * inline as JSON (the value/JSON storage mode of MultilingualText), so the
      * render and display layers see a plain current-language string while the
      * admin definition editor keeps the full per-language map.
      *
@@ -1099,8 +1441,39 @@ class MultilingualHelper
     }
 
     /**
-     * Pick a value from a multilingual map: target language → default language →
-     * first non-empty → ''.
+     * Resolve a {lang: text} map to one string in the target language, falling
+     * back to the default language then the first non-empty entry. The shared
+     * reader for frozen multilingual snapshots (order item-fields) and
+     * plugin-param label maps; accepts a JSON string, array or stdClass.
+     *
+     * @param mixed $map JSON string / array / object of normalised tag => text.
+     * @param string $lang Target language (lang_code or snake); '' = current request language.
+     *
+     * @since  1.3.0
+     */
+    public static function resolveLangMap($map, string $lang = ''): string
+    {
+        if (is_string($map)) {
+            $decoded = json_decode($map, true);
+            $map = is_array($decoded)
+                ? $decoded
+                : ($map !== '' ? [self::getDefaultLanguageTag() => $map] : []);
+        }
+
+        $map = (array) $map;
+
+        if (!$map) {
+            return '';
+        }
+
+        $tag = $lang !== '' ? self::normaliseTag(tag: $lang) : self::getCurrentLanguageTag();
+
+        return self::pickLangValue($map, $tag);
+    }
+
+    /**
+     * Pick a value from a multilingual map: target language -> default language ->
+     * first non-empty -> ''.
      *
      *
      *
@@ -1131,8 +1504,8 @@ class MultilingualHelper
      * Resolve a single translatable field for one record in a SPECIFIC language,
      * falling back to the default language, then to ''.
      *
-     * Unlike addMultilingualJoinToQuery() — which always reads the CURRENT request
-     * language — this targets an explicit tag. The router / language-switch
+     * Unlike addMultilingualJoinToQuery() (which always reads the CURRENT request
+     * language), this targets an explicit tag. The router / language-switch
      * associations need it because a com_alfa record keeps ONE shared id across
      * languages but a DIFFERENT alias per language, so building an `&lang=xx`
      * URL must emit that language's alias, not the current page's.
@@ -1162,7 +1535,7 @@ class MultilingualHelper
         $tag = $langTag !== '' ? self::normaliseTag(tag: $langTag) : self::getCurrentLanguageTag();
         $default = self::getDefaultLanguageTag();
 
-        // Target language first, then the default — first non-empty wins.
+        // Target language first, then the default; first non-empty wins.
         foreach (array_unique([$tag, $default]) as $candidate) {
             $value = self::readFieldFromLangTable(
                 id:                $id,
@@ -1181,6 +1554,80 @@ class MultilingualHelper
     }
 
     /**
+     * Read one field's value in EVERY installed content language, without the
+     * current->default fallback, so a caller (e.g. an inline editor) can show
+     * each language exactly as stored, empty where no translation exists.
+     *
+     * @param int $id Record id.
+     * @param string $tableName Base table with prefix (e.g. "#__alfa_items").
+     * @param string $primaryColumnName PK column of the lang tables (e.g. "id_item").
+     * @param string $field Field to read (e.g. "name").
+     *
+     * @return array<int, array{tag:string,label:string,value:string}>
+     *                                                                 One entry per content language, in installed order.
+     *
+     * @since  1.5.0
+     */
+    public static function getFieldTranslations(
+        int $id,
+        string $tableName,
+        string $primaryColumnName,
+        string $field,
+    ): array {
+        if ($id <= 0 || !self::isSafeIdentifier(name: $primaryColumnName) || !self::isSafeIdentifier(name: $field)) {
+            return [];
+        }
+
+        $out = [];
+
+        foreach (LanguageHelper::getLanguages('lang_code') as $langCode => $language) {
+            $out[] = [
+                'tag' => $langCode,
+                'label' => $language->title ?? $langCode,
+                'value' => self::readFieldFromLangTable(
+                    id:                $id,
+                    tableName:         $tableName,
+                    primaryColumnName: $primaryColumnName,
+                    field:             $field,
+                    langTag:           self::normaliseTag(tag: $langCode),
+                ),
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Build the per-language flat key that saveMultilingualData() expects
+     * (e.g. "name" + "en-GB" => "name_en_gb"). Single source for the format.
+     *
+     * @param string $field Field name (e.g. "name").
+     * @param string $tag Language tag (e.g. "en-GB").
+     *
+     *
+     * @since  1.5.0
+     */
+    public static function buildLangFieldKey(string $field, string $tag): string
+    {
+        return $field . '_' . self::normaliseTag(tag: $tag);
+    }
+
+    /**
+     * The installed languages as key suffixes, in Joomla's own order: ['en_gb', 'el_gr'].
+     *
+     * Companion to {@see self::buildLangFieldKey()}: together they are the only definition of
+     * how a translatable field's per-language keys are spelled, so nothing else has to know.
+     *
+     * @return string[]
+     *
+     * @since  1.10.0
+     */
+    public static function getLanguageTags(): array
+    {
+        return self::buildLangCodeList(languages: LanguageHelper::getLanguages('lang_code'));
+    }
+
+    /**
      * Read one field for one record from a single language table, or '' if the
      * table doesn't exist / the row is missing.
      * @since  1.0.0
@@ -1192,11 +1639,20 @@ class MultilingualHelper
         string $field,
         string $langTag,
     ): string {
+        // Request-level memo: the same single-field lookups (e.g. an item's alias
+        // for routing) repeat many times per page. Read-only within a request.
+        static $cache = [];
+        $cacheKey = $tableName . '|' . $langTag . '|' . $primaryColumnName . '|' . $field . '|' . $id;
+
+        if (isset($cache[$cacheKey])) {
+            return $cache[$cacheKey];
+        }
+
         $db = self::getDb();
         $table = $db->replacePrefix($tableName . '_' . $langTag);
 
         if (!in_array($table, self::fetchTableList(db: $db), true)) {
-            return '';
+            return $cache[$cacheKey] = '';
         }
 
         try {
@@ -1209,10 +1665,84 @@ class MultilingualHelper
                 1,
             )->loadResult();
         } catch (Throwable $e) {
-            return '';
+            return $cache[$cacheKey] = '';
         }
 
-        return (string) ($value ?? '');
+        return $cache[$cacheKey] = (string) ($value ?? '');
+    }
+
+    /**
+     * Make the language tables and columns a save of $data is about to write, and
+     * nothing else. The DDL half of {@see self::saveMultilingualData()}, which runs
+     * it first; a caller that wraps that save in a transaction of its own MUST run
+     * it before opening the transaction, because MySQL commits implicitly on DDL.
+     *
+     * Idempotent, and remembered per request: a second call for the same table,
+     * language and fields costs nothing.
+     *
+     * @param string $tableName Base table with Joomla prefix (e.g. "#__alfa_taxes").
+     * @param string $primaryColumnName PK column for the lang tables (e.g. "id_tax").
+     * @param array $data The form data about to be saved (fieldName_langCode keys).
+     *
+     *
+     * @throws InvalidArgumentException On a bad PK identifier.
+     * @throws RuntimeException On any unrecoverable database error.
+     *
+     * @since  1.10.0
+     */
+    public static function ensureLangSchemaForData(string $tableName, string $primaryColumnName, array $data): void
+    {
+        static $ensured = [];
+
+        self::assertSafeIdentifier(name: $primaryColumnName, callerMethod: __METHOD__);
+
+        [$languageData] = self::extractLanguageData(
+            data:      $data,
+            langCodes: self::buildLangCodeList(languages: LanguageHelper::getLanguages('lang_code')),
+        );
+
+        if (empty($languageData)) {
+            return;
+        }
+
+        $db = self::getDb();
+        $existingTables = null;
+
+        foreach ($languageData as $langCode => $langFields) {
+            $langTableName = $db->replacePrefix($tableName . '_' . $langCode);
+            $fieldNames = array_keys($langFields);
+            sort($fieldNames);
+            $memo = $langTableName . '|' . implode(',', $fieldNames);
+
+            if (isset($ensured[$memo])) {
+                continue;
+            }
+
+            $existingTables ??= self::fetchTableList(db: $db);
+
+            if (!in_array($langTableName, $existingTables, true)) {
+                self::createLangTable(
+                    db:                $db,
+                    langTableName:     $langTableName,
+                    primaryColumnName: $primaryColumnName,
+                    fields:            $langFields,
+                );
+                $existingTables[] = $langTableName;
+                self::log(
+                    callerMethod: __METHOD__,
+                    message:      'Created language table "' . $langTableName . '".',
+                    priority:     Log::INFO,
+                );
+            } else {
+                self::ensureColumnsExist(
+                    db:            $db,
+                    langTableName: $langTableName,
+                    fields:        $langFields,
+                );
+            }
+
+            $ensured[$memo] = true;
+        }
     }
 
     /**
@@ -1250,7 +1780,7 @@ class MultilingualHelper
         );
 
         // createLangTable() / ensureColumnsExist() read array_keys($fields), so
-        // present the (safe) field names as a keyed map — values are irrelevant.
+        // present the (safe) field names as a keyed map; values are irrelevant.
         $fieldMap = array_fill_keys(
             array_values(array_filter(
                 $fields,
@@ -1301,17 +1831,17 @@ class MultilingualHelper
      * is empty (or whose lang row is missing entirely) is set to that source.
      * Existing non-empty translations are NEVER overwritten.
      *
-     * Alias / slug fields ($aliasFields) take part too — an empty alias is
+     * Alias / slug fields ($aliasFields) take part too: an empty alias is
      * copied from a sibling language that HAS one; if no language has it, it is
      * left empty (never invented from the name). Because copying a slug into
      * another language's table can collide with an existing slug there, every
      * copied alias is run through the same per-language uniqueness check the
-     * save path uses (scoped by $aliasUniqueScope, appending -2, -3 … only on a
+     * save path uses (scoped by $aliasUniqueScope, appending -2, -3 ... only on a
      * real collision) so routing stays correct.
      *
      * Maintenance-time operation (sync / resync), not the hot path. CHUNKED:
      * pass $offset / $limit (over the main table's records, ordered by PK) so a
-     * large catalogue can be processed in batches — e.g. driven by the Tools-view
+     * large catalogue can be processed in batches, e.g. driven by the Tools-view
      * progress bar. Only the current chunk's rows are loaded into memory.
      *
      * @param string $tableName Base table with Joomla prefix.
@@ -1482,8 +2012,9 @@ class MultilingualHelper
                 }
             }
 
-            // Write each language that needs filling — merge existing values so
-            // REPLACE INTO never wipes an already-translated field.
+            // Write each language that needs filling. upsertLangRow only touches
+            // the columns it is given; the merge keeps the alias de-duplication
+            // above working against the row's full set of values.
             foreach ($pendingByLang as $langCode => $filled) {
                 $existing = $data[$langCode][$id] ?? [];
                 unset($existing[$primaryColumnName]);
@@ -1503,9 +2034,7 @@ class MultilingualHelper
         return $result;
     }
 
-    // =========================================================================
-    //  Private — data processing
-    // =========================================================================
+    //  Private: data processing
 
     /**
      * Convert a Joomla language map into a flat list of lower-snake codes.
@@ -1529,8 +2058,8 @@ class MultilingualHelper
      * Keys following the convention  fieldName_langCode  are split into:
      *   $languageData[$langCode][$fieldName] = $value
      *
-     * Also builds a $fallbackData map — the first non-empty value per field
-     * across all languages — used to fill gaps in sparse translations.
+     * Also builds a $fallbackData map (the first non-empty value per field
+     * across all languages), used to fill gaps in sparse translations.
      *
      * @param array $data Flat input (passed $data or jform POST).
      * @param string[] $langCodes Lower-snake codes  (e.g. ['en_gb', 'el_gr']).
@@ -1575,6 +2104,7 @@ class MultilingualHelper
      * @param array $fallbackData First non-empty value per field (cross-language).
      * @param string[] $aliasFields Field names to treat as URL slugs.
      * @param object $app Joomla application (for the unicodeslugs setting).
+     * @param string $langCode Lower-snake code of the language row being built (e.g. "el_gr").
      *
      * @return array Processed fields.
      * @since  1.0.0
@@ -1584,6 +2114,7 @@ class MultilingualHelper
         array $fallbackData,
         array $aliasFields,
         object $app,
+        string $langCode,
     ): array {
         foreach ($fields as $fieldName => &$value) {
             if (in_array($fieldName, $aliasFields, true)) {
@@ -1592,6 +2123,7 @@ class MultilingualHelper
                     fields:       $fields,
                     fallbackData: $fallbackData,
                     app:          $app,
+                    langCode:     $langCode,
                 );
                 continue;
             }
@@ -1614,10 +2146,19 @@ class MultilingualHelper
      *   3. Fall back to name / title from $fallbackData (another language).
      *   4. Sanitise the chosen source through OutputFilter.
      *
+     * TRANSLITERATED IN THE ROW'S OWN LANGUAGE, never the request's. A slug for the
+     * el_gr row is Greek text, so it must fold through the el-GR rules; omitting the
+     * argument makes {@see OutputFilter::stringURLSafe} use whoever is logged in, so the
+     * same Greek name saved from an English admin and a Greek one produces two different
+     * aliases (ICU's scholarly "technologia" vs the pack's modern "texnologia"). That is
+     * two different URLs for one product, and, because the alias is indexed, a
+     * cross-script search bridge spelled the way no Greek shopper types.
+     *
      * @param string $rawValue Submitted value (may be empty).
      * @param array $fields All fields for the current language.
      * @param array $fallbackData Cross-language fallback values.
      * @param object $app Joomla application (for unicodeslugs config).
+     * @param string $langCode Lower-snake code of the row's language (e.g. "el_gr").
      *
      * @return string Sanitised slug.
      * @since  1.0.0
@@ -1627,6 +2168,7 @@ class MultilingualHelper
         array $fields,
         array $fallbackData,
         object $app,
+        string $langCode,
     ): string {
         $source = !empty(trim($rawValue))
             ? $rawValue
@@ -1636,14 +2178,13 @@ class MultilingualHelper
                 ?? $fallbackData['title']
                 ?? '');
 
+        // Unicode slugs keep the original script, so they have nothing to transliterate.
         return $app->get('unicodeslugs') == 1
             ? OutputFilter::stringUrlUnicodeSlug($source)
-            : OutputFilter::stringURLSafe($source);
+            : OutputFilter::stringURLSafe($source, self::displayTag(tag: $langCode));
     }
 
-    // =========================================================================
-    //  Private — alias uniqueness
-    // =========================================================================
+    //  Private: alias uniqueness
 
     /**
      * Make every alias field in $fields unique within the given language table.
@@ -1651,7 +2192,7 @@ class MultilingualHelper
      * Uniqueness is scoped by the main-table columns in $aliasUniqueScope: a
      * collision only counts when another row shares the same scope values (e.g.
      * the same parent_id). With an empty scope, uniqueness is global across the
-     * language table. On collision the slug is incremented (-2, -3, …).
+     * language table. On collision the slug is incremented (-2, -3, ...).
      *
      * @param object $db Joomla DatabaseDriver.
      * @param string $langTableName Prefix-resolved language table name.
@@ -1719,7 +2260,7 @@ class MultilingualHelper
 
     /**
      * Read the current record's scope-column values from the main table.
-     * Returns [] when no (safe) scope columns are requested — i.e. global uniqueness.
+     * Returns [] when no (safe) scope columns are requested, i.e. global uniqueness.
      *
      * @return array<string, mixed> [columnName => value]
      * @since  1.0.0
@@ -1755,7 +2296,7 @@ class MultilingualHelper
 
     /**
      * Return a slug unique within $langTableName for the given scope, appending
-     * -2, -3, … on collision (capped at 100 attempts, then a time() suffix).
+     * -2, -3, ... on collision (capped at 100 attempts, then a time() suffix).
      * @since  1.0.0
      */
     private static function makeUniqueSlug(
@@ -1795,7 +2336,7 @@ class MultilingualHelper
 
                 $hit = $db->setQuery($query, 0, 1)->loadResult();
             } catch (Throwable $e) {
-                // Lang table / column not present yet → nothing can collide.
+                // Lang table / column not present yet -> nothing can collide.
                 return $candidate;
             }
 
@@ -1809,9 +2350,7 @@ class MultilingualHelper
         return $base . '-' . time();
     }
 
-    // =========================================================================
-    //  Private — database schema
-    // =========================================================================
+    //  Private: database schema
 
     /**
      * Return the SQL column definition for a given field name.
@@ -1846,6 +2385,7 @@ class MultilingualHelper
         array $fields,
     ): void {
         self::assertSafeIdentifier(name: $primaryColumnName, callerMethod: __METHOD__);
+        self::refuseInsideTransaction(db: $db, langTableName: $langTableName, lacks: 'the table');
 
         $colDefs = $db->qn($primaryColumnName) . ' INT(11) UNSIGNED NOT NULL';
 
@@ -1868,6 +2408,35 @@ class MultilingualHelper
                 '[MultilingualHelper::createLangTable] Could not create "' . $langTableName
                 . '": ' . $e->getMessage(),
                 previous: $e,
+            );
+        }
+    }
+
+    /**
+     * Refuse a language table change while a transaction is open.
+     *
+     * MySQL commits the open transaction before any CREATE or ALTER, so the
+     * caller's work would be committed half done and its later rollback would
+     * undo nothing. A save that needs a table or column made runs
+     * ensureLangSchemaForData() before it opens its transaction; the
+     * component's language sync makes them at install and update.
+     *
+     * @param mixed $db The connection.
+     * @param string $langTableName The language table.
+     * @param string $lacks What it lacks, in words.
+     *
+     *
+     * @throws RuntimeException When a transaction is open.
+     *
+     * @since  1.14.0
+     */
+    private static function refuseInsideTransaction($db, string $langTableName, string $lacks): void
+    {
+        if (TransactionState::isOpen($db)) {
+            throw new RuntimeException(
+                '[MultilingualHelper] "' . $langTableName . '" lacks ' . $lacks
+                . '; it is not changed inside an open transaction, which MySQL would commit.'
+                . ' A save makes its language schema before it opens one (ensureLangSchemaForData()).',
             );
         }
     }
@@ -1909,6 +2478,8 @@ class MultilingualHelper
                 continue;
             }
 
+            self::refuseInsideTransaction(db: $db, langTableName: $langTableName, lacks: 'the column "' . $fieldName . '"');
+
             try {
                 $db->setQuery(
                     'ALTER TABLE ' . $langTableName
@@ -1932,10 +2503,17 @@ class MultilingualHelper
     }
 
     /**
-     * Execute REPLACE INTO (upsert) for a single language row.
+     * Upsert a single language row, writing ONLY the supplied columns.
      *
-     * REPLACE INTO = DELETE + INSERT on duplicate PK — ensures a clean update
-     * without a prior SELECT.
+     * INSERT ... ON DUPLICATE KEY UPDATE, not REPLACE INTO. REPLACE is DELETE +
+     * INSERT, so a caller that saves a subset of the columns (the list inline
+     * quick-edit saves just `name`) silently blanked every column it did not
+     * pass: alias, descriptions, meta. Updating column-by-column makes a
+     * partial save safe by construction; a full form save posts every column
+     * and is unaffected.
+     *
+     * `VALUES(col)` is deprecated in MySQL 8.0.20+ in favour of a row alias,
+     * but is the form both MySQL 5.7+ and MariaDB accept, so it stays.
      *
      * @throws RuntimeException
      * @since  1.0.0
@@ -1951,6 +2529,7 @@ class MultilingualHelper
 
         $columns = [$db->qn($primaryColumnName)];
         $values = [$db->q($currentId)];
+        $updates = [];
 
         foreach ($fields as $fieldName => $value) {
             if (!self::isSafeIdentifier(name: $fieldName)) {
@@ -1958,6 +2537,7 @@ class MultilingualHelper
             }
             $columns[] = $db->qn($fieldName);
             $values[] = $db->q((string) $value);
+            $updates[] = $db->qn($fieldName) . ' = VALUES(' . $db->qn($fieldName) . ')';
         }
 
         if (count($columns) === 1) {
@@ -1969,24 +2549,23 @@ class MultilingualHelper
             return;
         }
 
-        $sql = 'REPLACE INTO ' . $langTableName
+        $sql = 'INSERT INTO ' . $langTableName
             . ' (' . implode(', ', $columns) . ')'
-            . ' VALUES (' . implode(', ', $values) . ')';
+            . ' VALUES (' . implode(', ', $values) . ')'
+            . ' ON DUPLICATE KEY UPDATE ' . implode(', ', $updates);
 
         try {
             $db->setQuery($sql)->execute();
         } catch (Throwable $e) {
             throw new RuntimeException(
-                '[MultilingualHelper::upsertLangRow] REPLACE INTO failed for "'
+                '[MultilingualHelper::upsertLangRow] Upsert failed for "'
                 . $langTableName . '", ID ' . $currentId . ': ' . $e->getMessage(),
                 previous: $e,
             );
         }
     }
 
-    // =========================================================================
-    //  Private — utilities
-    // =========================================================================
+    //  Private: utilities
 
     /**
      * Fetch all physical table names from the active database.
@@ -2012,6 +2591,31 @@ class MultilingualHelper
         return $tables;
     }
 
+    /**
+     * Column names of a (prefix-expanded) table, cached per request per table.
+     *
+     * Used by addMultilingualJoinToQuery to skip a translatable field whose
+     * per-language column has not been materialised yet. A read failure yields an
+     * empty list, so the caller treats every field as absent and emits placeholders
+     * rather than throwing.
+     *
+     * @since  1.5.0
+     */
+    private static function fetchColumnList($db, string $table): array
+    {
+        static $cache = [];
+
+        if (!array_key_exists($table, $cache)) {
+            try {
+                $cache[$table] = $db->setQuery('SHOW COLUMNS FROM ' . $db->quoteName($table))->loadColumn();
+            } catch (Throwable $e) {
+                $cache[$table] = [];
+            }
+        }
+
+        return $cache[$table];
+    }
+
     /** Retrieve the DatabaseDriver from the Joomla DI container.
      * @since  1.0.0
      */
@@ -2028,17 +2632,37 @@ class MultilingualHelper
         }
     }
 
-    /** Normalise a Joomla language tag to lower-snake format:  "en-GB" → "en_gb".
+    /** Normalise a Joomla language tag to lower-snake format:  "en-GB" -> "en_gb".
      * @since  1.0.0
      */
-    private static function normaliseTag(string $tag): string
+    public static function normaliseTag(string $tag): string
     {
         return strtolower(str_replace('-', '_', $tag));
     }
 
+    /** The inverse of {@see self::normaliseTag()}:  "el_gr" -> "el-GR".
+     *
+     * Joomla resolves a transliterator by loading `language/<tag>/localise.php`, so the
+     * storage spelling finds nothing and silently degrades to the ICU default.
+     *
+     * @since  1.0.0
+     */
+    private static function displayTag(string $tag): string
+    {
+        $parts = explode('_', strtolower($tag));
+
+        foreach ($parts as $i => $part) {
+            if ($i > 0 && \strlen($part) === 2) {
+                $parts[$i] = strtoupper($part);
+            }
+        }
+
+        return implode('-', $parts);
+    }
+
     /**
      * Return true when $name is a safe SQL identifier (letters, digits, underscore).
-     * Logs a WARNING and returns false otherwise — callers skip the offending field.
+     * Logs a WARNING and returns false otherwise; callers skip the offending field.
      * @since  1.0.0
      */
     private static function isSafeIdentifier(string $name): bool
@@ -2100,9 +2724,7 @@ class MultilingualHelper
         }
     }
 
-    // =========================================================================
     //  Logging
-    // =========================================================================
 
     /**
      * Write a message to the component log file.
@@ -2120,16 +2742,9 @@ class MultilingualHelper
         string $message,
         int $priority = Log::DEBUG,
     ): void {
-        static $registered = false;
-
-        if (!$registered) {
-            Log::addLogger(
-                options:    ['text_file' => 'com_alfa.php'],
-                priorities: Log::ALL,
-                categories: [self::LOG_CATEGORY],
-            );
-            $registered = true;
-        }
+        // Delegated: AlfaLog owns the whole map, com_alfa.php included.
+        // Unguarded on purpose; see AlfaLog::register().
+        AlfaLog::register();
 
         Log::add(
             entry:    '[' . $callerMethod . '] ' . $message,
@@ -2143,12 +2758,12 @@ class MultilingualHelper
      * installed language table.
      *
      * Iterates over every language returned by LanguageHelper::getLanguages(),
-     * not a hardcoded list — so adding a new site language Just Works.
+     * not a hardcoded list, so adding a new site language Just Works.
      * Missing language tables are silently skipped (fresh-install safety).
      *
      * @param int|int[] $ids One or more parent record IDs.
      * @param string $primaryColumnName PK column in the lang tables (e.g. "id_orderstatus").
-     * @param string $tableName Base table with Joomla prefix (e.g. "#__deliveryplus_order_status").
+     * @param string $tableName Base table with Joomla prefix (e.g. "#__alfa_orders_statuses").
      *
      * @return bool True on success, false when there is nothing to delete.
      *
@@ -2182,14 +2797,16 @@ class MultilingualHelper
             languages: LanguageHelper::getLanguages('lang_code'),
         );
 
-        $db->transactionStart();
+        // Same contract as above: savepoint-aware, or the caller's open
+        // transaction is implicitly committed out from under it.
+        $db->transactionStart(true);
 
         try {
             foreach ($langCodes as $langCode) {
                 $langTableName = $db->replacePrefix("{$tableName}_{$langCode}");
 
                 if (!in_array($langTableName, $existingTables, true)) {
-                    continue; // Language table doesn't exist for this language — nothing to delete.
+                    continue; // Language table doesn't exist for this language; nothing to delete.
                 }
 
                 $db->setQuery(
@@ -2205,9 +2822,9 @@ class MultilingualHelper
                 );
             }
 
-            $db->transactionCommit();
+            $db->transactionCommit(true);
         } catch (Throwable $e) {
-            $db->transactionRollback();
+            TransactionState::rollBackLevel(db: $db, failure: $e);
             self::log(
                 callerMethod: __METHOD__,
                 message:      'Transaction rolled back: ' . $e->getMessage(),

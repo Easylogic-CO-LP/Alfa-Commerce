@@ -7,7 +7,9 @@ use Joomla\CMS\Language\Text;
 
 $wa = $this->document->getWebAssetManager();
 $wa->useScript('keepalive')
-   ->useScript('form.validate');
+   ->useScript('form.validate')
+   ->useScript('com_alfa.validate.engine')
+   ->useStyle('com_alfa.validate');
 ?>
 <form
     action="<?php echo Route::_('index.php?option=com_alfa&layout=edit&id=' . (int) $this->item->id); ?>"
@@ -17,7 +19,7 @@ $wa->useScript('keepalive')
     id="usergroup-form"
     class="form-validate form-horizontal">
 
-    <?php // ── Hidden fields required for correct save (UPDATE vs INSERT) ── ?>
+    <?php // Hidden fields required for correct save (UPDATE vs INSERT)?>
     <?php echo $this->form->renderField('id'); ?>
     <?php echo $this->form->renderField('usergroup_id'); ?>
 
@@ -45,8 +47,28 @@ $wa->useScript('keepalive')
                 <?php echo $this->form->renderFieldset('prices'); ?>
             </div>
 
-            <?php echo HTMLHelper::_('uitab.endTab'); ?>
-            <?php echo HTMLHelper::_('uitab.endTabSet'); ?>
+            <?php echo HTMLHelper::_('uitab.endTab'); ?><?php
+// CONTRIBUTED TABS. A plugin that loads a named <fieldset> into this form through
+// onAlfaAdminForm gets it rendered here as its own tab; same rule as every Alfa edit
+// screen: a contributed named fieldset is a new tab. The template's OWN named fieldsets
+// are listed in $ownFieldsets and skipped, so nothing renders twice.
+$ownFieldsets = ['prices'];
+foreach ($this->form->getFieldsets() as $fieldset) {
+    if (in_array($fieldset->name, $ownFieldsets, true)) {
+        continue;
+    }
+    $fieldsetLabel = !empty($fieldset->label)
+        ? Text::_($fieldset->label)
+        : ucwords(str_replace('_', ' ', $fieldset->name));
+
+    echo HTMLHelper::_('uitab.addTab', 'myTab', 'plg-' . $fieldset->name, $fieldsetLabel);
+    echo '<div class="row"><div class="col-12"><fieldset class="options-form"><legend>'
+        . $fieldsetLabel . '</legend><div>'
+        . $this->form->renderFieldset($fieldset->name)
+        . '</div></fieldset></div></div>';
+    echo HTMLHelper::_('uitab.endTab');
+}
+?><?php echo HTMLHelper::_('uitab.endTabSet'); ?>
 
         </div>
 

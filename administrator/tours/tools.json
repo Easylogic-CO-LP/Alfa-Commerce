@@ -1,0 +1,57 @@
+{
+    "uid": "com_alfa.tools",
+    "version": 3,
+    "title": "COM_ALFA_GUIDEDTOUR_TOOLS_TITLE",
+    "description": "COM_ALFA_GUIDEDTOUR_TOOLS_DESC",
+    "extensions": [
+        "com_alfa"
+    ],
+    "url": "administrator/index.php?option=com_alfa&view=tools",
+    "autostart": false,
+    "steps": [
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_TOOLS_STEP_1_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_TOOLS_STEP_1_DESC",
+            "position": "right",
+            "target": "#sidebarmenu a[href*=\"option=com_alfa\"][href*=\"view=tools\"]",
+            "type": 2,
+            "interactive_type": 1,
+            "url": "administrator/index.php?option=com_alfa&view=tools"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_TOOLS_STEP_2_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_TOOLS_STEP_2_DESC",
+            "position": "bottom",
+            "target": "#alfaToolsTabs, .com-alfa-tools",
+            "type": 2,
+            "interactive_type": 3,
+            "url": "administrator/index.php?option=com_alfa&view=tools"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_TOOLS_STEP_3_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_TOOLS_STEP_3_DESC",
+            "position": "bottom",
+            "target": ".alfa-tool-btn, .com-alfa-tools .card",
+            "type": 2,
+            "interactive_type": 3,
+            "url": "administrator/index.php?option=com_alfa&view=tools"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_TOOLS_STEP_4_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_TOOLS_STEP_4_DESC",
+            "position": "right",
+            "target": "#sidebarmenu",
+            "type": 2,
+            "interactive_type": 3,
+            "url": "administrator/index.php?option=com_alfa&view=tools"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_TOOLS_STEP_5_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_TOOLS_STEP_5_DESC",
+            "position": "bottom",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=tools"
+        }
+    ],
+    "ordering": 260
+}

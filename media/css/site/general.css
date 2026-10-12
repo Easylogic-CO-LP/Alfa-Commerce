@@ -1,5 +1,5 @@
 table {
-  border: 1px solid #ccc;
+  border: 1px solid var(--alfa-hairline);
   border-collapse: collapse;
   margin: 0;
   padding: 0;
@@ -14,11 +14,11 @@ table caption {
 
 table thead tr,
 table tfoot tr{
-  background-color: #f8f8f8;
+  background-color: var(--alfa-surface);
 }
 
 table tr {
-  border: 1px solid #ddd;
+  border: 1px solid var(--alfa-hairline);
   padding: 0.35em;
 }
 
@@ -55,13 +55,13 @@ table th {
   }
 
   table tr {
-    border-bottom: 3px solid #ddd;
+    border-bottom: 3px solid var(--alfa-hairline);
     display: block;
     margin-bottom: 0.625em;
   }
 
   table td {
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid var(--alfa-hairline);
     display: block;
     font-size: 0.8em;
     text-align: right;
@@ -82,3 +82,92 @@ table th {
     border-bottom: 0;
   }
 }
+/* Storefront design tokens: override at template level to re-theme every
+   component view without touching component CSS. */
+/* The palette lives in tokens.css, which this stylesheet depends on through the
+   asset registry; see media/com_alfa/joomla.asset.json. */
+
+
+/* User actions: `action` means an interactive command, variants state
+   visual priority, data-action carries behavior.
+   Scoped to the component root: templates override freely, tokens theme it. */
+.com-alfa .action {
+    display: inline-block;
+    border: none;
+    border-radius: var(--alfa-radius);
+    padding: 12px 16px;
+    font-size: 1rem;
+    text-align: center;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.com-alfa .action:disabled,
+.com-alfa .action.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.com-alfa .action.loading {
+    opacity: 0.6;
+    cursor: progress;
+    pointer-events: none;
+}
+
+.com-alfa .action.block {
+    display: block;
+    width: 100%;
+}
+
+.com-alfa .action.small {
+    padding: 4px 10px;
+    font-size: 0.85rem;
+}
+
+.com-alfa .action.primary {
+    background-color: var(--alfa-action-primary-bg);
+    color: var(--alfa-action-primary-color);
+}
+
+.com-alfa .action.primary:hover {
+    background-color: var(--alfa-action-primary-bg-hover);
+    color: var(--alfa-action-primary-color);
+}
+
+.com-alfa .action.secondary {
+    background-color: var(--alfa-action-secondary-bg);
+    color: var(--alfa-action-secondary-color);
+}
+
+.com-alfa .action.secondary:hover {
+    background-color: var(--alfa-action-secondary-bg-hover);
+    color: var(--alfa-action-secondary-color);
+}
+
+.com-alfa .action.danger {
+    background-color: var(--alfa-action-danger-bg);
+    color: var(--alfa-action-danger-color);
+}
+
+.com-alfa .action.danger:hover {
+    background-color: var(--alfa-action-danger-bg-hover);
+    color: var(--alfa-action-danger-color);
+}
+
+/* Validation feedback inside component markup: the storefront's own error
+   look; validate.css carries the template-agnostic fallback. */
+.com-alfa .field-error {
+    color: var(--alfa-error-color);
+}
+
+.com-alfa .form-control.invalid,
+.com-alfa .form-select.invalid {
+    border-color: var(--alfa-error-color);
+}
+
+/* The quantity stepper moved to stepper.css, which this stylesheet depends on
+   through the asset registry: the cart module needs it without the rest of this file. */
+

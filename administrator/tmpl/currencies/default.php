@@ -15,6 +15,9 @@ use Joomla\CMS\Router\Route;
 use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Session\Session;
+use Alfa\Component\Alfa\Administrator\Helper\Columns;
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\Actions;
 
 $wa = $this->getDocument()->getWebAssetManager();
 $wa->useStyle('com_alfa.admin')
@@ -50,7 +53,12 @@ if ($saveOrder && !empty($this->items)) {
 						<?php echo \Joomla\CMS\Language\Text::_("JGLOBAL_NO_MATCHING_RESULTS"); ?>
 					</div>
 				<?php else : ?>
-				<table class="table table-striped" id="currencyList">
+<?php
+// Plugin-contributed columns, grouped by the core column they anchor after. Empty when no
+// alfa* platform plugin contributed any, in which case every helper below emits nothing.
+$columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], ['state', 'name', 'code', 'id']);
+?><?php echo $this->renderSlot('before-grid'); ?><?php echo Actions::bulkBar($this->pluginBulkActions ?? []); ?>				<table class="table table-striped" id="currencyList">
+
 					<thead>
 					<tr>
 						<th class="w-1 text-center">
@@ -68,34 +76,26 @@ if ($saveOrder && !empty($this->items)) {
 						
 					<th  scope="col" class="w-1 text-center">
 						<?php echo HTMLHelper::_('searchtools.sort', 'JSTATUS', 'a.state', $listDirn, $listOrder); ?>
-					</th>
+					</th><?php echo Columns::heads($columnsByAnchor, 'state'); ?>
 						
 						<th class='left'>
 							<?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_CURRENCIES_NAME', 'a.name', $listDirn, $listOrder); ?>
-						</th>
+						</th><?php echo Columns::heads($columnsByAnchor, 'name'); ?>
 						<th class='left'>
 							<?php echo HTMLHelper::_('searchtools.sort',  'COM_ALFA_CURRENCIES_CODE', 'a.code', $listDirn, $listOrder); ?>
-						</th>
+						</th><?php echo Columns::heads($columnsByAnchor, 'code'); ?>
 						
 					<th scope="col" class="w-3 d-none d-lg-table-cell" >
 
-						<?php echo HTMLHelper::_('searchtools.sort',  'JGRID_HEADING_ID', 'a.id', $listDirn, $listOrder); ?>					</th>
+						<?php echo HTMLHelper::_('searchtools.sort',  'JGRID_HEADING_ID', 'a.id', $listDirn, $listOrder); ?>					</th><?php echo Columns::heads($columnsByAnchor, 'id'); ?><?php echo Columns::heads($columnsByAnchor, Columns::END); ?><?php echo Actions::head($this->pluginRowActions ?? []); ?>
 					</tr>
 					</thead>
-					<tfoot>
-					<tr>
-						<td colspan="<?php echo isset($this->items[0]) ? count(get_object_vars($this->items[0])) : 10; ?>">
-							<?php echo $this->pagination->getListFooter(); ?>
-						</td>
-					</tr>
-					</tfoot>
 					<tbody <?php if (!empty($saveOrder)) :?> class="js-draggable" data-url="<?php echo $saveOrderingUrl; ?>" data-direction="<?php echo strtolower($listDirn); ?>" <?php endif; ?>>
 					<?php foreach ($this->items as $i => $item) :
 						$ordering   = ($listOrder == 'a.ordering');
-						$canCreate  = $user->authorise('core.create', 'com_alfa');
-						$canEdit    = $user->authorise('core.edit', 'com_alfa');
-						$canCheckin = $user->authorise('core.manage', 'com_alfa');
-						$canChange  = $user->authorise('core.edit.state', 'com_alfa');
+						$canEdit    = AlfaHelper::can(section: 'currencies', action: 'edit', user: $user);
+						$canCheckin = $canEdit; // check-in is part of editing
+						$canChange  = AlfaHelper::can(section: 'currencies', action: 'edit.state', user: $user);
 						?>
 						<tr class="row<?php echo $i % 2; ?>" data-draggable-group='1' data-transition>
 							<td class="text-center">
@@ -124,7 +124,7 @@ if ($saveOrder && !empty($this->items)) {
 							
 							<td class="text-center">
 								<?php echo HTMLHelper::_('jgrid.published', $item->state, $i, 'currencies.', $canChange, 'cb'); ?>
-							</td>
+							</td><?php echo Columns::cells($columnsByAnchor, 'state', $item); ?>
 							
 							<td>
 								<?php if (isset($item->checked_out) && $item->checked_out && ($canEdit || $canChange)) : ?>
@@ -137,21 +137,23 @@ if ($saveOrder && !empty($this->items)) {
 								<?php else : ?>
 												<?php echo $this->escape($item->name); ?>
 								<?php endif; ?>
-							</td>
+							</td><?php echo Columns::cells($columnsByAnchor, 'name', $item); ?>
 							<td>
 								<?php echo $item->code; ?>
-							</td>
+							</td><?php echo Columns::cells($columnsByAnchor, 'code', $item); ?>
 							
 							<td class="d-none d-lg-table-cell">
 							<?php echo $item->id; ?>
 
-							</td>
+							</td><?php echo Columns::cells($columnsByAnchor, 'id', $item); ?><?php echo Columns::cells($columnsByAnchor, Columns::END, $item); ?><?php echo Actions::cell($this->pluginRowActions ?? [], $i, $item); ?>
 
 
 						</tr>
 					<?php endforeach; ?>
 					</tbody>
 				</table>
+
+				<?php echo $this->pagination->getListFooter(); ?>
 				<?php endif; ?>
 
                 <?php echo $this->filterForm->renderControlFields(); ?>

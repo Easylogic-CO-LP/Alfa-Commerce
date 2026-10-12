@@ -11,21 +11,28 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 
 defined('_JEXEC') or die;
 
-use Joomla\CMS\Factory;
+use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Joomla\CMS\Form\Form;
-use Joomla\CMS\MVC\Model\AdminModel;
 
 /**
- * Single-notification model — the canonical write path for the notification store.
- * Creating/updating a notification goes through {@see self::save()} (used by the
- * static {@see \Alfa\Component\Alfa\Administrator\Helper\NotificationHelper::push()},
- * the form controller, and the webservices API alike), so there is one professional
- * write everywhere. Reads use {@see NotificationsModel}.
+ * Single-notification model: the canonical write path for the notification store.
+ * Creating/updating a notification goes through {@see self::save()}, called by the
+ * static {@see \Alfa\Component\Alfa\Administrator\Helper\NotificationHelper::push()}.
+ * There is no edit form and no webservices route: notifications are raised by code,
+ * never typed in. Reads use {@see NotificationsModel}.
  *
  * @since  1.0.0
  */
-class NotificationModel extends AdminModel
+class NotificationModel extends AlfaAdminModel
 {
+    /**
+     * The admin-contract entity this model serves.
+     *
+     *
+     * @since  1.8.0
+     */
+    protected string $alfaEntity = 'notification';
+
     /**
      * The prefix to use with controller messages.
      *
@@ -79,7 +86,11 @@ class NotificationModel extends AdminModel
      */
     protected function loadFormData()
     {
-        $data = Factory::getApplication()->getUserState('com_alfa.edit.notification.data', []);
+        // A post kept for another record never fills this one (KeptPost).
+        $data = KeptPost::forRecord(
+            stateKey: 'com_alfa.edit.notification.data',
+            recordId: (int) $this->getState($this->getName() . '.id'),
+        );
 
         if (empty($data)) {
             $data = $this->getItem();

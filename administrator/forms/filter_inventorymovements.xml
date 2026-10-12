@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+    <fields name="filter">
+        <field
+                name="search"
+                type="text"
+                inputmode="search"
+                label="COM_ALFA_FILTER_SEARCH_LABEL"
+                description="COM_ALFA_INVENTORY_FILTER_SEARCH_DESC"
+                hint="COM_ALFA_INVENTORYMOVEMENTS_SEARCH_PLACEHOLDER"
+        />
+
+        <field
+                name="movement_type"
+                type="list"
+                label="COM_ALFA_INVENTORY_HEADING_TYPE"
+                onchange="this.form.submit();"
+        >
+            <option value="">COM_ALFA_INVENTORY_FILTER_TYPE</option>
+            <option value="receive">COM_ALFA_INVENTORY_MOVE_RECEIVE</option>
+            <option value="deduct">COM_ALFA_INVENTORY_MOVE_DEDUCT</option>
+            <option value="restore">COM_ALFA_INVENTORY_MOVE_RESTORE</option>
+            <option value="adjust">COM_ALFA_INVENTORY_MOVE_ADJUST</option>
+            <!-- transfer_out / transfer_in are not offered: no code path writes them
+                 yet (InventoryService has no transfer()), so they would only ever
+                 return an empty list. Restore them with the transfers feature. -->
+            <option value="migration">COM_ALFA_INVENTORY_MOVE_MIGRATION</option>
+        </field>
+
+        <field
+                name="location_id"
+                type="sql"
+                label="COM_ALFA_INVENTORY_HEADING_LOCATION"
+                key_field="id"
+                value_field="title"
+                query="SELECT id, title FROM #__alfa_inventory_locations ORDER BY ordering"
+                onchange="this.form.submit();"
+        >
+            <option value="">COM_ALFA_INVENTORY_FILTER_LOCATION</option>
+        </field>
+
+        <!-- Date window
+             A preset OR an explicit pair, resolved in populateState(): whichever
+             the operator just changed wins. Same preset names as the orders
+             filter. -->
+
+        <field name="date_range" type="daterange"
+               label="COM_ALFA_FILTER_DATE_RANGE"
+               layout="joomla.form.field.list-fancy-select"
+               onchange="this.form.submit();" />
+
+        <field name="date_start" type="calendar" default="" showtime="true"
+               translateformat="true" filter="raw"
+               label="COM_ALFA_FILTER_DATE_START" />
+
+        <field name="date_end" type="calendar" default="" showtime="true"
+               translateformat="true" filter="raw"
+               label="COM_ALFA_FILTER_DATE_END" />
+    </fields>
+
+    <fields name="list">
+        <field
+                name="fullordering"
+                type="list"
+                label="JGLOBAL_SORT_BY"
+                onchange="this.form.submit();"
+                default="a.id DESC"
+                validate="options"
+        >
+            <option value="a.id DESC">COM_ALFA_INVENTORY_SORT_NEWEST</option>
+            <option value="a.id ASC">COM_ALFA_INVENTORY_SORT_OLDEST</option>
+        </field>
+
+        <field
+                name="limit"
+                type="limitbox"
+                label="JGLOBAL_LIST_LIMIT"
+                default="25"
+                onchange="this.form.submit();"
+        />
+    </fields>
+</form>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+    <fields name="filter">
+        <field
+                name="search"
+                type="text"
+                inputmode="search"
+                label="COM_ALFA_FILTER_SEARCH_LABEL"
+                hint="COM_ALFA_DOCUMENTS_SEARCH_PLACEHOLDER"
+                description="COM_ALFA_DOCUMENTS_FILTER_SEARCH_DESC"
+        />
+
+        <field
+                name="doc_type"
+                type="DocumentType"
+                label="COM_ALFA_SERIES_FIELD_DOC_TYPE"
+                onchange="this.form.submit();"
+        >
+            <option value="">COM_ALFA_DOCUMENTS_FILTER_TYPE</option>
+        </field>
+
+        <field
+                name="status"
+                type="list"
+                label="JSTATUS"
+                onchange="this.form.submit();"
+        >
+            <option value="">COM_ALFA_DOCUMENTS_FILTER_STATUS</option>
+            <option value="1">COM_ALFA_DOCUMENT_STATUS_ISSUED</option>
+            <option value="2">COM_ALFA_DOCUMENT_STATUS_VOIDED</option>
+        </field>
+
+        <!-- Date window
+             A preset OR an explicit pair, resolved in populateState(): whichever
+             the operator just changed wins. Same preset names as the orders
+             filter. -->
+
+        <field name="date_range" type="daterange"
+               label="COM_ALFA_FILTER_DATE_RANGE"
+               layout="joomla.form.field.list-fancy-select"
+               onchange="this.form.submit();" />
+
+        <field name="date_start" type="calendar" default="" showtime="false"
+               translateformat="true" filter="raw"
+               label="COM_ALFA_FILTER_DATE_START" />
+
+        <field name="date_end" type="calendar" default="" showtime="false"
+               translateformat="true" filter="raw"
+               label="COM_ALFA_FILTER_DATE_END" />
+    </fields>
+
+    <fields name="list">
+        <field
+                name="fullordering"
+                type="list"
+                label="JGLOBAL_SORT_BY"
+                onchange="this.form.submit();"
+                default="a.id DESC"
+                validate="options"
+        >
+            <option value="">JGLOBAL_SORT_BY</option>
+            <option value="a.id DESC">JGRID_HEADING_ID_DESC</option>
+            <option value="a.id ASC">JGRID_HEADING_ID_ASC</option>
+            <option value="a.issue_date_local DESC">COM_ALFA_DOCUMENTS_HEADING_DATE</option>
+            <option value="a.number DESC">COM_ALFA_DOCUMENTS_HEADING_NUMBER</option>
+            <option value="a.total_tax_incl DESC">COM_ALFA_DOCUMENTS_HEADING_TOTAL</option>
+        </field>
+
+        <field
+                name="limit"
+                type="limitbox"
+                label="JGLOBAL_LIST_LIMIT"
+                default="25"
+                onchange="this.form.submit();"
+        />
+    </fields>
+</form>

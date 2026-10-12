@@ -8,7 +8,7 @@
  *
  * Thumbnail Event (onAlfaMediaThumbnail)
  *
- * Same shape as {@see BeforeProcessEvent} — a distinct class/event name so the
+ * Same shape as {@see BeforeProcessEvent}: a distinct class/event name so the
  * plugin (and any future listener) can target thumbnail processing separately.
  *
  * Unlike the main-image path, this event DOES carry the component's thumbnail

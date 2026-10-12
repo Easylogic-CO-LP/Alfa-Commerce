@@ -1,0 +1,17 @@
+/**
+ * Alfa Commerce: validation feedback (shared by site and administrator).
+ * Component-owned classes (`invalid` on the field, `field-error` for the
+ * note) so no template framework competes over them; structural only,
+ * themed by the error token.
+ */
+.field-error {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: var(--alfa-error-color, #b91c1c);
+}
+
+.form-control.invalid,
+.form-select.invalid {
+    border-color: var(--alfa-error-color, #b91c1c);
+}

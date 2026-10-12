@@ -1,3 +1,4 @@
+<?php \defined('_JEXEC') or die; ?>
 <label id="batch-usergroup-lbl" for="batch-usergroup-id">
     Usergroup to select:
 </label>

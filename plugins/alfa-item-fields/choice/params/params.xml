@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<form>
+    <fields name="itemfieldsparams">
+        <fieldset name="field_settings" label="PLG_ALFA_ITEM_FIELDS_CHOICE_FIELDSET_SETTINGS">
+
+            <!-- LAYOUT PICKERS (render_as, listing_render_as) use Alfa's standard core
+                 field type="pluginlayout": it lists this plugin's tmpl layouts plus the
+                 overrides of the storefront templates, so a new look is a dropped-in
+                 file, no code. Any plugin gets the same by declaring the field with its
+                 own plugin_group / plugin / prefix (see PluginlayoutField). -->
+
+            <!-- ITEM PAGE surface: how the buyer picks a value on the product. Lists
+                 every tmpl/item-<name>.php and every override
+                 html/plg_alfa-item-fields_choice/item-<name>.php of a template that
+                 renders storefront pages; stores <name>. 'text' is left out: it
+                 draws no selector, and the product page must offer the buyer one.
+                 The <option> only labels a stored 'text', shown as not offered. -->
+            <field name="render_as" type="pluginlayout" default="select"
+                   addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
+                   plugin_group="alfa-item-fields" plugin="choice" prefix="item-"
+                   exclude="text"
+                   class="form-select"
+                   label="PLG_ALFA_ITEM_FIELDS_CHOICE_RENDER_AS_LABEL"
+                   description="PLG_ALFA_ITEM_FIELDS_CHOICE_RENDER_AS_DESC">
+                <option value="text">PLG_ALFA_ITEM_FIELDS_CHOICE_LISTING_TEXT</option>
+            </field>
+
+            <!-- ITEM PAGE: how a value that is NOT reachable with the current
+                 selection is shown: disabled (greyed, keeps the axis navigable)
+                 or removed (hidden). 'inherit' follows the plugin default. -->
+            <field name="unavailable_display" type="list" default="inherit"
+                   label="PLG_ALFA_ITEM_FIELDS_CHOICE_UNAVAILABLE_DISPLAY_LABEL"
+                   description="PLG_ALFA_ITEM_FIELDS_CHOICE_UNAVAILABLE_DISPLAY_DESC">
+                <option value="inherit">PLG_ALFA_ITEM_FIELDS_CHOICE_UNAVAILABLE_INHERIT</option>
+                <option value="disabled">PLG_ALFA_ITEM_FIELDS_CHOICE_UNAVAILABLE_DISABLED</option>
+                <option value="removed">PLG_ALFA_ITEM_FIELDS_CHOICE_UNAVAILABLE_REMOVED</option>
+            </field>
+
+            <!-- FILTERS surface: same field can look entirely different in the
+                 filters module (your color dropdown can be a swatch grid here). -->
+            <field name="filter_render_as" type="list" default="checkboxes"
+                   label="PLG_ALFA_ITEM_FIELDS_CHOICE_FILTER_RENDER_AS_LABEL"
+                   description="PLG_ALFA_ITEM_FIELDS_CHOICE_FILTER_RENDER_AS_DESC">
+                <option value="checkboxes">PLG_ALFA_ITEM_FIELDS_CHOICE_FILTER_CHECKBOXES</option>
+                <option value="buttons">PLG_ALFA_ITEM_FIELDS_CHOICE_FILTER_BUTTONS</option>
+                <option value="swatches">PLG_ALFA_ITEM_FIELDS_CHOICE_FILTER_SWATCHES</option>
+                <option value="select">PLG_ALFA_ITEM_FIELDS_CHOICE_FILTER_SELECT</option>
+            </field>
+
+            <!-- FILTERS surface: whether this field's values are offered as COLOUR
+                 GROUPS rather than one entry per value. Lives here, beside the other
+                 filter setting, because only this type knows its values carry colours
+                 at all, and because a merchant configuring how this field filters
+                 expects to find it in the same place. There is no module-level override:
+                 this decision is the field's alone. -->
+            <field name="filter_group_values" type="radio"
+                   layout="joomla.form.field.radio.switcher" default="0"
+                   label="PLG_ALFA_ITEM_FIELDS_CHOICE_FILTER_GROUP_LABEL"
+                   description="PLG_ALFA_ITEM_FIELDS_CHOICE_FILTER_GROUP_DESC">
+                <option value="0">JNO</option>
+                <option value="1">JYES</option>
+            </field>
+
+            <!-- LISTING surface (category cards), used when the field has
+                 "Show on listings" enabled. Same list as render_as plus 'text',
+                 which lists the values read-only, with no selector; 'inherit'
+                 follows the product page. The <option> only labels the shipped
+                 text layout, it adds nothing. Informational fields always render
+                 as a specification row. -->
+            <field name="listing_render_as" type="pluginlayout" default="inherit"
+                   addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
+                   plugin_group="alfa-item-fields" plugin="choice" prefix="item-"
+                   inherit="true" inherit_label="PLG_ALFA_ITEM_FIELDS_CHOICE_LISTING_INHERIT"
+                   class="form-select"
+                   label="PLG_ALFA_ITEM_FIELDS_CHOICE_LISTING_RENDER_AS_LABEL"
+                   description="PLG_ALFA_ITEM_FIELDS_CHOICE_LISTING_RENDER_AS_DESC">
+                <option value="text">PLG_ALFA_ITEM_FIELDS_CHOICE_LISTING_TEXT</option>
+            </field>
+
+        </fieldset>
+    </fields>
+</form>

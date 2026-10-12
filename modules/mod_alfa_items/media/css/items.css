@@ -1,0 +1,422 @@
+/**
+ * @package     mod_alfa_items
+ * @copyright   (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license     GNU General Public License version 3 or later; see LICENSE
+ * @author      Agamemnon Fakas <info@easylogic.gr>
+ */
+
+.mod-alfa-items {
+    --mod-alfa-items-accent: var(--alfa-action-primary-bg, #333);
+    --mod-alfa-items-gap: 16px;
+    --mod-alfa-items-columns: 4;
+
+    /* Palette aliases: declared once here, used by name below. The accent is the
+       storefront's primary action unless the module was given its own colour, so
+       a merchant who themes the shop themes the card too. Each fallback is what
+       the module looked like before the palette existed. */
+    --alfa-items-surface: var(--alfa-surface, #fff);
+    /* Writing on that surface. `inherit` by default, so the module keeps taking
+       the page's own text colour until a merchant or the palette says otherwise. */
+    --alfa-items-surface-color: var(--alfa-surface-color, inherit);
+    /* Text that should recede: the empty-state message. */
+    --alfa-items-muted: var(--alfa-muted-color, #6b7280);
+    --alfa-items-hairline: var(--alfa-hairline, #e2e2e2);
+    --alfa-items-radius: var(--alfa-radius, 4px);
+    /* An overlay card sets its name and buy form on the photo, so it is dark in both
+       modes: its ground where an item has no image, and the colour of the writing on it. */
+    --alfa-items-overlay: #111827;
+    --alfa-items-overlay-color: #fff;
+    /* What an overlay card's name and buy form sit on: a gradient toward the image at the
+       bottom and at the top, a band in the middle. A card's Overlay background replaces it. */
+    --alfa-items-overlay-bottom: linear-gradient(to top, rgb(0 0 0 / 0.85), rgb(0 0 0 / 0.55) 60%, transparent);
+    --alfa-items-overlay-middle: rgb(0 0 0 / 0.6);
+    --alfa-items-overlay-top: linear-gradient(to bottom, rgb(0 0 0 / 0.85), rgb(0 0 0 / 0.55) 60%, transparent);
+    /* How long a hover or focus change takes, for everything in the module that eases
+       (never the slider track: Keen moves the slides itself). */
+    --alfa-items-transition: 0.2s ease;
+
+    color: var(--alfa-items-surface-color);
+}
+
+/* TABS */
+
+.mod-alfa-items .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin: 0 0 1rem;
+    border-bottom: 1px solid var(--alfa-items-hairline);
+}
+
+.mod-alfa-items .tab {
+    appearance: none;
+    background: none;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    padding: 0.6rem 1rem;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity var(--alfa-items-transition), border-color var(--alfa-items-transition);
+}
+
+.mod-alfa-items .tab:hover,
+.mod-alfa-items .tab:focus-visible {
+    opacity: 1;
+}
+
+.mod-alfa-items .tab[data-state="active"] {
+    opacity: 1;
+    font-weight: 600;
+    border-bottom-color: var(--mod-alfa-items-accent);
+}
+
+.mod-alfa-items .panel[hidden] {
+    display: none;
+}
+
+/* A panel being fetched holds the previous panel's height (set by the script)
+   and shimmers until the cards arrive. Scoped by the root marker: the Pro
+   edition may share the page and draws its own skeleton instead. */
+.mod-alfa-items[data-mod-alfa-items] .panel[data-state="loading"] {
+    position: relative;
+    min-height: 6rem;
+    overflow: hidden;
+}
+
+.mod-alfa-items[data-mod-alfa-items] .panel[data-state="loading"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.05), transparent);
+    animation: mod-alfa-items-shimmer 1.2s linear infinite;
+}
+
+@keyframes mod-alfa-items-shimmer {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(100%); }
+}
+
+.mod-alfa-items .empty {
+    margin: 0;
+    color: var(--alfa-items-muted);
+}
+
+/* VIEW ALL */
+
+.mod-alfa-items .view-all {
+    margin: 1rem 0 0;
+    text-align: right;
+}
+
+.mod-alfa-items .view-all a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--mod-alfa-items-accent);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.mod-alfa-items .view-all a:hover,
+.mod-alfa-items .view-all a:focus-visible {
+    text-decoration: underline;
+}
+
+.mod-alfa-items .view-all svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* GRID: the column count per width is emitted per module instance
+   (AlfaItemsHelper::responsiveCss); this is the desktop fallback. */
+
+.mod-alfa-items .grid {
+    display: grid;
+    grid-template-columns: repeat(var(--mod-alfa-items-columns), minmax(0, 1fr));
+    gap: var(--mod-alfa-items-gap);
+}
+
+.mod-alfa-items .grid > .item-card {
+    min-width: 0;
+}
+
+/* CARD: one product card (default_card.php). Its classes are the module's own, so
+   neither the shop's listing styles nor a template's card rules reach it. What sits in
+   its buy form (the price, the stock line, add to cart, variant and option choices)
+   Alfa draws and styles.
+
+   This is the default card. What a module, a tab sets instead (on every screen,
+   or for one breakpoint) is written as rules for the card's place (`data-look`) by
+   CardLook::css, from the same list of declarations, so every property a setting can
+   change is declared here. */
+
+.mod-alfa-items .item-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    height: 100%;
+    padding: var(--alfa-items-card-padding, 10px);
+    overflow: visible;
+    border: 1px solid black;
+    /* Its width on each side; 0 removes it there. */
+    border-width: var(--alfa-items-card-border, 1px);
+    border-radius: var(--alfa-items-card-radius, 0);
+    color: inherit;
+    background: none;
+    box-shadow: var(--alfa-items-card-shadow, none);
+    text-align: center;
+    transition: opacity var(--alfa-items-transition), box-shadow var(--alfa-items-transition);
+}
+
+/* The hover shadow also shows while the card holds focus, eased in by the card's transition. */
+.mod-alfa-items .item-card:is(:hover, :focus-within) {
+    box-shadow: var(--alfa-items-card-shadow-hover, var(--alfa-items-card-shadow, none));
+}
+
+/* An overlay card stacks its image and its name and buy form in one grid cell. */
+.mod-alfa-items .item-card > * {
+    grid-area: auto;
+}
+
+/* A field plugin's badge overlays the image's corner. */
+.mod-alfa-items .item-card-image {
+    position: relative;
+    flex: 0 1 auto;
+    align-self: auto;
+    width: auto;
+    aspect-ratio: auto;
+    max-height: none;
+    overflow: visible;
+}
+
+.mod-alfa-items .item-card-image > a {
+    display: inline;
+    height: auto;
+}
+
+/* The image itself is rounded, so a frame and an image in its own shape round alike. */
+.mod-alfa-items .item-card-image img {
+    width: 100%;
+    height: auto;
+    max-height: none;
+    border-radius: var(--alfa-items-card-image-radius, 0);
+    object-fit: contain;
+    object-position: center;
+}
+
+/* The name and the buy form, under the image; the look moves the image around them. */
+.mod-alfa-items .item-card-body {
+    z-index: auto;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: center;
+    align-self: auto;
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    background: none;
+}
+
+/* The name and the buy form keep to the bottom, so the buy forms of a row line up. */
+.mod-alfa-items .item-card-title {
+    display: block;
+    overflow: visible;
+    margin-top: auto;
+    -webkit-line-clamp: none;
+}
+
+/* The read-only specifications, inside the buy form after the selectors: one line per
+   field, its name then its values. Spaced only while a row is visible, since ShowOn can
+   hide every spec. */
+.mod-alfa-items .item-card-specs:has(> .item-field-surface:not([hidden])) {
+    margin: 0.35rem 0;
+}
+
+.mod-alfa-items .item-card-specs .spec-field {
+    display: block;
+}
+
+.mod-alfa-items .item-card-specs .spec-field-label {
+    margin-inline-end: 0.25rem;
+}
+
+/* The add-to-cart controls sit in a centred column, so their own row is centred too. */
+.mod-alfa-items .item-card .item-cart-add {
+    justify-content: center;
+}
+
+/* While a variant or option change re-draws the card, it dims and ignores the pointer. */
+.mod-alfa-items .item-card.is-loading {
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+/* SLIDER */
+
+.mod-alfa-items .slider {
+    position: relative;
+}
+
+.mod-alfa-items .slide {
+    display: flex;
+}
+
+/* keen-slider clips each slide, and a card fills its slide: left clipped, the room the
+   track makes above and below a card with a shadow would still cut the shadow off. */
+.mod-alfa-items .slider .slide.keen-slider__slide {
+    overflow: visible;
+}
+
+.mod-alfa-items .slide > .item-card {
+    width: 100%;
+}
+
+.mod-alfa-items .arrow {
+    position: absolute;
+    top: 50%;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    border: 1px solid var(--alfa-items-hairline);
+    border-radius: 50%;
+    background: var(--alfa-items-surface);
+    color: var(--mod-alfa-items-accent);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+    cursor: pointer;
+    transform: translateY(-50%);
+    transition: opacity var(--alfa-items-transition);
+}
+
+.mod-alfa-items .arrow-prev {
+    left: -1.25rem;
+}
+
+.mod-alfa-items .arrow-next {
+    right: -1.25rem;
+}
+
+.mod-alfa-items .arrow:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.mod-alfa-items .arrow svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.mod-alfa-items .dots {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.mod-alfa-items .dot {
+    width: 0.6rem;
+    height: 0.6rem;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: background-color var(--alfa-items-transition);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mod-alfa-items :is(.tab, .arrow, .dot, .item-card) {
+        transition: none;
+    }
+}
+
+/* A slider's track clips what sticks out of it: a place whose cards have a shadow
+   gives it room (12px) in its rules. */
+.mod-alfa-items .slider .track {
+    padding-block: 0;
+}
+
+.mod-alfa-items .dot[data-state="active"] {
+    background: var(--mod-alfa-items-accent);
+}
+
+/* A slider goes without its arrows or its dots on a screen where its cards all fit (
+   there is nothing to slide to) or where they are switched off: the server lists those
+   screens. Scoped to this edition: the Pro edition's widths are its own. */
+@media (min-width: 1024px) {
+    .mod-alfa-items[data-mod-alfa-items] .slider[data-no-arrows~="desktop"] > .arrow,
+    .mod-alfa-items[data-mod-alfa-items] .slider[data-no-dots~="desktop"] > .dots {
+        display: none;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+    .mod-alfa-items[data-mod-alfa-items] .slider[data-no-arrows~="tablet"] > .arrow,
+    .mod-alfa-items[data-mod-alfa-items] .slider[data-no-dots~="tablet"] > .dots {
+        display: none;
+    }
+}
+
+@media (max-width: 767px) {
+    .mod-alfa-items[data-mod-alfa-items] .slider[data-no-arrows~="mobile"] > .arrow,
+    .mod-alfa-items[data-mod-alfa-items] .slider[data-no-dots~="mobile"] > .dots {
+        display: none;
+    }
+}
+
+@media (max-width: 767px) {
+    .mod-alfa-items .arrow-prev {
+        left: 0.25rem;
+    }
+
+    .mod-alfa-items .arrow-next {
+        right: 0.25rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mod-alfa-items[data-mod-alfa-items] .panel[data-state="loading"]::after {
+        animation: none;
+    }
+}
+
+/*
+   Dark
+   The module's own dark values, so it is correct in both modes on its own: a page
+   that never loads com_alfa's palette still gets a readable panel instead of dark
+   text on a dark ground. Where the palette IS loaded it wins, so a merchant who
+   themes the shop still themes this module; these are the floor, not the ceiling.
+
+   Keyed on what the PAGE declares, never on the device alone: a visitor who picks
+   light on a dark laptop must get light. The third selector is the case where no
+   Alfa template is installed: neither attribute exists, so the device decides.
+   */
+:is(:root[data-theme="dark"], :root[data-theme-default="dark"]:not([data-theme]))
+.mod-alfa-items {
+    --mod-alfa-items-accent: var(--alfa-action-primary-bg, #e5e7eb);
+    --alfa-items-surface: var(--alfa-surface, #1f2937);
+    --alfa-items-surface-color: var(--alfa-surface-color, #e5e7eb);
+    --alfa-items-muted: var(--alfa-muted-color, #9ca3af);
+    --alfa-items-hairline: var(--alfa-hairline, #374151);
+}
+
+@media (prefers-color-scheme: dark) {
+    :is(:root[data-theme="auto"],
+        :root[data-theme-default="auto"]:not([data-theme]),
+        :root:not([data-theme]):not([data-theme-default]))
+    .mod-alfa-items {
+        --mod-alfa-items-accent: var(--alfa-action-primary-bg, #e5e7eb);
+        --alfa-items-surface: var(--alfa-surface, #1f2937);
+        --alfa-items-surface-color: var(--alfa-surface-color, #e5e7eb);
+        --alfa-items-muted: var(--alfa-muted-color, #9ca3af);
+        --alfa-items-hairline: var(--alfa-hairline, #374151);
+    }
+}

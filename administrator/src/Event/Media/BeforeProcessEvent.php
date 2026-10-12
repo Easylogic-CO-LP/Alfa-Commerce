@@ -9,30 +9,30 @@
  * Before-Process Event (onAlfaMediaBeforeProcess)
  *
  * The full-size image-processing hook. The component performs NO image work
- * itself; the plugin resizes/converts source → dest and reports back whether it
+ * itself; the plugin resizes/converts source -> dest and reports back whether it
  * processed the file (and, if so, the final path it actually wrote).
  *
  * Input (set by the component, read by the plugin):
- *   $event->getSource()        → absolute source path
- *   $event->getDest()          → absolute destination path the component proposes
- *   $event->getOrigin()        → media origin / context
- *   $event->getField()         → logical field name
- *   $event->getAllowedMimes()  → allowed source MIME types
+ *   $event->getSource()        -> absolute source path
+ *   $event->getDest()          -> absolute destination path the component proposes
+ *   $event->getOrigin()        -> media origin / context
+ *   $event->getField()         -> logical field name
+ *   $event->getAllowedMimes()  -> allowed source MIME types
  *
- * For the MAIN-image path the component carries NO format/quality/dimensions —
+ * For the MAIN-image path the component carries NO format/quality/dimensions;
  * the plugin reads its own per-context settings. getFormat()/getQuality() and
  * getMaxWidth()/getMaxHeight() therefore return their neutral defaults ('', 80,
  * 0, 0) on this path. Only {@see ThumbnailEvent} populates maxWidth/maxHeight
- * (the component's thumbnail dimensions — the component owns thumbnail SIZE).
+ * (the component's thumbnail dimensions; the component owns thumbnail SIZE).
  *
  * Output (set by the plugin, read by the component):
- *   $event->setProcessed(true);          → the plugin handled the file
- *   $event->setFinalPath('…');           → the rewritten path it wrote
- *   $event->isProcessed();               → read back (default false)
- *   $event->getFinalPath();              → read back (falls back to getDest())
+ *   $event->setProcessed(true);          -> the plugin handled the file
+ *   $event->setFinalPath('...');           -> the rewritten path it wrote
+ *   $event->isProcessed();               -> read back (default false)
+ *   $event->getFinalPath();              -> read back (falls back to getDest())
  *
  * NOTE: `dest` is an INPUT (getDest). The plugin's rewritten path is the
- * SEPARATE output key `finalPath` — never set `dest`.
+ * SEPARATE output key `finalPath`; never set `dest`.
  *
  * @since  1.0.0
  */
@@ -50,9 +50,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Media;
  */
 class BeforeProcessEvent extends MediaEvent
 {
-    // ═════════════════════════════════════════════════════════
-    //  INPUT — set by the component, read by the plugin
-    // ═════════════════════════════════════════════════════════
+    //  INPUT: set by the component, read by the plugin
 
     /**
      * Get the requested output format ('' = keep the original extension).
@@ -109,9 +107,7 @@ class BeforeProcessEvent extends MediaEvent
         return (array) ($this->arguments['allowedMimes'] ?? []);
     }
 
-    // ═════════════════════════════════════════════════════════
-    //  OUTPUT — set by the plugin, read by the component
-    // ═════════════════════════════════════════════════════════
+    //  OUTPUT: set by the plugin, read by the component
 
     /**
      * Set whether the plugin processed the file. Default is false (component
@@ -145,7 +141,7 @@ class BeforeProcessEvent extends MediaEvent
      * Set the final path the plugin actually wrote (when it renamed/converted
      * the file, the resulting path may differ from the proposed dest).
      *
-     * This is a DISTINCT output key (`finalPath`) — it never overwrites the
+     * This is a DISTINCT output key (`finalPath`); it never overwrites the
      * `dest` input.
      *
      * @param string $finalPath Absolute path of the written file.

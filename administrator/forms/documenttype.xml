@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Document type edit form: presentation fields, and which sales types a
+    credit type corrects.
+
+    The semantic columns (alias, family, quantity_pool, shows_prices,
+    movement_mode, requires_original, requires_buyer_tax_id, is_core,
+    params) are registry-owned: rendered read-only by the edit template
+    and stripped by DocumenttypeModel::save, so no request can change
+    them. Types are created only by the installer or package providers.
+    The pairing (corrects) is rendered as a field only for a credit type of
+    the merchant's own and validated by the registry's one rule on save; a
+    type a provider registered shows its provider's declaration read-only.
+-->
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+    <fieldset name="documenttype">
+
+        <field name="name" type="MultilingualText"
+               multilingual_table="#__alfa_document_types" multilingual_pk="id_document_type"
+               maxlength="255" filter="safehtml" required="true" translateLabel="true"
+               label="COM_ALFA_DOCUMENTTYPE_FIELD_NAME"
+               description="COM_ALFA_DOCUMENTTYPE_FIELD_NAME_DESC"
+               hint="COM_ALFA_DOCUMENTTYPE_FIELD_NAME"/>
+
+        <field
+                name="icon"
+                type="text"
+                maxlength="50"
+                label="COM_ALFA_DOCUMENTTYPE_FIELD_ICON"
+                description="COM_ALFA_DOCUMENTTYPE_FIELD_ICON_DESC"
+        />
+
+        <field
+                name="color"
+                type="color"
+                label="COM_ALFA_DOCUMENTTYPE_FIELD_COLOR"
+                description="COM_ALFA_DOCUMENTTYPE_FIELD_COLOR_DESC"
+        />
+
+        <field
+                name="corrects"
+                type="DocumentPairing"
+                multiple="true"
+                filter="array"
+                layout="joomla.form.field.list-fancy-select"
+                label="COM_ALFA_DOCUMENTTYPE_FIELD_CORRECTS"
+                description="COM_ALFA_DOCUMENTTYPE_FIELD_CORRECTS_DESC"
+        />
+
+        <field
+                name="ordering"
+                type="number"
+                default="0"
+                label="JFIELD_ORDERING_LABEL"
+        />
+
+        <field
+                name="state"
+                type="list"
+                label="JSTATUS"
+                default="1"
+                class="form-select-color-state"
+                size="1"
+        >
+            <option value="1">JENABLED</option>
+            <option value="0">JDISABLED</option>
+        </field>
+
+        <field name="id" type="hidden"/>
+    </fieldset>
+</form>

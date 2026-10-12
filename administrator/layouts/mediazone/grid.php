@@ -51,7 +51,7 @@
 		->useScript('webcomponent.field-media')
 		->useScript('webcomponent.media-select');
 
-	// ── Translatable strings ──
+	// Translatable strings
 	$dropdownText          = Text::_('COM_ALFA_MEDIA_ACTIONS');
 	$selectFromLibraryText = Text::_('COM_ALFA_MEDIA_SELECT_FROM_LIBRARY');
 	$selectUrlText         = Text::_('COM_ALFA_MEDIA_SELECT_URL');
@@ -62,7 +62,7 @@
 	$closeText             = Text::_('JCLOSE');
 	$addUrlText            = Text::_('COM_ALFA_MEDIA_ADD_URL');
 
-	// -- Pass variables of translations to Javascript
+	// Pass variables of translations to Javascript
 	Text::script('JSELECT');
 	Text::script('JCLOSE');
 	Text::script('JCANCEL');
@@ -78,7 +78,7 @@
 	Text::script('COM_ALFA_MEDIA_FILE_TOO_LARGE');
 	Text::script('COM_ALFA_MEDIA_LIMIT_REACHED');
 
-	// ── Toolbar ──
+	// Toolbar
 	$mediaToolbar = new Toolbar('media-actions-toolbar');
 
 	$dropdown = $mediaToolbar->dropdownButton('media-actions')
@@ -114,7 +114,7 @@
 		);
 	}
 
-	// ── URL Modal ──
+	// URL Modal
 	$urlPopup = <<<HTML
     <div class="d-flex flex-column gap-4 mb-3 px-5 py-3">
         <div>
@@ -133,7 +133,7 @@
     </div>
 HTML;
 
-	// ── Media picker shared attributes ──
+	// Media picker shared attributes
 	$mediaPickerUrl = $app->isClient('administrator')
 		? '/administrator/index.php?option=com_media&view=media&tmpl=component&mediatypes=0&asset=com_alfa&author=' . $user->id . '&path=local-images:/'
 		: '/index.php?option=com_media&view=media&tmpl=component&mediatypes=0';
@@ -198,9 +198,9 @@ HTML;
         </div>
     </div>
 
-    <!-- ============================================================
+    <!--
          Hidden UI (modals, pickers, file input)
-         ============================================================ -->
+         -->
 
     <!-- URL Modal -->
 	<?= HTMLHelper::_('bootstrap.renderModal',

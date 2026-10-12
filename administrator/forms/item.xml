@@ -2,6 +2,24 @@
 <form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
 
     <fieldset name="general">
+
+        <field name="short_desc" type="MultilingualEditor"
+               multilingual_table="#__alfa_items" multilingual_pk="id_item"
+               cols="30" rows="3" editor="|" buttons="true" filter="Joomla\CMS\Component\ComponentHelper::filterText"
+               label="COM_ALFA_FORM_LBL_ITEM_SHORT_DESC"
+               description="COM_ALFA_FORM_DESC_ITEM_SHORT_DESC"/>
+
+        <field name="full_desc" type="MultilingualEditor"
+               multilingual_table="#__alfa_items" multilingual_pk="id_item"
+               cols="30" rows="3" editor="|" buttons="true" filter="Joomla\CMS\Component\ComponentHelper::filterText"
+               label="COM_ALFA_FORM_LBL_ITEM_FULL_DESC" description="COM_ALFA_FORM_DESC_ITEM_FULL_DESC"/>
+
+    </fieldset>
+
+    <!-- The three machine identities, rendered together at the head of the
+         General tab. Their own fieldset so the Logistics tab can render the
+         inventory one whole. -->
+    <fieldset name="identity" label="COM_ALFA_ITEM_GROUP_IDENTITY">
         <field name="sku" size="255" filter="safehtml" type="text" translateLabel="true" translateDescription="true"
                label="COM_ALFA_FORM_LBL_ITEM_SKU" description="COM_ALFA_FORM_DESC_ITEM_SKU"/>
 
@@ -10,105 +28,15 @@
 
         <field name="mpn" size="255" filter="safehtml" type="text" translateLabel="true" translateDescription="true"
                label="COM_ALFA_FORM_LBL_ITEM_MPN" description="COM_ALFA_FORM_DESC_ITEM_MPN"/>
+    </fieldset>
 
-        <field name="stock" type="number" label="COM_ALFA_FORM_LBL_ITEM_STOCK"
-               description="COM_ALFA_FORM_DESC_ITEM_STOCK"/>
-
-        <field
-                name="width"
-                type="number"
-                label="COM_ALFA_FORM_LBL_ITEM_WIDTH"
-                description="COM_ALFA_FORM_DESC_ITEM_WIDTH"
-                default="0"
-                min="0"
-        />
-
-        <field
-                name="height"
-                type="number"
-                label="COM_ALFA_FORM_LBL_ITEM_HEIGHT"
-                description="COM_ALFA_FORM_DESC_ITEM_HEIGHT"
-                default="0"
-                min="0"
-        />
-
-        <field
-                name="depth"
-                type="number"
-                label="COM_ALFA_FORM_LBL_ITEM_DEPTH"
-                description="COM_ALFA_FORM_DESC_ITEM_DEPTH"
-                default="0"
-                min="0"
-        />
-
-        <field
-                name="weight"
-                type="number"
-                label="COM_ALFA_FORM_LBL_ITEM_WEIGHT"
-                description="COM_ALFA_FORM_DESC_ITEM_WEIGHT"
-                default="0"
-                min="0"
-        />
-
-
-        <field
-                name="quantity_min"
-                type="number"
-                label="COM_ALFA_FORM_LBL_ITEM_QUANTITY_MIN"
-                description="COM_ALFA_FORM_DESC_ITEM_QUANTITY_MIN"
-                default="1"
-                min="1"
-        />
-
-        <field
-                name="quantity_max"
-                type="number"
-                label="COM_ALFA_FORM_LBL_ITEM_QUANTITY_MAX"
-                description="COM_ALFA_FORM_DESC_ITEM_QUANTITY_MAX"
-                min="1"
-        />
-
-        <field
-                name="quantity_step"
-                type="number"
-                label="COM_ALFA_FORM_LBL_ITEM_QUANTITY_STEP"
-                description="COM_ALFA_FORM_DESC_ITEM_QUANTITY_STEP"
-                min="1"
-                default="1"
-        />
-
-
-        <field name="stock_action" type="list"
-               label="COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION"
-               description="COM_ALFA_FORM_DESC_ITEM_STOCK_ACTION"
-               multiple="false"
-               default="0">
-            <option value="-1">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_CONFIGURATION</option>
-            <option value="0">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_NO_ACTION</option>
-            <option value="1">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_NOTIFY</option>
-            <option value="2">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_HIDE_OUT_OF_STOCK</option>
-        </field>
-
-        <field
-                name="stock_low"
-                type="number"
-                label="COM_ALFA_FORM_LBL_ITEM_LOW_STOCK_VALUE"
-                description="COM_ALFA_FORM_DESC_ITEM_LOW_STOCK_VALUE"
-        />
-
-        <field name="stock_low_message" type="MultilingualEditor"
-               multilingual_table="#__alfa_items" multilingual_pk="id_item"
-               cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText"
-               label="COM_ALFA_FORM_LBL_ITEM_LOW_STOCK_MESSAGE"
-               description="COM_ALFA_FORM_DESC_ITEM_LOW_STOCK_MESSAGE"
-               showon="stock_low!:"/>
-
-        <field name="stock_zero_message" type="MultilingualEditor"
-               multilingual_table="#__alfa_items" multilingual_pk="id_item"
-               cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText"
-               label="COM_ALFA_FORM_LBL_ITEM_ZERO_STOCK_MESSAGE"
-               description="COM_ALFA_FORM_DESC_ITEM_ZERO_STOCK_MESSAGE"/>
-
+    <!-- The Logistics tab, in render order; the template only calls
+         renderFieldset('inventory'). Order is the merchant's train of thought:
+         how much is there -> does it ship and how big -> how much may they buy
+         -> thresholds and policy -> what the shopper is told. The spacers are
+         the separating rules; every field carries its own showon. -->
+    <fieldset name="inventory" label="COM_ALFA_TAB_ITEM_INVENTORY">
+        <!-- The switch leads the quantity it reveals (showon="manage_stock:1"). -->
         <field name="manage_stock" type="radio"
                class="btn-group"
                label="COM_ALFA_FORM_LBL_ITEM_MANAGE_STOCK"
@@ -118,17 +46,171 @@
             <option value="1">JYES</option>
         </field>
 
-        <field name="short_desc" type="MultilingualEditor"
-               multilingual_table="#__alfa_items" multilingual_pk="id_item"
-               cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText"
-               label="COM_ALFA_FORM_LBL_ITEM_SHORT_DESC"
-               description="COM_ALFA_FORM_DESC_ITEM_SHORT_DESC"/>
+        <field name="stock" type="InventoryStock" label="COM_ALFA_FORM_LBL_ITEM_STOCK"
+               description="COM_ALFA_FORM_DESC_ITEM_STOCK"
+               showon="manage_stock:1"/>
 
-        <field name="full_desc" type="MultilingualEditor"
-               multilingual_table="#__alfa_items" multilingual_pk="id_item"
-               cols="30" rows="3" editor="|" buttons="true" filter="JComponentHelper::filterText"
-               label="COM_ALFA_FORM_LBL_ITEM_FULL_DESC" description="COM_ALFA_FORM_DESC_ITEM_FULL_DESC"/>
+        <!-- Four-valued enum resolved by StockVisibilityPolicy: -1 inherits the
+             shop-wide setting, 0 none, 1 notify button, 2 hide when out of stock.
+             This option list also drives the per-combination override select
+             (ItemFieldsAdminHelper::getCombinationOverrideDescriptors). -->
+        <field name="stock_action" type="list"
+               label="COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION"
+               description="COM_ALFA_FORM_DESC_ITEM_STOCK_ACTION"
+               multiple="false"
+               default="-1">
+            <option value="-1">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_CONFIGURATION</option>
+            <option value="0">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_NO_ACTION</option>
+            <option value="1">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_NOTIFY</option>
+            <option value="2">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_HIDE_OUT_OF_STOCK</option>
+        </field>
 
+        <field name="rule_shipping" type="spacer" hr="true" class="alfa-group-rule"/>
+
+        <!-- Shipping shape
+             The dimensions sit with is_virtual because that switch is what
+             hides them. -->
+        <field name="is_virtual" type="radio"
+               class="btn-group"
+               label="COM_ALFA_FORM_LBL_ITEM_IS_VIRTUAL"
+               description="COM_ALFA_FORM_DESC_ITEM_IS_VIRTUAL"
+               default="0">
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <field
+                name="width"
+                type="number"
+                showon="is_virtual:0"
+                label="COM_ALFA_FORM_LBL_ITEM_WIDTH"
+                description="COM_ALFA_FORM_DESC_ITEM_WIDTH"
+                default="0"
+                min="0"
+        />
+
+        <field
+                name="height"
+                type="number"
+                showon="is_virtual:0"
+                label="COM_ALFA_FORM_LBL_ITEM_HEIGHT"
+                description="COM_ALFA_FORM_DESC_ITEM_HEIGHT"
+                default="0"
+                min="0"
+        />
+
+        <field
+                name="depth"
+                type="number"
+                showon="is_virtual:0"
+                label="COM_ALFA_FORM_LBL_ITEM_DEPTH"
+                description="COM_ALFA_FORM_DESC_ITEM_DEPTH"
+                default="0"
+                min="0"
+        />
+
+        <field
+                name="weight"
+                type="number"
+                showon="is_virtual:0"
+                label="COM_ALFA_FORM_LBL_ITEM_WEIGHT"
+                description="COM_ALFA_FORM_DESC_ITEM_WEIGHT"
+                default="0"
+                min="0"
+        />
+
+        <field name="rule_limits" type="spacer" hr="true" class="alfa-group-rule"/>
+
+        <!-- Purchase limits: what a shopper may put in the cart
+             Enforced by the cart quantity policy on every add and update.
+             Independent of stock: they apply even when stock is not managed.
+             They are exact decimals, so they are text inputs: a number input
+             renders its value through a float, which rounds long values and
+             writes small ones with an exponent. The model parses every posted
+             value exactly and refuses one outside the quantity precision. -->
+        <field
+                name="quantity_min"
+                type="text"
+                inputmode="decimal"
+                label="COM_ALFA_FORM_LBL_ITEM_QUANTITY_MIN"
+                description="COM_ALFA_FORM_DESC_ITEM_QUANTITY_MIN"
+                default="1"
+        />
+        <field
+                name="quantity_max"
+                type="text"
+                inputmode="decimal"
+                label="COM_ALFA_FORM_LBL_ITEM_QUANTITY_MAX"
+                description="COM_ALFA_FORM_DESC_ITEM_QUANTITY_MAX"
+        />
+        <field
+                name="quantity_step"
+                type="text"
+                inputmode="decimal"
+                label="COM_ALFA_FORM_LBL_ITEM_QUANTITY_STEP"
+                description="COM_ALFA_FORM_DESC_ITEM_QUANTITY_STEP"
+                default="1"
+        />
+
+        <field name="rule_policy" type="spacer" hr="true" class="alfa-group-rule"/>
+
+        <!-- Stock policy: overrides of the shop-wide inventory rules.
+             Empty means "use the global setting". Both only matter when stock
+             is managed, hence the showon. -->
+        <field name="backorder" type="list"
+               label="COM_ALFA_FORM_LBL_ITEM_BACKORDER"
+               description="COM_ALFA_FORM_DESC_ITEM_BACKORDER"
+               useglobal="true"
+               showon="manage_stock:1">
+            <option value="deny">COM_ALFA_CONFIG_INVENTORY_BACKORDER_DENY</option>
+            <option value="allow">COM_ALFA_CONFIG_INVENTORY_BACKORDER_ALLOW</option>
+            <option value="allow_notify">COM_ALFA_CONFIG_INVENTORY_BACKORDER_ALLOW_NOTIFY</option>
+        </field>
+
+        <field name="min_qty" type="number" min="0"
+               label="COM_ALFA_FORM_LBL_ITEM_MIN_QTY"
+               description="COM_ALFA_FORM_DESC_ITEM_MIN_QTY"
+               useglobal="true"
+               showon="manage_stock:1"/>
+
+        <field name="rule_messages" type="spacer" hr="true" class="alfa-group-rule"/>
+
+        <!-- Low stock and what the shopper is told
+             stock_low is the trigger for both the notify switch and the low
+             stock message (showon="stock_low!:"), so it leads them. -->
+        <field
+                name="stock_low"
+                type="number"
+                useglobal="true"
+                showon="manage_stock:1"
+                label="COM_ALFA_FORM_LBL_ITEM_LOW_STOCK_VALUE"
+                description="COM_ALFA_FORM_DESC_ITEM_LOW_STOCK_VALUE"
+        />
+
+        <field
+                name="low_stock_notify"
+                type="radio"
+                layout="joomla.form.field.radio.switcher"
+                default="0"
+                label="COM_ALFA_FORM_LBL_ITEM_LOW_STOCK_NOTIFY"
+                description="COM_ALFA_FORM_DESC_ITEM_LOW_STOCK_NOTIFY"
+                showon="stock_low!:">
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <field name="stock_low_message" type="MultilingualEditor"
+               multilingual_table="#__alfa_items" multilingual_pk="id_item"
+               cols="30" rows="3" editor="|" buttons="true" filter="Joomla\CMS\Component\ComponentHelper::filterText"
+               label="COM_ALFA_FORM_LBL_ITEM_LOW_STOCK_MESSAGE"
+               description="COM_ALFA_FORM_DESC_ITEM_LOW_STOCK_MESSAGE"
+               showon="stock_low!:"/>
+
+        <field name="stock_zero_message" type="MultilingualEditor"
+               multilingual_table="#__alfa_items" multilingual_pk="id_item"
+               cols="30" rows="3" editor="|" buttons="true" filter="Joomla\CMS\Component\ComponentHelper::filterText"
+               label="COM_ALFA_FORM_LBL_ITEM_ZERO_STOCK_MESSAGE"
+               description="COM_ALFA_FORM_DESC_ITEM_ZERO_STOCK_MESSAGE"/>
     </fieldset>
 
     <fieldset>
@@ -157,13 +239,9 @@
                maxlength="400" filter="safehtml" required="true" translateLabel="true"
                label="COM_ALFA_FORM_LBL_ITEM_NAME" description="COM_ALFA_FORM_DESC_ITEM_NAME"/>
 
-
         <field name="alias" type="MultilingualText"
                multilingual_table="#__alfa_items" multilingual_pk="id_item"
                label="JFIELD_ALIAS_LABEL" description="COM_ALFA_FORM_DESC_ITEM_ALIAS"/>
-
-        <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL"
-               description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>
 
         <field name="id_category_default" type="categories" required="true" showPath="true" multiple="false"
                layout="joomla.form.field.list-fancy-select" label="Default Category" description="">
@@ -188,22 +266,15 @@
 
         <field
                 name="prices"
-                type="subform"
-                class="prices-subform"
-                formsource="administrator/components/com_alfa/forms/price.xml"
+                type="alfaprices"
                 label="COM_ALFA_FORM_FIELDSET_PRICE"
                 description="COM_ALFA_FORM_FIELDSET_PRICE_DESC"
-                multiple="true"
+                hiddenLabel="true"
         />
 
     </fieldset>
 
-    <fieldset name="shipping">
-
-
-    </fieldset>
-
-    <fieldset name="Images">
+    <fieldset name="Images" label="COM_ALFA_FIELDSET_IMAGES">
         <field
                 name="medias"
                 type="MediaZone"
@@ -222,6 +293,13 @@
                label="COM_ALFA_FORM_CATEGORY_LBL_PUBLISH_DOWN" description="COM_ALFA_CATEGORY_PUBLISH_DOWN_DESC"/>
 
         <field
+                name="inherited_audience"
+                type="InheritedAudience"
+                label="COM_ALFA_ITEM_AUDIENCE_INHERITED_LBL"
+                description="COM_ALFA_ITEM_AUDIENCE_INHERITED_DESC"
+        />
+
+        <field
                 name="allowedUsers" type="sql"
                 input_type="list"
                 required="false"
@@ -234,7 +312,7 @@
 
         <field
                 name="allowedUserGroups"
-                type="UserGroupList"
+                type="usergrouplist"
                 label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_LBL"
                 description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_DESC"
                 layout="joomla.form.field.list-fancy-select"
@@ -275,8 +353,7 @@
 
     </fieldset>
 
-
-    <fieldset name="meta">
+    <fieldset name="meta" label="COM_ALFA_TAB_SEO">
         <field name="meta_title" type="MultilingualText"
                multilingual_table="#__alfa_items" multilingual_pk="id_item"
                maxlength="255" filter="safehtml" translateLabel="true"
@@ -300,4 +377,54 @@
             <option value="noindex, nofollow">COM_ALFA_ROBOTS_NOINDEX_NOFOLLOW</option>
         </field>
     </fieldset>
+
+    <!-- Layout overrides for THIS product; every key inherits category -> menu -> global when empty. -->
+    <fields name="layouts">
+        <fieldset name="layouts" label="COM_ALFA_MENU_LAYOUTS_OPTIONS">
+
+            <field
+                    name="card"
+                    type="subtemplate"
+                    view="items"
+                    slot="item"
+                    inheritlabel="COM_ALFA_LAYOUT_INHERIT"
+                    label="COM_ALFA_LAYOUT_ITEMS_CARD_LABEL"
+            />
+
+            <field
+                    name="layout"
+                    type="viewLayout"
+                    view="item"
+                    inheritlabel="COM_ALFA_LAYOUT_INHERIT"
+                    label="COM_ALFA_LAYOUT_ITEM_LABEL"
+            />
+
+            <field
+                    name="images"
+                    type="subtemplate"
+                    view="item"
+                    slot="images"
+                    inheritlabel="COM_ALFA_LAYOUT_INHERIT"
+                    label="COM_ALFA_LAYOUT_ITEM_IMAGES_LABEL"
+            />
+
+            <field
+                    name="manufacturers"
+                    type="subtemplate"
+                    view="item"
+                    slot="manufacturers"
+                    inheritlabel="COM_ALFA_LAYOUT_INHERIT"
+                    label="COM_ALFA_LAYOUT_ITEM_MANUFACTURERS_LABEL"
+            />
+
+            <field
+                    name="categories"
+                    type="subtemplate"
+                    view="item"
+                    slot="categories"
+                    inheritlabel="COM_ALFA_LAYOUT_INHERIT"
+                    label="COM_ALFA_LAYOUT_ITEM_CATEGORIES_LABEL"
+            />
+        </fieldset>
+    </fields>
 </form>

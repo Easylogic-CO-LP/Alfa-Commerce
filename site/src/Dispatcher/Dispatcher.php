@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Site\Dispatcher;
 defined('_JEXEC') or die;
 
 use Joomla\CMS\Dispatcher\ComponentDispatcher;
+use Joomla\CMS\Plugin\PluginHelper;
 
 /**
  * ComponentDispatcher class for Com_Alfa
@@ -29,6 +30,13 @@ class Dispatcher extends ComponentDispatcher
      */
     public function dispatch()
     {
+        // Register the item-fields plugins' getSubscribedEvents maps with the
+        // GLOBAL dispatcher: bootPlugin() alone never does, so without this a
+        // plugin could only answer our direct targeted calls. With it, a
+        // configurator can also subscribe to ambient events (onBeforeRender,
+        // onBeforeCompileHead, ...) and fire on every com_alfa page.
+        PluginHelper::importPlugin('alfa-item-fields');
+
         parent::dispatch();
     }
 }

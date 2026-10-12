@@ -9,24 +9,26 @@
 
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\Uri\Uri;
 
 defined('_JEXEC') or die;
 
 // to keep the functionallity do not change the ids search-container-input , search-container-popup , search-container-loading-img
 
-$basePath = Uri::base(true);
+// $formAction and $ajaxAction are provided by the module Dispatcher
+// (getLayoutData) and extracted into this layout, built there once with Route::_
+// so the com_ajax URL is rooted + SEF/language-aware (no duplicate build here).
 
-$formAction = $basePath . '/index.php?option=com_alfa&view=items';
-$ajaxAction = $basePath . '/index.php?option=com_ajax&module=alfa_search&method=get&format=json';
-
-$min_characters = (int) $params->get('minCharacters', '2');
+// SAME FLOOR THE HELPER ENFORCES: the client gate and the server gate must agree, or
+// the module fires a request its own validator is guaranteed to reject: below two
+// characters the search service answers nothing, so a shop configured at 1 would trade
+// an empty dropdown for an error per keystroke.
+$min_characters = max(2, (int) $params->get('minCharacters', '2'));
 $loadingImageType = $params->get('loadingImageType', '3');
 $loadingImageFile = $params->get('loadingImageFile', '');
 $loadingImageInline = $params->get('loadingImageInline', '');
 ?>
 
-<div class="alfasearch-wrapper">
+<div class="alfasearch-wrapper alfasearch-wrapper-<?php echo (int) $module->id; ?>">
     <form
             method="get"
             action="<?php echo $formAction; ?>"

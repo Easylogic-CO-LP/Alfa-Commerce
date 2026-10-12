@@ -11,12 +11,22 @@ namespace Alfa\Component\Alfa\Administrator\Dispatcher;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Controller\DisplayController;
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
+use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
+use Alfa\Component\Alfa\Administrator\Service\Download\StoreProtection;
+use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Dispatcher\ComponentDispatcher;
+use Joomla\CMS\Language\Text;
+use Joomla\CMS\MVC\Controller\BaseController;
+use Joomla\CMS\Plugin\PluginHelper;
 use Throwable;
 
 /**
- * ComponentDispatcher class for Com_Alfa
+ * ComponentDispatcher class for Com_Alfa, and the door of every administrator screen: a screen
+ * opens only for a user holding its own Alfa permission ({@see self::checkAccess()}).
  *
  * @since  1.0.0
  */
@@ -31,6 +41,16 @@ class Dispatcher extends ComponentDispatcher
      */
     public function dispatch()
     {
+        // Refused before any housekeeping below runs for a request that will not be served.
+        // parent::dispatch() asks again; the answer is the same.
+        $this->checkAccess();
+
+        // Register the item-fields plugins' getSubscribedEvents maps with the
+        // GLOBAL dispatcher (bootPlugin() alone never does), so a field type
+        // can also hook ambient events (onBeforeRender, onBeforeCompileHead,
+        // ...) on every com_alfa admin page.
+        PluginHelper::importPlugin('alfa-item-fields');
+
         // Override-proof tamper banner: when the last integrity sync recorded a real
         // alarm (modified / bad signature), surface it in the admin chrome on every
         // com_alfa HTML page. Decided here (non-overridable source, signed) and read
@@ -53,6 +73,193 @@ class Dispatcher extends ComponentDispatcher
             // Never let the tamper banner break the page.
         }
 
+        // Ambient setup tick: serve the CACHED checklist verdict (recompute at most
+        // once per TTL), which is also what pushes/clears the `alfa.setup`
+        // notification on a real transition. A cache hit costs one read. Admin only:
+        // this dispatcher serves the storefront too, and shoppers must never pay for
+        // (or trigger) admin housekeeping.
+        try {
+            if (
+                $this->app->isClient('administrator')
+                && $this->input->getCmd('format', 'html') === 'html'
+            ) {
+                SetupHelper::sync();
+            }
+        } catch (Throwable) {
+            // Never let checklist housekeeping break the page.
+        }
+
+        // The download store's direct-download protection: said on every administrator page that
+        // renders while it is not verified. Reading it probes only when the store's path changed
+        // since the last check (StoreProtection::current()); never on the storefront. A task
+        // request is left alone, so the page it redirects to says it once.
+        try {
+            $task = strtolower($this->input->getCmd('task', ''));
+
+            if (
+                $this->app->isClient('administrator')
+                && $this->input->getCmd('format', 'html') === 'html'
+                && ($task === '' || $task === 'display' || str_ends_with($task, '.display'))
+            ) {
+                $protection = new StoreProtection();
+                $result = $protection->current();
+                $warning = $protection->warning($result);
+
+                if ($warning !== null) {
+                    $this->app->enqueueMessage($warning, $result->state === StoreProtection::STATE_EXPOSED ? 'error' : 'warning');
+                }
+            }
+        } catch (Throwable) {
+            // Never let the protection check break the page; the Options show why it failed.
+        }
+
+        // Tour grammar supplement (Next on press steps, "Finish without saving") rides
+        // with every admin HTML page (a tour runs across pages), but only while the
+        // core tours plugin is there to run tours at all.
+        try {
+            if (
+                $this->app->isClient('administrator')
+                && $this->input->getCmd('format', 'html') === 'html'
+                && PluginHelper::isEnabled('system', 'guidedtours')
+            ) {
+                TourHelper::attachGrammar($this->app->getDocument());
+            }
+        } catch (Throwable) {
+            // Never let tour polish break the page.
+        }
+
         parent::dispatch();
+    }
+
+    /**
+     * The controller for this request, and the page it renders, whenever the task it runs is
+     * display.
+     *
+     * Judged by what BaseController::execute() will really run: the task ComponentDispatcher handed
+     * over (it writes the task half of controller.task back to the input, and a request without a
+     * task runs display), else the controller's default task. When that is display, the view
+     * display() renders (the request's, else the controller's own) must be one the user may open,
+     * however the request spelled it: a task nobody declared, a controller named without a task,
+     * a controller.display.more command.
+     *
+     * @param string $name Controller name.
+     * @param string $client Client, e.g. Administrator.
+     * @param array $config Controller config.
+     *
+     *
+     * @throws NotAllowed When the page may not be opened.
+     *
+     * @since  1.10.0
+     */
+    public function getController(string $name, string $client = '', array $config = []): BaseController
+    {
+        $controller = parent::getController($name, $client, $config);
+
+        if (!$this->app->isClient('administrator')) {
+            return $controller;
+        }
+
+        $task = strtolower($this->input->getCmd('task', 'display'));
+
+        [$taskMap, $defaultView] = (fn (): array => [$this->taskMap, (string) $this->default_view])->call($controller);
+
+        // BaseController::execute(): the task's own method, else the default task.
+        if (strtolower((string) ($taskMap[$task] ?? $taskMap['__default'] ?? '')) !== 'display') {
+            return $controller;
+        }
+
+        // BaseController::display(): the request's view, else the controller's default view.
+        $view = $this->input->get('view', $defaultView);
+
+        if (!\is_string($view) || !$this->mayOpen(view: strtolower($view))) {
+            throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
+        }
+
+        // A record's form is rendered only by the display controller, which refuses an id the edit task
+        // did not hold; another controller's display would render it past that check.
+        $layout = $this->input->get('layout', '', 'string');
+
+        if (
+            !$controller instanceof DisplayController
+            && AlfaHelper::isRecordForm(view: strtolower($view), layout: \is_string($layout) ? $layout : '')
+            && AlfaHelper::recordId(view: strtolower($view), input: $this->input) > 0
+        ) {
+            throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
+        }
+
+        return $controller;
+    }
+
+    /**
+     * Joomla's door, then Alfa's: entering the component (Joomla's own core.manage), then the
+     * screen being opened, by its own permission. A screen this map does not know stays shut.
+     *
+     * The command is read exactly as ComponentDispatcher::dispatch() reads it, so a page is refused
+     * here, before any housekeeping runs; {@see self::getController()} judges it again against the
+     * controller that will really run. A task (save, publish, delete, an AJAX endpoint) is refused
+     * by the controller and model that run it, which also guards the same work when it arrives
+     * through the API or from code.
+     *
+     * @return void
+     *
+     * @throws NotAllowed When the user may not open the screen.
+     *
+     * @since  1.10.0
+     */
+    protected function checkAccess()
+    {
+        parent::checkAccess();
+
+        if (!$this->app->isClient('administrator')) {
+            return;
+        }
+
+        $command = $this->input->getCmd('task', 'display');
+
+        if (str_contains($command, '.')) {
+            [$controller, $task] = explode('.', $command);
+        } else {
+            $controller = $this->input->getCmd('controller', 'display');
+            $task = $command;
+        }
+
+        if ($task !== '' && strtolower($task) !== 'display') {
+            return;
+        }
+
+        // A controller's default view is its own name; the display controller's is the dashboard.
+        $controller = strtolower($controller);
+        $view = strtolower($this->input->getCmd('view', '') ?: ($controller === 'display' ? 'dashboard' : $controller));
+
+        if (!$this->mayOpen(view: $view)) {
+            throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
+        }
+    }
+
+    /**
+     * May the current user open this screen: {@see AlfaHelper::mayOpenScreen()}, the same answer a
+     * plugin's link to the screen is shown by.
+     *
+     * @param string $view The requested view, lower-cased.
+     *
+     *
+     * @since  1.10.0
+     */
+    private function mayOpen(string $view): bool
+    {
+        // Each of these checks its own permission when it renders.
+        if (\in_array($view, AlfaHelper::SELF_GUARDED_SCREENS, true)) {
+            return true;
+        }
+
+        // Read as BaseController::display() reads it: a string, so a template:layout pair survives.
+        $layout = $this->input->get('layout', '', 'string');
+
+        return AlfaHelper::mayOpenScreen(
+            view: $view,
+            layout: \is_string($layout) ? $layout : '',
+            id: AlfaHelper::recordId(view: $view, input: $this->input),
+            user: $this->app->getIdentity(),
+        );
     }
 }

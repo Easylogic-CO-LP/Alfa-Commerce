@@ -1,3 +1,4 @@
+<?php \defined('_JEXEC') or die; ?>
 <label id="batch-user-lbl" for="batch-user-id">
     User to select:
 </label>

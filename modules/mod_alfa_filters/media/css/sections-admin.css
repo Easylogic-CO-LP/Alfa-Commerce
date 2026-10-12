@@ -1,0 +1,101 @@
+/**
+ * Alfa Filters: panel section composer (module edit form).
+ *
+ * Atum-token driven so it follows light and dark without a second palette; see the Atum
+ * dark-mode contract: paint with --card-bg / --body-color / --border-color, never with
+ * --white or a fixed grey.
+ */
+
+.afx-sections {
+    max-width: 34rem;
+}
+
+.afx-sections-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid var(--border-color, #dee2e6);
+    border-radius: .35rem;
+    overflow: hidden;
+    background: var(--card-bg, #fff);
+}
+
+.afx-section {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: .45rem .6rem;
+    border-bottom: 1px solid var(--border-color, #dee2e6);
+    background: var(--card-bg, #fff);
+    color: var(--body-color, #212529);
+    cursor: grab;
+}
+
+.afx-section:last-child {
+    border-bottom: 0;
+}
+
+.afx-section.is-dragging {
+    opacity: .45;
+    cursor: grabbing;
+}
+
+.afx-section.is-hidden .afx-section-name,
+.afx-section.is-hidden .afx-section-kind {
+    opacity: .45;
+    text-decoration: line-through;
+}
+
+.afx-section-grip {
+    color: var(--secondary-color, #6c757d);
+    cursor: grab;
+}
+
+.afx-section-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.afx-section-kind {
+    flex: 0 0 auto;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--secondary-color, #6c757d);
+}
+
+.afx-section-eye {
+    flex: 0 0 auto;
+    padding: .15rem .35rem;
+    border: 0;
+    border-radius: .25rem;
+    background: transparent;
+    color: var(--secondary-color, #6c757d);
+    cursor: pointer;
+}
+
+.afx-section-eye:hover,
+.afx-section-eye:focus-visible {
+    color: var(--body-color, #212529);
+    background: var(--secondary-bg-subtle, rgba(0, 0, 0, .06));
+}
+
+.afx-sections-foot {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin-top: .5rem;
+}
+
+.afx-sections-state {
+    font-size: .8rem;
+    color: var(--secondary-color, #6c757d);
+}
+
+.afx-sections-empty {
+    margin: 0;
+    color: var(--secondary-color, #6c757d);
+}

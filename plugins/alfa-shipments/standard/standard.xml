@@ -1,48 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extension type="plugin" group="alfa-shipments" method="upgrade">
-	<name>plg_alfa-shipments_standard</name>
+	<name>PLG_ALFA_SHIPMENTS_STANDARD</name>
 	<copyright>(C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.</copyright>
 	<license>GNU General Public License version 3 or later; see LICENSE</license>
 	<author>Agamemnon Fakas</author>
 	<contributor>Athanasios Marios Voukias</contributor>
 	<creationDate>2025-03</creationDate>
-	<copyright>(C) 2016 Open Source Matters, Inc.</copyright>
-	<license>GNU General Public License version 3 or later; see LICENSE</license>
 	<authorEmail>info@easylogic.gr</authorEmail>
 	<authorUrl>http://easylogic.gr</authorUrl>
 	<version>1.0.2</version>
 	<description>PLG_ALFA_SHIPMENTS_STANDARD_XML_DESCRIPTION</description>
 	<namespace path="src">Alfa\Plugin\AlfaShipments\Standard</namespace>
+	<!-- Completes the log table on every install and update. -->
+	<scriptfile>script.php</scriptfile>
+	<!-- The log table is created by the installer, never by the first write:
+	     MySQL commits an open transaction before any CREATE TABLE. -->
+	<install>
+		<sql>
+			<file driver="mysql" charset="utf8">sql/install.mysql.utf8.sql</file>
+		</sql>
+	</install>
+	<!-- No uninstall SQL: uninstalling keeps the log table and its rows, and a reinstall uses
+	     them again. -->
 	<files>
 	    <folder>params</folder>
 		<folder plugin="standard">services</folder>
+		<filename>script.php</filename>
+		<folder>sql</folder>
 		<folder>src</folder>
 		<folder>tmpl</folder>
-	</files>
+    </files>
+    <languages folder="language">
+        <language tag="en-GB">en-GB/plg_alfa-shipments_standard.ini</language>
+        <language tag="en-GB">en-GB/plg_alfa-shipments_standard.sys.ini</language>
+    </languages>
 
-	<languages folder="language">
-		<language tag="en-GB">en-GB/plg_alfa-shipments_standard.ini</language>
-		<language tag="en-GB">en-GB/plg_alfa-shipments_standard.sys.ini</language>
-	</languages>
 	<config>
 		<fields name="params">
 			<fieldset name="basic">
-				<!-- <field
-					name="test"
-					type="list"
-					label="Test field"
-					>
-					<option value="0">JNO</option>
-					<option value="1">JYES</option>
-					<option value="2">TEST</option>
-				</field>
-
-				<field
-					name="maxlength"
-					type="number"
-					label="Test number field"
-					filter="integer"
-				/> -->
 			</fieldset>
 		</fields>
 	</config>

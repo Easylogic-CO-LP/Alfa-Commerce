@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Api\View\Taxes;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Api\View\PublishesStoredFigures;
 use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
 
 /**
@@ -20,6 +21,8 @@ use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
  */
 class JsonApiView extends BaseApiView
 {
+    use PublishesStoredFigures;
+
     /**
      * The fields to render item in the documents
      *
@@ -28,10 +31,20 @@ class JsonApiView extends BaseApiView
      */
     protected $fieldsToRenderItem = [
         'id',
-        'state',
         'name',
         'desc',
         'value',
+        'behavior',
+        'state',
+        'categories',
+        'manufacturers',
+        'places',
+        'users',
+        'usergroups',
+        'publish_up',
+        'publish_down',
+        'ordering',
+        'translations',
     ];
 
     /**
@@ -42,9 +55,30 @@ class JsonApiView extends BaseApiView
      */
     protected $fieldsToRenderList = [
         'id',
-        'state',
         'name',
-        'desc',
         'value',
+        'behavior',
+        'state',
+        'ordering',
+        'publish_up',
+        'publish_down',
     ];
+
+    /**
+     * A tax's rate as exact decimal text ("24.000" is "24").
+     *
+     * @param object $item The tax.
+     *
+     * @return object
+     *
+     * @since  1.14.0
+     */
+    protected function prepareItem($item)
+    {
+        if (property_exists($item, 'value')) {
+            $item->value = self::storedRate(value: $item->value);
+        }
+
+        return $item;
+    }
 }

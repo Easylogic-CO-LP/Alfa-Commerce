@@ -14,7 +14,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Payments;
 // phpcs:enable PSR1.Files.SideEffects
 
 /**
- * Redirect tier for payment hooks fired outside a view — currently the gateway-return
+ * Redirect tier for payment hooks fired outside a view: currently the gateway-return
  * handler `onPaymentResponse`. The plugin may set a redirect (where to send the buyer
  * after the bank); it renders no layout, because the controller that dispatches it has
  * no view. To show something instead of redirecting, redirect to a view layout.

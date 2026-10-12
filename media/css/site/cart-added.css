@@ -1,0 +1,185 @@
+/**
+ * @package     com_alfa
+ * @copyright   (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license     GNU General Public License version 3 or later; see LICENSE
+ * @author      Agamemnon Fakas <info@easylogic.gr>
+ */
+
+/* Add-to-cart confirmation card (the `cart.added` layout). The layout's attributes
+   choose placement and entrance, the script stamps the open/closing state; only
+   opacity and transform animate. Phones always get a bottom sheet. */
+.cart-added {
+    --cart-added-offset-y: 16px;
+    --cart-added-offset-x: 16px;
+    --cart-added-x: translateX(0);
+    --cart-added-enter: translateY(0);
+    position: fixed;
+    top: var(--cart-added-offset-y);
+    right: var(--cart-added-offset-x);
+    z-index: 59000;
+    width: min(400px, calc(100vw - 32px));
+    opacity: 0;
+    transform: var(--cart-added-x) var(--cart-added-enter);
+    transition: opacity 150ms ease-in, transform 150ms ease-in;
+    will-change: opacity, transform;
+    pointer-events: none;
+}
+
+.cart-added[data-state="open"] {
+    opacity: 1;
+    transform: var(--cart-added-x);
+    transition: opacity 200ms ease-out, transform 200ms ease-out;
+    pointer-events: auto;
+}
+
+.cart-added[data-placement^="bottom"] {
+    top: auto;
+    bottom: var(--cart-added-offset-y);
+}
+
+.cart-added[data-placement$="left"] {
+    right: auto;
+    left: var(--cart-added-offset-x);
+}
+
+.cart-added[data-placement$="center"] {
+    --cart-added-x: translateX(-50%);
+    right: auto;
+    left: 50%;
+}
+
+.cart-added[data-effect="slide"] {
+    --cart-added-enter: translateY(-8px);
+}
+
+.cart-added[data-effect="slide"][data-placement^="bottom"] {
+    --cart-added-enter: translateY(8px);
+}
+
+.cart-added[data-effect="zoom"] {
+    --cart-added-enter: scale(0.96);
+}
+
+.cart-added[data-effect="none"],
+.cart-added[data-effect="none"][data-state="open"] {
+    transition: none;
+}
+
+.cart-added-card {
+    display: grid;
+    gap: 14px;
+    padding: 18px 20px;
+    color: var(--alfa-surface-color);
+    background: var(--alfa-surface);
+    border-radius: 6px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+}
+
+.cart-added-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.cart-added-title {
+    flex: 1;
+    font-weight: 600;
+}
+
+.cart-added[data-outcome="rejected"] .cart-added-title {
+    color: var(--alfa-error-color);
+}
+
+.cart-added-close {
+    display: inline-flex;
+    margin: -4px -6px 0 0;
+    padding: 4px;
+    border: 0;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+}
+
+.cart-added-line {
+    display: flex;
+    gap: 14px;
+}
+
+.cart-added-image img {
+    display: block;
+    width: 72px;
+    height: 72px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.cart-added-details {
+    display: grid;
+    flex: 1;
+    min-width: 0;
+    gap: 4px;
+    font-size: 0.92rem;
+}
+
+.cart-added-name {
+    font-weight: 600;
+}
+
+.cart-added-fields {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--alfa-muted-color);
+}
+
+.cart-added-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    color: var(--alfa-muted-color);
+}
+
+.cart-added-summary {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 0.92rem;
+}
+
+.cart-added-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.cart-added-actions .action {
+    flex: 1;
+}
+
+.cart-added-messages {
+    margin: 0;
+    padding: 0 0 0 1.1em;
+}
+
+@media (max-width: 600px) {
+    .cart-added,
+    .cart-added[data-placement] {
+        --cart-added-x: translateX(0);
+        inset: auto 0 0 0;
+        width: auto;
+    }
+
+    .cart-added[data-effect="slide"][data-placement] {
+        --cart-added-enter: translateY(12px);
+    }
+
+    .cart-added-card {
+        border-radius: 12px 12px 0 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cart-added,
+    .cart-added[data-state="open"] {
+        transition: none;
+    }
+}

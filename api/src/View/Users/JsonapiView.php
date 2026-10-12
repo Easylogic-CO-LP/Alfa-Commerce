@@ -28,8 +28,11 @@ class JsonApiView extends BaseApiView
      */
     protected $fieldsToRenderItem = [
         'id',
-        'state',
-        'ordering',
+        'id_user',
+        'note',
+        'joomla_name',
+        'joomla_username',
+        'joomla_email',
     ];
 
     /**
@@ -40,7 +43,11 @@ class JsonApiView extends BaseApiView
      */
     protected $fieldsToRenderList = [
         'id',
-        'state',
-        'ordering',
+        'id_user',
+        'note',
+        'username',
+        'email',
+        'joomla_name',
+        'lastvisitDate',
     ];
 }

@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\IntegrityHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PackageHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
+use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -21,7 +22,7 @@ use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 
 /**
- * Tools / maintenance view — developer & sync utilities (language-table resync,
+ * Tools / maintenance view: developer & sync utilities (language-table resync,
  * user/group resync, chunked translation backfill, package export).
  *
  * @since  1.0.0
@@ -39,7 +40,7 @@ class HtmlView extends BaseHtmlView
     public array $libraries = [];
 
     /**
-     * Manifest⇄disk drift detected for the live install, surfaced as a pre-export
+     * Manifest<->disk drift detected for the live install, surfaced as a pre-export
      * warning. Shape: ['missing' => string[], 'undeclared' => string[]]. "missing"
      * = declared but absent (breaks install); "undeclared" = present on disk but
      * not declared (silently left out of the package/install).
@@ -50,7 +51,7 @@ class HtmlView extends BaseHtmlView
     public array $drift = ['missing' => [], 'undeclared' => []];
 
     /**
-     * Suggested next version (current manifest version + 1 patch, e.g. 1.0.4 →
+     * Suggested next version (current manifest version + 1 patch, e.g. 1.0.4 ->
      * 1.0.5), so the contribution guide's SQL-update / version-bump examples match
      * this install instead of a hard-coded number.
      *
@@ -59,16 +60,15 @@ class HtmlView extends BaseHtmlView
     public string $nextVersion = '';
 
     /**
-     * Release-artifact readiness for the current manifest version — whether the
-     * schema update and the removed-files list exist — so the guide can remind the
-     * developer to add whichever is missing. Shape: ['version' => string,
-     * 'sqlFile' => string, 'removedFile' => string, 'hasSqlUpdate' => bool,
-     * 'hasRemovedJson' => bool].
+     * Release readiness for the current manifest version: whether the web-asset
+     * registry declares the same version as the manifest, so the guide can remind
+     * the developer to bump it before cutting a package. The census half stays
+     * unrun here: it needs a built archive, which this page does not hold.
      *
-     * @var array{version: string, sqlFile: string, removedFile: string, hasSqlUpdate: bool, hasRemovedJson: bool}
+     * @var array{version: string, assetFile: string, assetVersion: string, assetMatches: bool, censusRun: bool, packageOnly: string[]}
      * @since  1.0.0
      */
-    public array $release = ['version' => '', 'sqlFile' => '', 'removedFile' => '', 'hasSqlUpdate' => true, 'hasRemovedJson' => true];
+    public array $release = ['version' => '', 'assetFile' => '', 'assetVersion' => '', 'assetMatches' => true, 'censusRun' => false, 'packageOnly' => []];
 
     /**
      * Verification against the SIGNED canonical checksums on the CDN (see
@@ -87,7 +87,7 @@ class HtmlView extends BaseHtmlView
     /**
      * The integrity verdict card, pre-rendered in {@see self::display()} from a
      * fixed-path partial (NOT the overridable layout system) so a template override
-     * cannot silently fake the result — the Tools template only echoes this string.
+     * cannot silently fake the result; the Tools template only echoes this string.
      *
      * @since  1.0.0
      */
@@ -103,7 +103,7 @@ class HtmlView extends BaseHtmlView
      */
     public function display($tpl = null): void
     {
-        // Gate the whole view — menu hiding is cosmetic, this is the real boundary.
+        // Gate the whole view; menu hiding is cosmetic, this is the real boundary.
         if (!Factory::getApplication()->getIdentity()->authorise('alfa.tools', 'com_alfa')) {
             throw new NotAllowed(Text::_('JERROR_ALERTNOAUTHOR'), 403);
         }
@@ -117,8 +117,8 @@ class HtmlView extends BaseHtmlView
         $this->official = IntegrityHelper::cachedVerdict();
         SyncHelper::applyIntegrityVerdict($this->official);
 
-        // Render the verdict card from a fixed-path partial — deliberately NOT the
-        // overridable layout system — so a template override can't silently fake the
+        // Render the verdict card from a fixed-path partial (deliberately NOT the
+        // overridable layout system), so a template override can't silently fake the
         // result. The Tools template only echoes the produced string.
         ob_start();
         include __DIR__ . '/_integrity.php';
@@ -137,9 +137,11 @@ class HtmlView extends BaseHtmlView
      */
     protected function addToolbar(): void
     {
-        ToolbarHelper::title(Text::_('COM_ALFA_TITLE_TOOLS'), 'wrench');
+        ToolbarHelper::title(Text::_('COM_ALFA_TITLE_TOOLS'), 'generic');
 
         $toolbar = $this->getDocument()->getToolbar();
         $toolbar->preferences('com_alfa');
+
+        TourHelper::toolbarHelp($toolbar, $this->getName());
     }
 }

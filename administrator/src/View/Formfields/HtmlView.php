@@ -13,8 +13,10 @@ namespace Alfa\Component\Alfa\Administrator\View\Formfields;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Extension\AlfaComponent;
-use Alfa\Component\Alfa\Administrator\View\HtmlView as BaseHtmlView;
-use Joomla\CMS\Helper\ContentHelper;
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\ShowonSummary;
+use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
+use Alfa\Component\Alfa\Administrator\View\AlfaHtmlView as BaseHtmlView;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 
@@ -25,6 +27,12 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
  */
 class HtmlView extends BaseHtmlView
 {
+    /**
+     * @var string The entity a plugin targets with $context->targets('formfield').
+     * @since  1.8.0
+     */
+    protected string $alfaEntity = 'formfield';
+
     protected $items;
 
     protected $pagination;
@@ -48,6 +56,12 @@ class HtmlView extends BaseHtmlView
         $model = $this->getModel();
 
         $this->items = $model->getItems();
+
+        // Per-field global ShowOn rule summaries for the list (server-side, no JS);
+        // form-field compare values are entered by hand, so the shared renderer
+        // prints them as-is (no value pool).
+        $this->showonSummaries = ShowonSummary::globalSummaries($this->items ?? []);
+
         $this->pagination = $model->getPagination();
         $this->state = $model->getState();
         $this->filterForm = $model->getFilterForm();
@@ -72,12 +86,16 @@ class HtmlView extends BaseHtmlView
      */
     protected function addToolbar()
     {
-        $canDo = ContentHelper::getActions('com_alfa');
+        $user = $this->getCurrentUser();
+        $canCreate = AlfaHelper::can(section: 'formfields', action: 'create', user: $user);
+        $canEdit = AlfaHelper::can(section: 'formfields', action: 'edit', user: $user);
+        $canChange = AlfaHelper::can(section: 'formfields', action: 'edit.state', user: $user);
+        $canDelete = AlfaHelper::can(section: 'formfields', action: 'delete', user: $user);
         $toolbar = $this->getDocument()->getToolbar();
 
         ToolbarHelper::title(Text::_('COM_ALFA_TITLE_FORMFIELDS'), 'generic');
 
-        if ($canDo->get('core.create')) {
+        if ($canCreate) {
             $toolbar->addNew('formfield.add');
         }
 
@@ -86,7 +104,7 @@ class HtmlView extends BaseHtmlView
             ->url('index.php?option=com_alfa&view=formfieldgroups')
             ->icon('icon-folder');
 
-        if ($canDo->get('core.edit.state')) {
+        if ($canChange || $canEdit) {
             $dropdown = $toolbar->dropdownButton('status-group')
                 ->text('JTOOLBAR_CHANGE_STATUS')
                 ->toggleSplit(false)
@@ -96,43 +114,51 @@ class HtmlView extends BaseHtmlView
 
             $childBar = $dropdown->getChildToolbar();
 
-            $childBar->publish('formfields.publish')->listCheck(true);
-            $childBar->unpublish('formfields.unpublish')->listCheck(true);
-            $childBar->archive('formfields.archive')->listCheck(true);
+            if ($canChange) {
+                $childBar->publish('formfields.publish')->listCheck(true);
+                $childBar->unpublish('formfields.unpublish')->listCheck(true);
+                $childBar->archive('formfields.archive')->listCheck(true);
 
-            if ($this->state->get('filter.state') != AlfaComponent::CONDITION_TRASHED) {
-                $childBar->trash('formfields.trash')->listCheck(true);
+                if ($this->state->get('filter.state') != AlfaComponent::CONDITION_TRASHED) {
+                    $childBar->trash('formfields.trash')->listCheck(true);
+                }
             }
 
-            if ($this->state->get('filter.state') == AlfaComponent::CONDITION_TRASHED && $canDo->get('core.delete')) {
-                // Permanent delete — drops matching #__alfa_user_info columns.
-                // Use a popup (instead of the default confirm dialog) so we can show
-                // a properly styled warning with a red "Delete Permanently" button.
-                $toolbar->popupButton('delete-confirm', 'COM_ALFA_FORMFIELD_DELETE_PERMANENT')
+            // Batch regroups the selected fields and check-in releases their locks: both edit them.
+            if ($canEdit) {
+                $childBar->popupButton('batch', 'JTOOLBAR_BATCH')
                     ->popupType('inline')
-                    ->icon('icon-warning')
-                    ->buttonClass('btn btn-danger')
-                    ->textHeader(Text::_('COM_ALFA_FORMFIELD_DELETE_PERMANENT_HEADER'))
-                    ->url('#joomla-dialog-delete')
-                    ->modalWidth('600px')
+                    ->textHeader(Text::_('COM_ALFA_BATCH_OPTIONS'))
+                    ->url('#joomla-dialog-batch')
+                    ->modalWidth('800px')
                     ->modalHeight('fit-content')
                     ->listCheck(true);
-            }
 
-            $childBar->popupButton('batch', 'JTOOLBAR_BATCH')
+                $childBar->checkin('formfields.checkin')->listCheck(true);
+            }
+        }
+
+        if ($this->state->get('filter.state') == AlfaComponent::CONDITION_TRASHED && $canDelete) {
+            // Permanent delete: drops matching #__alfa_user_info columns.
+            // Use a popup (instead of the default confirm dialog) so we can show
+            // a properly styled warning with a red "Delete Permanently" button.
+            $toolbar->popupButton('delete-confirm', 'COM_ALFA_FORMFIELD_DELETE_PERMANENT')
                 ->popupType('inline')
-                ->textHeader(Text::_('COM_ALFA_BATCH_OPTIONS'))
-                ->url('#joomla-dialog-batch')
-                ->modalWidth('800px')
+                ->icon('icon-warning')
+                ->buttonClass('btn btn-danger')
+                ->textHeader(Text::_('COM_ALFA_FORMFIELD_DELETE_PERMANENT_HEADER'))
+                ->url('#joomla-dialog-delete')
+                ->modalWidth('600px')
                 ->modalHeight('fit-content')
                 ->listCheck(true);
-
-            $childBar->checkin('formfields.checkin')->listCheck(true);
         }
 
-        if ($canDo->get('core.admin')) {
+        // Options opens com_config, which itself requires core.admin.
+        if ($user->authorise('core.admin', 'com_alfa')) {
             $toolbar->preferences('com_alfa');
         }
+
+        TourHelper::toolbarHelp($toolbar, $this->getName());
         \Alfa\Component\Alfa\Administrator\Helper\NotificationHelper::toolbarBadge($toolbar);
     }
 }

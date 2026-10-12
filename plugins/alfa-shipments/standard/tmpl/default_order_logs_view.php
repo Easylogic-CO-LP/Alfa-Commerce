@@ -10,10 +10,12 @@
 /**
  * Order Logs View Layout - v3.5.0
  *
- * Shared layout for all plugins to render log entries in a modal.
+ * PER-PLUGIN layout. Nothing shares it: the component provides a
+ * default for one layout name only (action_button), so every plugin
+ * ships its own copy of this file.
  * Shows user-friendly messages when no logs exist instead of blank modal.
  *
- * Path: administrator/components/com_alfa/layouts/orders/default_order_logs_view.php
+ * Path: plugins/alfa-shipments/standard/tmpl/default_order_logs_view.php
  * @since  1.0.0
  */
 
@@ -24,7 +26,7 @@ defined('_JEXEC') or die;
 
 extract($displayData);
 
-// -- Handle missing schema gracefully (instead of blank modal) --
+// Handle missing schema gracefully (instead of blank modal)
 if (empty($xml)) {
     echo '<div class="alert alert-warning">'
         . '<span class="icon-warning-circle" aria-hidden="true"></span> '
@@ -34,7 +36,7 @@ if (empty($xml)) {
     return;
 }
 
-// -- Handle empty logs gracefully (instead of blank modal) --
+// Handle empty logs gracefully (instead of blank modal)
 if (empty($logData)) {
     echo '<div class="alert alert-info">'
         . '<span class="icon-info-circle" aria-hidden="true"></span> '
@@ -44,7 +46,7 @@ if (empty($logData)) {
     return;
 }
 
-// -- Build heading labels from XML schema --
+// Build heading labels from XML schema
 $createHeadingLabel = function ($label, $type) {
     $field = new \stdClass();
     $field->label = Text::_($label);
@@ -59,13 +61,13 @@ foreach ($xml->fields->fieldset->field as $field) {
     $fieldLabels[(string) $field['name']] = $createHeadingLabel($field['label'], $field['mysql_type']);
 }
 
-// -- Get column keys from first log row (supports arrays and objects) --
+// Get column keys from first log row (supports arrays and objects)
 $firstRow = reset($logData);
 $headers = is_array($firstRow)
     ? array_keys($firstRow)
     : array_keys(get_object_vars($firstRow));
 
-// -- Build table headings --
+// Build table headings
 $tableHeadings = '';
 
 foreach ($headers as $header) {
@@ -78,7 +80,7 @@ foreach ($headers as $header) {
     $tableHeadings .= '<th>' . Text::_($fieldLabels[$header]->label) . '</th>';
 }
 
-// -- Build table body rows --
+// Build table body rows
 $tableBody = '';
 
 foreach ($logData as $log) {
@@ -105,7 +107,7 @@ foreach ($logData as $log) {
     $tableBody .= '</tr>';
 }
 
-// -- Render responsive table --
+// Render responsive table
 echo '<div class="table-responsive table-mobile-responsive">';
 echo '<table class="table table-striped table-bordered">';
 echo '<thead><tr>' . $tableHeadings . '</tr></thead>';

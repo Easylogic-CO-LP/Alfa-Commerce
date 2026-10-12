@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Sales-document LIST COLUMNS for the order screen's Documents panel.
+
+    Same job order_shipments.xml and order_payments.xml do for their panels:
+    the table in tmpl/order/edit_documents.php auto-generates its columns from
+    the fields below, so adding a column here adds it to the table. The panel's
+    $mergeMap and $renderMap say which fields share a cell and how each one is
+    drawn.
+
+    WHY THIS IS A SEPARATE FILE FROM document.xml, when a shipment gets one XML
+    for both its popup and its columns: a shipment record is editable, so the
+    fields you type are the fields you list. An ISSUED DOCUMENT IS IMMUTABLE:
+    there is no edit form, and the issue payload (series, buyer block, movement
+    block, line picks) and the record's columns (assigned number, issue date,
+    frozen total) are genuinely different sets that happen to meet at doc_type.
+    Folding them into one file would mean one `doc_type` field answering to two
+    consumers, and $form->getField('doc_type') could no longer say which.
+
+    Every field is readonly; nothing on this panel writes a document.
+
+    DB: #__alfa_documents
+
+    @package    Alfa Commerce
+    @author     Agamemnon Fakas <info@easylogic.gr>
+    @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+    @license    GNU General Public License version 3 or later; see LICENSE
+-->
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+    <fieldset name="document">
+
+        <!-- Series code + assigned number, e.g. "INV-2026-00042". The legal
+             identity of the document: always the first column. -->
+        <field
+                name="number_formatted"
+                type="text"
+                label="COM_ALFA_DOCUMENTS_HEADING_NUMBER"
+                readonly="true"
+        />
+
+        <!-- Type badge. Carries is_combined and id_corrects below it. -->
+        <field
+                name="doc_type"
+                type="text"
+                label="COM_ALFA_SERIES_FIELD_DOC_TYPE"
+                readonly="true"
+        />
+
+        <!-- Merged under doc_type: the "also a delivery note" badge. -->
+        <field
+                name="is_combined"
+                type="checkbox"
+                label="COM_ALFA_DOCUMENTS_BADGE_COMBINED"
+                readonly="true"
+        />
+
+        <!-- Merged under doc_type: which document this one corrects. -->
+        <field
+                name="id_corrects"
+                type="text"
+                label="COM_ALFA_DOCUMENTS_FIELD_CORRECTS"
+                readonly="true"
+        />
+
+        <!-- The issue date as it was recorded in the shop's own timezone:
+             a fiscal date, never re-rendered from UTC. -->
+        <field
+                name="issue_date_local"
+                type="calendar"
+                label="COM_ALFA_DOCUMENTS_HEADING_DATE"
+                translateformat="true"
+                showtime="true"
+                readonly="true"
+        />
+
+        <!-- Frozen gross total. Non-fiscal types (delivery notes) carry no
+             money and the render map prints an em dash for them. -->
+        <field
+                name="total_tax_incl"
+                type="number"
+                label="COM_ALFA_DOCUMENTS_HEADING_TOTAL"
+                readonly="true"
+        />
+
+        <!-- Merged under the total: the currency frozen onto the document. -->
+        <field
+                name="currency_code"
+                type="text"
+                label="COM_ALFA_DOCUMENTS_COLUMN_CURRENCY"
+                readonly="true"
+        />
+
+        <!-- Issued / Voided. A document is never deleted. -->
+        <field
+                name="status"
+                type="text"
+                label="JSTATUS"
+                readonly="true"
+        />
+
+        <!-- Merged under the status: where a credit note's money was sent. The
+             render map prints nothing for it except on a note sent to the
+             customer's credit account whose credit has not been paid in. -->
+        <field
+                name="credit_destination"
+                type="text"
+                label="COM_ALFA_DOCUMENTS_FIELD_CREDIT_DESTINATION"
+                readonly="true"
+        />
+
+    </fieldset>
+</form>

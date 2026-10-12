@@ -1,0 +1,70 @@
+{
+    "uid": "com_alfa.storefront-menu",
+    "version": 3,
+    "ordering": 17,
+    "title": "COM_ALFA_GUIDEDTOUR_STOREFRONT_MENU_TITLE",
+    "description": "COM_ALFA_GUIDEDTOUR_STOREFRONT_MENU_DESC",
+    "extensions": [
+        "com_alfa"
+    ],
+    "url": "administrator/index.php?option=com_menus&view=items&menutype=",
+    "autostart": false,
+    "steps": [
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_STOREFRONT_MENU_STEP_1_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_STOREFRONT_MENU_STEP_1_DESC",
+            "position": "bottom",
+            "target": "",
+            "type": 0,
+            "url": "administrator/index.php?option=com_menus&view=items&menutype="
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_STOREFRONT_MENU_STEP_2_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_STOREFRONT_MENU_STEP_2_DESC",
+            "position": "bottom",
+            "target": "select[name=\"menutype\"], #filter_menutype",
+            "type": 0,
+            "url": "administrator/index.php?option=com_menus&view=items&menutype="
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_STOREFRONT_MENU_STEP_3_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_STOREFRONT_MENU_STEP_3_DESC",
+            "position": "bottom",
+            "target": "",
+            "type": 0,
+            "url": "administrator/index.php?option=com_menus&view=items&menutype="
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_STOREFRONT_MENU_STEP_4_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_STOREFRONT_MENU_STEP_4_DESC",
+            "position": "bottom",
+            "target": "",
+            "type": 0,
+            "url": "administrator/index.php?option=com_menus&view=items&menutype="
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_STOREFRONT_MENU_STEP_5_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_STOREFRONT_MENU_STEP_5_DESC",
+            "position": "bottom",
+            "target": ".button-new",
+            "type": 0,
+            "url": "administrator/index.php?option=com_menus&view=items&menutype="
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_STOREFRONT_MENU_STEP_6_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_STOREFRONT_MENU_STEP_6_DESC",
+            "position": "bottom",
+            "target": "",
+            "type": 0,
+            "url": "administrator/index.php?option=com_menus&view=items&menutype="
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_STOREFRONT_MENU_STEP_7_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_STOREFRONT_MENU_STEP_7_DESC",
+            "position": "bottom",
+            "target": "",
+            "type": 0,
+            "url": "administrator/index.php?option=com_menus&view=items&menutype="
+        }
+    ]
+}

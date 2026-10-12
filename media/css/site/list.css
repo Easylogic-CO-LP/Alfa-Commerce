@@ -1,8 +1,8 @@
 /**
  * @version     CVS: 1.0.1
  * @package     com_alfa
- * @copyright   2024 Easylogic CO LP
- * @license     GNU General Public License version 2 or later; see LICENSE.txt
+ * @copyright   (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license     GNU General Public License version 3 or later; see LICENSE
  * @author      Agamemnon Fakas <info@easylogic.gr>
  */
 
@@ -21,13 +21,39 @@
 
     border: 1px solid black;
     text-align: center;
+    padding: 10px;
 
     height: 100%;
+}
+
+/* On a card the add-to-cart controls sit in a centred column, so centre their
+   own row too (the product page keeps the default left flow). */
+.list-item .item-cart-add {
+    justify-content: center;
 }
 
 .list-item img {
     width: 100%;
     object-fit: contain;
+}
+
+/* CATEGORY */
+
+/* The space belongs to the container, not to the title. A category with an image
+   has two children and wants one gap between them; a category WITHOUT one has the
+   title as its only child, and a margin on it then pushes the title off-centre in
+   a card that is otherwise empty. `gap` only exists between things that exist, so
+   it is right in both cases and needs no :only-child rule to undo it.
+
+   The title carries no margin of its own: left to itself it is an <h3> wearing
+   whatever heading margins the active template hands out, which is why this varied
+   by template before. */
+.category-item {
+    gap: 0.7rem;
+}
+
+.category-item-title {
+    margin: 0;
 }
 
 /* PRODUCT */
@@ -39,4 +65,93 @@
 
 .item-title {
     margin-top: auto;
+}
+
+/* A card's read-only specifications: one line per field, its name then its
+   values. Spaced only while a row is visible, since ShowOn can hide every spec. */
+.list-item .item-specifications:has(> .item-field-surface:not([hidden])) {
+    margin: 0.35rem 0;
+}
+
+.list-item .item-specifications .spec-field {
+    display: block;
+}
+
+.list-item .item-specifications .spec-field-label {
+    margin-inline-end: 0.25rem;
+}
+
+/* Storefront filter bar
+   Every filter carries a real label (see the searchtools `filters` override in
+   components/com_alfa/layouts): core hides them, which works for an admin who
+   recognises a control by its placeholder and not for a shopper facing two boxes
+   reading "e.g. 10" and "e.g. 20".
+
+   WE DO NOT TOUCH THE PANEL'S OWN LAYOUT. Cassiopeia already lays it out and,
+   crucially, HIDES it:
+
+       .js-stools-container-filters          { display: none }
+       .js-stools-container-filters-visible  { display: grid; ... }
+
+   Searchtools toggles only the -visible class, so the show/hide is entirely CSS.
+   An #id rule restating `display` here outranks both and the Filter Options
+   button silently stops working: the panel can never hide, and the click just
+   reflows the fields. Add only what is ours: the labels and the facet block. */
+/* PORTABILITY FALLBACK: zero specificity, on purpose.
+   Joomla ships NO stylesheet for searchtools: media/system/joomla.asset.json
+   declares {"name":"searchtools","type":"style","uri":""}, and the file is
+   resolved from the ACTIVE TEMPLATE (css/system/searchtools/searchtools.css).
+   Cassiopeia has one; a site template that never expected searchtools on the
+   frontend may not, and then the panel can never hide, because the JS only
+   toggles the -visible class and something has to turn that into display.
+
+   :where() carries specificity 0, so ANY template rule (even a bare class)
+   wins over these. Cassiopeia's grid is untouched; a template with nothing gets
+   a working toggle and a sane layout instead of a permanently open panel.
+   (The mirror of the bug that made this necessary: an #id rule here outranked
+   the template and broke the toggle. Defensive CSS belongs at zero, not high.) */
+:where(.js-stools-container-filters) {
+    display: none;
+}
+
+:where(.js-stools-container-filters-visible) {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.5rem 0.75rem;
+}
+
+#adminForm .filter-field-wrapper > label {
+    display: block;
+    margin-block-end: 0.15rem;
+    font-size: 0.8125rem;
+}
+
+/* The facet block is a set of labelled selects of its own, so it takes the whole
+   row of the template's grid and wraps internally. */
+#adminForm .filter-field-wrapper:has(.item-field-filters) {
+    grid-column: 1 / -1;
+}
+
+#adminForm .item-field-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+}
+
+#adminForm .item-field-filter {
+    flex: 1 1 12rem;
+    min-inline-size: 12rem;
+    max-inline-size: 20rem;
+}
+
+#adminForm .item-field-filter-label {
+    display: block;
+    margin-block-end: 0.15rem;
+    font-size: 0.8125rem;
+}
+
+#adminForm .item-field-filter .choices,
+#adminForm .item-field-filter .choices__inner {
+    inline-size: 100%;
+    max-inline-size: 100%;
 }

@@ -1,14 +1,39 @@
+// Live instances so a re-init (after the variant swap replaces the gallery DOM)
+// can tear the old ones down before binding the fresh nodes.
+var itemGlightbox = null;
+var itemMainSlider = null;
+var itemThumbSlider = null;
+
 // Glightbox
 document.addEventListener('DOMContentLoaded', function (event) {
+    initItemMedia();
+});
+
+/**
+ * (Re)initialise the item gallery (GLightbox + Keen-slider). Safe to call again
+ * after variant.js swaps #alfa-app[data-view='item']: it destroys the previous
+ * instances (now pointing at detached nodes) and rebinds the fresh DOM.
+ */
+function initItemMedia() {
+    destroyItemMedia();
     itemMediasIntoSlider();
     itemMediasGallery();
-});
+}
+
+function destroyItemMedia() {
+    if (itemThumbSlider) { try { itemThumbSlider.destroy(); } catch (e) {} itemThumbSlider = null; }
+    if (itemMainSlider)  { try { itemMainSlider.destroy(); }  catch (e) {} itemMainSlider = null; }
+    if (itemGlightbox)   { try { itemGlightbox.destroy(); }   catch (e) {} itemGlightbox = null; }
+}
+
+// Let variant.js re-init the gallery after it swaps the item DOM.
+window.alfaInitItemMedia = initItemMedia;
 
 function itemMediasGallery(){
     // item gallery support
     var galleryFlag = document.querySelector(".item-images-wrapper .main-images .item-image");
     if(galleryFlag!==null){
-        GLightbox({
+        itemGlightbox = GLightbox({
             selector: '.item-images-wrapper .main-images .item-image',
             zoomable: true, // Enable zoom functionality
         });
@@ -32,6 +57,7 @@ function itemMediasIntoSlider(){
         },
         [navigation]
     )
+    itemMainSlider = slider;
 
     $thumbnailImages.classList.add("keen-slider");
     // perViewThumbs=20;
@@ -66,6 +92,7 @@ function itemMediasIntoSlider(){
         },
         [ThumbnailPlugin(slider)]
     );
+    itemThumbSlider = thumbnails;
 
 }
 
@@ -106,7 +133,7 @@ function navigation(slider) {
     let wrapper, dots, arrowLeft, arrowRight
 
     //to control the navigation if we want to add it or not
-    if(!slider.container.classList.contains(".navigation-controls") && slider.container.closest(".navigation-controls")==null)return;
+    if(!slider.container.classList.contains("navigation-controls") && slider.container.closest(".navigation-controls")==null)return;
 
     function markup(remove) {
         wrapperMarkup(remove)
@@ -189,7 +216,6 @@ function navigation(slider) {
         updateClasses()
     })
     slider.on("optionsChanged", () => {
-        console.log(2)
         markup(true)
         markup()
         updateClasses()

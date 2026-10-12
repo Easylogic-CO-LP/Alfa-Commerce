@@ -13,8 +13,9 @@ namespace Alfa\Component\Alfa\Administrator\View\Currencies;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Extension\AlfaComponent;
-use Alfa\Component\Alfa\Administrator\View\HtmlView as BaseHtmlView;
-use Joomla\CMS\Helper\ContentHelper;
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
+use Alfa\Component\Alfa\Administrator\View\AlfaHtmlView as BaseHtmlView;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 
@@ -25,6 +26,11 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
  */
 class HtmlView extends BaseHtmlView
 {
+    /**
+     * @var string The entity a plugin targets with $context->targets('currency').
+     * @since  1.8.0
+     */
+    protected string $alfaEntity = 'currency';
     protected $items;
 
     protected $pagination;
@@ -72,16 +78,21 @@ class HtmlView extends BaseHtmlView
      */
     protected function addToolbar()
     {
-        $canDo = ContentHelper::getActions('com_alfa');
+        $user = $this->getCurrentUser();
+        $canCreate = AlfaHelper::can(section: 'currencies', action: 'create', user: $user);
+        $canEdit = AlfaHelper::can(section: 'currencies', action: 'edit', user: $user);
+        $canChange = AlfaHelper::can(section: 'currencies', action: 'edit.state', user: $user);
+        $canDelete = AlfaHelper::can(section: 'currencies', action: 'delete', user: $user);
         $toolbar = $this->getDocument()->getToolbar();
 
         ToolbarHelper::title(Text::_('COM_ALFA_TITLE_CURRENCIES'), 'generic');
 
-        if ($canDo->get('core.create')) {
+        if ($canCreate) {
             $toolbar->addNew('currency.add');
         }
 
-        if ($canDo->get('core.edit.state')) {
+        // Check-in is part of editing, so the status menu opens for either permission.
+        if ($canChange || $canEdit) {
             $dropdown = $toolbar->dropdownButton('status-group')
                 ->text('JTOOLBAR_CHANGE_STATUS')
                 ->toggleSplit(false)
@@ -91,28 +102,35 @@ class HtmlView extends BaseHtmlView
 
             $childBar = $dropdown->getChildToolbar();
 
-            $childBar->publish('currencies.publish')->listCheck(true);
-            $childBar->unpublish('currencies.unpublish')->listCheck(true);
-            $childBar->archive('currencies.archive')->listCheck(true);
+            if ($canChange) {
+                $childBar->publish('currencies.publish')->listCheck(true);
+                $childBar->unpublish('currencies.unpublish')->listCheck(true);
+                $childBar->archive('currencies.archive')->listCheck(true);
 
-            if ($this->state->get('filter.state') != AlfaComponent::CONDITION_TRASHED) {
-                $childBar->trash('currencies.trash')->listCheck(true);
+                if ($this->state->get('filter.state') != AlfaComponent::CONDITION_TRASHED) {
+                    $childBar->trash('currencies.trash')->listCheck(true);
+                }
             }
 
-            if ($this->state->get('filter.state') == AlfaComponent::CONDITION_TRASHED && $canDo->get('core.delete')) {
-                // If this component does not use state then show a direct delete button as we can not trash
-                $toolbar->delete('currencies.delete')
-                ->text('JTOOLBAR_EMPTY_TRASH')
-                ->message('JGLOBAL_CONFIRM_DELETE')
-                ->listCheck(true);
+            if ($canEdit) {
+                $childBar->checkin('currencies.checkin')->listCheck(true);
             }
-
-            $childBar->checkin('currencies.checkin')->listCheck(true);
         }
 
-        if ($canDo->get('core.admin')) {
+        // Emptying the trash is a delete: it needs the delete permission alone, not edit.state.
+        if ($this->state->get('filter.state') == AlfaComponent::CONDITION_TRASHED && $canDelete) {
+            $toolbar->delete('currencies.delete')
+            ->text('JTOOLBAR_EMPTY_TRASH')
+            ->message('JGLOBAL_CONFIRM_DELETE')
+            ->listCheck(true);
+        }
+
+        // Options opens com_config, which itself requires core.admin.
+        if ($user->authorise('core.admin', 'com_alfa')) {
             $toolbar->preferences('com_alfa');
         }
+
+        TourHelper::toolbarHelp($toolbar, $this->getName());
         \Alfa\Component\Alfa\Administrator\Helper\NotificationHelper::toolbarBadge($toolbar);
     }
 }

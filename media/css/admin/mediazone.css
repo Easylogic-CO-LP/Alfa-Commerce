@@ -1,21 +1,21 @@
-/* ==========================================================================
-   TOOLBAR
-   ========================================================================== */
+/*
+   Toolbar
+   */
 
 .toggle-options-button.dropdown-toggle {
     border-radius: 10px;
 }
 
-/* ==========================================================================
-   DROPZONE
-   ========================================================================== */
+/*
+   Dropzone
+   */
 
 .media-dropzone {
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: whitesmoke;
+    background-color: var(--tertiary-bg, whitesmoke);
     border-radius: 15px;
     padding: 1.5rem;
 }
@@ -26,7 +26,7 @@
     flex-direction: column;
     width: 100%;
     padding: 1.7rem;
-    border: 2px dashed black;
+    border: 2px dashed var(--emphasis-color, black);
     border-radius: 15px;
 }
 
@@ -39,10 +39,10 @@
 
 .media-dropzone-icon > span {
     font-size: 4rem;
-    color: #1c3d5c;
+    color: var(--body-color, #1c3d5c);
 }
 
-/* -- Dropzone overlay (drag hover) -- */
+/* Dropzone overlay (drag hover) */
 
 .media-dropzone-overlay {
     position: absolute;
@@ -53,7 +53,7 @@
     width: 100%;
     height: 100%;
     visibility: hidden;
-    background-color: rgba(235, 235, 235, 0.8);
+    background-color: var(--body-bg, rgba(235, 235, 235, 0.8));
     opacity: 0;
     pointer-events: none;
     border-radius: 15px;
@@ -65,9 +65,9 @@
     opacity: 1;
 }
 
-/* ==========================================================================
-   MEDIA GRID
-   ========================================================================== */
+/*
+   Media grid
+   */
 
 .media-grid {
     display: grid;
@@ -76,9 +76,9 @@
     width: 100%;
 }
 
-/* ==========================================================================
-   MEDIA CARD
-   ========================================================================== */
+/*
+   Media card
+   */
 
 .media-card {
     display: flex;
@@ -94,7 +94,7 @@
     overflow: hidden;
 }
 
-/* -- Card header (type tag + actions) -- */
+/* Card header (type tag + actions) */
 
 .media-header {
     display: flex;
@@ -103,7 +103,7 @@
     width: 100%;
 }
 
-/* -- Type tag -- */
+/* Type tag */
 
 .media-type-tag > span {
     display: inline-block;
@@ -121,9 +121,9 @@
     background: #dc3545;
 }
 
-/* ==========================================================================
+/*
    MEDIA ACTIONS (delete, drag, etc.)
-   ========================================================================== */
+   */
 
 .media-actions {
     display: flex;
@@ -135,7 +135,7 @@
     rgba(0, 0, 0, 0.3) 0px 18px 36px -18px inset;
 }
 
-/* -- Shared action button base -- */
+/* Shared action button base */
 
 .action-btn {
     display: flex;
@@ -154,14 +154,14 @@
     opacity: 0.7;
 }
 
-/* -- Delete -- */
+/* Delete */
 
 .action-btn.delete {
     background: #dc3545;
     cursor: pointer;
 }
 
-/* -- Drag handle -- */
+/* Drag handle */
 
 .action-btn.drag-handle {
     background: #0a53be;
@@ -172,9 +172,9 @@
     cursor: grabbing;
 }
 
-/* ==========================================================================
-   MEDIA PREVIEW
-   ========================================================================== */
+/*
+   Media preview
+   */
 
 .media-preview {
     position: relative;
@@ -185,7 +185,7 @@
     height: 115px;
 }
 
-/* -- Image preview -- */
+/* Image preview */
 
 .media-preview-img {
     display: block;
@@ -195,7 +195,7 @@
     border-radius: 15px;
 }
 
-/* -- URL preview -- */
+/* URL preview */
 
 .media-preview > a {
     overflow: hidden;
@@ -204,9 +204,9 @@
     max-width: 100%;
 }
 
-/* ==========================================================================
-   MEDIA THUMBNAIL
-   ========================================================================== */
+/*
+   Media thumbnail
+   */
 
 .media-thumbnail {
     position: absolute;
@@ -220,7 +220,7 @@
     padding: 5px;
     border: none;
     border-radius: 4px;
-    background-color: #fff;
+    background-color: var(--card-bg, #fff);
     box-shadow: rgba(50, 50, 93, 0.25) 0px 30px 60px -12px inset,
     rgba(0, 0, 0, 0.3) 0px 18px 36px -18px inset;
     transform: scale(1);
@@ -245,9 +245,9 @@
     gap: 0.6rem;
 }
 
-/* ==========================================================================
+/*
    MEDIA FIELDS (alt, path)
-   ========================================================================== */
+   */
 
 .media-fields {
     display: flex;
@@ -262,9 +262,9 @@
     color: #c46210;
 }
 
-/* ==========================================================================
+/*
    MEDIA PICKER BUTTON (floating)
-   ========================================================================== */
+   */
 
 #media-picker-thumbnail {
     position: absolute;
@@ -288,9 +288,9 @@
     transform: scale(1.05);
 }
 
-/* ==========================================================================
-   URL ERROR
-   ========================================================================== */
+/*
+   URL error
+   */
 
 #media-url-error {
     display: none;
@@ -305,9 +305,9 @@
     opacity: 0.8;
 }
 
-/* ==========================================================================
-   PLACEHOLDER
-   ========================================================================== */
+/*
+   Placeholder
+   */
 
 .media-placeholder {
     display: flex;
@@ -331,7 +331,7 @@
 
 .media-placeholder-icon > span {
     font-size: 2rem;
-    color: #adb5bd;
+    color: var(--secondary-color, #adb5bd);
 }
 
 .media-placeholder > p {
@@ -342,7 +342,7 @@
 .media-placeholder > p:first-of-type {
     font-size: 1rem;
     font-weight: 600;
-    color: #495057;
+    color: var(--body-color, #495057);
 }
 
 .media-placeholder > p.text-muted {
@@ -350,9 +350,9 @@
     margin-top: 0.3rem;
 }
 
-/* ==========================================================================
-   MISC
-   ========================================================================== */
+/*
+   Misc
+   */
 
 .url-thumbnail-icon {
     width: 18px;
@@ -362,9 +362,9 @@
     display: none;
 }
 
-/* ==========================================================================
-   MEDIA ERROR STYLING
-   ========================================================================== */
+/*
+   Media error styling
+   */
 
 .errors-container {
     display: none;
@@ -417,9 +417,9 @@
     font-size: 10px;
 }
 
-/* ==========================================================================
-   RESPONSIVE
-   ========================================================================== */
+/*
+   Responsive
+   */
 
 @media only screen and (max-width: 992px) {
     .media-grid {
@@ -440,7 +440,7 @@
         grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     }
 }
-/* ── URL thumbnail picker (media zone) ── */
+/* URL thumbnail picker (media zone) */
 .media-url-thumb {
     display: flex;
     flex-direction: column;
@@ -449,13 +449,13 @@
 }
 .media-url-thumb-hint {
     font-size: .8rem;
-    color: #6c757d;
+    color: var(--secondary-color, #6c757d);
 }
 .media-url-thumb-preview {
     width: 96px;
     height: 96px;
     object-fit: cover;
     border-radius: 12px;
-    border: 1px solid #e2e2e6;
-    background: #f7f7f8;
+    border: 1px solid var(--border-color, #e2e2e6);
+    background: var(--tertiary-bg, #f7f7f8);
 }

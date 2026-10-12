@@ -9,7 +9,7 @@
         <fieldset
                 name="request"
                 label="COM_ALFA_FIELDSET_ITEM_ID_SELECT_LABEL">
-            <!-- type="model" → Alfa ModelField (language-resolved item names). -->
+            <!-- type="model" -> Alfa ModelField (language-resolved item names). -->
             <field
                     name="id"
                     type="model"
@@ -20,6 +20,50 @@
                     require="true"
                     description="JGLOBAL_SHOW_TITLE_DESC">
             </field>
+        </fieldset>
+    </fields>
+
+    <fields name="params">
+        <fieldset
+                name="layouts"
+                label="COM_ALFA_MENU_LAYOUTS_OPTIONS"
+                addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+
+            <field
+                    name="item_layout"
+                    type="viewLayout"
+                    view="item"
+                    inheritlabel="JGLOBAL_USE_GLOBAL"
+                    label="COM_ALFA_LAYOUT_ITEM_LABEL"
+                    description="COM_ALFA_LAYOUT_ITEM_DESC"
+            />
+
+            <field
+                    name="item_images_layout"
+                    type="subtemplate"
+                    view="item"
+                    slot="images"
+                    inheritlabel="JGLOBAL_USE_GLOBAL"
+                    label="COM_ALFA_LAYOUT_ITEM_IMAGES_LABEL"
+            />
+
+            <field
+                    name="item_manufacturers_layout"
+                    type="subtemplate"
+                    view="item"
+                    slot="manufacturers"
+                    inheritlabel="JGLOBAL_USE_GLOBAL"
+                    label="COM_ALFA_LAYOUT_ITEM_MANUFACTURERS_LABEL"
+            />
+
+            <field
+                    name="item_categories_layout"
+                    type="subtemplate"
+                    view="item"
+                    slot="categories"
+                    inheritlabel="JGLOBAL_USE_GLOBAL"
+                    label="COM_ALFA_LAYOUT_ITEM_CATEGORIES_LABEL"
+            />
         </fieldset>
     </fields>
 </metadata>

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+    <fields name="filter">
+        <field
+                name="search"
+                type="text"
+                inputmode="search"
+                label="COM_ALFA_FILTER_SEARCH_LABEL"
+                description="COM_ALFA_CARTS_FILTER_SEARCH_DESC"
+                hint="COM_ALFA_CARTS_SEARCH_PLACEHOLDER"
+        />
+
+        <!-- Status is a QUERY over the activity stamp and the line count, not a
+             stored column: a cart the shopper opens again stops being abandoned
+             by itself. There is no "converted"; that cart no longer exists. -->
+        <field
+                name="status"
+                type="list"
+                label="COM_ALFA_CARTS_HEADING_STATUS"
+                onchange="this.form.submit();"
+        >
+            <option value="">COM_ALFA_CARTS_FILTER_STATUS</option>
+            <option value="active">COM_ALFA_CARTS_STATUS_ACTIVE</option>
+            <option value="abandoned">COM_ALFA_CARTS_STATUS_ABANDONED</option>
+            <option value="empty">COM_ALFA_CARTS_STATUS_EMPTY</option>
+        </field>
+
+        <field
+                name="owner"
+                type="list"
+                label="COM_ALFA_CARTS_HEADING_CUSTOMER"
+                onchange="this.form.submit();"
+        >
+            <option value="">COM_ALFA_CARTS_FILTER_OWNER</option>
+            <option value="member">COM_ALFA_CUSTOMER_KIND_ACCOUNT</option>
+            <option value="guest">COM_ALFA_CUSTOMER_KIND_GUEST</option>
+        </field>
+
+        <field
+                name="has_lines"
+                type="list"
+                label="COM_ALFA_CARTS_FILTER_HAS_LINES"
+                onchange="this.form.submit();"
+        >
+            <option value="">COM_ALFA_CARTS_FILTER_HAS_LINES_ANY</option>
+            <option value="1">COM_ALFA_CARTS_FILTER_HAS_LINES_YES</option>
+        </field>
+
+        <!-- Date window on LAST ACTIVITY
+             `updated`, not `added`: the question is when the shopper last
+             touched the cart, which is what makes abandonment meaningful. -->
+
+        <field name="date_range" type="daterange"
+               label="COM_ALFA_FILTER_DATE_RANGE"
+               layout="joomla.form.field.list-fancy-select"
+               onchange="this.form.submit();" />
+
+        <field name="date_start" type="calendar" default="" showtime="true"
+               translateformat="true" filter="raw"
+               label="COM_ALFA_FILTER_DATE_START" />
+
+        <field name="date_end" type="calendar" default="" showtime="true"
+               translateformat="true" filter="raw"
+               label="COM_ALFA_FILTER_DATE_END" />
+    </fields>
+
+    <fields name="list">
+        <field
+                name="fullordering"
+                type="list"
+                label="JGLOBAL_SORT_BY"
+                onchange="this.form.submit();"
+                default="a.updated DESC"
+                validate="options"
+        >
+            <option value="a.updated DESC">COM_ALFA_CARTS_SORT_ACTIVITY_DESC</option>
+            <option value="a.updated ASC">COM_ALFA_CARTS_SORT_ACTIVITY_ASC</option>
+            <option value="a.added DESC">COM_ALFA_CARTS_SORT_CREATED_DESC</option>
+            <option value="a.added ASC">COM_ALFA_CARTS_SORT_CREATED_ASC</option>
+            <option value="a.id DESC">COM_ALFA_CARTS_SORT_ID_DESC</option>
+            <option value="a.id ASC">COM_ALFA_CARTS_SORT_ID_ASC</option>
+        </field>
+
+        <field
+                name="limit"
+                type="limitbox"
+                label="JGLOBAL_LIST_LIMIT"
+                default="25"
+                onchange="this.form.submit();"
+        />
+    </fields>
+</form>

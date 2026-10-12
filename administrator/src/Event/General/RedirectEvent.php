@@ -22,7 +22,7 @@ use Joomla\CMS\Uri\Uri;
  * Base for events that may ask the component to redirect after the plugin runs.
  *
  * This is the "redirect" capability tier of the event hierarchy:
- *   GeneralEvent (data only) → RedirectEvent (this) → LayoutEvent (redirect + layout)
+ *   GeneralEvent (data only) -> RedirectEvent (this) -> LayoutEvent (redirect + layout)
  *
  * Use it for hooks fired outside a view whose only presentational power is to send
  * the buyer somewhere (e.g. the gateway-return handler `onPaymentResponse`). Pure
@@ -35,15 +35,19 @@ use Joomla\CMS\Uri\Uri;
 abstract class RedirectEvent extends GeneralEvent
 {
     /**
-     * Joomla event setter hook for the redirect URL — delegates to setRedirectUrl().
+     * Joomla event setter hook for the redirect URL: delegates to setRedirectUrl().
      *
      * @param string $url The URL to redirect to
      *
      * @since  1.0.0
      */
-    public function onSetRedirectUrl(string $url): void
+    public function onSetRedirectUrl(string $url): string
     {
+        // MUST return the value: AbstractEvent::setArgument stores the RETURN of an
+        // onSet<Arg> hook, so a void return would null a constructor-passed redirectUrl.
         $this->setRedirectUrl($url);
+
+        return $url;
     }
 
     /**
@@ -70,7 +74,7 @@ abstract class RedirectEvent extends GeneralEvent
         $url = $this->arguments['redirectUrl'] ?? null;
 
         // SEF-route only RAW internal Joomla URLs: those on this site
-        // (Uri::isInternal — host check) AND still in raw "index.php?..." form
+        // (Uri::isInternal: host check) AND still in raw "index.php?..." form
         // (the only thing Route::_ can build a SEF link from). This lets a plugin
         // set a plain "index.php?option=com_alfa&view=cart&layout=..." without
         // calling Route::_() itself. External gateway URLs (host check fails) and
@@ -84,7 +88,7 @@ abstract class RedirectEvent extends GeneralEvent
     }
 
     /**
-     * Get the redirect URL exactly as the plugin set it — raw / unrouted.
+     * Get the redirect URL exactly as the plugin set it: raw / unrouted.
      *
      * Use this when you need the original value (logging, or re-routing yourself
      * with custom flags such as Route::TLS_FORCE / absolute). For redirecting,
@@ -108,7 +112,7 @@ abstract class RedirectEvent extends GeneralEvent
     }
 
     /**
-     * Joomla event setter hook for the redirect HTTP status code — delegates to setRedirectCode().
+     * Joomla event setter hook for the redirect HTTP status code: delegates to setRedirectCode().
      *
      * Common codes: 301 Moved Permanently, 302 Found, 303 See Other,
      * 307 Temporary Redirect, 308 Permanent Redirect.
@@ -119,9 +123,13 @@ abstract class RedirectEvent extends GeneralEvent
      *
      * @since  1.0.0
      */
-    public function onSetRedirectCode(int $code)
+    public function onSetRedirectCode(int $code): int
     {
+        // Return the value so a constructor-passed redirectCode is not nulled by
+        // AbstractEvent::setArgument storing a void return.
         $this->setRedirectCode($code);
+
+        return $code;
     }
 
     /**

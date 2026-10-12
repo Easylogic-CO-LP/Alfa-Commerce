@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CatalogAccessPolicy;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Joomla\CMS\Router\Route;
@@ -43,7 +44,7 @@ class CategoriesModel extends UrlListModel
                 'parent_id', 'a.parent_id',
                 'id', 'a.id',
                 'state', 'a.state',
-                // Translatable — resolved via the lang-table COALESCE alias.
+                // Translatable: resolved via the lang-table COALESCE alias.
                 'name',
                 'alias',
             ];
@@ -74,7 +75,7 @@ class CategoriesModel extends UrlListModel
 
         $query->from('`#__alfa_categories` AS a');
 
-        // Resolve name / alias in the active language (current → default → '')
+        // Resolve name / alias in the active language (current -> default -> '')
         // from the per-language tables. LEFT JOIN keeps untranslated rows visible.
         MultilingualHelper::addMultilingualJoinToQuery(
             query:             $query,
@@ -118,6 +119,10 @@ class CategoriesModel extends UrlListModel
 
         $query->where('a.state = 1');
 
+        // Per-category "allowed users / user groups" allowlist. These two pivots were
+        // written by the admin form and read by nothing at all until now.
+        (new CatalogAccessPolicy())->applyToCategories($query, 'a');
+
         // Filter by search in title
         $search = $this->getState('filter.search');
 
@@ -127,7 +132,7 @@ class CategoriesModel extends UrlListModel
             } else {
                 $search = $db->quote('%' . $db->escape($search, true) . '%');
                 // HAVING (not WHERE) because `name` is the COALESCE alias built
-                // from the lang join — it is not a real column at WHERE time.
+                // from the lang join; it is not a real column at WHERE time.
                 $query->having('( ' . $db->quoteName('name') . ' LIKE ' . $search . ' )');
             }
         }
@@ -155,11 +160,11 @@ class CategoriesModel extends UrlListModel
         $items = parent::getItems();
 
         if (!empty($items)) {
-            // Batch media (one query for ALL categories, grouped by id — avoids N+1).
+            // Batch media (one query for ALL categories, grouped by id; avoids N+1).
             $mediaByCategory = MediaHelper::getMediaData(
                 origin:         'category',
                 itemIDs:        array_map(static fn ($c) => (int) $c->id, $items),
-                usePlaceHolder: true,
+                usePlaceHolder: $this->usePlaceholder('media_placeholder_categories'),
             );
 
             foreach ($items as $category) {

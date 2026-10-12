@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The order-builder form. It saves no record (the builder mutates a live named
+  cart through the B1B.1c request seam, not a form submit) and exists so a
+  plugin can add a <fieldset> through onAlfaAdminForm and have it rendered as a
+  plg-<name> tab, exactly as the Order and Item edit screens do. The one core
+  fieldset below is skipped by the template's contributed-tab loop.
+-->
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+    <fieldset name="builder">
+        <field name="cart_id" type="hidden" default="0"/>
+    </fieldset>
+</form>

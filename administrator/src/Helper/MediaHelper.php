@@ -5,7 +5,7 @@
  * @package    Com_Test
  * @author     Agamemnon <info@easylogic.gr>
  * @copyright  2024 Agamemnon
- * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
 namespace Alfa\Component\Alfa\Administrator\Helper;
@@ -21,10 +21,12 @@ use Alfa\Component\Alfa\Administrator\Event\Media\ValidateEvent;
 use Exception;
 use FilesystemIterator;
 use Joomla\CMS\Component\ComponentHelper;
+use Joomla\CMS\Event\AbstractEvent;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\OutputFilter;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Log\Log;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Filesystem\File;
@@ -37,12 +39,20 @@ use Throwable;
 class MediaHelper
 {
     /**
+     * The capability group that owns media processing.
+     *
+     * @var string
+     * @since  1.8.0
+     */
+    private const MEDIA_GROUP = 'alfa-media';
+
+    /**
      * Standard image MIME types accepted out of the box.
      *
      * Single source of truth for the fallback used when the component's
-     * "Allowed Image Types" (media_mime) setting is left empty — an empty
+     * "Allowed Image Types" (media_mime) setting is left empty: an empty
      * setting means "allow all standard image types", not "allow none". Shared
-     * by the upload gate (MediaZoneField / grid layout → client validation) and
+     * by the upload gate (MediaZoneField / grid layout -> client validation) and
      * server-side handling so both ends agree.
      *
      * @var string[]
@@ -58,9 +68,29 @@ class MediaHelper
     ];
 
     /**
+     * Canonical, safe file extension for each supported image MIME type.
+     *
+     * The stored file extension is ALWAYS taken from this map, keyed by the
+     * real MIME detected from the file's own bytes (never from the client's
+     * upload metadata), so a forged upload can never dictate the on-disk
+     * extension (e.g. a ".php" masquerading as an image).
+     *
+     * @var array<string, string>
+     * @since  1.3.1
+     */
+    private const MIME_EXTENSION_MAP = [
+        'image/jpeg' => 'jpg',
+        'image/gif' => 'gif',
+        'image/png' => 'png',
+        'image/bmp' => 'bmp',
+        'image/webp' => 'webp',
+        'image/avif' => 'avif',
+    ];
+
+    /**
      * Resolve the effective allowed image MIME types.
      *
-     * Returns the configured types, or — when none are configured — the full
+     * Returns the configured types, or, when none are configured, the full
      * {@see self::DEFAULT_IMAGE_MIMES} set, so uploads work without requiring the
      * admin to pre-select every type.
      *
@@ -75,6 +105,118 @@ class MediaHelper
         $mimes = array_values(array_filter((array) $configured));
 
         return $mimes ?: self::DEFAULT_IMAGE_MIMES;
+    }
+
+    /**
+     * Is this a remote image URL that is safe to store and later render?
+     *
+     * Only absolute http/https URLs with a host qualify. Everything else (
+     * javascript:, data:, vbscript:, file:, protocol-relative "//evil/x.png"
+     * and bare paths) is rejected, because the stored value is emitted
+     * directly into an image src on the storefront and in documents.
+     *
+     * @param string $url Client-supplied media source.
+     *
+     *
+     * @since  1.9.0
+     */
+    private static function isSafeRemoteUrl(string $url): bool
+    {
+        $url = trim($url);
+
+        if ($url === '' || preg_match('/[\x00-\x1F\x7F]/', $url)) {
+            return false;
+        }
+
+        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+        $host = (string) parse_url($url, PHP_URL_HOST);
+
+        return \in_array($scheme, ['http', 'https'], true) && $host !== '';
+    }
+
+    /**
+     * Validate a file as a real image and return the safe extension to store it under.
+     *
+     * Reads the actual image type from the file's magic bytes via getimagesize()
+     * (the client-supplied MIME and the original filename extension are never
+     * trusted) and confirms it is one of the allowed types. This is the
+     * authoritative, plugin-independent gate: it holds even when no alfa-media
+     * optimizer plugin is installed to process the upload.
+     *
+     * @param string $source Absolute path to the file on disk.
+     * @param string[] $allowedMimes Effective allowed MIME types.
+     *
+     * @return string|null Canonical extension (e.g. "jpg"), or null when the file
+     *                     is not a valid image of an allowed type.
+     *
+     * @since  1.3.1
+     */
+    private static function validatedImageExtension(string $source, array $allowedMimes): ?string
+    {
+        if ($source === '' || !is_file($source)) {
+            return null;
+        }
+
+        // getimagesize() inspects the file header, so a mislabelled or disguised
+        // file (e.g. PHP renamed to .png) is detected here.
+        $info = @getimagesize($source);
+
+        if ($info === false || empty($info['mime'])) {
+            return null;
+        }
+
+        $mime = strtolower($info['mime']);
+
+        if (!\in_array($mime, array_map('strtolower', $allowedMimes), true)) {
+            return null;
+        }
+
+        $extension = self::MIME_EXTENSION_MAP[$mime] ?? null;
+
+        if ($extension === null) {
+            return null;
+        }
+
+        // A header alone can be faked (a valid image signature followed by a PHP
+        // payload still satisfies getimagesize). When GD can decode this format,
+        // require a full decode so only genuinely renderable images pass.
+        if (self::gdCanDecode($mime) && @imagecreatefromstring((string) file_get_contents($source)) === false) {
+            return null;
+        }
+
+        return $extension;
+    }
+
+    /**
+     * Whether the local GD extension can fully decode the given image MIME type.
+     *
+     * Used to decide if a full-decode check is safe to enforce: for formats GD
+     * cannot handle (e.g. AVIF on a GD build without libavif) the decode would
+     * wrongly fail a valid file, so validation falls back to the header check.
+     *
+     * @param string $mime The detected image MIME type.
+     *
+     * @return bool True when GD can decode this format on this server.
+     *
+     * @since  1.3.1
+     */
+    private static function gdCanDecode(string $mime): bool
+    {
+        if (!\function_exists('imagecreatefromstring') || !\function_exists('gd_info')) {
+            return false;
+        }
+
+        $gd = gd_info();
+
+        return match ($mime) {
+            'image/jpeg' => !empty($gd['JPEG Support']),
+            'image/png' => !empty($gd['PNG Support']),
+            'image/gif' => !empty($gd['GIF Read Support']),
+            'image/bmp' => !empty($gd['BMP Support']),
+            'image/webp' => !empty($gd['WebP Support']),
+            'image/avif' => !empty($gd['AVIF Support']),
+            default => false,
+        };
     }
 
     /**
@@ -125,8 +267,8 @@ class MediaHelper
      * round-trips and the server uses as JPATH_ROOT . '/' . path for file ops);
      * this builds the absolute URL by prefixing the live site base (Uri::root(),
      * which honours root / subfolder / subdomain installs). Values that are
-     * already absolute — external `type=url` media (http/https), protocol-relative
-     * URLs, or data URIs — are returned untouched.
+     * already absolute (external `type=url` media (http/https), protocol-relative
+     * URLs, or data URIs) are returned untouched.
      *
      * @param string|null $path Relative media path (e.g. "images/commerce/x.webp").
      *
@@ -138,7 +280,7 @@ class MediaHelper
     {
         $path = trim((string) $path);
 
-        // Empty, or already an absolute / protocol-relative / data URL → leave as-is.
+        // Empty, or already an absolute / protocol-relative / data URL -> leave as-is.
         if ($path === ''
             || str_starts_with($path, 'http://')
             || str_starts_with($path, 'https://')
@@ -176,7 +318,7 @@ class MediaHelper
         $db = Factory::getContainer()->get('DatabaseDriver');
 
         // The single "Complete Media Deletion" setting (media_full_deletion) governs
-        // whether removing media also deletes the file from disk — both here (whole
+        // whether removing media also deletes the file from disk: both here (whole
         // entity deleted) and in saveMedia (a single image removed). On by default.
         if ((bool) ComponentHelper::getParams('com_alfa')->get('media_full_deletion', 1)) {
             $rows = $db->setQuery(
@@ -230,8 +372,8 @@ class MediaHelper
     private const DELETE_BATCH_SIZE = 500;
 
     /**
-     * Delete media by their own row ids — rows plus any existing local files.
-     * Used by the Tools → Media maintenance view to clean up selected orphan /
+     * Delete media by their own row ids: rows plus any existing local files.
+     * Used by the Tools -> Media maintenance view to clean up selected orphan /
      * missing-file rows. Always removes the file when present (explicit cleanup).
      *
      * The work is processed in slices of {@see self::DELETE_BATCH_SIZE} so an
@@ -286,7 +428,7 @@ class MediaHelper
                         try {
                             File::delete($absolute);
                         } catch (Throwable $e) {
-                            // Best-effort — a missing/locked file must not block the delete.
+                            // Best-effort: a missing/locked file must not block the delete.
                         }
                     }
                 }
@@ -306,8 +448,9 @@ class MediaHelper
 
     /**
      * Return the ids of every media row whose (origin, item_id) no longer points
-     * at a live parent entity (item / category / manufacturer). Detected purely
-     * in SQL via LEFT JOINs. Used by the Tools → Media "delete all orphans" action.
+     * at a live parent entity (item / category / manufacturer / combination).
+     * Detected purely
+     * in SQL via LEFT JOINs. Used by the Tools -> Media "delete all orphans" action.
      *
      * @return int[]
      *
@@ -326,10 +469,13 @@ class MediaHelper
                 . ' ON a.origin = ' . $db->quote('category') . ' AND c.id = a.item_id')
             ->join('LEFT', $db->quoteName('#__alfa_manufacturers', 'm')
                 . ' ON a.origin = ' . $db->quote('manufacturer') . ' AND m.id = a.item_id')
+            ->join('LEFT', $db->quoteName('#__alfa_item_combinations', 'co')
+                . ' ON a.origin = ' . $db->quote('combination') . ' AND co.id = a.item_id')
             ->where('(CASE a.origin'
                 . ' WHEN ' . $db->quote('item') . ' THEN (i.id IS NOT NULL)'
                 . ' WHEN ' . $db->quote('category') . ' THEN (c.id IS NOT NULL)'
                 . ' WHEN ' . $db->quote('manufacturer') . ' THEN (m.id IS NOT NULL)'
+                . ' WHEN ' . $db->quote('combination') . ' THEN (co.id IS NOT NULL)'
                 . ' ELSE 1 END) = 0');
 
         return array_map('intval', $db->setQuery($query)->loadColumn() ?: []);
@@ -339,7 +485,7 @@ class MediaHelper
      * Return the ids of every local-file media row whose file is absent on disk.
      * Disk presence is not expressible in SQL, so each local row is stat()-ed
      * here. External (type=url) and path-less rows are skipped. Used by both the
-     * Tools → Media "file missing" filter and the "delete all missing" action.
+     * Tools -> Media "file missing" filter and the "delete all missing" action.
      *
      * @return int[]
      *
@@ -385,7 +531,7 @@ class MediaHelper
     }
 
     /**
-     * Every media path tracked in #__alfa_media — both `path` and `thumbnail`,
+     * Every media path tracked in #__alfa_media: both `path` and `thumbnail`,
      * keyed by relative path for O(1) lookup. Including the thumbnail column
      * ensures generated thumbnails are never treated as untracked.
      *
@@ -420,7 +566,7 @@ class MediaHelper
 
     /**
      * Walk the upload root and return every file that has NO row in
-     * #__alfa_media (neither as a path nor a thumbnail) — leftovers from aborted
+     * #__alfa_media (neither as a path nor a thumbnail): leftovers from aborted
      * uploads, manual copies, or records deleted without their files.
      *
      * @return object[] Each: { path (relative), size (int bytes), mtime (int) }.
@@ -468,7 +614,7 @@ class MediaHelper
     /**
      * Delete the given untracked files from disk. Each path is validated to be
      * inside the upload root (blocks traversal) and confirmed still untracked
-     * before removal — a file referenced by any media row is never deleted.
+     * before removal; a file referenced by any media row is never deleted.
      *
      * @param string[] $relativePaths Relative paths (as listed by findUntrackedFiles()).
      *
@@ -508,7 +654,7 @@ class MediaHelper
                 File::delete($absolute);
                 $deleted++;
             } catch (Throwable $e) {
-                // Best-effort — a locked/removed file must not abort the batch.
+                // Best-effort: a locked/removed file must not abort the batch.
             }
         }
 
@@ -547,12 +693,6 @@ class MediaHelper
         $urlDefaultThumbnail = trim($params->get('media_url_thumbnail', ''));
         $allowedMimes = self::resolveAllowedMimes($params->get('media_mime'));
 
-        // Main-image format/quality/dimensions are no longer a component concern —
-        // those settings now live per-context in the optimizer plugin. The
-        // destination filename keeps the source extension unless a plugin rewrites
-        // it (via the event's finalPath).
-        $outputFormat = '';
-
         $dropIndex = 0;
         $ordering = 0;
 
@@ -577,9 +717,7 @@ class MediaHelper
                 );
             }
 
-            // -------------------------------------------------------
-            // NEW MEDIA
-            // -------------------------------------------------------
+            // New media
             if ($isNew) {
                 $src = '';
                 $nameForFile = '';
@@ -590,46 +728,113 @@ class MediaHelper
                     if (isset($droppedMedia[$dropIndex])) {
                         $file = $droppedMedia[$dropIndex];
 
-                        // If "Don't convert" is enabled from config, keep the original file extension
-                        if (empty($outputFormat)) {
-                            $outputFormat = explode('/', $droppedMedia[$dropIndex]['type'])[1];
-                        }
-
                         $noError = $file['error'] === 0;
 
                         $dropIndex++; //keep track of the ordering sequence
                         if ($noError) {
-                            $src = $file['tmp_name'];
+                            // Authoritative server-side check: the stored extension is
+                            // derived from the file's real magic bytes (NOT the client
+                            // MIME), and anything that is not an allowed image is rejected.
+                            $safeExtension = self::validatedImageExtension($file['tmp_name'], $allowedMimes);
 
-                            // Prevent errors and overwrites by setting a unique file name if it already exists in the directory
-                            $nameForFile = self::getUniqueFilename(
-                                name:           $file['name'],
-                                basePath:       $absolutePath,
-                                outputFormat:   $outputFormat,
-                            );
+                            if ($safeExtension === null) {
+                                Factory::getApplication()->enqueueMessage(
+                                    Text::sprintf('COM_ALFA_MEDIA_ERROR_INVALID_IMAGE', $file['name']),
+                                    'error',
+                                );
+                            } else {
+                                $src = $file['tmp_name'];
+
+                                // Prevent errors and overwrites by setting a unique file name if it already exists in the directory
+                                $nameForFile = self::getUniqueFilename(
+                                    name:           $file['name'],
+                                    basePath:       $absolutePath,
+                                    outputFormat:   $safeExtension,
+                                );
+                            }
                         }
                     }
                 } elseif ($isPicker) { // Joomla Media Picker Handler
                     $cleanPath = HTMLHelper::cleanImageURL($media['source']);
                     $cleanPath = str_replace('picker://', '', $cleanPath->url);
 
-                    $src = JPATH_ROOT . '/' . $cleanPath;
+                    // Containment: the resolved file must sit inside one of the
+                    // media roots, not merely inside the web root: a picker path
+                    // is only ever produced by the media manager, so anything
+                    // outside those roots is forged, and scoping this way stops an
+                    // API caller referencing (and copying) images from
+                    // administrator/ or any other non-media folder.
+                    // BOTH com_media roots count: file_path and image_path are
+                    // configured separately and are NOT interchangeable (this very
+                    // site runs file_path=files while its images live under
+                    // images/), plus com_alfa's own save folder.
+                    $realSrc = realpath(JPATH_ROOT . '/' . $cleanPath);
+                    $withinRoot = false;
 
-                    // Keep the original file extension; a plugin may convert it.
-                    if (empty($outputFormat)) {
-                        $outputFormat = pathinfo($cleanPath)['extension'];
+                    if ($realSrc !== false) {
+                        $mediaParams = ComponentHelper::getParams('com_media');
+
+                        foreach (
+                            [
+                                $mediaParams->get('file_path', 'images'),
+                                $mediaParams->get('image_path', 'images'),
+                                $saveFolder,
+                            ] as $candidate
+                        ) {
+                            $candidate = trim((string) $candidate, '/');
+
+                            if ($candidate === '') {
+                                continue;
+                            }
+
+                            $rootReal = realpath(JPATH_ROOT . '/' . $candidate);
+
+                            if ($rootReal !== false && str_starts_with($realSrc, $rootReal . \DIRECTORY_SEPARATOR)) {
+                                $withinRoot = true;
+                                break;
+                            }
+                        }
                     }
 
-                    $nameForFile = self::getUniqueFilename(
-                        name:           $cleanPath,
-                        basePath:       $absolutePath,
-                        outputFormat:   $outputFormat,
-                    );
+                    // Same authoritative image check as the drop path; the stored
+                    // extension comes from the real MIME, never the picked path.
+                    $safeExtension = $withinRoot
+                        ? self::validatedImageExtension($realSrc, $allowedMimes)
+                        : null;
+
+                    if ($safeExtension === null) {
+                        Factory::getApplication()->enqueueMessage(
+                            Text::sprintf('COM_ALFA_MEDIA_ERROR_INVALID_IMAGE', basename($cleanPath)),
+                            'error',
+                        );
+                    } else {
+                        $src = $realSrc;
+
+                        $nameForFile = self::getUniqueFilename(
+                            name:           $cleanPath,
+                            basePath:       $absolutePath,
+                            outputFormat:   $safeExtension,
+                        );
+                    }
                 }
 
                 // PREPARE OBJECT FOR INSERT ON MEDIA TABLE
                 $insertObject = null;
                 if ($isUrl) { // URL HANDLER
+                    // The stored path is rendered straight into src/href, so only
+                    // real remote image schemes may be persisted. Without this a
+                    // javascript:/data:/file: source becomes stored XSS (the
+                    // scheme check in MediaController::validateUrl guards only the
+                    // AJAX preview endpoint, which API writes never reach).
+                    if (!self::isSafeRemoteUrl((string) ($media['source'] ?? ''))) {
+                        Factory::getApplication()->enqueueMessage(
+                            Text::sprintf('COM_ALFA_MEDIA_ERROR_INVALID_IMAGE', (string) ($media['source'] ?? '')),
+                            'error',
+                        );
+                        $ordering++;
+                        continue;
+                    }
+
                     $insertObject = (object) [
                         'item_id' => $itemId,
                         'path' => $media['source'],
@@ -662,7 +867,7 @@ class MediaHelper
                         }
 
                         // Hand processing to the plugin layer. The main-image event
-                        // carries NO format/quality/dimensions — the plugin reads its
+                        // carries NO format/quality/dimensions; the plugin reads its
                         // own per-context settings. If no plugin handles the image it
                         // is stored AS-IS with an empty dominant colour.
                         $result = self::dispatchProcess(
@@ -681,7 +886,7 @@ class MediaHelper
                         $storeOk = true;
 
                         if (!$result['processed']) {
-                            // No plugin processed the image → store the original unchanged.
+                            // No plugin processed the image -> store the original unchanged.
                             try {
                                 File::copy($src, $dest);
                             } catch (Throwable $e) {
@@ -738,9 +943,7 @@ class MediaHelper
                 }
             }
 
-            // -------------------------------------------------------
-            // EXISTING MEDIA
-            // -------------------------------------------------------
+            // Existing media
             else {
                 $toDelete = isset($media['delete']) && $media['delete'] == 1;
                 $isFullDelete = (bool) $params->get('media_full_deletion', 1);
@@ -750,19 +953,31 @@ class MediaHelper
                     if ($isFullDelete) {
                         // Fetch the main image path associated with this thumbnail before deleting
                         $query = $db->getQuery(true)
-                            ->select('path, thumbnail')
+                            ->select($db->quoteName(['path', 'thumbnail']))
                             ->from($db->quoteName('#__alfa_media'))
-                            ->where($db->quoteName('id') . ' = ' . $db->quote($id));
+                            ->where($db->quoteName('id') . ' = ' . (int) $id);
 
                         $db->setQuery($query);
                         $result = $db->loadObject();
 
-                        // Remove both thumbnail and main image from server
-                        $resultArray = [$result->path, $result->thumbnail];
+                        // Remove both thumbnail and main image, but only files that
+                        // actually resolve inside the media folder: a tampered path
+                        // column can never lead a delete outside it.
+                        if ($result) {
+                            $mediaRoot = realpath($absolutePath);
 
-                        foreach ($resultArray as $path) {
-                            if ($path && file_exists(JPATH_ROOT . '/' . $path)) {
-                                File::delete(JPATH_ROOT . '/' . $path);
+                            foreach ([$result->path, $result->thumbnail] as $path) {
+                                if (!$path) {
+                                    continue;
+                                }
+
+                                $real = realpath(JPATH_ROOT . '/' . ltrim($path, '/'));
+
+                                if ($real !== false
+                                    && $mediaRoot !== false
+                                    && str_starts_with($real, $mediaRoot . \DIRECTORY_SEPARATOR)) {
+                                    File::delete($real);
+                                }
                             }
                         }
                     }
@@ -779,14 +994,23 @@ class MediaHelper
                         return true;
                     }
                 } else {
-                    // Update ordering, alt text, and thumbnail for existing records
+                    // Update ordering, alt text and thumbnail for existing records.
+                    // The stored file path is immutable and is never taken from the
+                    // client here; only an external URL may be re-pointed.
                     $obj = (object) [
                         'id' => (int) $id,
-                        'path' => ltrim($media['source'], '/'),
                         'alt' => $media['alt'],
                         'ordering' => $ordering,
                         'thumbnail' => $finalThumbnail,
                     ];
+
+                    // Allow re-pointing a type=url record to another http/https URL
+                    // only, never a local filesystem path.
+                    $source = $media['source'] ?? '';
+                    if (($media['type'] ?? '') === 'url'
+                        && (str_starts_with($source, 'http://') || str_starts_with($source, 'https://'))) {
+                        $obj->path = $source;
+                    }
 
                     $db->updateObject('#__alfa_media', $obj, 'id');
                 }
@@ -815,7 +1039,7 @@ class MediaHelper
     private static function processThumbnail(string $rawThumbnail, string $defaultThumbPath, string $absolutePath, string $saveFolder, object $params): string
     {
         // Thumbnail SIZE is a component concern (a thumbnail must never be the
-        // full image). FORMAT/QUALITY are plugin concerns — applied only when a
+        // full image). FORMAT/QUALITY are plugin concerns, applied only when a
         // plugin handles the event; otherwise the always-on baseline resize runs.
         $thumbnailWidth = (int) $params->get('media_thumbnail_width', 200);
         $thumbnailHeight = (int) $params->get('media_thumbnail_height', 200);
@@ -830,14 +1054,29 @@ class MediaHelper
             return '';
         }
 
-        // Already processed — return as-is to avoid re-generating on subsequent saves
+        // Already processed: return as-is to avoid re-generating on subsequent saves
         if (str_starts_with($cleanThumb, $saveFolder)) {
             if (file_exists(JPATH_ROOT . '/' . $cleanThumb)) {
                 return $cleanThumb;
             }
         }
 
+        // Containment: the source is a client-supplied relative path, so it must
+        // resolve INSIDE the site root: a crafted "../.." must never let an
+        // arbitrary file be read and re-saved as a "thumbnail".
         $sourcePath = JPATH_ROOT . '/' . $cleanThumb;
+        $sourceReal = realpath($sourcePath);
+        $rootReal = realpath(JPATH_ROOT);
+
+        if (
+            str_contains($cleanThumb, '..')
+            || $sourceReal === false
+            || $rootReal === false
+            || !str_starts_with($sourceReal, $rootReal . DIRECTORY_SEPARATOR)
+        ) {
+            return '';
+        }
+
         $baseName = pathinfo($cleanThumb, PATHINFO_FILENAME); // Handle cases where there's no extension (e.g., "README")
 
         // Keep the source extension for the thumbnail; a plugin may convert it.
@@ -866,11 +1105,11 @@ class MediaHelper
         );
 
         if ($result['processed']) {
-            // Plugin resized/converted it — use the path it actually wrote.
+            // Plugin resized/converted it; use the path it actually wrote.
             return ltrim(str_replace(JPATH_ROOT . '/', '', $result['dest']), '/');
         }
 
-        // No plugin → always-on baseline resize so the thumbnail is never the
+        // No plugin -> always-on baseline resize so the thumbnail is never the
         // full image. Falls back to a plain copy only if GD resize fails.
         if (!self::resizeThumbnail($sourcePath, $destPath, $thumbnailWidth, $thumbnailHeight)) {
             try {
@@ -902,7 +1141,7 @@ class MediaHelper
     ): string {
         $name = OutputFilter::stringURLSafe(pathinfo($name, PATHINFO_FILENAME));
 
-        // Append suffix if provided (e.g., 'thumb' → 'my-article-thumb')
+        // Append suffix if provided (e.g., 'thumb' -> 'my-article-thumb')
         if (!empty($suffix)) {
             $name .= '-' . OutputFilter::stringURLSafe($suffix);
         }
@@ -927,12 +1166,9 @@ class MediaHelper
      */
     public static function getMediaData(string $origin, int|array|null $itemIDs, $usePlaceHolder = false): array
     {
-        // 1. Config
-        $params = ComponentHelper::getParams('com_alfa');
-        $placeholderPath = trim($params->get('media_placeholder', ''));
-        $urlThumbnailPath = trim($params->get('media_url_thumbnail', ''));
+        static $cache = [];
 
-        // 2. Normalize input
+        // 1. Normalize input
         $single = !is_array($itemIDs);
         $itemIDs = array_map('intval', (array) $itemIDs);
 
@@ -940,7 +1176,21 @@ class MediaHelper
             return [];
         }
 
-        // 3. Query
+        // 2. Request-level memo: the same (origin, items) is fetched several times
+        // per page (product render + cart + listing); media is read-only here.
+        sort($itemIDs);
+        $cacheKey = $origin . '|' . implode(',', $itemIDs) . '|' . (int) $usePlaceHolder . '|' . (int) $single;
+
+        if (isset($cache[$cacheKey])) {
+            return $cache[$cacheKey];
+        }
+
+        // 3. Config
+        $params = ComponentHelper::getParams('com_alfa');
+        $placeholderPath = trim($params->get('media_placeholder', ''));
+        $urlThumbnailPath = trim($params->get('media_url_thumbnail', ''));
+
+        // 4. Query
         $db = Factory::getContainer()->get('DatabaseDriver');
         $query = $db->getQuery(true)
             ->select('*')
@@ -962,11 +1212,11 @@ class MediaHelper
                 ), '/');
             }
 
-            // THEN clean both paths for output (relative — kept for storage / admin
+            // THEN clean both paths for output (relative, kept for storage / admin
             // round-trip / server-side file ops).
             $result->path = ltrim($result->path, '/');
 
-            // Display URLs (absolute) for templates — never mutate the relative path.
+            // Display URLs (absolute) for templates; never mutate the relative path.
             $result->url = self::toUrl($result->path);
             $result->thumbnail_url = self::toUrl($result->thumbnail);
 
@@ -981,14 +1231,15 @@ class MediaHelper
         // 6. Return
         if ($single) {
             $firstGroup = reset($grouped) ?: [];
-            return !empty($firstGroup) ? $firstGroup : ($placeholder ? [$placeholder] : []);
+
+            return $cache[$cacheKey] = !empty($firstGroup) ? $firstGroup : ($placeholder ? [$placeholder] : []);
         }
 
         if ($placeholder) {
             $grouped += array_fill_keys($itemIDs, [$placeholder]);
         }
 
-        return $grouped;
+        return $cache[$cacheKey] = $grouped;
     }
 
     /**
@@ -1046,7 +1297,7 @@ class MediaHelper
 
     /**
      * Compute the dominant (average) colour of an image file as an rgb(r,g,b)
-     * string. This is a CORE component concern — the value populates the
+     * string. This is a CORE component concern: the value populates the
      * `color` column on #__alfa_media and is used as the image-load placeholder
      * regardless of whether the optimizer plugin is installed. It must always be
      * computed from the FINAL stored file (whether the plugin optimised it or it
@@ -1054,7 +1305,7 @@ class MediaHelper
      *
      * Samples every 10th pixel for speed (same logic that previously lived in
      * the processing engine). Returns '' when the file is missing/unreadable or
-     * the server lacks the GD loader for the file's format — the column then
+     * the server lacks the GD loader for the file's format; the column then
      * stays empty rather than blocking the save.
      *
      * @param string $imagePath Absolute path of the final image file.
@@ -1123,14 +1374,14 @@ class MediaHelper
     }
 
     /**
-     * Baseline thumbnail resize — the always-on component fallback used when no
+     * Baseline thumbnail resize: the always-on component fallback used when no
      * optimizer plugin handles {@see onAlfaMediaThumbnail}. Scales the source to
-     * FIT inside ($maxW × $maxH) preserving aspect ratio, and writes it in the
-     * SAME format as the source (no conversion, no fancy compression — that is
+     * FIT inside ($maxW x $maxH) preserving aspect ratio, and writes it in the
+     * SAME format as the source (no conversion, no fancy compression; that is
      * the plugin's job). This guarantees a thumbnail is never the full image.
      *
      * Returns false when the file is missing/unreadable, the server lacks the GD
-     * loader/encoder for the format, or the write fails — the caller then copies
+     * loader/encoder for the format, or the write fails; the caller then copies
      * the original as a last resort.
      *
      * @param string $src Absolute source image path.
@@ -1223,8 +1474,6 @@ class MediaHelper
      */
     private static function dispatchValidate(string $source, string $origin, string $field, array $allowedMimes): bool
     {
-        PluginHelper::importPlugin('alfa-media');
-
         $event = new ValidateEvent('onAlfaMediaValidate', [
             'source' => $source,
             'origin' => $origin,
@@ -1232,7 +1481,7 @@ class MediaHelper
             'allowedMimes' => $allowedMimes,
         ]);
 
-        Factory::getApplication()->getDispatcher()->dispatch($event->getName(), $event);
+        self::dispatchMedia($event);
 
         if (!$event->isValid()) {
             $error = $event->getError();
@@ -1254,11 +1503,11 @@ class MediaHelper
      * The component performs NO processing itself: a plugin resizes/converts
      * source -> dest and sets processed=true. When no plugin handles the file,
      * processed stays false, and the caller stores the original unchanged. The
-     * dominant colour is NOT part of this contract — the component always
+     * dominant colour is NOT part of this contract; the component always
      * computes it from the final file via {@see self::dominantColor()}.
      *
      * The main-image path (onAlfaMediaBeforeProcess) carries NO
-     * format/quality/dimensions — the plugin reads its own per-context settings.
+     * format/quality/dimensions; the plugin reads its own per-context settings.
      * The thumbnail path (onAlfaMediaThumbnail) carries the component's thumbnail
      * maxWidth/maxHeight (component owns thumbnail SIZE), and the plugin applies
      * its own FORMAT/QUALITY.
@@ -1286,8 +1535,6 @@ class MediaHelper
         int $maxWidth = 0,
         int $maxHeight = 0,
     ): array {
-        PluginHelper::importPlugin('alfa-media');
-
         $arguments = [
             'source' => $source,
             'dest' => $dest,
@@ -1304,7 +1551,7 @@ class MediaHelper
             ? new ThumbnailEvent($eventName, $arguments)
             : new BeforeProcessEvent($eventName, $arguments);
 
-        Factory::getApplication()->getDispatcher()->dispatch($event->getName(), $event);
+        self::dispatchMedia($event);
 
         return [
             // getFinalPath() falls back to the proposed dest when the plugin
@@ -1329,8 +1576,6 @@ class MediaHelper
      */
     private static function dispatchAfterProcess(string $source, string $dest, string $origin, string $field, string $color, bool $processed): void
     {
-        PluginHelper::importPlugin('alfa-media');
-
         $event = new AfterProcessEvent('onAlfaMediaAfterProcess', [
             'source' => $source,
             'dest' => $dest,
@@ -1340,7 +1585,7 @@ class MediaHelper
             'processed' => $processed,
         ]);
 
-        Factory::getApplication()->getDispatcher()->dispatch($event->getName(), $event);
+        self::dispatchMedia($event);
     }
 
     /**
@@ -1357,8 +1602,6 @@ class MediaHelper
         if (empty($rows)) {
             return;
         }
-
-        PluginHelper::importPlugin('alfa-media');
 
         $paths = [];
 
@@ -1377,6 +1620,54 @@ class MediaHelper
             'paths' => $paths,
         ]);
 
-        Factory::getApplication()->getDispatcher()->dispatch($event->getName(), $event);
+        self::dispatchMedia($event);
+    }
+
+    /**
+     * Hand one media event to every enabled alfa-media plugin, and to no one else.
+     *
+     * WHY NOT THE APPLICATION DISPATCHER. importPlugin('alfa-media') followed by a dispatch on
+     * Factory::getApplication()->getDispatcher() reached far more than alfa-media: the `alfa`
+     * platform group is already registered on that same dispatcher by AlfaComponent::boot(), so
+     * platform plugins received media events by accident: inside a com_alfa request, and not
+     * outside one. That is not a contract anyone could rely on, in either direction.
+     *
+     * A private dispatcher would scope it, but PluginHelper::import() REBINDS a cached legacy
+     * CMSPlugin's dispatcher to whichever one it was imported with, for the rest of the request,
+     * so scoping one call can silently mute a plugin's own later dispatches. Booting and calling
+     * directly, exactly as PanelDispatcher and AlfaAdminDispatcher do, cannot rebind anything.
+     *
+     * The same event instance travels through every plugin in turn, so isValid(), getFinalPath()
+     * and isProcessed() accumulate across them just as they did on the shared dispatcher.
+     *
+     * @param AbstractEvent $event The media event.
+     *
+     * @return AbstractEvent The same event, after every listener has (maybe) mutated it.
+     *
+     * @since  1.8.0
+     */
+    private static function dispatchMedia(AbstractEvent $event): AbstractEvent
+    {
+        $app = Factory::getApplication();
+        $method = $event->getName();
+
+        foreach (PluginHelper::getPlugin(self::MEDIA_GROUP) as $descriptor) {
+            try {
+                $plugin = $app->bootPlugin($descriptor->name, self::MEDIA_GROUP);
+
+                if (method_exists($plugin, $method)) {
+                    $plugin->$method($event);
+                }
+            } catch (Throwable $e) {
+                Log::add(
+                    'MediaHelper: ' . self::MEDIA_GROUP . '/' . $descriptor->name . ' - ' . $method
+                        . ' - ' . $e->getMessage(),
+                    Log::WARNING,
+                    'com_alfa.media',
+                );
+            }
+        }
+
+        return $event;
     }
 }

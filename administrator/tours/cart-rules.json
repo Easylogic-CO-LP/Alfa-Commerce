@@ -1,0 +1,175 @@
+{
+    "uid": "com_alfa.cart-rules",
+    "version": 4,
+    "ordering": 190,
+    "title": "COM_ALFA_GUIDEDTOUR_CART_RULES_TITLE",
+    "description": "COM_ALFA_GUIDEDTOUR_CART_RULES_DESC",
+    "extensions": [
+        "com_alfa"
+    ],
+    "url": "administrator/index.php?option=com_alfa&view=cartrules",
+    "autostart": false,
+    "steps": [
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_1_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_1_DESC",
+            "position": "bottom",
+            "target": "",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=cartrules"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_2_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_2_DESC",
+            "position": "right",
+            "target": "#sidebarmenu a[href*=\"option=com_alfa\"][href*=\"view=cartrules\"]",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=cartrules"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_3_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_3_DESC",
+            "position": "bottom",
+            "target": ".button-new",
+            "type": 2,
+            "url": "administrator/index.php?option=com_alfa&view=cartrules",
+            "interactive_type": 1
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_4_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_4_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has([id^=\"jform_name_el\"]), .control-group:not(.hidden):has([id^=\"jform_name_\"])",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=cartrule&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_5_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_5_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has([id^=\"jform_name_customer_\"])",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=cartrule&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_6_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_6_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_code), #jform_code",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=cartrule&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_7_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_7_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_discount_class), #jform_discount_class",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=cartrule&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_8_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_8_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_action), #jform_action",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=cartrule&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_9_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_9_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_action_value), #jform_action_value",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=cartrule&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_10_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_10_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_max_discount_amount), #jform_max_discount_amount",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=cartrule&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_11_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_11_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_discount_base), #jform_discount_base",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=cartrule&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_12_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_12_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_exclude_discounted), #jform_exclude_discounted",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=cartrule&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_13_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_13_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_combines_product), .control-group:not(.hidden):has(#jform_combines_order), .control-group:not(.hidden):has(#jform_combines_shipping)",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=cartrule&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_14_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_14_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_priority), #jform_priority",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=cartrule&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_15_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_15_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_usage_limit_total), #jform_usage_limit_total",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=cartrule&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_16_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_16_DESC",
+            "position": "top",
+            "target": ".control-group:not(.hidden):has(#jform_allowedUserGroups), #jform_allowedUserGroups",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=cartrule&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_17_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_17_DESC",
+            "position": "bottom",
+            "target": "joomla-tab#cartruleTab button[aria-controls=\"conditions\"]",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=cartrule&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_18_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_18_DESC",
+            "position": "top",
+            "target": ".control-group:not(.hidden):has(#jform_min_amount), #jform_min_amount",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=cartrule&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_19_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_19_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_publish_up), #jform_publish_up",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=cartrule&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_20_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_20_DESC",
+            "position": "bottom",
+            "target": "#toolbar",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=cartrule&layout=edit"
+        }
+    ]
+}

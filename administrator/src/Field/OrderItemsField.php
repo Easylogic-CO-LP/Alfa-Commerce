@@ -8,36 +8,38 @@
  */
 
 /**
- * OrderItemsField — Configurable multi-select of order items
+ * OrderItemsField: Configurable multi-select of order items
  *
  * A reusable field that shows order items filtered by a nullable FK column.
- * Configuration is entirely driven by XML attributes — the field itself
+ * Configuration is entirely driven by XML attributes; the field itself
  * knows nothing about shipments, payments, or any specific entity.
  *
  * XML attributes:
  *   input_id        Which URL param holds the order ID     (default: "id_order")
  *   entity_id       Which URL param holds the entity PK    (default: "id")
  *   assign_column   The FK column on order_items to filter  (default: none = show all)
- *   show_quantity   Show "×N" after item name              (default: "true")
+ *   assign_mode     "shipment" = availability comes from the shipment-items
+ *                   join table and counts UNITS, not lines (default: none)
+ *   show_quantity   Show "xN" after item name              (default: "true")
  *   show_sku        Show SKU in brackets after name        (default: "false")
  *
  * Usage examples:
  *
- *   <!-- Shipment: filter by id_order_shipment -->
+ *   <!-- Shipment: units still unshipped, plus whatever this parcel holds -->
  *   <field name="items" type="orderItems"
  *          input_id="id_order"
  *          entity_id="id"
- *          assign_column="id_order_shipment"
+ *          assign_mode="shipment"
  *          multiple="true"
  *          label="COM_ALFA_SHIPMENT_ITEMS" />
  *
- *   <!-- Refund: filter by id_refund -->
- *   <field name="refund_items" type="orderItems"
+ *   <!-- Plain FK: show items whose column is empty or points at this entity -->
+ *   <field name="some_items" type="orderItems"
  *          input_id="id_order"
  *          entity_id="id"
- *          assign_column="id_refund"
+ *          assign_column="id_some_entity"
  *          multiple="true"
- *          label="COM_ALFA_REFUND_ITEMS" />
+ *          label="COM_ALFA_SOME_ITEMS" />
  *
  *   <!-- No filter: show ALL order items (e.g. invoice) -->
  *   <field name="invoice_items" type="orderItems"
@@ -52,6 +54,8 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Service\Order\ShipmentLedger;
 use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Field\ListField;
@@ -84,6 +88,7 @@ class OrderItemsField extends ListField
         $orderIdParam = $this->getAttribute('input_id', 'id_order');
         $entityIdParam = $this->getAttribute('entity_id', 'id');
         $assignColumn = $this->getAttribute('assign_column', '');
+        $assignMode = $this->getAttribute('assign_mode', '');
         $showQuantity = $this->getAttribute('show_quantity', 'true') === 'true';
         $showSku = $this->getAttribute('show_sku', 'false') === 'true';
 
@@ -94,13 +99,19 @@ class OrderItemsField extends ListField
             return $options;
         }
 
+        // Shipments count UNITS: a line stays on offer while any of it is
+        // still unshipped, so the same line can be added to a second parcel.
+        if ($assignMode === 'shipment') {
+            return $this->getShipmentOptions($options, $orderId, $entityId, $showQuantity, $showSku);
+        }
+
         try {
             $db = Factory::getContainer()->get('DatabaseDriver');
 
             // Select columns needed for display
             $columns = ['id', 'name', 'quantity'];
             if ($showSku) {
-                $columns[] = 'reference';
+                $columns[] = 'sku';
             }
             if (!empty($assignColumn)) {
                 $columns[] = $db->qn($assignColumn);
@@ -125,7 +136,7 @@ class OrderItemsField extends ListField
                     $query->where("({$qnCol} IS NULL OR {$qnCol} = 0)");
                 }
             }
-            // No assign_column → no filter → all items shown
+            // No assign_column -> no filter -> all items shown
 
             $query->order('id ASC');
             $db->setQuery($query);
@@ -134,8 +145,8 @@ class OrderItemsField extends ListField
             foreach ($items as $item) {
                 // Build display text
                 $text = $item->name;
-                if ($showSku && !empty($item->reference)) {
-                    $text .= ' [' . $item->reference . ']';
+                if ($showSku && !empty($item->sku)) {
+                    $text .= ' [' . $item->sku . ']';
                 }
                 if ($showQuantity) {
                     $text .= ' (×' . (int) $item->quantity . ')';
@@ -147,7 +158,80 @@ class OrderItemsField extends ListField
                 ];
             }
         } catch (Exception $e) {
-            // Silently fail — field shows no options
+            // Silently fail: field shows no options
+        }
+
+        return $options;
+    }
+
+    /**
+     * Options for a shipment parcel, counted in units.
+     *
+     * A line is on offer while ANY of it is still unshipped, so the same line
+     * can go on a second parcel; that is what makes "3 now, 2 Monday"
+     * expressible. When editing a parcel, the units it already holds are its
+     * own and are added back on top of what is free.
+     *
+     * The "xN" is what is AVAILABLE, not what was ordered, so the admin can
+     * see at a glance how much of the line is left.
+     *
+     * @param array $options Options built so far
+     * @param int $orderId Order PK
+     * @param int $shipmentId Parcel being edited (0 = new)
+     * @param bool $showQuantity Append the available quantity
+     * @param bool $showSku Append the SKU
+     *
+     * @return array Options for the select field
+     * @since  1.9.0
+     */
+    private function getShipmentOptions(
+        array $options,
+        int $orderId,
+        int $shipmentId,
+        bool $showQuantity,
+        bool $showSku,
+    ): array {
+        try {
+            // exceptShipmentId already sets THIS parcel's units aside, so what
+            // comes back is "free elsewhere, plus whatever this parcel holds"
+            // - do not add its own contents again, that double-counts them.
+            $available = ShipmentLedger::remainingQuantities(
+                orderId: $orderId,
+                exceptShipmentId: $shipmentId,
+            );
+
+            if (empty($available)) {
+                return $options;
+            }
+
+            $db = Factory::getContainer()->get('DatabaseDriver');
+            $query = $db->getQuery(true)
+                ->select([$db->qn('id'), $db->qn('name'), $db->qn('sku')])
+                ->from($db->qn('#__alfa_order_items'))
+                ->where($db->qn('id_order') . ' = ' . (int) $orderId)
+                ->whereIn($db->qn('id'), array_keys($available))
+                ->order($db->qn('id') . ' ASC');
+
+            $db->setQuery($query);
+
+            foreach ($db->loadObjectList() ?: [] as $item) {
+                $text = MultilingualHelper::resolveLangMap($item->name ?? '');
+
+                if ($showSku && !empty($item->sku)) {
+                    $text .= ' [' . $item->sku . ']';
+                }
+
+                if ($showQuantity) {
+                    $text .= ' (×' . (int) $available[(int) $item->id] . ')';
+                }
+
+                $options[] = (object) [
+                    'value' => (int) $item->id,
+                    'text' => $text,
+                ];
+            }
+        } catch (Exception $e) {
+            // Silently fail: field shows no options
         }
 
         return $options;

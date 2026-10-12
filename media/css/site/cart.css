@@ -1,33 +1,4 @@
 
-.cart-item-quantity-wrapper {
-    display: flex;
-    margin: 4px 0;
-}
-
-.cart-item-quantity {
-    width: 50px;
-    text-align: center;
-    border: 1px solid lightgray;
-    /* Hides the default spinner buttons in the input */
-    appearance: textfield;
-}
-
-.cart-item-quantity::-webkit-outer-spin-button,
-.cart-item-quantity::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-.cart-item-quantity-controls{
-    border: none;
-    width: 30px;
-    font-size: 1.5rem;
-    color: black;    
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
 
 .cart-item-remove{
     background: none;       /* Remove background */
@@ -48,7 +19,124 @@
 
 .cart-item-col-quantity{
     display: flex;
+    /* Remove drops under the spinner instead of overflowing the fixed-width column */
+    flex-wrap: wrap;
     align-items: center;
     justify-content: center;
     gap:8px;
+}
+
+/* Chosen configuration (variants / options / custom) listed under the line name */
+.cart-item-fields {
+    list-style: none;
+    margin: 6px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.cart-item-fields li {
+    font-size: 0.82rem;
+    line-height: 1.4;
+}
+
+.cart-item-field-label {
+    font-weight: 600;
+    color: var(--alfa-surface-color);
+}
+
+.cart-item-field-value {
+    color: var(--alfa-muted-color);
+}
+
+/* Edit sits under the name + configuration; inline-block .action keeps the mobile
+   stacked layout intact. */
+.com-alfa .cart-item-edit {
+    margin-top: 6px;
+}
+
+/* Checkout customer / payment-shipment columns: auto-responsive, NO media query
+   (collapses to one column on narrow screens), like .item-container. */
+.cart-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+/* Payment / shipment method blocks (replaces Bootstrap .mb-3). */
+.cart-methods {
+    margin-bottom: 1rem;
+}
+
+/* Method-list messages: a dropped choice, or nothing offered in this context.
+   Informational, not errors (the shopper has done nothing wrong), so they take the
+   info colour rather than sitting in body copy where they read as ordinary prose.
+   The rule already carried `currentColor` on its border, so colouring the text
+   colours the border with it. */
+.cart-methods-notice,
+.cart-methods-empty {
+    margin: 0 0 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-left: 3px solid currentColor;
+    color: var(--alfa-info-color);
+    font-size: 0.9375rem;
+}
+
+/* Cart page heading (replaces Bootstrap .text-center). */
+.cart-heading {
+    text-align: center;
+}
+
+/* Inline control rows (coupon, saved-info picker): structure only. */
+.cart-coupon-form,
+.cart-user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+}
+
+/* The coupon belongs to the totals block; align it under the Total. */
+.cart-coupon-form {
+    justify-content: flex-end;
+}
+
+.cart-coupon-form .form-control,
+.cart-user-info .form-select {
+    max-width: 280px;
+}
+
+.cart-invoice-toggle {
+    margin: 0.75rem 0;
+}
+
+.cart-invoice-toggle label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cart-user-info {
+    scroll-margin-top: 1rem;
+}
+
+/* Coupon remove: a token-protected POST rendered as a plain x affordance. */
+.cart-rule-remove-form {
+    display: inline;
+}
+
+.cart-rule-remove {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.6;
+}
+
+.cart-rule-remove:hover {
+    opacity: 1;
 }

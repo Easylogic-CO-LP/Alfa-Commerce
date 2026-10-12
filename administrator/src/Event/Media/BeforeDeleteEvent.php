@@ -9,14 +9,14 @@
  * Before-Delete Event (onAlfaMediaBeforeDelete)
  *
  * Cleanup hook fired before the component removes media rows/files, so a plugin
- * can purge generated derivatives. Notification only — no outputs.
+ * can purge generated derivatives. Notification only: no outputs.
  *
  * Extends AbstractImmutableEvent directly (not MediaEvent) because the delete
- * hook has no source/dest/origin/field — it carries the rows and their paths.
+ * hook has no source/dest/origin/field; it carries the rows and their paths.
  *
  * Input (set by the component, read by the plugin):
- *   $event->getRows()   → media rows about to be deleted ({path, thumbnail, …})
- *   $event->getPaths()  → flattened relative path strings of those rows
+ *   $event->getRows()   -> media rows about to be deleted ({path, thumbnail, ...})
+ *   $event->getPaths()  -> flattened relative path strings of those rows
  *
  * @since  1.0.0
  */
@@ -36,9 +36,7 @@ use Joomla\CMS\Event\AbstractImmutableEvent;
  */
 class BeforeDeleteEvent extends AbstractImmutableEvent
 {
-    // ═════════════════════════════════════════════════════════
-    //  INPUT — set by the component, read by the plugin (notification only)
-    // ═════════════════════════════════════════════════════════
+    //  INPUT: set by the component, read by the plugin (notification only)
 
     /**
      * Get the media rows about to be deleted.

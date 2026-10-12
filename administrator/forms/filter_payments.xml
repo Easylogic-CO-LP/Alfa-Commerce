@@ -2,7 +2,8 @@
 <form>
     <fields name="filter">
         <field name="search" type="text" description="COM_ALFA_SEARCH_FILTER_SUBMIT"
-               label="COM_USERS_FILTER_SEARCH_DESC"
+               label="COM_ALFA_FILTER_SEARCH_LABEL"
+               hint="COM_ALFA_PAYMENTS_SEARCH_PLACEHOLDER"
                class="js-stools-search-string"/>
 
         <field name="state"
@@ -31,8 +32,8 @@
             <option value="a.id DESC">COM_ALFA_ID_DESC</option>
             <option value="a.ordering ASC">COM_ALFA_ORDERING_ASC</option>
             <option value="a.ordering DESC">COM_ALFA_ORDERING_DESC</option>
-            <option value="a.name ASC">COM_ALFA_NAME_ASC</option>
-            <option value="a.name DESC">COM_ALFA_NAME_DESC</option>
+            <option value="name ASC">COM_ALFA_NAME_ASC</option>
+            <option value="name DESC">COM_ALFA_NAME_DESC</option>
             <option value="a.state ASC">COM_ALFA_STATE_ASC</option>
             <option value="a.state DESC">COM_ALFA_STATE_DESC</option>
         </field>

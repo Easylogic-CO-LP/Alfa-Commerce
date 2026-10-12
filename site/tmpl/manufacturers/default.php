@@ -10,7 +10,7 @@
 defined('_JEXEC') or die;
 
 use \Joomla\CMS\Language\Text;
-use \Joomla\CMS\Layout\LayoutHelper;
+use Alfa\Component\Alfa\Site\Helper\Layout;
 
 // Import CSS
 $wa = $this->document->getWebAssetManager();
@@ -18,7 +18,7 @@ $wa->useStyle('com_alfa.list');
 ?>
 
 <?php if ($this->showFilters): ?>
-<?php echo LayoutHelper::render('filter_form', ['view' => $this]); ?>
+<?php echo Layout::render('list.filter_form', ['view' => $this]); ?>
 <?php endif; ?>
 
 <section>
@@ -37,7 +37,7 @@ $wa->useStyle('com_alfa.list');
                     </div>
 
                     <div class="manufacturer-description">
-                        <?php echo $item->desc; // editor (HTML) field — output raw, not escaped ?>
+                        <?php echo $item->desc; // editor (HTML) field: output raw, not escaped ?>
                     </div>
                     <div class="manufacturer-products">
                         <a href="<?php echo $item->link; ?>">

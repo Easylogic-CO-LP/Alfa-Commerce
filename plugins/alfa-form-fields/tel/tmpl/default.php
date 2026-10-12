@@ -41,7 +41,7 @@ try {
     $util = PhoneNumberUtil::getInstance();
     $parsed = $util->parse($value, $region);
 
-    // tel: href is always E.164 — phone diallers require it unambiguous.
+    // tel: href is always E.164; phone diallers require it unambiguous.
     $href = $util->format($parsed, PhoneNumberFormat::E164);
 
     $text = match ($displayFormat) {

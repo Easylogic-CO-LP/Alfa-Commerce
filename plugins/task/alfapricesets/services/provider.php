@@ -1,0 +1,45 @@
+<?php
+
+/**
+ * @package    Alfa Commerce
+ * @author     Agamemnon Fakas <info@easylogic.gr>
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
+ */
+
+\defined('_JEXEC') or die;
+
+use Alfa\Plugin\Task\Alfapricesets\Extension\Alfapricesets;
+use Joomla\CMS\Extension\PluginInterface;
+use Joomla\CMS\Factory;
+use Joomla\CMS\Plugin\PluginHelper;
+use Joomla\DI\Container;
+use Joomla\DI\ServiceProviderInterface;
+use Joomla\Event\DispatcherInterface;
+
+return new class () implements ServiceProviderInterface {
+    /**
+     * Registers the service provider with a DI container.
+     *
+     * @param Container $container The DI container.
+     *
+     * @return void
+     *
+     * @since  1.14.0
+     */
+    public function register(Container $container)
+    {
+        $container->set(
+            PluginInterface::class,
+            function (Container $container) {
+                $plugin = new Alfapricesets(
+                    $container->get(DispatcherInterface::class),
+                    (array) PluginHelper::getPlugin('task', 'alfapricesets'),
+                );
+                $plugin->setApplication(Factory::getApplication());
+
+                return $plugin;
+            },
+        );
+    }
+};

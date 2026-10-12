@@ -3,7 +3,7 @@
 /**
  * Multi-select button group layout for alfa-form-fields/choice.
  *
- * Modelled on joomla.form.field.checkboxes — submits as name[]= so the
+ * Modelled on joomla.form.field.checkboxes: submits as name[]= so the
  * core CheckboxesField parent handles value coercion. We add the
  * data-min-selections / data-max-selections attrs that ChoiceRule
  * (server) and choice.js (client) both consume.

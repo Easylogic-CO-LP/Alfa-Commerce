@@ -1,10 +1,9 @@
 <?php
 /**
- * @version    1.0.1
- * @package    Com_Alfa
+ * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  2024 Easylogic CO LP
- * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
 // No direct access
@@ -15,7 +14,9 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\Session\Session;
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\Columns;
+use Alfa\Component\Alfa\Administrator\Helper\Actions;
 
 $wa = $this->getDocument()->getWebAssetManager();
 $wa->useStyle('com_alfa.admin')
@@ -25,15 +26,16 @@ $wa->useStyle('com_alfa.admin')
 $app       = Factory::getApplication();
 $user      = $this->getCurrentUser();
 $userId    = $user->id;
+$canEdit   = AlfaHelper::can(section: 'users', action: 'edit', user: $user);
 $listOrder = $this->escape($this->state->get('list.ordering'));
 $listDirn  = $this->escape($this->state->get('list.direction'));
-$orderName = 'a.ordering';
-$saveOrder = $listOrder == $orderName;
+// No manual ordering here on purpose: #__alfa_users has no ordering column, the
+// model keeps 'a.ordering' out of its filter_fields, and there is no saveOrderAjax
+// task, so the drag-and-drop this used to arm could never fire.
 
-if ($saveOrder && !empty($this->items)) {
-    $saveOrderingUrl = 'index.php?option=com_alfa&task=users.saveOrderAjax&tmpl=component&' . Session::getFormToken() . '=1';
-    HTMLHelper::_('draggablelist.draggable');
-}
+// Plugin-declared columns (onAlfaAdminListColumns). END-only folding: every
+// contributed column lands after the last core column, the table stays rectangular.
+$columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);
 ?>
 
 <form action="<?php echo Route::_('index.php?option=com_alfa&view=users'); ?>"
@@ -47,7 +49,8 @@ if ($saveOrder && !empty($this->items)) {
 
                 <?php echo LayoutHelper::render('joomla.searchtools.default', ['view' => $this]); ?>
 
-                <div class="clearfix"></div>
+                <div class="clearfix"></div><?php echo $this->renderSlot('before-grid'); ?><?php echo Actions::bulkBar($this->pluginBulkActions ?? []); ?>
+
 
                 <?php if (empty($this->items)) : ?>
                 	<div class="alert alert-info">
@@ -72,17 +75,11 @@ if ($saveOrder && !empty($this->items)) {
                             </th>
                             <th scope="col" class="w-3 d-none d-lg-table-cell">
                                 <?php echo HTMLHelper::_('searchtools.sort', 'JGRID_HEADING_ID', 'a.id', $listDirn, $listOrder); ?>
-                            </th>
+                            </th><?php echo Columns::heads($columnsByAnchor, Columns::END); ?><?php echo Actions::head($this->pluginRowActions ?? []); ?>
+
                         </tr>
                     </thead>
 
-                    <tfoot>
-                        <tr>
-                            <td colspan="5">
-                                <?php echo $this->pagination->getListFooter(); ?>
-                            </td>
-                        </tr>
-                    </tfoot>
 
                     <tbody>
                         <?php foreach ($this->items as $i => $item) :
@@ -91,10 +88,14 @@ if ($saveOrder && !empty($this->items)) {
                             <tr class="row<?php echo $i % 2; ?>">
 
                                 <td>
+                                    <?php if ($canEdit) : ?>
                                     <a href="<?php echo $editLink; ?>"
                                        title="<?php echo Text::_('JACTION_EDIT'); ?>">
                                         <?php echo $this->escape($item->username); ?>
                                     </a>
+                                    <?php else : ?>
+                                        <?php echo $this->escape($item->username); ?>
+                                    <?php endif; ?>
                                 </td>
 
                                 <td class="d-none d-md-table-cell">
@@ -104,7 +105,7 @@ if ($saveOrder && !empty($this->items)) {
                                 <td class="d-none d-md-table-cell">
                                     <?php echo $item->note !== ''
                                         ? $this->escape($item->note)
-                                        : '<span class="text-muted">—</span>'; ?>
+                                        : '<span class="text-muted">-</span>'; ?>
                                 </td>
 
                                 <td class="d-none d-lg-table-cell">
@@ -121,12 +122,15 @@ if ($saveOrder && !empty($this->items)) {
 
                                 <td class="d-none d-lg-table-cell">
                                     <?php echo (int) $item->id; ?>
-                                </td>
+                                </td><?php echo Columns::cells($columnsByAnchor, Columns::END, $item); ?><?php echo Actions::cell($this->pluginRowActions ?? [], $i, $item); ?>
+
 
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+
+                <?php echo $this->pagination->getListFooter(); ?>
                 <?php endif; ?>
 
                 <?php echo $this->filterForm->renderControlFields(); ?>

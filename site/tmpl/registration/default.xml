@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<metadata>
+    <layout title="COM_ALFA_TITLE_REGISTRATION_VIEW_REGISTRATION" option="View">
+        <message>
+            <![CDATA[COM_ALFA_TITLE_REGISTRATION_VIEW_REGISTRATION_DESC]]>
+        </message>
+    </layout>
+
+    <fields name="params">
+        <fieldset
+                name="layouts"
+                label="COM_ALFA_MENU_LAYOUTS_OPTIONS"
+                addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+
+            <field
+                    name="registration_layout"
+                    type="viewLayout"
+                    view="registration"
+                    inheritlabel="JGLOBAL_USE_GLOBAL"
+                    label="COM_ALFA_LAYOUT_REGISTRATION_LABEL"
+            />
+
+            <!-- The post-registration "complete" page is a flow state (like
+                 com_users' complete.php), intentionally not selectable; the
+                 note explains the file-override path. -->
+            <field
+                    name="registration_complete_note"
+                    type="note"
+                    label="COM_ALFA_LAYOUT_REGISTRATION_COMPLETE_NOTE_LABEL"
+                    description="COM_ALFA_LAYOUT_REGISTRATION_COMPLETE_NOTE"
+                    class="alert alert-info"
+            />
+        </fieldset>
+    </fields>
+</metadata>

@@ -73,12 +73,13 @@
                     label="COM_ALFA_FORM_LBL_MANUFACTURERS"
                     description="COM_ALFA_FORM_DESC_MANUFACTURERS"
                     layout="joomla.form.field.list-fancy-select"
-                    header="COM_ALFA_FORM_HEADER_ALL_MANUFACTURERS"
+                    header="COM_ALFA_FORM_MANUFACTURER_ALL"
             />
 
             <field name="places"
                    type="categories"
                    model="places"
+                   multiple="true"
                    showPath="false"
                    orderBy="id"
                    orderDir="desc"
@@ -97,9 +98,10 @@
                     layout="joomla.form.field.list-fancy-select"
                     multiple="true"
                     checksuperusergroup="1"
-                    default="8"
-                    header="COM_ALFA_FORM_HEADER_ALL_USERGROUPS"
-            />
+                    default="0"
+            >
+                <option value="0">COM_ALFA_FORM_USERGROUP_ALL</option>
+            </field>
 
             <field
                     name="users" type="sql"
@@ -113,12 +115,24 @@
             />
 
 
+            <field
+                    name="shipments" type="model"
+                    model="shipments"
+                    column_value="id"
+                    column_text="name"
+                    input_type="list"
+                    required="false"
+                    multiple="true"
+                    default="0"
+                    label="COM_ALFA_FORM_LBL_SHIPMENTS"
+                    description="COM_ALFA_FORM_DESC_SHIPMENTS"
+                    layout="joomla.form.field.list-fancy-select"
+                    header="COM_ALFA_FORM_SHIPMENT_ALL"
+            />
+
         </fieldset>
 
         <!-- TODO: currency -->
-
-
-        <!-- TODO: shipments -->
 
         <fieldset name="publish">
             <field name="state" default="1" type="list" label="JSTATUS" description="JFIELD_PUBLISHED_DESC"
@@ -166,7 +180,5 @@
         <field name="checked_out" type="hidden" filter="unset"/>
         <field name="checked_out_time" type="hidden" filter="unset"/>
 
-        <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL"
-               description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>
     </fieldset>
 </form>

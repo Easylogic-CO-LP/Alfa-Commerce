@@ -86,7 +86,7 @@ class ModelField extends ListField
 
         // Force populateState() to run before our setState() calls,
         // otherwise it fires later inside getItems() and overwrites them
-        // (especially list.limit, which falls back to the component default — 20).
+        // (especially list.limit, which falls back to the component default: 20).
         $model->getState('list.ordering');
 
         $model->setState('filter.state', '*');

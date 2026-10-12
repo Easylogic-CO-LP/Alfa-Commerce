@@ -31,23 +31,23 @@ use Joomla\Database\ParameterType;
  *
  * The stored value is the LayoutHelper id in dot notation
  * (e.g. "emails.order.default"). Unlike FieldLayoutField, no
- * "template:layout" split is needed: OrderEmailHelper renders through
+ * "template:layout" split is needed: EmailService renders through
  * LayoutHelper, which already resolves a template override of the same
- * id transparently. A template only needs to add a *new* file — that
+ * id transparently. A template only needs to add a *new* file; that
  * surfaces here as another "emails.order.<name>" option.
  *
  * `_`-prefixed files are skipped (private partials).
  *
  * Selecting a layout drives which position editors EmailPositionsField
- * shows — the positions the layout requests via $position()/$hasPosition()
- * (discovered by OrderEmailHelper::discoverPositions). See that field's getInput().
+ * shows: the positions the layout requests via $position()/$hasPosition()
+ * (discovered by EmailService::discoverPositions). See that field's getInput().
  *
  * @since  1.0.0
  */
 class OrderStatusEmailLayoutField extends FormField
 {
     /**
-     * Field type id — must match the filename and the XML `type`.
+     * Field type id: must match the filename and the XML `type`.
      *
      * @var string
      */
@@ -97,7 +97,7 @@ class OrderStatusEmailLayoutField extends FormField
         // content survives the reload.
         Factory::getApplication()->getDocument()->getWebAssetManager()
             ->useScript('com_alfa.admin-field-typehaschanged')
-            ->useScript('webcomponent.core-loader');
+            ->useScript('com_alfa.core-loader');
 
         $class = $this->element['class'] ? (string) $this->element['class'] : 'form-select';
         $attr = ' class="' . $class . '" onchange="Joomla.typeHasChanged(this);"';
@@ -116,7 +116,7 @@ class OrderStatusEmailLayoutField extends FormField
 
     /**
      * Return the layout basenames in a folder (no extension), skipping
-     * private (`_`-prefixed) files. Missing folder → empty list.
+     * private (`_`-prefixed) files. Missing folder -> empty list.
      *
      * @param string $dir Absolute path to the layouts/emails folder.
      *

@@ -28,10 +28,19 @@ class JsonApiView extends BaseApiView
      */
     protected $fieldsToRenderItem = [
         'id',
+        'name',
+        'code',
+        'number',
+        'symbol',
+        'decimal_place',
+        'decimal_separator',
+        'thousand_separator',
+        'format_pattern',
+        // currency_thousands / currency_positive_style / currency_negative_style
+        // are columns no code reads: never rendered, so the API does not
+        // publish values that can never take effect.
         'state',
         'ordering',
-        'code',
-        'name',
     ];
 
     /**
@@ -42,9 +51,15 @@ class JsonApiView extends BaseApiView
      */
     protected $fieldsToRenderList = [
         'id',
+        'name',
+        'code',
+        'number',
+        'symbol',
+        'decimal_place',
+        'decimal_separator',
+        'thousand_separator',
+        'format_pattern',
         'state',
         'ordering',
-        'code',
-        'name',
     ];
 }

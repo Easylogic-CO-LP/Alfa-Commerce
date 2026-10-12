@@ -26,8 +26,8 @@ use Joomla\Database\ParameterType;
  * Every enabled frontend template is scanned (client_id = 0). Selecting an
  * option stores the value in "template:layout" form, mirroring Joomla's
  * ComponentlayoutField convention:
- *   - "_:default"       — plugin's own tmpl/default.php (no template override)
- *   - "cassiopeia:foo"  — templates/cassiopeia/html/plg_alfa-form-fields_<type>/foo.php
+ *   - "_:default"       - plugin's own tmpl/default.php (no template override)
+ *   - "cassiopeia:foo"  - templates/cassiopeia/html/plg_alfa-form-fields_<type>/foo.php
  *
  * The runtime resolver splits on ":" to pick the right file for the field's
  * type. Falls back to "_:default" if the stored override no longer exists.
@@ -50,7 +50,7 @@ class FieldLayoutField extends FormField
     {
         $groups = [];
 
-        // Default group — empty value = "use default.php".
+        // Default group: empty value = "use default.php".
         $groups['default'] = [
             'id' => $this->id . '__default',
             'text' => Text::_('JOPTION_FROM_STANDARD'),
@@ -59,7 +59,7 @@ class FieldLayoutField extends FormField
             ],
         ];
 
-        // From Plugins — union across all alfa-form-fields plugin tmpl folders.
+        // From Plugins: union across all alfa-form-fields plugin tmpl folders.
         // Value format: "_:<layout>" to distinguish from template overrides.
         $pluginLayouts = [];
         foreach (glob(JPATH_PLUGINS . '/alfa-form-fields/*/tmpl/*.php') ?: [] as $file) {

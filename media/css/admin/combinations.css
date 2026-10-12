@@ -1,0 +1,677 @@
+/**
+ * Combination Studio: the variants workbench on the item edit screen.
+ *
+ * Aesthetic: precision operations console. Charcoal ink on the admin canvas,
+ * one warm gold hairline as the Alfa signature, tabular numerals for money,
+ * monospace for machine identities (signatures, SKUs), uppercase
+ * letter-spaced micro-captions. Calm surfaces, sharp 1px edges, no noise.
+ *
+ * Naming: only document-facing roots are namespaced (.alfa-combi-tools,
+ * .alfa-combinations, .alfa-studio and the :root design tokens). Everything
+ * else is scoped under a root, so inner names stay plain.
+ */
+
+:root {
+  --alfa-ink: var(--body-color, #1f2327);
+  --alfa-ink-soft: var(--secondary-color, #4a5158);
+  --alfa-line: var(--border-color, #d8dce1);
+  --alfa-line-soft: var(--border-color-translucent, #e8ebee);
+  --alfa-gold: #b3873a;
+  --alfa-gold-soft: #e7d9bd;
+  --alfa-paper: var(--card-bg, #fff);
+  --alfa-canvas: var(--tertiary-bg, #f6f7f8);
+  --alfa-mono: "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+/* Value pills: a checkbox wearing a chip costume */
+
+.alfa-combi-tools .value-pill {
+  position: relative;
+  display: inline-flex;
+}
+
+.alfa-combi-tools .value-pill input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.alfa-combi-tools .value-pill label {
+  padding: 0.22rem 0.75rem;
+  border: 1px solid var(--alfa-line);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  color: var(--alfa-ink-soft);
+  background: var(--alfa-paper);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin: 0;
+  user-select: none;
+}
+
+.alfa-combi-tools .value-pill input:checked + label {
+  border-color: var(--alfa-ink);
+  background: var(--alfa-ink);
+  color: var(--body-bg, #fff);
+}
+
+.alfa-combi-tools .value-pill input:focus-visible + label {
+  outline: 2px solid var(--alfa-gold);
+  outline-offset: 1px;
+}
+
+/* Drag handle inside a picker pill. The pill is itself a big checkbox (the input
+   covers it), so the handle sits at the far left and the input starts AFTER it,
+   leaving the handle clickable/draggable while the rest still toggles. */
+.alfa-combi-tools .value-pill {
+  padding-left: 1.15rem;
+}
+
+.alfa-combi-tools .value-pill input {
+  left: 1.15rem;
+}
+
+.alfa-combi-tools .value-pill .pill-drag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  display: inline-flex;
+  align-items: center;
+  z-index: 2;
+  cursor: grab;
+  color: var(--secondary-color, #9aa0a6);
+  font-size: 0.72rem;
+}
+
+.alfa-combi-tools .value-pill .pill-drag:active {
+  cursor: grabbing;
+}
+
+.alfa-combi-tools .value-pill.sortable-chosen label {
+  border-color: var(--alfa-gold);
+}
+
+/* Breathing room inside the lazy popups (generator / options / informational). */
+.modal-body .alfa-combi-tools {
+  padding: 12px;
+}
+
+/* Combinations grid: slim rows + chips */
+
+.alfa-combinations td {
+  vertical-align: middle;
+}
+
+.alfa-combinations .variant-label {
+  font-weight: 600;
+  color: var(--alfa-ink);
+}
+
+.alfa-combinations .signature {
+  font-family: var(--alfa-mono);
+  font-size: 0.7rem;
+  color: var(--alfa-ink-soft);
+  letter-spacing: 0.03em;
+}
+
+/* Name column: collapsed to the default content language so a row stays one
+ * line high. The other languages sit in the DOM already; editing the cell
+ * reveals them (:focus-within), and a row that arrived with a secondary-language
+ * override is pinned open by [data-expanded]. No JS, no generated markup. */
+.alfa-combinations .variant-name .ml-field-item.is-secondary {
+  display: none;
+}
+
+.alfa-combinations .variant-name:focus-within .ml-field-item.is-secondary,
+.alfa-combinations .variant-name[data-expanded] .ml-field-item.is-secondary {
+  display: block;
+}
+
+/* Qualified by the element, because the admin template styles text inputs with
+ * a specificity a bare .form-control{width:100%} loses to, which left the box
+ * at its intrinsic ~179px while the flag, pinned to the WRAPPER's right edge,
+ * floated outside it. Same trap inline-edit.css documents. */
+.alfa-combinations .variant-name input.form-control {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+}
+
+.alfa-combinations .chip,
+.alfa-combi-tools .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.12rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--alfa-line);
+  background: var(--alfa-canvas);
+  font-size: 0.72rem;
+  color: var(--alfa-ink-soft);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.alfa-combinations .chip.is-set,
+.alfa-combi-tools .chip.is-set {
+  border-color: var(--alfa-gold);
+  background: var(--warning-bg-subtle, #fbf7ee);
+  color: var(--warning-text-emphasis, #7d5e23);
+}
+
+.alfa-combinations .chip.is-warning,
+.alfa-combi-tools .chip.is-warning {
+  border-color: #d9a40a;
+  background: var(--warning-bg-subtle, #fdf6e2);
+  color: var(--warning-text-emphasis, #8a6d08);
+}
+
+/* The Studio popup page (iframe, tmpl=component) */
+
+body:has(.alfa-studio) {
+  background: var(--alfa-paper);
+}
+
+.alfa-studio .studio-body {
+  padding: 0;
+}
+
+/* Tab content carries no padding of its own inside the studio; the sections
+   own their spacing. */
+.alfa-studio .tab-pane,
+.alfa-studio joomla-tab,
+.alfa-studio .joomla-tab-element {
+  padding: 0;
+}
+
+/* Responsive field grid: ~3 across, wrapping to a new line only when they no
+   longer fit (the identity + logistics override fields). */
+.alfa-studio .studio-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+
+.alfa-studio .studio-section {
+  padding: 1rem 0 1.25rem;
+  border-bottom: 1px solid var(--alfa-line-soft);
+}
+
+.alfa-studio .studio-section:last-child {
+  border-bottom: 0;
+}
+
+.alfa-studio .studio-section > h5 {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--alfa-ink);
+  margin-bottom: 0.15rem;
+}
+
+.alfa-studio .studio-hint {
+  font-size: 0.76rem;
+  color: var(--alfa-ink-soft);
+  margin-bottom: 0.75rem;
+}
+
+/* Inputs inside the studio stay compact. */
+.alfa-studio .form-control-sm,
+.alfa-studio .form-select-sm {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Modal-header variant navigation (< 2/6 >) */
+
+#combinationStudioModal .studio-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+  margin-right: 0.75rem;
+}
+
+#combinationStudioModal .studio-nav button {
+  border: 1px solid var(--alfa-line);
+  background: var(--alfa-paper);
+  border-radius: 6px;
+  width: 1.9rem;
+  height: 1.9rem;
+  line-height: 1;
+  font-size: 1.1rem;
+  color: var(--alfa-ink);
+  transition: all 0.15s ease;
+}
+
+#combinationStudioModal .studio-nav button:hover:not(:disabled) {
+  background: var(--alfa-gold);
+  border-color: var(--alfa-gold);
+  color: #fff;
+}
+
+#combinationStudioModal .studio-nav button:disabled {
+  opacity: 0.35;
+}
+
+#combinationStudioModal .studio-nav .studio-counter {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  color: var(--alfa-ink-soft);
+  min-width: 3rem;
+  text-align: center;
+}
+
+/* Combination tools: Generate / Filter / Bulk */
+
+.alfa-combi-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 0.9rem;
+}
+
+.alfa-combi-tools .tools-panel {
+  position: relative;
+  padding: 1.5rem 1rem 0.8rem;
+  border: 1px dashed var(--alfa-line);
+  border-radius: 6px;
+}
+
+.alfa-combi-tools .tools-caption {
+  position: absolute;
+  top: 0.35rem;
+  left: 1rem;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--alfa-gold);
+  font-weight: 600;
+}
+
+.alfa-combi-tools .tools-hint {
+  font-size: 0.76rem;
+  color: var(--alfa-ink-soft);
+  margin: 0 0 0.6rem;
+}
+
+.alfa-combi-tools .tools-field {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.45rem;
+}
+
+.alfa-combi-tools .tools-label {
+  flex: 0 0 9rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--alfa-ink);
+}
+
+/* The label doubles as the whole-field drag handle: reorder the variation
+   dimensions in the generator before/during Generate. */
+.alfa-combi-tools [data-sortable-generator-fields] .tools-field:not(.is-locked-out) .tools-label {
+  cursor: grab;
+  user-select: none;
+}
+
+.alfa-combi-tools .tools-label .field-drag {
+  margin-right: 0.15rem;
+  font-size: 0.85em;
+  opacity: 0.45;
+}
+
+.alfa-combi-tools .tools-label:active .field-drag {
+  opacity: 0.85;
+}
+
+.alfa-combi-tools .tools-field.sortable-chosen {
+  background: var(--alfa-surface-soft, rgba(0, 0, 0, 0.04));
+  border-radius: 6px;
+}
+
+/* Generator modal: locked-out dimensions (depth lock) read as inert. */
+.alfa-combi-tools .tools-field.is-locked-out {
+  opacity: 0.4;
+}
+
+/* Why a locked-out field is greyed: it can still serve as an option. */
+.alfa-combi-tools .tools-field-hint {
+  font-size: 0.72rem;
+  font-style: italic;
+  color: var(--alfa-ink-soft);
+}
+
+.alfa-combi-tools .tools-locked {
+  color: var(--warning-text-emphasis, #8a6d08);
+}
+
+/* Section heads: caption + the section's own action */
+
+.alfa-combi-tools .tools-panel.with-head {
+  padding-top: 0.7rem;
+}
+
+.alfa-combi-tools .tools-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+
+.alfa-combi-tools .tools-head .tools-caption {
+  position: static;
+}
+
+/* The action (button or status+button pair) hugs the right edge. */
+.alfa-combi-tools .tools-head .tools-action {
+  margin-left: auto;
+}
+
+/* The variations head's action cluster (show-only, bulk, generate) hugs right. */
+.alfa-combi-tools .tools-head .tools-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* Sub-panel inside a section (the grid filters). */
+.alfa-combi-tools .tools-subpanel {
+  position: relative;
+  padding: 0.6rem 0.8rem 0.5rem;
+  border: 1px dashed var(--alfa-line-soft);
+  border-radius: 6px;
+  margin-bottom: 0.7rem;
+}
+
+.alfa-combi-tools .tools-subcaption {
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--alfa-ink-soft);
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+/* Settings rows: ONE value per row (options & info) */
+
+.alfa-combi-tools .settings-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.alfa-combi-tools .settings-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.2rem;
+  border-bottom: 1px solid var(--alfa-line-soft);
+}
+
+.alfa-combi-tools .settings-row:last-child {
+  border-bottom: 0;
+}
+
+.alfa-combi-tools .settings-row .row-amount {
+  width: 7rem;
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.alfa-combi-tools .settings-row > .btn {
+  margin-left: auto;
+}
+
+/* Drag-to-reorder handles (option lists + the variations grid). */
+.alfa-combi-tools .sortable-handler,
+.alfa-combinations .sortable-handler {
+  cursor: grab;
+  color: var(--secondary-color, #9aa0a6);
+  flex: 0 0 auto;
+  line-height: 1;
+  touch-action: none;
+}
+
+.alfa-combi-tools .sortable-handler:hover,
+.alfa-combinations .sortable-handler:hover {
+  color: var(--alfa-gold);
+}
+
+.alfa-combi-tools .sortable-handler:active,
+.alfa-combinations .sortable-handler:active {
+  cursor: grabbing;
+}
+
+/* While a row is being dragged (SortableJS adds .sortable-chosen). */
+.alfa-combi-tools .settings-row.sortable-chosen,
+.alfa-combinations tr.sortable-chosen {
+  background: var(--alfa-row-active, rgba(0, 0, 0, 0.03));
+}
+
+/* Group header: the field name with its drag handle (reorders the whole group). */
+.alfa-combi-tools .group-head-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+
+.alfa-combi-tools .group-drag {
+  cursor: grab;
+}
+
+.alfa-combi-tools .group-drag:active {
+  cursor: grabbing;
+}
+
+/* The whole group lifts while it is being dragged by its header. */
+.alfa-combi-tools .settings-group.sortable-chosen {
+  background: var(--alfa-row-active, rgba(0, 0, 0, 0.03));
+  border-radius: 6px;
+}
+
+/* Filter multiselects (core fancy-select) side by side. */
+.alfa-combi-tools .filter-selects {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
+.alfa-combi-tools .filter-select {
+  min-width: 14rem;
+}
+
+.alfa-combi-tools .filter-select .tools-label {
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+/* Role chips inside the popup labels. */
+.alfa-combi-tools .tools-label .chip {
+  display: inline-flex;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--alfa-gold);
+  background: var(--warning-bg-subtle, #fbf7ee);
+  color: var(--warning-text-emphasis, #7d5e23);
+  font-size: 0.64rem;
+  font-weight: 400;
+}
+
+/* Quick price adjust (grid rows AND the options list): op + amount + target
+   as one joined control, equal height. Both contexts share the chrome. */
+.alfa-combinations .quick-adjust,
+.alfa-combi-tools .quick-adjust {
+  display: flex;
+  align-items: stretch;
+}
+
+.alfa-combinations .quick-adjust .form-select-sm,
+.alfa-combi-tools .quick-adjust .form-select-sm {
+  width: 3.4rem;
+  flex: 0 0 auto;
+}
+
+.alfa-combinations .quick-adjust .form-control-sm,
+.alfa-combi-tools .quick-adjust .form-control-sm {
+  min-width: 4.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Grouped settings: the FIELD is a header, its values are rows under it. */
+.alfa-combi-tools .settings-group {
+  margin-bottom: 0.6rem;
+}
+
+.alfa-combi-tools .settings-group .group-header {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--alfa-ink);
+  padding: 0.3rem 0.2rem 0.15rem;
+  border-bottom: 1px solid var(--alfa-line);
+}
+
+.alfa-combi-tools .settings-group .settings-row {
+  padding-left: 0.8rem;
+}
+
+/* Compact the core fancy-select (choices.js) inside the grid filters. */
+.alfa-combi-tools .filter-select .choices__inner {
+  min-height: 0;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.8rem;
+}
+
+.alfa-combi-tools .filter-select .choices__list--multiple .choices__item {
+  font-size: 0.72rem;
+  padding: 0.1rem 0.45rem;
+  margin: 0.1rem 0.15rem 0.1rem 0;
+}
+
+.alfa-combi-tools .filter-select .choices__input {
+  font-size: 0.8rem;
+  padding: 0.1rem 0;
+  margin-bottom: 0;
+}
+
+/* Quick adjust locked (2+ price rows live in the Studio). */
+.alfa-combinations .quick-adjust.is-locked {
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.78rem;
+  color: var(--alfa-ink, #555);
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px dashed rgba(0, 0, 0, 0.18);
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.alfa-combinations .quick-adjust.is-locked:hover,
+.alfa-combinations .quick-adjust.is-locked:focus-visible {
+  background: rgba(0, 0, 0, 0.07);
+  border-color: var(--alfa-gold, rgba(0, 0, 0, 0.35));
+  outline: none;
+}
+
+/* Quick edit mode select (price | adjust) sits before the op/value. */
+.alfa-combinations .quick-adjust [data-quick-mode-select] {
+  width: 4.6rem;
+  flex: 0 0 auto;
+  margin-right: 0.25rem;
+}
+
+/* Quick edit final-price input (editable: typing it back-computes the net). */
+.alfa-combinations .quick-final {
+  width: 5rem;
+  flex: 0 0 auto;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Read-only "after discounts" beside the final: label over price, mirroring
+   the Prices panel. Quiet and derived; never posted. */
+.alfa-combinations .quick-after {
+  display: inline-flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.alfa-combinations .quick-after-label {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--alfa-ink-soft);
+}
+
+.alfa-combinations .quick-after-value {
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--alfa-ink);
+}
+
+/* Quick edit row: small gaps + fully-rounded controls (the hidden adjust-only
+   spans break adjacency joins, so each control is its own clean pill). Shared
+   by the grid rows and the options list so both adjusts look identical. */
+.alfa-combinations .quick-adjust,
+.alfa-combi-tools .quick-adjust {
+  gap: 0.25rem;
+}
+
+.alfa-combinations .quick-adjust .op-cycle button,
+.alfa-combinations .quick-adjust .form-control,
+.alfa-combi-tools .quick-adjust .op-cycle button,
+.alfa-combi-tools .quick-adjust .form-control {
+  border-radius: 4px;
+  margin-left: 0;
+}
+
+/* Tighter, quieter column headers so the grid keeps its width for the controls. */
+.alfa-combinations thead th {
+  padding: 0.3rem 0.5rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--alfa-ink-soft);
+}
+
+/* Tighter SKU + stock so the price/final controls fit on one line. */
+.alfa-combinations td input[name$="[sku]"] {
+  width: 8rem;
+}
+
+.alfa-combinations td input[name$="[stock]"] {
+  width: 4.5rem;
+}
+
+/* Empty section: what it is for, why it is empty, and the two ways forward. */
+.alfa-combi-tools .tools-empty {
+  padding: 0.75rem 0 0.25rem;
+}
+
+.alfa-combi-tools .tools-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+/* The lead paragraph each popup opens with: the concept in plain words, above the
+   operational hint. Slightly stronger than the hint so it reads first. */
+.alfa-combi-tools .tools-lead,
+.modal-body .tools-lead {
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--body-color, #212529);
+}

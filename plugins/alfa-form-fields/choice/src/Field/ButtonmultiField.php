@@ -7,7 +7,7 @@ use Joomla\CMS\Form\Field\CheckboxesField;
 
 defined('_JEXEC') or die;
 
-// Multi-select button group. Same DB semantics as checkboxes — value is an
+// Multi-select button group. Same DB semantics as checkboxes: value is an
 // array. Min/max are stamped onto the element in prepareDom and read by both
 // the layout (for the live hint) and ChoiceRule (for server validation).
 class ButtonmultiField extends CheckboxesField

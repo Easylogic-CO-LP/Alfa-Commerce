@@ -1,0 +1,75 @@
+{
+    "uid": "com_alfa.sales-documents",
+    "version": 3,
+    "title": "COM_ALFA_GUIDEDTOUR_SALES_DOCUMENTS_TITLE",
+    "description": "COM_ALFA_GUIDEDTOUR_SALES_DOCUMENTS_DESC",
+    "extensions": [
+        "com_alfa"
+    ],
+    "url": "administrator/index.php?option=com_alfa&view=documents",
+    "autostart": false,
+    "steps": [
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_SALES_DOCUMENTS_STEP_1_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_SALES_DOCUMENTS_STEP_1_DESC",
+            "position": "right",
+            "target": "#sidebarmenu a[href*=\"option=com_alfa\"][href*=\"view=documents\"]",
+            "type": 2,
+            "interactive_type": 1,
+            "url": "administrator/index.php?option=com_alfa&view=documents"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_SALES_DOCUMENTS_STEP_2_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_SALES_DOCUMENTS_STEP_2_DESC",
+            "position": "bottom",
+            "target": "#filter_search, #adminForm",
+            "type": 2,
+            "interactive_type": 3,
+            "url": "administrator/index.php?option=com_alfa&view=documents"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_SALES_DOCUMENTS_STEP_3_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_SALES_DOCUMENTS_STEP_3_DESC",
+            "position": "top",
+            "target": "#adminForm, .table",
+            "type": 2,
+            "interactive_type": 3,
+            "url": "administrator/index.php?option=com_alfa&view=documents"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_SALES_DOCUMENTS_STEP_4_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_SALES_DOCUMENTS_STEP_4_DESC",
+            "position": "left",
+            "target": "a[href*=\"task=documents.printDocument\"], #adminForm",
+            "type": 2,
+            "interactive_type": 3,
+            "url": "administrator/index.php?option=com_alfa&view=documents"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_SALES_DOCUMENTS_STEP_5_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_SALES_DOCUMENTS_STEP_5_DESC",
+            "position": "bottom",
+            "target": "#toolbar a[href*=\"view=documentseries\"]",
+            "type": 2,
+            "interactive_type": 3,
+            "url": "administrator/index.php?option=com_alfa&view=documents"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_SALES_DOCUMENTS_STEP_6_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_SALES_DOCUMENTS_STEP_6_DESC",
+            "position": "bottom",
+            "target": "#toolbar a[href*=\"view=documenttypes\"]",
+            "type": 2,
+            "interactive_type": 3,
+            "url": "administrator/index.php?option=com_alfa&view=documents"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_SALES_DOCUMENTS_STEP_7_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_SALES_DOCUMENTS_STEP_7_DESC",
+            "position": "bottom",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=documents"
+        }
+    ],
+    "ordering": 150
+}

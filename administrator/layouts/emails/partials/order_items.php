@@ -6,26 +6,27 @@
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
  *
- * ─────────────────────────────────────────────────────────────────
- *  Order-email items table — overridable partial
- * ─────────────────────────────────────────────────────────────────
+ *  Order-email items table: overridable partial
  *
  *  Rendered for the {order_items} token. Override at:
  *    templates/<template>/html/layouts/com_alfa/emails/partials/order_items.php
  *
- *  $displayData (set by OrderEmailHelper::renderItemsLayout):
- *    object[]  $items  OrderHelper::getOrderItems() output (Money objects on price fields).
+ *  $displayData (set by EmailService::renderItemsLayout):
+ *    object[]  $items  OrderHelper::getOrderItems() output (Money objects on the totals; each unit
+ *                      as its stored decimal beside its *_formatted text, printed by the one unit
+ *                      rule at the order's frozen scale).
  *
- *  Inline-styled for email-client compatibility — every visible
+ *  Inline-styled for email-client compatibility: every visible
  *  element carries its own `style=""` so it survives the worst
  *  email-client CSS strip cycle.
  */
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\Language\Text;
 
-// FileLayout passes the whole displayData array — it does NOT extract
+// FileLayout passes the whole displayData array; it does NOT extract
 // keys into individual variables (unlike Joomla's BaseLayout). Match
 // the com_alfa convention by extracting here so `$items` is in scope.
 extract($displayData);
@@ -67,11 +68,12 @@ $muted    = 'padding:14px 10px;text-align:center;color:#7a6e5d;font-style:italic
             </tr>
         <?php else : ?>
             <?php foreach ($items as $item) :
-                $name      = (string) ($item->name ?? '');
+                // Frozen names are {lang:text} snapshots; resolve to the
+                // email's language.
+                $name      = MultilingualHelper::resolveLangMap($item->name ?? '');
                 $quantity  = (int)    ($item->quantity ?? 0);
-                $unit      = isset($item->price) && is_object($item->price)
-                    ? (string) $item->price->format()
-                    : '';
+                // The unit as the one unit rule prints it: a separate fact beside the quantity and the total.
+                $unit      = (string) $item->unit_price_tax_incl_formatted;
                 $lineTotal = isset($item->total_price_tax_incl) && is_object($item->total_price_tax_incl)
                     ? (string) $item->total_price_tax_incl->format()
                     : '';

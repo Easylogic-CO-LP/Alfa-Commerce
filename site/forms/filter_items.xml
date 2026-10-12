@@ -2,19 +2,21 @@
 <form>
     <fields name="filter" addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
 
-        <!-- ── Text search ──────────────────────────────────────────────── -->
+        <!-- Text search -->
         <field
                 name="search"
                 type="text"
                 hint="COM_ALFA_SEARCH_FILTER_SUBMIT"
-                label="COM_USERS_FILTER_SEARCH_DESC"
+                label="COM_ALFA_FILTER_SEARCH_LABEL"
                 class="js-stools-search-string"
+                data-alfa-search="true"
+                data-alfa-context="catalogue"
         />
 
-        <!-- ── Category filter ──────────────────────────────────────────── -->
+        <!-- Category filter -->
         <!--
             type="categories" resolves (via this form's addfieldprefix) to Alfa's
-            CategoriesField — NOT Joomla's core categories field. It sources its
+            CategoriesField, NOT Joomla's core categories field. It sources its
             options from CategoriesModel, so names come back in the active language
             (the names no longer live in the main table).
 
@@ -26,18 +28,19 @@
                 type="categories"
                 multiple="true"
                 showPath="true"
+                scopeToCurrentCategory="true"
                 label="COM_ALFA_FILTER_CATEGORY_LBL"
                 layout="joomla.form.field.list-fancy-select"
                 onchange="this.form.submit();"
                 hint="COM_ALFA_FILTER_ALL_CATEGORIES"
         />
 
-        <!-- ── Manufacturer filter ──────────────────────────────────────── -->
+        <!-- Manufacturer filter -->
         <!--
-            NO <option> children — same reason as categories above.
+            NO <option> children; same reason as categories above.
             hint= provides the "all manufacturers" placeholder text.
         -->
-        <!-- type="model" → Alfa ModelField, sourced from ManufacturersModel so
+        <!-- type="model" -> Alfa ModelField, sourced from ManufacturersModel so
              names come back in the active language (no main-table name column). -->
         <field
                 name="manufacturer"
@@ -52,10 +55,10 @@
                 hint="COM_ALFA_FILTER_ALL_MANUFACTURERS"
         />
 
-        <!-- ── Price range ───────────────────────────────────────────────── -->
+        <!-- Price range -->
         <!--
             price_min and price_max feed the range slider on the front end.
-            Both map to pf.final_price in the index subquery — the price the
+            Both map to pf.final_price in the index subquery, the price the
             visitor actually pays (after discounts and tax).
             The slider JS populates these fields and submits the form.
         -->
@@ -77,12 +80,28 @@
                 hint="COM_ALFA_FILTER_PRICE_MAX_HINT"
         />
 
-        <!-- ── On sale ───────────────────────────────────────────────────── -->
+        <!-- On sale -->
         <!--
             When set to 1: WHERE pf.discount_amount > 0
             Shows only items that have an active discount for this visitor.
             Empty value = show all items.
         -->
+        <!-- Availability: the visitor's own in stock / out of stock, judged by the same
+             sellability rule hide-out-of-stock uses (ItemsModel::getListQuery). The
+             filters module renders its own checkboxes for this; the view's bar takes
+             this control as it is. -->
+        <field
+                name="stock"
+                type="radio"
+                label="COM_ALFA_FILTER_STOCK_LBL"
+                class="btn-group"
+                onchange="this.form.submit();"
+        >
+            <option value="">COM_ALFA_FILTER_STOCK_ALL</option>
+            <option value="in">COM_ALFA_FILTER_STOCK_IN</option>
+            <option value="out">COM_ALFA_FILTER_STOCK_OUT</option>
+        </field>
+
         <field
                 name="on_sale"
                 type="radio"
@@ -94,7 +113,7 @@
             <option value="1">COM_ALFA_FILTER_ON_SALE_YES</option>
         </field>
 
-        <!-- ── Minimum discount amount ──────────────────────────────────── -->
+        <!-- Minimum discount amount -->
         <!--
             Maps to: WHERE pf.discount_amount >= X
             "Show me items where I save at least €10."
@@ -108,7 +127,7 @@
                 hint="COM_ALFA_FILTER_DISCOUNT_AMOUNT_MIN_HINT"
         />
 
-        <!-- ── Minimum discount percentage ──────────────────────────────── -->
+        <!-- Minimum discount percentage -->
         <!--
             Maps to: WHERE pf.discount_percent >= X
             "Show me items discounted by at least 20%."
@@ -123,11 +142,27 @@
                 hint="COM_ALFA_FILTER_DISCOUNT_PERCENT_MIN_HINT"
         />
 
+        <!-- Item-field facets (Size, Color, ...) -->
+        <!--
+            Itemfieldsfilter (Alfa\...\Administrator\Field) renders one fancy-select
+            per filterable item-field, sourced from the Items model's memoised
+            getAvailableItemFieldValues() and emitting the shared
+            filter[fields][<id>][] contract, the same data and state the
+            mod_alfa_filters module uses, no separate/duplicate query.
+        -->
+        <field
+                name="fields"
+                type="Itemfieldsfilter"
+                label="COM_ALFA_FILTER_FIELDS_LBL"
+                hiddenLabel="true"
+        />
+
+
     </fields>
 
     <fields name="list">
 
-        <!-- ── Sort order ────────────────────────────────────────────────── -->
+        <!-- Sort order -->
         <!--
             pf.final_price / pf.discount_amount / pf.discount_percent all
             require that these column names are present in ItemsModel::$filter_fields
@@ -145,8 +180,8 @@
         >
             <option value="a.ordering ASC">COM_ALFA_ORDERING_ASC</option>
             <option value="a.ordering DESC">COM_ALFA_ORDERING_DESC</option>
-            <option value="a.name ASC">COM_ALFA_NAME_ASC</option>
-            <option value="a.name DESC">COM_ALFA_NAME_DESC</option>
+            <option value="name ASC">COM_ALFA_NAME_ASC</option>
+            <option value="name DESC">COM_ALFA_NAME_DESC</option>
             <option value="a.id ASC">COM_ALFA_ID_ASC</option>
             <option value="a.id DESC">COM_ALFA_ID_DESC</option>
             <option value="a.sku ASC">COM_ALFA_SKU_ASC</option>
@@ -162,13 +197,21 @@
             <option value="pf.discount_percent DESC">COM_ALFA_DISCOUNT_PERCENT_DESC</option>
         </field>
 
+        <!-- type=listLimitbox (Alfa): core limitbox whose sizes ItemsModel
+             re-stamps from the items_limits chain (category -> menu -> global);
+             it also survives sizes core has no Jnn label for.
+             showall=false: "All" renders the ENTIRE catalogue in one page;
+             most shops never want that offered, so it exists only when a
+             merchant puts a 0 entry in Page Sizes (the model then flips this
+             attribute back on). -->
         <field
                 name="limit"
-                type="limitbox"
+                type="listLimitbox"
                 label="COM_ALFA_LIST_LIMIT"
                 description="COM_ALFA_LIST_LIMIT_DESC"
                 class="input-mini"
                 default="25"
+                showall="false"
                 onchange="this.form.submit();"
         />
 

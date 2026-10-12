@@ -42,8 +42,7 @@
       "type": "preset",
       "dependencies": [
         "plg_alfa-form-fields_tel.tel#style",
-        "plg_alfa-form-fields_tel.tel#script",
-        "com_alfa.showon"
+        "plg_alfa-form-fields_tel.tel#script"
       ]
     }
   ]

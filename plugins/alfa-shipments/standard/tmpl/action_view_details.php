@@ -7,10 +7,10 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 /**
- * Shipment View Details — Standard Plugin
+ * Shipment View Details - Standard Plugin
  *
- * Rendered by the controller when handler returns:
- *   ActionResult::withLayout('action_view_details', [...], 'Title')
+ * Rendered on the action page after the plugin's onExecuteAction() called
+ *   $event->setLayout('action_view_details'); $event->setLayoutData([...]);
  *
  * Path: plugins/alfa-shipments/standard/tmpl/action_view_details.php
  *
@@ -18,6 +18,8 @@
  */
 
 defined('_JEXEC') or die;
+
+use Joomla\CMS\Language\Text;
 
 $shipment = $displayData['shipment'] ?? null;
 $order = $displayData['order'] ?? null;
@@ -50,32 +52,32 @@ $weightVal = is_object($weight) ? (float) ($weight->value ?? 0) : (float) $weigh
     <div class="card-body">
         <dl class="row mb-0">
 
-            <dt class="col-sm-4">Shipping Method</dt>
-            <dd class="col-sm-8"><?php echo htmlspecialchars($shipment->shipment_method_name ?? $shipment->carrier_name ?? '—'); ?></dd>
+            <dt class="col-sm-4"><?php echo Text::_('COM_ALFA_SHIPMENT_METHOD'); ?></dt>
+            <dd class="col-sm-8"><?php echo htmlspecialchars($shipment->shipment_method_name ?? $shipment->carrier_name ?? '-'); ?></dd>
 
-            <dt class="col-sm-4">Tracking Number</dt>
-            <dd class="col-sm-8"><?php echo htmlspecialchars($shipment->tracking_number ?? '—'); ?></dd>
+            <dt class="col-sm-4"><?php echo Text::_('COM_ALFA_TRACKING_NUMBER'); ?></dt>
+            <dd class="col-sm-8"><?php echo htmlspecialchars($shipment->tracking_number ?? '-'); ?></dd>
 
-            <dt class="col-sm-4">Shipping Cost</dt>
+            <dt class="col-sm-4"><?php echo Text::_('COM_ALFA_SHIPPING_COST'); ?></dt>
             <dd class="col-sm-8"><?php echo $costDisplay; ?></dd>
 
 			<?php if ($weightVal > 0): ?>
-                <dt class="col-sm-4">Weight</dt>
+                <dt class="col-sm-4"><?php echo Text::_('COM_ALFA_WEIGHT'); ?></dt>
                 <dd class="col-sm-8"><?php echo number_format($weightVal, 2); ?> kg</dd>
 			<?php endif; ?>
 
 			<?php if (!empty($shipment->items)): ?>
-                <dt class="col-sm-4">Items</dt>
+                <dt class="col-sm-4"><?php echo Text::_('COM_ALFA_ITEMS'); ?></dt>
                 <dd class="col-sm-8"><?php echo htmlspecialchars($shipment->items); ?></dd>
 			<?php endif; ?>
 
-            <dt class="col-sm-4">Status</dt>
+            <dt class="col-sm-4"><?php echo Text::_('COM_ALFA_STATUS'); ?></dt>
             <dd class="col-sm-8">
-                <span class="badge <?php echo $statusBadge; ?>"><?php echo htmlspecialchars(ucfirst($status)); ?></span>
+                <span class="badge <?php echo $statusBadge; ?>"><?php echo htmlspecialchars(Text::_('COM_ALFA_STATUS_' . strtoupper($status))); ?></span>
             </dd>
 
-            <dt class="col-sm-4">Date</dt>
-            <dd class="col-sm-8"><?php echo htmlspecialchars($shipment->added ?? '—'); ?></dd>
+            <dt class="col-sm-4"><?php echo Text::_('COM_ALFA_DATE_ADDED'); ?></dt>
+            <dd class="col-sm-8"><?php echo htmlspecialchars($shipment->added ?? '-'); ?></dd>
 
         </dl>
     </div>

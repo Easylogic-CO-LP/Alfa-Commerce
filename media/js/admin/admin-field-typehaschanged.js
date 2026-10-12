@@ -36,16 +36,15 @@
         try { sessionStorage.setItem(SCROLL_KEY, String(window.scrollY || window.pageYOffset || 0)); } catch (e) {}
 
         // Show loading indicator
-        document.body.appendChild(document.createElement('joomla-core-loader'));
-
         // Set the task dynamically
         document.querySelector('input[name=task]').value = `${view}.reload`;
 
-        // Submit the form
-        element.form.submit();
+        // Submit only AFTER the loader has actually been painted; submitting in
+        // the same task never renders a frame, so the loader would never be seen.
+        Alfa.loader.showThen(() => element.form.submit());
     };
 
-    // Restore after the reload. Waiting for `load` is too late — it blocks on
+    // Restore after the reload. Waiting for `load` is too late: it blocks on
     // every image + TinyMCE boot, so the page sits at top and then visibly
     // jumps. Instead start at DOMContentLoaded and re-assert the scroll each
     // animation frame until the document is tall enough to actually reach the
@@ -70,7 +69,7 @@
             if (window.scrollY < target - 2 && maxReach >= target && Date.now() < deadline) {
                 window.requestAnimationFrame(tick);
             } else if (Date.now() < deadline && maxReach < target) {
-                // Page not tall enough yet — wait for it to grow.
+                // Page not tall enough yet; wait for it to grow.
                 window.requestAnimationFrame(tick);
             }
         };

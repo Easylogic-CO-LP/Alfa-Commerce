@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<form>
+    <fields name="filter">
+        <field name="search" type="text"
+               label="COM_ALFA_FILTER_SEARCH_LABEL"
+               hint="COM_ALFA_CARTRULES_SEARCH_PLACEHOLDER"
+               class="js-stools-search-string"/>
+
+        <field name="state" type="status"
+               label="JOPTION_SELECT_PUBLISHED"
+               onchange="this.form.submit();">
+            <option value="">JOPTION_SELECT_PUBLISHED</option>
+        </field>
+
+        <!-- Activation preset: coupons are rules WITH a code; same entity. -->
+        <field name="activation" type="list"
+               label="COM_ALFA_CARTRULES_FILTER_ACTIVATION"
+               layout="joomla.form.field.list-fancy-select"
+               header="COM_ALFA_CARTRULES_FILTER_ACTIVATION_ALL"
+               onchange="this.form.submit();">
+            <option value="code">COM_ALFA_CARTRULES_FILTER_CODE</option>
+            <option value="automatic">COM_ALFA_CARTRULES_FILTER_AUTOMATIC</option>
+        </field>
+
+        <field name="discount_class" type="list"
+               label="COM_ALFA_CARTRULE_CLASS_LBL"
+               layout="joomla.form.field.list-fancy-select"
+               header="COM_ALFA_CARTRULES_FILTER_CLASS_ALL"
+               onchange="this.form.submit();">
+            <option value="product">COM_ALFA_CARTRULE_CLASS_PRODUCT</option>
+            <option value="order">COM_ALFA_CARTRULE_CLASS_ORDER</option>
+            <option value="shipping">COM_ALFA_CARTRULE_CLASS_SHIPPING</option>
+        </field>
+    </fields>
+
+    <fields name="list">
+        <field name="fullordering" type="list"
+               label="COM_ALFA_LIST_FULL_ORDERING"
+               onchange="this.form.submit();"
+               default="a.priority ASC">
+            <option value="">JGLOBAL_SORT_BY</option>
+            <option value="a.id ASC">JGRID_HEADING_ID_ASC</option>
+            <option value="a.id DESC">JGRID_HEADING_ID_DESC</option>
+            <option value="name ASC">JGLOBAL_TITLE_ASC</option>
+            <option value="name DESC">JGLOBAL_TITLE_DESC</option>
+            <option value="a.priority ASC">COM_ALFA_CARTRULES_PRIORITY_ASC</option>
+            <option value="a.priority DESC">COM_ALFA_CARTRULES_PRIORITY_DESC</option>
+        </field>
+
+        <field name="limit" type="limitbox"
+               label="COM_ALFA_LIST_LIMIT"
+               class="input-mini"
+               default="25"
+               onchange="this.form.submit();"/>
+    </fields>
+</form>

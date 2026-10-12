@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field" addruleprefix="Alfa\Component\Alfa\Administrator\Rule">
   <fieldset>
 
-    <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL" description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>
 
     <field
             name="id"
@@ -28,10 +27,28 @@
             hint="COM_ALFA_FORM_LBL_DISCOUNT_NAME"
     />
 
+    <!-- Customer-facing label. Optional: empty falls back to the internal name
+         everywhere the shopper sees the discount (badge + price breakdown). -->
+    <field
+            name="name_customer"
+            type="MultilingualText"
+            multilingual_table="#__alfa_discounts"
+            multilingual_pk="id_discount"
+            maxlength="400"
+            filter="safehtml"
+            translateLabel="true"
+            translateDescription="true"
+            label="COM_ALFA_FORM_LBL_DISCOUNT_NAME_CUSTOMER"
+            description="COM_ALFA_FORM_DESC_DISCOUNT_NAME_CUSTOMER"
+            hint="COM_ALFA_FORM_LBL_DISCOUNT_NAME_CUSTOMER"
+    />
+
     <field
             name="value"
             type="number"
             step="0.01"
+            min="0"
+            validate="discountValue"
             label="COM_ALFA_FORM_LBL_DISCOUNT_VALUE"
             required="true"
             description="COM_ALFA_FORM_DESC_DISCOUNT_VALUE"
@@ -62,29 +79,93 @@
       <option value="0">After Tax</option>
     </field>
 
+    <!-- Sale-tag badge: the discount's name rendered in a surface slot. Two
+         independent toggles (catalogue card / product page), each with its own
+         slot, both off by default. -->
     <field
-            name="operation"
+            name="tag_list_show"
             type="radio"
-            label="COM_ALFA_FORM_LBL_DISCOUNT_OPERATION"
+            label="COM_ALFA_FORM_LBL_DISCOUNT_TAG_LIST_SHOW"
+            description="COM_ALFA_FORM_DESC_DISCOUNT_TAG_LIST_SHOW"
             class="btn-group"
             default="0"
             validate="options"
     >
-      <option value="0">-</option>
-      <option value="1">+</option>
+      <option value="0">JNO</option>
+      <option value="1">JYES</option>
     </field>
 
     <field
-            name="show_tag"
+            name="tag_list_slot"
+            type="list"
+            label="COM_ALFA_FORM_LBL_DISCOUNT_TAG_LIST_SLOT"
+            description="COM_ALFA_FORM_DESC_DISCOUNT_TAG_LIST_SLOT"
+            default="image"
+            showon="tag_list_show:1"
+    >
+      <option value="image">COM_ALFA_DISCOUNT_TAG_SLOT_IMAGE</option>
+      <option value="title">COM_ALFA_DISCOUNT_TAG_SLOT_TITLE</option>
+      <option value="buy-form">COM_ALFA_DISCOUNT_TAG_SLOT_BUY_FORM</option>
+    </field>
+
+    <field
+            name="tag_item_show"
             type="radio"
-            label="COM_ALFA_FORM_LBL_DISCOUNT_SHOW_TAG"
+            label="COM_ALFA_FORM_LBL_DISCOUNT_TAG_ITEM_SHOW"
+            description="COM_ALFA_FORM_DESC_DISCOUNT_TAG_ITEM_SHOW"
             class="btn-group"
             default="0"
             validate="options"
     >
-      <option value="0">No</option>
-      <option value="1">Yes</option>
+      <option value="0">JNO</option>
+      <option value="1">JYES</option>
     </field>
+
+    <field
+            name="tag_item_slot"
+            type="list"
+            label="COM_ALFA_FORM_LBL_DISCOUNT_TAG_ITEM_SLOT"
+            description="COM_ALFA_FORM_DESC_DISCOUNT_TAG_ITEM_SLOT"
+            default="image"
+            showon="tag_item_show:1"
+    >
+      <option value="image">COM_ALFA_DISCOUNT_TAG_SLOT_IMAGE</option>
+      <option value="title">COM_ALFA_DISCOUNT_TAG_SLOT_TITLE</option>
+      <option value="short-description">COM_ALFA_DISCOUNT_TAG_SLOT_SHORT_DESC</option>
+      <option value="full-description">COM_ALFA_DISCOUNT_TAG_SLOT_FULL_DESC</option>
+      <option value="near-add-to-cart">COM_ALFA_DISCOUNT_TAG_SLOT_NEAR_CART</option>
+      <option value="specifications">COM_ALFA_DISCOUNT_TAG_SLOT_SPECS</option>
+    </field>
+
+    <!-- Badge appearance: shared across both contexts (one look per discount).
+         Colours are optional: empty leaves the layout's own CSS (red badge, white
+         text) in charge; setting both avoids white-on-white. tag_class appends
+         free-form classes so a merchant can theme a discount without a code override. -->
+    <field
+            name="tag_bg"
+            type="color"
+            format="hex"
+            default="#c0392b"
+            label="COM_ALFA_FORM_LBL_DISCOUNT_TAG_BG"
+            description="COM_ALFA_FORM_DESC_DISCOUNT_TAG_BG"
+    />
+
+    <field
+            name="tag_color"
+            type="color"
+            format="hex"
+            default="#ffffff"
+            label="COM_ALFA_FORM_LBL_DISCOUNT_TAG_COLOR"
+            description="COM_ALFA_FORM_DESC_DISCOUNT_TAG_COLOR"
+    />
+
+    <field
+            name="tag_class"
+            type="text"
+            maxlength="190"
+            label="COM_ALFA_FORM_LBL_DISCOUNT_TAG_CLASS"
+            description="COM_ALFA_FORM_DESC_DISCOUNT_TAG_CLASS"
+    />
 
     <field
             class="btn-group"
@@ -100,7 +181,7 @@
     <!--
         categories: 0 = applies to ALL categories.
         <option value="0"> instead of header="..." so the DB value 0
-        matches the option value directly — no blank selection on load.
+        matches the option value directly; no blank selection on load.
     -->
     <field
             name="categories"
@@ -117,7 +198,7 @@
     <!--
         manufacturers: 0 = applies to ALL manufacturers.
         <option value="0"> instead of header="...".
-        Removed default="0" — redundant when option value="0" is first.
+        Removed default="0": redundant when option value="0" is first.
     -->
     <field
             name="manufacturers"
@@ -132,7 +213,7 @@
             description="COM_ALFA_FORM_DESC_MANUFACTURERS"
             layout="joomla.form.field.list-fancy-select"
     >
-      <option value="0">All manufacturers</option>
+      <option value="0">COM_ALFA_FORM_MANUFACTURER_ALL</option>
     </field>
 
     <!--
@@ -161,13 +242,14 @@
             layout="joomla.form.field.list-fancy-select"
             multiple="true"
             checksuperusergroup="1"
-            default="8"
-            header="COM_ALFA_FORM_HEADER_ALL_USERGROUPS"
-    />
+            default="0"
+    >
+        <option value="0">COM_ALFA_FORM_USERGROUP_ALL</option>
+    </field>
 
     <!--
         users: 0 = applies to ALL users (not user-specific).
-        Added <option value="0"> — previously missing entirely, so there was
+        Added <option value="0">: previously missing entirely, so there was
         no way to represent "all users" in the form and nothing showed
         as selected when loading a record saved with user_id = 0.
     -->
@@ -184,7 +266,7 @@
             key_field="id"
             value_field="val"
     >
-      <option value="0">All users</option>
+      <option value="0">COM_ALFA_FORM_USER_ALL</option>
     </field>
 
     <field

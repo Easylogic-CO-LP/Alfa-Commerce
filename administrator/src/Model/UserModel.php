@@ -1,11 +1,10 @@
 <?php
 
 /**
- * @version    1.0.1
- * @package    Com_Alfa
+ * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  2024 Easylogic CO LP
- * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
 namespace Alfa\Component\Alfa\Administrator\Model;
@@ -13,8 +12,8 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Joomla\CMS\Factory;
-use Joomla\CMS\MVC\Model\AdminModel;
 use Joomla\CMS\User\UserFactoryInterface;
 
 /**
@@ -25,8 +24,16 @@ use Joomla\CMS\User\UserFactoryInterface;
  *
  * @since  1.0.0
  */
-class UserModel extends AdminModel
+class UserModel extends AlfaAdminModel
 {
+    /**
+     * The admin-contract entity this model serves.
+     *
+     *
+     * @since  1.8.0
+     */
+    protected string $alfaEntity = 'user';
+
     /** @var string @since  1.0.0 */
     protected $text_prefix = 'COM_ALFA';
 
@@ -66,7 +73,11 @@ class UserModel extends AdminModel
      */
     protected function loadFormData()
     {
-        $data = Factory::getApplication()->getUserState('com_alfa.edit.user.data', []);
+        // A post kept for another record never fills this one (KeptPost).
+        $data = KeptPost::forRecord(
+            stateKey: 'com_alfa.edit.user.data',
+            recordId: (int) $this->getState($this->getName() . '.id'),
+        );
 
         if (empty($data)) {
             $this->item ??= $this->getItem();
@@ -114,7 +125,7 @@ class UserModel extends AdminModel
             $item->joomla_email = $user->email;
             $item->joomla_username = $user->username;
 
-            // tmpl=component strips admin chrome — only the edit form renders
+            // tmpl=component strips admin chrome; only the edit form renders
             // inside the iframe. Route::_() is intentionally avoided here as
             // it can mangle core com_users admin URLs.
             $item->joomla_edit_url = 'index.php?option=com_users&task=user.edit'

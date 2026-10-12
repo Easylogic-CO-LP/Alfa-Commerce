@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Inventory location edit form.
+
+    Locations are configuration data: the semantic axes (location_type,
+    capabilities) the engine asks about, plus presentation. Quantities are
+    NOT here - they live in the per-location stock rows, written only by
+    the inventory service. Ownership columns are reserved for a future
+    owning domain and stripped by the model.
+-->
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+    <fieldset name="location">
+
+        <field
+                name="title"
+                type="text"
+                maxlength="255"
+                required="true"
+                label="COM_ALFA_LOCATION_FIELD_TITLE"
+                description="COM_ALFA_LOCATION_FIELD_TITLE_DESC"
+        />
+
+        <field name="name" type="MultilingualText"
+               multilingual_table="#__alfa_inventory_locations" multilingual_pk="id_inventory_location"
+               maxlength="255" filter="safehtml" translateLabel="true"
+               label="COM_ALFA_LOCATION_FIELD_NAME"
+               description="COM_ALFA_LOCATION_FIELD_NAME_DESC"
+               hint="COM_ALFA_LOCATION_FIELD_NAME"/>
+
+        <field
+                name="location_type"
+                type="list"
+                default="physical"
+                label="COM_ALFA_LOCATION_FIELD_TYPE"
+                description="COM_ALFA_LOCATION_FIELD_TYPE_DESC"
+        >
+            <option value="physical">COM_ALFA_LOCATION_TYPE_PHYSICAL</option>
+            <option value="virtual">COM_ALFA_LOCATION_TYPE_VIRTUAL</option>
+        </field>
+
+        <field
+                name="capabilities"
+                type="checkboxes"
+                label="COM_ALFA_LOCATION_FIELD_CAPABILITIES"
+                description="COM_ALFA_LOCATION_FIELD_CAPABILITIES_DESC"
+        >
+            <option value="storage">COM_ALFA_LOCATION_CAP_STORAGE</option>
+            <option value="fulfillment">COM_ALFA_LOCATION_CAP_FULFILLMENT</option>
+            <option value="sourcing">COM_ALFA_LOCATION_CAP_SOURCING</option>
+        </field>
+
+        <field
+                name="kind"
+                type="list"
+                default="warehouse"
+                label="COM_ALFA_LOCATION_FIELD_KIND"
+                description="COM_ALFA_LOCATION_FIELD_KIND_DESC"
+        >
+            <option value="warehouse">COM_ALFA_LOCATION_KIND_WAREHOUSE</option>
+            <option value="store">COM_ALFA_LOCATION_KIND_STORE</option>
+            <option value="supplier">COM_ALFA_LOCATION_KIND_SUPPLIER</option>
+            <option value="dropship">COM_ALFA_LOCATION_KIND_DROPSHIP</option>
+            <option value="pickup_point">COM_ALFA_LOCATION_KIND_PICKUP</option>
+            <option value="other">COM_ALFA_LOCATION_KIND_OTHER</option>
+        </field>
+
+        <field
+                name="is_default"
+                type="radio"
+                layout="joomla.form.field.radio.switcher"
+                default="0"
+                label="COM_ALFA_LOCATION_FIELD_DEFAULT"
+                description="COM_ALFA_LOCATION_FIELD_DEFAULT_DESC"
+        >
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <field
+                name="ordering"
+                type="number"
+                default="0"
+                label="JFIELD_ORDERING_LABEL"
+        />
+
+        <field
+                name="state"
+                type="list"
+                label="JSTATUS"
+                default="1"
+                class="form-select-color-state"
+                size="1"
+        >
+            <option value="1">JENABLED</option>
+            <option value="0">JDISABLED</option>
+        </field>
+
+        <field name="id" type="hidden"/>
+    </fieldset>
+</form>

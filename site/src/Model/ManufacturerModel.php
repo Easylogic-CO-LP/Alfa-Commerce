@@ -75,8 +75,8 @@ class ManufacturerModel extends BaseItemModel
                 ->select('a.*')
                 ->from($db->quoteName('#__alfa_manufacturers', 'a'));
 
-            // Resolve translatable fields in the active language (current →
-            // default → '') from the per-language tables. No main-table fallback.
+            // Resolve translatable fields in the active language (current ->
+            // default -> '') from the per-language tables. No main-table fallback.
             MultilingualHelper::addMultilingualJoinToQuery(
                 query:             $query,
                 mainAlias:         'a',

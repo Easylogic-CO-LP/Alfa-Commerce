@@ -5,7 +5,7 @@
  *
  * Renders the <input> plus the hint container that tel.js populates. All
  * hint variants are pre-rendered hidden so the translation happens in PHP
- * (via Text::_()) and JS only toggles visibility — no JS-side string table.
+ * (via Text::_()) and JS only toggles visibility; no JS-side string table.
  *
  * Mirrors joomla.form.field.text for the input attributes so behaviour is
  * identical to a normal text field except for the wrapping div + hints.
@@ -55,7 +55,7 @@ $attributes = [
     $autofocus ? 'autofocus' : '',
 ];
 
-// Error keys map to JS state — tel.js reads element.querySelector('[data-err="..."]')
+// Error keys map to JS state: tel.js reads element.querySelector('[data-err="..."]')
 // to show the right one. Add/remove rows here without touching JS.
 $errors = [
     'invalid' => 'PLG_ALFA_FORM_FIELDS_TEL_ERR_INVALID',

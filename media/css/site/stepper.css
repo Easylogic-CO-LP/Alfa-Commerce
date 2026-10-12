@@ -1,0 +1,93 @@
+/**
+ * Alfa Commerce: the quantity stepper.
+ *
+ * Its own file because it is shared: the item page uses it, and so does the cart
+ * module, which renders on pages where the component never does. Depending on
+ * general.css there would drag the whole storefront's layout onto a contact page.
+ *
+ *     $wa->getRegistry()->addExtensionRegistryFile('com_alfa');
+ *     $wa->useStyle('com_alfa.stepper');
+ */
+
+/*
+   STEPPER  - [ n ] +
+   The same control appears on an item page (adds to the cart) and on a cart line
+   (updates it). The BEHAVIOUR differs, and the classes that carry it,
+   item-quantity-* and cart-item-quantity-*, differ with it, because the cart
+   tests read them as structural signals. What does NOT differ is how it looks, so
+   that lives here once instead of being written out in item.css and cart.css and
+   drifting apart, which is exactly what had happened.
+
+   One box: the border and the radius belong to the wrapper, and the two buttons
+   carry the matching OUTER corners so a hover fill cannot square them off. The
+   input between them stays square.
+
+   Corners rather than `overflow: hidden`, which would have been one declaration
+   but clips whatever leaves the box, and the first thing to leave it is the focus
+   ring on the buttons and the input. Logical corner properties, so the ends swap
+   themselves in RTL. */
+
+.alfa-stepper {
+    display: inline-flex;
+    /* No outer margin: spacing belongs to whatever places the component, and the
+       containers that hold one now use `gap`. A margin here fought that gap. */
+    min-height: var(--alfa-control-height);
+    border: 1px solid var(--alfa-hairline);
+    border-radius: var(--alfa-radius);
+}
+
+/* Scoped to the wrapper on purpose. A host template styles form controls
+   generically (Alfa's own does, with input[type="number"]), and that outranks a
+   bare class, so the input kept the template's radius and background. Anchoring
+   the parts to the component's root wins on specificity without !important, and
+   says what is true: they look like this BECAUSE they are inside a stepper. */
+
+.alfa-stepper > .alfa-stepper-input {
+    width: 50px;
+    text-align: center;
+    /* Only the two dividers; the outer edges are the wrapper's. */
+    border: 0;
+    border-inline: 1px solid var(--alfa-hairline);
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    appearance: textfield;
+}
+
+.alfa-stepper > .alfa-stepper-input::-webkit-outer-spin-button,
+.alfa-stepper > .alfa-stepper-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.alfa-stepper > .alfa-stepper-btn {
+    border: 0;
+    width: 30px;
+    font-size: 1.5rem;
+    /* inherit, not black: on a dark page black is a hole where a sign was. */
+    color: inherit;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* One pixel tighter than the wrapper's: a child sitting inside a border needs the
+   smaller curve, or the two arcs are not concentric. Clamped at 0: with a square
+   theme (--alfa-radius: 0) the subtraction would otherwise be negative, which is
+   not a length, and the whole declaration would be thrown away. */
+
+.alfa-stepper > .alfa-stepper-btn.decrement {
+    border-start-start-radius: max(0px, calc(var(--alfa-radius) - 1px));
+    border-end-start-radius: max(0px, calc(var(--alfa-radius) - 1px));
+}
+
+.alfa-stepper > .alfa-stepper-btn.increment {
+    border-start-end-radius: max(0px, calc(var(--alfa-radius) - 1px));
+    border-end-end-radius: max(0px, calc(var(--alfa-radius) - 1px));
+}
+
+.alfa-stepper > .alfa-stepper-btn:hover {
+    background: var(--alfa-hairline);
+}

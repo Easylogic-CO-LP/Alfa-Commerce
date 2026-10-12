@@ -13,11 +13,11 @@
     <field
             hiddenLabel="true"
             parentclass="price-field col-12 mb-0"
-            name="ovewrited_value"
+            name="override_value"
             type="number"
             required="false"
-            label="COM_ALFA_FORM_OVEWRITED_PRICE"
-            description="COM_ALFA_FORM_FIELDSET_OVEWRITED_PRICE_DESC"
+            label="COM_ALFA_FORM_OVERRIDE_PRICE"
+            description="COM_ALFA_FORM_FIELDSET_OVERRIDE_PRICE_DESC"
     />
 
     <field
@@ -34,7 +34,7 @@
             key_field="id"
             value_field="val"
     >
-        <option value="0">All currencies</option>
+        <option value="0">COM_ALFA_FORM_CURRENCY_ALL</option>
     </field>
 
     <field
@@ -51,7 +51,7 @@
             key_field="id"
             value_field="val"
     >
-        <option value="0">All countries</option>
+        <option value="0">COM_ALFA_FORM_COUNTRY_ALL</option>
     </field>
 
     <field
@@ -68,7 +68,7 @@
             key_field="id"
             value_field="val"
     >
-        <option value="0">All user groups</option>
+        <option value="0">COM_ALFA_FORM_USERGROUP_ALL</option>
     </field>
 
     <field
@@ -85,7 +85,7 @@
             key_field="id"
             value_field="val"
     >
-        <option value="0">All users</option>
+        <option value="0">COM_ALFA_FORM_USER_ALL</option>
     </field>
 
 

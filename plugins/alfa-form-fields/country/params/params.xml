@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+	<fields name="formfieldsparams">
+		<fieldset name="fieldparams" label="COM_ALFA_FIELDS_PARAMS_TAB">
+
+			<field
+				name="allowed_places"
+				type="categories"
+				addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
+				model="places"
+				multiple="true"
+				showPath="false"
+				orderBy="name"
+				orderDir="asc"
+				layout="joomla.form.field.list-fancy-select"
+				label="PLG_ALFA_FORM_FIELDS_COUNTRY_PARAMS_ALLOWED_PLACES_LABEL"
+				description="PLG_ALFA_FORM_FIELDS_COUNTRY_PARAMS_ALLOWED_PLACES_DESC"
+				header="PLG_ALFA_FORM_FIELDS_COUNTRY_PARAMS_ALLOWED_PLACES_ALL"
+			/>
+
+			<field
+				name="default_place"
+				type="categories"
+				addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
+				model="places"
+				showPath="false"
+				orderBy="name"
+				orderDir="asc"
+				layout="joomla.form.field.list-fancy-select"
+				label="PLG_ALFA_FORM_FIELDS_COUNTRY_PARAMS_DEFAULT_PLACE_LABEL"
+				description="PLG_ALFA_FORM_FIELDS_COUNTRY_PARAMS_DEFAULT_PLACE_DESC"
+				header="PLG_ALFA_FORM_FIELDS_COUNTRY_PARAMS_DEFAULT_PLACE_NONE"
+			/>
+
+			<!-- Read by FormfieldModel.php to pick the MySQL column type: the
+			     stored value is the place id. Do not remove. -->
+			<field name="sql_type" type="hidden" default="int(11)"/>
+
+		</fieldset>
+	</fields>
+</form>

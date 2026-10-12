@@ -14,7 +14,7 @@
 
         <field name="desc" type="MultilingualEditor"
                multilingual_table="#__alfa_manufacturers" multilingual_pk="id_manufacturer"
-               filter="JComponentHelper::filterText" label="COM_ALFA_FORM_LBL_MANUFACTURER_DESC" description="COM_ALFA_FORM_DESC_MANUFACTURER_DESC" hint="COM_ALFA_FORM_LBL_MANUFACTURER_DESC"/>
+               filter="Joomla\CMS\Component\ComponentHelper::filterText" label="COM_ALFA_FORM_LBL_MANUFACTURER_DESC" description="COM_ALFA_FORM_DESC_MANUFACTURER_DESC" hint="COM_ALFA_FORM_LBL_MANUFACTURER_DESC"/>
 
         <field name="meta_title" type="MultilingualText"
                multilingual_table="#__alfa_manufacturers" multilingual_pk="id_manufacturer"
@@ -83,15 +83,9 @@
                 filter="unset"
         />
 
-        <field
-                name="version_note"
-                type="text"
-                label="JGLOBAL_FIELD_VERSION_NOTE_LABEL"
-                maxlength="255"
-        />
     </fieldset>
 
-    <fieldset name="Image">
+    <fieldset name="Image" label="COM_ALFA_FIELDSET_IMAGE">
         <field
                 name="medias"
                 type="MediaZone"

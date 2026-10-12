@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="utf-8"?>
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field" addruleprefix="Alfa\Component\Alfa\Administrator\Rule">
+
+    <!-- FIELDSETS ARE THE LAYOUT. The template renders each one with
+         renderFieldset(), never field by field, so a field added here (or
+         injected by a plugin through onAlfaAdminForm) appears without the
+         template knowing about it. Order within a block is XML order.
+         A fieldset the template does NOT know becomes its own tab. -->
+
+    <!-- The title row above the tab set. Rendered by name because it is
+         deliberately outside every tab, per the component convention. -->
+    <fieldset name="identity">
+        <!-- Same contract as the discount screen: `name` is what the MERCHANT
+             calls the rule, `name_customer` is what the SHOPPER reads. Both are
+             translatable; the value lives ONLY in #__alfa_cart_rules_<langtag>,
+             never in a main-table column. -->
+        <field name="name" type="MultilingualText"
+               multilingual_table="#__alfa_cart_rules"
+               multilingual_pk="id_cart_rule"
+               maxlength="255"
+               filter="safehtml"
+               required="true"
+               translateLabel="true"
+               translateDescription="true"
+               label="COM_ALFA_CARTRULE_NAME_LBL"
+               description="COM_ALFA_CARTRULE_NAME_DESC"
+               hint="COM_ALFA_CARTRULE_NAME_LBL"/>
+
+        <!-- Optional: empty falls back to `name` everywhere the shopper sees the
+             rule (cart totals row, progress nudge, and the snapshot frozen onto
+             the order). -->
+        <field name="name_customer" type="MultilingualText"
+               multilingual_table="#__alfa_cart_rules"
+               multilingual_pk="id_cart_rule"
+               maxlength="255"
+               filter="safehtml"
+               translateLabel="true"
+               translateDescription="true"
+               label="COM_ALFA_CARTRULE_NAME_CUSTOMER_LBL"
+               description="COM_ALFA_CARTRULE_NAME_CUSTOMER_DESC"
+               hint="COM_ALFA_CARTRULE_NAME_CUSTOMER_LBL"/>
+    </fieldset>
+
+    <!-- Top of the General tab. Also the injection point: a plugin adding a
+         field to this fieldset through onAlfaAdminForm lands right here. -->
+    <fieldset name="general">
+        <field name="code" type="text"
+               label="COM_ALFA_CARTRULE_CODE_LBL"
+               description="COM_ALFA_CARTRULE_CODE_DESC"/>
+    </fieldset>
+
+    <!-- General tab, narrow sidebar. Named `publish` to match shipment/payment. -->
+    <fieldset name="publish">
+        <field name="state" type="list" default="1"
+               label="JSTATUS" class="form-select-color-state"
+               validate="options">
+            <option value="1">JPUBLISHED</option>
+            <option value="0">JUNPUBLISHED</option>
+        </field>
+
+        <field name="publish_up" type="calendar" translateformat="true" showtime="true" filter="user_utc"
+               label="COM_ALFA_CARTRULE_PUBLISH_UP_LBL"/>
+
+        <field name="publish_down" type="calendar" translateformat="true" showtime="true" filter="user_utc"
+               label="COM_ALFA_CARTRULE_PUBLISH_DOWN_LBL"/>
+
+        <field name="priority" type="number" default="0" filter="integer"
+               label="COM_ALFA_CARTRULE_PRIORITY_LBL"
+               description="COM_ALFA_CARTRULE_PRIORITY_DESC"/>
+
+        <field name="highlight" type="radio" layout="joomla.form.field.radio.switcher" default="0" filter="integer"
+               label="COM_ALFA_CARTRULE_HIGHLIGHT_LBL"
+               description="COM_ALFA_CARTRULE_HIGHLIGHT_DESC">
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <field name="description" type="textarea" rows="3"
+               label="COM_ALFA_CARTRULE_DESCRIPTION_LBL"
+               description="COM_ALFA_CARTRULE_DESCRIPTION_DESC"/>
+
+        <field name="id" type="text" readonly="true" default="0" label="ID" class="readonly"/>
+        <field name="created_by" type="user" label="JGLOBAL_FIELD_CREATED_BY_LABEL" filter="unset" readonly="true" class="readonly"/>
+        <field name="modified" type="calendar" label="JGLOBAL_FIELD_MODIFIED_LABEL" translateformat="true" showtime="true" readonly="true" filter="unset"/>
+        <!-- checked_out / checked_out_time are deliberately NOT declared.
+             They are checkout state owned by the Table (check/checkin), never
+             by the form, and renderFieldset() renders everything a fieldset
+             holds, so declaring them posts '' into int/datetime columns.
+             filter="unset" does not save you: FormField::filter() returns ''
+             for an empty optional value BEFORE the filter runs
+             (libraries/src/Form/FormField.php:1113). -->
+    </fieldset>
+
+    <!-- What the rule gives. Three separate choices: which money it comes off,
+         how it is calculated, what it is measured against. Stacking sits with
+         the class that governs it: the engine reads combines_<own class>. -->
+    <fieldset name="discount">
+        <field name="discount_class" type="list" default="order" validate="options"
+               label="COM_ALFA_CARTRULE_CLASS_LBL"
+               description="COM_ALFA_CARTRULE_CLASS_DESC">
+            <option value="product">COM_ALFA_CARTRULE_CLASS_PRODUCT</option>
+            <option value="order">COM_ALFA_CARTRULE_CLASS_ORDER</option>
+            <option value="shipping">COM_ALFA_CARTRULE_CLASS_SHIPPING</option>
+        </field>
+
+        <!-- Stacking is INTRA-class only: the engine reads combines_<own class>
+             and nothing else, so the other two switches on any given rule are
+             dead. Each is shown only for the class that consumes it. -->
+        <field name="combines_product" type="radio" layout="joomla.form.field.radio.switcher" default="0" filter="integer"
+               label="COM_ALFA_CARTRULE_COMBINES_PRODUCT_LBL"
+               description="COM_ALFA_CARTRULE_COMBINES_DESC"
+               showon="discount_class:product">
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <field name="combines_order" type="radio" layout="joomla.form.field.radio.switcher" default="0" filter="integer"
+               label="COM_ALFA_CARTRULE_COMBINES_ORDER_LBL"
+               description="COM_ALFA_CARTRULE_COMBINES_DESC"
+               showon="discount_class:order">
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <field name="combines_shipping" type="radio" layout="joomla.form.field.radio.switcher" default="0" filter="integer"
+               label="COM_ALFA_CARTRULE_COMBINES_SHIPPING_LBL"
+               description="COM_ALFA_CARTRULE_COMBINES_DESC"
+               showon="discount_class:shipping">
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <!-- Amount only. Free shipping is NOT an action; it is "Applies to:
+             Shipping" at 100%, and the engine derives the free-shipping flag
+             from the amount, so the two can never disagree. -->
+        <field name="action" type="list" default="percent" validate="options"
+               label="COM_ALFA_CARTRULE_ACTION_LBL"
+               description="COM_ALFA_CARTRULE_ACTION_DESC">
+            <option value="percent">COM_ALFA_CARTRULE_ACTION_PERCENT</option>
+            <option value="amount">COM_ALFA_CARTRULE_ACTION_AMOUNT</option>
+        </field>
+
+        <field name="action_value" type="number" default="0" min="0" step="0.01" filter="Alfa\Component\Alfa\Administrator\Filter\DecimalFilter::text" validate="decimal"
+               label="COM_ALFA_CARTRULE_ACTION_VALUE_LBL"
+               description="COM_ALFA_CARTRULE_ACTION_VALUE_DESC"/>
+
+        <!-- Only meaningful for a percentage: a fixed amount is already its own
+             ceiling, so showing the cap next to it would just invite confusion. -->
+        <field name="max_discount_amount" type="number" default="0" min="0" step="0.01" filter="Alfa\Component\Alfa\Administrator\Filter\DecimalFilter::text" validate="decimal"
+               label="COM_ALFA_CARTRULE_MAX_DISCOUNT_LBL"
+               description="COM_ALFA_CARTRULE_MAX_DISCOUNT_DESC"
+               showon="action:percent"/>
+
+        <field name="discount_base" type="CartruleBase" default="cart" validate="options"
+               label="COM_ALFA_CARTRULE_DISCOUNT_BASE_LBL"
+               description="COM_ALFA_CARTRULE_DISCOUNT_BASE_DESC"
+               showon="discount_class!:shipping">
+            <option value="cart">COM_ALFA_CARTRULE_BASE_CART</option>
+            <option value="matching">COM_ALFA_CARTRULE_BASE_MATCHING</option>
+            <option value="cheapest">COM_ALFA_CARTRULE_BASE_CHEAPEST</option>
+        </field>
+
+        <!-- Shipping has no lines to be "already discounted". -->
+        <field name="exclude_discounted" type="radio" layout="joomla.form.field.radio.switcher" default="0" filter="integer"
+               label="COM_ALFA_CARTRULE_EXCLUDE_DISCOUNTED_LBL"
+               description="COM_ALFA_CARTRULE_EXCLUDE_DISCOUNTED_DESC"
+               showon="discount_class!:shipping">
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <!-- A DOMAIN, NOT A BOOLEAN, even though it renders as two choices: a
+             third policy then needs no schema change and no data migration.
+             A SEPARATE AXIS from exclude_discounted: a negotiated line carries
+             no catalogue discount, so neither field can stand in for the other. -->
+        <field name="overridden_lines" type="list" default="exclude" filter="string"
+               label="COM_ALFA_CARTRULE_OVERRIDDEN_LINES_LBL"
+               description="COM_ALFA_CARTRULE_OVERRIDDEN_LINES_DESC"
+               showon="discount_class!:shipping">
+            <option value="exclude">COM_ALFA_CARTRULE_OVERRIDDEN_LINES_EXCLUDE</option>
+            <option value="allow">COM_ALFA_CARTRULE_OVERRIDDEN_LINES_ALLOW</option>
+        </field>
+    </fieldset>
+
+    <!-- How often it can be used. -->
+    <fieldset name="limits">
+        <field name="usage_limit_total" type="number" default="0" min="0" filter="integer"
+               label="COM_ALFA_CARTRULE_USAGE_LIMIT_TOTAL_LBL"
+               description="COM_ALFA_CARTRULE_USAGE_LIMIT_TOTAL_DESC"/>
+
+        <field name="usage_limit_per_user" type="number" default="0" min="0" filter="integer"
+               label="COM_ALFA_CARTRULE_USAGE_LIMIT_PER_USER_LBL"
+               description="COM_ALFA_CARTRULE_USAGE_LIMIT_PER_USER_DESC"/>
+
+    </fieldset>
+
+    <!-- Who can use it. A separate question from how often. -->
+    <fieldset name="targeting">
+        <!-- Joomla identity, not the Alfa shadow rows: the engine compares these
+             against the live user id and group ids. Same fields as item/category. -->
+        <field name="allowedUsers" type="sql"
+               input_type="list" required="false" multiple="true"
+               layout="joomla.form.field.list-fancy-select"
+               query="SELECT `id`, `name` FROM `#__users`" key_field="id" value_field="name"
+               label="COM_ALFA_CARTRULE_ALLOWED_USERS_LBL"
+               description="COM_ALFA_CARTRULE_ALLOWED_USERS_DESC"/>
+
+        <!-- No default: the contract is "empty = every group", so pre-selecting
+             Super Users (as item/category do) would silently narrow every new rule.
+             Lowercase type on purpose: the class file is UsergrouplistField.php,
+             and FormHelper builds ucfirst($type).'Field'. "UserGroupList" only
+             resolves on a case-INSENSITIVE filesystem (macOS), not on Linux. -->
+        <field name="allowedUserGroups" type="usergrouplist"
+               multiple="true" checksuperusergroup="1"
+               layout="joomla.form.field.list-fancy-select"
+               label="COM_ALFA_CARTRULE_ALLOWED_USERGROUPS_LBL"
+               description="COM_ALFA_CARTRULE_ALLOWED_USERGROUPS_DESC"/>
+    </fieldset>
+
+    <!-- When it unlocks. -->
+    <fieldset name="conditions">
+        <field name="min_amount" type="number" default="0" min="0" step="0.01" filter="Alfa\Component\Alfa\Administrator\Filter\DecimalFilter::text" validate="decimal"
+               label="COM_ALFA_CARTRULE_MIN_AMOUNT_LBL"
+               description="COM_ALFA_CARTRULE_MIN_AMOUNT_DESC"/>
+
+        <field name="min_amount_tax_incl" type="radio" layout="joomla.form.field.radio.switcher" default="1" filter="integer"
+               label="COM_ALFA_CARTRULE_MIN_AMOUNT_TAX_INCL_LBL"
+               showon="min_amount!:0">
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <field name="min_amount_base" type="list" default="cart" validate="options"
+               label="COM_ALFA_CARTRULE_MIN_AMOUNT_BASE_LBL"
+               description="COM_ALFA_CARTRULE_MIN_AMOUNT_BASE_DESC"
+               showon="min_amount!:0">
+            <option value="cart">COM_ALFA_CARTRULE_BASE_CART</option>
+            <option value="matching">COM_ALFA_CARTRULE_BASE_MATCHING</option>
+        </field>
+
+        <!-- Condition groups: ALL groups must be satisfied. Persisted
+             relationally (groups/conditions/values tables), never as JSON.
+             Authored by our own builder rather than joomla-field-subform,
+             whose nested-row cloner corrupted the tree. -->
+        <field name="groups" type="CartruleGroups"
+               label="COM_ALFA_CARTRULE_GROUPS_LBL"
+               description="COM_ALFA_CARTRULE_GROUPS_DESC"/>
+    </fieldset>
+
+</form>

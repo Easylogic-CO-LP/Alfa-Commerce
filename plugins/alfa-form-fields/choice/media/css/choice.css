@@ -1,4 +1,4 @@
-/* Custom CSS only — no Bootstrap dependency. BEM-ish naming. */
+/* Custom CSS only: no Bootstrap dependency. BEM-ish naming. */
 
 .alfa-choice-wrap {
     --ac-gap: 8px;
@@ -28,7 +28,7 @@
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
 }
 
-/* Visually hide the input — used by button + chip variants.
+/* Visually hide the input, used by button + chip variants.
    Kept focusable for keyboard accessibility. */
 .alfa-choice--button .alfa-choice__input{
     position: absolute;
@@ -42,7 +42,7 @@
     white-space: nowrap;
 }
 
-/* === radio / checkbox: keep native input visible === */
+/* radio / checkbox: keep native input visible */
 .alfa-choice--radio .alfa-choice__label,
 .alfa-choice--checkbox .alfa-choice__label {
     display: inline-flex;
@@ -60,7 +60,7 @@
     accent-color: var(--ac-active-bg);
 }
 
-/* === button variant === */
+/* button variant */
 .alfa-choice--button .alfa-choice__label {
     display: inline-flex;
     align-items: center;
@@ -90,7 +90,7 @@
     box-shadow: 0 0 0 3px var(--ac-focus-ring);
 }
 
-/* === native select === */
+/* native select */
 .alfa-choice__select {
     padding: 8px 32px 8px 10px;
     border: 1px solid var(--ac-border);
@@ -122,7 +122,7 @@
     box-shadow: 0 0 0 3px var(--ac-focus-ring);
 }
 
-/* === hint text under the field (min/max counter) === */
+/* hint text under the field (min/max counter) */
 .alfa-choice__hint {
     display: block;
     margin-top: 6px;
@@ -134,7 +134,7 @@
     color: #dc2626;
 }
 
-/* === frontend display === */
+/* frontend display */
 .alfa-choice__display {
     color: var(--ac-fg);
 }

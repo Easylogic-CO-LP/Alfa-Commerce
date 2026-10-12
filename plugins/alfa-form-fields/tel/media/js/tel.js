@@ -1,13 +1,17 @@
 /**
- * alfa-form-fields/tel — client-side glue.
+ * alfa-form-fields/tel: client-side glue.
  *
  * 1. Boots intlTelInput on every <input data-alfa-tel>.
- * 2. Registers `alfatel` with document.formvalidator — mirrors the server-side
+ * 2. Registers `alfatel` with document.formvalidator; mirrors the server-side
  *    AlfatelRule so invalid numbers are blocked the same way both sides.
  * 3. Shows the matching <small data-err="..."> rendered by tmpl/layouts/tel.php
  *    when validation fails. Translations live in PHP (Text::_()), not JS.
- * 4. On submit, replaces the input value with E.164 only when valid, so the
- *    server receives canonical data.
+ * 4. Posts the full number. With separateDialCode the input holds the NATIONAL
+ *    part and the chosen country lives in the widget, so the raw value would
+ *    leave without its country. A `formdata` listener on the form rewrites the
+ *    entry to iti.getNumber() (E.164) whenever the number is valid; it fires
+ *    for every submission and every `new FormData(form)`, form.submit() too.
+ *    The server's telephone filter stays the authority for what is stored.
  *
  * Hint-toggle contract:
  *   The layout pre-renders one <small data-err="key" hidden> per error key.
@@ -26,15 +30,18 @@
 (function () {
     'use strict';
 
-    // Showon value reader — ONE line, no engine internals, any load order.
+    // Showon value reader: ONE line, no engine internals, any load order.
     // Contract: media/com_alfa/js/site/cart/showon.js (queue facade).
     (window.alfaShowOn = window.alfaShowOn || []).push({
         type: 'tel',
-        value: function (name, form) {
-            var box = form.querySelector('[data-showon-name="' + name + '"]');
+        value: function (name, form, surface) {
+            // Prefer the surface the reader hands us: a checkout repeats the same
+            // names for delivery and invoice, and resolving by name alone would
+            // answer for the wrong copy.
+            var box = surface || form.querySelector('[data-showon-name="' + name + '"]');
             var i = box ? box.querySelector('input[data-alfa-tel]') : null;
             var iti = i && i.__iti;
-            // console.log('tel reader:', name, '| input:', i, '| iti:', iti, '| value:', iti ? iti.getNumber() : (i ? i.value : null));
+
             return iti ? iti.getNumber() : (i ? i.value : null);
         }
     });
@@ -55,7 +62,7 @@
     }
 
     function pickErrorKey(iti, element) {
-        // require_mobile takes priority — even a valid number is rejected if
+        // require_mobile takes priority: even a valid number is rejected if
         // it isn't mobile.
         if (element.dataset.requireMobile === '1' && iti.isValidNumber()) {
             const NT = (typeof intlTelInputUtils !== 'undefined') ? intlTelInputUtils.numberType : null;
@@ -110,23 +117,23 @@
         const iti = intlTelInput(input, opts);
         input.__iti = iti;
 
-        // ─── Value-change signals (for showon, validation, etc.) ───────────────
+        // Value-change signals (for showon, validation, etc.)
         input.dispatchEvent(new CustomEvent('alfa:field-change', { bubbles: true }));
         var fire = function () { input.dispatchEvent(new CustomEvent('alfa:field-change', { bubbles: true })); };
         input.addEventListener('input', fire);
         input.addEventListener('countrychange', fire);
 
-        // ─── Live UI feedback ──────────────────────────────────────────────────
+        // Live UI feedback
         input.addEventListener('input', () => {
             input.classList.remove('invalid');
             hideAllHints(input);
         });
         input.addEventListener('countrychange', () => hideAllHints(input));
 
-        // ─── Visibility sync (for showon-controlled disable) ───────────────────
+        // Visibility sync (for showon-controlled disable)
         // Showon disables our raw <input> when hiding the wrapper to exclude it
         // from form submission/validation. intl-tel-input mirrors disabled state
-        // onto its country-selector button at init time only — without this sync,
+        // onto its country-selector button at init time only; without this sync,
         // re-showing the field leaves the dropdown frozen.
         const wrapper = input.closest('[data-showon-name]');
         if (wrapper) {
@@ -136,9 +143,28 @@
         }
         iti.setDisabled(input.disabled); // initial sync (field may boot while hidden)
 
+        // What the form posts
+        // A disabled input is not in the entry list, and set() would put it
+        // there, so a field showon has hidden stays out. An invalid or empty
+        // number goes as typed, for the server rule to refuse by name.
+        var form = input.form;
+        if (form) {
+            form.addEventListener('formdata', function (event) {
+                if (input.disabled || !input.name || (input.value || '').trim() === '') {
+                    return;
+                }
+                if (iti.isValidNumber()) {
+                    event.formData.set(input.name, iti.getNumber());
+                }
+            });
+        }
     }
 
     function registerValidator() {
+        // Alfa validate engine (frontend): load-order-independent queue.
+        window.alfaValidate = window.alfaValidate || [];
+        window.alfaValidate.push({ name: 'alfatel', test: validateTel });
+
         if (typeof document.formvalidator === 'undefined'
             || typeof document.formvalidator.setHandler !== 'function') {
             // Fix: add "form.validate" to dependencies of this script in joomla.asset.json.
@@ -148,54 +174,56 @@
         }
 
         // Handler runs for any field with validate="alfatel".
-        // Third arg true → Joomla also calls us on empty values so we can
+        // Third arg true -> Joomla also calls us on empty values so we can
         // explicitly defer to the `required` attribute.
-        document.formvalidator.setHandler('alfatel', function (value, element) {
-            const trimmed = (value || '').trim();
+        document.formvalidator.setHandler('alfatel', validateTel);
+    }
 
-            if (trimmed === '') {
-                hideAllHints(element);
-                return !element.hasAttribute('required');
-            }
+    function validateTel(value, element) {
+        const trimmed = (value || '').trim();
 
-            const iti = element.__iti;
-            if (!iti) {
-                // Not initialised yet — defer to server-side rule.
-                return true;
-            }
+        if (trimmed === '') {
+            hideAllHints(element);
+            return !element.hasAttribute('required');
+        }
 
-            if (!iti.isValidNumber()) {
-                showHint(element, pickErrorKey(iti, element));
+        const iti = element.__iti;
+        if (!iti) {
+            // Not initialised yet: defer to server-side rule.
+            return true;
+        }
+
+        if (!iti.isValidNumber()) {
+            showHint(element, pickErrorKey(iti, element));
+            return false;
+        }
+
+        if (element.dataset.requireMobile === '1') {
+            const NT   = (typeof intlTelInputUtils !== 'undefined') ? intlTelInputUtils.numberType : null;
+            const type = iti.getNumberType();
+            if (NT && type !== NT.MOBILE && type !== NT.FIXED_LINE_OR_MOBILE) {
+                showHint(element, 'not_mobile');
                 return false;
             }
+        }
 
-            if (element.dataset.requireMobile === '1') {
-                const NT   = (typeof intlTelInputUtils !== 'undefined') ? intlTelInputUtils.numberType : null;
-                const type = iti.getNumberType();
-                if (NT && type !== NT.MOBILE && type !== NT.FIXED_LINE_OR_MOBILE) {
-                    showHint(element, 'not_mobile');
-                    return false;
-                }
+        const allowed = (element.dataset.allowedRegions || '')
+            .split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+        if (allowed.length) {
+            const country = iti.getSelectedCountryData();
+            if (country && country.iso2 && !allowed.includes(country.iso2)) {
+                showHint(element, 'bad_region');
+                return false;
             }
+        }
 
-            const allowed = (element.dataset.allowedRegions || '')
-                .split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-            if (allowed.length) {
-                const country = iti.getSelectedCountryData();
-                if (country && country.iso2 && !allowed.includes(country.iso2)) {
-                    showHint(element, 'bad_region');
-                    return false;
-                }
-            }
-
-            hideAllHints(element);
-            return true;
-        }, true);
+        hideAllHints(element);
+        return true;
     }
 
     function init() {
         document.querySelectorAll('input[data-alfa-tel]').forEach(boot);
-        // registerValidator();
+        registerValidator();
     }
 
     if (document.readyState === 'loading') {

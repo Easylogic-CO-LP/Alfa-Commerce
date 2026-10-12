@@ -33,7 +33,7 @@ use Joomla\CMS\Language\Text;
         <button type="submit" class="btn btn-outline-secondary"><?php echo Text::_('JCANCEL'); ?></button>
     </form>
 
-    <joomla-toolbar-button task="toolsmedia.deleteAllUntracked" class="ms-auto">
+    <joomla-toolbar-button task="toolsmedia.deleteAllUntracked" form="adminForm" class="ms-auto">
         <button type="button" class="btn btn-danger">
             <span class="icon-trash" aria-hidden="true"></span>
             <?php echo Text::_('COM_ALFA_TOOLSMEDIA_DELETE_ALL_UNTRACKED'); ?>

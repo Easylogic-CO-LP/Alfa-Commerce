@@ -27,18 +27,15 @@ $input = $app->input;
 
 $shouldClose  = $input->getInt('close', 1) == 1;
 $shouldReload = $input->getInt('reload', 1) == 1;
-//$paymentId = $input->getInt('id_payment', 0);
-//$action = $input->getString('action', 'saved'); // 'saved' or 'deleted'
-//
-//// Get any messages from controller
-//$messages = $app->getMessageQueue();
-//$messagesArray = [];
-//foreach ($messages as $msg) {
-//	$messagesArray[] = [
-//		'type' => $msg['type'],
-//		'message' => $msg['message']
-//	];
-//}
+
+// The outcome belongs to the page the opener reloads: this one closes as it
+// loads, so a message shown only here is never read (C-6). The queue is read
+// and put back in the session, where that next page takes it from; this page
+// still renders its own copy before it closes. A close that reloads nothing
+// keeps nothing, so no stale message turns up on some later page.
+if ($shouldReload) {
+	$app->getSession()->set('application.queue', $app->getMessageQueue());
+}
 
 // Prepare data to send to parent
 // Parent will use this to:
@@ -59,7 +56,7 @@ $returnData = [
 $this->document->addScriptOptions('alfa.shipment.modal.return', $returnData);
 
 // Success message
-$message = "SUCCESS";
+$message = Text::_('COM_ALFA_MODAL_RETURN_DONE');
 ?>
 
 <div class="container-fluid">
@@ -89,9 +86,6 @@ $message = "SUCCESS";
         // Get success data from Joomla options
         const dataToReturn = Joomla.getOptions('alfa.shipment.modal.return', {});
 
-        console.log('[Shipment Return Layout Post Message] Page loaded');
-        console.log('[Shipment Return Layout Post Message] Will send to parent:', dataToReturn);
-
         /**
          * Send success message to parent
          * Parent will:
@@ -102,10 +96,9 @@ $message = "SUCCESS";
          */
         function notifyParent() {
             if (window.parent && window.parent !== window) {
-                window.parent.postMessage(dataToReturn, '*');
-                console.log('[Shipment Return Layout Post Message] Message sent to parent');
+                window.parent.postMessage(dataToReturn, window.location.origin);
             } else {
-                console.warn('[Shipment Return Layout Post Message] No parent window found');
+                console.warn('[Shipment Return] No parent window found');
             }
         }
 

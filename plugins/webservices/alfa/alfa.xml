@@ -15,12 +15,9 @@
         <folder>src</folder>
     </files>
     <languages folder="language">
-			<language tag="en-GB">en-GB/plg_webservices_alfa.ini</language>
-			<language tag="en-GB">en-GB/plg_webservices_alfa.sys.ini</language>
+        <language tag="en-GB">en-GB/plg_webservices_alfa.ini</language>
+        <language tag="en-GB">en-GB/plg_webservices_alfa.sys.ini</language>
     </languages>
     <config>
     </config>
-    <updateservers>
-        <server type="extension" priority="1" name="com_alfa">https://cdn.demosites.gr/alfa-updates.xml</server>
-    </updateservers>
 </extension>

@@ -9,8 +9,10 @@
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\ToolRegistry;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Session\Session;
 
@@ -18,7 +20,7 @@ use Joomla\CMS\Session\Session;
 $wa = $this->getDocument()->getWebAssetManager();
 $wa->useScript('com_alfa.sync-tools');
 
-// Generic completion label for actions whose server reply carries no message (backfill).
+// Generic completion label for actions whose server reply carries no message.
 Text::script('COM_ALFA_TOOLS_BACKFILL_DONE');
 Text::script('COM_ALFA_SYNC_ERROR_PREFIX');
 
@@ -27,16 +29,30 @@ $token    = Session::getFormToken();
 $ajaxBase = 'index.php?option=com_alfa&' . $token . '=1';
 
 /**
- * Inline progress block markup, shared by every card. The JS resolves the bar
- * relative to the clicked button (closest .card-body), so the markup is identical.
+ * EVERY action card renders through one registry loop and one layout. There is no
+ * second renderer and no hard-coded card: core's own tools are collected through the
+ * same event as a plugin's ({@see \Alfa\Component\Alfa\Administrator\Service\Tools\CoreToolProvider}),
+ * so the path an engine plugin's card takes is exercised on every Tools page load.
+ * Order within a tab is each action's declared priority; for core's Database Sync
+ * tools that priority encodes RUN order, so the tab reads top-to-bottom as
+ * "do them in this order".
  */
-$progress = '<div class="alfa-progress mt-3" style="display:none;">'
-    . '<div class="progress" style="height:1.5rem;">'
-    . '<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"'
-    . ' style="width:0%;" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">0%</div>'
-    . '</div>'
-    . '<p class="small text-muted mt-2 mb-0" data-status></p>'
-    . '</div>';
+$renderSurface = static function (string $surface) use ($ajaxBase): string {
+    $html = '';
+
+    foreach (ToolRegistry::forSurface($surface) as $action) {
+        $html .= LayoutHelper::render(
+            'actions.toolcard',
+            ['action' => $action, 'ajaxBase' => $ajaxBase],
+            JPATH_ADMINISTRATOR . '/components/com_alfa/layouts',
+        );
+    }
+
+    return $html;
+};
+
+/** Tab ids this template renders itself; anything else a plugin names opens its own tab. */
+$coreSurfaces = ['media', 'dbsync', 'github', 'integrity'];
 ?>
 <div class="com-alfa-tools p-3">
 
@@ -44,7 +60,7 @@ $progress = '<div class="alfa-progress mt-3" style="display:none;">'
           // nested recall shares one sessionStorage key and can hang the page. ?>
     <?php echo HTMLHelper::_('uitab.startTabSet', 'alfaTools', ['active' => 'media', 'recall' => true]); ?>
 
-    <?php /* ---------- Media ---------- */ ?>
+    <?php /* Media */ ?>
     <?php echo HTMLHelper::_('uitab.addTab', 'alfaTools', 'media', Text::_('COM_ALFA_TOOLS_TAB_MEDIA')); ?>
         <div class="card mb-3">
             <div class="card-header"><?php echo Text::_('COM_ALFA_TOOLS_MEDIA_TITLE'); ?></div>
@@ -56,57 +72,24 @@ $progress = '<div class="alfa-progress mt-3" style="display:none;">'
                 </a>
             </div>
         </div>
+        <?php echo $renderSurface('media'); ?>
+
     <?php echo HTMLHelper::_('uitab.endTab'); ?>
 
-    <?php /* ---------- Database Sync (users → languages → backfill, in run order) ---------- */ ?>
+    <?php /* Database Sync: registry-only, in declared run order */ ?>
     <?php echo HTMLHelper::_('uitab.addTab', 'alfaTools', 'dbsync', Text::_('COM_ALFA_TOOLS_TAB_DBSYNC')); ?>
-        <div class="card mb-3">
-            <div class="card-header"><?php echo Text::_('COM_ALFA_TOOLS_USERS_TITLE'); ?></div>
-            <div class="card-body">
-                <p class="text-muted mb-3"><?php echo Text::_('COM_ALFA_TOOLS_USERS_DESC'); ?></p>
-                <button type="button" class="btn btn-secondary alfa-tool-btn" data-action="single"
-                        data-url="<?php echo $this->escape($ajaxBase . '&task=sync.users'); ?>">
-                    <span class="icon-users" aria-hidden="true"></span>
-                    <?php echo Text::_('COM_ALFA_TOOLS_RESYNC_USERS'); ?>
-                </button>
-                <?php echo $progress; ?>
-            </div>
-        </div>
+        <?php echo $renderSurface('dbsync'); ?>
 
-        <div class="card mb-3">
-            <div class="card-header"><?php echo Text::_('COM_ALFA_TOOLS_LANG_SCHEMA_TITLE'); ?></div>
-            <div class="card-body">
-                <p class="text-muted mb-3"><?php echo Text::_('COM_ALFA_TOOLS_LANG_SCHEMA_DESC'); ?></p>
-                <button type="button" class="btn btn-primary alfa-tool-btn" data-action="single"
-                        data-url="<?php echo $this->escape($ajaxBase . '&task=sync.languages'); ?>">
-                    <span class="icon-refresh" aria-hidden="true"></span>
-                    <?php echo Text::_('COM_ALFA_TOOLBAR_RESYNC_LANGUAGES'); ?>
-                </button>
-                <?php echo $progress; ?>
-            </div>
-        </div>
-
-        <div class="card mb-3">
-            <div class="card-header"><?php echo Text::_('COM_ALFA_TOOLS_BACKFILL_TITLE'); ?></div>
-            <div class="card-body">
-                <p class="text-muted mb-3"><?php echo Text::_('COM_ALFA_TOOLS_BACKFILL_DESC'); ?></p>
-                <button type="button" class="btn btn-warning alfa-tool-btn" data-action="backfill"
-                        data-plan-url="<?php echo $this->escape($ajaxBase . '&task=sync.backfillPlan'); ?>"
-                        data-chunk-url="<?php echo $this->escape($ajaxBase . '&task=sync.backfillChunk'); ?>">
-                    <span class="icon-language" aria-hidden="true"></span>
-                    <?php echo Text::_('COM_ALFA_TOOLS_BACKFILL_BTN'); ?>
-                </button>
-                <?php echo $progress; ?>
-            </div>
-        </div>
     <?php echo HTMLHelper::_('uitab.endTab'); ?>
 
-    <?php /* ---------- GitHub — Commit & Pull Request ---------- */ ?>
+    <?php /* GitHub: Commit & Pull Request */ ?>
     <?php echo HTMLHelper::_('uitab.addTab', 'alfaTools', 'github', Text::_('COM_ALFA_TOOLS_TAB_GITHUB')); ?>
         <?php echo $this->loadTemplate('devguide'); ?>
+        <?php echo $renderSurface('github'); ?>
+
     <?php echo HTMLHelper::_('uitab.endTab'); ?>
 
-    <?php /* ---------- Security — file integrity ---------- */ ?>
+    <?php /* Security: file integrity */ ?>
     <?php echo HTMLHelper::_('uitab.addTab', 'alfaTools', 'integrity', Text::_('COM_ALFA_TOOLS_INTEGRITY_TAB')); ?>
         <?php /* Official-release verification against the SIGNED CDN checksums.
                  'modified' = exact-version deviation (alarm); 'ahead' = off-catalog
@@ -116,7 +99,29 @@ $progress = '<div class="alfa-progress mt-3" style="display:none;">'
                  overridable layout system), so a template override cannot fake it. */ ?>
         <?php echo $this->integrityHtml; ?>
 
+        <?php echo $renderSurface('integrity'); ?>
+
     <?php echo HTMLHelper::_('uitab.endTab'); ?>
+
+    <?php /* Tabs opened by plugins, for surfaces no core tab renders */ ?>
+    <?php foreach (ToolRegistry::extraSurfaces($coreSurfaces) as $surface => $surfaceActions) : ?>
+        <?php // The tab label is the first action's own, so a plugin owning a whole
+              // tab names it without core needing a string for something it cannot know. ?>
+        <?php echo HTMLHelper::_(
+            'uitab.addTab',
+            'alfaTools',
+            $surface,
+            Text::_((string) ($surfaceActions[0]->metadata['surface_label'] ?? $surfaceActions[0]->label)),
+        ); ?>
+            <?php foreach ($surfaceActions as $surfaceAction) : ?>
+                <?php echo LayoutHelper::render(
+                    'actions.toolcard',
+                    ['action' => $surfaceAction, 'ajaxBase' => $ajaxBase],
+                    JPATH_ADMINISTRATOR . '/components/com_alfa/layouts',
+                ); ?>
+            <?php endforeach; ?>
+        <?php echo HTMLHelper::_('uitab.endTab'); ?>
+    <?php endforeach; ?>
 
     <?php echo HTMLHelper::_('uitab.endTabSet'); ?>
 

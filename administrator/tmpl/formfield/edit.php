@@ -20,22 +20,16 @@ use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 $wa = $this->document->getWebAssetManager();
 $wa->useStyle('com_alfa.admin')
     ->useScript('keepalive')
-    ->useScript('form.validate');
+    ->useScript('form.validate')
+    ->useScript('com_alfa.validate.engine')
+    ->useStyle('com_alfa.validate');
 
 
 $input = Factory::getApplication()->getInput();
 
-// Default-language input id of the (multilingual) name field — used as the
+// Default-language input id of the (multilingual) name field, used as the
 // source for auto-generating the machine field_name below.
 $defaultTitleInputId = 'jform_name_' . MultilingualHelper::getDefaultLanguageTag();
-
-//$pluginGroup = 'alfa-formfields';
-//$plugins = PluginHelper::getPlugin($pluginGroup);// Get a list of all plugins in the specified group
-//
-//echo "<pre>";
-//print_r($plugins);
-//echo "</pre>";
-//exit;
 
 $ignoreFieldsets = ['general', 'publish', 'showon'];
 // 'shipmentsparams' and any other from any plugin that we want to load params.xml of shipment plugin should have <fields name="shipmentsparams"> to work

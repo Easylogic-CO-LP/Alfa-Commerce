@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Start a builder cart for a customer.
+
+    The customer is chosen ONCE, when the cart is minted: the same moment, and
+    through the same core picker, the Order screen chooses its own (forms/order.xml
+    declares id_user as a user field with validate="UserId", and forces it readonly
+    the instant the record exists). A cart cannot change hands afterwards: its
+    prices, rules, coupons, credit, eligible methods and address pointers were all
+    computed for one person, and nothing in this component re-bases them.
+
+    The field is named customer_id because that is what cart.createBuilderCart
+    reads, the one endpoint in the whole controller allowed to take a customer
+    from the request.
+-->
+<form>
+    <fieldset name="builder">
+        <field
+                name="customer_id"
+                type="user"
+                label="COM_ALFA_FORM_LBL_CUSTOMER"
+                description="COM_ALFA_CART_BUILDER_NEW_DESC"
+                validate="UserId"
+        />
+    </fieldset>
+</form>

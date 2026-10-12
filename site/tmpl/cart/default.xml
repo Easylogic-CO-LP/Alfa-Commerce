@@ -5,4 +5,58 @@
             <![CDATA[COM_ALFA_TITLE_CART_VIEW_CART_DESC]]>
         </message>
     </layout>
-</metadata> 
+
+    <fields name="params">
+        <fieldset
+                name="layouts"
+                label="COM_ALFA_MENU_LAYOUTS_OPTIONS"
+                addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+
+            <field
+                    name="cart_items_layout"
+                    type="subtemplate"
+                    view="cart"
+                    slot="cart_items"
+                    inheritlabel="JGLOBAL_USE_GLOBAL"
+                    label="COM_ALFA_LAYOUT_CART_ITEMS_LABEL"
+            />
+
+            <field
+                    name="cart_form_layout"
+                    type="subtemplate"
+                    view="cart"
+                    slot="cart_form"
+                    inheritlabel="JGLOBAL_USE_GLOBAL"
+                    label="COM_ALFA_LAYOUT_CART_FORM_LABEL"
+            />
+
+            <field
+                    name="cart_select_user_info_layout"
+                    type="subtemplate"
+                    view="cart"
+                    slot="select_user_info"
+                    inheritlabel="JGLOBAL_USE_GLOBAL"
+                    label="COM_ALFA_LAYOUT_CART_USER_INFO_LABEL"
+            />
+
+            <field
+                    name="cart_select_payment_layout"
+                    type="subtemplate"
+                    view="cart"
+                    slot="select_payment"
+                    inheritlabel="JGLOBAL_USE_GLOBAL"
+                    label="COM_ALFA_LAYOUT_CART_PAYMENT_LABEL"
+            />
+
+            <field
+                    name="cart_select_shipment_layout"
+                    type="subtemplate"
+                    view="cart"
+                    slot="select_shipment"
+                    inheritlabel="JGLOBAL_USE_GLOBAL"
+                    label="COM_ALFA_LAYOUT_CART_SHIPMENT_LABEL"
+            />
+        </fieldset>
+    </fields>
+</metadata>
+

@@ -2,16 +2,17 @@
 
 /**
  * @version    CVS: 1.0.1
- * @package    Com_Alfa
+ * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  2024 Easylogic CO LP
- * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
 namespace Alfa\Component\Alfa\Administrator\Field;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Field\Traits\HasMultilingualNamesTrait;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Exception;
 use Joomla\CMS\Factory;
@@ -29,32 +30,29 @@ use SimpleXMLElement;
  *   jform[{fieldName}_{langCode}]
  * e.g.  jform[name_en_gb],  jform[name_el_gr],  jform[alias_en_gb]
  *
- * HOW VALUES ARE LOADED
- * ---------------------
- * Joomla's Form::bind() calls filterData() which strips every key not defined
- * in the XML. Flat multilingual keys (name_en_gb etc.) are never in the XML
- * so they are always stripped before setup() runs. $this->form->getValue()
- * therefore always returns null for them — the form registry cannot be used.
+ * How values are loaded
+ * The submitted value wins; the stored row is the fallback.
  *
- * Instead, setup() reads directly from the DB using:
+ * AlfaAdminModel declares one MultilingualStorage sibling per language for every
+ * translatable field, so the flat keys are REAL form fields: they survive
+ * Form::filter(), the session stash a failed save writes, and Form::bind(). setup()
+ * therefore reads the form registry first and only reaches the language tables for
+ * what the form did not carry, which is what makes a failed save redisplay what the
+ * admin typed instead of repainting the stale saved row over it.
+ *
+ * The database read still needs no model involvement:
  *   - The item ID from the form registry (the id field IS in the XML).
  *   - The table and PK column declared as XML attributes on the field.
  *
- * This makes the field fully self-contained and reusable across any entity.
- * The model has zero multilingual knowledge — it does not need to inject
- * any flat keys or arrays for form hydration to work.
+ * Required XML attributes
+ * multilingual_table  - Base table name       (e.g. "#__alfa_categories").
+ * multilingual_pk     - PK column in lang tables  (e.g. "id_category").
  *
- * REQUIRED XML ATTRIBUTES
- * -----------------------
- * multilingual_table  — Base table name       (e.g. "#__alfa_categories").
- * multilingual_pk     — PK column in lang tables  (e.g. "id_category").
- *
- * REQUIRED HANDLING
- * -----------------
+ * Required handling
  * Joomla's parent::setup() appends 'required' to $this->class when required="true"
  * is set in the XML. We strip it from the base class and re-apply it only to the
  * default-language input so non-default inputs are never marked required.
- * Server-side validation reads the default-language value from raw POST.
+ * Server-side validation is proxied against the default-language value.
  *
  * Usage in a Joomla form XML:
  *   <field name="name"
@@ -66,27 +64,26 @@ use SimpleXMLElement;
  *
  * @since  1.0.0
  */
-class MultilingualTextField extends TextField
+class MultilingualTextField extends TextField implements MultilingualFieldInterface
 {
+    use HasMultilingualNamesTrait;
+
     protected $type = 'MultilingualText';
 
-    // =========================================================================
     //  Lifecycle
-    // =========================================================================
 
     /**
-     * Build the per-language value array by reading directly from the DB.
+     * Build the per-language value array: what was submitted, else what is stored.
      *
-     * Form::bind() → filterData() strips every key not in the XML, so flat
-     * multilingual keys (name_en_gb etc.) never reach the form registry.
-     * We bypass the registry entirely and read from the language tables directly
-     * using the item ID (which survives filterData() because id IS in the XML)
-     * and the table/pk declared as XML attributes on the field definition.
+     * The flat keys are declared as MultilingualStorage siblings by AlfaAdminModel, so they
+     * reach the form registry like any other field. Only the languages the form did not carry
+     * are read from the language tables, using the item ID (id IS in the XML) and the table/pk
+     * declared as XML attributes on the field definition.
      *
-     * For new items (id = 0) all inputs are initialised with empty strings.
+     * For new items with nothing submitted (id = 0) all inputs are initialised with empty strings.
      *
      * @param SimpleXMLElement $element The form field XML definition.
-     * @param mixed $value The base field value — always empty, ignored.
+     * @param mixed $value The base field value: always empty in column mode, the {lang: text} map in JSON mode.
      * @param string|null $group The field group name.
      *
      *
@@ -100,11 +97,11 @@ class MultilingualTextField extends TextField
 
         if ($this->isJsonMode()) {
             // Value/JSON mode (no lang-table binding): the value is a {lang: text}
-            // map carried inline — e.g. inside a plugin's params subform. It can
+            // map carried inline, e.g. inside a plugin's params subform. It can
             // arrive as an array, a stdClass (from the Registry), or a JSON
             // string. A bare legacy string (pre-multilingual single label) maps
             // to the default language so existing options keep their label.
-            $default = strtolower(str_replace('-', '_', array_key_first($languages)));
+            $default = $this->defaultLangCode();
 
             if (is_string($value)) {
                 $decoded = json_decode($value, true);
@@ -116,7 +113,7 @@ class MultilingualTextField extends TextField
             $arrayValue = [];
 
             foreach ($languages as $langCode => $language) {
-                $formatted = strtolower(str_replace('-', '_', $langCode));
+                $formatted = $this->formatLangCode($langCode);
                 $arrayValue[$formatted] = (string) ($map[$formatted] ?? '');
             }
 
@@ -125,30 +122,44 @@ class MultilingualTextField extends TextField
             return $result;
         }
 
-        // Column mode — read flat keys (name_en_gb, alias_el_gr …) directly from
-        // the language tables, bypassing the form registry which always strips
-        // them. Table and PK come from XML attributes so the field is reusable
-        // across any entity without model involvement.
-        $flatData = [];
+        // Column mode: the flat keys (name_en_gb, alias_el_gr ...) are declared storage siblings,
+        // so the form registry carries what was submitted. Table and PK come from XML attributes
+        // so the fallback read stays reusable across any entity without model involvement.
         $itemId = (int) $this->form->getValue('id', null);
         $table = (string) ($this->element['multilingual_table'] ?? '');
         $pk = (string) ($this->element['multilingual_pk'] ?? '');
 
-        if ($itemId > 0 && $table !== '' && $pk !== '') {
+        $arrayValue = [];
+        $missing = [];
+        $bound = $this->form->getData();
+
+        foreach ($languages as $langCode => $language) {
+            $formatted = $this->formatLangCode($langCode);
+            $flatKey = MultilingualHelper::buildLangFieldKey($this->fieldname, $formatted);
+
+            // exists(), not get(): Registry::get() hands back its default for an empty string,
+            // so an input the admin deliberately cleared would be repainted from the stored row.
+            if ($bound->exists($flatKey)) {
+                $arrayValue[$formatted] = (string) $bound->get($flatKey);
+
+                continue;
+            }
+
+            $arrayValue[$formatted] = '';
+            $missing[$formatted] = $flatKey;
+        }
+
+        // Only reach the language tables for what the form did not carry.
+        if ($missing !== [] && $itemId > 0 && $table !== '' && $pk !== '') {
             $flatData = MultilingualHelper::getMultilingualDataFlat(
                 currentId:         $itemId,
                 primaryColumnName: $pk,
                 tableName:         $table,
             );
-        }
 
-        $arrayValue = [];
-
-        foreach ($languages as $langCode => $language) {
-            $formatted = strtolower(str_replace('-', '_', $langCode));
-            $flatKey = $this->fieldname . '_' . $formatted;
-
-            $arrayValue[$formatted] = $flatData[$flatKey] ?? '';
+            foreach ($missing as $formatted => $flatKey) {
+                $arrayValue[$formatted] = $flatData[$flatKey] ?? '';
+            }
         }
 
         $this->value = $arrayValue;
@@ -170,15 +181,13 @@ class MultilingualTextField extends TextField
         return (string) ($this->element['multilingual_table'] ?? '') === '';
     }
 
-    // =========================================================================
     //  Rendering
-    // =========================================================================
 
     /**
      * Render one text input per installed language.
      *
      * Uses $this->required (bool) which Joomla's parent::setup() already parsed
-     * from the XML attribute — handles both required="true" and required="required".
+     * from the XML attribute; handles both required="true" and required="required".
      * Only the default-language input receives the HTML5 `required` attribute and
      * Joomla's `.required` CSS class, matching native Joomla field markup.
      *
@@ -194,24 +203,26 @@ class MultilingualTextField extends TextField
         $languages = LanguageHelper::getLanguages('lang_code');
         $isMultilang = count($languages) > 1;
         $isRequired = $this->required;
-        $defaultLangCode = strtolower(str_replace('-', '_', array_key_first($languages)));
+        $defaultLangCode = $this->defaultLangCode();
         $jsonMode = $this->isJsonMode();
 
         $items = '';
         $values = is_array($this->value) ? $this->value : [];
 
         foreach ($languages as $langCode => $language) {
-            $formatted = strtolower(str_replace('-', '_', $langCode));
+            $formatted = $this->formatLangCode($langCode);
             $isDefault = ($formatted === $defaultLangCode);
 
             $inputId = $this->id . '_' . $formatted;
-            // Column mode emits a top-level flat key (jform[name_en_gb]) that
-            // saveMultilingualData harvests into lang tables. JSON mode appends
-            // [lang] to the container-managed name so the value nests as a
-            // {lang: text} map inside the params / subform row.
+            // Column mode emits a flat key (name_en_gb) that saveMultilingualData
+            // harvests into lang tables, derived from the field's REAL name so it
+            // honours the form control/group (jform[name_en_gb] top-level, or
+            // jform[group][name_en_gb] nested). JSON mode appends [lang] to the
+            // container-managed name so the value nests as a {lang: text} map
+            // inside the params / subform row.
             $inputName = $jsonMode
                 ? $this->name . '[' . $formatted . ']'
-                : 'jform[' . $this->fieldname . '_' . $formatted . ']';
+                : $this->buildLanguageInputName($formatted);
             $val = $values[$formatted] ?? '';
 
             // Only the default-language input is marked required
@@ -240,21 +251,19 @@ class MultilingualTextField extends TextField
         return '<div class="ml-field-stack">' . $items . '</div>';
     }
 
-    // =========================================================================
     //  Validation
-    // =========================================================================
 
     /**
      * Proxy Joomla's built-in validation rules (required, maxlength, etc.)
      * against the default-language scalar value instead of the raw array.
      *
-     * jform[name] is never submitted — only jform[name_en_gb] etc. are.
-     * $value and $input are therefore always empty. Raw POST is the only
-     * guaranteed source of truth during form submission.
+     * jform[name] is never submitted (only jform[name_en_gb] etc. are), so $value is always
+     * empty. The per-language keys ARE declared storage siblings, so the filtered $input carries
+     * them; anything the form does not carry is read from this field's own POST.
      *
-     * @param mixed $value Always empty — ignored.
+     * @param mixed $value Always empty in column mode, ignored; the {lang: text} map in JSON mode.
      * @param string|null $group The optional form group path.
-     * @param \Joomla\Registry\Registry|null $input The full form data registry.
+     * @param \Joomla\Registry\Registry|null $input The full FILTERED form data.
      *
      * @return bool|Exception True if valid, Exception on failure.
      *
@@ -262,30 +271,27 @@ class MultilingualTextField extends TextField
      */
     public function validate($value, $group = null, ?\Joomla\Registry\Registry $input = null): bool|Exception
     {
-        $languages = LanguageHelper::getLanguages('lang_code');
-        $defaultLangCode = strtolower(str_replace('-', '_', array_key_first($languages)));
+        $defaultLangCode = $this->defaultLangCode();
 
         if ($this->isJsonMode()) {
-            // JSON/inline mode: the value is this row's {lang: text} map — an
+            // JSON/inline mode: the value is this row's {lang: text} map, an
             // array, or a stdClass from the Registry. Validate the
             // default-language entry against the real rules.
             $map = is_string($value) ? (json_decode($value, true) ?: []) : (array) $value;
             $scalarValue = (string) ($map[$defaultLangCode] ?? '');
         } else {
-            // Column mode: only jform[name_en_gb] etc. are in POST ($value/$input
-            // are empty), so read the default-language flat key from raw POST.
-            $jform = Factory::getApplication()->getInput()->post->get('jform', [], 'raw');
-            $scalarValue = (string) ($jform[$this->fieldname . '_' . $defaultLangCode] ?? '');
+            // Column mode: jform[name] itself is never posted, so validate the default
+            // language's own key, from the filtered data when the form carries it, else from
+            // this field's own POST.
+            $scalarValue = $this->submittedLanguageValue($defaultLangCode, $input, $group);
         }
 
-        // Proxy Joomla's rules (required, maxlength, …) against the
+        // Proxy Joomla's rules (required, maxlength, ...) against the
         // default-language scalar, regardless of storage mode.
         return parent::validate($scalarValue, $group, $input);
     }
 
-    // =========================================================================
     //  Private helpers
-    // =========================================================================
 
     /**
      * Render a plain <input type="text"> element.
@@ -318,7 +324,7 @@ class MultilingualTextField extends TextField
     ): string {
         // Strip 'required' that parent::setup() injected into $this->class.
         // The second ?: 'form-control' guards against $this->class being *only*
-        // 'required' — after stripping that, trim() returns '' which is falsy.
+        // 'required'. After stripping that, trim() returns '' which is falsy.
         $baseClass = trim(str_replace('required', '', $this->class ?: 'form-control')) ?: 'form-control';
 
         $attrs = [
@@ -345,7 +351,7 @@ class MultilingualTextField extends TextField
             $attrs['placeholder'] = Text::_($this->hint);
         }
 
-        // HTML5 native required — only on the default-language input
+        // HTML5 native required: only on the default-language input
         if ($required) {
             $attrs['required'] = '';
         }

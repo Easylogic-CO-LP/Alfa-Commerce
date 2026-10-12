@@ -3,7 +3,7 @@
 /**
  * Single-select button group layout for alfa-form-fields/choice.
  *
- * Modelled on joomla.form.field.radio.buttons — same input contract
+ * Modelled on joomla.form.field.radio.buttons: same input contract
  * ($options array of HTMLHelperOption-like objects, $value, etc.) but
  * styled by our own alfa-choice-- classes so the field stays Bootstrap-free.
  */

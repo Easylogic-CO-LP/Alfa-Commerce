@@ -11,6 +11,9 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFormPermissions;
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\FormController;
 use Joomla\CMS\Router\Route;
 
@@ -21,6 +24,8 @@ use Joomla\CMS\Router\Route;
  */
 class FormfieldController extends FormController
 {
+    use HasFormPermissions;
+
     protected $view_list = 'formfields';
 
     /**
@@ -37,11 +42,18 @@ class FormfieldController extends FormController
     {
         $this->checkToken();
 
-        $model = $this->getModel('Formfield', 'Administrator', []);
-
         $this->setRedirect(
             Route::_('index.php?option=com_alfa&view=formfields' . $this->getRedirectToListAppend(), false),
         );
+
+        // Regrouping edits the selected fields, and the model's bulk UPDATE checks nothing itself.
+        if (!AlfaHelper::can(section: 'formfields', action: 'edit', user: $this->app->getIdentity())) {
+            $this->setMessage(Text::_('JLIB_APPLICATION_ERROR_BATCH_CANNOT_EDIT'), 'error');
+
+            return false;
+        }
+
+        $model = $this->getModel('Formfield', 'Administrator', []);
 
         return parent::batch($model);
     }

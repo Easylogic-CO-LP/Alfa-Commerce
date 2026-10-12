@@ -5,7 +5,7 @@
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
  *
- * Single shipment edit form — rendered inside a modal iframe.
+ * Single shipment edit form, rendered inside a modal iframe.
  * Shows the form fields + plugin action buttons (for existing shipments).
  *
  * Path: administrator/components/com_alfa/tmpl/order/edit_shipment.php
@@ -24,8 +24,10 @@ use Joomla\CMS\Router\Route;
 $wa = $this->document->getWebAssetManager();
 $wa->useScript('keepalive')
 	->useScript('form.validate')
+	->useScript('com_alfa.validate.engine')
+	->useStyle('com_alfa.validate')
 	->useScript('com_alfa.admin')
-	->useScript('com_alfa.order-actions')
+	->useScript('com_alfa.actions')
 	->useStyle('com_alfa.admin');
 
 $isNew = empty($this->shipment);
@@ -33,13 +35,13 @@ $isNew = empty($this->shipment);
 $shipmentID = $isNew ? 0 : (int) $this->shipment->id;
 $orderID    = (int) $this->order->id;
 
-// ── Get plugin actions (only for existing shipments) ─────────
+// Get plugin actions (only for existing shipments)
 $actions    = [];
 $pluginType = '';
 
 if (!$isNew && $this->shipment) {
 	$actions    = ActionRegistry::getShipmentActions($this->shipment, $this->order);
-	$pluginType = $this->shipment->params->type ?? 'standard';
+	$pluginType = ActionRegistry::methodType($this->shipment, 'shipment_method_type');
 }
 
 ?>
@@ -51,12 +53,12 @@ if (!$isNew && $this->shipment) {
 
     <div class="container-popup">
 
-		<?php // ── Plugin action buttons (existing shipments only) ─── ?>
+		<?php // Plugin action buttons (existing shipments only)?>
 		<?php if (!empty($actions)): ?>
-            <div class="mb-3 p-2 bg-light border rounded d-flex align-items-center flex-wrap gap-2">
+            <div class="mb-3 p-2 bg-body-tertiary border rounded d-flex align-items-center flex-wrap gap-2">
 			<span class="fw-semibold text-muted me-2">
 				<span class="icon-cogs" aria-hidden="true"></span>
-				<?php echo Text::_('Actions'); ?>:
+				<?php echo Text::_('COM_ALFA_ACTIONS'); ?>:
 			</span>
 				<?php foreach ($actions as $action):
 					$buttonLayout = PluginLayoutHelper::pluginLayout(
@@ -92,19 +94,3 @@ if (!$isNew && $this->shipment) {
             <input type="hidden" name="id_order" value="<?php echo $orderID; ?>" />
         </form>
     </div>
-
-<?php if (!$isNew): ?>
-    <script>
-        /**
-         * Iframe context flag for order-actions.js.
-         *
-         * When set, executeAction() will notify the parent window
-         * instead of reloading the iframe on refresh/redirect actions.
-         */
-        window.AlfaActionContext = {
-            iframe: true,
-            messageType: 'alfa:shipment-action',
-            entityId: <?php echo $shipmentID; ?>
-        };
-    </script>
-<?php endif; ?>

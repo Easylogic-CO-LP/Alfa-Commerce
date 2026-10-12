@@ -1,8 +1,8 @@
 {
   "$schema": "https://developer.joomla.org/schemas/json-schema/web_assets.json",
   "name": "com_alfa",
-  "version": "CVS: 1.0.1",
-  "license": "GNU General Public License version 2 or later; see LICENSE.txt",
+  "version": "2.0.0",
+  "license": "GNU General Public License version 3 or later; see LICENSE",
   "assets": [
     {
       "name": "com_alfa.admin",
@@ -10,9 +10,61 @@
       "uri": "com_alfa/admin/admin.css"
     },
     {
+      "name": "com_alfa.core-loader",
+      "type": "script",
+      "uri": "com_alfa/admin/alfa-core-loader.js",
+      "dependencies": [
+        "core"
+      ]
+    },
+    {
       "name": "com_alfa.multilingual-fields",
       "type": "style",
       "uri": "com_alfa/admin/multilingual-fields.css"
+    },
+    {
+      "name": "com_alfa.admin-menu-presets",
+      "type": "script",
+      "uri": "com_alfa/admin/menu-presets.js",
+      "dependencies": [
+        "core"
+      ]
+    },
+    {
+      "name": "com_alfa.cartrule.conditions",
+      "type": "script",
+      "uri": "com_alfa/admin/cartrule-conditions.js",
+      "dependencies": [
+        "core",
+        "webcomponent.field-fancy-select"
+      ]
+    },
+    {
+      "name": "com_alfa.prices",
+      "type": "style",
+      "uri": "com_alfa/admin/prices.css"
+    },
+    {
+      "name": "com_alfa.prices",
+      "type": "script",
+      "uri": "com_alfa/admin/prices.js",
+      "dependencies": [
+        "core"
+      ]
+    },
+    {
+      "name": "com_alfa.combinations",
+      "type": "style",
+      "uri": "com_alfa/admin/combinations.css"
+    },
+    {
+      "name": "com_alfa.combinations",
+      "type": "script",
+      "uri": "com_alfa/admin/combinations.js",
+      "dependencies": [
+        "core",
+        "com_alfa.core-loader"
+      ]
     },
     {
       "name": "com_alfa.email-positions",
@@ -23,13 +75,17 @@
       "name": "com_alfa.email-positions",
       "type": "script",
       "uri": "com_alfa/admin/email-positions.js",
-      "dependencies": ["core"]
+      "dependencies": [
+        "core"
+      ]
     },
     {
       "name": "com_alfa.sync-tools",
       "type": "script",
       "uri": "com_alfa/admin/sync-tools.js",
-      "dependencies": ["core"]
+      "dependencies": [
+        "core"
+      ]
     },
     {
       "name": "com_alfa.notifications",
@@ -40,20 +96,78 @@
       "name": "com_alfa.notifications",
       "type": "script",
       "uri": "com_alfa/admin/notifications.js",
-      "dependencies": ["core"],
-      "attributes": { "async": true }
+      "dependencies": [
+        "core"
+      ],
+      "attributes": {
+        "async": true
+      }
+    },
+    {
+      "name": "com_alfa.setup-dashboard",
+      "type": "style",
+      "uri": "com_alfa/admin/setup-dashboard.css"
+    },
+    {
+      "name": "com_alfa.setup-dashboard",
+      "type": "script",
+      "uri": "com_alfa/admin/setup-dashboard.js",
+      "dependencies": [
+        "core",
+        "com_alfa.core-loader"
+      ],
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_alfa.echarts",
+      "type": "script",
+      "uri": "com_alfa/libraries/echarts.min.js",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_alfa.charts",
+      "type": "style",
+      "uri": "com_alfa/admin/charts.css"
+    },
+    {
+      "name": "com_alfa.charts",
+      "type": "script",
+      "uri": "com_alfa/admin/charts.js",
+      "dependencies": [
+        "core",
+        "com_alfa.echarts"
+      ],
+      "attributes": {
+        "defer": true
+      }
     },
     {
       "name": "com_alfa.integrity-check",
       "type": "script",
       "uri": "com_alfa/admin/integrity-check.js",
-      "dependencies": ["core"],
-      "attributes": { "async": true }
+      "dependencies": [
+        "core"
+      ],
+      "attributes": {
+        "async": true
+      }
     },
     {
       "name": "com_alfa.list",
       "type": "style",
       "uri": "com_alfa/site/list.css"
+    },
+    {
+      "name": "com_alfa.list",
+      "type": "script",
+      "uri": "com_alfa/site/list-form.js",
+      "attributes": {
+        "defer": true
+      }
     },
     {
       "name": "com_alfa.item",
@@ -71,9 +185,26 @@
       "uri": "com_alfa/site/manufacturer.css"
     },
     {
+      "name": "com_alfa.tokens",
+      "type": "style",
+      "uri": "com_alfa/site/tokens.css"
+    },
+    {
+      "name": "com_alfa.stepper",
+      "type": "style",
+      "uri": "com_alfa/site/stepper.css",
+      "dependencies": [
+        "com_alfa.tokens"
+      ]
+    },
+    {
       "name": "com_alfa.general",
       "type": "style",
-      "uri": "com_alfa/site/general.css"
+      "uri": "com_alfa/site/general.css",
+      "dependencies": [
+        "com_alfa.tokens",
+        "com_alfa.stepper"
+      ]
     },
     {
       "name": "com_alfa.glightbox",
@@ -89,12 +220,30 @@
       "name": "com_alfa.admin.orders-list",
       "type": "script",
       "uri": "com_alfa/admin/orders-list.js",
-      "attributes": { "defer": true }
+      "attributes": {
+        "defer": true
+      }
     },
     {
       "name": "com_alfa.admin.orders-list",
       "type": "style",
       "uri": "com_alfa/admin/orders-list.css"
+    },
+    {
+      "name": "com_alfa.admin.inline-edit",
+      "type": "script",
+      "uri": "com_alfa/admin/inline-edit.js",
+      "dependencies": [
+        "core"
+      ],
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_alfa.admin.inline-edit",
+      "type": "style",
+      "uri": "com_alfa/admin/inline-edit.css"
     },
     {
       "name": "com_alfa.admin",
@@ -105,9 +254,66 @@
       }
     },
     {
-      "name": "com_alfa.order-actions",
+      "name": "com_alfa.admin.document-issue",
       "type": "script",
-      "uri": "com_alfa/admin/order-actions.js",
+      "uri": "com_alfa/admin/document-issue.js",
+      "dependencies": [
+        "core"
+      ]
+    },
+    {
+      "name": "com_alfa.admin.order-item",
+      "type": "script",
+      "uri": "com_alfa/admin/order-item.js",
+      "dependencies": [
+        "core"
+      ],
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_alfa.admin.cart-builder-line",
+      "type": "script",
+      "uri": "com_alfa/admin/cart-builder-line.js",
+      "dependencies": [
+        "core"
+      ],
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_alfa.actions",
+      "type": "script",
+      "uri": "com_alfa/admin/actions.js",
+      "attributes": {
+        "defer": true
+      },
+      "dependencies": [
+        "com_alfa.core-loader"
+      ]
+    },
+    {
+      "name": "com_alfa.action-page",
+      "type": "script",
+      "uri": "com_alfa/admin/action-page.js",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_alfa.credit-refund-partial",
+      "type": "script",
+      "uri": "com_alfa/admin/credit-refund-partial.js",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_alfa.ledger-fact-form",
+      "type": "script",
+      "uri": "com_alfa/admin/ledger-fact-form.js",
       "attributes": {
         "defer": true
       }
@@ -117,7 +323,8 @@
       "type": "script",
       "uri": "com_alfa/admin/admin-field-typehaschanged.js",
       "dependencies": [
-        "core"
+        "core",
+        "com_alfa.core-loader"
       ],
       "attributes": {
         "type": "module"
@@ -140,6 +347,22 @@
       }
     },
     {
+      "name": "com_alfa.item.addtocart",
+      "type": "style",
+      "uri": "com_alfa/site/cart-added.css",
+      "dependencies": [
+        "com_alfa.general"
+      ]
+    },
+    {
+      "name": "com_alfa.item.addtocart",
+      "type": "preset",
+      "dependencies": [
+        "com_alfa.item.addtocart#style",
+        "com_alfa.item.addtocart#script"
+      ]
+    },
+    {
       "name": "com_alfa.item.recalculate",
       "type": "script",
       "uri": "com_alfa/site/item/recalculate.js",
@@ -148,9 +371,28 @@
       }
     },
     {
+      "name": "com_alfa.item.variant",
+      "type": "script",
+      "uri": "com_alfa/site/item/variant.js",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
       "name": "com_alfa.cart",
       "type": "script",
       "uri": "com_alfa/site/cart/cart.js",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_alfa.cart.form-state",
+      "type": "script",
+      "uri": "com_alfa/site/cart/form-state.js",
+      "dependencies": [
+        "core"
+      ],
       "attributes": {
         "defer": true
       }
@@ -196,7 +438,9 @@
       "name": "com_alfa.toast",
       "type": "script",
       "uri": "com_alfa/admin/toast.js",
-      "attributes": { "defer": true }
+      "attributes": {
+        "defer": true
+      }
     },
     {
       "name": "com_alfa.toast",
@@ -227,14 +471,56 @@
     {
       "name": "com_alfa.sortable",
       "type": "script",
-      "uri": "com_alfa/admin/sortable.min.js"
+      "uri": "com_alfa/libraries/sortable.min.js"
     },
     {
-      "name": "com_alfa.showon",
+      "name": "com_alfa.showon.rule-evaluator",
       "type": "script",
-      "uri": "com_alfa/site/cart/showon.js",
-      "dependencies": [ "core" ],
-      "attributes": { "defer": true }
+      "uri": "com_alfa/site/showon/rule-evaluator.js",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_alfa.showon.state-reader",
+      "type": "script",
+      "uri": "com_alfa/site/showon/state-reader.js",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_alfa.userinfo",
+      "type": "style",
+      "uri": "com_alfa/site/userinfo.css"
+    },
+    {
+      "name": "com_alfa.validate",
+      "type": "style",
+      "uri": "com_alfa/validate.css"
+    },
+    {
+      "name": "com_alfa.validate.engine",
+      "type": "script",
+      "uri": "com_alfa/site/validate/validate-engine.js",
+      "dependencies": [
+        "core"
+      ],
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_alfa.showon.engine",
+      "type": "script",
+      "uri": "com_alfa/site/showon/showon-engine.js",
+      "dependencies": [
+        "com_alfa.showon.rule-evaluator",
+        "com_alfa.showon.state-reader"
+      ],
+      "attributes": {
+        "defer": true
+      }
     },
     {
       "name": "com_alfa.showon-builder",
@@ -245,8 +531,44 @@
       "name": "com_alfa.showon-builder",
       "type": "script",
       "uri": "com_alfa/admin/showon-builder.js",
-      "dependencies": [ "core" ],
-      "attributes": { "defer": true }
+      "dependencies": [
+        "core"
+      ],
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_alfa.search",
+      "type": "style",
+      "uri": "com_alfa/site/search.css"
+    },
+    {
+      "name": "com_alfa.search",
+      "type": "script",
+      "uri": "com_alfa/site/search/enhance.js",
+      "dependencies": [
+        "core"
+      ],
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_alfa.tours",
+      "type": "style",
+      "uri": "com_alfa/admin/tours.css"
+    },
+    {
+      "name": "com_alfa.tours",
+      "type": "script",
+      "uri": "com_alfa/admin/tours.js",
+      "dependencies": [
+        "core"
+      ],
+      "attributes": {
+        "defer": true
+      }
     }
   ]
 }

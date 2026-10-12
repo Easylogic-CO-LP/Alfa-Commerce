@@ -2,7 +2,36 @@
 <config>
     <fieldset name="general" label="COM_ALFA_CONFIG_TAB_GENERAL">
 
-        <fieldset name="general_catalog" label="COM_ALFA_CONFIG_FIELDSET_CATALOG">
+        <fieldset
+                name="general_store"
+                label="COM_ALFA_CONFIG_FIELDSET_STORE"
+        >
+
+            <field
+                    name="store_name"
+                    type="text"
+                    default=""
+                    label="COM_ALFA_CONFIG_STORE_NAME"
+                    description="COM_ALFA_CONFIG_STORE_NAME_DESC"
+            />
+
+            <field
+                    name="store_email"
+                    type="email"
+                    default=""
+                    validate="email"
+                    label="COM_ALFA_CONFIG_STORE_EMAIL"
+                    description="COM_ALFA_CONFIG_STORE_EMAIL_DESC"
+            />
+
+        </fieldset>
+
+        <fieldset
+                name="general_catalog"
+                label="COM_ALFA_CONFIG_FIELDSET_CATALOG"
+                addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
+                addruleprefix="Alfa\Component\Alfa\Administrator\Rule"
+        >
 
             <field
                     name="include_subcategories"
@@ -17,9 +46,37 @@
             </field>
 
             <field
-                    name="show_items_filters"
+                    name="category_filter_subtree"
+                    type="radio"
+                    default="0"
+                    layout="joomla.form.field.radio.switcher"
+                    label="COM_ALFA_CONFIG_CATEGORY_FILTER_SUBTREE"
+                    description="COM_ALFA_CONFIG_CATEGORY_FILTER_SUBTREE_DESC"
+            >
+                <option value="0">JNO</option>
+                <option value="1">JYES</option>
+            </field>
+
+            <!-- Floor of the chain; the items menu item may override per landing.
+                 On by default: a subcategory tile's href carries ordering and page
+                 size and no filter at all, so on a filtered listing every tile
+                 silently discards the shopper's filters. -->
+            <field
+                    name="hide_categories_when_filtered"
                     type="radio"
                     default="1"
+                    layout="joomla.form.field.radio.switcher"
+                    label="COM_ALFA_CONFIG_HIDE_CATEGORIES_WHEN_FILTERED"
+                    description="COM_ALFA_CONFIG_HIDE_CATEGORIES_WHEN_FILTERED_DESC"
+            >
+                <option value="0">JNO</option>
+                <option value="1">JYES</option>
+            </field>
+
+            <field
+                    name="show_items_filters"
+                    type="radio"
+                    default="0"
                     layout="joomla.form.field.radio.switcher"
                     label="COM_ALFA_CONFIG_SHOW_ITEMS_FILTERS"
                     description="COM_ALFA_CONFIG_SHOW_ITEMS_FILTERS_DESC"
@@ -29,9 +86,39 @@
             </field>
 
             <field
-                    name="show_manufacturers_filters"
+                    name="show_items_field_facets"
                     type="radio"
                     default="1"
+                    layout="joomla.form.field.radio.switcher"
+                    label="COM_ALFA_CONFIG_SHOW_ITEMS_FIELD_FACETS"
+                    description="COM_ALFA_CONFIG_SHOW_ITEMS_FIELD_FACETS_DESC"
+                    showon="show_items_filters:1"
+            >
+                <option value="0">JNO</option>
+                <option value="1">JYES</option>
+            </field>
+
+            <!-- Core searchtools opens the panel's Filter Options section by itself
+                 while any filter is active. A storefront filter usually comes from
+                 elsewhere (a filters module, a link), so on by default the section
+                 stays closed until the visitor opens it. Items menu items may override. -->
+            <field
+                    name="collapse_items_filters_when_filtered"
+                    type="radio"
+                    default="1"
+                    layout="joomla.form.field.radio.switcher"
+                    label="COM_ALFA_CONFIG_COLLAPSE_ITEMS_FILTERS_WHEN_FILTERED"
+                    description="COM_ALFA_CONFIG_COLLAPSE_ITEMS_FILTERS_WHEN_FILTERED_DESC"
+                    showon="show_items_filters:1"
+            >
+                <option value="0">JNO</option>
+                <option value="1">JYES</option>
+            </field>
+
+            <field
+                    name="show_manufacturers_filters"
+                    type="radio"
+                    default="0"
                     layout="joomla.form.field.radio.switcher"
                     label="COM_ALFA_CONFIG_SHOW_MANUFACTURERS_FILTERS"
                     description="COM_ALFA_CONFIG_SHOW_MANUFACTURERS_FILTERS_DESC"
@@ -42,11 +129,101 @@
 
         </fieldset>
 
+        <!-- Floor of the listing chain: category -> menu item -> here.
+             A visitor's own choice in the storefront's list tools still wins
+             over all three; these only decide what an untouched URL shows.
+             Own titled box so the chain's root is as findable as the category
+             panel and menu tab that inherit from it. -->
+        <fieldset
+                name="general_list"
+                label="COM_ALFA_LIST_OPTIONS"
+                addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
+                addruleprefix="Alfa\Component\Alfa\Administrator\Rule"
+        >
+
+            <field
+                    name="items_limit"
+                    type="listLimit"
+                    default="25"
+                    min="0"
+                    label="COM_ALFA_CONFIG_ITEMS_LIMIT"
+                    description="COM_ALFA_CONFIG_ITEMS_LIMIT_DESC"
+                    validate="listLimit"
+            />
+
+            <field
+                    name="items_limits"
+                    type="listLimits"
+                    label="COM_ALFA_CONFIG_ITEMS_LIMITS"
+                    description="COM_ALFA_CONFIG_ITEMS_LIMITS_DESC"
+                    validate="listLimits"
+            />
+
+            <field
+                    name="items_ordering"
+                    type="listOrdering"
+                    view="items"
+                    default="a.id DESC"
+                    label="COM_ALFA_CONFIG_ITEMS_ORDERING"
+                    description="COM_ALFA_CONFIG_ITEMS_ORDERING_DESC"
+                    validate="options"
+            />
+
+        </fieldset>
+
+        <fieldset name="general_pricing" label="COM_ALFA_CONFIG_FIELDSET_PRICING">
+
+            <field
+                    name="combination_adjust_target"
+                    type="list"
+                    default="final"
+                    label="COM_ALFA_CONFIG_COMBINATION_ADJUST_TARGET"
+                    description="COM_ALFA_CONFIG_COMBINATION_ADJUST_TARGET_DESC"
+            >
+                <option value="final">COM_ALFA_CONFIG_ADJUST_TARGET_FINAL</option>
+                <option value="start">COM_ALFA_CONFIG_ADJUST_TARGET_START</option>
+            </field>
+
+            <!-- What a shipping price typed into a method means. Read only by
+                 ShippingPriceEntryModeResolver: the shop default of a scoped
+                 policy, never a flag the shipping pipeline reads itself. -->
+            <field
+                    name="shipping_price_entry_mode"
+                    type="list"
+                    default="tax_included"
+                    label="COM_ALFA_CONFIG_SHIPPING_PRICE_ENTRY_MODE"
+                    description="COM_ALFA_CONFIG_SHIPPING_PRICE_ENTRY_MODE_DESC"
+            >
+                <option value="tax_included">COM_ALFA_CONFIG_SHIPPING_PRICE_ENTRY_MODE_INCLUDED</option>
+                <option value="tax_excluded">COM_ALFA_CONFIG_SHIPPING_PRICE_ENTRY_MODE_EXCLUDED</option>
+            </field>
+
+            <!-- The tax rules a shipping method that names none of its own is
+                 taxed with. Each rule's places decide where it applies. Empty:
+                 shipping is untaxed until a rule is chosen here or on a method. -->
+            <field
+                    name="shipping_tax_rules"
+                    type="model"
+                    addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
+                    model="taxes"
+                    column_value="id"
+                    column_text="name"
+                    input_type="list"
+                    multiple="true"
+                    layout="joomla.form.field.list-fancy-select"
+                    label="COM_ALFA_CONFIG_SHIPPING_TAX_RULES"
+                    description="COM_ALFA_CONFIG_SHIPPING_TAX_RULES_DESC"
+            />
+        </fieldset>
+
         <fieldset name="general_stock" label="COM_ALFA_CONFIG_FIELDSET_STOCK">
 
+            <!-- Availability display: what the shopper is told -->
+            <!-- No "From configuration" option here on purpose: this IS the
+                 configuration, so inheriting would be a self-reference. -->
             <field name="stock_action" type="list"
-                   label="COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION"
-                   description="COM_ALFA_FORM_DESC_ITEM_STOCK_ACTION"
+                   label="COM_ALFA_CONFIG_STOCK_ACTION_LABEL"
+                   description="COM_ALFA_CONFIG_STOCK_ACTION_DESC"
                    multiple="false"
                    default="0">
                 <option value="0">COM_ALFA_FORM_LBL_ITEM_STOCK_ACTION_NO_ACTION</option>
@@ -75,6 +252,43 @@
                    type="editor"
             />
 
+            <!-- Stock policy, in lifecycle order. Three gates on the same flow:
+                 ORDER (may they buy beyond salable?) -> LEAVE (may physical go
+                 negative?) -> SHIP (may a fulfilment exceed the ordered qty?). -->
+            <!-- deny by default, as other shop systems do: never sell
+                 what the shop does not have unless the merchant opts in. -->
+            <field name="backorder" type="list"
+                   label="COM_ALFA_CONFIG_INVENTORY_BACKORDER_LABEL"
+                   description="COM_ALFA_CONFIG_INVENTORY_BACKORDER_DESC"
+                   default="deny">
+                <option value="deny">COM_ALFA_CONFIG_INVENTORY_BACKORDER_DENY</option>
+                <option value="allow">COM_ALFA_CONFIG_INVENTORY_BACKORDER_ALLOW</option>
+                <option value="allow_notify">COM_ALFA_CONFIG_INVENTORY_BACKORDER_ALLOW_NOTIFY</option>
+            </field>
+
+            <field name="negative_physical" type="radio"
+                   layout="joomla.form.field.radio.switcher"
+                   label="COM_ALFA_CONFIG_INVENTORY_NEGATIVE_PHYSICAL_LABEL"
+                   description="COM_ALFA_CONFIG_INVENTORY_NEGATIVE_PHYSICAL_DESC"
+                   default="0">
+                <option value="0">JNO</option>
+                <option value="1">JYES</option>
+            </field>
+
+            <field name="over_shipment" type="list"
+                   label="COM_ALFA_CONFIG_INVENTORY_OVER_SHIPMENT_LABEL"
+                   description="COM_ALFA_CONFIG_INVENTORY_OVER_SHIPMENT_DESC"
+                   default="strict">
+                <option value="strict">COM_ALFA_CONFIG_INVENTORY_OVER_SHIPMENT_STRICT</option>
+                <option value="allow_warn">COM_ALFA_CONFIG_INVENTORY_OVER_SHIPMENT_ALLOW_WARN</option>
+            </field>
+
+            <!-- A parameter of the flow, not a gate in it -->
+            <field name="min_qty" type="number"
+                   label="COM_ALFA_CONFIG_INVENTORY_MIN_QTY_LABEL"
+                   description="COM_ALFA_CONFIG_INVENTORY_MIN_QTY_DESC"
+                   default="0" min="0"
+            />
         </fieldset>
 
         <fieldset name="general_notifications" label="COM_ALFA_CONFIG_FIELDSET_NOTIFICATIONS">
@@ -94,6 +308,206 @@
 
     </fieldset>
 
+    <fieldset name="cart" label="COM_ALFA_CONFIG_TAB_CART">
+            <fieldset name="cart_checkout" label="COM_ALFA_CONFIG_FIELDSET_CHECKOUT">
+
+                <!-- WHICH FIELD SAYS WHERE THE ORDER IS GOING. Only needed by a
+                     checkout carrying more than one place field: with exactly
+                     one it is inferred, and a shop with none sells fine without
+                     geographic restrictions. It is NOT a default country; no
+                     destination is ever assumed on the shopper's behalf. -->
+                <field name="delivery_place_field" type="checkoutfield"
+                       addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
+                       types="country"
+                       sections="shipping"
+                       label="COM_ALFA_CONFIG_DELIVERY_PLACE_FIELD_LABEL"
+                       description="COM_ALFA_CONFIG_DELIVERY_PLACE_FIELD_DESC"
+                >
+                    <option value="">COM_ALFA_CONFIG_DELIVERY_PLACE_FIELD_AUTO</option>
+                </field>
+
+                <!-- Enforced at placement (OrderPlacement::validateOrderPrerequisites)
+                     as well as on the cart view: a crafted POST never bypasses it. -->
+                <field name="checkout_guest" type="radio" layout="joomla.form.field.radio.switcher" default="1" filter="integer"
+                       label="COM_ALFA_CONFIG_CHECKOUT_GUEST_LABEL"
+                       description="COM_ALFA_CONFIG_CHECKOUT_GUEST_DESC"
+                >
+                    <option value="0">COM_ALFA_CONFIG_CHECKOUT_GUEST_ACCOUNT</option>
+                    <option value="1">COM_ALFA_CONFIG_CHECKOUT_GUEST_ALLOWED</option>
+                </field>
+
+            </fieldset>
+
+            <fieldset name="cart_added" label="COM_ALFA_CONFIG_FIELDSET_CART_ADDED">
+
+                <field name="cart_added" type="radio" layout="joomla.form.field.radio.switcher" default="1" filter="boolean"
+                       label="COM_ALFA_CONFIG_CART_ADDED_LABEL"
+                       description="COM_ALFA_CONFIG_CART_ADDED_DESC"
+                >
+                    <option value="0">JHIDE</option>
+                    <option value="1">JSHOW</option>
+                </field>
+
+                <field type="note" name="cart_added_module_note"
+                       label="COM_ALFA_CONFIG_CART_ADDED_MODULE_NOTE"
+                       description="COM_ALFA_CONFIG_CART_ADDED_MODULE_NOTE_DESC"
+                       class="alert alert-info"
+                       showon="cart_added:1" />
+
+                <field name="cart_added_pos" type="list" default="top-right"
+                       label="COM_ALFA_CONFIG_CART_ADDED_POS_LABEL"
+                       description="COM_ALFA_CONFIG_CART_ADDED_POS_DESC" showon="cart_added:1"
+                >
+                    <option value="top-left">COM_ALFA_CONFIG_CART_ADDED_POS_TOP_LEFT</option>
+                    <option value="top-center">COM_ALFA_CONFIG_CART_ADDED_POS_TOP_CENTER</option>
+                    <option value="top-right">COM_ALFA_CONFIG_CART_ADDED_POS_TOP_RIGHT</option>
+                    <option value="bottom-left">COM_ALFA_CONFIG_CART_ADDED_POS_BOTTOM_LEFT</option>
+                    <option value="bottom-center">COM_ALFA_CONFIG_CART_ADDED_POS_BOTTOM_CENTER</option>
+                    <option value="bottom-right">COM_ALFA_CONFIG_CART_ADDED_POS_BOTTOM_RIGHT</option>
+                </field>
+
+                <field name="cart_added_offset_vertical" type="number" default="16" min="0" step="1"
+                       label="COM_ALFA_CONFIG_CART_ADDED_OFFSET_VERTICAL_LABEL"
+                       description="COM_ALFA_CONFIG_CART_ADDED_OFFSET_VERTICAL_DESC" showon="cart_added:1"
+                />
+
+                <field name="cart_added_offset_vertical_unit" type="radio" class="btn-group" default="px"
+                       label="COM_ALFA_CONFIG_CART_ADDED_OFFSET_VERTICAL_UNIT_LABEL" showon="cart_added:1"
+                >
+                    <option value="px">COM_ALFA_CONFIG_UNIT_PX</option>
+                    <option value="%">COM_ALFA_CONFIG_UNIT_PERCENT</option>
+                </field>
+
+                <field name="cart_added_offset_horizontal" type="number" default="16" min="0" step="1"
+                       label="COM_ALFA_CONFIG_CART_ADDED_OFFSET_HORIZONTAL_LABEL"
+                       description="COM_ALFA_CONFIG_CART_ADDED_OFFSET_HORIZONTAL_DESC" showon="cart_added:1"
+                />
+
+                <field name="cart_added_offset_horizontal_unit" type="radio" class="btn-group" default="px"
+                       label="COM_ALFA_CONFIG_CART_ADDED_OFFSET_HORIZONTAL_UNIT_LABEL" showon="cart_added:1"
+                >
+                    <option value="px">COM_ALFA_CONFIG_UNIT_PX</option>
+                    <option value="%">COM_ALFA_CONFIG_UNIT_PERCENT</option>
+                </field>
+
+                <field name="cart_added_effect" type="radio" class="btn-group" default="slide"
+                       label="COM_ALFA_CONFIG_CART_ADDED_EFFECT_LABEL"
+                       description="COM_ALFA_CONFIG_CART_ADDED_EFFECT_DESC" showon="cart_added:1"
+                >
+                    <option value="slide">COM_ALFA_CONFIG_CART_ADDED_EFFECT_SLIDE</option>
+                    <option value="fade">COM_ALFA_CONFIG_CART_ADDED_EFFECT_FADE</option>
+                    <option value="zoom">COM_ALFA_CONFIG_CART_ADDED_EFFECT_ZOOM</option>
+                    <option value="none">COM_ALFA_CONFIG_CART_ADDED_EFFECT_NONE</option>
+                </field>
+
+                <field name="cart_added_timeout" type="number" default="6" min="0" step="0.1"
+                       label="COM_ALFA_CONFIG_CART_ADDED_TIMEOUT_LABEL"
+                       description="COM_ALFA_CONFIG_CART_ADDED_TIMEOUT_DESC" showon="cart_added:1"
+                />
+            </fieldset>
+    </fieldset>
+
+    <fieldset name="search" label="COM_ALFA_CONFIG_TAB_SEARCH">
+
+        <field
+                name="search_engine"
+                type="SearchEngine"
+                default=""
+                addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
+                label="COM_ALFA_CONFIG_SEARCH_ENGINE"
+                description="COM_ALFA_CONFIG_SEARCH_ENGINE_DESC"
+        >
+            <option value="">COM_ALFA_CONFIG_SEARCH_ENGINE_AUTO</option>
+        </field>
+
+        <field
+                name="search_capability_note"
+                type="note"
+                label="COM_ALFA_CONFIG_SEARCH_CAPABILITY_NOTE"
+                description="COM_ALFA_CONFIG_SEARCH_CAPABILITY_NOTE_DESC"
+        />
+
+        <field
+                name="search_index_note"
+                type="note"
+                label="COM_ALFA_CONFIG_SEARCH_INDEX_NOTE"
+                description="COM_ALFA_CONFIG_SEARCH_INDEX_NOTE_DESC"
+        />
+
+        <field
+                name="search_index_aliases"
+                type="radio"
+                default="1"
+                layout="joomla.form.field.radio.switcher"
+                label="COM_ALFA_CONFIG_SEARCH_INDEX_ALIASES"
+                description="COM_ALFA_CONFIG_SEARCH_INDEX_ALIASES_DESC"
+        >
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <field
+                name="search_index_manufacturers"
+                type="radio"
+                default="1"
+                layout="joomla.form.field.radio.switcher"
+                label="COM_ALFA_CONFIG_SEARCH_INDEX_MANUFACTURERS"
+                description="COM_ALFA_CONFIG_SEARCH_INDEX_MANUFACTURERS_DESC"
+        >
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <field
+                name="search_index_categories"
+                type="radio"
+                default="0"
+                layout="joomla.form.field.radio.switcher"
+                label="COM_ALFA_CONFIG_SEARCH_INDEX_CATEGORIES"
+                description="COM_ALFA_CONFIG_SEARCH_INDEX_CATEGORIES_DESC"
+        >
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <field
+                name="search_index_short_desc"
+                type="radio"
+                default="0"
+                layout="joomla.form.field.radio.switcher"
+                label="COM_ALFA_CONFIG_SEARCH_INDEX_SHORT_DESC"
+                description="COM_ALFA_CONFIG_SEARCH_INDEX_SHORT_DESC_DESC"
+        >
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <field
+                name="search_index_full_desc"
+                type="radio"
+                default="0"
+                layout="joomla.form.field.radio.switcher"
+                label="COM_ALFA_CONFIG_SEARCH_INDEX_FULL_DESC"
+                description="COM_ALFA_CONFIG_SEARCH_INDEX_FULL_DESC_DESC"
+        >
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <field
+                name="search_index_meta_text"
+                type="radio"
+                default="0"
+                layout="joomla.form.field.radio.switcher"
+                label="COM_ALFA_CONFIG_SEARCH_INDEX_META_TEXT"
+                description="COM_ALFA_CONFIG_SEARCH_INDEX_META_TEXT_DESC"
+        >
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+    </fieldset>
+
     <fieldset name="prices" label="COM_ALFA_CONFIG_PRICES_LABEL">
         <field
                 name="prices_info"
@@ -109,7 +523,7 @@
             <field
                     name="base_price_show"
                     type="radio"
-                    default="1"
+                    default="0"
                     label="COM_ALFA_CONFIG_BASE_PRICE_SHOW_LABEL"
                     description="COM_ALFA_CONFIG_BASE_PRICE_SHOW_DESC"
                     class="btn-group"
@@ -120,7 +534,7 @@
             <field
                     name="base_price_show_label"
                     type="radio"
-                    default="1"
+                    default="0"
                     label="COM_ALFA_CONFIG_SHOW_LABEL"
                     description="COM_ALFA_CONFIG_BASE_PRICE_LABEL_DESC"
                     class="btn-group"
@@ -137,7 +551,7 @@
             <field
                     name="discount_amount_show"
                     type="radio"
-                    default="1"
+                    default="0"
                     label="COM_ALFA_CONFIG_DISCOUNT_SHOW_LABEL"
                     description="COM_ALFA_CONFIG_DISCOUNT_SHOW_DESC"
                     class="btn-group"
@@ -148,7 +562,7 @@
             <field
                     name="discount_amount_show_label"
                     type="radio"
-                    default="1"
+                    default="0"
                     label="COM_ALFA_CONFIG_SHOW_LABEL"
                     description="COM_ALFA_CONFIG_DISCOUNT_LABEL_DESC"
                     class="btn-group"
@@ -165,7 +579,7 @@
             <field
                     name="base_price_with_discounts_show"
                     type="radio"
-                    default="1"
+                    default="0"
                     label="COM_ALFA_CONFIG_SUBTOTAL_SHOW_LABEL"
                     description="COM_ALFA_CONFIG_SUBTOTAL_SHOW_DESC"
                     class="btn-group"
@@ -176,7 +590,7 @@
             <field
                     name="base_price_with_discounts_show_label"
                     type="radio"
-                    default="1"
+                    default="0"
                     label="COM_ALFA_CONFIG_SHOW_LABEL"
                     description="COM_ALFA_CONFIG_SUBTOTAL_LABEL_DESC"
                     class="btn-group"
@@ -193,7 +607,7 @@
             <field
                     name="tax_amount_show"
                     type="radio"
-                    default="1"
+                    default="0"
                     label="COM_ALFA_CONFIG_TAX_SHOW_LABEL"
                     description="COM_ALFA_CONFIG_TAX_SHOW_DESC"
                     class="btn-group"
@@ -204,7 +618,7 @@
             <field
                     name="tax_amount_show_label"
                     type="radio"
-                    default="1"
+                    default="0"
                     label="COM_ALFA_CONFIG_SHOW_LABEL"
                     description="COM_ALFA_CONFIG_TAX_LABEL_DESC"
                     class="btn-group"
@@ -221,7 +635,7 @@
             <field
                     name="base_price_with_tax_show"
                     type="radio"
-                    default="1"
+                    default="0"
                     label="COM_ALFA_CONFIG_BASE_WITH_TAX_SHOW_LABEL"
                     description="COM_ALFA_CONFIG_BASE_WITH_TAX_SHOW_DESC"
                     class="btn-group"
@@ -232,7 +646,7 @@
             <field
                     name="base_price_with_tax_show_label"
                     type="radio"
-                    default="1"
+                    default="0"
                     label="COM_ALFA_CONFIG_SHOW_LABEL"
                     description="COM_ALFA_CONFIG_BASE_WITH_TAX_LABEL_DESC"
                     class="btn-group"
@@ -285,6 +699,20 @@
             </field>
         </fieldset>
 
+        <field name="spacer_unit_display_precision" type="spacer" hr="true" />
+
+        <field
+                name="unit_display_precision"
+                type="list"
+                default="auto"
+                label="COM_ALFA_CONFIG_UNIT_DISPLAY_PRECISION_LABEL"
+                description="COM_ALFA_CONFIG_UNIT_DISPLAY_PRECISION_DESC"
+                validate="options"
+        >
+            <option value="auto">COM_ALFA_CONFIG_UNIT_DISPLAY_PRECISION_AUTO</option>
+            <option value="currency">COM_ALFA_CONFIG_UNIT_DISPLAY_PRECISION_CURRENCY</option>
+        </field>
+
     </fieldset>
 
     <fieldset name="currencies" label="COM_ALFA_CONFIG_CURRENCIES_LABEL">
@@ -296,6 +724,55 @@
                 query="SELECT number, name FROM #__alfa_currencies ORDER BY name ASC" key_field="number"
                 value_field="name"
         />
+    </fieldset>
+
+    <fieldset name="downloads" label="COM_ALFA_DOWNLOADS_CONFIG_LABEL">
+        <field
+                name="downloads_storage_path"
+                type="text"
+                default=""
+                required="true"
+                hint="/home/user/alfa_downloads"
+                label="COM_ALFA_DOWNLOADS_CONFIG_STORAGE_PATH_LABEL"
+                description="COM_ALFA_DOWNLOADS_CONFIG_STORAGE_PATH_DESC"
+                size="150"
+        />
+        <!-- A status, not a setting (it posts nothing): whether the web server refuses direct
+             access to the store, probed by StoreProtection. -->
+        <field
+                name="downloads_protection"
+                type="downloadprotection"
+                addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
+                label="COM_ALFA_DOWNLOADS_PROTECTION_LABEL"
+        />
+    </fieldset>
+
+    <!--
+        Sales documents. documents_issuer = external turns every
+        trigger and manual issue button inert (shops whose ERP issues the
+        legal documents). Everything else lives WHERE it applies: seller
+        identity + templating on each series, auto-issue rules on each
+        order status.
+
+        GLOBAL-FIRST: jurisdiction rules are opt-in switches, never
+        hardcoded; country compliance layers (tax-authority transmission,
+        movement documents) ship as plugins on the document events.
+    -->
+    <fieldset name="documents" label="COM_ALFA_DOCUMENTS_CONFIG_LABEL">
+        <field
+                name="documents_issuer"
+                type="list"
+                default="com_alfa"
+                label="COM_ALFA_DOCUMENTS_CONFIG_ISSUER_LABEL"
+                description="COM_ALFA_DOCUMENTS_CONFIG_ISSUER_DESC"
+        >
+            <option value="com_alfa">COM_ALFA_DOCUMENTS_CONFIG_ISSUER_COMALFA</option>
+            <option value="external">COM_ALFA_DOCUMENTS_CONFIG_ISSUER_EXTERNAL</option>
+        </field>
+
+        <!-- Jurisdiction requirements (buyer tax id, movement details) are
+             PER-TYPE registry flags on #__alfa_document_types;
+             jurisdiction packages flip them on the rows they govern. -->
     </fieldset>
 
     <fieldset name="mediazone" label="COM_ALFA_MEDIA_CONFIG_LABEL">
@@ -357,12 +834,52 @@
             <field
                     name="media_placeholder"
                     type="text"
-                    default=""
+                    default="media/com_alfa/images/placeholders/no-image.webp"
                     hint="media/com_alfa/images/placeholders/no-image.webp"
                     label="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_LABEL"
                     description="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_DESC"
                     size="150"
             />
+
+            <!-- Floor of the chain per listing; the matching menu item may override.
+                 On by default: a grid whose cards are missing pictures loses its
+                 alignment, which is the whole reason the placeholder exists. An
+                 empty placeholder path above disables all three regardless. -->
+            <field
+                    name="media_placeholder_items"
+                    type="radio"
+                    default="1"
+                    layout="joomla.form.field.radio.switcher"
+                    label="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_ITEMS_LABEL"
+                    description="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_ITEMS_DESC"
+            >
+                <option value="0">JNO</option>
+                <option value="1">JYES</option>
+            </field>
+
+            <field
+                    name="media_placeholder_categories"
+                    type="radio"
+                    default="1"
+                    layout="joomla.form.field.radio.switcher"
+                    label="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_CATEGORIES_LABEL"
+                    description="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_CATEGORIES_DESC"
+            >
+                <option value="0">JNO</option>
+                <option value="1">JYES</option>
+            </field>
+
+            <field
+                    name="media_placeholder_manufacturers"
+                    type="radio"
+                    default="1"
+                    layout="joomla.form.field.radio.switcher"
+                    label="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_MANUFACTURERS_LABEL"
+                    description="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_MANUFACTURERS_DESC"
+            >
+                <option value="0">JNO</option>
+                <option value="1">JYES</option>
+            </field>
 
             <field
                     name="media_url_thumbnail"
@@ -387,6 +904,176 @@
                 <option value="0">JNO</option>
                 <option value="1">JYES</option>
             </field>
+        </fieldset>
+
+    </fieldset>
+
+    <fieldset
+            name="layouts"
+            label="COM_ALFA_CONFIG_TAB_LAYOUTS"
+            addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
+    >
+
+        <fieldset
+                name="layouts_items_list"
+                label="COM_ALFA_CONFIG_FIELDSET_LAYOUTS_ITEMS_LIST"
+        >
+
+            <field
+                    name="items_layout"
+                    type="viewLayout"
+                    view="items"
+                    label="COM_ALFA_LAYOUT_ITEMS_LABEL"
+                    description="COM_ALFA_LAYOUT_ITEMS_DESC"
+            />
+
+            <field
+                    name="items_card_layout"
+                    type="subtemplate"
+                    view="items"
+                    slot="item"
+                    label="COM_ALFA_LAYOUT_ITEMS_CARD_LABEL"
+            />
+
+            <field
+                    name="items_categories_layout"
+                    type="subtemplate"
+                    view="items"
+                    slot="categories"
+                    label="COM_ALFA_LAYOUT_ITEMS_CATEGORIES_LABEL"
+            />
+        </fieldset>
+
+        <fieldset
+                name="layouts_item"
+                label="COM_ALFA_CONFIG_FIELDSET_LAYOUTS_ITEM"
+        >
+
+            <field
+                    name="item_layout"
+                    type="viewLayout"
+                    view="item"
+                    label="COM_ALFA_LAYOUT_ITEM_LABEL"
+                    description="COM_ALFA_LAYOUT_ITEM_DESC"
+            />
+
+            <field
+                    name="item_images_layout"
+                    type="subtemplate"
+                    view="item"
+                    slot="images"
+                    label="COM_ALFA_LAYOUT_ITEM_IMAGES_LABEL"
+            />
+
+            <field
+                    name="item_manufacturers_layout"
+                    type="subtemplate"
+                    view="item"
+                    slot="manufacturers"
+                    label="COM_ALFA_LAYOUT_ITEM_MANUFACTURERS_LABEL"
+            />
+
+            <field
+                    name="item_categories_layout"
+                    type="subtemplate"
+                    view="item"
+                    slot="categories"
+                    label="COM_ALFA_LAYOUT_ITEM_CATEGORIES_LABEL"
+            />
+        </fieldset>
+
+        <fieldset
+                name="layouts_manufacturers"
+                label="COM_ALFA_CONFIG_FIELDSET_LAYOUTS_MANUFACTURERS"
+        >
+
+            <field
+                    name="manufacturers_layout"
+                    type="viewLayout"
+                    view="manufacturers"
+                    label="COM_ALFA_LAYOUT_MANUFACTURERS_LABEL"
+            />
+
+            <field
+                    name="manufacturer_layout"
+                    type="viewLayout"
+                    view="manufacturer"
+                    label="COM_ALFA_LAYOUT_MANUFACTURER_LABEL"
+            />
+        </fieldset>
+
+        <fieldset
+                name="layouts_cart"
+                label="COM_ALFA_CONFIG_FIELDSET_LAYOUTS_CART"
+        >
+
+            <field
+                    name="cart_items_layout"
+                    type="subtemplate"
+                    view="cart"
+                    slot="cart_items"
+                    label="COM_ALFA_LAYOUT_CART_ITEMS_LABEL"
+            />
+
+            <field
+                    name="cart_form_layout"
+                    type="subtemplate"
+                    view="cart"
+                    slot="cart_form"
+                    label="COM_ALFA_LAYOUT_CART_FORM_LABEL"
+            />
+
+            <field
+                    name="cart_select_user_info_layout"
+                    type="subtemplate"
+                    view="cart"
+                    slot="select_user_info"
+                    label="COM_ALFA_LAYOUT_CART_USER_INFO_LABEL"
+            />
+
+            <field
+                    name="cart_select_payment_layout"
+                    type="subtemplate"
+                    view="cart"
+                    slot="select_payment"
+                    label="COM_ALFA_LAYOUT_CART_PAYMENT_LABEL"
+            />
+
+            <field
+                    name="cart_select_shipment_layout"
+                    type="subtemplate"
+                    view="cart"
+                    slot="select_shipment"
+                    label="COM_ALFA_LAYOUT_CART_SHIPMENT_LABEL"
+            />
+
+            <field
+                    name="layouts_internal_note"
+                    type="note"
+                    label="COM_ALFA_LAYOUT_INTERNAL_NOTE_LABEL"
+                    description="COM_ALFA_LAYOUT_INTERNAL_NOTE"
+                    class="alert alert-info"
+            />
+        </fieldset>
+
+        <fieldset
+                name="layouts_users"
+                label="COM_ALFA_CONFIG_FIELDSET_LAYOUTS_USERS"
+        >
+
+            <field
+                    name="registration_layout"
+                    type="viewLayout"
+                    view="registration"
+                    label="COM_ALFA_LAYOUT_REGISTRATION_LABEL"
+            />
+
+            <field
+                    name="userinfo_layout"
+                    type="viewLayout"
+                    view="userinfo"
+                    label="COM_ALFA_LAYOUT_USERINFO_LABEL"
+            />
         </fieldset>
 
     </fieldset>
@@ -425,13 +1112,25 @@
     </fieldset>
 
     <fieldset
+            name="about"
+            label="COM_ALFA_CONFIG_TAB_ABOUT"
+            addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
+    >
+        <field
+                name="about"
+                type="about"
+        />
+    </fieldset>
+
+    <fieldset
             name="permissions"
             label="JCONFIG_PERMISSIONS_LABEL"
             description="JCONFIG_PERMISSIONS_DESC"
+            addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
     >
         <field
                 name="rules"
-                type="rules"
+                type="alfarules"
                 label="JCONFIG_PERMISSIONS_LABEL"
                 validate="rules"
                 filter="rules"

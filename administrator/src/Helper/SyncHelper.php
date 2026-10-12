@@ -23,35 +23,31 @@ use stdClass;
 use Throwable;
 
 /**
- * SyncHelper — single source of truth for all Alfa ↔ Joomla sync operations.
+ * SyncHelper: single source of truth for all Alfa <-> Joomla sync operations.
  *
  * Used by three consumers:
- *  1. script.php (installer)       — seeds all existing users/groups on install/update.
- *  2. PlgSystemAlfasync (plugin)   — keeps tables in sync on every save/delete event.
- *  3. Frontend registration logic  — inserts the new user row immediately on sign-up.
+ *  1. script.php (installer)       - seeds all existing users/groups on install/update.
+ *  2. PlgSystemAlfasync (plugin)   - keeps tables in sync on every save/delete event.
+ *  3. Frontend registration logic  - inserts the new user row immediately on sign-up.
  *
  * Batch strategy
- * --------------
  * All bulk inserts use a single multi-row INSERT statement per chunk rather
  * than looping with individual insertObject() calls.  For 2 000 users this
  * means ~4 round-trips to the DB instead of 2 000.
  *
  * Chunks are capped at {@see self::INSERT_CHUNK_SIZE} rows to stay well
- * within MySQL's default max_allowed_packet (typically 64 MB – 1 GB).
+ * within MySQL's default max_allowed_packet (typically 64 MB - 1 GB).
  *
  * Adding a new price field
- * ------------------------
  * 1. Add the key + default to $defaultParams in script.php.
  * 2. Add the key to PRICES_DISPLAY_KEYS below.
- * Done — every consumer picks it up automatically.
+ * Done. Every consumer picks it up automatically.
  *
  * @since  1.0.0
  */
 final class SyncHelper
 {
-    // =========================================================================
     // Constants
-    // =========================================================================
 
     /**
      * Maximum number of rows per INSERT statement.
@@ -87,9 +83,7 @@ final class SyncHelper
         'price_breakdown_show',
     ];
 
-    // =========================================================================
     // prices_display builder
-    // =========================================================================
 
     /**
      * Builds the default prices_display JSON for a new #__alfa_usergroups row.
@@ -101,11 +95,11 @@ final class SyncHelper
      *     component params may not be committed to DB yet at postflight time.
      *
      *  B) Plugin / frontend
-     *     Passes null → reads from the already-seeded com_alfa component params
+     *     Passes null -> reads from the already-seeded com_alfa component params
      *     via ComponentHelper so the component configuration panel is the live
      *     control for these defaults.
      *
-     * @param array|null $sourceParams Explicit key→value map, or null to
+     * @param array|null $sourceParams Explicit key->value map, or null to
      *                                 read from ComponentHelper at runtime.
      *
      * @return string JSON-encoded prices_display value.
@@ -133,9 +127,7 @@ final class SyncHelper
         return json_encode($display);
     }
 
-    // =========================================================================
     // Existence checks (single-row, used by plugin on save events)
-    // =========================================================================
 
     /**
      * Returns true if a row for $userId already exists in #__alfa_users.
@@ -165,9 +157,7 @@ final class SyncHelper
         return (int) $db->setQuery($query)->loadResult() > 0;
     }
 
-    // =========================================================================
     // Single-row insert (used by plugin on save events)
-    // =========================================================================
 
     /**
      * Inserts a single user row into #__alfa_users if it does not already exist.
@@ -240,9 +230,7 @@ final class SyncHelper
         return true;
     }
 
-    // =========================================================================
     // Bulk sync (used by installer script.php)
-    // =========================================================================
 
     /**
      * Bulk-inserts all Joomla users that are missing from #__alfa_users.
@@ -312,7 +300,7 @@ final class SyncHelper
             return 0;
         }
 
-        // Build once — every missing group gets the same default JSON.
+        // Build once: every missing group gets the same default JSON.
         $pricesDisplay = self::buildDefaultPricesDisplay($sourceParams);
 
         $inserted = 0;
@@ -345,9 +333,7 @@ final class SyncHelper
         return $inserted;
     }
 
-    // =========================================================================
     // ID discovery helpers
-    // =========================================================================
 
     /**
      * Returns the IDs of all #__users rows that have no matching #__alfa_users row.
@@ -394,9 +380,7 @@ final class SyncHelper
         return array_map('intval', $db->setQuery($query)->loadColumn() ?: []);
     }
 
-    // =========================================================================
     // Fallback: one-by-one inserts (used when a chunk INSERT fails)
-    // =========================================================================
 
     /**
      * Inserts user IDs one-by-one, silently skipping duplicates.
@@ -443,20 +427,21 @@ final class SyncHelper
         return $inserted;
     }
 
-    // =========================================================================
     // Language schema sync (multilingual auxiliary tables)
-    // =========================================================================
 
     /**
      * Create / update the per-language auxiliary tables for every translatable
      * entity, across all installed content languages.
      *
-     * The translatable schema is DISCOVERED from the component's form XML — every
+     * The translatable schema is DISCOVERED from the component's form XML: every
      * <field> carrying a `multilingual_table` attribute (the MultilingualText /
      * MultilingualTextarea / MultilingualEditor field types) declares its table,
      * PK column and field name. This keeps the sync self-maintaining: adding a
      * translatable field to a form is picked up automatically, with no list to
      * maintain here.
+     *
+     * Two tables have no form to be discovered from and are declared in
+     * {@see self::languageTablesOutsideForms()}; they are made here with the rest.
      *
      * Idempotent: missing lang tables are created, missing columns added; nothing
      * is dropped or seeded. Shared by the installer (script.php postflight), the
@@ -467,7 +452,7 @@ final class SyncHelper
      */
     public static function syncLanguageSchema(): array
     {
-        $schema = self::getMultilingualSchema();
+        $schema = self::getMultilingualSchema() + self::languageTablesOutsideForms();
         $summary = ['tables' => [], 'errors' => []];
 
         foreach ($schema as $table => $definition) {
@@ -486,16 +471,45 @@ final class SyncHelper
     }
 
     /**
+     * The language tables of rows translated outside any form, so the form scan
+     * cannot find them: a field's values (the Values tab) and a product's variants
+     * (the Variants grid). The storefront search, the listings and the filters join
+     * them from the first request on, so they are made with every other language
+     * table, never on a first save.
+     *
+     * Kept out of {@see self::getMultilingualSchema()}: the translation backfill
+     * walks that schema, and a variant keeps a language row only while it
+     * overrides the product's text there.
+     *
+     * @return array<string, array{pk: string, fields: string[]}>
+     *
+     * @since  2.0.0
+     */
+    private static function languageTablesOutsideForms(): array
+    {
+        return [
+            '#__alfa_item_field_values' => [
+                'pk' => 'id_item_field_value',
+                'fields' => ['name', ...(MultilingualAliasConfig::FIELDS['#__alfa_item_field_values'] ?? [])],
+            ],
+            '#__alfa_item_combinations' => [
+                'pk' => 'id_item_combination',
+                'fields' => ItemFieldsAdminHelper::combinationTranslatableFields(),
+            ],
+        ];
+    }
+
+    /**
      * Return the discovered translatable schema for the whole component, e.g.
      *   [ '#__alfa_categories' => [
      *         'pk'          => 'id_category',
      *         'fields'      => ['name', 'desc', 'alias', 'meta_title', 'meta_desc'],
      *         'aliasFields' => ['alias'],
      *         'aliasScope'  => ['parent_id'],
-     *     ], … ]
+     *     ], ... ]
      *
      * Scans the component's admin + site form XML for every field carrying a
-     * `multilingual_table` attribute. Public so the Tools view / SyncController
+     * `multilingual_table` attribute. Public so the Tools view / CoreToolProvider
      * can build the backfill plan from the same single source of truth used by
      * the schema sync. Alias fields + uniqueness scope come from MultilingualAliasConfig.
      *
@@ -513,8 +527,8 @@ final class SyncHelper
     /**
      * Scan the given form directories for translatable-field declarations.
      *
-     * Collects every <field multilingual_table="…" multilingual_pk="…" name="…">.
-     * Alias slug fields and their uniqueness scope are NOT read from the XML —
+     * Collects every <field multilingual_table="..." multilingual_pk="..." name="...">.
+     * Alias slug fields and their uniqueness scope are NOT read from the XML;
      * they come from MultilingualAliasConfig.
      *
      * @param string[] $formDirs Absolute paths to directories of *.xml form files.
@@ -548,7 +562,7 @@ final class SyncHelper
                     }
 
                     $schema[$table]['pk'] = $pk;
-                    $schema[$table]['fields'][$name] = $name; // keyed → de-duplicated
+                    $schema[$table]['fields'][$name] = $name; // keyed -> de-duplicated
                 }
             }
         }
@@ -564,10 +578,11 @@ final class SyncHelper
     }
 
     /**
-     * Keep the Security notification in sync with the integrity verdict. Designed to
-     * be called on every admin load (by PlgSystemAlfasync) — the expensive work is
-     * throttled to once per 24h here via Joomla's cache (same `com_alfa.integrity`
-     * group as {@see IntegrityHelper::cachedVerdict()}), so callers don't worry about
+     * Keep the Security notification in sync with the integrity verdict. Called by the
+     * bell's refresh fetch (NotificationsController::panel), so it runs on the page
+     * loads of users who may see notifications; the expensive work is throttled to
+     * once per 24h here via Joomla's cache (same `com_alfa.integrity` group as
+     * {@see IntegrityHelper::cachedVerdict()}), so callers don't worry about
      * scheduling. The actual push/clear runs only on a cache miss.
      *
      *
@@ -586,14 +601,14 @@ final class SyncHelper
 
             $cache->get([self::class, 'doSyncIntegrity'], [], 'sync');
         } catch (Throwable) {
-            // Cache unavailable → just do it (correct, only less throttled).
+            // Cache unavailable -> just do it (correct, only less throttled).
             self::doSyncIntegrity();
         }
     }
 
     /**
      * Push the Security notification while the integrity check isn't clean, or clear
-     * it (hard — a fluctuating live state shouldn't fill history) when it is. Public
+     * it (hard: a fluctuating live state shouldn't fill history) when it is. Public
      * so it can be the cache callback for {@see self::syncIntegrity()}.
      *
      * @return bool Always true (so the cache stores a hit).
@@ -610,7 +625,7 @@ final class SyncHelper
     /**
      * Push/clear the Security notification to match a verdict. Split out so a FRESH
      * check (the Tools Security tab) can update the badge IMMEDIATELY instead of waiting
-     * for the next 24h sync — and so the tab and the badge never disagree.
+     * for the next 24h sync, and so the tab and the badge never disagree.
      *
      * @param array $verdict A verdict from IntegrityHelper (verifyAgainstOfficial/cachedVerdict).
      *
@@ -643,7 +658,7 @@ final class SyncHelper
                 'group' => Text::_('COM_ALFA_NOTIFY_GROUP_SECURITY'),
                 'severity' => $severity,
                 'message' => Text::_($messageKey),
-                // Raw URL (no &amp;) — output encoding adds the entities once, not twice.
+                // Raw URL (no &amp;): output encoding adds the entities once, not twice.
                 'url' => Route::_('index.php?option=com_alfa&view=tools', false),
                 'dismissible' => false,
                 // Constant: while the install isn't clean, re-alert each 24h sync even if read.
