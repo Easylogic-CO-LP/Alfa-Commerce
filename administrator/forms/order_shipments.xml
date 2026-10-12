@@ -1,21 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-    Shipment form — complete coverage of #__alfa_order_shipments columns.
+    Shipment form: complete coverage of #__alfa_order_shipments columns.
 
     Used for BOTH:
-    1. Popup add/edit form (getShipmentForm → edit_shipment.php)
+    1. Popup add/edit form (getShipmentForm -> edit_shipment.php)
     2. List column definitions (edit_shipments.php subform)
 
     Field groups:
-      ITEMS:    items (virtual — assign products to shipment)
-      CORE:     id_shipment_method, status, shipping_cost_tax_incl/excl
+      ITEMS:    items (virtual, assign products to shipment)
+      CORE:     id_shipment_method, status, shipping_cost_tax_incl/excl,
+                shipping_tax_rate
       CARRIER:  tracking_number, carrier_name, weight
       DATES:    added, shipped (readonly), delivered (readonly)
       HIDDEN:   id, id_order, id_currency, id_employee,
                 shipment_method_name, id_order_invoice
 
-    The `status` list field has NO static options — always injected by
-    OrderModel::getShipmentForm() from OrderShipmentHelper constants.
+    The `status` list field has NO static options; always injected by
+    OrderModel::getShipmentForm() from ShipmentLedger constants.
 
     The `shipped` and `delivered` fields are readonly calendar fields.
     They are set programmatically by the builder (->shipped(), ->delivered())
@@ -23,12 +24,10 @@
 
     DB: #__alfa_order_shipments
 -->
-<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field" addruleprefix="Alfa\Component\Alfa\Administrator\Rule">
     <fieldset name="shipment">
 
-        <!-- ═══════════════════════════════════════════════════════ -->
         <!-- CORE FIELDS                                             -->
-        <!-- ═══════════════════════════════════════════════════════ -->
 
         <!-- Shipment method (dropdown from shipments table) -->
         <field
@@ -44,7 +43,7 @@
                 layout="joomla.form.field.list-fancy-select"
         />
 
-        <!-- Shipment status — options injected by OrderModel::getShipmentForm() -->
+        <!-- Shipment status: options injected by OrderModel::getShipmentForm() -->
         <field
                 name="status"
                 type="list"
@@ -54,18 +53,19 @@
                 required="true"
         />
 
-        <!-- ═══════════════════════════════════════════════════════ -->
-        <!-- ITEMS — virtual field (not a DB column)                 -->
-        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- ITEMS - virtual field (not a DB column)                 -->
 
-        <!-- Items assigned to this shipment.
-             assign_column filters: shows unshipped + items in THIS shipment.
-             Processed by saveOrderShipment() → assignItemsToShipment() -->
+        <!-- Order lines carried by this parcel.
+             assign_mode="shipment" counts UNITS through the shipment-items
+             join table, so a line stays on offer while any of it is still
+             unshipped and can go on a second parcel too. The "xN" shown is
+             what is AVAILABLE, not what was ordered.
+             Processed by saveOrderShipment() -> assignItemsToShipment() -->
         <field
                 name="items" type="orderItems"
                 input_id="id_order"
                 entity_id="id"
-                assign_column="id_order_shipment"
+                assign_mode="shipment"
                 show_quantity="true"
                 show_sku="false"
                 multiple="true"
@@ -75,33 +75,50 @@
                 required="false"
         />
 
-        <!-- Shipping cost tax included -->
+        <!-- Shipping cost tax included. Both costs are amounts of the order's
+             money exactly as typed: each input steps by the order's smallest
+             unit, and one finer than the order's currency is refused, never
+             rounded. -->
         <field
                 name="shipping_cost_tax_incl"
-                type="number"
+                type="orderMoney"
                 label="COM_ALFA_COST_TAX_INCL"
                 description=""
-                step="0.01"
                 min="0"
                 default="0"
                 required="false"
+                validate="orderMoney"
+                sign="nonnegative"
         />
 
-        <!-- Shipping cost tax excluded -->
+        <!-- Shipping cost tax excluded. Left empty, the charge is untaxed:
+             the net is the cost including tax. -->
         <field
                 name="shipping_cost_tax_excl"
-                type="number"
+                type="orderMoney"
                 label="COM_ALFA_COST_TAX_EXCL"
-                description=""
-                step="0.01"
+                description="COM_ALFA_COST_TAX_EXCL_DESC"
+                min="0"
+                required="false"
+                validate="orderMoney"
+                sign="nonnegative"
+        />
+
+        <!-- The VAT rate the charge was taxed at, frozen with the amounts. A
+             taxed charge (cost including tax above the cost excluding it)
+             states it; the shipment is refused without it. -->
+        <field
+                name="shipping_tax_rate"
+                type="number"
+                label="COM_ALFA_SHIPPING_TAX_RATE"
+                description="COM_ALFA_SHIPPING_TAX_RATE_DESC"
+                step="0.001"
                 min="0"
                 default="0"
                 required="false"
         />
 
-        <!-- ═══════════════════════════════════════════════════════ -->
         <!-- CARRIER FIELDS                                          -->
-        <!-- ═══════════════════════════════════════════════════════ -->
 
         <!-- Tracking number from carrier -->
         <field
@@ -112,7 +129,7 @@
                 description="COM_ALFA_TRACKING_NUMBER_DESC"
         />
 
-        <!-- Carrier name (DHL, FedEx, ACS, Speedex, etc.) -->
+        <!-- Carrier name (the courier company handling the parcel) -->
         <field
                 name="carrier_name"
                 type="text"
@@ -133,9 +150,7 @@
                 required="false"
         />
 
-        <!-- ═══════════════════════════════════════════════════════ -->
         <!-- DATE FIELDS                                             -->
-        <!-- ═══════════════════════════════════════════════════════ -->
 
         <!-- Date added (auto-filled for new, editable for existing) -->
         <field
@@ -149,7 +164,7 @@
                 filter="user_utc"
         />
 
-        <!-- Shipped timestamp — set by builder's ->shipped(), readonly in form -->
+        <!-- Shipped timestamp: set by builder's ->shipped(), readonly in form -->
         <field
                 name="shipped"
                 type="calendar"
@@ -162,7 +177,7 @@
                 readonly="true"
         />
 
-        <!-- Delivered timestamp — set by builder's ->delivered(), readonly in form -->
+        <!-- Delivered timestamp: set by builder's ->delivered(), readonly in form -->
         <field
                 name="delivered"
                 type="calendar"
@@ -175,9 +190,7 @@
                 readonly="true"
         />
 
-        <!-- ═══════════════════════════════════════════════════════ -->
-        <!-- HIDDEN — auto-filled by model, not shown in form/list  -->
-        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- HIDDEN - auto-filled by model, not shown in form/list  -->
 
         <field name="id" type="hidden"/>
         <field name="id_order" type="hidden"/>

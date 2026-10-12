@@ -3,7 +3,8 @@
     <fields name="filter">
         <field name="search" type="text"
                description="COM_ALFA_SEARCH_FILTER_SUBMIT"
-               label="COM_USERS_FILTER_SEARCH_DESC"
+               label="COM_ALFA_FILTER_SEARCH_LABEL"
+               hint="COM_ALFA_FORMFIELDGROUPS_SEARCH_PLACEHOLDER"
                class="js-stools-search-string"/>
 
         <field name="state" type="status"

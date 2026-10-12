@@ -1,3 +1,30 @@
+/* The module reads the storefront palette (--alfa-*) and never a template's own
+   variables: a module cannot know which template it lands in, but every Alfa
+   storefront ships this palette, and a template retheming it moves the cart too.
+   Each fallback is the module's previous literal, so a page that loads the cart
+   without com_alfa's CSS looks exactly as it did. */
+.mod-alfa-cart {
+    --alfa-cart-surface: var(--alfa-surface, #fff);
+    --alfa-cart-surface-color: var(--alfa-surface-color, inherit);
+    --alfa-cart-muted: var(--alfa-muted-color, #777);
+    --alfa-cart-hairline: var(--alfa-hairline, #eaeaea);
+    /* Header and footer sit above the panel. Mixed from the text colour rather
+       than fixed, so the lift survives a dark panel instead of inverting. */
+    --alfa-cart-raised: color-mix(in srgb, currentColor 4%, var(--alfa-cart-surface));
+    --alfa-cart-danger: var(--alfa-error-color, #e60000);
+    /* The checkout CTA, in priority order: what the merchant picked for this
+       module, else the storefront's primary action, else the shipped literal. */
+    --alfa-cart-cta-bg: var(--mod-alfa-cart-checkout-color, var(--alfa-action-primary-bg, #333));
+    --alfa-cart-cta-color: var(--mod-alfa-cart-checkout-text-color, var(--alfa-action-primary-color, #fff));
+    /* Radius lives here and nowhere else. A fallback repeated at each use site is
+       invisible duplication: the panel said 4px, the close button 3px and the CTA
+       none, so the module disagreed with itself about its own shape. One base, and
+       the small controls take a ratio of it. */
+    --alfa-cart-radius: var(--alfa-radius, 4px);
+    --alfa-cart-radius-panel: var(--alfa-radius-panel, 4px);
+    --alfa-cart-radius-sm: calc(var(--alfa-cart-radius) * 0.75);
+}
+
 .mod-alfa-cart-no-scroll{
     height: 100%;
     overflow: hidden;
@@ -6,8 +33,8 @@
 /* header */
 .mod-alfa-cart .cart-header{
     padding: 30px 15px;
-    background-color:#f6f6f6;
-    border-bottom: 1px solid rgba(0,0,0,.12);
+    background-color: var(--alfa-cart-raised);
+    border-bottom: 1px solid var(--alfa-cart-hairline);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -17,12 +44,12 @@
 /* CLOSE BUTTON*/
 .mod-alfa-cart .close-btn {
     cursor: pointer;
-    color:#777;
-    border: 1px solid #f1f1f1;
+    color: var(--alfa-cart-muted);
+    border: 1px solid var(--alfa-cart-hairline);
     width: 30px;
     height: 30px;
-    background: white;
-    border-radius: 3px;
+    background: var(--alfa-cart-surface);
+    border-radius: var(--alfa-cart-radius-sm);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -32,8 +59,8 @@
 }
 
 .mod-alfa-cart .close-btn:hover {
-    color:#333;
-    background-color: #f1f1f1;
+    color: var(--alfa-cart-surface-color);
+    background-color: var(--alfa-cart-raised);
 }
 
 /* body */
@@ -59,7 +86,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 15px;
-    border-bottom: 1px solid #eaeaea;
+    border-bottom: 1px solid var(--alfa-cart-hairline);
 }
 .mod-alfa-cart .cart-item-details{
     display: flex;
@@ -69,7 +96,7 @@
 }
 .mod-alfa-cart .cart-item-name {
     font-size: 1.125rem;
-    color: #333;
+    color: var(--alfa-cart-surface-color);
 }
 
 .mod-alfa-cart .cart-item-remove {
@@ -80,45 +107,44 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    color: #333;
+    color: var(--alfa-cart-surface-color);
     transition: color 0.2s ease;
 }
 
 .mod-alfa-cart .cart-item-remove:hover {
-    color: #e60000;
+    color: var(--alfa-cart-danger);
 }
 
 .mod-alfa-cart .cart-list > li:last-child {
     border-bottom: unset;
 }
 
-/* Quantity Controls*/
+/* Quantity controls. The stepper itself is com_alfa's shared component
+   (stepper.css), the same one the item page uses, so the two agree on shape and
+   follow --alfa-radius together. This row only places it beside the remove button. */
 .mod-alfa-cart .item-quantity-controls-wrapper {
     display: flex;
-    margin: 4px 0;
-}
-
-.mod-alfa-cart .item-quantity {
-    width: 50px;
-    text-align: center;
-    border: 1px solid lightgray;
-    /* Hides the default spinner buttons in the input */
-    appearance: textfield;
-}
-
-.mod-alfa-cart .item-quantity-controls{
-    border: none;
-    width: 30px;
-    font-size: 1.5rem;
-    color: black;
-    cursor: pointer;
-    display: flex;
     align-items: center;
-    justify-content: center;
+    gap: var(--alfa-cart-gap, 0.5rem);
 }
 
-/* Complete Order Button */
-.mod-alfa-cart .alfa-cart-empty {
+/* Complete Order Button (checkout CTA, no Bootstrap; colours from module params) */
+.mod-alfa-cart .cart-checkout {
+    display: block;
+    text-align: center;
+    padding: 12px;
+    background-color: var(--alfa-cart-cta-bg);
+    color: var(--alfa-cart-cta-color);
+    border-radius: var(--alfa-cart-radius);
+    text-decoration: none;
+    transition: filter 0.15s ease;
+}
+
+.mod-alfa-cart .cart-checkout:hover {
+    filter: brightness(0.9);
+}
+
+.mod-alfa-cart .cart-empty {
     justify-content: center;
     display: flex;
     align-items: center;
@@ -128,7 +154,7 @@
 .mod-alfa-cart .cart-footer{
     box-shadow: 0 -5px 10px #00000029;
     padding: 30px 40px;
-    background-color:#f6f6f6;
+    background-color: var(--alfa-cart-raised);
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -142,7 +168,7 @@
 /* toggler */
 .mod-alfa-cart .cart-toggler{
     position:relative;
-    color:var(--mod-alfa-cart-toggler-color, #FFFFFF);
+    color:var(--mod-alfa-cart-toggler-color, currentColor);
 }
 
 .mod-alfa-cart .cart-toggler::after {
@@ -195,8 +221,9 @@
     height: 100%;
     max-width: 800px;
     z-index: 60001;
-    background-color: #ffffff;
-    border: 1px solid #dadce0;
+    background-color: var(--alfa-cart-surface);
+    color: var(--alfa-cart-surface-color);
+    border: 1px solid var(--alfa-cart-hairline);
 }
 
 
@@ -225,10 +252,10 @@
 
 /* CART OPEN ANIMATIONS */
 
-/* ΖΟΟΜ ΙΝ */
+/* ZOOM IN */
 .zoomIn.mod-alfa-cart .mod-alfa-cart-data-inner {
     max-height: 600px;
-    border-radius: 4px;
+    border-radius: var(--alfa-cart-radius-panel);
     transform: scale(0.5);
     opacity: 0;
     will-change: transform;
@@ -252,7 +279,7 @@
 /* FROM TOP */
 .fromTop.mod-alfa-cart .mod-alfa-cart-data-inner {
     max-height: 600px;
-    border-radius: 4px;
+    border-radius: var(--alfa-cart-radius-panel);
     transform: translateY(-150%);
     opacity: 0;
     will-change: transform;
@@ -274,7 +301,7 @@
 
 /* FROM LEFT */
 .fromLeft.mod-alfa-cart .mod-alfa-cart-data-inner {
-    border-radius: 0 4px 4px 0;
+    border-radius: 0 var(--alfa-cart-radius-panel) var(--alfa-cart-radius-panel) 0;
     transform: translateX(-150%);
     will-change: transform;
 }
@@ -297,7 +324,7 @@
 
 /* FROM RIGHT */
 .fromRight.mod-alfa-cart .mod-alfa-cart-data-inner {
-    border-radius: 4px 0 0 4px;
+    border-radius: var(--alfa-cart-radius-panel) 0 0 var(--alfa-cart-radius-panel);
     transform: translateX(150%);
     will-change: transform;
 }
@@ -325,4 +352,41 @@
 
 .fromRight .cart-header{
     justify-content: flex-start;
+}
+
+/*
+   Dark
+   The module's own dark values, so it is correct in both modes on its own: a page
+   that never loads com_alfa's palette still gets a readable panel instead of dark
+   text on a dark ground. Where the palette IS loaded it wins, so a merchant who
+   themes the shop still themes this module; these are the floor, not the ceiling.
+
+   Keyed on what the PAGE declares, never on the device alone: a visitor who picks
+   light on a dark laptop must get light. The third selector is the case where no
+   Alfa template is installed: neither attribute exists, so the device decides.
+   */
+:is(:root[data-theme="dark"], :root[data-theme-default="dark"]:not([data-theme]))
+.mod-alfa-cart {
+    --alfa-cart-surface: var(--alfa-surface, #1f2937);
+    --alfa-cart-surface-color: var(--alfa-surface-color, #e5e7eb);
+    --alfa-cart-muted: var(--alfa-muted-color, #9ca3af);
+    --alfa-cart-hairline: var(--alfa-hairline, #374151);
+    --alfa-cart-danger: var(--alfa-error-color, #f87171);
+    --alfa-cart-cta-bg: var(--mod-alfa-cart-checkout-color, var(--alfa-action-primary-bg, #e5e7eb));
+    --alfa-cart-cta-color: var(--mod-alfa-cart-checkout-text-color, var(--alfa-action-primary-color, #111827));
+}
+
+@media (prefers-color-scheme: dark) {
+    :is(:root[data-theme="auto"],
+        :root[data-theme-default="auto"]:not([data-theme]),
+        :root:not([data-theme]):not([data-theme-default]))
+    .mod-alfa-cart {
+        --alfa-cart-surface: var(--alfa-surface, #1f2937);
+        --alfa-cart-surface-color: var(--alfa-surface-color, #e5e7eb);
+        --alfa-cart-muted: var(--alfa-muted-color, #9ca3af);
+        --alfa-cart-hairline: var(--alfa-hairline, #374151);
+        --alfa-cart-danger: var(--alfa-error-color, #f87171);
+        --alfa-cart-cta-bg: var(--mod-alfa-cart-checkout-color, var(--alfa-action-primary-bg, #e5e7eb));
+        --alfa-cart-cta-color: var(--mod-alfa-cart-checkout-text-color, var(--alfa-action-primary-color, #111827));
+    }
 }

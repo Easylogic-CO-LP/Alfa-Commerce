@@ -1,0 +1,111 @@
+{
+    "uid": "com_alfa.item-fields",
+    "version": 13,
+    "title": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_TITLE",
+    "description": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_DESC",
+    "extensions": [
+        "com_alfa"
+    ],
+    "url": "administrator/index.php?option=com_alfa&view=itemfields",
+    "autostart": false,
+    "steps": [
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_STEP_1_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_STEP_1_DESC",
+            "position": "bottom",
+            "target": "",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=itemfields"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_STEP_2_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_STEP_2_DESC",
+            "position": "right",
+            "target": "#sidebarmenu a[href*=\"option=com_alfa\"][href*=\"view=itemfields\"]",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=itemfields"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_STEP_3_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_STEP_3_DESC",
+            "position": "bottom",
+            "target": ".button-new",
+            "type": 2,
+            "url": "administrator/index.php?option=com_alfa&view=itemfields",
+            "interactive_type": 1
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_STEP_4_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_STEP_4_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has([id^=\"jform_name_\"])",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=itemfield&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_STEP_5_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_STEP_5_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_type), #jform_type",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=itemfield&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_STEP_6_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_STEP_6_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_informational), #jform_informational",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=itemfield&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_STEP_7_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_STEP_7_DESC",
+            "position": "left",
+            "target": ".control-group:not(.hidden):has(#jform_categories), #jform_categories",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=itemfield&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_STEP_8_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_STEP_8_DESC",
+            "position": "bottom",
+            "target": "joomla-tab#myTab button[aria-controls=\"values\"]",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=itemfield&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_STEP_9_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_STEP_9_DESC",
+            "position": "bottom",
+            "target": "#values",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=itemfield&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_STEP_10_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_STEP_10_DESC",
+            "position": "bottom",
+            "target": "joomla-tab#myTab button[aria-controls=\"field_settings\"]",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=itemfield&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_STEP_11_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_STEP_11_DESC",
+            "position": "bottom",
+            "target": "joomla-tab#myTab button[aria-controls=\"visibility\"]",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=itemfield&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_STEP_12_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_STEP_12_DESC",
+            "position": "bottom",
+            "target": "#toolbar",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=itemfield&layout=edit"
+        }
+    ],
+    "ordering": 30
+}

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Alfa Commerce admin menu: the core screens, declared here (not in alfa.xml) so we
+    render and control the whole menu ourselves and inject it into Joomla's native admin
+    sidebar. Plugins add their own entries fluently on the onAlfaBuildMenu event; both are
+    merged, ACL-filtered, ordered and grouped by MenuBuilder.
+
+    Grouping: items with the same section render together under a section heading; items
+    with NO section render first, at the top, with no heading (the primary catalogue
+    screens live here; they need no label). Orderings are spaced by 100 so a plugin can
+    slot an entry between any two core items without a renumber.
+
+    Each <item>:
+      id       unique key within the menu
+      view     the core com_alfa view it points to (mutually exclusive with link)
+      link     an arbitrary URL (when not a plain view)
+      title    a language key
+      icon     an icon PATH (relative to the site root), painted as a currentColor mask
+      section  grouping key + heading (a language key); omit for the headerless top group
+      ordering sort order within the section (spaced by 100)
+      access   optional ACL action gating visibility (checked via authorise on com_alfa);
+               without it a view item asks for alfa.<view>.view. The dashboard is the
+               landing screen, so it asks only for core.manage: entry to Alfa itself.
+
+    Sections follow how often a merchant opens the screen: the headerless catalogue
+    group and Sales are daily work, Promotions change with the season, Inventory as
+    stock moves, and the last two are set up once: Market is where the shop trades
+    (places, currencies, taxes) and Configuration is how its checkout works (methods,
+    statuses, the fields a customer types). Within a section the order is the setup
+    order, so nothing depends on an item below it.
+
+    Each <section> places a heading (ordering 100..900, spaced so a plugin can put its
+    own between any two; analytics and search declare 400 and 450 and so sit above
+    Market). A heading no <section> and no plugin places renders after every placed one.
+-->
+<menu>
+    <section id="COM_ALFA_MENU_SALES"      ordering="100"/>
+    <section id="COM_ALFA_MENU_PROMOTIONS" ordering="200"/>
+    <section id="COM_ALFA_MENU_INVENTORY"  ordering="300"/>
+    <section id="COM_ALFA_MENU_MARKET"     ordering="500"/>
+    <section id="COM_ALFA_MENU_CONFIG"     ordering="600"/>
+    <section id="COM_ALFA_MENU_SYSTEM"     ordering="900"/>
+
+    <item id="dashboard"         section=""                        view="dashboard"         title="COM_ALFA_TITLE_DASHBOARD"         icon="media/com_alfa/images/admin/menu/dashboard.svg"     ordering="50" access="core.manage"/>
+    <item id="items"             section=""                        view="items"             title="COM_ALFA_TITLE_ITEMS"             icon="media/com_alfa/images/admin/menu/items.svg"         ordering="100"/>
+    <item id="categories"        section=""                        view="categories"        title="COM_ALFA_TITLE_CATEGORIES"        icon="media/com_alfa/images/admin/menu/categories.svg"    ordering="200"/>
+    <item id="manufacturers"     section=""                        view="manufacturers"     title="COM_ALFA_TITLE_MANUFACTURERS"     icon="media/com_alfa/images/admin/menu/manufacturers.svg" ordering="300"/>
+    <item id="itemfields"        section=""                        view="itemfields"        title="COM_ALFA_TITLE_ITEMFIELDS"        icon="media/com_alfa/images/admin/menu/itemfields.svg"    ordering="400"/>
+
+    <item id="orders"            section="COM_ALFA_MENU_SALES"     view="orders"            title="COM_ALFA_TITLE_ORDERS"            icon="media/com_alfa/images/admin/menu/orders.svg"        ordering="100"/>
+    <item id="documents"         section="COM_ALFA_MENU_SALES"     view="documents"         title="COM_ALFA_TITLE_DOCUMENTS"         icon="media/com_alfa/images/admin/menu/documents.svg"     ordering="300"/>
+    <item id="carts"             section="COM_ALFA_MENU_SALES"     view="carts"             title="COM_ALFA_TITLE_CARTS"             icon="media/com_alfa/images/admin/menu/cartrules.svg"     ordering="900"/>
+
+    <item id="cartrules"         section="COM_ALFA_MENU_PROMOTIONS"     view="cartrules"         title="COM_ALFA_TITLE_CARTRULES"         icon="media/com_alfa/images/admin/menu/cartrules.svg"     ordering="100"/>
+    <item id="discounts"         section="COM_ALFA_MENU_PROMOTIONS"     view="discounts"         title="COM_ALFA_TITLE_DISCOUNTS"         icon="media/com_alfa/images/admin/menu/discounts.svg"     ordering="200"/>
+
+    <item id="locations"         section="COM_ALFA_MENU_INVENTORY" view="locations"         title="COM_ALFA_TITLE_LOCATIONS"         icon="media/com_alfa/images/admin/menu/locations.svg"     ordering="100"/>
+    <item id="inventorymovements" section="COM_ALFA_MENU_INVENTORY" view="inventorymovements" title="COM_ALFA_TITLE_INVENTORYMOVEMENTS" icon="media/com_alfa/images/admin/menu/inventory.svg"  ordering="200"/>
+
+    <item id="places"            section="COM_ALFA_MENU_MARKET"    view="places"            title="COM_ALFA_TITLE_PLACES"            icon="media/com_alfa/images/admin/menu/places.svg"        ordering="100"/>
+    <item id="currencies"        section="COM_ALFA_MENU_MARKET"    view="currencies"        title="COM_ALFA_TITLE_CURRENCIES"        icon="media/com_alfa/images/admin/menu/currencies.svg"    ordering="200"/>
+    <item id="taxes"             section="COM_ALFA_MENU_MARKET"     view="taxes"             title="COM_ALFA_TITLE_TAXES"             icon="media/com_alfa/images/admin/menu/taxes.svg"         ordering="300"/>
+
+    <item id="payments"          section="COM_ALFA_MENU_CONFIG"    view="payments"          title="COM_ALFA_TITLE_PAYMENTS"          icon="media/com_alfa/images/admin/menu/payments.svg"      ordering="100"/>
+    <item id="shipments"         section="COM_ALFA_MENU_CONFIG"    view="shipments"         title="COM_ALFA_TITLE_SHIPMENTS"         icon="media/com_alfa/images/admin/menu/shipments.svg"     ordering="200"/>
+    <item id="formfields"        section="COM_ALFA_MENU_CONFIG"                        view="formfields"        title="COM_ALFA_TITLE_FORM_FIELDS"       icon="media/com_alfa/images/admin/menu/formfields.svg"    ordering="300"/>
+    <item id="orderstatuses"     section="COM_ALFA_MENU_CONFIG"     view="orderstatuses"     title="COM_ALFA_TITLE_ORDER_STATUSES"    icon="media/com_alfa/images/admin/menu/orderstatuses.svg" ordering="400"/>
+
+    <item id="users"             section="COM_ALFA_MENU_SYSTEM"    view="users"             title="COM_ALFA_TITLE_USERS"             icon="media/com_alfa/images/admin/menu/users.svg"         ordering="100"/>
+    <item id="usergroups"        section="COM_ALFA_MENU_SYSTEM"    view="usergroups"        title="COM_ALFA_TITLE_USERGROUPS"        icon="media/com_alfa/images/admin/menu/usergroups.svg"    ordering="200"/>
+    <item id="notifications"     section="COM_ALFA_MENU_SYSTEM"    view="notifications"     title="COM_ALFA_NOTIFY_HISTORY_TITLE"    icon="media/com_alfa/images/admin/menu/notifications.svg" ordering="300"/>
+    <item id="tools"             section="COM_ALFA_MENU_SYSTEM"    view="tools"             title="COM_ALFA_TITLE_TOOLS"             icon="media/com_alfa/images/admin/menu/tools.svg"         ordering="400" access="alfa.tools"/>
+</menu>

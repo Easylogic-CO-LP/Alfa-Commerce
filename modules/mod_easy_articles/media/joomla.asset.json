@@ -1,0 +1,48 @@
+{
+  "$schema": "https://developer.joomla.org/schemas/json-schema/web_assets.json",
+  "name": "mod_easy_articles",
+  "version": "1.0.0",
+  "description": "Easy Articles module: tabs, grid or slider of article cards.",
+  "license": "GPL-3.0-or-later",
+  "assets": [
+    {
+      "name": "mod_easy_articles.articles",
+      "type": "style",
+      "uri": "mod_easy_articles/articles.css"
+    },
+    {
+      "name": "mod_easy_articles.articles",
+      "type": "script",
+      "uri": "mod_easy_articles/articles.js",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "mod_easy_articles.keen-slider",
+      "type": "style",
+      "uri": "mod_easy_articles/keen-slider.min.css"
+    },
+    {
+      "name": "mod_easy_articles.keen-slider",
+      "type": "script",
+      "uri": "mod_easy_articles/keen-slider.min.js",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "mod_easy_articles.look-editor",
+      "type": "style",
+      "uri": "mod_easy_articles/look-editor.css"
+    },
+    {
+      "name": "mod_easy_articles.look-editor",
+      "type": "script",
+      "uri": "mod_easy_articles/look-editor.js",
+      "attributes": {
+        "defer": true
+      }
+    }
+  ]
+}

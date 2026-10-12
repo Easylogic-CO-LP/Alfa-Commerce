@@ -12,15 +12,16 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
+use Alfa\Component\Alfa\Administrator\Model\Traits\HasFormDerivedFiltersTrait;
 use Joomla\CMS\MVC\Model\ListModel;
 
 /**
- * List model for the Tools → Media maintenance view.
+ * List model for the Tools -> Media maintenance view.
  *
  * Lists every #__alfa_media row, flagging two kinds of "mess" so an admin can
  * review and bulk-delete them:
  *   - ORPHAN     : the row's (origin, item_id) has no matching parent entity
- *                  (detected in SQL via LEFT JOINs → has_parent).
+ *                  (detected in SQL via LEFT JOINs -> has_parent).
  *   - FILE MISSING: the stored file no longer exists on disk (checked per page
  *                  with file_exists(), so it stays paginatable).
  *
@@ -28,6 +29,12 @@ use Joomla\CMS\MVC\Model\ListModel;
  */
 class ToolsmediaModel extends ListModel
 {
+    // This model extends core's ListModel rather than AlfaListModel, so it does not
+    // inherit the shared list behaviour; without this the filter panel stayed SHUT on
+    // a filtered page (status=orphan), because core derives "is anything filtered" from
+    // filter_fields, which is really the ordering whitelist.
+    use HasFormDerivedFiltersTrait;
+
     /**
      * Cached untracked-file scan for the current request (filtered + sorted).
      *
@@ -49,9 +56,26 @@ class ToolsmediaModel extends ListModel
                 'origin', 'a.origin',
                 'type', 'a.type',
                 'ordering', 'a.ordering',
+                // A computed SELECT alias (CASE ... AS has_parent), so it IS a valid
+                // ORDER BY target even though no such column exists.
                 'has_parent',
-                // "Untracked files" mode sort columns.
-                'path', 'size', 'mtime',
+
+                // 'path' is BOTH a real #__alfa_media column and the key the
+                // "Untracked files" mode sorts on, so it belongs here.
+                'path',
+
+                // NOTE: 'size' and 'mtime' are deliberately ABSENT. They are keys on
+                // the scanned-file objects, never columns and never SELECT aliases,
+                // and filter_fields is the ORDERING whitelist
+                // (`in_array($fullOrdering, $this->filter_fields)` in
+                // ListModel::populateState), not a list of sortable display keys.
+                // Whitelisting them made `list[fullordering]=size ASC` an accepted
+                // sort, and getListQuery() below drops list.ordering straight into
+                // ORDER BY: the grid then went permanently empty, since searchtools'
+                // Clear does not reset the sort. Nothing was lost by removing them:
+                // scanUntrackedFiles() only ever sorts by path (it reads
+                // list.direction and ignores list.ordering), and neither the column
+                // headers nor filter_toolsmedia.xml offers either one.
             ];
         }
 
@@ -121,7 +145,7 @@ class ToolsmediaModel extends ListModel
 
         // Status filter. "orphan" is pure SQL (has_parent). "missing" depends on
         // a disk check that SQL can't express, so it resolves to an explicit id
-        // set scanned once here — keeping the result fully paginatable.
+        // set scanned once here, keeping the result fully paginatable.
         switch ((string) $this->getState('filter.status')) {
             case 'orphan':
                 $query->having($db->quoteName('has_parent') . ' = 0');
@@ -178,7 +202,7 @@ class ToolsmediaModel extends ListModel
             $row->thumbnail_url = MediaHelper::toUrl($row->thumbnail);
             $row->is_orphan = !(int) ($row->has_parent ?? 1);
 
-            // External (type=url) media has no local file — never "missing".
+            // External (type=url) media has no local file; never "missing".
             $row->file_missing = $row->type !== 'url'
                 && $row->path !== ''
                 && !is_file(JPATH_ROOT . '/' . ltrim((string) $row->path, '/'));
@@ -189,7 +213,7 @@ class ToolsmediaModel extends ListModel
 
     /**
      * Full, filtered + sorted list of untracked upload files (cached per request).
-     * Backs the "Untracked files" mode — files on disk with no #__alfa_media row.
+     * Backs the "Untracked files" mode: files on disk with no #__alfa_media row.
      *
      * @return object[] Each: { path, size, mtime }.
      *

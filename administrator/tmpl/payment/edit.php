@@ -18,13 +18,12 @@ use \Joomla\CMS\Language\Text;
 $wa = $this->document->getWebAssetManager();
 $wa->useStyle('com_alfa.admin')
 	->useScript('keepalive')
-	->useScript('form.validate');
-
-
-// $input = Factory::getApplication()->getInput();
+	->useScript('form.validate')
+	->useScript('com_alfa.validate.engine')
+	->useStyle('com_alfa.validate');
 
 $ignoreFieldsets = ['general', 'publish'];
-// 'paymentparams' and any other from any plugin that we want to load params.xml of shipment plugin should have <fields name="paymentparams"> to work
+// Every other fieldset becomes a tab: a payment plugin's params.xml declares <fields name="paymentsparams"> with one fieldset of the same name.
 
 $fieldsets = $this->form->getFieldsets();
 
@@ -48,7 +47,6 @@ $fieldsets = $this->form->getFieldsets();
 	<div class="row">
 		<div class="col-lg-9">
 			<fieldset class="adminform">
-				<legend><?php echo Text::_('COM_ALFA_FIELDSET_PAYMENT'); ?></legend>
 				<?php echo $this->form->renderFieldset('general'); ?>
 			</fieldset>
 		</div>

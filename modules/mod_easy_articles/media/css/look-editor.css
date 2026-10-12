@@ -1,0 +1,114 @@
+/**
+ * @package     mod_easy_articles
+ * @copyright   (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license     GNU General Public License version 3 or later; see LICENSE
+ * @author      Agamemnon Fakas <info@easylogic.gr>
+ *
+ * The card settings editor (layouts/field/cardlook.php). The controls are the admin
+ * template's own; these rules only frame the groups and mark what is set.
+ */
+
+/* On the module's tabs the editor is the whole row: its settings are rows themselves. */
+.control-group:has(> .controls > .easy-look-module) > .control-label {
+    display: none;
+}
+
+.control-group:has(> .controls > .easy-look) > .controls {
+    flex: 1 1 100%;
+    max-width: 100%;
+}
+
+.easy-look-group {
+    margin: 0 0 0.75rem;
+    padding: 0;
+    border: 1px solid var(--template-bg-dark-7, #dee2e6);
+    border-radius: 0.375rem;
+    background: none;
+}
+
+.easy-look-group > summary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+}
+
+.easy-look-group > summary::-webkit-details-marker {
+    display: none;
+}
+
+/* A chevron that turns when the group opens. */
+.easy-look-group > summary::before {
+    content: "";
+    width: 0.45rem;
+    height: 0.45rem;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(-45deg);
+    transition: transform 0.15s ease;
+}
+
+.easy-look-group[open] > summary::before {
+    transform: rotate(45deg);
+}
+
+.easy-look-group[open] > summary {
+    border-bottom: 1px solid var(--template-bg-dark-7, #dee2e6);
+}
+
+.easy-look-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem;
+}
+
+.easy-look-rows > .control-group {
+    margin-bottom: 0.5rem;
+}
+
+.easy-look-sides .form-control {
+    min-width: 3.25rem;
+}
+
+/* A size: its number, then its unit. */
+.easy-look .easy-look-size > .form-select {
+    flex: 0 0 6.5rem;
+    width: 6.5rem;
+}
+
+/* A device that has settings of its own. */
+.easy-look-dot {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.easy-look-fold {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+}
+
+.easy-look-fold > summary {
+    list-style: none;
+}
+
+.easy-look-fold > summary::-webkit-details-marker {
+    display: none;
+}
+
+.easy-look-fold[open] > summary {
+    margin-bottom: 0.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .easy-look-group > summary::before {
+        transition: none;
+    }
+}

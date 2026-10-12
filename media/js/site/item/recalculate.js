@@ -1,152 +1,158 @@
-document.addEventListener("DOMContentLoaded", () => {
-    const decrementButtons = document.querySelectorAll('[data-action="decrement"]');
-    const incrementButtons = document.querySelectorAll('[data-action="increment"]');
-    const quantityInputs = document.querySelectorAll('input[name="quantity"]');
-    
-    let recalculateAbortController = new AbortController();
-    
-    // Event listener for decrement button
-    decrementButtons.forEach((button) => {
-        button.addEventListener('click', (event) => {
-            let quantityInput = event.target.closest('[data-item-id]').querySelector('input[name="quantity"]');
-            let currentValue = parseFloat(quantityInput.value);
-            let minValue = parseFloat(quantityInput.min);
-            let step = parseFloat(quantityInput.dataset.step);
+/**
+ * Alfa Commerce: quantity recalculation.
+ *
+ * Quantity +/-/typed changes re-price one item without a reload: POST to
+ * cart.recalculate and swap that item's [data-item-prices] + [data-item-stock-info].
+ *
+ * Handlers are DELEGATED on document (not bound on DOMContentLoaded) so they keep
+ * working after a catalog card is swapped in place by variant.js.
+ */
+(function () {
+    'use strict';
 
-            currentValue -= step;
+    // One in-flight controller per item id; aborting one card's
+    // re-price must never cancel another card's (catalog listing).
+    var controllers = {};
 
-            quantityInput.value = (currentValue <= minValue ) ? minValue : currentValue;
+    /**
+     * Clamp a quantity input to its step / min / max.
+     */
+    function clamp(input) {
+        var step = parseFloat(input.dataset.step) || 1;
+        var min = parseFloat(input.min);
+        var max = (input.max !== '' && !isNaN(input.max)) ? parseFloat(input.max) : null;
+        var value = parseFloat(input.value);
 
-            recalculate();  // Trigger recalculation when the value changes
-
-        });
-    });
-
-    // Event listener for increment button
-    incrementButtons.forEach((button) => {
-        button.addEventListener('click', (event) => {
-            let quantityInput = event.target.closest('[data-item-id]').querySelector('input[name="quantity"]');
-            let currentValue = parseFloat(quantityInput.value);
-            let maxValue = quantityInput.max && !isNaN(quantityInput.max) ? parseFloat(quantityInput.max) : null;
-            let step = parseFloat(quantityInput.dataset.step);
-
-            currentValue += step;
-
-            quantityInput.value = (currentValue >= maxValue && maxValue != null) ? maxValue : currentValue;
-
-            recalculate();  // Trigger recalculation when the value changes
-
-        });
-    });
-
-    // Event listener for quantity input field change
-    quantityInputs.forEach((button) => {
-        button.addEventListener('change', (event) => {
-            let quantityInput = event.target.closest('[data-item-id]').querySelector('input[name="quantity"]');
-            let currentValue = parseFloat(quantityInput.value);
-            let minValue = parseFloat(quantityInput.min);
-            let maxValue = quantityInput.max && !isNaN(quantityInput.max) ? parseFloat(quantityInput.max) : null;
-            let step = parseFloat(quantityInput.dataset.step);
-
-            // If input number is not divisible by step, adjust it
-            if (currentValue % step !== 0) {
-                currentValue = Math.ceil(currentValue / step) * step;
-            }
-
-            // Ensure value doesn't go below the minimum
-            if (currentValue < minValue) {
-                currentValue = minValue;
-            }
-            // Ensure value doesn't go over the maximum
-            else if (maxValue !== null && currentValue > maxValue) {
-                currentValue = maxValue;
-            }
-
-            quantityInput.value = currentValue; // Update the input with the adjusted value
-
-            recalculate(); // Trigger recalculation when the value changes
-        });
-    });
-
-
-    async function recalculate() {
-
-        //Aborting previous request
-        if(recalculateAbortController) {
-            recalculateAbortController.abort();
+        if (isNaN(value)) {
+            value = !isNaN(min) ? min : step;
         }
 
-        recalculateAbortController = new AbortController();
+        if (step && value % step !== 0) {
+            value = Math.ceil(value / step) * step;
+        }
 
-        let item = event.target.closest('[data-item-id]');
+        if (!isNaN(min) && value < min) {
+            value = min;
+        } else if (max !== null && value > max) {
+            value = max;
+        }
 
-        if(!item){
-            console.error('div with attribute [data-item-id] not found to update the price');
+        input.value = value;
+
+        return value;
+    }
+
+    /**
+     * Re-price the given [data-item-id] container for its current quantity.
+     */
+    async function recalculate(item) {
+        var quantity = item.querySelector('input[name="quantity"]');
+        var itemId = item.getAttribute('data-item-id');
+
+        if (!quantity || !itemId) {
             return;
         }
 
-        let quantity = item.querySelector('input[name="quantity"]');
-        if(!quantity){
-            console.error('input[name="quantity"] not found to update the price');
-            return;
+        if (controllers[itemId]) {
+            controllers[itemId].abort();
         }
 
-        let item_id = item.getAttribute('data-item-id');
-        if(!item_id){
-            console.error('data-item-id value is invalid or not found to update the price');
-            return;
-        }
+        var controller = new AbortController();
+        controllers[itemId] = controller;
 
-        const params = new URLSearchParams();
-        params.append("quantity", quantity.value);
-        params.append("item_id", item_id);
+        var params = new URLSearchParams();
+        params.append('quantity', quantity.value);
+        params.append('item_id', itemId);
 
-        const basePath = Joomla.getOptions('system.paths').base || '';
-        let url = basePath + '/index.php?option=com_alfa&task=cart.recalculate&format=json';
-        const options = {
-            method: 'POST',
-            headers: {
-                'X-CSRF-Token': Joomla.getOptions('csrf.token', ''),
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: params,
-            signal: recalculateAbortController.signal
-        };
+        var basePath = (Joomla.getOptions('system.paths') || {}).base || '';
+        var url = basePath + '/index.php?option=com_alfa&task=cart.recalculate&format=json';
 
-        //makes request to My Component to retrieve the item record.
-        let response = await fetch(url, options);
+        try {
+            var response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-Token': Joomla.getOptions('csrf.token', ''),
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: params,
+                signal: controller.signal
+            });
 
-        if (!response.ok) {
-            throw new Error('error status' + response.status);
-            console.error('Error fetching data:', response.statusText);
-            // alert('Failed to recalculate price. Please try again.');
-        } else {
-            let controllerResponse = await response.json();
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status);
+            }
 
-            if(!controllerResponse.success){
-                console.error(controllerResponse.message);
+            var result = await response.json();
+
+            if (!result.success) {
+                console.error(result.message);
+
                 return;
             }
 
-            let responseData = controllerResponse.data;
+            var data = result.data || {};
+            var price = item.querySelector('[data-item-prices]');
 
-            let priceLayout = responseData.price_layout;
-            let stockInfoLayout = responseData.stock_info_layout;
-
-            // Update the UI of the prices
-            const productPrice = item.querySelector('[data-item-prices]');
-            if (productPrice) {
-                productPrice.outerHTML = priceLayout;
+            if (price && data.price_layout) {
+                price.outerHTML = data.price_layout;
             }
 
-            // Update the UI of the stock info
-            const productStockInfo = item.querySelector('[data-item-stock-info]');
-            if (productStockInfo) {
-                productStockInfo.outerHTML = stockInfoLayout;
-            }
+            var stock = item.querySelector('[data-item-stock-info]');
 
+            if (stock && data.stock_info_layout) {
+                stock.outerHTML = data.stock_info_layout;
+            }
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                console.error('[AlfaRecalculate] failed:', error);
+            }
         }
     }
 
-});
+    // +/- buttons (delegated).
+    document.addEventListener('click', function (event) {
+        var button = event.target.closest('[data-action="cart-increment"], [data-action="cart-decrement"]');
 
+        if (!button) {
+            return;
+        }
+
+        var item = button.closest('[data-item-id]');
+
+        if (!item) {
+            return;
+        }
+
+        var input = item.querySelector('input[name="quantity"]');
+
+        if (!input) {
+            return;
+        }
+
+        var step = parseFloat(input.dataset.step) || 1;
+        var current = parseFloat(input.value);
+        current = isNaN(current) ? (parseFloat(input.min) || step) : current;
+        input.value = current + (button.dataset.action === 'cart-increment' ? step : -step);
+
+        clamp(input);
+        recalculate(item);
+    });
+
+    // Typed quantity (delegated).
+    document.addEventListener('change', function (event) {
+        var input = event.target.closest('input[name="quantity"]');
+
+        if (!input) {
+            return;
+        }
+
+        var item = input.closest('[data-item-id]');
+
+        if (!item) {
+            return;
+        }
+
+        clamp(input);
+        recalculate(item);
+    });
+})();

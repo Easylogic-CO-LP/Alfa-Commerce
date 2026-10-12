@@ -34,9 +34,7 @@ class DiscountSummary
         $this->applied = $applied;
     }
 
-    // ========================================================================
-    // BASIC GETTERS
-    // ========================================================================
+    // Basic getters
 
     /**
      * Get total discount amount
@@ -76,37 +74,7 @@ class DiscountSummary
         return count($this->applied);
     }
 
-    // ========================================================================
-    // PERCENTAGE CALCULATIONS
-    // ========================================================================
-
-    /**
-     * Calculate effective savings percentage
-     *
-     * Handles discount timing correctly:
-     * - Before-tax discounts: % relative to base total
-     * - After-tax discounts: % relative to (subtotal + tax)
-     * - Mixed discounts: Combined effective percentage
-     *
-     * @param Money $baseTotal Original amount before discounts
-     * @param Money $subtotal Amount after discounts, before tax
-     * @param Money $taxTotal Tax amount
-     * @return float Percentage with 2 decimal places
-     * @since  1.0.0
-     */
-    public function getEffectivePercent(
-        Money $baseTotal,
-        Money $subtotal,
-        Money $taxTotal,
-    ): float {
-        if ($baseTotal->isZero() || empty($this->applied)) {
-            return 0.0;
-        }
-
-        $breakdown = $this->calculatePercentBreakdown($baseTotal, $subtotal, $taxTotal);
-
-        return $breakdown['total'];
-    }
+    // Percentage calculations
 
     /**
      * Get discount percentage breakdown by timing
@@ -121,6 +89,8 @@ class DiscountSummary
         Money $baseTotal,
         Money $subtotal,
         Money $taxTotal,
+        Money $total,
+        Money $baseTotalWithTax,
     ): array {
         if ($baseTotal->isZero() || empty($this->applied)) {
             return [
@@ -130,106 +100,82 @@ class DiscountSummary
             ];
         }
 
-        return $this->calculatePercentBreakdown($baseTotal, $subtotal, $taxTotal);
+        return $this->calculatePercentBreakdown($baseTotal, $subtotal, $taxTotal, $total, $baseTotalWithTax);
     }
 
     /**
-     * Internal: Calculate percentage breakdown
+     * Internal: the savings breakdown, per stage, FROM MONEY.
      *
-     * Separates before-tax and after-tax discounts and calculates
-     * each relative to the appropriate base amount.
+     * THE TRUTH RULE: "any
+     * displayed or persisted 'actual savings percentage' = (base - final) /
+     * base x 100, derived from actual money, never by summing nominal rule
+     * percentages", and it says it applies to EVERY surface, which includes
+     * this one.
+     *
+     * This used to walk the applied rules and add up `$discount->percent`. Two
+     * stacked 20% rules therefore reported 40.00% while the customer saved
+     * 36.00%, because the second rule takes its cut from what the first one
+     * left. Measured on the demo before this change: four rules reported
+     * 45.00% against a real 38.44%.
+     *
+     * Each stage is measured against ITS OWN entry price, which is what makes
+     * the two figures meaningful separately:
+     *
+     *     before_tax   (baseTotal - subtotal) / baseTotal
+     *     after_tax    ((subtotal + tax) - total) / (subtotal + tax)
+     *
+     * and `total` is NOT their sum. Two percentages taken against different
+     * bases do not add up to a percentage of anything; adding them is a second
+     * form of the same error the rule forbids, so the total is derived once,
+     * from the gross base, and therefore always equals
+     * {@see PriceResult::getSavingsPercent()}, the figure every live surface
+     * already shows.
+     *
      * @since  1.0.0
      */
     private function calculatePercentBreakdown(
         Money $baseTotal,
         Money $subtotal,
         Money $taxTotal,
+        Money $total,
+        Money $baseTotalWithTax,
     ): array {
-        $beforeTaxPercent = 0.0;
-        $afterTaxPercent = 0.0;
+        $subtotalWithTax = $subtotal->add($taxTotal);
 
-        // Separate discounts by timing
-        $beforeTaxDiscounts = $this->getDiscountsByTiming('before_tax');
-        $afterTaxDiscounts = $this->getDiscountsByTiming('after_tax');
-
-        // Calculate before-tax discount percentages (relative to base total)
-        foreach ($beforeTaxDiscounts as $discount) {
-            $percent = $this->calculateDiscountPercent(
-                $discount,
-                $baseTotal,
-            );
-            $beforeTaxPercent += $percent;
-        }
-
-        // Calculate after-tax discount percentages (relative to subtotal + tax)
-        if (!empty($afterTaxDiscounts)) {
-            $subtotalWithTax = $subtotal->add($taxTotal);
-
-            if (!$subtotalWithTax->isZero()) {
-                foreach ($afterTaxDiscounts as $discount) {
-                    $percent = $this->calculateDiscountPercent(
-                        $discount,
-                        $subtotalWithTax,
-                    );
-                    $afterTaxPercent += $percent;
-                }
-            }
-        }
-
+        // Each on minor units, by the one rule: no float quotient decides a
+        // tie, and a stage that entered at nothing states 0.0.
         return [
-            'before_tax' => round($beforeTaxPercent, 2),
-            'after_tax' => round($afterTaxPercent, 2),
-            'total' => round($beforeTaxPercent + $afterTaxPercent, 2),
+            'before_tax' => Money::percentOf(
+                part: $baseTotal->subtract($subtotal)->getMinorUnits(),
+                whole: $baseTotal->getMinorUnits(),
+            ),
+            'after_tax' => Money::percentOf(
+                part: $subtotalWithTax->subtract($total)->getMinorUnits(),
+                whole: $subtotalWithTax->getMinorUnits(),
+            ),
+            'total' => Money::percentOf(
+                part: $baseTotalWithTax->subtract($total)->getMinorUnits(),
+                whole: $baseTotalWithTax->getMinorUnits(),
+            ),
         ];
     }
 
-    /**
-     * Calculate percentage for a single discount
-     *
-     * Handles both percentage and fixed_amount discount types.
-     *
-     * @param object $discount AppliedDiscount object
-     * @param Money $baseAmount Base amount to calculate percentage against
-     * @return float Percentage value
-     * @since  1.0.0
-     */
-    private function calculateDiscountPercent($discount, Money $baseAmount): float
-    {
-        if ($discount->type === 'percentage') {
-            // Percentage discounts already have the percent value
-            return $discount->percent;
-        }
+    // NO PER-RULE PERCENTAGE HELPER LIVES HERE ANY MORE.
+    //
+    // calculateDiscountPercent() returned a rule's own NOMINAL figure (or a
+    // fixed amount expressed against a base), and getDiscountsByTiming() split
+    // the rules so those figures could be added up per stage. Both existed only
+    // to serve calculatePercentBreakdown(), and that summing is precisely what
+    // the truth rule forbids. The breakdown now measures money, so the two
+    // helpers were removed rather than left as a loaded gun for the next caller
+    // who wants "the percentage of this discount" and gets a number the shopper
+    // never saw.
+    //
+    // A rule's nominal value is still available where it BELONGS: on the
+    // AppliedDiscount itself ($percent), which is the rule as configured, not a
+    // claim about what was saved.
 
-        if ($discount->type === 'fixed_amount' && $discount->amount) {
-            // Convert fixed amount to percentage of base
-            if ($baseAmount->isZero()) {
-                return 0.0;
-            }
-
-            return ($discount->amount->getAmount() / $baseAmount->getAmount()) * 100;
-        }
-
-        return 0.0;
-    }
-
-    /**
-     * Get discounts filtered by timing
-     *
-     * @param string $timing 'before_tax' or 'after_tax'
-     * @return array Filtered discounts
-     * @since  1.0.0
-     */
-    private function getDiscountsByTiming(string $timing): array
-    {
-        return array_filter(
-            $this->applied,
-            fn ($discount) => $discount->timing === $timing,
-        );
-    }
-
-    // ========================================================================
-    // DISCOUNT QUERYING
-    // ========================================================================
+    // Discount querying
 
     /**
      * Get discounts by type
@@ -275,19 +221,17 @@ class DiscountSummary
         return $this->getDiscountByCode($code) !== null;
     }
 
-    // ========================================================================
-    // EXPORT METHODS
-    // ========================================================================
+    // Export methods
 
     /**
-     * Export as array for APIs/JSON
+     * Export as array for APIs/JSON: the total as money text ({@see PublishedDecimal}).
      * @since  1.0.0
      */
     public function toArray(): array
     {
         return [
             'total' => [
-                'amount' => $this->total->getAmount(),
+                'amount' => PublishedDecimal::money($this->total),
                 'formatted' => $this->total->format(),
             ],
             'count' => $this->getCount(),

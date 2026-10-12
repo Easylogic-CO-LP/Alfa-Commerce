@@ -11,16 +11,20 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper as FrontendAlfaHelper;
 use Exception;
+use Joomla\CMS\Application\CMSApplicationInterface;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\OutputFilter;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\MVC\Controller\BaseController;
+use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 use Joomla\CMS\Response\JsonResponse;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
+use Joomla\Input\Input;
 
 /**
  * SEO Preview Controller - Full UTF-8 Support
@@ -29,6 +33,24 @@ use Joomla\CMS\Uri\Uri;
  */
 class SeoController extends BaseController
 {
+    /**
+     * Keep getResultObject() off the task map. It stays public only because the
+     * seo.multilingual layout calls it on an instance; it is not a request endpoint.
+     *
+     * @param array $config An optional associative array of configuration settings.
+     * @param MVCFactoryInterface|null $factory The factory.
+     * @param CMSApplicationInterface|null $app The Application for the dispatcher.
+     * @param Input|null $input The Input object for the request.
+     *
+     * @since  1.10.0
+     */
+    public function __construct($config = [], ?MVCFactoryInterface $factory = null, ?CMSApplicationInterface $app = null, ?Input $input = null)
+    {
+        parent::__construct($config, $factory, $app, $input);
+
+        $this->unregisterTask('getResultObject');
+    }
+
     /**
      * Update SEO preview HTML via AJAX
      *
@@ -43,6 +65,11 @@ class SeoController extends BaseController
 
         // Check for request forgeries
         $this->checkToken();
+
+        if (!$this->mayPreview(itemType: Factory::getApplication()->getInput()->getCmd('itemType', ''))) {
+            echo new JsonResponse(null, Text::_('JLIB_APPLICATION_ERROR_ACCESS_FORBIDDEN'), true);
+            Factory::getApplication()->close();
+        }
 
         try {
             $app = Factory::getApplication();
@@ -90,10 +117,45 @@ class SeoController extends BaseController
                 'html' => $html,
             ], Text::_('COM_ALFA_SEO_PREVIEW_SUCCESS'), false);
         } catch (Exception $e) {
-            echo new JsonResponse($e, Text::_('COM_ALFA_SEO_PREVIEW_ERROR'), true);
+            echo new JsonResponse(null, $e->getMessage(), true);
         }
 
         $app->close();
+    }
+
+    /**
+     * May the current user preview SEO for this form: create or edit on the section the posted
+     * itemType names (item, category or manufacturer).
+     *
+     * A missing or unknown itemType falls back to any of those three sections, the forms that
+     * carry the preview. The preview is analysis only and stores nothing.
+     *
+     * @param string $itemType The posted itemType, or '' when absent.
+     *
+     *
+     * @since  1.10.0
+     */
+    private function mayPreview(string $itemType): bool
+    {
+        $sections = ['items', 'categories', 'manufacturers'];
+        $named = AlfaHelper::permissionSection($itemType);
+
+        if (\in_array($named, $sections, true)) {
+            $sections = [$named];
+        }
+
+        $user = Factory::getApplication()->getIdentity();
+
+        foreach ($sections as $section) {
+            if (
+                AlfaHelper::can(section: $section, action: 'edit', user: $user)
+                || AlfaHelper::can(section: $section, action: 'create', user: $user)
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -686,7 +748,7 @@ class SeoController extends BaseController
      * Returns the number of words in a string.
      * @since  1.0.0
      */
-    public function word_count(string $html, bool $cleanHtml = true): int
+    protected function word_count(string $html, bool $cleanHtml = true): int
     {
         // Use the cleaner to prepare text
         $cleanText = FrontendAlfaHelper::cleanContent($html, true, true, true);

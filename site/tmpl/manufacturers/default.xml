@@ -19,6 +19,42 @@
                 <option value="1">JYES</option>
                 <option value="0">JNO</option>
             </field>
+
+            <!-- Placeholder fill for this listing; empty inherits the global config. -->
+            <field
+                    name="media_placeholder_manufacturers"
+                    type="list"
+                    useglobal="true"
+                    label="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_MANUFACTURERS_LABEL"
+                    description="COM_ALFA_MEDIA_CONFIG_PLACEHOLDER_MANUFACTURERS_DESC"
+                    validate="options"
+            >
+                <option value="1">JYES</option>
+                <option value="0">JNO</option>
+            </field>
+        </fieldset>
+
+        <fieldset
+                name="layouts"
+                label="COM_ALFA_MENU_LAYOUTS_OPTIONS"
+                addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+
+            <field
+                    name="manufacturers_layout"
+                    type="viewLayout"
+                    view="manufacturers"
+                    inheritlabel="JGLOBAL_USE_GLOBAL"
+                    label="COM_ALFA_LAYOUT_MANUFACTURERS_LABEL"
+            />
+
+            <field
+                    name="manufacturer_layout"
+                    type="viewLayout"
+                    view="manufacturer"
+                    inheritlabel="JGLOBAL_USE_GLOBAL"
+                    label="COM_ALFA_LAYOUT_MANUFACTURER_LABEL"
+                    description="COM_ALFA_LAYOUT_MANUFACTURER_DESC"
+            />
         </fieldset>
     </fields>
 

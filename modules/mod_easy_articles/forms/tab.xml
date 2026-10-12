@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- One tab of mod_easy_articles: what it shows, from which categories, in which order and how
+     many - and, in one editor, whatever it sets for itself of the module's Style tab:
+     a grid or a slider, its columns or cards per view, its cards - per screen too. -->
+<form>
+    <fields>
+
+        <field
+                name="label"
+                type="text"
+                label="MOD_EASY_ARTICLES_TAB_LABEL_LBL"
+                description="MOD_EASY_ARTICLES_TAB_LABEL_DESC"
+                hint="MOD_EASY_ARTICLES_TAB_LABEL_HINT"
+        />
+
+        <field
+                name="source"
+                type="list"
+                default="articles"
+                label="MOD_EASY_ARTICLES_SOURCE_LBL"
+                description="MOD_EASY_ARTICLES_SOURCE_DESC"
+                validate="options"
+        >
+            <option value="articles">MOD_EASY_ARTICLES_SOURCE_ARTICLES</option>
+            <option value="featured">MOD_EASY_ARTICLES_SOURCE_FEATURED</option>
+            <option value="most_read">MOD_EASY_ARTICLES_SOURCE_MOST_READ</option>
+            <option value="recently_read">MOD_EASY_ARTICLES_SOURCE_RECENTLY_READ</option>
+        </field>
+
+        <field
+                name="categories"
+                type="category"
+                extension="com_content"
+                multiple="true"
+                layout="joomla.form.field.list-fancy-select"
+                filter="intarray"
+                label="MOD_EASY_ARTICLES_CATEGORIES_LBL"
+                description="MOD_EASY_ARTICLES_CATEGORIES_DESC"
+                hint="MOD_EASY_ARTICLES_CATEGORIES_HINT"
+        />
+
+        <field
+                name="ordering"
+                type="list"
+                default="a.publish_up DESC"
+                label="MOD_EASY_ARTICLES_ORDERING_LBL"
+                description="MOD_EASY_ARTICLES_ORDERING_DESC"
+                validate="options"
+        >
+            <option value="a.publish_up DESC">MOD_EASY_ARTICLES_ORDER_NEWEST</option>
+            <option value="a.publish_up ASC">MOD_EASY_ARTICLES_ORDER_OLDEST</option>
+            <option value="a.modified DESC">MOD_EASY_ARTICLES_ORDER_MODIFIED</option>
+            <option value="a.title ASC">MOD_EASY_ARTICLES_ORDER_TITLE_ASC</option>
+            <option value="a.title DESC">MOD_EASY_ARTICLES_ORDER_TITLE_DESC</option>
+            <option value="a.ordering ASC">MOD_EASY_ARTICLES_ORDER_CUSTOM_ASC</option>
+            <option value="a.ordering DESC">MOD_EASY_ARTICLES_ORDER_CUSTOM_DESC</option>
+            <option value="fp.ordering ASC">MOD_EASY_ARTICLES_ORDER_FEATURED</option>
+            <option value="random">MOD_EASY_ARTICLES_ORDER_RANDOM</option>
+        </field>
+
+        <field
+                name="limit"
+                type="number"
+                default="8"
+                min="1"
+                max="60"
+                step="1"
+                filter="integer"
+                label="MOD_EASY_ARTICLES_LIMIT_LBL"
+                description="MOD_EASY_ARTICLES_LIMIT_DESC"
+        />
+
+        <field
+                name="show_link"
+                type="radio"
+                layout="joomla.form.field.radio.switcher"
+                default="0"
+                label="MOD_EASY_ARTICLES_TAB_LINK_LBL"
+                description="MOD_EASY_ARTICLES_TAB_LINK_DESC"
+        >
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <field name="card" type="cardlook" level="tab" filter="raw" addfieldprefix="Easy\Module\EasyArticles\Site\Field"
+               label="MOD_EASY_ARTICLES_TAB_CARD_LBL"/>
+    </fields>
+</form>

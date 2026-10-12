@@ -10,7 +10,7 @@ use Joomla\DI\Container;
 use Joomla\DI\ServiceProviderInterface;
 
 // Events are auto-wired from Choice::getSubscribedEvents() via SubscriberInterface
-// (declared on FieldsPlugin). Do NOT call $dispatcher->addListener() here — that
+// (declared on FormFieldsPlugin). Do NOT call $dispatcher->addListener() here; that
 // pattern is deprecated in Joomla 7.
 
 return new class () implements ServiceProviderInterface {

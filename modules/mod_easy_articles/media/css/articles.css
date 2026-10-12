@@ -1,0 +1,456 @@
+/**
+ * @package     mod_easy_articles
+ * @copyright   (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license     GNU General Public License version 3 or later; see LICENSE
+ * @author      Agamemnon Fakas <info@easylogic.gr>
+ */
+
+.mod-easy-articles {
+    --mod-easy-articles-accent: var(--easy-action-primary-bg, #333);
+    --mod-easy-articles-gap: 16px;
+    --mod-easy-articles-columns: 4;
+
+    /* Colour aliases: declared once here, used by name below. Each takes the site's
+       --easy-* colour when the site sets one, and the module's own value otherwise;
+       the Style tab sets them for one module. */
+    --easy-articles-surface: var(--easy-surface, #fff);
+    /* Writing on that surface. `inherit` by default, so the module keeps taking
+       the page's own text colour until a merchant or the palette says otherwise. */
+    --easy-articles-surface-color: var(--easy-surface-color, inherit);
+    /* Text that should recede: the empty-state message. */
+    --easy-articles-muted: var(--easy-muted-color, #6b7280);
+    --easy-articles-hairline: var(--easy-hairline, #e2e2e2);
+    --easy-articles-radius: var(--easy-radius, 4px);
+    /* An overlay card sets its text on the photo, so it is dark in both modes: its
+       ground where an article has no image, and the colour of the writing on it. */
+    --easy-articles-overlay: #111827;
+    --easy-articles-overlay-color: #fff;
+    /* What an overlay card's text sits on: a gradient toward the image at the bottom
+       and at the top, a band in the middle. A card's Overlay background replaces it. */
+    --easy-articles-overlay-bottom: linear-gradient(to top, rgb(0 0 0 / 0.85), rgb(0 0 0 / 0.55) 60%, transparent);
+    --easy-articles-overlay-middle: rgb(0 0 0 / 0.6);
+    --easy-articles-overlay-top: linear-gradient(to bottom, rgb(0 0 0 / 0.85), rgb(0 0 0 / 0.55) 60%, transparent);
+    /* How long a hover or focus change takes, for everything in the module that eases
+       (never the slider track: Keen moves the slides itself). */
+    --easy-articles-transition: 0.2s ease;
+
+    color: var(--easy-articles-surface-color);
+}
+
+/* TABS */
+
+.mod-easy-articles .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin: 0 0 1rem;
+    border-bottom: 1px solid var(--easy-articles-hairline);
+}
+
+.mod-easy-articles .tab {
+    appearance: none;
+    background: none;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    padding: 0.6rem 1rem;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity var(--easy-articles-transition), border-color var(--easy-articles-transition);
+}
+
+.mod-easy-articles .tab:hover,
+.mod-easy-articles .tab:focus-visible {
+    opacity: 1;
+}
+
+.mod-easy-articles .tab[data-state="active"] {
+    opacity: 1;
+    font-weight: 600;
+    border-bottom-color: var(--mod-easy-articles-accent);
+}
+
+.mod-easy-articles .panel[hidden] {
+    display: none;
+}
+
+/* A panel being fetched holds the previous panel's height (set by the script)
+   and shimmers until the cards arrive. Scoped by the root marker: the Pro
+   edition may share the page and draws its own skeleton instead. */
+.mod-easy-articles[data-mod-easy-articles] .panel[data-state="loading"] {
+    position: relative;
+    min-height: 6rem;
+    overflow: hidden;
+}
+
+.mod-easy-articles[data-mod-easy-articles] .panel[data-state="loading"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.05), transparent);
+    animation: mod-easy-articles-shimmer 1.2s linear infinite;
+}
+
+@keyframes mod-easy-articles-shimmer {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(100%); }
+}
+
+.mod-easy-articles .empty {
+    margin: 0;
+    color: var(--easy-articles-muted);
+}
+
+/* VIEW ALL */
+
+.mod-easy-articles .view-all {
+    margin: 1rem 0 0;
+    text-align: right;
+}
+
+.mod-easy-articles .view-all a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--mod-easy-articles-accent);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.mod-easy-articles .view-all a:hover,
+.mod-easy-articles .view-all a:focus-visible {
+    text-decoration: underline;
+}
+
+.mod-easy-articles .view-all svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* GRID: the column count per width is emitted per module instance
+   (EasyArticlesHelper::responsiveCss); this is the desktop fallback. */
+
+.mod-easy-articles .grid {
+    display: grid;
+    grid-template-columns: repeat(var(--mod-easy-articles-columns), minmax(0, 1fr));
+    gap: var(--mod-easy-articles-gap);
+}
+
+.mod-easy-articles .grid > .teaser {
+    min-width: 0;
+}
+
+/* TEASER: one article card. Its classes are not `card-*`: templates style those
+   globally. The title's link is stretched over the whole card, so the card is a
+   single target; keyboard focus is drawn on the card itself. Decoration such as a
+   hover effect is left to the site's own CSS.
+
+   This is the default card with every part showing. What a module, a tab or a
+   layout block sets instead (on every screen, or for one breakpoint) is written
+   as rules for the card's place (`data-look`) by CardLook::css, from the same
+   list of declarations, so every property a setting can change is declared here. */
+
+.mod-easy-articles .teaser {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: normal;
+    min-width: 0;
+    height: 100%;
+    overflow: hidden;
+    border: 1px solid var(--easy-articles-hairline);
+    /* Its width on each side; 0 removes it there. */
+    border-width: var(--easy-articles-card-border, 1px);
+    border-radius: var(--easy-articles-card-radius, var(--easy-articles-radius));
+    color: inherit;
+    background: var(--easy-articles-surface);
+    box-shadow: var(--easy-articles-card-shadow, var(--easy-shadow, none));
+    transition: box-shadow var(--easy-articles-transition);
+}
+
+/* An overlay card stacks its image and its text in one grid cell. */
+.mod-easy-articles .teaser > * {
+    grid-area: auto;
+}
+
+.mod-easy-articles .teaser:has(.teaser-title a:focus-visible) {
+    outline: 2px solid var(--mod-easy-articles-accent);
+    outline-offset: 2px;
+}
+
+/* Shadows: none unless a card setting asks, or the site's --easy-shadow and
+   --easy-shadow-hover. The hover shadow also shows while the card holds focus. */
+.mod-easy-articles .teaser:is(:hover, :focus-within) {
+    box-shadow: var(--easy-articles-card-shadow-hover, var(--easy-shadow-hover, var(--easy-articles-card-shadow, var(--easy-shadow, none))));
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mod-easy-articles :is(.tab, .arrow, .dot, .teaser) {
+        transition: none;
+    }
+}
+
+/* A slider's track clips what sticks out of it: a place whose cards have a shadow
+   gives it room (12px) in its rules. */
+.mod-easy-articles .slider .track {
+    padding-block: 0;
+}
+
+.mod-easy-articles .teaser-image {
+    display: block;
+    flex: 0 1 auto;
+    align-self: auto;
+    aspect-ratio: 16 / 10;
+    max-height: none;
+    overflow: hidden;
+    border-radius: var(--easy-articles-card-image-radius, 0);
+    background: var(--easy-articles-hairline);
+}
+
+.mod-easy-articles .teaser-image img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    margin-inline: 0;
+    object-fit: cover;
+    object-position: center;
+}
+
+.mod-easy-articles .teaser-body {
+    z-index: auto;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-self: auto;
+    gap: 0.5rem;
+    min-width: 0;
+    padding: var(--easy-articles-card-padding, 1rem);
+    background: none;
+}
+
+.mod-easy-articles .teaser-title {
+    display: block;
+    overflow: visible;
+    margin: 0;
+    font-size: 1.125rem;
+    line-height: 1.3;
+    -webkit-line-clamp: none;
+}
+
+.mod-easy-articles .teaser-title a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.mod-easy-articles .teaser-title a::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+}
+
+.mod-easy-articles .teaser-title a:focus-visible {
+    outline: none;
+}
+
+.mod-easy-articles .teaser-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 0.75rem;
+    margin: 0;
+    color: var(--easy-articles-muted);
+    font-size: 0.8125rem;
+    opacity: 1;
+}
+
+.mod-easy-articles .teaser-date {
+    display: inline;
+}
+
+.mod-easy-articles .teaser-category {
+    display: inline;
+}
+
+.mod-easy-articles .teaser-author {
+    display: inline;
+}
+
+.mod-easy-articles .teaser-intro {
+    display: block;
+    overflow: visible;
+    margin: 0;
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    -webkit-line-clamp: none;
+}
+
+.mod-easy-articles .teaser-more {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: auto;
+    padding-top: 0.25rem;
+    color: var(--mod-easy-articles-accent);
+    font-size: 0.875rem;
+    font-weight: 600;
+    opacity: 1;
+}
+
+.mod-easy-articles .teaser-more svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* SLIDER */
+
+.mod-easy-articles .slider {
+    position: relative;
+}
+
+.mod-easy-articles .slide {
+    display: flex;
+}
+
+/* keen-slider clips each slide, and a card fills its slide: left clipped, the room the
+   track makes above and below a card with a shadow would still cut the shadow off. */
+.mod-easy-articles .slider .slide.keen-slider__slide {
+    overflow: visible;
+}
+
+.mod-easy-articles .slide > .teaser {
+    width: 100%;
+}
+
+.mod-easy-articles .arrow {
+    position: absolute;
+    top: 50%;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    border: 1px solid var(--easy-articles-hairline);
+    border-radius: 50%;
+    background: var(--easy-articles-surface);
+    color: var(--mod-easy-articles-accent);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+    cursor: pointer;
+    transform: translateY(-50%);
+    transition: opacity var(--easy-articles-transition);
+}
+
+.mod-easy-articles .arrow-prev {
+    left: -1.25rem;
+}
+
+.mod-easy-articles .arrow-next {
+    right: -1.25rem;
+}
+
+.mod-easy-articles .arrow:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.mod-easy-articles .arrow svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.mod-easy-articles .dots {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.mod-easy-articles .dot {
+    width: 0.6rem;
+    height: 0.6rem;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: background-color var(--easy-articles-transition);
+}
+
+.mod-easy-articles .dot[data-state="active"] {
+    background: var(--mod-easy-articles-accent);
+}
+
+/* A slider goes without its arrows or its dots on a screen where its cards all fit (
+   there is nothing to slide to) or where they are switched off: the server lists those
+   screens. Scoped to this edition: the Pro edition's widths are its own. */
+@media (min-width: 1024px) {
+    .mod-easy-articles[data-mod-easy-articles] .slider[data-no-arrows~="desktop"] > .arrow,
+    .mod-easy-articles[data-mod-easy-articles] .slider[data-no-dots~="desktop"] > .dots {
+        display: none;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+    .mod-easy-articles[data-mod-easy-articles] .slider[data-no-arrows~="tablet"] > .arrow,
+    .mod-easy-articles[data-mod-easy-articles] .slider[data-no-dots~="tablet"] > .dots {
+        display: none;
+    }
+}
+
+@media (max-width: 767px) {
+    .mod-easy-articles[data-mod-easy-articles] .slider[data-no-arrows~="mobile"] > .arrow,
+    .mod-easy-articles[data-mod-easy-articles] .slider[data-no-dots~="mobile"] > .dots {
+        display: none;
+    }
+}
+
+@media (max-width: 767px) {
+    .mod-easy-articles .arrow-prev {
+        left: 0.25rem;
+    }
+
+    .mod-easy-articles .arrow-next {
+        right: 0.25rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mod-easy-articles[data-mod-easy-articles] .panel[data-state="loading"]::after {
+        animation: none;
+    }
+}
+
+/*
+   Dark
+   The module's own dark values, so it is correct in both modes on its own. A site
+   that sets the --easy-* colours wins over them, and so do the module's Style
+   settings; these are the floor, not the ceiling.
+
+   Keyed on what the PAGE declares, never on the device alone: a visitor who picks
+   light on a dark laptop must get light. The third selector is the case where the
+   template declares neither attribute, so the device decides.
+   */
+:is(:root[data-theme="dark"], :root[data-theme-default="dark"]:not([data-theme]))
+.mod-easy-articles {
+    --mod-easy-articles-accent: var(--easy-action-primary-bg, #e5e7eb);
+    --easy-articles-surface: var(--easy-surface, #1f2937);
+    --easy-articles-surface-color: var(--easy-surface-color, #e5e7eb);
+    --easy-articles-muted: var(--easy-muted-color, #9ca3af);
+    --easy-articles-hairline: var(--easy-hairline, #374151);
+}
+
+@media (prefers-color-scheme: dark) {
+    :is(:root[data-theme="auto"],
+        :root[data-theme-default="auto"]:not([data-theme]),
+        :root:not([data-theme]):not([data-theme-default]))
+    .mod-easy-articles {
+        --mod-easy-articles-accent: var(--easy-action-primary-bg, #e5e7eb);
+        --easy-articles-surface: var(--easy-surface, #1f2937);
+        --easy-articles-surface-color: var(--easy-surface-color, #e5e7eb);
+        --easy-articles-muted: var(--easy-muted-color, #9ca3af);
+        --easy-articles-hairline: var(--easy-hairline, #374151);
+    }
+}

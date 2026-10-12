@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<form>
+    <fields name="filter">
+        <field name="search" type="text" description="COM_ALFA_SEARCH_FILTER_SUBMIT"
+               label="COM_ALFA_FILTER_SEARCH_LABEL"
+               hint="COM_ALFA_ITEMFIELDS_SEARCH_PLACEHOLDER"
+               class="js-stools-search-string" />
+
+        <field name="state"
+               type="status"
+               label="COM_ALFA_FILTER_STATE"
+               description="COM_ALFA_FILTER_STATE_DESC"
+               onchange="this.form.submit();"
+        >
+            <option value="">JOPTION_SELECT_PUBLISHED</option>
+        </field>
+
+        <field name="informational"
+               type="list"
+               label="COM_ALFA_FORM_LBL_ITEMFIELD_INFORMATIONAL"
+               onchange="this.form.submit();">
+            <option value="">COM_ALFA_FILTER_ITEMFIELD_INFORMATIONAL</option>
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <field name="type"
+               type="sql"
+               label="COM_ALFA_FORM_LBL_TYPE_IS"
+               onchange="this.form.submit();"
+               query="SELECT DISTINCT type AS value, type AS text FROM #__alfa_item_fields ORDER BY type ASC"
+               key_field="value" value_field="text">
+            <option value="">COM_ALFA_FILTER_ITEMFIELD_TYPE</option>
+        </field>
+
+    </fields>
+
+    <fields name="list">
+
+        <field name="fullordering"
+               type="list"
+               label="COM_ALFA_LIST_FULL_ORDERING"
+               description="COM_ALFA_LIST_FULL_ORDERING_DESC"
+               onchange="this.form.submit();"
+               default="a.ordering ASC"
+        >
+            <option value="">JGLOBAL_SORT_BY</option>
+            <option value="a.ordering ASC">COM_ALFA_ORDERING_ASC</option><option value="a.ordering DESC">COM_ALFA_ORDERING_DESC</option><option value="a.id ASC">COM_ALFA_ID_ASC</option><option value="a.id DESC">COM_ALFA_ID_DESC</option><option value="name ASC">COM_ALFA_NAME_ASC</option><option value="name DESC">COM_ALFA_NAME_DESC</option><option value="a.state ASC">COM_ALFA_STATE_ASC</option><option value="a.state DESC">COM_ALFA_STATE_DESC</option>
+
+        </field>
+
+       <field name="limit"
+               type="limitbox"
+               label="COM_ALFA_LIST_LIMIT"
+               description="COM_ALFA_LIST_LIMIT_DESC"
+               class="input-mini"
+               default="25"
+               onchange="this.form.submit();"
+        />
+
+    </fields>
+
+</form>

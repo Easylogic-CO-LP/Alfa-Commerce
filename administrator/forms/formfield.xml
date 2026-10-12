@@ -18,7 +18,7 @@
                 required="true"
                 list_value="name"
                 list_text="name"
-                plugin_type="fields"
+                plugin_type="formfields"
         />
 
         <field
@@ -49,41 +49,45 @@
         />
 
 
-        <field name="required" type="radio"
-               layout="joomla.form.field.radio.switcher"
-               label="COM_ALFA_FORM_LBL_REQUIRED"
-               description=""
-               default="0">
-            <option value="0">JNO</option>
-            <option value="1">JYES</option>
-        </field>
-
-
+        <!-- WHERE THE FIELD SHOWS, per section. Required is a property of the
+             section, not of the field (a phone can be required at checkout and
+             optional at registration). Values: 0 hidden, 1 optional, 2 required.
+             Rendered as a button group: three exclusive states read faster side
+             by side than in a dropdown, and they mirror the list's own chips. -->
         <field name="registration" type="radio"
-               layout="joomla.form.field.radio.switcher"
-               label="COM_ALFA_FORM_LBL_REGISTRATION"
-               description=""
-               default="0">
-            <option value="0">JNO</option>
-            <option value="1">JYES</option>
-        </field>
-
-        <field name="billing" type="radio"
-               layout="joomla.form.field.radio.switcher"
-               label="COM_ALFA_FORM_LBL_BILLING"
-               description=""
-               default="0">
-            <option value="0">JNO</option>
-            <option value="1">JYES</option>
+               layout="joomla.form.field.radio.buttons"
+               class="btn-group"
+               label="COM_ALFA_FORM_LBL_SHOW_REGISTRATION"
+               description="COM_ALFA_FORM_DESC_SHOW_REGISTRATION"
+               default="0"
+               validate="options">
+            <option value="0">COM_ALFA_FORM_FIELD_LEVEL_HIDDEN</option>
+            <option value="1">COM_ALFA_FORM_FIELD_LEVEL_OPTIONAL</option>
+            <option value="2">COM_ALFA_FORM_FIELD_LEVEL_REQUIRED</option>
         </field>
 
         <field name="shipping" type="radio"
-               layout="joomla.form.field.radio.switcher"
-               label="COM_ALFA_FORM_LBL_SHIPPING"
-               description=""
-               default="0">
-            <option value="0">JNO</option>
-            <option value="1">JYES</option>
+               layout="joomla.form.field.radio.buttons"
+               class="btn-group"
+               label="COM_ALFA_FORM_LBL_SHOW_DELIVERY"
+               description="COM_ALFA_FORM_DESC_SHOW_DELIVERY"
+               default="0"
+               validate="options">
+            <option value="0">COM_ALFA_FORM_FIELD_LEVEL_HIDDEN</option>
+            <option value="1">COM_ALFA_FORM_FIELD_LEVEL_OPTIONAL</option>
+            <option value="2">COM_ALFA_FORM_FIELD_LEVEL_REQUIRED</option>
+        </field>
+
+        <field name="billing" type="radio"
+               layout="joomla.form.field.radio.buttons"
+               class="btn-group"
+               label="COM_ALFA_FORM_LBL_SHOW_INVOICE"
+               description="COM_ALFA_FORM_DESC_SHOW_INVOICE"
+               default="0"
+               validate="options">
+            <option value="0">COM_ALFA_FORM_FIELD_LEVEL_HIDDEN</option>
+            <option value="1">COM_ALFA_FORM_FIELD_LEVEL_OPTIONAL</option>
+            <option value="2">COM_ALFA_FORM_FIELD_LEVEL_REQUIRED</option>
         </field>
 
         <field name="unique" type="radio"
@@ -97,15 +101,16 @@
 
         <field
                 name="usergroups"
-                type="UserGroupList"
+                type="usergrouplist"
                 label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_LBL"
                 description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_DESC"
                 layout="joomla.form.field.list-fancy-select"
                 multiple="true"
                 checksuperusergroup="1"
-                default="8"
-                header="COM_ALFA_FORM_HEADER_ALL_USERGROUPS"
-        />
+                default="0"
+        >
+            <option value="0">COM_ALFA_FORM_USERGROUP_ALL</option>
+        </field>
 
         <field
                 name="users" type="sql"
@@ -130,12 +135,14 @@
             <option value="-2">JTRASHED</option>
         </field>
 
-        <field name="group_id" type="sql"
+        <field name="group_id" type="model"
+               model="formfieldgroups"
+               column_value="id"
+               column_text="title"
+               orderBy="a.ordering"
                default="0"
                label="COM_ALFA_FORM_LBL_FIELD_GROUP"
-               description="COM_ALFA_FORM_DESC_FIELD_GROUP"
-               query="SELECT id AS value, CONCAT(title, IF(state = 0, ' (disabled)', '')) AS text FROM #__alfa_form_field_groups ORDER BY ordering ASC"
-               key_field="value" value_field="text">
+               description="COM_ALFA_FORM_DESC_FIELD_GROUP">
             <option value="0">COM_ALFA_FORM_OPTION_FIELD_GROUP_NONE</option>
         </field>
 
@@ -180,14 +187,12 @@
     <field name="checked_out" type="hidden" filter="unset"/>
     <field name="checked_out_time" type="hidden" filter="unset"/>
 
-    <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL"
-           description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>
 
-    <!-- ===== SHOWON: standalone builder field. Value carried by a hidden
+    <!-- SHOWON: standalone builder field. Value carried by a hidden
          input; showon-builder.js renders the UI and writes canonical JSON
-         back into it. No fieldsparams wrapper — FormfieldModel folds the
+         back into it. No fieldsparams wrapper: FormfieldModel folds the
          value into params on save and mirrors it back on load. Rendered
-         manually as its own tab in tmpl/formfield/edit.php. ===== -->
+         manually as its own tab in tmpl/formfield/edit.php. -->
     <field
             name="showon"
             type="showon"
@@ -195,6 +200,6 @@
             description="COM_ALFA_SHOWON_DESC"
             hiddenLabel="true"
     />
-    <!-- ===== /SHOWON ===== -->
+    <!-- /Showon -->
 </form>
 

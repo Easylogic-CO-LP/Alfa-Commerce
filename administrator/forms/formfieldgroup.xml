@@ -1,14 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
 
-    <field name="title" size="400" filter="safehtml" type="text" required="true"
+    <field name="title" type="MultilingualText"
+           multilingual_table="#__alfa_form_field_groups" multilingual_pk="id_form_field_group"
+           maxlength="400" filter="safehtml" required="true" translateLabel="true"
            label="COM_ALFA_FORM_LBL_FORMFIELDGROUP_TITLE"
            description="COM_ALFA_FORM_DESC_FORMFIELDGROUP_TITLE"
            hint="COM_ALFA_FORM_LBL_FORMFIELDGROUP_TITLE"/>
 
     <fieldset name="general">
-        <field name="description" type="textarea" cols="30" rows="4"
-               filter="safehtml"
+        <field name="description" type="MultilingualEditor"
+               multilingual_table="#__alfa_form_field_groups" multilingual_pk="id_form_field_group"
+               filter="safehtml" cols="30" rows="4"
                label="COM_ALFA_FORM_LBL_FORMFIELDGROUP_DESCRIPTION"
                description="COM_ALFA_FORM_DESC_FORMFIELDGROUP_DESCRIPTION"/>
     </fieldset>

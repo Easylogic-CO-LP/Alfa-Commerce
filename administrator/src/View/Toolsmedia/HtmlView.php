@@ -18,7 +18,7 @@ use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 
 /**
- * Tools → Media maintenance view: review and bulk-delete orphan / missing-file
+ * Tools -> Media maintenance view: review and bulk-delete orphan / missing-file
  * media rows.
  *
  * @since  1.0.0
@@ -82,11 +82,11 @@ class HtmlView extends BaseHtmlView
      */
     protected function addToolbar(): void
     {
-        ToolbarHelper::title(Text::_('COM_ALFA_TITLE_TOOLS_MEDIA'), 'images');
+        ToolbarHelper::title(Text::_('COM_ALFA_TITLE_TOOLS_MEDIA'), 'generic');
 
         $toolbar = $this->getDocument()->getToolbar();
 
-        // Back to Tools — first.
+        // Back to Tools, first.
         $toolbar->link(Text::_('COM_ALFA_TOOLS_BACK'), 'index.php?option=com_alfa&view=tools')
             ->icon('icon-arrow-left');
 
@@ -125,7 +125,7 @@ class HtmlView extends BaseHtmlView
                 ->modalHeight('fit-content');
         }
 
-        // Selected delete — styled popup (the dialog body adapts its wording to
+        // Selected delete: styled popup (the dialog body adapts its wording to
         // the current mode). Always permanently removes the file(s) from disk. Last.
         $toolbar->popupButton('delete-confirm', 'JTOOLBAR_DELETE')
             ->icon('icon-trash')

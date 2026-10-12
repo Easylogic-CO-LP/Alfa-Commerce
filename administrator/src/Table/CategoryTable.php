@@ -39,6 +39,12 @@ class CategoryTable extends Table
     public function __construct(DatabaseDriver $db)
     {
         $this->typeAlias = 'com_alfa.category';
+
+        // Core auto-encodes these array values to JSON on bind(). Without the
+        // entry, updateObject silently SKIPS the array property and the column
+        // keeps its default.
+        $this->_jsonEncode = ['layouts', 'list_options'];
+
         parent::__construct('#__alfa_categories', 'id', $db);
         $this->setColumnAlias('published', 'state');
     }

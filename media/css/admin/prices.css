@@ -1,0 +1,474 @@
+/**
+ * Price-matrix editor: one card per rule, everything visible.
+ *
+ *   header  Enabled switch + delete, right-aligned above a hairline
+ *   grid    AMOUNT | CONDITIONS | APPLIES TO (all columns stack)
+ *
+ * Only the root .alfa-prices is namespaced (it faces the global admin
+ * document); everything inside is scoped under it, so inner names stay plain.
+ * Container queries reflow the grid for narrow contexts (Studio iframe).
+ */
+
+.alfa-prices {
+  --price-ink: var(--body-color, #1f2327);
+  --price-soft: var(--secondary-color, #5a6169);
+  --price-line: var(--border-color, #d8dce1);
+  --price-line-soft: var(--border-color-translucent, #eceef1);
+  --price-gold: #b3873a;
+  --price-canvas: var(--tertiary-bg, #fafbfc);
+
+  container-type: inline-size;
+}
+
+.alfa-prices .price-row {
+  position: relative;
+  background: var(--price-canvas);
+  border: 1px solid var(--price-line);
+  border-radius: 8px;
+  padding: 0.85rem 1rem 0.9rem;
+  margin-bottom: 0.6rem;
+}
+
+/* Inactive rules fade; the switch state is visible at a glance. */
+.alfa-prices .price-row:has(.price-active input[type="checkbox"]:not(:checked)) {
+  opacity: 0.62;
+}
+
+/* Header bar: Enabled + delete */
+/* Bleeds over the card padding so it spans edge to edge. */
+.alfa-prices .price-head {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: -0.85rem -1rem 0.85rem;
+  padding: 0.45rem 1rem;
+  background: var(--price-line-soft);
+  border-bottom: 1px solid var(--price-line);
+  border-radius: 7px 7px 0 0;
+}
+
+/* Combination header: mode + pipeline chips on the left, the controls (Enabled /
+   copy / delete) pushed to the right. */
+.alfa-prices .price-head-chips {
+  margin-right: auto;
+  flex-wrap: wrap;
+}
+
+.alfa-prices .price-active {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  cursor: pointer;
+  font-size: 0.74rem;
+  color: var(--price-soft);
+  user-select: none;
+}
+
+.alfa-prices .price-active input[type="checkbox"] {
+  margin: 0;
+}
+
+/* The three-column grid */
+.alfa-prices .price-line {
+  display: grid;
+  grid-template-columns: minmax(13rem, 17rem) minmax(0, 1.25fr) minmax(0, 1fr);
+  column-gap: 1.5rem;
+  align-items: start;
+}
+
+/* The Studio popup stacks the clusters (Amount / Conditions / Applies-to) each
+   on its own full-width row. */
+.alfa-studio .price-line {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  align-items: stretch;
+}
+
+.alfa-prices .price-cluster {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-top: 1.05rem;
+  min-width: 0;
+}
+
+.alfa-prices .price-cluster::before {
+  content: attr(data-caption);
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-size: 0.64rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--price-gold);
+}
+
+/* Hairlines between the columns. */
+.alfa-prices .price-line > .price-cluster + .price-cluster {
+  border-left: 1px solid var(--price-line-soft);
+  padding-left: 1.5rem;
+}
+
+.alfa-prices .price-line > .price-cluster + .price-cluster::before {
+  left: 1.5rem;
+}
+
+/* Studio: clusters are stacked, so the divider becomes a top hairline. */
+.alfa-studio .price-line > .price-cluster + .price-cluster {
+  border-left: 0;
+  border-top: 1px solid var(--price-line-soft);
+  padding-left: 0;
+  padding-top: 1.45rem;
+}
+
+.alfa-studio .price-line > .price-cluster + .price-cluster::before {
+  left: 0;
+}
+
+/* Main item: the amount controls stack vertically. */
+.alfa-prices .price-cluster-amount {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* In the combination Studio popup the amount controls flow inline like the grid
+   quick edit: mode, price/amount, apply-on and final on the same line (wrapping
+   only when they don't fit). Same specificity, declared later, so it wins here. */
+.alfa-studio .price-cluster-amount {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.55rem 0.85rem;
+}
+
+/* Column clusters: rows stacked vertically with inline labels. */
+.alfa-prices .price-cluster-col {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.45rem;
+}
+
+/* Studio: each cluster has a full-width row, so its fields flow horizontally. */
+.alfa-studio .price-cluster-col {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem 1.5rem;
+}
+
+/* Studio: the Conditions cells (quantity range + active window) sit on one line,
+   wrapping to two only on small screens; the quantity number inputs stay narrow. */
+.alfa-studio .price-cluster-col .price-cell {
+  flex: 0 1 auto;
+}
+
+.alfa-studio .price-cluster .range-pair > input[type="number"] {
+  max-width: 4.75rem;
+}
+
+.alfa-prices .price-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.alfa-prices .price-inline > label {
+  flex: 0 0 5.2rem;
+  font-size: 0.72rem;
+  color: var(--price-soft);
+  margin: 0;
+}
+
+.alfa-prices .price-inline .form-select {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 22rem;
+}
+
+/* Cells (Amount column) */
+.alfa-prices .price-cell > label {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--price-soft);
+  margin-bottom: 0.15rem;
+}
+
+.alfa-prices .form-control-sm,
+.alfa-prices .form-select-sm {
+  font-variant-numeric: tabular-nums;
+}
+
+/* An active override bypasses the regular price pipeline: mute the
+   Price/Final pair and the discount chips (discounts never apply). */
+.alfa-prices .price-row:not([data-override=""]) .price-cell:has([data-price-value]),
+.alfa-prices .price-row:not([data-override=""]) .price-cell:has([data-price-final]),
+.alfa-prices .price-row:not([data-override=""]) [data-price-discounts] {
+  opacity: 0.4;
+}
+
+/* The computed other end of the pinned custom-discount price. */
+.alfa-prices .override-hint {
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  color: var(--price-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Chip lines: taxes under Final price, discounts in the today-cell. */
+.alfa-prices .chip-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.25rem;
+}
+
+.alfa-prices .chip-line .applied-tax,
+.alfa-prices .chip-line .applied-discount {
+  padding: 0.08rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--price-line);
+  font-size: 0.68rem;
+  color: var(--price-soft);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.alfa-prices .chip-line .applied-discount {
+  border-color: var(--price-gold);
+  color: var(--warning-text-emphasis, #7d5e23);
+  background: var(--warning-bg-subtle, #fbf7ee);
+}
+
+/* Today's selling price figure. */
+.alfa-prices .chip-line [data-price-current] {
+  font-size: 0.9rem;
+  color: var(--price-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Segmented three-state (Override: Off / Starting / Final) */
+.alfa-prices .seg-group,
+.alfa-combi-tools .seg-group,
+.alfa-combinations .seg-group {
+  display: inline-flex;
+  border: 1px solid var(--price-line, var(--alfa-line));
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--card-bg, #fff);
+}
+
+.alfa-prices .seg,
+.alfa-combi-tools .seg,
+.alfa-combinations .seg {
+  position: relative;
+  margin: 0;
+}
+
+.alfa-prices .seg input,
+.alfa-combi-tools .seg input,
+.alfa-combinations .seg input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  margin: 0;
+}
+
+.alfa-prices .seg span,
+.alfa-combi-tools .seg span,
+.alfa-combinations .seg span {
+  display: block;
+  padding: 0.24rem 0.7rem;
+  font-size: 0.74rem;
+  color: var(--price-soft, var(--alfa-ink-soft));
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.alfa-prices .seg + .seg span,
+.alfa-combi-tools .seg + .seg span,
+.alfa-combinations .seg + .seg span {
+  border-left: 1px solid var(--price-line, var(--alfa-line));
+}
+
+.alfa-prices .seg input:checked + span,
+.alfa-combi-tools .seg input:checked + span,
+.alfa-combinations .seg input:checked + span {
+  background: var(--price-ink, var(--alfa-ink));
+  color: var(--body-bg, #fff);
+}
+
+.alfa-prices .seg input:focus-visible + span,
+.alfa-combi-tools .seg input:focus-visible + span,
+.alfa-combinations .seg input:focus-visible + span {
+  outline: 2px solid var(--price-gold, var(--alfa-gold));
+  outline-offset: -2px;
+}
+
+/* Operation cycler: current op as a prefix button, click to cycle */
+.alfa-prices .op-cycle,
+.alfa-combi-tools .op-cycle,
+.alfa-combinations .op-cycle {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.alfa-prices .op-cycle button,
+.alfa-combi-tools .op-cycle button,
+.alfa-combinations .op-cycle button {
+  min-width: 2.4rem;
+  padding: 0.24rem 0.35rem;
+  border: 1px solid var(--price-ink, var(--alfa-ink));
+  background: var(--price-ink, var(--alfa-ink));
+  color: var(--body-bg, #fff);
+  border-radius: 4px 0 0 4px;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.alfa-prices .op-cycle button:hover,
+.alfa-combi-tools .op-cycle button:hover,
+.alfa-combinations .op-cycle button:hover {
+  background: var(--price-gold, var(--alfa-gold));
+  border-color: var(--price-gold, var(--alfa-gold));
+}
+
+/* Mode cycler (set <-> adjust): a standalone toggle, so fully rounded and wide
+   enough for the word: the outer-grid look brought into the Studio editor. */
+.alfa-prices .mode-cycle button {
+  min-width: 4.4rem;
+  border-radius: 4px;
+}
+
+/* The amount joins the cycler as one control. */
+.alfa-prices .op-cycle + .form-control,
+.alfa-combi-tools .op-cycle + .form-control,
+.alfa-combinations .op-cycle + .form-control,
+.alfa-prices .amount-line .adjust-only + .form-control {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  margin-left: -1px;
+}
+
+.alfa-prices .amount-line {
+  display: flex;
+  align-items: stretch;
+}
+
+.alfa-prices .amount-line .form-control {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Joined range pair: [from] - [to] reads as one control. */
+.alfa-prices .range-pair {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.alfa-prices .range-pair > span {
+  color: var(--price-soft);
+}
+
+.alfa-prices .range-pair > input {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.alfa-prices .range-pair .field-calendar {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.alfa-prices .field-calendar .input-group {
+  flex-wrap: nowrap;
+}
+
+/* Calendar renders full-size controls; shrink to match the -sm fields. */
+.alfa-prices .field-calendar .form-control {
+  min-width: 0;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.alfa-prices .field-calendar .btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* Responsive (MAIN ITEM grid only; the Studio popup is display:flex via
+   .alfa-studio, so these grid-template rules are inert there) */
+/* Two columns: Amount | Conditions, Applies-to spans below and flows side by
+   side. The corner drops into normal flow. */
+@container (max-width: 68rem) {
+  .alfa-prices .price-line {
+    grid-template-columns: minmax(13rem, 17rem) minmax(0, 1fr);
+  }
+
+  .alfa-prices .price-line > .price-cluster:last-child {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.45rem 1.5rem;
+    border-left: 0;
+    border-top: 1px solid var(--price-line-soft);
+    margin-top: 0.8rem;
+    padding-left: 0;
+    padding-top: 1.45rem;
+  }
+
+  .alfa-prices .price-line > .price-cluster:last-child::before {
+    left: 0;
+    top: 0.4rem;
+  }
+
+  .alfa-prices .price-line > .price-cluster:last-child .price-inline {
+    flex: 1 1 16rem;
+    max-width: 24rem;
+  }
+}
+
+/* Single column: everything stacks. */
+@container (max-width: 44rem) {
+  .alfa-prices .price-line {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .alfa-prices .price-line > .price-cluster + .price-cluster {
+    border-left: 0;
+    border-top: 1px solid var(--price-line-soft);
+    margin-top: 0.8rem;
+    padding-left: 0;
+    padding-top: 1.45rem;
+  }
+
+  .alfa-prices .price-line > .price-cluster + .price-cluster::before {
+    left: 0;
+    top: 0.4rem;
+  }
+}
+
+/* Mode switching (combination context) */
+.alfa-prices .price-row[data-mode="adjust"] .price-only {
+  display: none !important;
+}
+
+.alfa-prices .price-row[data-mode="price"] .adjust-only {
+  display: none !important;
+}

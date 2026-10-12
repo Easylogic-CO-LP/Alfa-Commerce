@@ -3,9 +3,9 @@
     <name>mod_alfa_cart</name>
     <author>Dimitris Papanotas</author>
     <creationDate>2024-11-7</creationDate>
-    <copyright>(C) 2024 Open Source Matters, Inc.</copyright>
+    <copyright>(C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.</copyright>
     <license>GNU General Public License version 3 or later; see LICENSE</license>
-    <authorEmail>dimitris.papanotas@gmail.com</authorEmail>
+    <authorEmail>info@easylogic.gr</authorEmail>
     <version>1.0.0</version>
     <description>MOD_ALFA_CART_DESC</description>
     <namespace path="src">Alfa\Module\AlfaCart</namespace>
@@ -37,6 +37,19 @@
                     <option value="fromLeft">MOD_ALFA_CART_OPTION_FROM_LEFT</option>
                     <option value="fromRight">MOD_ALFA_CART_OPTION_FROM_RIGHT</option>
                 </field>
+
+                <field name="on_add" type="radio" class="btn-group" default="refresh"
+                       label="MOD_ALFA_CART_ON_ADD"
+                       description="MOD_ALFA_CART_ON_ADD_DESC">
+                    <option value="refresh">MOD_ALFA_CART_ON_ADD_REFRESH</option>
+                    <option value="open">MOD_ALFA_CART_ON_ADD_OPEN</option>
+                </field>
+
+                <field type="note" name="on_add_note"
+                       label="MOD_ALFA_CART_ON_ADD_NOTE"
+                       description="MOD_ALFA_CART_ON_ADD_NOTE_DESC"
+                       class="alert alert-info"
+                       showon="on_add:open" />
 
                 <field
                         type="spacer"
@@ -79,21 +92,9 @@
                     <option value="1">MOD_ALFA_CART_OPTION_TOTAL_ITEMS</option>
                 </field>
 
-                <field name="togglerColor"
-                       type="color"
-                       default="#FFFFFF"
-                       format="rgba"
-                       label="MOD_ALFA_CART_TOGGLER_COLOR_LBL"
-                       description="MOD_ALFA_CART_TOGGLER_COLOR_DESC"
-                />
 
-                <field name="togglerCounterColor"
-                       type="color"
-                       default="#FF0000"
-                       format="rgba"
-                       label="MOD_ALFA_CART_TOGGLER_BACKGROUND_COLOR_LBL"
-                       description="MOD_ALFA_CART_TOGGLER_BACKGROUND_COLOR_DESC"
-                />
+
+
             </fieldset>
 
             <!-- Price Display Settings -->
@@ -284,6 +285,144 @@
                 </fieldset>
 
             </fieldset>
+            <fieldset name="style" label="MOD_ALFA_CART_STYLE_FIELDSET">
+
+                <field type="note" name="style_note"
+                       label="MOD_ALFA_CART_STYLE_NOTE"
+                       description="MOD_ALFA_CART_STYLE_NOTE_DESC"
+                       class="alert alert-info" />
+
+                <field name="style_surface"
+                       type="color"
+                       format="hex"
+                       default=""
+                       label="MOD_ALFA_CART_STYLE_SURFACE_LBL"
+                       description="MOD_ALFA_CART_STYLE_SURFACE_DESC"
+                />
+                <field name="style_surface_dark"
+                       type="color"
+                       format="hex"
+                       default=""
+                       label="MOD_ALFA_CART_STYLE_SURFACE_DARK_LBL"
+                       description="MOD_ALFA_CART_STYLE_SURFACE_DARK_DESC"
+                />
+
+                <field name="style_text"
+                       type="color"
+                       format="hex"
+                       default=""
+                       label="MOD_ALFA_CART_STYLE_TEXT_LBL"
+                       description="MOD_ALFA_CART_STYLE_TEXT_DESC"
+                />
+                <field name="style_text_dark"
+                       type="color"
+                       format="hex"
+                       default=""
+                       label="MOD_ALFA_CART_STYLE_TEXT_DARK_LBL"
+                       description="MOD_ALFA_CART_STYLE_TEXT_DARK_DESC"
+                />
+
+                <field name="style_muted"
+                       type="color"
+                       format="hex"
+                       default=""
+                       label="MOD_ALFA_CART_STYLE_MUTED_LBL"
+                       description="MOD_ALFA_CART_STYLE_MUTED_DESC"
+                />
+                <field name="style_muted_dark"
+                       type="color"
+                       format="hex"
+                       default=""
+                       label="MOD_ALFA_CART_STYLE_MUTED_DARK_LBL"
+                       description="MOD_ALFA_CART_STYLE_MUTED_DARK_DESC"
+                />
+
+                <field name="style_hairline"
+                       type="color"
+                       format="hex"
+                       default=""
+                       label="MOD_ALFA_CART_STYLE_HAIRLINE_LBL"
+                       description="MOD_ALFA_CART_STYLE_HAIRLINE_DESC"
+                />
+                <field name="style_hairline_dark"
+                       type="color"
+                       format="hex"
+                       default=""
+                       label="MOD_ALFA_CART_STYLE_HAIRLINE_DARK_LBL"
+                       description="MOD_ALFA_CART_STYLE_HAIRLINE_DARK_DESC"
+                />
+
+                <field name="togglerColor"
+                       type="color"
+                       format="hex"
+                       default=""
+                       label="MOD_ALFA_CART_TOGGLER_COLOR_LBL"
+                       description="MOD_ALFA_CART_TOGGLER_COLOR_DESC"
+                />
+                <field name="togglerColor_dark"
+                       type="color"
+                       format="hex"
+                       default=""
+                       label="MOD_ALFA_CART_TOGGLER_COLOR_DARK_LBL"
+                       description="MOD_ALFA_CART_TOGGLER_COLOR_DARK_DESC"
+                />
+
+                <field name="togglerCounterColor"
+                       type="color"
+                       format="hex"
+                       default=""
+                       label="MOD_ALFA_CART_TOGGLER_BACKGROUND_COLOR_LBL"
+                       description="MOD_ALFA_CART_TOGGLER_BACKGROUND_COLOR_DESC"
+                />
+                <field name="togglerCounterColor_dark"
+                       type="color"
+                       format="hex"
+                       default=""
+                       label="MOD_ALFA_CART_TOGGLER_BACKGROUND_COLOR_DARK_LBL"
+                       description="MOD_ALFA_CART_TOGGLER_BACKGROUND_COLOR_DARK_DESC"
+                />
+
+                <field name="checkoutColor"
+                       type="color"
+                       format="hex"
+                       default=""
+                       label="MOD_ALFA_CART_CHECKOUT_COLOR_LBL"
+                       description="MOD_ALFA_CART_CHECKOUT_COLOR_DESC"
+                />
+                <field name="checkoutColor_dark"
+                       type="color"
+                       format="hex"
+                       default=""
+                       label="MOD_ALFA_CART_CHECKOUT_COLOR_DARK_LBL"
+                       description="MOD_ALFA_CART_CHECKOUT_COLOR_DARK_DESC"
+                />
+
+                <field name="checkoutTextColor"
+                       type="color"
+                       format="hex"
+                       default=""
+                       label="MOD_ALFA_CART_CHECKOUT_TEXT_COLOR_LBL"
+                       description="MOD_ALFA_CART_CHECKOUT_TEXT_COLOR_DESC"
+                />
+                <field name="checkoutTextColor_dark"
+                       type="color"
+                       format="hex"
+                       default=""
+                       label="MOD_ALFA_CART_CHECKOUT_TEXT_COLOR_DARK_LBL"
+                       description="MOD_ALFA_CART_CHECKOUT_TEXT_COLOR_DARK_DESC"
+                />
+
+                <field name="style_radius"
+                       type="number"
+                       min="0"
+                       max="80"
+                       step="1"
+                       default=""
+                       label="MOD_ALFA_CART_STYLE_RADIUS_LBL"
+                       description="MOD_ALFA_CART_STYLE_RADIUS_DESC"
+                />
+            </fieldset>
+
         </fields>
     </config>
 

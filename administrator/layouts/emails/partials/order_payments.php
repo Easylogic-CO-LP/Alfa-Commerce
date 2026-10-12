@@ -6,9 +6,7 @@
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
  *
- * ─────────────────────────────────────────────────────────────────
- *  Order-email payments table — overridable partial (customer-minimal)
- * ─────────────────────────────────────────────────────────────────
+ *  Order-email payments table: overridable partial (customer-minimal)
  *
  *  Rendered by the layout via:
  *    $render('emails.partials.order_payments', ['payments' => $payments])
@@ -16,8 +14,8 @@
  *    templates/<template>/html/layouts/com_alfa/emails/partials/order_payments.php
  *
  *  $displayData:
- *    object[]  $payments  Each: {method, amount, status} — already
- *                         formatted/customer-facing by OrderEmailHelper
+ *    object[]  $payments  Each: {method, amount, status}, already
+ *                         formatted/customer-facing by EmailService
  *                         (no Money objects, no internal ids/txn data).
  *
  *  Inline-styled for email-client compatibility. Renders nothing when

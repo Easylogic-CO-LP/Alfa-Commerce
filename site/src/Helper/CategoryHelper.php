@@ -15,6 +15,9 @@
 namespace Alfa\Component\Alfa\Site\Helper;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CatalogAccessPolicy;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
+use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
 use Exception;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Cache\Controller\CallbackController;
@@ -22,6 +25,7 @@ use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
+use stdClass;
 
 defined('_JEXEC') or die;
 
@@ -33,7 +37,7 @@ defined('_JEXEC') or die;
  * - Level 2: Persistent cache (across requests, when enabled)
  *
  * Product count strategy:
- * - ONE query loads all category→item mappings for the entire tree
+ * - ONE query loads all category->item mappings for the entire tree
  * - PHP walks the tree using array key union ($a + $b) for O(1) dedup
  * - Counts are usergroup-aware and cached per usergroup combination
  * - Memory: ~4MB for 20K products (integer pairs only, not full rows)
@@ -56,12 +60,33 @@ class CategoryHelper
     private const TREE_MAX_DEPTH = 10;
 
     /**
+     * Longest time, in seconds, a stored tree WITH product counts is served.
+     *
+     * Counts follow stock (hide-out-of-stock membership), so a stored count tree
+     * is also stamped with the inventory version and rebuilt when it changes. The
+     * version alone cannot catch two cases, and this age bounds both: a stock
+     * command whose operation id was assigned before the build but committed
+     * after it (the version then reads the same), and a stock figure changed
+     * outside the inventory service.
+     *
+     * @since  1.14.0
+     */
+    private const COUNT_TREE_MAX_AGE = 300;
+
+    /**
      * Static caches (Level 1 - current request only)
      * These are checked FIRST for maximum performance
      */
     private static $categoryPathCache = [];
     private static $categoryDataCache = [];
     private static $categoryTreeCache = [];
+
+    /**
+     * Per-parent direct-children rows (Level 1), shared across all tree builds in
+     * a request so overlapping builds (full tree / subtree / breadcrumbs) never
+     * re-query the same parent.
+     */
+    private static $childRowsCache = [];
 
     /**
      * Cache controller (Level 2 - persistent across requests)
@@ -77,11 +102,8 @@ class CategoryHelper
     /**
      * Current user's group IDs (cached per request)
      */
-    private static $currentUserGroupIds = null;
 
-    // =========================================================================
-    // CONFIGURATION
-    // =========================================================================
+    // Configuration
 
     /**
      * Get component parameters (cached)
@@ -151,83 +173,79 @@ class CategoryHelper
         return self::$cacheController;
     }
 
-    // =========================================================================
-    // USER CONTEXT
-    // =========================================================================
+    // User context
 
     /**
-     * Get current user's usergroup IDs (cached per request)
+     * Stable cache-key suffix for everything that can make one visitor's category
+     * data differ from another's, or from the same visitor's a moment later.
      *
-     * @return array Array of usergroup IDs
-     * @since  1.0.0
-     */
-    private static function getCurrentUserGroupIds(): array
-    {
-        if (self::$currentUserGroupIds === null) {
-            $user = Factory::getApplication()->getIdentity();
-            self::$currentUserGroupIds = $user ? array_values($user->getAuthorisedGroups()) : [];
-        }
-
-        return self::$currentUserGroupIds;
-    }
-
-    /**
-     * Get a stable cache key suffix for the current user's groups
+     * TWO axes, both mandatory:
+     *   - WHO is asking: {@see CatalogAccessPolicy::cacheKey()} (user + sorted
+     *     groups, so [2,8] and [8,2] collapse to one entry);
+     *   - HOW the shop treats out-of-stock products:
+     *     {@see StockVisibilityPolicy::cacheKey()}, because the counts below are
+     *     computed THROUGH that predicate.
      *
-     * Sorted and hashed so [2,8] and [8,2] produce the same key
+     * Hashed so the caller gets a fixed-length fragment whatever the two policies
+     * decide to put in theirs.
+     *
+     * @return string Fixed-length key fragment.
      *
      * @since  1.0.0
      */
     private static function getUserGroupCacheKey(): string
     {
-        $groups = self::getCurrentUserGroupIds();
-        sort($groups);
-
-        return md5(implode(',', $groups));
+        // The stock policy is folded in because counts are computed through its
+        // predicate: without it, flipping the shop-wide stock action appears to do
+        // nothing until these long-lived caches expire.
+        return md5(
+            (new CatalogAccessPolicy())->cacheKey()
+            . '|' . (new StockVisibilityPolicy())->cacheKey(),
+        );
     }
 
-    // =========================================================================
     // VISIBILITY FILTER (shared SQL)
-    // =========================================================================
 
     /**
      * Get the item visibility JOIN conditions
      *
      * Used in LEFT/INNER JOINs where conditions must be in the ON clause.
-     * Centralised so stock/state logic is defined once.
+     * The stock half is delegated to {@see StockVisibilityPolicy} so a count badge
+     * can never disagree with the listing it labels: this fragment used to read
+     * `NOT (i.stock_action = 2 AND i.stock > 0)`, which is the rule INVERTED (it
+     * dropped the products that were in stock and counted the ones that were not),
+     * against the physical column instead of the salable projection, blind to the
+     * "From configuration" sentinel and NULL-unsafe.
      *
      * @return string SQL fragment
      * @since  1.0.0
      */
     private static function getItemJoinConditions(): string
     {
-        return ' AND i.state = 1 AND NOT (i.stock_action = 2 AND i.stock > 0)';
+        return ' AND i.state = 1 AND ' . (new StockVisibilityPolicy())->condition(alias: 'i');
     }
 
     /**
-     * Apply usergroup visibility filter to a query
+     * Restrict an item count query to the products this visitor may see.
      *
-     * Items with NO usergroup entries are visible to everyone.
-     * Items WITH usergroup entries are only visible to matching groups.
+     * Delegates to {@see CatalogAccessPolicy} so a badge can never disagree with the
+     * listing it labels. The previous implementation lived here and diverged in three
+     * ways: it ignored the per-USER allowlist entirely, it silently did nothing when
+     * the visitor had no groups, and it filtered with a LEFT JOIN, which multiplies a
+     * row per matching group and therefore inflates the very COUNT it exists to
+     * protect. EXISTS cannot do that.
      *
-     * @param \Joomla\Database\DatabaseQuery $query Query to modify
+     * @param \Joomla\Database\QueryInterface $query Query to modify; items aliased `i`.
+     *
      *
      * @since  1.0.0
      */
     private static function applyUserGroupFilter($query): void
     {
-        $userGroupIds = self::getCurrentUserGroupIds();
-
-        if (!empty($userGroupIds)) {
-            $query->join('LEFT', '#__alfa_items_usergroups AS ug ON ug.item_id = i.id');
-            $query->where('(ug.item_id IS NULL OR ug.usergroup_id IN ('
-                . implode(',', array_map('intval', $userGroupIds)) . '))');
-        }
+        (new CatalogAccessPolicy())->applyToItems($query, 'i');
     }
 
-    // =========================================================================
-    // SINGLE CATEGORY
-    // =========================================================================
+    // Single category
 
     /**
      * Normalise an optional language tag to the snake-case form used in cache
@@ -268,7 +286,16 @@ class CategoryHelper
             ->where($db->quoteName('a.state') . ' = 1')
             ->bind(':id', $categoryId, ParameterType::INTEGER);
 
-        // Resolve name / alias from the per-language tables — in $langTag when
+        // This loader answers "what is category N called?" for ANY id, and its
+        // callers hand it unvalidated request input (`catid`). Without the allowlist
+        // it is an id -> name oracle over the whole category table: incrementing
+        // catid on any public product page prints the name of every restricted
+        // category. Both cache layers below are visitor-scoped for the same reason:
+        // filtering here without doing that would store one visitor's answer under a
+        // shared key and serve it to everyone else for the cache lifetime.
+        (new CatalogAccessPolicy())->applyToCategories($query, 'a');
+
+        // Resolve name / alias from the per-language tables, in $langTag when
         // given (language switch), otherwise the current request language.
         MultilingualHelper::addMultilingualJoinToQuery(
             query:             $query,
@@ -293,11 +320,12 @@ class CategoryHelper
      */
     private static function getCategory(int $categoryId, ?string $langTag = null)
     {
-        // Effective language tag — explicit (language switch) or current request.
+        // Effective language tag: explicit (language switch) or current request.
         // It scopes every cache key: name / alias are language-resolved, so a
         // language-blind key would serve one language's data to another.
         $lang = self::resolveLangTag($langTag);
-        $memoKey = $categoryId . '_' . $lang;
+        $visitor = self::getUserGroupCacheKey();
+        $memoKey = $categoryId . '_' . $lang . '_' . $visitor;
 
         if (isset(self::$categoryDataCache[$memoKey])) {
             return self::$categoryDataCache[$memoKey];
@@ -309,7 +337,7 @@ class CategoryHelper
             $category = $cache->get(
                 [self::class, 'loadCategoryFromDatabase'],
                 [$categoryId, $langTag],
-                'cat_' . $lang . '_' . $categoryId,
+                'cat_' . $lang . '_' . $visitor . '_' . $categoryId,
             );
         } else {
             $category = self::loadCategoryFromDatabase($categoryId, $langTag);
@@ -322,9 +350,7 @@ class CategoryHelper
         return $category;
     }
 
-    // =========================================================================
     // CATEGORY PATH (Breadcrumbs)
-    // =========================================================================
 
     /**
      * Get category path from root to current category
@@ -342,10 +368,11 @@ class CategoryHelper
             return [];
         }
 
-        // Effective language scopes every cache key — the path carries
+        // Effective language scopes every cache key; the path carries
         // per-language aliases used in SEF URLs.
         $lang = self::resolveLangTag($langTag);
-        $memoKey = $categoryId . '_' . $lang;
+        $visitor = self::getUserGroupCacheKey();
+        $memoKey = $categoryId . '_' . $lang . '_' . $visitor;
 
         if (isset(self::$categoryPathCache[$memoKey])) {
             return self::$categoryPathCache[$memoKey];
@@ -357,7 +384,7 @@ class CategoryHelper
             $path = $cache->get(
                 [self::class, 'buildCategoryPath'],
                 [$categoryId, $langTag],
-                'path_' . $lang . '_' . $categoryId,
+                'path_' . $lang . '_' . $visitor . '_' . $categoryId,
             );
         } else {
             $path = self::buildCategoryPath($categoryId, $langTag);
@@ -414,9 +441,7 @@ class CategoryHelper
         return $path;
     }
 
-    // =========================================================================
-    // CATEGORY TREE
-    // =========================================================================
+    // Category tree
 
     /**
      * Get category tree (hierarchical structure)
@@ -427,11 +452,21 @@ class CategoryHelper
      * When includeCount is true, each category node will have:
      * - direct_product_count: items assigned directly to this category only
      * - product_count: unique items in this category + all descendants
-     *   (deduplicated — items in multiple subcategories counted once)
+     *   (deduplicated: items in multiple subcategories counted once)
      *
      * Counts are usergroup-aware and cached per usergroup combination.
      * Category structure (without counts) is NOT usergroup-dependent
      * and uses a shared cache entry.
+     *
+     * Counts also follow stock: under hide-out-of-stock a product sold out
+     * leaves the count. A stored count tree therefore carries the inventory
+     * version read BEFORE it was built and the time it was built; it is served
+     * only while the version is still current and it is at most
+     * COUNT_TREE_MAX_AGE seconds old, otherwise it is rebuilt and stored again
+     * under the same key (the number of entries does not grow). The age bounds
+     * what the version cannot see: a stock command committed after the build
+     * with an operation id assigned before it, and stock figures changed outside
+     * the inventory service. Trees without counts are cached as before.
      *
      * @param int $parentId Parent category ID (0 for root)
      * @param int $maxDepth Maximum depth to return (default: 10)
@@ -442,18 +477,29 @@ class CategoryHelper
      */
     public static function getCategoryTree(int $parentId = 0, int $maxDepth = 10, bool $includeCount = false): array
     {
-        // Build at max of constant and requested depth — one cache entry
+        // Build at max of constant and requested depth: one cache entry
         // serves all smaller depth requests, larger requests get their own
         $buildDepth = max(self::TREE_MAX_DEPTH, $maxDepth);
 
-        // Include usergroup in cache key ONLY when counts are requested
-        // (category structure is the same for all users)
-        $ugKey = $includeCount ? '_' . self::getUserGroupCacheKey() : '';
+        // The visitor is ALWAYS part of the key. It used to be included only when
+        // counts were requested, on the reasoning that "category structure is the
+        // same for all users"; that stopped being true the moment categories gained
+        // a per-user/per-group allowlist. Since level 2 is a PERSISTENT cache, a tree
+        // built for a privileged visitor would otherwise be stored under a key with
+        // no visitor in it and later served to a guest.
+        $ugKey = '_' . self::getUserGroupCacheKey();
         $cacheKey = "{$parentId}_{$buildDepth}_" . ($includeCount ? '1' : '0') . $ugKey;
 
+        // Counts: the inventory version, read before anything is built, so a tree
+        // is never stamped with a version newer than the stock it counted.
+        $version = $includeCount
+            ? InventoryAvailabilityService::inventoryVersion(db: Factory::getContainer()->get(DatabaseInterface::class))
+            : null;
+        $memoKey = $version === null ? $cacheKey : $cacheKey . '_v' . $version;
+
         // Level 1: Static cache
-        if (isset(self::$categoryTreeCache[$cacheKey])) {
-            $tree = self::$categoryTreeCache[$cacheKey];
+        if (isset(self::$categoryTreeCache[$memoKey])) {
+            $tree = self::$categoryTreeCache[$memoKey];
 
             return ($maxDepth < $buildDepth) ? self::trimTreeDepth($tree, $maxDepth) : $tree;
         }
@@ -462,31 +508,81 @@ class CategoryHelper
         $cache = self::getCacheController();
 
         if ($cache !== null) {
-            // Language-aware key — the tree carries per-language name / alias.
+            // Language-aware key: the tree carries per-language name / alias.
             $lang = MultilingualHelper::getCurrentLanguageTag();
-            $tree = $cache->get(
-                function ($parent, $depth, $count) {
-                    return self::buildCategoryTree($parent, $depth, $count);
-                },
-                [$parentId, $buildDepth, $includeCount],
-                'tree_' . md5($lang . '_' . $cacheKey),
-            );
+            $id = 'tree_' . md5($lang . '_' . $cacheKey);
+
+            $tree = $version !== null
+                ? self::cachedCountTree(cache: $cache, id: $id, version: $version, parentId: $parentId, buildDepth: $buildDepth)
+                : $cache->get(
+                    function ($parent, $depth, $count) {
+                        return self::buildCategoryTree($parent, $depth, $count);
+                    },
+                    [$parentId, $buildDepth, $includeCount],
+                    $id,
+                );
         } else {
             $tree = self::buildCategoryTree($parentId, $buildDepth, $includeCount);
         }
 
         // Store full-depth tree in static cache
-        self::$categoryTreeCache[$cacheKey] = $tree;
+        self::$categoryTreeCache[$memoKey] = $tree;
 
         // Return trimmed if caller wants less depth
         return ($maxDepth < $buildDepth) ? self::trimTreeDepth($tree, $maxDepth) : $tree;
     }
 
     /**
+     * A tree with product counts from the persistent cache, or built and stored.
+     *
+     * The stored entry is ['version' => int, 'built_at' => int, 'tree' => array].
+     * It is served only when its version equals $version and it is between 0 and
+     * COUNT_TREE_MAX_AGE seconds old; anything else (another version, too old, an
+     * entry in any other shape) is rebuilt and stored again under the same id,
+     * stamped with $version, which the caller read before this build.
+     *
+     * @param CallbackController $cache The category cache controller.
+     * @param string $id The entry id (language and visitor scoped).
+     * @param int $version The inventory version read before building.
+     * @param int $parentId Parent category id.
+     * @param int $buildDepth Depth the tree is built at.
+     *
+     * @return array The tree.
+     *
+     * @since  1.14.0
+     */
+    private static function cachedCountTree(CallbackController $cache, string $id, int $version, int $parentId, int $buildDepth): array
+    {
+        $stored = $cache->cache->get(id: $id);
+        $entry = \is_string($stored)
+            ? @unserialize(trim($stored), ['allowed_classes' => [stdClass::class]])
+            : false;
+
+        if (
+            \is_array($entry)
+            && isset($entry['version'], $entry['built_at'], $entry['tree'])
+            && \is_array($entry['tree'])
+            && (int) $entry['version'] === $version
+        ) {
+            $age = time() - (int) $entry['built_at'];
+
+            if ($age >= 0 && $age <= self::COUNT_TREE_MAX_AGE) {
+                return $entry['tree'];
+            }
+        }
+
+        $tree = self::buildCategoryTree(parentId: $parentId, maxDepth: $buildDepth, includeCount: true);
+
+        $cache->store(data: ['version' => $version, 'built_at' => time(), 'tree' => $tree], id: $id);
+
+        return $tree;
+    }
+
+    /**
      * Trim a tree to a maximum depth
      *
      * Returns a shallow clone with children removed beyond maxDepth.
-     * Does NOT modify the cached tree — safe to call repeatedly.
+     * Does NOT modify the cached tree; safe to call repeatedly.
      *
      * @param array $categories Tree nodes
      * @param int $maxDepth Maximum depth to keep
@@ -548,28 +644,48 @@ class CategoryHelper
 
         $visited[$parentId] = true;
 
-        $db = Factory::getContainer()->get(DatabaseInterface::class);
+        // Per-request memo: a given parent's direct children are fetched ONCE and
+        // shared across all tree builds (full tree / subtree / breadcrumbs), keyed
+        // by parent + language. Without this the same parent's children query
+        // repeats whenever builds overlap (visible when the Level-2 cache is off).
+        $childKey = $parentId . '|' . MultilingualHelper::getCurrentLanguageTag()
+            . '|' . self::getUserGroupCacheKey();
 
-        // Clean category query — no count joins
-        $query = $db->getQuery(true)
-            ->select('c.id, c.parent_id, c.ordering')
-            ->from('#__alfa_categories AS c')
-            ->where('c.parent_id = :parent')
-            ->where('c.state = 1')
-            ->order('c.ordering ASC')
-            ->bind(':parent', $parentId, ParameterType::INTEGER);
+        if (isset(self::$childRowsCache[$childKey])) {
+            $rows = self::$childRowsCache[$childKey];
+        } else {
+            $db = Factory::getContainer()->get(DatabaseInterface::class);
 
-        // Resolve name / alias in the active language from the per-language tables.
-        MultilingualHelper::addMultilingualJoinToQuery(
-            query:             $query,
-            mainAlias:         'c',
-            mainPrimaryColumn: 'id',
-            langTableBase:     '#__alfa_categories',
-            langPrimaryColumn: 'id_category',
-            fields:            ['name', 'alias'],
-        );
+            // Clean category query: no count joins
+            $query = $db->getQuery(true)
+                ->select('c.id, c.parent_id, c.ordering')
+                ->from('#__alfa_categories AS c')
+                ->where('c.parent_id = :parent')
+                ->where('c.state = 1')
+                ->order('c.ordering ASC')
+                ->bind(':parent', $parentId, ParameterType::INTEGER);
 
-        $categories = $db->setQuery($query)->loadObjectList();
+            // The navigation tree is a listing too: a restricted category must not
+            // appear in it, or the restriction is only cosmetic.
+            (new CatalogAccessPolicy())->applyToCategories($query, 'c');
+
+            // Resolve name / alias in the active language from the per-language tables.
+            MultilingualHelper::addMultilingualJoinToQuery(
+                query:             $query,
+                mainAlias:         'c',
+                mainPrimaryColumn: 'id',
+                langTableBase:     '#__alfa_categories',
+                langPrimaryColumn: 'id_category',
+                fields:            ['name', 'alias'],
+            );
+
+            $rows = $db->setQuery($query)->loadObjectList() ?: [];
+            self::$childRowsCache[$childKey] = $rows;
+        }
+
+        // Clone so THIS build owns its objects; it attaches ->children below (and
+        // counts may be written onto them) without mutating the shared cache.
+        $categories = array_map(static fn ($row) => clone $row, $rows);
 
         // Build children recursively
         foreach ($categories as $category) {
@@ -591,9 +707,7 @@ class CategoryHelper
         return $categories;
     }
 
-    // =========================================================================
     // PRODUCT COUNTS (single-query approach)
-    // =========================================================================
 
     /**
      * Compute direct + aggregated product counts for the entire tree
@@ -601,7 +715,7 @@ class CategoryHelper
      * Strategy:
      * 1. Collect ALL category IDs in the tree
      * 2. ONE query: load all (category_id, item_id) pairs for visible items
-     * 3. Build map: category_id → { item_id: true } (keys for O(1) dedup)
+     * 3. Build map: category_id -> { item_id: true } (keys for O(1) dedup)
      * 4. Walk tree bottom-up using PHP array union ($a + $b) for dedup
      *
      * Why array keys instead of values:
@@ -609,7 +723,7 @@ class CategoryHelper
      * - No array_unique() needed (that's O(n log n))
      * - count() on result gives deduplicated count
      *
-     * Memory: ~4MB for 20K products × 3 categories average.
+     * Memory: ~4MB for 20K products x 3 categories average.
      * All cached after first load, so this runs once per usergroup.
      *
      * @param array $categories Root-level tree nodes (with children built)
@@ -642,14 +756,14 @@ class CategoryHelper
 
         $rows = $db->setQuery($query)->loadObjectList();
 
-        // Build map: category_id → [item_id => true, ...]
+        // Build map: category_id -> [item_id => true, ...]
         // Using item_id as KEY (not value) enables O(1) dedup via array union
         $categoryItemSets = [];
         foreach ($rows as $row) {
             $categoryItemSets[(int) $row->category_id][(int) $row->item_id] = true;
         }
 
-        // Free rows — only the map is needed from here
+        // Free rows: only the map is needed from here
         unset($rows);
 
         // Walk tree and assign counts bottom-up
@@ -657,7 +771,7 @@ class CategoryHelper
     }
 
     /**
-     * Recursively assign counts using pre-loaded category→item map
+     * Recursively assign counts using pre-loaded category->item map
      *
      * Walks bottom-up: children are processed first, then their item sets
      * are merged into the parent using array union (+) for dedup.
@@ -666,7 +780,7 @@ class CategoryHelper
      * can merge without re-traversing the entire subtree.
      *
      * @param array $categories Tree nodes
-     * @param array $categoryItemSets Map of category_id → [item_id => true]
+     * @param array $categoryItemSets Map of category_id -> [item_id => true]
      *
      * @return array Merged item ID set for this level [item_id => true]
      * @since  1.0.0
@@ -679,20 +793,20 @@ class CategoryHelper
             $catId = (int) $category->id;
             $directItems = $categoryItemSets[$catId] ?? [];
 
-            // Direct count — items assigned to THIS category only
+            // Direct count: items assigned to THIS category only
             $category->direct_product_count = count($directItems);
 
             if (empty($category->children)) {
-                // Leaf — aggregated = direct, no overlap possible
+                // Leaf: aggregated = direct, no overlap possible
                 $category->product_count = $category->direct_product_count;
                 $branchItems = $directItems;
             } else {
-                // Parent — merge children's items with own
+                // Parent: merge children's items with own
                 // Children return their complete branch item sets
                 $childItems = self::assignCountsFromMap($category->children, $categoryItemSets);
 
                 // Array union on keys = automatic dedup, O(n)
-                // Item 1 in both cat 2 and cat 3 → counted once
+                // Item 1 in both cat 2 and cat 3 -> counted once
                 $branchItems = $directItems + $childItems;
 
                 $category->product_count = count($branchItems);
@@ -705,9 +819,7 @@ class CategoryHelper
         return $levelItems;
     }
 
-    // =========================================================================
-    // DESCENDANTS
-    // =========================================================================
+    // Descendants
 
     /**
      * Get all descendant category IDs for a given parent
@@ -748,73 +860,7 @@ class CategoryHelper
         }
     }
 
-    // =========================================================================
-    // STANDALONE PRODUCT COUNT
-    // =========================================================================
-
-    /**
-     * Get product count for a specific category
-     *
-     * Standalone method for when you need a count without the full tree.
-     * Uses a single COUNT(DISTINCT) query — no PHP array processing.
-     *
-     * Use cases: category page header, breadcrumb badges.
-     *
-     * If you already have the tree from getCategoryTree(), use
-     * product_count / direct_product_count from there instead —
-     * that data is already cached.
-     *
-     * @param int $categoryId Category ID
-     * @param bool $includeSubcategories Include descendant categories
-     *
-     * @return int Number of visible products
-     * @since  1.0.0
-     */
-    public static function getProductCount(int $categoryId, bool $includeSubcategories = false): int
-    {
-        $categoryIds = [$categoryId];
-
-        if ($includeSubcategories) {
-            $categoryIds = array_merge($categoryIds, self::getDescendantIds($categoryId));
-        }
-
-        return self::countVisibleItems($categoryIds);
-    }
-
-    /**
-     * Count distinct visible items across multiple categories
-     *
-     * Single COUNT(DISTINCT) query with all visibility filters.
-     *
-     * @param array $categoryIds Array of category IDs to count across
-     *
-     * @return int Number of unique visible items
-     * @since  1.0.0
-     */
-    private static function countVisibleItems(array $categoryIds): int
-    {
-        if (empty($categoryIds)) {
-            return 0;
-        }
-
-        $db = Factory::getContainer()->get(DatabaseInterface::class);
-
-        $query = $db->getQuery(true)
-            ->select('COUNT(DISTINCT i.id)')
-            ->from($db->quoteName('#__alfa_items_categories', 'ic'))
-            ->join('INNER', $db->quoteName('#__alfa_items', 'i')
-                . ' ON i.id = ic.item_id'
-                . self::getItemJoinConditions())
-            ->whereIn('ic.category_id', array_map('intval', $categoryIds));
-
-        self::applyUserGroupFilter($query);
-
-        return (int) $db->setQuery($query)->loadResult();
-    }
-
-    // =========================================================================
-    // CACHE MANAGEMENT
-    // =========================================================================
+    // Cache management
 
     /**
      * Clear category cache
@@ -826,12 +872,13 @@ class CategoryHelper
     public static function clearCache(?int $categoryId = null): void
     {
         // The in-memory memos are language-keyed (`<id>_<lang>`), so a per-id
-        // unset can't target them — reset them wholesale (cheap, per-request).
+        // unset can't target them; reset them wholesale (cheap, per-request).
         // The persistent group-clean below invalidates every language variant
         // regardless, so a targeted vs full clear differs only in the controller reset.
         self::$categoryPathCache = [];
         self::$categoryDataCache = [];
         self::$categoryTreeCache = [];
+        self::$childRowsCache = [];
 
         $cache = self::getCacheController();
 
@@ -839,7 +886,7 @@ class CategoryHelper
             // Persistent keys are language- AND usergroup-scoped
             // (cat_<lang>_<id>, path_<lang>_<id>, tree_<lang>_<hash>). A targeted
             // per-id remove cannot cover all those variants, so clean the whole
-            // group — this invalidates every language / usergroup entry at once.
+            // group; this invalidates every language / usergroup entry at once.
             $cache->cache->clean('com_alfa.categories');
 
             if ($categoryId === null) {

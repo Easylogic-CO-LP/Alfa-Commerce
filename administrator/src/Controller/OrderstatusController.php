@@ -11,13 +11,17 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 
 \defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\Helper\OrderEmailHelper;
+use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFailedCopyRedirect;
+use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFormPermissions;
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\LanguageHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\MVC\Controller\FormController;
 use Joomla\CMS\Router\Route;
+use Joomla\CMS\Session\Session;
 use Joomla\CMS\Uri\Uri;
 use Throwable;
 
@@ -28,6 +32,9 @@ use Throwable;
  */
 class OrderstatusController extends FormController
 {
+    use HasFormPermissions;
+    use HasFailedCopyRedirect;
+
     /**
      * View used by the cancel toolbar button.
      *
@@ -41,18 +48,18 @@ class OrderstatusController extends FormController
      * on the edit screen.
      *
      * Query parameters:
-     *   id         (int)    — orderstatus PK to preview.
-     *   lang       (string) — language tag (e.g. en-GB) to render in.
+     *   id         (int)    - orderstatus PK to preview.
+     *   lang       (string) - language tag (e.g. en-GB) to render in.
      *                         Defaults to the application's current tag.
-     *   recipient  (string) — 'customer' or 'admin'. Picks which
+     *   recipient  (string) - 'customer' or 'admin'. Picks which
      *                         positions JSON to read.
      *
      * Behaviour:
-     *   • Authorises via the standard com_alfa edit permission.
-     *   • Picks the most recent published `#__alfa_orders` row as the
+     *   - Requires orderstatuses.edit and orders.view, before any read.
+     *   - Picks the most recent published `#__alfa_orders` row as the
      *     sample for token resolution. Falls back to a synthetic stub
      *     when the table is empty (fresh install).
-     *   • Outputs the rendered email HTML and exits so format=raw
+     *   - Outputs the rendered email HTML and exits so format=raw
      *     suppresses the Joomla chrome.
      *
      *
@@ -63,7 +70,13 @@ class OrderstatusController extends FormController
         $app = $this->app;
         $user = $app->getIdentity();
 
-        if ($user === null || !$user->authorise('core.edit', 'com_alfa')) {
+        // The email tools render and send real orders (recent orders, their customers, their
+        // emails), so editing statuses is not enough: the orders must be viewable too.
+        if (
+            $user === null
+            || !AlfaHelper::can(section: 'orderstatuses', action: 'edit', user: $user)
+            || !AlfaHelper::can(section: 'orders', action: 'view', user: $user)
+        ) {
             $app->setHeader('status', '403 Forbidden', true);
             $app->sendHeaders();
             echo 'Forbidden';
@@ -86,7 +99,7 @@ class OrderstatusController extends FormController
         }
 
         try {
-            $html = OrderEmailHelper::previewForStatus(
+            $html = EmailService::previewForStatus(
                 statusId:  $statusId,
                 langTag:   $langTag,
                 recipient: $recipient,
@@ -111,14 +124,14 @@ class OrderstatusController extends FormController
      * Render the preview-modal shell page.
      *
      * Loaded inside the Bootstrap modal's iframe (via
-     * HTMLHelper::_('bootstrap.renderModal', …)). The shell is a small
-     * Joomla-themed page with one tab per (language × recipient) combo
+     * HTMLHelper::_('bootstrap.renderModal', ...)). The shell is a small
+     * Joomla-themed page with one tab per (language x recipient) combo
      * and a single nested iframe whose `src` is swapped on tab change.
      * Each inner iframe URL hits previewEmail() to render the actual
      * email HTML.
      *
      * Output is a complete HTML document so the iframe doesn't depend
-     * on the parent admin chrome — keeps the rendering predictable.
+     * on the parent admin chrome - keeps the rendering predictable.
      *
      *
      * @since  1.0.0
@@ -128,7 +141,13 @@ class OrderstatusController extends FormController
         $app = $this->app;
         $user = $app->getIdentity();
 
-        if ($user === null || !$user->authorise('core.edit', 'com_alfa')) {
+        // The email tools render and send real orders (recent orders, their customers, their
+        // emails), so editing statuses is not enough: the orders must be viewable too.
+        if (
+            $user === null
+            || !AlfaHelper::can(section: 'orderstatuses', action: 'edit', user: $user)
+            || !AlfaHelper::can(section: 'orders', action: 'view', user: $user)
+        ) {
             $app->setHeader('status', '403 Forbidden', true);
             $app->sendHeaders();
             echo 'Forbidden';
@@ -143,13 +162,13 @@ class OrderstatusController extends FormController
 
         $languages = LanguageHelper::getLanguages('lang_code') ?: [];
 
-        // Optional recipient scoping — the per-tab Preview button passes
+        // Optional recipient scoping: the per-tab Preview button passes
         // &recipient=customer|admin so the modal shows only that side.
-        // Omitted → both (the combined view).
+        // Omitted -> both (the combined view).
         $only = (string) $app->getInput()->getCmd('recipient', '');
         $recipients = in_array($only, ['customer', 'admin'], true) ? [$only] : ['customer', 'admin'];
 
-        // Group by recipient — outer tabs (Customer / Admin) hold all
+        // Group by recipient: outer tabs (Customer / Admin) hold all
         // languages, with a dropdown inside each pane when more than
         // one language exists.
         $groups = [];
@@ -201,7 +220,7 @@ class OrderstatusController extends FormController
      * Self-contained document; tiny vanilla JS handles tab and
      * dropdown switching. Atum CSS provides Bootstrap visuals.
      *
-     * @param array<string, array> $groups Map recipient → [key, label,
+     * @param array<string, array> $groups Map recipient -> [key, label,
      *                                     languages[lang, label, url]].
      * @param int $statusId Status PK, used only for
      *                      the document title.
@@ -218,7 +237,7 @@ class OrderstatusController extends FormController
             'UTF-8',
         );
 
-        // Empty-language guard — render a friendly message instead of
+        // Empty-language guard: render a friendly message instead of
         // a chrome with no content.
         $hasAny = false;
         foreach ($groups as $g) {
@@ -311,7 +330,7 @@ class OrderstatusController extends FormController
                     (function () {
                         'use strict';
 
-                        // Outer tab switching — toggle d-none / d-flex on panes.
+                        // Outer tab switching: toggle d-none / d-flex on panes.
                         const tabs  = document.querySelectorAll('.nav-tabs .nav-link[data-preview-target]');
                         const panes = document.querySelectorAll('[data-preview-pane]');
                         tabs.forEach(function (tab) {
@@ -325,7 +344,7 @@ class OrderstatusController extends FormController
                             });
                         });
 
-                        // Per-pane language dropdown — swap iframe src.
+                        // Per-pane language dropdown: swap iframe src.
                         panes.forEach(function (pane) {
                             const select = pane.querySelector('[data-preview-lang]');
                             const frame  = pane.querySelector('[data-preview-frame]');
@@ -345,11 +364,11 @@ class OrderstatusController extends FormController
      * Render the send-test-email form inside the modal iframe.
      *
      * GET endpoint. Outputs a small Joomla-themed page with a form:
-     *   • Order picker (recent 25 orders)
-     *   • Recipient variant (customer / admin)
-     *   • Language picker
-     *   • Destination email (pre-filled with current admin's email)
-     *   • Submit posts to sendTestEmail() in the same iframe.
+     *   - Order picker (recent 25 orders)
+     *   - Recipient variant (customer / admin)
+     *   - Language picker
+     *   - Destination email (pre-filled with current admin's email)
+     *   - Submit posts to sendTestEmail() in the same iframe.
      *
      *
      * @since  1.0.0
@@ -359,7 +378,13 @@ class OrderstatusController extends FormController
         $app = $this->app;
         $user = $app->getIdentity();
 
-        if ($user === null || !$user->authorise('core.edit', 'com_alfa')) {
+        // The email tools render and send real orders (recent orders, their customers, their
+        // emails), so editing statuses is not enough: the orders must be viewable too.
+        if (
+            $user === null
+            || !AlfaHelper::can(section: 'orderstatuses', action: 'edit', user: $user)
+            || !AlfaHelper::can(section: 'orders', action: 'view', user: $user)
+        ) {
             $app->setHeader('status', '403 Forbidden', true);
             $app->sendHeaders();
             echo 'Forbidden';
@@ -388,7 +413,7 @@ class OrderstatusController extends FormController
      * Process the send-test-email form submission.
      *
      * POST endpoint. Reads the form values, calls
-     * OrderEmailHelper::sendTestForStatus, renders a result page in
+     * EmailService::sendTestForStatus, renders a result page in
      * the same iframe ("Sent" / error). The page has a "Send another"
      * link back to sendTestForm.
      *
@@ -398,9 +423,24 @@ class OrderstatusController extends FormController
     public function sendTestEmail(): void
     {
         $app = $this->app;
+
+        // State-changing POST (renders and sends an email): require the anti-CSRF token.
+        if (!Session::checkToken('post')) {
+            $app->setHeader('status', '403 Forbidden', true);
+            $app->sendHeaders();
+            echo 'Invalid token';
+            $app->close();
+        }
+
         $user = $app->getIdentity();
 
-        if ($user === null || !$user->authorise('core.edit', 'com_alfa')) {
+        // The email tools render and send real orders (recent orders, their customers, their
+        // emails), so editing statuses is not enough: the orders must be viewable too.
+        if (
+            $user === null
+            || !AlfaHelper::can(section: 'orderstatuses', action: 'edit', user: $user)
+            || !AlfaHelper::can(section: 'orders', action: 'view', user: $user)
+        ) {
             $app->setHeader('status', '403 Forbidden', true);
             $app->sendHeaders();
             echo 'Forbidden';
@@ -422,7 +462,7 @@ class OrderstatusController extends FormController
         $error = null;
 
         try {
-            OrderEmailHelper::sendTestForStatus(
+            EmailService::sendTestForStatus(
                 orderId:          $orderId,
                 statusId:         $statusId,
                 langTag:          $langTag,
@@ -453,14 +493,14 @@ class OrderstatusController extends FormController
     /**
      * Build the send-test form HTML.
      *
-     * Self-contained document — runs inside an iframe loaded by the
+     * Self-contained document; runs inside an iframe loaded by the
      * Bootstrap modal. Uses light Bootstrap styling so it visually
      * matches the admin chrome.
      *
      * @param int $statusId Status PK being tested.
      * @param \Joomla\CMS\User\User $user Current admin (for default destination email).
-     * @param string $recipient Recipient ('customer'|'admin') — from the composer button.
-     * @param string $lang Language tag — from the active composer tab.
+     * @param string $recipient Recipient ('customer'|'admin'), from the composer button.
+     * @param string $lang Language tag, from the active composer tab.
      *
      * @return string Complete HTML page.
      *
@@ -491,7 +531,7 @@ class OrderstatusController extends FormController
         $orderOptions = '';
         foreach ($orders as $order) {
             $label = sprintf(
-                '#%s — %s',
+                '#%s - %s',
                 $order->invoice_number > 0 ? (string) $order->invoice_number : (string) $order->id,
                 (string) ($order->created ?? ''),
             );
@@ -525,6 +565,7 @@ class OrderstatusController extends FormController
         );
         $recipientEsc = htmlspecialchars($recipient, ENT_COMPAT, 'UTF-8');
         $langEsc = htmlspecialchars($lang, ENT_COMPAT, 'UTF-8');
+        $token = Session::getFormToken();
 
         return <<<HTML
             <!doctype html>
@@ -542,6 +583,7 @@ class OrderstatusController extends FormController
                             <h5 class="card-title mb-2">{$heading}</h5>
                             <p class="text-muted small mb-4">{$context}</p>
                             <form method="post" action="{$submitUrlEsc}">
+                                <input type="hidden" name="{$token}" value="1">
                                 <input type="hidden" name="recipient" value="{$recipientEsc}">
                                 <input type="hidden" name="lang" value="{$langEsc}">
                                 <div class="mb-3">
@@ -604,7 +646,7 @@ class OrderstatusController extends FormController
         $backLabel = htmlspecialchars(Text::_('COM_ALFA_ORDEREMAIL_TEST_RESULT_BACK'), ENT_COMPAT, 'UTF-8');
 
         // tmpl=component strips chrome but Joomla still emits the admin
-        // template's CSS — that ships Bootstrap so .alert / .btn-link work
+        // template's CSS; that ships Bootstrap so .alert / .btn-link work
         // without any local styles.
         $bootstrapUrl = Uri::root(true) . '/media/templates/administrator/atum/css/template.min.css';
 
@@ -614,7 +656,7 @@ class OrderstatusController extends FormController
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width,initial-scale=1">
-                <title>Send test email — result</title>
+                <title>Send test email: result</title>
                 <link rel="stylesheet" href="{$bootstrapUrl}">
             </head>
             <body class="p-4">

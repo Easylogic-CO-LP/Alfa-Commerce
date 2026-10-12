@@ -21,12 +21,12 @@ use SplFileInfo;
 use ZipArchive;
 
 /**
- * Developer packaging helper — re-assembles the com_alfa extension from a live
+ * Developer packaging helper: re-assembles the com_alfa extension from a live
  * Joomla installation back into the canonical "repo" layout and zips it.
  *
  * During development the extension's files are scattered across the Joomla tree
  * (`components/com_alfa/`, `administrator/components/com_alfa/`, `media/com_alfa/`,
- * `plugins/<group>/<name>/`, `media/plg_*`, `language/<tag>/…`, etc.). The
+ * `plugins/<group>/<name>/`, `media/plg_*`, `language/<tag>/...`, etc.). The
  * GitHub-tracked source repo has a very different, self-contained shape (admin /
  * site / api as flat folders at the root, with each plugin's and module's media
  * and language files co-located inside it).
@@ -44,41 +44,102 @@ use ZipArchive;
  * archive is therefore a PR artifact by default; to install/test it, the library
  * folders must be added by hand from the repo (see {@see self::describeLibraries()}).
  *
- * The reverse path → repo mapping mirrors the standalone `alfa-diffs` tool, run
- * one-way (install → repo) instead of as a diff.
+ * The reverse path -> repo mapping mirrors the standalone `alfa-diffs` tool, run
+ * one-way (install -> repo) instead of as a diff.
+ *
+ * What never ships is one roster, {@see self::EXCLUDED_PATTERNS}, applied to every
+ * walk this class makes: the package, the integrity catalog and the drift report
+ * therefore agree by construction rather than by three separate lists staying in
+ * step. {@see self::census()} closes the other half: it compares a built archive
+ * against the source tree it claims to represent, so a file the live install still
+ * carries and the source has moved on from is named instead of shipped.
  *
  * @since  1.0.0
  */
 class PackageHelper
 {
     /**
-     * File / folder names skipped wherever they appear (VCS metadata, IDE config,
-     * OS cruft) — never shipped in a package.
+     * The exclusion roster: fnmatch patterns matched against a BARE entry name at
+     * every level of every walk. One roster, applied by {@see self::isExcluded()},
+     * so what the package ships, what the integrity catalog covers and what counts
+     * as manifest drift can never disagree with one another.
+     *
+     * A name matching any pattern is excluded even when the manifest declares it;
+     * the policy is fail-closed by design: a developer's scratch file is not a
+     * shipped artifact, and an entry added here stops being packaged everywhere at
+     * once.
+     *
+     * `LICENSE` carries no extension and is deliberately not matched by `*.md`, so
+     * the licence still ships while developer notes do not.
      *
      * @var string[]
-     * @since  1.0.0
+     * @since  1.10.0
      */
-    private const IGNORE_NAMES = ['.DS_Store', '.git', '.idea', '.vscode', '.svn', 'Thumbs.db'];
+    public const EXCLUDED_PATTERNS = [
+        // Test trees and developer notes: source artifacts, never shipped.
+        'tests',
+        '*.md',
+
+        // VCS and editor metadata.
+        '.git*',
+        '.svn',
+        '.hg',
+        '.idea',
+        '.vscode',
+        '*.swp',
+        '*.swo',
+
+        // Operating-system cruft.
+        '.DS_Store',
+        'Thumbs.db',
+        '._*',
+
+        // Backups, merge leftovers and local scratch copies.
+        '*.bak',
+        '*.orig',
+        '*.rej',
+        '*~',
+        '*_BK',
+        '*_bk',
+
+        // Runtime output: regenerated where it is needed, meaningless in a package.
+        'error_log',
+        '*.log',
+        'nohup.out',
+        'php_errorlog',
+    ];
 
     /**
-     * Folder/file name suffixes treated as local backups and skipped.
+     * The release changelog Joomla reads through <changelogurl>. It is installed
+     * beside the manifest in the admin component folder and, like the manifest and
+     * the install script, belongs at the ROOT of the repo layout, so the export
+     * relocates it instead of nesting it under the admin folder. Optional: a build
+     * made before the file exists simply carries no changelog.
      *
-     * @var string[]
-     * @since  1.0.0
+     * @var string
+     * @since  1.10.0
      */
-    private const IGNORE_SUFFIXES = ['_BK', '_bk', '.bak', '~'];
+    public const CHANGELOG_FILENAME = 'changelog.xml';
 
     /**
-     * Auto-created runtime data and dev/build-only files: never shipped (they are
-     * regenerated at runtime or only used to build the component) and not flagged
-     * as manifest drift even when present on disk. Empty for com_alfa — the install
-     * currently has no such files. Add names here if any appear, e.g.
-     * 'logs', 'debug_data', 'composer.json', 'composer.lock'.
+     * The content-hash method this build signs and verifies with: SHA-256 over text files
+     * with each run of whitespace collapsed to one space, and over the raw bytes of
+     * everything else. Every signed checksum catalog records it as its `hash` field and
+     * a verifier accepts only a catalog produced with its own method.
+     *
+     * @var string
+     * @since  1.10.0
+     */
+    public const HASH_METHOD = 'sha256-ws';
+
+    /**
+     * Extensions hashed as text by {@see self::contentHash()}. A file with no extension
+     * counts as text as well; everything else is hashed byte for byte.
      *
      * @var string[]
-     * @since  1.0.0
+     * @since  1.10.0
      */
-    private const IGNORE_RUNTIME = [];
+    public const TEXT_EXTENSIONS = ['php', 'js', 'css', 'ini', 'xml', 'json', 'html', 'htm', 'sql', 'svg', 'txt', 'md'];
 
     /**
      * Build the installable/PR package archive from a live install.
@@ -90,14 +151,14 @@ class PackageHelper
      *
      * @param string $installRoot Absolute path to the Joomla installation root (JPATH_ROOT).
      * @param string[]|null $onlyRelPaths When non-null, restrict the package to exactly these
-     *                                    LIVE root-relative file paths (no leading slash) — the
+     *                                    LIVE root-relative file paths (no leading slash): the
      *                                    same keys {@see self::enumerateShippedFiles()} returns
      *                                    (e.g. from an integrity scan). Each one is copied into the
      *                                    repo layout via that map's `repo` destination, so the
      *                                    archive has the SAME structure as the full export but holds
      *                                    only these files. Paths not in the map (undeclared/added
      *                                    files) are skipped. null (the default) ships the complete
-     *                                    package — existing callers are unaffected.
+     *                                    package; existing callers are unaffected.
      *
      * @return array{zip: string, filename: string, version: string} The archive
      *                                                               path on disk, the suggested download filename, and the manifest version.
@@ -153,16 +214,15 @@ class PackageHelper
     }
 
     /**
-     * Fingerprint every shipped file — sha256 hash + size + mtime — keyed by the
-     * file's live root-relative path. Built on {@see self::enumerateShippedFiles()}
-     * so it covers exactly the package's file set, and uses ONLY native PHP (no
-     * Joomla runtime), so the standalone signing CLI can reuse it without
-     * bootstrapping the CMS. Unreadable files are skipped.
+     * Fingerprint every shipped file with {@see self::HASH_METHOD}, keyed by the file's
+     * live root-relative path. Built on {@see self::enumerateShippedFiles()} so it
+     * covers exactly the package's file set, and uses ONLY native PHP (no Joomla
+     * runtime), so the standalone signing CLI can reuse it without bootstrapping the
+     * CMS. Unreadable files are skipped.
      *
      * @param string $installRoot Absolute path to the Joomla installation root.
      *
-     * @return array<string, array{h: string, s: int, m: int}> Live root-relative path
-     *                                                         => {h: sha256, s: size, m: mtime}.
+     * @return array<string, array{h: string}> Live root-relative path => {h: content hash}.
      *
      * @since  1.0.0
      */
@@ -172,14 +232,15 @@ class PackageHelper
     }
 
     /**
-     * SHA-256 every entry of an enumeration ({@see enumerateShippedFiles} or
-     * {@see enumerateFromPackage}), keyed by its live root-relative path. The single
-     * hashing path both the install-hash and the installable-hash run through, so a
-     * checksum signed from a zip is byte-identical to one signed from a live install.
+     * Hash every entry of an enumeration ({@see enumerateShippedFiles} or
+     * {@see enumerateFromPackage}) with {@see self::HASH_METHOD}, keyed by its live
+     * root-relative path. The single hashing path both the install-hash and the
+     * installable-hash run through, so a catalog signed from a zip matches one taken
+     * from a live install.
      *
-     * @param array<string, array{abs: string, repo: string}> $entries liveRel => {abs, …}.
+     * @param array<string, array{abs: string, repo: string}> $entries liveRel => {abs, ...}.
      *
-     * @return array<string, array{h: string, s: int, m: int}> liveRel => {sha256, size, mtime}.
+     * @return array<string, array{h: string}> liveRel => {h: content hash}.
      *
      * @since  1.0.0
      */
@@ -194,35 +255,74 @@ class PackageHelper
                 continue;
             }
 
-            $hash = @hash_file('sha256', $abs);
+            $hash = self::contentHash(path: $abs);
 
-            if ($hash === false) {
-                continue;
+            if ($hash !== false) {
+                $out[$rel] = ['h' => $hash];
             }
-
-            $out[$rel] = [
-                'h' => $hash,
-                's' => (int) filesize($abs),
-                'm' => (int) filemtime($abs),
-            ];
         }
 
         return $out;
     }
 
     /**
+     * Hash one file's content with {@see self::HASH_METHOD}. A text file
+     * ({@see self::TEXT_EXTENSIONS}) is read whole and every run of whitespace is
+     * collapsed to a single space before hashing, so line-ending, tab/space and
+     * blank-line changes hash the same while any other byte (a BOM included) does
+     * not. Any other file hashes byte for byte.
+     *
+     * @param string $path Absolute path of the file.
+     *
+     * @return string|false The lowercase hex digest, or false when the file can't be read.
+     *
+     * @since  1.10.0
+     */
+    public static function contentHash(string $path): string|false
+    {
+        if (!self::isTextFile(path: $path)) {
+            return @hash_file('sha256', $path);
+        }
+
+        $contents = @file_get_contents($path);
+
+        if ($contents === false) {
+            return false;
+        }
+
+        $squashed = preg_replace('#[\n\r\t\s\v]+#ms', ' ', $contents);
+
+        return $squashed === null ? false : hash('sha256', $squashed);
+    }
+
+    /**
+     * Whether a file is hashed as text: its extension is one of
+     * {@see self::TEXT_EXTENSIONS}, or it has none.
+     *
+     * @param string $path File path; only the name is inspected.
+     *
+     * @since  1.10.0
+     */
+    private static function isTextFile(string $path): bool
+    {
+        $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+
+        return $extension === '' || \in_array($extension, self::TEXT_EXTENSIONS, true);
+    }
+
+    /**
      * Hash an INSTALLABLE zip into the same live-keyed checksum map a real install
-     * produces — so a release can be signed straight from its package, with no throwaway
+     * produces, so a release can be signed straight from its package, with no throwaway
      * Joomla install. The zip is extracted to a temp dir and walked by
      * {@see enumerateFromPackage} (which keys every file by its post-install path via the
-     * SAME manifest mapping the verifier uses); files are then SHA-256'd in place by the
+     * SAME manifest mapping the verifier uses); files are then hashed in place by the
      * shared {@see hashEntries}. Because Joomla's installer copies files verbatim,
      * hash(package file) == hash(installed file), so the result is identical to
      * {@see hashShippedFiles} on the installed component.
      *
      * @param string $zipPath Absolute path to the installable com_alfa zip (repo layout).
      *
-     * @return array<string, array{h: string, s: int, m: int}> liveRel => {sha256, size, mtime}.
+     * @return array<string, array{h: string}> liveRel => {h: content hash}.
      *
      * @throws RuntimeException If zip support is missing or the package can't be read.
      *
@@ -281,7 +381,7 @@ class PackageHelper
 
         $out = [];
 
-        // --- Component code: package <folder> → live components/administrator/api ---
+        // Component code: package <folder> -> live components/administrator/api
         self::collectDeclaredItems(
             items:    $m['siteItems'],
             absRoot:  $packageRoot . '/' . $m['siteFolder'],
@@ -308,7 +408,7 @@ class PackageHelper
             );
         }
 
-        // --- Manifest XML + scriptfile: package ROOT → live admin component folder ---
+        // Manifest XML + scriptfile: package ROOT -> live admin component folder
         self::collectFile(
             abs:  $packageRoot . '/' . $m['manifestFilename'],
             rel:  'administrator/components/' . $component . '/' . $m['manifestFilename'],
@@ -325,7 +425,16 @@ class PackageHelper
             );
         }
 
-        // --- Component media: package <mediaFolder> → live media/<dest> ---
+        // Root changelog -> the admin component folder, mirroring the export's
+        // relocation; a package without one simply yields no entry.
+        self::collectFile(
+            abs:  $packageRoot . '/' . self::CHANGELOG_FILENAME,
+            rel:  'administrator/components/' . $component . '/' . self::CHANGELOG_FILENAME,
+            repo: self::CHANGELOG_FILENAME,
+            out:  $out,
+        );
+
+        // Component media: package <mediaFolder> -> live media/<dest>
         if ($m['hasMedia']) {
             self::collectDeclaredItems(
                 items:    $m['mediaItems'],
@@ -336,7 +445,7 @@ class PackageHelper
             );
         }
 
-        // --- Component languages: package <langFolder>/<rel> → live (administrator/)language ---
+        // Component languages: package <langFolder>/<rel> -> live (administrator/)language
         foreach ($m['siteLangs'] as [$tag, $rel]) {
             self::collectFile(
                 abs:  $packageRoot . '/' . ($m['siteLangFolder'] !== '' ? $m['siteLangFolder'] . '/' : '') . $rel,
@@ -355,7 +464,7 @@ class PackageHelper
             );
         }
 
-        // --- Sub-extensions: plugins (admin-lang preference) + modules (site-lang) ---
+        // Sub-extensions: plugins (admin-lang preference) + modules (site-lang)
         foreach ($m['plugins'] as [$group, $name]) {
             self::collectSubExtensionFromPackage(
                 packageRoot: $packageRoot,
@@ -382,7 +491,7 @@ class PackageHelper
     /**
      * Package-layout twin of {@see collectSubExtension}: a sub-extension's files are
      * co-located inside its package folder; map them to the scattered live paths the
-     * installer creates — code stays put, media → media/<destination>, language INIs →
+     * installer creates: code stays put, media -> media/<destination>, language INIs ->
      * the FIRST of $langRoots (matching the export's search preference, i.e. plugins land
      * in administrator/language, site modules in language).
      *
@@ -410,7 +519,7 @@ class PackageHelper
             return;
         }
 
-        // Code: declared <files> — same relative path in package and install.
+        // Code: declared <files>, same relative path in package and install.
         foreach ($xml->files as $files) {
             $sub = trim((string) $files['folder']);
             $absSub = $sub !== '' ? $pkgDir . '/' . $sub : $pkgDir;
@@ -433,7 +542,7 @@ class PackageHelper
             out:  $out,
         );
 
-        // Media: package <relDir>/<folder> → live media/<destination>.
+        // Media: package <relDir>/<folder> -> live media/<destination>.
         foreach ($xml->media as $media) {
             $destination = trim((string) $media['destination']);
             $folder = trim((string) $media['folder']) ?: 'media';
@@ -448,7 +557,7 @@ class PackageHelper
             }
         }
 
-        // Languages: package <relDir>/<langFolder>/<rel> → live <langRoots[0]>/<tag>/<file>.
+        // Languages: package <relDir>/<langFolder>/<rel> -> live <langRoots[0]>/<tag>/<file>.
         if (isset($xml->languages)) {
             $langFolder = trim((string) $xml->languages['folder']);
             $liveRoot = $langRoots[0];
@@ -474,14 +583,14 @@ class PackageHelper
     /**
      * Enumerate EVERY file the export would ship from a live install, without
      * copying anything. The result is keyed by each file's LIVE root-relative path
-     * (no leading slash) — exactly where the file sits on disk — and each value
+     * (no leading slash), exactly where the file sits on disk, and each value
      * carries BOTH paths the changed-only export needs:
      *
      *   - `abs`  the absolute path on the live install (the source to copy from);
      *   - `repo` the destRoot-RELATIVE path (no leading slash) that
      *            {@see self::buildTree()} writes that file to, i.e. its slot in the
      *            canonical repo layout. `repo` mirrors buildTree's destination
-     *            mapping exactly, so copying source→`repo` reproduces the same tree
+     *            mapping exactly, so copying source->`repo` reproduces the same tree
      *            the full export builds, file for file.
      *
      * The live key and the repo path diverge wherever the repo layout differs from
@@ -514,7 +623,7 @@ class PackageHelper
 
         $out = [];
 
-        // --- Component code: site / admin / api declared <files> entries ---
+        // Component code: site / admin / api declared <files> entries
         // Live root-relative key vs repo destination (re-rooted under the manifest
         // folder= names), matching buildTree's copyItems destRoot per area.
         self::collectDeclaredItems(
@@ -543,8 +652,8 @@ class PackageHelper
             );
         }
 
-        // --- Component manifest XML + scriptfile (live in the admin folder, but
-        //     buildTree places them at the repo ROOT, so repo = bare filename) ---
+        // Component manifest XML + scriptfile (live in the admin folder, but
+        //     buildTree places them at the repo ROOT, so repo = bare filename)
         self::collectFile(
             abs:  $adminCompat . '/' . $m['manifestFilename'],
             rel:  'administrator/components/' . $component . '/' . $m['manifestFilename'],
@@ -561,8 +670,17 @@ class PackageHelper
             );
         }
 
-        // --- Component media (each declared <media> folder/filename) — live
-        //     media/<dest>/<x>, repo <mediaFolder>/<x> per buildTree. ---
+        // The changelog is a root artifact too; absent on a build made before it
+        // was written, which collectFile treats as a no-op.
+        self::collectFile(
+            abs:  $adminCompat . '/' . self::CHANGELOG_FILENAME,
+            rel:  'administrator/components/' . $component . '/' . self::CHANGELOG_FILENAME,
+            repo: self::CHANGELOG_FILENAME,
+            out:  $out,
+        );
+
+        // Component media (each declared <media> folder/filename): live
+        //     media/<dest>/<x>, repo <mediaFolder>/<x> per buildTree.
         if ($m['hasMedia']) {
             self::collectDeclaredItems(
                 items:    $m['mediaItems'],
@@ -573,8 +691,8 @@ class PackageHelper
             );
         }
 
-        // --- Component languages: site → language/<tag>/<file>, admin →
-        //     administrator/language/<tag>/<file>; repo = <langFolder>/<manifest-rel>. ---
+        // Component languages: site -> language/<tag>/<file>, admin ->
+        //     administrator/language/<tag>/<file>; repo = <langFolder>/<manifest-rel>.
         foreach ($m['siteLangs'] as [$tag, $rel]) {
             $fileName = basename($rel);
             self::collectFile(
@@ -595,7 +713,7 @@ class PackageHelper
             );
         }
 
-        // --- Plugins (code + media + languages, each from its own manifest) ---
+        // Plugins (code + media + languages, each from its own manifest)
         foreach ($m['plugins'] as [$group, $name]) {
             $dir = $installRoot . '/plugins/' . $group . '/' . $name;
             self::collectSubExtension(
@@ -608,7 +726,7 @@ class PackageHelper
             );
         }
 
-        // --- Modules (code + media + languages, each from its own manifest) ---
+        // Modules (code + media + languages, each from its own manifest)
         foreach ($m['modules'] as $module) {
             $dir = $installRoot . '/modules/' . $module;
             self::collectSubExtension(
@@ -669,7 +787,7 @@ class PackageHelper
 
     /**
      * Suggest the NEXT version string after the one declared in the manifest, by
-     * incrementing the last numeric segment (e.g. 1.0.4 → 1.0.5). Used by the
+     * incrementing the last numeric segment (e.g. 1.0.4 -> 1.0.5). Used by the
      * contribution guide so the SQL-update / version-bump examples always match
      * this install instead of a hard-coded number. Falls back to the current
      * version (or an empty string) when the manifest is unreadable or the version
@@ -714,34 +832,169 @@ class PackageHelper
     }
 
     /**
-     * Report whether the release artifacts for the CURRENT manifest version exist
-     * on disk, so the contribution guide can independently remind the developer to
-     * create them. Two artifacts, checked independently:
+     * Compare what a built package would install against the SOURCE tree it was
+     * meant to come from, in live-layout terms.
      *
-     *   - the schema update <schemapath>/<version>.sql (path read from the
-     *     manifest's <schemas><schemapath>, so it follows whatever the manifest
-     *     declares — e.g. sql/updates/mysql);
-     *   - the obsolete-file list files/removed/<version>.json.
+     * The export walks a LIVE install, so anything the install still carries ships,
+     * including a file the source moved or deleted and the install never lost. That
+     * is how a package once shipped `site/src/Helper/ItemsModel.php` while the source
+     * held only `site/src/Model/ItemsModel.php`: two classes with one name, and the
+     * stale one won. Nothing in the build said so, because both halves of the build
+     * read the same install.
+     *
+     * So every archive entry is mapped back through the relocation map
+     * ({@see self::enumerateFromPackage()}) to the path it would occupy after install,
+     * and the same map is taken over the source ({@see self::enumerateShippedFiles()}).
+     * Three findings come out of the comparison; `packageOnly` is the fail-closed one.
+     *
+     * @param string $zipPath Absolute path to the built package archive.
+     * @param string $sourceRoot Absolute path to the SOURCE tree in live layout (the
+     *                           tree the package is supposed to represent).
+     *
+     * @return array{packageOnly: string[], sourceOnly: string[], unmapped: string[]}
+     *                                                                                packageOnly: live paths the package would install that the source
+     *                                                                                does not have. sourceOnly: live paths the source has that the
+     *                                                                                package omits. unmapped: archive-relative paths the relocation map
+     *                                                                                places nowhere, so the installer would never copy them.
+     *
+     * @throws RuntimeException If zip support is missing, the archive cannot be read,
+     *                          or either manifest is missing/invalid.
+     *
+     * @since  1.10.0
+     */
+    public static function census(string $zipPath, string $sourceRoot): array
+    {
+        if (!class_exists(ZipArchive::class)) {
+            throw new RuntimeException('The PHP zip extension is required to take a package census.');
+        }
+
+        if (!is_file($zipPath)) {
+            throw new RuntimeException('Package not found: ' . $zipPath);
+        }
+
+        $tmp = sys_get_temp_dir() . '/alfa_census_' . bin2hex(random_bytes(6));
+
+        try {
+            $zip = new ZipArchive();
+
+            if ($zip->open($zipPath) !== true) {
+                throw new RuntimeException('Cannot open package: ' . $zipPath);
+            }
+
+            if (!@mkdir($tmp, 0o775, true) && !is_dir($tmp)) {
+                throw new RuntimeException('Cannot create temp dir: ' . $tmp);
+            }
+
+            $zip->extractTo($tmp);
+            $zip->close();
+
+            $package = self::enumerateFromPackage(packageRoot: $tmp);
+            $source = self::enumerateShippedFiles(installRoot: $sourceRoot);
+
+            $packageOnly = array_keys(array_diff_key($package, $source));
+            $sourceOnly = array_keys(array_diff_key($source, $package));
+
+            // Everything in the archive that the map did not account for: present in
+            // the zip, installed nowhere.
+            $placed = [];
+
+            foreach ($package as $entry) {
+                $placed[$entry['repo']] = true;
+            }
+
+            $unmapped = [];
+
+            foreach (self::archiveEntries(packageRoot: $tmp) as $rel) {
+                if (!isset($placed[$rel])) {
+                    $unmapped[] = $rel;
+                }
+            }
+
+            sort($packageOnly);
+            sort($sourceOnly);
+            sort($unmapped);
+
+            return ['packageOnly' => $packageOnly, 'sourceOnly' => $sourceOnly, 'unmapped' => $unmapped];
+        } finally {
+            self::rrmdir(dir: $tmp);
+        }
+    }
+
+    /**
+     * Every file in an extracted package, as archive-relative paths. Deliberately
+     * unfiltered: the census asks what the archive actually carries, and a file the
+     * exclusion policy should have stopped is exactly what it must be able to see.
+     *
+     * @param string $packageRoot Absolute path to the extracted package root.
+     *
+     * @return string[] Archive-relative paths (no leading slash).
+     *
+     * @since  1.10.0
+     */
+    private static function archiveEntries(string $packageRoot): array
+    {
+        if (!is_dir($packageRoot)) {
+            return [];
+        }
+
+        $out = [];
+        $base = rtrim($packageRoot, '/') . '/';
+
+        $walk = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($packageRoot, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::LEAVES_ONLY,
+        );
+
+        /** @var SplFileInfo $file */
+        foreach ($walk as $file) {
+            if (!$file->isFile()) {
+                continue;
+            }
+
+            $out[] = str_replace($base, '', str_replace('\\', '/', $file->getPathname()));
+        }
+
+        return $out;
+    }
+
+    /**
+     * Report whether this build is releasable, so the contribution guide can say so
+     * before a package is cut. Two independent findings:
+     *
+     *   - the web-asset registry version: media/<destination>/joomla.asset.json must
+     *     declare the same version as the manifest, or every cached asset URL keeps
+     *     the previous release's query string and browsers serve stale CSS and JS
+     *     after an update;
+     *   - the package census: any file a built package would install that the source
+     *     tree does not have ({@see self::census()}), which only a caller holding a
+     *     built archive can ask for; pass $zipPath to run it.
+     *
+     * There is deliberately no schema-update or obsolete-file finding. Alfa Commerce
+     * 2.0.0 is the schema baseline: an installation older than 2.0.0 is refused in the
+     * component's preflight, and a later schema change ships as an update file beside
+     * the install SQL, which this report does not inspect.
      *
      * @param string $installRoot Absolute path to the Joomla installation root.
+     * @param string|null $zipPath A built package to take a census against, or null to
+     *                             report the version findings alone (censusRun false).
      *
-     * @return array{version: string, sqlFile: string, removedFile: string, hasSqlUpdate: bool, hasRemovedJson: bool}
-     *                                                                                                                version is '' (and both flags true) when it cannot be
-     *                                                                                                                determined, so the UI shows no spurious reminder.
+     * @return array{version: string, assetFile: string, assetVersion: string, assetMatches: bool, censusRun: bool, packageOnly: string[]}
+     *                                                                                                                                     version is '' (and every flag clean) when the manifest cannot be
+     *                                                                                                                                     read, so the UI shows no spurious finding.
      *
      * @since  1.0.0
      */
-    public static function releaseReadiness(string $installRoot): array
+    public static function releaseReadiness(string $installRoot, ?string $zipPath = null): array
     {
-        $componentAdmin = $installRoot . '/administrator/components/com_alfa';
-        $manifestPath = $componentAdmin . '/alfa.xml';
+        $manifestPath = $installRoot . '/administrator/components/com_alfa/alfa.xml';
 
         $out = [
             'version' => '',
-            'sqlFile' => '',
-            'removedFile' => '',
-            'hasSqlUpdate' => true,
-            'hasRemovedJson' => true,
+            'assetFile' => '',
+            'assetVersion' => '',
+            'assetMatches' => true,
+            'censusRun' => false,
+            'packageOnly' => [],
         ];
 
         if (!is_file($manifestPath)) {
@@ -760,22 +1013,55 @@ class PackageHelper
             return $out;
         }
 
-        // Schema-update folder comes from the manifest (single source of truth).
-        $schemaPath = trim((string) ($xml->update->schemas->schemapath ?? '')) ?: 'sql/updates';
-        $sqlRel = $schemaPath . '/' . $version . '.sql';
-        $removedRel = 'files/removed/' . $version . '.json';
-
         $out['version'] = $version;
-        $out['sqlFile'] = $sqlRel;
-        $out['removedFile'] = $removedRel;
-        $out['hasSqlUpdate'] = is_file($componentAdmin . '/' . $sqlRel);
-        $out['hasRemovedJson'] = is_file($componentAdmin . '/' . $removedRel);
+
+        // The asset registry only exists where the manifest declares <media>.
+        if (isset($xml->media)) {
+            $mediaDest = (string) ($xml->media['destination'] ?? 'com_alfa') ?: 'com_alfa';
+            $assetRel = 'media/' . $mediaDest . '/joomla.asset.json';
+
+            $out['assetFile'] = $assetRel;
+            $out['assetVersion'] = self::assetRegistryVersion(path: $installRoot . '/' . $assetRel);
+            $out['assetMatches'] = $out['assetVersion'] === $version;
+        }
+
+        if ($zipPath !== null) {
+            $out['censusRun'] = true;
+            $out['packageOnly'] = self::census(zipPath: $zipPath, sourceRoot: $installRoot)['packageOnly'];
+        }
 
         return $out;
     }
 
     /**
-     * Detect manifest⇄disk drift for the live install, so the export UI can warn
+     * The `version` a web-asset registry declares, or '' when the file is missing,
+     * unreadable, not JSON or carries no version, every one of which fails the
+     * match against the manifest.
+     *
+     * @param string $path Absolute path to a joomla.asset.json.
+     *
+     *
+     * @since  1.10.0
+     */
+    private static function assetRegistryVersion(string $path): string
+    {
+        if (!is_file($path)) {
+            return '';
+        }
+
+        $raw = @file_get_contents($path);
+
+        if ($raw === false) {
+            return '';
+        }
+
+        $decoded = json_decode($raw, true);
+
+        return \is_array($decoded) ? trim((string) ($decoded['version'] ?? '')) : '';
+    }
+
+    /**
+     * Detect manifest<->disk drift for the live install, so the export UI can warn
      * the developer BEFORE shipping a broken package. Two kinds are reported:
      *
      *   - missing:    a path declared in a <files>/<media> block that does NOT
@@ -783,7 +1069,7 @@ class PackageHelper
      *                 the "site/helpers does not exist" class of failure).
      *   - undeclared: a top-level folder/file present on disk but NOT declared in
      *                 the relevant <files> block. It is silently left out of the
-     *                 package and the install — features go missing with no error.
+     *                 package and the install: features go missing with no error.
      *
      * Covers the component (site/admin/api code roots + media) and every declared
      * plugin/module. VCS/IDE/OS cruft and backups are ignored. A clean install
@@ -817,7 +1103,7 @@ class PackageHelper
         // Component code roots: [label, dir, declaredItems, namesToSkipForUndeclared].
         $roots = [
             ['site',  $installRoot . '/components/' . $comp,               $m['siteItems'],  []],
-            ['admin', $installRoot . '/administrator/components/' . $comp, $m['adminItems'], array_filter([$m['manifestFilename'], $m['scriptfile']])],
+            ['admin', $installRoot . '/administrator/components/' . $comp, $m['adminItems'], array_filter([$m['manifestFilename'], $m['scriptfile'], self::CHANGELOG_FILENAME])],
         ];
 
         if ($m['hasApi']) {
@@ -828,7 +1114,7 @@ class PackageHelper
             self::driftDir(label: $comp . '/' . $label, dir: $dir, items: $items, extraSkip: $extraSkip, missing: $missing, undeclared: $undeclared);
         }
 
-        // Media: declared-but-missing only — the destination may legitimately hold
+        // Media: declared-but-missing only; the destination may legitimately hold
         // extra build artefacts, so undeclared media files are not flagged.
         if ($m['hasMedia']) {
             foreach ($m['mediaItems'] as [$type, $name]) {
@@ -840,7 +1126,7 @@ class PackageHelper
             }
         }
 
-        // Sub-extensions — each read from its own manifest's <files> block.
+        // Sub-extensions: each read from its own manifest's <files> block.
         foreach ($m['plugins'] as [$group, $name]) {
             $dir = $installRoot . '/plugins/' . $group . '/' . $name;
             self::driftSub(label: 'plugins/' . $group . '/' . $name, dir: $dir, manifestPath: self::findSubManifest(dir: $dir, preferredName: $name), installRoot: $installRoot, missing: $missing, undeclared: $undeclared);
@@ -856,8 +1142,8 @@ class PackageHelper
 
     /**
      * Compare a single declared code root against disk: flag declared entries that
-     * are absent (→ $missing) and on-disk top-level entries that are not declared
-     * and not in $extraSkip (→ $undeclared). Cruft is ignored.
+     * are absent (-> $missing) and on-disk top-level entries that are not declared
+     * and not in $extraSkip (-> $undeclared). Cruft is ignored.
      *
      * @param string $label Human-readable root label.
      * @param string $dir Absolute path of the root on disk.
@@ -871,7 +1157,7 @@ class PackageHelper
     private static function driftDir(string $label, string $dir, array $items, array $extraSkip, array &$missing, array &$undeclared): void
     {
         if (!is_dir($dir)) {
-            // Whole declared root is gone — every declared entry would break install.
+            // Whole declared root is gone: every declared entry would break install.
             foreach ($items as [, $name]) {
                 $missing[] = $label . ': ' . $name;
             }
@@ -891,7 +1177,7 @@ class PackageHelper
         }
 
         foreach ((array) scandir($dir) as $entry) {
-            if ($entry === '.' || $entry === '..' || self::isIgnored(name: $entry)) {
+            if ($entry === '.' || $entry === '..' || self::isExcluded(name: $entry)) {
                 continue;
             }
 
@@ -905,7 +1191,7 @@ class PackageHelper
      * Drift-check a sub-extension (plugin/module) against its own manifest:
      * declared <files> entries that are absent, declared <media> paths that are
      * absent under media/<destination>, and (for plugins/modules) a missing
-     * plugin="…"/module="…" element attribute — all three abort the install, so
+     * plugin="..."/module="..." element attribute; all three abort the install, so
      * they go to $missing. On-disk top-level entries not declared anywhere go to
      * $undeclared. The manifest XML and the tag-handled media/language folders are
      * exempt from the undeclared check.
@@ -968,7 +1254,7 @@ class PackageHelper
             }
         }
 
-        // A plugin/module needs an element attribute (plugin="…" / module="…") on
+        // A plugin/module needs an element attribute (plugin="..." / module="...") on
         // one of its <files> children (folder OR filename) so the installer can
         // derive the extension element; without it the #__extensions insert fails
         // with "Field 'element' doesn't have a default value" and the install is
@@ -992,12 +1278,12 @@ class PackageHelper
             }
 
             if (!$hasElement) {
-                $missing[] = $label . ': <files> is missing a ' . $elementAttr . '="…" element attribute';
+                $missing[] = $label . ': <files> is missing a ' . $elementAttr . '="..." element attribute';
             }
         }
 
         // <languages>: each declared INI must live in the install's GLOBAL language
-        // tree (Joomla installs every extension's languages there — they are never
+        // tree (Joomla installs every extension's languages there; they are never
         // kept inside the extension). If it is not in language/ or
         // administrator/language/, it won't be packaged and the install aborts.
         if (isset($xml->languages)) {
@@ -1022,7 +1308,7 @@ class PackageHelper
         $skip = [basename($manifestPath), 'media', 'language', 'languages'];
 
         foreach ((array) scandir($dir) as $entry) {
-            if ($entry === '.' || $entry === '..' || self::isIgnored(name: $entry)) {
+            if ($entry === '.' || $entry === '..' || self::isExcluded(name: $entry)) {
                 continue;
             }
 
@@ -1074,8 +1360,8 @@ class PackageHelper
             'hasMedia' => isset($xml->media),
             'mediaFolder' => $mediaFolder,
             'mediaDest' => $mediaDest,
-            // Declared <files>/<media> entries — the package mirrors exactly what
-            // each <files folder="…">/<media> block lists (manifest-driven), so it
+            // Declared <files>/<media> entries: the package mirrors exactly what
+            // each <files folder="...">/<media> block lists (manifest-driven), so it
             // matches what Joomla's installer will place. Nothing undeclared ships.
             'siteItems' => self::parseFilesItems(node: $xml->files),
             'adminItems' => self::parseFilesItems(node: $xml->administration->files),
@@ -1146,7 +1432,9 @@ class PackageHelper
             return $out;
         }
 
-        foreach ($node->language as $lang) {
+        // A section the manifest does not have reads as an empty element, not
+        // as null, and the child list of an empty element is null.
+        foreach (($node->language ?? []) as $lang) {
             $tag = trim((string) $lang['tag']);
             $rel = trim((string) $lang);
 
@@ -1175,7 +1463,9 @@ class PackageHelper
             return $out;
         }
 
-        foreach ($node->plugin as $plugin) {
+        // A section the manifest does not have reads as an empty element, not
+        // as null, and the child list of an empty element is null.
+        foreach (($node->plugin ?? []) as $plugin) {
             $group = trim((string) $plugin['group']);
             $name = trim((string) $plugin['plugin']);
 
@@ -1204,7 +1494,9 @@ class PackageHelper
             return $out;
         }
 
-        foreach ($node->module as $module) {
+        // A section the manifest does not have reads as an empty element, not
+        // as null, and the child list of an empty element is null.
+        foreach (($node->module ?? []) as $module) {
             $name = trim((string) $module['module']);
 
             if ($name !== '') {
@@ -1232,7 +1524,9 @@ class PackageHelper
             return $out;
         }
 
-        foreach ($node->library as $library) {
+        // A section the manifest does not have reads as an empty element, not
+        // as null, and the child list of an empty element is null.
+        foreach (($node->library ?? []) as $library) {
             $folder = trim((string) $library['folder']);
             $libraryName = trim((string) $library['libraryname']);
 
@@ -1260,7 +1554,7 @@ class PackageHelper
         $component = 'com_alfa';
         $adminCompat = $installRoot . '/administrator/components/' . $component;
 
-        // --- Root artifacts: manifest + scriptfile live at the repo root ---
+        // Root artifacts: manifest + scriptfile live at the repo root
         self::copyFile(
             source: $adminCompat . '/' . $manifest['manifestFilename'],
             dest:   $destRoot . '/' . $manifest['manifestFilename'],
@@ -1273,15 +1567,21 @@ class PackageHelper
             );
         }
 
-        // --- Site component (only the folders/files declared in <files folder="site">) ---
+        // The changelog joins them at the root; copyFile is a no-op when absent.
+        self::copyFile(
+            source: $adminCompat . '/' . self::CHANGELOG_FILENAME,
+            dest:   $destRoot . '/' . self::CHANGELOG_FILENAME,
+        );
+
+        // Site component (only the folders/files declared in <files folder="site">)
         self::copyItems(
             items:    $manifest['siteItems'],
             srcRoot:  $installRoot . '/components/' . $component,
             destRoot: $destRoot . '/' . $manifest['siteFolder'],
         );
 
-        // --- Admin component (manifest + scriptfile already placed at the repo root) ---
-        $adminSkip = [$manifest['manifestFilename']];
+        // Admin component (manifest, scriptfile and changelog already placed at the repo root)
+        $adminSkip = [$manifest['manifestFilename'], self::CHANGELOG_FILENAME];
 
         if ($manifest['scriptfile'] !== '') {
             $adminSkip[] = $manifest['scriptfile'];
@@ -1294,7 +1594,7 @@ class PackageHelper
             skip:     $adminSkip,
         );
 
-        // --- API component (declared <api><files>) ---
+        // API component (declared <api><files>)
         if ($manifest['hasApi']) {
             self::copyItems(
                 items:    $manifest['apiItems'],
@@ -1303,7 +1603,7 @@ class PackageHelper
             );
         }
 
-        // --- Component media (each declared <media> folder/filename) ---
+        // Component media (each declared <media> folder/filename)
         if ($manifest['hasMedia']) {
             self::copyItems(
                 items:    $manifest['mediaItems'],
@@ -1312,7 +1612,7 @@ class PackageHelper
             );
         }
 
-        // --- Site languages (install: language/<tag>/<file>) ---
+        // Site languages (install: language/<tag>/<file>)
         if ($manifest['siteLangFolder'] !== '') {
             foreach ($manifest['siteLangs'] as [$tag, $rel]) {
                 self::copyFile(
@@ -1322,7 +1622,7 @@ class PackageHelper
             }
         }
 
-        // --- Admin languages (install: administrator/language/<tag>/<file>) ---
+        // Admin languages (install: administrator/language/<tag>/<file>)
         if ($manifest['adminLangFolder'] !== '') {
             foreach ($manifest['adminLangs'] as [$tag, $rel]) {
                 self::copyFile(
@@ -1332,22 +1632,22 @@ class PackageHelper
             }
         }
 
-        // --- Plugins ---
+        // Plugins
         foreach ($manifest['plugins'] as [$group, $name]) {
             self::buildPlugin(installRoot: $installRoot, destRoot: $destRoot, group: $group, name: $name);
         }
 
-        // --- Modules ---
+        // Modules
         foreach ($manifest['modules'] as $module) {
             self::buildModule(installRoot: $installRoot, destRoot: $destRoot, module: $module);
         }
 
-        // Libraries are intentionally excluded — see the class docblock.
+        // Libraries are intentionally excluded; see the class docblock.
     }
 
     /**
      * Re-assemble a single plugin: its code (the whole install folder) plus the media
-     * and language files its own manifest declares — see
+     * and language files its own manifest declares; see
      * {@see self::copyDeclaredMediaAndLanguages()}.
      *
      * @param string $installRoot Joomla installation root.
@@ -1364,7 +1664,7 @@ class PackageHelper
         $destBase = $destRoot . '/plugins/' . $group . '/' . $name;
         $manifestPath = self::findSubManifest(dir: $sourceDir, preferredName: $name);
 
-        // Code only — media + language folders are reconstructed from the manifest below.
+        // Code only: media + language folders are reconstructed from the manifest below.
         self::copyDeclaredFiles(sourceDir: $sourceDir, destBase: $destBase, manifestPath: $manifestPath);
 
         self::copyDeclaredMediaAndLanguages(
@@ -1436,7 +1736,7 @@ class PackageHelper
     /**
      * Copy a sub-extension's declared CODE files into the repo layout: each
      * <files> block's <folder>/<filename> entries (honouring a folder="" subdir),
-     * plus the manifest XML itself — which is never listed in <files> but must
+     * plus the manifest XML itself, which is never listed in <files> but must
      * ship. Media and languages are handled separately by
      * {@see self::copyDeclaredMediaAndLanguages()}. A null/invalid manifest is a
      * silent no-op.
@@ -1468,7 +1768,7 @@ class PackageHelper
             self::copyItems(items: self::parseFilesItems(node: $files), srcRoot: $src, destRoot: $dst);
         }
 
-        // The sub-extension's own manifest XML is not a <files> entry — ship it too.
+        // The sub-extension's own manifest XML is not a <files> entry; ship it too.
         self::copyFile(source: $manifestPath, dest: $destBase . '/' . basename($manifestPath));
     }
 
@@ -1478,8 +1778,8 @@ class PackageHelper
      * module's real layout instead of assuming fixed folder names (e.g. some plugins
      * use a `language/` folder, others `languages/`). Media is sourced from the
      * install's global media/<destination>/ folder; language INIs from the install
-     * language tree this extension type uses — plugins install to the backend
-     * (administrator/language/), site modules to the frontend (language/) — given as
+     * language tree this extension type uses: plugins install to the backend
+     * (administrator/language/), site modules to the frontend (language/), given as
      * $langRoots and searched in priority order (first match wins). When the manifest
      * declares no <media> / <languages>, nothing is copied.
      *
@@ -1503,7 +1803,7 @@ class PackageHelper
             return;
         }
 
-        // Media: <media destination="X" folder="Y"/> — install media/X/ → repo <destBase>/Y/.
+        // Media: <media destination="X" folder="Y"/>, install media/X/ -> repo <destBase>/Y/.
         foreach ($xml->media as $media) {
             $destination = trim((string) $media['destination']);
             $folder = trim((string) $media['folder']) ?: 'media';
@@ -1516,7 +1816,7 @@ class PackageHelper
             }
         }
 
-        // Languages: <languages folder="F"><language tag="T">rel/file.ini</language>… — the INI
+        // Languages: <languages folder="F"><language tag="T">rel/file.ini</language>...; the INI
         // lives in the install's admin or site language tree; mirror it to <destBase>/F/rel.
         if (isset($xml->languages)) {
             $folder = trim((string) $xml->languages['folder']);
@@ -1532,7 +1832,7 @@ class PackageHelper
                 $fileName = basename($rel);
 
                 // Source from this extension type's language roots in priority order
-                // (plugins → backend first, site modules → frontend first); first match wins.
+                // (plugins -> backend first, site modules -> frontend first); first match wins.
                 $source = $langRoots[0] . '/' . $tag . '/' . $fileName;
 
                 foreach ($langRoots as $langRoot) {
@@ -1601,7 +1901,7 @@ class PackageHelper
     private static function collectDeclaredItems(array $items, string $absRoot, string $relRoot, string $repoRoot, array &$out): void
     {
         foreach ($items as [$type, $name]) {
-            if (self::isIgnored(name: $name)) {
+            if (self::isExcluded(name: $name)) {
                 continue;
             }
 
@@ -1637,7 +1937,7 @@ class PackageHelper
      * co-located inside the sub-extension folder at <relSourceDir>/<folder> (the
      * <media folder=""> name, default "media"), and for LANGUAGES each INI is
      * co-located at <relSourceDir>/<folder>/<manifest-rel> (the <languages folder="">
-     * name) — both mirroring {@see self::copyDeclaredMediaAndLanguages()}.
+     * name), both mirroring {@see self::copyDeclaredMediaAndLanguages()}.
      *
      * @param string $installRoot Joomla installation root.
      * @param string $sourceDir The sub-extension's absolute install folder.
@@ -1661,7 +1961,7 @@ class PackageHelper
             return;
         }
 
-        // Code: each <files folder="…"> block's declared <folder>/<filename> entries.
+        // Code: each <files folder="..."> block's declared <folder>/<filename> entries.
         // Sub-extension code keeps the same relative path in repo and install.
         foreach ($xml->files as $files) {
             $sub = trim((string) $files['folder']);
@@ -1677,7 +1977,7 @@ class PackageHelper
             );
         }
 
-        // The sub-extension's own manifest XML is not a <files> entry — ship it too
+        // The sub-extension's own manifest XML is not a <files> entry; ship it too
         // (repo path == live path).
         self::collectFile(
             abs:  $manifestPath,
@@ -1686,8 +1986,8 @@ class PackageHelper
             out:  $out,
         );
 
-        // Media: <media destination="X" folder="Y"/> → install media/X/ (walked
-        // recursively) → repo <relSourceDir>/Y/ (folder default "media").
+        // Media: <media destination="X" folder="Y"/> -> install media/X/ (walked
+        // recursively) -> repo <relSourceDir>/Y/ (folder default "media").
         foreach ($xml->media as $media) {
             $destination = trim((string) $media['destination']);
             $folder = trim((string) $media['folder']) ?: 'media';
@@ -1704,7 +2004,7 @@ class PackageHelper
 
         // Languages: each declared INI lives in the install's global language tree;
         // search $langRoots in priority order (first match wins), key at its real
-        // live path → repo <relSourceDir>/<folder>/<manifest-rel>.
+        // live path -> repo <relSourceDir>/<folder>/<manifest-rel>.
         if (isset($xml->languages)) {
             $langFolder = trim((string) $xml->languages['folder']);
 
@@ -1757,7 +2057,7 @@ class PackageHelper
         }
 
         foreach ((array) scandir($absDir) as $entry) {
-            if ($entry === '.' || $entry === '..' || self::isIgnored(name: $entry)) {
+            if ($entry === '.' || $entry === '..' || self::isExcluded(name: $entry)) {
                 continue;
             }
 
@@ -1788,7 +2088,7 @@ class PackageHelper
      */
     private static function collectFile(string $abs, string $rel, string $repo, array &$out): void
     {
-        if (!is_file($abs) || self::isIgnored(name: basename($abs))) {
+        if (!is_file($abs) || self::isExcluded(name: basename($abs))) {
             return;
         }
 
@@ -1813,7 +2113,7 @@ class PackageHelper
         }
 
         foreach ((array) scandir($source) as $entry) {
-            if ($entry === '.' || $entry === '..' || self::isIgnored(name: $entry) || \in_array($entry, $skipTop, true)) {
+            if ($entry === '.' || $entry === '..' || self::isExcluded(name: $entry) || \in_array($entry, $skipTop, true)) {
                 continue;
             }
 
@@ -1840,7 +2140,7 @@ class PackageHelper
      */
     private static function copyFile(string $source, string $dest): void
     {
-        if (!is_file($source) || self::isIgnored(name: basename($source))) {
+        if (!is_file($source) || self::isExcluded(name: basename($source))) {
             return;
         }
 
@@ -1951,7 +2251,7 @@ class PackageHelper
 
     /**
      * Resolve a writable temporary directory. Prefers Joomla's configured
-     * tmp_path, then the install's /tmp, then the system temp dir — so the tool
+     * tmp_path, then the install's /tmp, then the system temp dir, so the tool
      * works on a dev box even when tmp_path points at a different (production) host.
      *
      * @param string $installRoot Joomla installation root.
@@ -1978,22 +2278,22 @@ class PackageHelper
     }
 
     /**
-     * Whether a file/folder name should always be skipped (VCS/IDE/OS cruft,
-     * backups, and auto-created runtime/dev files — see IGNORE_RUNTIME).
+     * Whether an entry name is excluded from the package by {@see self::EXCLUDED_PATTERNS}.
      *
-     * @param string $name Bare entry name.
+     * Public because the exclusion policy is the contract, not an implementation
+     * detail: a caller that enumerates a tree of its own answers the question the
+     * same way the export does.
      *
+     * @param string $name Bare entry name (never a path).
      *
-     * @since  1.0.0
+     * @return bool True when the entry must not ship.
+     *
+     * @since  1.10.0
      */
-    private static function isIgnored(string $name): bool
+    public static function isExcluded(string $name): bool
     {
-        if (\in_array($name, self::IGNORE_NAMES, true) || \in_array($name, self::IGNORE_RUNTIME, true)) {
-            return true;
-        }
-
-        foreach (self::IGNORE_SUFFIXES as $suffix) {
-            if (str_ends_with($name, $suffix)) {
+        foreach (self::EXCLUDED_PATTERNS as $pattern) {
+            if (fnmatch($pattern, $name)) {
                 return true;
             }
         }

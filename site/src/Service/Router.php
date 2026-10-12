@@ -78,7 +78,6 @@ class Router extends RouterView
         // Initialize database object
         $this->db = Factory::getContainer()->get(DatabaseInterface::class);
 
-        //		$this->app->getInput()->set('category_id',0);
         // Register manufacturers view
         $manufacturers = new RouterViewConfiguration('manufacturers');
         $this->registerView($manufacturers);
@@ -102,9 +101,17 @@ class Router extends RouterView
         $cart = new RouterViewConfiguration('cart');
         $this->registerView($cart);
 
-        // Register empties view
-        $empties = new RouterViewConfiguration('empties');
-        $this->registerView($empties);
+        // Register registration view
+        $registration = new RouterViewConfiguration('registration');
+        $this->registerView($registration);
+
+        // Register user info view
+        $userinfo = new RouterViewConfiguration('userinfo');
+        $this->registerView($userinfo);
+
+        // Register blank view
+        $blank = new RouterViewConfiguration('blank');
+        $this->registerView($blank);
 
         parent::__construct($app, $menu);
 
@@ -114,9 +121,7 @@ class Router extends RouterView
         $this->attachRule(new NomenuRules($this));
     }
 
-    // =========================================================================
     // URL PREPROCESSING - Clean SEO URLs
-    // =========================================================================
 
     /**
      * Preprocess the query before building the URL
@@ -251,17 +256,32 @@ class Router extends RouterView
      * @param string $segment The alias of the category
      * @param array $query An associative array of URL arguments
      *
-     * @return int|false Category ID or false if not found
+     * @return int|false Category ID, or false if not found (the router rules stop on a false segment)
      *
      * @since  1.0.0
      */
     public function getItemsId($segment, $query)
     {
+        // Numeric-slug fallback: the builder emits a bare id when a row
+        // has no translated alias; resolve it directly.
+        if (is_numeric($segment)) {
+            $exists = (int) $this->db->setQuery(
+                $this->db->getQuery(true)
+                    ->select('1')->from($this->db->quoteName('#__alfa_categories'))
+                    ->where($this->db->quoteName('id') . ' = ' . (int) $segment)
+                    ->setLimit(1),
+            )->loadResult();
+
+            if ($exists) {
+                return (int) $segment;
+            }
+        }
+
         $dbquery = $this->db->getQuery(true)
             ->select($this->db->quoteName('a.id'))
             ->from($this->db->quoteName('#__alfa_categories', 'a'));
 
-        // Resolve the alias in the active language (current → default) from the
+        // Resolve the alias in the active language (current -> default) from the
         // per-language tables. HAVING filters on the resulting alias expression.
         MultilingualHelper::addMultilingualJoinToQuery(
             query:             $dbquery,
@@ -282,8 +302,8 @@ class Router extends RouterView
         $this->db->setQuery($dbquery);
         $result = $this->db->loadResult();
 
-        // Return the result (will be null if no matching child category found)
-        return $result ? (int) $result : null;
+        // False when no matching child category is found, as Joomla's own category lookup answers
+        return $result ? (int) $result : false;
     }
 
     /**
@@ -301,7 +321,7 @@ class Router extends RouterView
     public function getItemSegment($id, $query): array
     {
         // If ID doesn't contain alias yet, fetch it
-        if (!strpos($id, ':')) {
+        if (strpos($id, ':') === false) {
             // Resolve in the TARGET language when building a language-switch URL
             // (&lang in the query); otherwise the current request language. The
             // cache is keyed by language so one request can build URLs for many.
@@ -340,18 +360,74 @@ class Router extends RouterView
      * @param string $segment Segment of the item to retrieve the ID for
      * @param array $query The request that is parsed right now
      *
-     * @return int The id of this item or 0 if not found
+     * @return int The id of this item, or 0 if not found
      *
      * @since  1.0.0
      */
     public function getItemId($segment, $query)
     {
+        // Numeric-slug fallback: the builder emits a bare id when a row
+        // has no translated alias; resolve it directly.
+        if (is_numeric($segment)) {
+            $exists = (int) $this->db->setQuery(
+                $this->db->getQuery(true)
+                    ->select('1')->from($this->db->quoteName('#__alfa_items'))
+                    ->where($this->db->quoteName('id') . ' = ' . (int) $segment)
+                    ->setLimit(1),
+            )->loadResult();
+
+            if ($exists) {
+                return (int) $segment;
+            }
+        }
+
+        if (!empty($query['category_id'])) {
+            // Explicitly set so it exists downstream even on SEF URLs.
+            $this->app->getInput()->set('category_id', $query['category_id']);
+
+            // Prefer the item within the path's category SUBTREE: its own category
+            // OR any descendant. A subcategory item is routinely listed on a parent
+            // category's page (include_subcategories), so its URL can carry the
+            // parent's path (e.g. /test/test2 for an item that lives in /test/testsub).
+            // Matching only the DIRECT category 404s such links.
+            $catId = (int) $query['category_id'];
+            $catIds = array_map('intval', array_merge([$catId], CategoryHelper::getDescendantIds($catId)));
+
+            $scoped = $this->buildItemAliasQuery($segment)
+                ->join('INNER', $this->db->quoteName('#__alfa_items_categories', 'ic') . ' ON ic.item_id = i.id')
+                ->whereIn('ic.category_id', $catIds);
+
+            $result = $this->db->setQuery($scoped)->loadResult();
+
+            if ($result) {
+                return (int) $result;
+            }
+
+            // Fall through: a valid item alias must never 404 just because the URL
+            // used an unrelated category path.
+        }
+
+        $result = $this->db->setQuery($this->buildItemAliasQuery($segment))->loadResult();
+
+        return (int) $result;
+    }
+
+    /**
+     * Build the base query that resolves an item by its active-language alias
+     * (current -> default), shared by the scoped and alias-only lookups.
+     *
+     * @param string $segment The item alias from the URL.
+     *
+     * @return \Joomla\Database\QueryInterface
+     *
+     * @since  1.3.0
+     */
+    private function buildItemAliasQuery(string $segment)
+    {
         $dbquery = $this->db->getQuery(true)
             ->select('i.id')
             ->from($this->db->quoteName('#__alfa_items', 'i'));
 
-        // Resolve the alias in the active language (current → default); HAVING
-        // filters on the resulting alias expression.
         MultilingualHelper::addMultilingualJoinToQuery(
             query:             $dbquery,
             mainAlias:         'i',
@@ -363,18 +439,7 @@ class Router extends RouterView
 
         $dbquery->having($this->db->quoteName('alias') . ' = ' . $this->db->quote($segment));
 
-        if (!empty($query['category_id'])) {
-            // explicitly set the id cause it may not always exist e.g. on sef urls
-            $this->app->getInput()->set('category_id', $query['category_id']);
-
-            $dbquery->join('INNER', $this->db->quoteName('#__alfa_items_categories', 'ic') . ' ON ic.item_id = i.id')
-                ->where('ic.category_id = ' . (int) $query['category_id']);
-        }
-
-        $this->db->setQuery($dbquery);
-        $result = $this->db->loadResult();
-
-        return $result ? (int) $result : null;
+        return $dbquery;
     }
 
     /**
@@ -392,7 +457,7 @@ class Router extends RouterView
     public function getManufacturerSegment($id, $query): array
     {
         // If ID doesn't contain alias yet, fetch it
-        if (!strpos($id, ':')) {
+        if (strpos($id, ':') === false) {
             // Target language for a language-switch URL (&lang), else current.
             // Cache keyed by language so multi-language builds don't collide.
             $langTag = (string) ($query['lang'] ?? '');
@@ -430,17 +495,32 @@ class Router extends RouterView
      * @param string $segment Segment of the manufacturer to retrieve the ID for
      * @param array $query The request that is parsed right now
      *
-     * @return int The id of this manufacturer or 0 if not found
+     * @return int The id of this manufacturer, or 0 if not found
      *
      * @since  1.0.0
      */
     public function getManufacturerId($segment, $query)
     {
+        // Numeric-slug fallback: the builder emits a bare id when a row
+        // has no translated alias; resolve it directly.
+        if (is_numeric($segment)) {
+            $exists = (int) $this->db->setQuery(
+                $this->db->getQuery(true)
+                    ->select('1')->from($this->db->quoteName('#__alfa_manufacturers'))
+                    ->where($this->db->quoteName('id') . ' = ' . (int) $segment)
+                    ->setLimit(1),
+            )->loadResult();
+
+            if ($exists) {
+                return (int) $segment;
+            }
+        }
+
         $dbquery = $this->db->getQuery(true)
             ->select($this->db->quoteName('a.id'))
             ->from($this->db->quoteName('#__alfa_manufacturers', 'a'));
 
-        // Resolve the alias in the active language (current → default); HAVING
+        // Resolve the alias in the active language (current -> default); HAVING
         // filters on the resulting alias expression.
         MultilingualHelper::addMultilingualJoinToQuery(
             query:             $dbquery,
@@ -453,8 +533,7 @@ class Router extends RouterView
 
         $dbquery->having($this->db->quoteName('alias') . ' = ' . $this->db->quote($segment));
         $this->db->setQuery($dbquery);
-        $result = $this->db->loadResult();
 
-        return $result ? (int) $result : null;
+        return (int) $this->db->loadResult();
     }
 }

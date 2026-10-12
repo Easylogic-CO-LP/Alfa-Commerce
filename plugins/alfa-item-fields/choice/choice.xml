@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension type="plugin" group="alfa-item-fields" method="upgrade">
+    <name>PLG_ALFA_ITEM_FIELDS_CHOICE</name>
+    <author>Easylogic</author>
+    <creationDate>2026-06</creationDate>
+    <copyright>(C) 2026 Easylogic CO LP</copyright>
+    <license>GNU General Public License version 3 or later; see LICENSE</license>
+    <version>1.0.0</version>
+    <description>PLG_ALFA_ITEM_FIELDS_CHOICE_XML_DESCRIPTION</description>
+    <namespace path="src">Alfa\Plugin\AlfaItemFields\Choice</namespace>
+    <files>
+        <folder>params</folder>
+        <folder plugin="choice">services</folder>
+        <folder>src</folder>
+        <folder>tmpl</folder>
+    </files>
+    <languages folder="language">
+        <language tag="en-GB">en-GB/plg_alfa-item-fields_choice.ini</language>
+        <language tag="en-GB">en-GB/plg_alfa-item-fields_choice.sys.ini</language>
+    </languages>
+
+</extension>

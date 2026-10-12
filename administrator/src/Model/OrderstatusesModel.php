@@ -15,15 +15,20 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Exception;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
-use Joomla\CMS\MVC\Model\ListModel;
 
 /**
  * Methods supporting a list of Orders records.
  *
  * @since  1.0.0
  */
-class OrderstatusesModel extends ListModel
+class OrderstatusesModel extends AlfaListModel
 {
+    /**
+     * @var string The entity a plugin targets with $context->targets('orderstatus').
+     * @since  1.8.0
+     */
+    protected string $alfaEntity = 'orderstatus';
+
     /**
      * Constructor.
      *
@@ -36,12 +41,13 @@ class OrderstatusesModel extends ListModel
     {
         if (empty($config['filter_fields'])) {
             $config['filter_fields'] = [
+                'id', 'a.id',
                 'color', 'a.color',
                 'bg_color', 'a.bg_color',
                 'stock_operation', 'a.stock_operation',
                 'state', 'a.state',
                 'ordering', 'a.ordering',
-                // Translatable — resolved via the lang-table COALESCE alias.
+                // Translatable: resolved via the lang-table COALESCE alias.
                 'name',
             ];
         }
@@ -82,9 +88,25 @@ class OrderstatusesModel extends ListModel
      */
     protected function getStoreId($id = '')
     {
-        // Compile the store id.
-        $id .= ':' . $this->getState('filter.search');
-        // $id .= ':' . $this->getState('filter.state');
+        // Serialise EVERY filter into the cache identity, including filters a plugin
+        // declared through onAlfaAdminListFilters, which a hand-enumerated list would
+        // silently omit (stale cache + the contract's list phases skipping re-runs).
+        // Same discipline as the orders grid.
+        $filters = [];
+
+        // toArray(), not (array): the model State keeps LITERAL dotted keys, so an
+        // object cast returns its protected properties and matches nothing.
+        foreach ($this->getState()->toArray() as $key => $value) {
+            if (str_starts_with((string) $key, 'filter.')) {
+                $filters[$key] = \is_array($value) ? implode(',', $value) : (string) $value;
+            }
+        }
+
+        ksort($filters);
+
+        foreach ($filters as $key => $value) {
+            $id .= ':' . $key . '=' . $value;
+        }
 
         return parent::getStoreId($id);
     }
@@ -151,7 +173,7 @@ class OrderstatusesModel extends ListModel
                 $query->where('a.id = ' . (int) substr($search, 3));
             } else {
                 $search = $db->Quote('%' . $db->escape($search, true) . '%');
-                // HAVING — `name` is the COALESCE alias from the lang join.
+                // HAVING: `name` is the COALESCE alias from the lang join.
                 $query->having('( ' . $db->quoteName('name') . ' LIKE ' . $search . ' )');
             }
         }
@@ -177,13 +199,6 @@ class OrderstatusesModel extends ListModel
     {
         $items = parent::getItems();
 
-        // foreach ($items as $item) {
-        //     if ($item->stock_action == 0) {
-        //         $item->stock = 'Keep in stock';
-        //     } else {
-        //         $item->stock = 'Remove from stock';
-        //     }
-        // }
         return $items;
     }
 }

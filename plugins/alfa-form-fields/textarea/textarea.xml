@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extension type="plugin" group="alfa-form-fields" method="upgrade">
-	<name>plg_alfa-form-fields_textarea</name>
-	<author>Joomla! Project</author>
-	<creationDate>2016-03</creationDate>
-	<copyright>(C) 2016 Open Source Matters, Inc.</copyright>
+	<name>PLG_ALFA_FORM_FIELDS_TEXTAREA</name>
+	<author>Agamemnon Fakas</author>
+	<creationDate>2024</creationDate>
+	<copyright>(C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.</copyright>
 	<license>GNU General Public License version 3 or later; see LICENSE</license>
-	<authorEmail>admin@joomla.org</authorEmail>
-	<authorUrl>www.joomla.org</authorUrl>
-	<version>3.7.0</version>
+	<authorEmail>info@easylogic.gr</authorEmail>
+	<authorUrl>http://easylogic.gr</authorUrl>
+	<version>1.0.0</version>
 	<description>PLG_ALFA_FORM_FIELDS_TEXTAREA_XML_DESCRIPTION</description>
 	<namespace path="src">Alfa\Plugin\AlfaFormFields\Textarea</namespace>
 	<files>
@@ -15,8 +15,8 @@
 		<folder plugin="textarea">services</folder>
 		<folder>src</folder>
 		<folder>tmpl</folder>
-	</files>
-	<languages folder="language">
+    </files>
+    <languages folder="language">
         <language tag="en-GB">en-GB/plg_alfa-form-fields_textarea.ini</language>
         <language tag="en-GB">en-GB/plg_alfa-form-fields_textarea.sys.ini</language>
     </languages>

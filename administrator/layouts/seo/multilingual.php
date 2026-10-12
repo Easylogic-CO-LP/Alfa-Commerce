@@ -16,7 +16,7 @@ use Joomla\CMS\Language\LanguageHelper;
 use Joomla\CMS\Layout\LayoutHelper;
 
 /**
- * Renders the SEO preview once per installed content language — each in its own
+ * Renders the SEO preview once per installed content language, each in its own
  * tab (collapsing to a single panel when only one language exists). Every panel
  * is seeded with that language's stored name/meta/alias/content and points its
  * live field tracking at that language's inputs (jform_<field>_<langtag>).
@@ -43,7 +43,7 @@ $additionalContentFields = $displayData['additionalContentFields'] ?? [];
 
 $languages = LanguageHelper::getLanguages('lang_code');
 
-// All translatable values for this record, flat-keyed (name_en_gb, alias_el_gr…).
+// All translatable values for this record, flat-keyed (name_en_gb, alias_el_gr...).
 $flat = MultilingualHelper::getMultilingualDataFlat(
     currentId:         $itemId,
     primaryColumnName: $pk,
@@ -99,7 +99,7 @@ $renderPreview = function (string $langCode) use (
     return LayoutHelper::render('seo.preview', $data);
 };
 
-// Single content language → no tabs, just the one panel.
+// Single content language -> no tabs, just the one panel.
 if (count($languages) <= 1) {
     echo $renderPreview((string) array_key_first($languages));
     return;

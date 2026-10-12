@@ -15,8 +15,7 @@
       "type": "script",
       "uri": "plg_alfa-form-fields_choice/choice.js",
       "dependencies": [
-        "form.validate",
-        "com_alfa.showon"
+        "form.validate"
       ]
     }
   ]

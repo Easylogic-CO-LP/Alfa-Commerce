@@ -17,6 +17,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CatalogAccessPolicy;
 use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\MVC\Model\ItemModel as BaseItemModel;
@@ -75,8 +76,8 @@ class CategoryModel extends BaseItemModel
                 ->select('a.*')
                 ->from($db->quoteName('#__alfa_categories', 'a'));
 
-            // Resolve translatable fields in the active language (current →
-            // default → '') from the per-language tables. No main-table fallback.
+            // Resolve translatable fields in the active language (current ->
+            // default -> '') from the per-language tables. No main-table fallback.
             MultilingualHelper::addMultilingualJoinToQuery(
                 query:             $query,
                 mainAlias:         'a',
@@ -89,6 +90,10 @@ class CategoryModel extends BaseItemModel
             $query->where($db->quoteName('a.id') . ' = :pk')
                 ->bind(':pk', $pk, ParameterType::INTEGER);
 
+            // Direct access by id must obey the same allowlist as the listing;
+            // otherwise a restricted category is merely unlisted, not private.
+            (new CatalogAccessPolicy())->applyToCategories($query, 'a');
+
             $db->setQuery($query);
             $data = $db->loadObject();
 
@@ -96,6 +101,11 @@ class CategoryModel extends BaseItemModel
                 $this->_item[$pk] = false;
                 return false;
             }
+
+            // Layout overrides and listing defaults decoded here once; consumers
+            // receive ready arrays.
+            $data->layouts = json_decode($data->layouts ?: '{}', true) ?: [];
+            $data->list_options = json_decode($data->list_options ?: '{}', true) ?: [];
 
             // Add links
             $data->link = Route::_('index.php?option=com_alfa&view=items&category_id=' . (int) $data->id);

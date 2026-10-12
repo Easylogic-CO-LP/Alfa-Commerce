@@ -3,10 +3,63 @@
     <changelog>
         <element>com_alfa</element>
         <type>component</type>
+        <version>2.0.0</version>
+
+        <note>
+            <item>First stable release. A CLEAN INSTALL is required from the 1.x betas: 2.0.0 cannot be installed over any 1.x version, and its installer refuses before anything is changed. Back up the site, uninstall the beta, delete every database table whose name still starts with your table prefix followed by alfa_ (the beta's uninstaller leaves some behind), then install 2.0.0. The beta's data is not carried over.</item>
+            <item>From 2.0.0 on, updates install in place: Joomla records the database schema version and runs each later release's database changes automatically.</item>
+            <item>Requires Joomla 6.1 or a later Joomla 6 release (a site on Joomla 6.0 updates Joomla first; Joomla 7 is not supported yet); PHP 8.3 or newer (8.4 recommended) with the bcmath, intl, mbstring, gd and openssl extensions; MySQL 8.0.13 or newer, or MariaDB 10.6 or newer.</item>
+            <item>PDF rendering of sales documents requires the dompdf library (lib_dompdf), installed separately.</item>
+        </note>
+
+        <security>
+            <item>The back-office checkout endpoint refuses anything but POST, requires a valid session token, and asks for alfa.carts.checkout strictly; core.manage no longer satisfies it.</item>
+            <item>Currency rows are validated at the persistence gate every writer shares (the admin form, the REST route and programmatic saves alike), so a friendly message on one screen is never the only check.</item>
+            <item>Purchased files are kept in alfa-downloads in the site root and served only through the download link; Alfa checks that the web server refuses direct access to that folder and warns on every admin page until it can confirm it.</item>
+        </security>
+
+        <addition>
+            <item>New cart engine: an application states an intention (add this, choose that carrier, empty it) and receives an outcome and a reading; the cart is opened once per request, hydrated into a snapshot, and mutated only by its own writers.</item>
+            <item>Cart rules: coupons and automatic condition rules with product, order and shipping discount classes, stacking opt-in, per-line claiming, and distance-to-eligibility progress for near-miss rules.</item>
+            <item>Cart-scope contributions: feature plugins declare cart-level charges (sign-up fees, cash-on-delivery surcharges, gift wrapping), each with its own tax rate, shown as a labelled totals segment and frozen onto the order.</item>
+            <item>Shipping priced per destination: carriers receive the delivery place lineage and the postcode, so rates can differ by area.</item>
+            <item>Shipping VAT by destination: each shipping method names the tax rules its charge is taxed with (or uses the shop's default shipping taxes), shipping prices are entered with tax included (the default) or excluded, and every parcel keeps the rate and the ordered tax chain it was charged with, so invoices and credit notes state shipping VAT exactly.</item>
+            <item>Transactional order placement: placement takes a command and returns an outcome, so an order can be placed by anything, not only a browser request.</item>
+            <item>Operator checkout: place a customer's cart from the back office through exactly the same placement path the storefront uses.</item>
+            <item>Sales documents: document types, numbering series, invoices and credit notes issued through one write path, with print and PDF views.</item>
+            <item>Inventory: stock locations, reservations, transfers, an append-only movements ledger, backorder policy, and a single write path for every quantity change.</item>
+            <item>Customer credit: an append-only store-credit ledger (refunds, goodwill and promotions in, order payments out), spendable at checkout.</item>
+            <item>Digital downloads: entitlements granted when an order is paid, revoked when it is cancelled, and served through single-claim tokens.</item>
+            <item>Item fields: per-item field definitions with categories, per-item overrides, a queryable value index, and field parameters carried by product combinations.</item>
+            <item>Search: a pluggable engine contract (registry, provider and indexer collected as one engine), a resumable index rebuild, and catalogue documents built per language.</item>
+            <item>Maintenance tools, admin panels and menu entries are collected through the same registries plugins use, so an extension takes the path core takes.</item>
+        </addition>
+
+        <change>
+            <item>Order lines carry their own frozen name, identifiers, prices, discounts and tax breakdown, so a later catalogue edit cannot change what a customer was charged.</item>
+            <item>Money is held as integer minor units at the currency's configured scale, and that scale is the merchant's decision rather than a fixed two decimals.</item>
+            <item>Payment and shipment methods can be restricted by category, manufacturer, delivery place, usergroup and user, and a method that no longer qualifies is dropped from the cart rather than silently kept.</item>
+            <item>Cart quantities follow the merchant's minimum, maximum and step first and the shelf second, and a sale is refused rather than shrunk below what the merchant sells at.</item>
+            <item>A guest's cart survives signing in: it is claimed in place when the member has none, and merged when they do, with the loser of a race changing nothing.</item>
+            <item>Uninstalling keeps every Alfa table and its data, and the purchased files; installing again reconnects them, adds no second copy of the shipped data and leaves edited rows as they are.</item>
+            <item>A parcel added from the order screen or over REST is taxed by the same shipping tax rules as checkout and must be exactly what its amount makes; its tax cannot be changed afterwards.</item>
+            <item>A line whose product has left the catalogue arrives stranded and is left alone: adoption can neither change its quantity nor remove it on the shelf's behalf.</item>
+        </change>
+
+        <fix>
+            <item>A database failure that has already aborted the placement transaction now refuses the order instead of carrying on outside it. A deadlock could previously delete the cart and report success while the order rows were gone.</item>
+            <item>The money rows of an order (applied cart rules and contributions) are no longer tolerated failures: if one cannot be written, the placement is refused.</item>
+            <item>Product identifier snapshots on an order line (SKU, GTIN, MPN) are stored at the catalogue's own column width and are never truncated.</item>
+            <item>An over-long gateway reference is clamped to the column it is stored in, instead of dropping the whole payment row.</item>
+        </fix>
+    </changelog>
+    <changelog>
+        <element>com_alfa</element>
+        <type>component</type>
         <version>1.2.1</version>
 
         <change>
-            <item>Renamed the form-fields plugin group from alfa-fields to alfa-form-fields (folder, plugin names, namespaces, language files, media assets). Existing plugin rows are migrated in place — enabled state and settings survive — and stale alfa-fields folders are cleaned up on update. Prepares the ground for the upcoming alfa-item-fields product fields system.</item>
+            <item>Renamed the form-fields plugin group from alfa-fields to alfa-form-fields (folder, plugin names, namespaces, language files, media assets). Existing plugin rows are migrated in place (enabled state and settings survive) and stale alfa-fields folders are cleaned up on update. Prepares the ground for the upcoming alfa-item-fields product fields system.</item>
         </change>
     </changelog>
     <changelog>
@@ -15,7 +68,7 @@
         <version>1.2.0</version>
 
         <change>
-            <item>Standardised every bundled plugin namespace to the Alfa\ vendor prefix (alfa-shipments and alfa-payments Standard, and the alfa-fields plugins). Internal refactor only — no schema change and no effect on stored data.</item>
+            <item>Standardised every bundled plugin namespace to the Alfa\ vendor prefix (alfa-shipments and alfa-payments Standard, and the alfa-fields plugins). Internal refactor only: no schema change and no effect on stored data.</item>
         </change>
     </changelog>
     <changelog>
@@ -24,7 +77,7 @@
         <version>1.1.0</version>
 
         <change>
-            <item>Ship the GPL-3 LICENSE file with the package — installed into the component directory and covered by the file-integrity check.</item>
+            <item>Ship the GPL-3 LICENSE file with the package, installed into the component directory and covered by the file-integrity check.</item>
         </change>
     </changelog>
     <changelog>
@@ -47,8 +100,8 @@
 
         <change>
             <item>Internal housekeeping: removed stray developer backup files that were inadvertently included in the package.</item>
-            <item>Refined the payment/shipment plugin event model so redirect and inline template rendering are available only where they apply — the checkout views and the gateway-return step; order place/save hooks are now strictly data hooks.</item>
-            <item>Expanded developer documentation in the bundled Standard payment plugin — the gateway-return (onPaymentResponse) contract is redirect-only, with a copy-paste example for gateway authors.</item>
+            <item>Refined the payment/shipment plugin event model so redirect and inline template rendering are available only where they apply (the checkout views and the gateway-return step); order place/save hooks are now strictly data hooks.</item>
+            <item>Expanded developer documentation in the bundled Standard payment plugin: the gateway-return (onPaymentResponse) contract is redirect-only, with a copy-paste example for gateway authors.</item>
         </change>
     </changelog>
 
@@ -58,14 +111,14 @@
         <version>1.0.9</version>
 
         <fix>
-            <item>Drag-and-drop image upload in the media zone now shows the preview reliably, and gives a clear message when a file is the wrong type or too large — instead of a confusing "no valid files found" error.</item>
+            <item>Drag-and-drop image upload in the media zone now shows the preview reliably, and gives a clear message when a file is the wrong type or too large, instead of a confusing "no valid files found" error.</item>
             <item>The media upload size limit now follows the server's actual limit, and the standard image types are accepted out of the box when none are explicitly selected.</item>
         </fix>
 
         <change>
             <item>Reorganised the Media options into clear sections (Storage, Uploads, Thumbnails, Display, Deletion), and merged the two overlapping deletion settings into a single "Complete Media Deletion" option.</item>
             <item>Updated the default media folder and placeholder images.</item>
-            <item>Added a "Delete all untracked files" action to Tools → Media for clearing leftover image files that have no database record.</item>
+            <item>Added a "Delete all untracked files" action to Tools &gt; Media for clearing leftover image files that have no database record.</item>
             <item>Added database indexes to the media table for faster media maintenance and listings.</item>
         </change>
     </changelog>
@@ -77,7 +130,7 @@
 
         <fix>
             <item>The component Options screen now shows "Alfa Commerce: Options" instead of a raw text key.</item>
-            <item>Interface text that was previously fixed in English — labels, buttons, headings and messages across the administrator, the storefront and the Cart and Filters modules — is now fully translatable.</item>
+            <item>Interface text that was previously fixed in English (labels, buttons, headings and messages across the administrator, the storefront and the Cart and Filters modules) is now fully translatable.</item>
             <item>Updated deprecated Joomla document API calls so the storefront stays compatible with current and upcoming Joomla versions.</item>
         </fix>
 
@@ -123,12 +176,12 @@
         <version>1.0.5</version>
 
         <addition>
-            <item>Multilingual catalog — translate categories, manufacturers, items and more, each in its own language.</item>
+            <item>Multilingual catalog: translate categories, manufacturers, items and more, each in its own language.</item>
             <item>Order statuses with customisable status-change emails for customers and admins.</item>
             <item>Customisable email layouts for order-status notifications.</item>
             <item>Unique values for custom form field options.</item>
             <item>Categories and Manufacturers columns and filters on the Items list.</item>
-            <item>Notification centre in the admin — a toolbar bell with a quick panel and a full history.</item>
+            <item>Notification centre in the admin: a toolbar bell with a quick panel and a full history.</item>
             <item>File-integrity check (Tools &gt; Security) that verifies your installed files against the official release.</item>
             <item>One-click export of the component as an installable package.</item>
             <item>Automatic updates delivered through Joomla's update manager.</item>

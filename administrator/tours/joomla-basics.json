@@ -1,0 +1,46 @@
+{
+    "uid": "com_alfa.joomla-basics",
+    "version": 2,
+    "ordering": 16,
+    "title": "COM_ALFA_GUIDEDTOUR_JOOMLA_BASICS_TITLE",
+    "description": "COM_ALFA_GUIDEDTOUR_JOOMLA_BASICS_DESC",
+    "extensions": [
+        "com_alfa"
+    ],
+    "url": "administrator/index.php?option=com_config",
+    "autostart": false,
+    "steps": [
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_JOOMLA_BASICS_STEP_1_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_JOOMLA_BASICS_STEP_1_DESC",
+            "position": "bottom",
+            "target": "",
+            "type": 0,
+            "url": "administrator/index.php?option=com_config"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_JOOMLA_BASICS_STEP_2_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_JOOMLA_BASICS_STEP_2_DESC",
+            "position": "bottom",
+            "target": ".control-group:not(.hidden):has(#jform_sef), #jform_sef",
+            "type": 0,
+            "url": "administrator/index.php?option=com_config"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_JOOMLA_BASICS_STEP_3_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_JOOMLA_BASICS_STEP_3_DESC",
+            "position": "bottom",
+            "target": "joomla-tab button[aria-controls=\"page-server\"]",
+            "type": 0,
+            "url": "administrator/index.php?option=com_config"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_JOOMLA_BASICS_STEP_4_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_JOOMLA_BASICS_STEP_4_DESC",
+            "position": "bottom",
+            "target": "#toolbar",
+            "type": 0,
+            "url": "administrator/index.php?option=com_config"
+        }
+    ]
+}

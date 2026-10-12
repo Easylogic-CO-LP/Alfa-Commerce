@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-    Standard Payment Plugin — Log Schema
+    Standard Payment Plugin: Log Schema
 
     Defines plugin-specific columns for #__alfa_payments_standard_logs.
 
@@ -30,10 +30,10 @@
 			<field name="transaction_status" mysql_type="varchar(20)" default="NULL"/>
 
 			<!-- Specific amount for this action -->
-			<field name="amount" mysql_type="decimal(20,6)" default="0.000000"/>
+			<field name="amount" mysql_type="decimal(24,8)" default="0.00000000"/>
 
 			<!-- Order grand total at time of action -->
-			<field name="order_total" mysql_type="decimal(15,5)" default="0.00000"/>
+			<field name="order_total" mysql_type="decimal(24,8)" default="0.00000000"/>
 
 			<!-- Currency code -->
 			<field name="currency" mysql_type="char(3)" default="NULL"/>

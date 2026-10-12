@@ -7,6 +7,8 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
+\defined('_JEXEC') or die;
+
 extract($displayData);
 if (!isset($method)) {
     return;

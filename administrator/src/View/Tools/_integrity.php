@@ -10,8 +10,8 @@
 /**
  * Integrity verdict card.
  *
- * Rendered from {@see HtmlView::display()} via a fixed-path include — deliberately NOT
- * through Joomla's overridable layout/template system — so a template override cannot
+ * Rendered from {@see HtmlView::display()} via a fixed-path include (deliberately NOT
+ * through Joomla's overridable layout/template system), so a template override cannot
  * silently fake the verification result. The Tools template only echoes the string this
  * produces; the verdict logic never lives in an override-able file. To change what this
  * shows you must edit this source file, which is itself covered by the signed checksums.
@@ -60,7 +60,7 @@ $ostatus = $this->official['status'] ?? 'unreachable';
         <?php elseif ($ostatus === 'bad_signature') : ?>
             <div class="alert alert-danger mb-0" role="alert">
                 <span class="icon-warning" aria-hidden="true"></span>
-                <?php echo Text::_('COM_ALFA_TOOLS_OFFICIAL_BAD_SIG'); ?>
+                <?php echo Text::_(($this->official['reason'] ?? '') === 'unknown_hash' ? 'COM_ALFA_TOOLS_OFFICIAL_UNKNOWN_HASH' : 'COM_ALFA_TOOLS_OFFICIAL_BAD_SIG'); ?>
             </div>
 
         <?php elseif ($ostatus === 'ahead' || $ostatus === 'modified') : ?>

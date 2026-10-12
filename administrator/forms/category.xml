@@ -62,12 +62,6 @@
                 default="0"
         />
 
-        <field
-                name="version_note"
-                type="text"
-                label="JGLOBAL_FIELD_VERSION_NOTE_LABEL"
-                maxlength="255"
-        />
     </fieldset>
 
     <fieldset name="publish">
@@ -90,7 +84,7 @@
 
         <field
                 name="allowedUserGroups"
-                type="UserGroupList"
+                type="usergrouplist"
                 label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_LBL"
                 description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERGROUPS_DESC"
                 layout="joomla.form.field.list-fancy-select"
@@ -132,7 +126,7 @@
 
     </fieldset>
 
-    <fieldset name="meta">
+    <fieldset name="meta" label="COM_ALFA_TAB_SEO">
         <field name="meta_title" type="MultilingualText"
                multilingual_table="#__alfa_categories" multilingual_pk="id_category"
                maxlength="60" filter="safehtml" translateLabel="true"
@@ -159,7 +153,7 @@
         </field>
     </fieldset>
 
-    <fieldset name="Image">
+    <fieldset name="Image" label="COM_ALFA_FIELDSET_IMAGE">
         <field
                 name="medias"
                 type="MediaZone"
@@ -169,4 +163,116 @@
                 types="media"
         />
     </fieldset>
+
+    <!-- Layout overrides for THIS category and the products shown under it;
+         every key inherits menu -> global when empty (products may override per item). -->
+    <fields name="layouts">
+        <fieldset name="layouts" label="COM_ALFA_MENU_LAYOUTS_OPTIONS">
+
+            <field
+                    name="layout"
+                    type="viewLayout"
+                    view="items"
+                    inheritlabel="COM_ALFA_LAYOUT_INHERIT"
+                    label="COM_ALFA_LAYOUT_ITEMS_LABEL"
+            />
+
+            <field
+                    name="card"
+                    type="subtemplate"
+                    view="items"
+                    slot="item"
+                    inheritlabel="COM_ALFA_LAYOUT_INHERIT"
+                    label="COM_ALFA_LAYOUT_ITEMS_CARD_LABEL"
+            />
+
+            <field
+                    name="list_categories"
+                    type="subtemplate"
+                    view="items"
+                    slot="categories"
+                    inheritlabel="COM_ALFA_LAYOUT_INHERIT"
+                    label="COM_ALFA_LAYOUT_ITEMS_CATEGORIES_LABEL"
+            />
+
+            <field
+                    name="item"
+                    type="viewLayout"
+                    view="item"
+                    inheritlabel="COM_ALFA_LAYOUT_INHERIT"
+                    label="COM_ALFA_LAYOUT_ITEM_LABEL"
+            />
+
+            <field
+                    name="images"
+                    type="subtemplate"
+                    view="item"
+                    slot="images"
+                    inheritlabel="COM_ALFA_LAYOUT_INHERIT"
+                    label="COM_ALFA_LAYOUT_ITEM_IMAGES_LABEL"
+            />
+
+            <field
+                    name="manufacturers"
+                    type="subtemplate"
+                    view="item"
+                    slot="manufacturers"
+                    inheritlabel="COM_ALFA_LAYOUT_INHERIT"
+                    label="COM_ALFA_LAYOUT_ITEM_MANUFACTURERS_LABEL"
+            />
+
+            <field
+                    name="categories"
+                    type="subtemplate"
+                    view="item"
+                    slot="categories"
+                    inheritlabel="COM_ALFA_LAYOUT_INHERIT"
+                    label="COM_ALFA_LAYOUT_ITEM_CATEGORIES_LABEL"
+            />
+        </fieldset>
+    </fields>
+
+    <!-- How a listing of THIS category paginates and sorts by default. Top of
+         the chain: empty inherits the menu item, then the global config. One
+         JSON column, so the next per-category list setting needs no migration. -->
+    <fields name="list_options">
+        <fieldset
+                name="list_options"
+                label="COM_ALFA_LIST_OPTIONS"
+                addruleprefix="Alfa\Component\Alfa\Administrator\Rule"
+        >
+
+            <field
+                    name="items_limit"
+                    type="listLimit"
+                    globalparam="items_limit"
+                    inheritlabel="COM_ALFA_INHERIT"
+                    min="0"
+                    label="COM_ALFA_CONFIG_ITEMS_LIMIT"
+                    description="COM_ALFA_CATEGORY_INHERIT_DESC"
+                    validate="listLimit"
+            />
+
+            <field
+                    name="items_limits"
+                    type="listLimits"
+                    globalparam="items_limits"
+                    inheritlabel="COM_ALFA_INHERIT"
+                    label="COM_ALFA_CONFIG_ITEMS_LIMITS"
+                    description="COM_ALFA_CATEGORY_INHERIT_DESC"
+                    validate="listLimits"
+            />
+
+            <field
+                    name="items_ordering"
+                    type="listOrdering"
+                    view="items"
+                    globalparam="items_ordering"
+                    inheritlabel="COM_ALFA_INHERIT"
+                    label="COM_ALFA_CONFIG_ITEMS_ORDERING"
+                    description="COM_ALFA_CATEGORY_INHERIT_DESC"
+                    validate="options"
+            />
+        </fieldset>
+    </fields>
 </form>

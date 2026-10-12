@@ -1,10 +1,9 @@
 <?php
     /**
-     * @version    1.0.1
-     * @package    Com_Alfa
+     * @package    Alfa Commerce
      * @author     Agamemnon Fakas <info@easylogic.gr>
-     * @copyright  2024 Easylogic CO LP
-     * @license    GNU General Public License version 2 or later; see LICENSE.txt
+     * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+     * @license    GNU General Public License version 3 or later; see LICENSE
      */
 
     // No direct access
@@ -43,7 +42,7 @@
     <?php endforeach; ?>
 </div>
 
-<div class="thumbnail-images keen-slider d-flex flex-row mt-3">
+<div class="thumbnail-images keen-slider">
     <?php foreach ($medias as $index => $media):
         $isFirst = $index === 0;
         $imgAttribs = [

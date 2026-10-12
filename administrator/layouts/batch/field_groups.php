@@ -15,14 +15,25 @@ use Joomla\CMS\Language\Text;
 
 $db    = Factory::getContainer()->get('DatabaseDriver');
 $query = $db->getQuery(true)
-    ->select($db->quoteName(['id', 'title', 'state']))
-    ->from($db->quoteName('#__alfa_form_field_groups'))
-    ->order('ordering ASC');
+    ->select($db->quoteName(['a.id', 'a.state']))
+    ->from($db->quoteName('#__alfa_form_field_groups', 'a'))
+    ->order('a.ordering ASC');
+
+// Title in the active language; translatable columns live in the per-language tables.
+\Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper::addMultilingualJoinToQuery(
+    query:             $query,
+    mainAlias:         'a',
+    mainPrimaryColumn: 'id',
+    langTableBase:     '#__alfa_form_field_groups',
+    langPrimaryColumn: 'id_form_field_group',
+    fields:            ['title'],
+);
+
 $db->setQuery($query);
 $groups = $db->loadObjectList() ?: [];
 
 $options   = [];
-$options[] = HTMLHelper::_('select.option', '',  '- ' . Text::_('JOPTION_SELECT') . ' -');
+$options[] = HTMLHelper::_('select.option', '',  '- ' . Text::_('JSELECT') . ' -');
 $options[] = HTMLHelper::_('select.option', '0', Text::_('COM_ALFA_FORM_OPTION_FIELD_GROUP_NONE'));
 
 foreach ($groups as $group) {

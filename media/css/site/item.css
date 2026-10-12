@@ -1,8 +1,7 @@
 /**
- * @version     1.0.1
  * @package     com_alfa
- * @copyright   2024 Easylogic CO LP
- * @license     GNU General Public License version 2 or later; see LICENSE.txt
+ * @copyright   (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license     GNU General Public License version 3 or later; see LICENSE
  * @author      Agamemnon Fakas <info@easylogic.gr>
  */
 
@@ -12,49 +11,89 @@
     gap: 20px;
 }
 
+/* Sale-tag badge (a flagged discount's name, contributed to a surface slot by
+   SaleTag). Plain names, scoped under the alfa root shell; layout is overridable.
+   Context modifiers: .sale-tag--list (cards) / .sale-tag--item (product page). */
+.sale-tag {
+    display: inline-block;
+    padding: 3px 8px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: 0.02em;
+    color: var(--alfa-sale-color);
+    background: var(--alfa-sale-bg);
+    border-radius: var(--alfa-radius);
+    white-space: nowrap;
+}
+
+/* In the IMAGE slot the badge overlays the image corner; the image container is
+   made the positioning context. Other slots (title, buy-form, ...) flow inline. */
+.item-image,
+.item-images-wrapper {
+    position: relative;
+}
+
+.item-field-surface[data-surface="image"] {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 2;
+    pointer-events: none;
+}
+
 /* PRODUCT AMOUNT */
 
-.add-to-cart-wrapper {
+/* Hints (stock / select options, fill-required) are full-width rows above the
+   quantity + button row: the box wraps and each hint spans it. */
+/* One thing per line: the hint, the quantity and the button each own a row, which
+   wrapping only achieved by accident and only at some widths. Centred by default:
+   in a card the controls sit under centred content and reading left-aligned there
+   looks like a mistake. Neither stretches: each keeps its natural width, so a
+   3-digit quantity field is not pulled to the full column. */
+.item-cart-add {
     display: flex;
+    flex-direction: column;
+    align-items: center;
     gap: 8px;
 }
 
-.item-quantity-controls-wrapper {
-    display: flex;
-    margin: 4px 0;
-}
-
-.item-quantity {
-    width: 50px;
-    text-align: center;
-    border: 1px solid lightgray;
-    appearance: textfield;
-}
-
-.item-quantity::-webkit-outer-spin-button,
-.item-quantity::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-.item-quantity-controls{
-    border: none;
-    width: 30px;
-    font-size: 1.5rem;
-    color: black;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+/* The item view is the exception: its column is left-aligned text, so the controls
+   line up with the name and price above them rather than floating mid-column. */
+.item-container .item-cart-add {
+    align-items: flex-start;
 }
 
 /* ADD TO CART BUTTON */
 
-.add-to-cart-btn {
+.item-cart-btn {
     border: none;
-    padding: 10px;
-    background-color: #333;
-    color: white;
+    /* The same height as the stepper above it: they are the same kind of control
+       and stood 48px against 40px. The height comes from the token, so the vertical
+       padding has to give way; left at 10px it added back to 44 and the two still
+       disagreed. Centring keeps the label in the middle of whatever height is set. */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--alfa-control-height);
+    padding: 0 16px;
+    border-radius: var(--alfa-radius);
+    background-color: var(--alfa-action-primary-bg);
+    color: var(--alfa-action-primary-color);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* The class is also a link (Choose options, Personalise): a template's a:hover /
+   a:focus must not recolour its label. */
+.item-cart-btn:hover {
+    background-color: var(--alfa-action-primary-bg-hover);
+    color: var(--alfa-action-primary-color);
+    text-decoration: none;
+}
+
+.item-cart-btn:focus {
+    color: var(--alfa-action-primary-color);
 }
 
 /* PRODUCT IMAGES SECTION */
@@ -81,7 +120,10 @@
 }
 
 .thumbnail-images {
+    display: flex;
+    flex-direction: row;
     gap: 6px;
+    margin-top: 1rem;
 }
 
 .thumbnail-images .item-image{
@@ -142,7 +184,7 @@
 
 /* Highlight different operations */
 .breakdown-step[data-operation="subtract"] .breakdown-amount {
-    color: #388e3c;
+    color: var(--alfa-success-color);
 }
 
 /* MANUFACTURERS CATEGORIES */
@@ -154,10 +196,10 @@
 }
 
 .item-list-entry {
-    border: 1px solid lightgrey;
-    border-radius: 6px;
+    border: 1px solid var(--alfa-hairline);
+    border-radius: var(--alfa-radius);
     padding: 1.25rem;
-    background-color: #fff;
+    background-color: var(--alfa-surface);
     overflow-x: auto;
     scrollbar-width: thin;
 }
@@ -173,7 +215,7 @@
 .item-list-entry-name {
     font-weight: bold;
     font-size: 1.1rem;
-    color: #333;
+    color: var(--alfa-surface-color);
 }
 
 .item-list-entry-image {
@@ -197,3 +239,219 @@
     flex-direction: column;
 }
 /* PAYMENT METHOD END */
+/*
+   Item-fields variant selectors + reload loading state
+   */
+
+/* Field reload in flight: dim + lock the item/card while swapping. The unified
+   reload (variant.js) flags the [data-item-id] container, not the #alfa-app shell. */
+.item-container.is-loading,
+.list-item.is-loading {
+    opacity: 0.55;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+}
+
+.item-buy-form .variant-field {
+    margin: 0 0 1rem;
+}
+
+.variant-field-label {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-weight: 600;
+}
+
+.variant-field-control {
+    min-width: 12rem;
+    padding: 0.4rem 0.6rem;
+    /* It is a <select>: leave room for the drop-down arrow, whether the browser
+       or the template draws it. */
+    padding-inline-end: 2rem;
+}
+
+.variant-options,
+.variant-swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* radio / buttons */
+.variant-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.7rem;
+    border: 1px solid var(--alfa-hairline);
+    border-radius: var(--alfa-radius);
+    cursor: pointer;
+    user-select: none;
+}
+
+.variant-option input {
+    margin: 0;
+}
+
+.variant-options--buttons .variant-option input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Selected state is driven by the native radio's :checked, the SAME input that
+   carries the value contract (sel[]/opt[]). No JS class to keep in sync, so a
+   price-only reload (which doesn't re-render the control) still shows the choice. */
+.variant-option:has(> input:checked) {
+    border-color: var(--alfa-selected);
+    box-shadow: inset 0 0 0 1px var(--alfa-selected);
+}
+
+.variant-option.is-out-of-stock .variant-option-label {
+    opacity: 0.6;
+    text-decoration: line-through;
+}
+
+.variant-option.is-unavailable {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* swatches */
+.variant-swatch {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    width: 3rem;
+    text-align: center;
+    cursor: pointer;
+}
+
+.variant-swatch-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.variant-swatch-chip {
+    width: 2.2rem;
+    height: 2.2rem;
+    border: 2px solid var(--alfa-hairline);
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+}
+
+.variant-swatch-chip[data-empty="1"] {
+    background: repeating-linear-gradient(45deg, #eee, #eee 4px, #fafafa 4px, #fafafa 8px);
+}
+
+.variant-swatch:has(> input:checked) .variant-swatch-chip {
+    border-color: var(--alfa-selected);
+    box-shadow: 0 0 0 2px #1a73e8;
+}
+
+.variant-swatch-name {
+    font-size: 0.8rem;
+}
+
+.variant-swatch.is-out-of-stock .variant-swatch-name {
+    opacity: 0.6;
+    text-decoration: line-through;
+}
+
+.variant-swatch.is-unavailable {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* cards: a big tappable card per value (image on top, name below) */
+.variant-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.variant-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    width: 6.5rem;
+    padding: 0.45rem;
+    border: 2px solid var(--alfa-hairline);
+    border-radius: var(--alfa-radius);
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.variant-card:hover {
+    border-color: var(--alfa-selected);
+}
+
+.variant-card-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.variant-card-media {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: var(--alfa-radius);
+    overflow: hidden;
+    background: repeating-linear-gradient(45deg, #eee, #eee 4px, #fafafa 4px, #fafafa 8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.variant-card-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.variant-card:has(> input:checked) {
+    border-color: var(--alfa-selected);
+    box-shadow: 0 0 0 2px rgb(26 115 232 / 25%);
+}
+
+.variant-card-name {
+    font-size: 0.8rem;
+    line-height: 1.15;
+}
+
+.variant-card.is-out-of-stock .variant-card-name {
+    opacity: 0.6;
+    text-decoration: line-through;
+}
+
+.variant-card.is-unavailable {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Variant gating: disabled add-to-cart + reason hint */
+.item-cart-btn[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.item-cart-hint {
+    display: inline-block;
+    flex-basis: 100%;
+    font-size: 0.85rem;
+    color: var(--alfa-error-color);
+}
+
+/* required gate: visible hint (no hover on mobile) */
+.item-cart-required-hint {
+    flex-basis: 100%;
+    font-size: 0.82rem;
+    color: var(--alfa-warning-color);
+    margin: 0 0 0.35rem;
+}

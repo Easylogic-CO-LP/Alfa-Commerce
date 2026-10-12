@@ -1,11 +1,10 @@
 <?php
 
 /**
- * @version    1.0.1
- * @package    Com_Alfa
+ * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  2024 Easylogic CO LP
- * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
 namespace Alfa\Component\Alfa\Administrator\View\Items;
@@ -14,9 +13,12 @@ namespace Alfa\Component\Alfa\Administrator\View\Items;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Extension\AlfaComponent;
-use Joomla\CMS\Helper\ContentHelper;
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
+use Alfa\Component\Alfa\Administrator\View\HasAdminEvents;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
+use Joomla\CMS\Router\Route;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 
 /**
@@ -26,6 +28,8 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
  */
 class HtmlView extends BaseHtmlView
 {
+    use HasAdminEvents;
+
     protected $items;
 
     protected $pagination;
@@ -46,6 +50,9 @@ class HtmlView extends BaseHtmlView
      */
     public function display($tpl = null)
     {
+        // Assigned, not declared: the trait owns the property (see the Order view).
+        $this->alfaEntity = 'item';
+
         $model = $this->getModel();
 
         $this->items = $model->getItems();
@@ -73,16 +80,28 @@ class HtmlView extends BaseHtmlView
      */
     protected function addToolbar()
     {
-        $canDo = ContentHelper::getActions('com_alfa');
+        $user = $this->getCurrentUser();
+        $canCreate = AlfaHelper::can(section: 'items', action: 'create', user: $user);
+        $canEdit = AlfaHelper::can(section: 'items', action: 'edit', user: $user);
+        $canChange = AlfaHelper::can(section: 'items', action: 'edit.state', user: $user);
+        $canDelete = AlfaHelper::can(section: 'items', action: 'delete', user: $user);
         $toolbar = $this->getDocument()->getToolbar();
+
+        // Bringing an archived product back is a lifecycle transition, not a state change: it is
+        // offered on the Archived filter to those the task itself accepts (core.admin).
+        $filterState = $this->state->get(path: 'filter.state');
+        $canRestore = is_numeric($filterState) && (int) $filterState === AlfaComponent::CONDITION_ARCHIVED
+            && $user->authorise(action: 'core.admin', assetname: 'com_alfa');
 
         ToolbarHelper::title(Text::_('COM_ALFA_TITLE_ITEMS'), 'generic');
 
-        if ($canDo->get('core.create')) {
+        if ($canCreate) {
             $toolbar->addNew('item.add');
         }
 
-        if ($canDo->get('core.edit.state')) {
+        // State changes need edit.state; batch and check-in are editing and need edit; the restore
+        // needs core.admin.
+        if ($canChange || $canEdit || $canRestore) {
             $dropdown = $toolbar->dropdownButton('status-group')
                 ->text('JTOOLBAR_CHANGE_STATUS')
                 ->toggleSplit(false)
@@ -92,36 +111,53 @@ class HtmlView extends BaseHtmlView
 
             $childBar = $dropdown->getChildToolbar();
 
-            $childBar->publish('items.publish')->listCheck(true);
-            $childBar->unpublish('items.unpublish')->listCheck(true);
-            $childBar->archive('items.archive')->listCheck(true);
+            if ($canChange) {
+                $childBar->publish('items.publish')->listCheck(true);
+                $childBar->unpublish('items.unpublish')->listCheck(true);
+                $childBar->archive('items.archive')->listCheck(true);
 
-            if ($this->state->get('filter.state') != AlfaComponent::CONDITION_TRASHED) {
-                $childBar->trash('items.trash')->listCheck(true);
+                if ($this->state->get('filter.state') != AlfaComponent::CONDITION_TRASHED) {
+                    $childBar->trash('items.trash')->listCheck(true);
+                }
             }
 
-            if ($this->state->get('filter.state') == AlfaComponent::CONDITION_TRASHED && $canDo->get('core.delete')) {
-                // If this component does not use state then show a direct delete button as we can not trash
-                $toolbar->delete('items.delete')
-                    ->text('JTOOLBAR_EMPTY_TRASH')
-                    ->message('JGLOBAL_CONFIRM_DELETE')
+            if ($canRestore) {
+                $childBar->unarchive(task: 'items.restoreArchived', text: 'COM_ALFA_TOOLBAR_RESTORE_TO_CATALOGUE')->listCheck(true);
+            }
+
+            if ($canEdit) {
+                $childBar->popupButton('batch', 'JTOOLBAR_BATCH')
+                    ->popupType('inline')
+                    ->textHeader(Text::_('COM_ALFA_BATCH_OPTIONS'))
+                    ->url('#joomla-dialog-batch')
+                    ->modalWidth('800px')
+                    ->modalHeight('fit-content')
                     ->listCheck(true);
+
+                $childBar->checkin('items.checkin')->listCheck(true);
             }
-
-            $childBar->popupButton('batch', 'JTOOLBAR_BATCH')
-                ->popupType('inline')
-                ->textHeader(Text::_('COM_ALFA_BATCH_OPTIONS'))
-                ->url('#joomla-dialog-batch')
-                ->modalWidth('800px')
-                ->modalHeight('fit-content')
-                ->listCheck(true);
-
-            $childBar->checkin('items.checkin')->listCheck(true);
         }
 
-        if ($canDo->get('core.admin')) {
+        // Emptying the trash is a delete, whatever the user may do to states.
+        if ($this->state->get('filter.state') == AlfaComponent::CONDITION_TRASHED && $canDelete) {
+            $toolbar->delete('items.delete')
+                ->text('JTOOLBAR_EMPTY_TRASH')
+                ->message('JGLOBAL_CONFIRM_DELETE')
+                ->listCheck(true);
+        }
+
+        // Options are com_config's screen, which asks core.admin itself; the inventory audit and
+        // its repair actions answer to core.admin only.
+        if ($user->authorise('core.admin', 'com_alfa')) {
+            $toolbar->linkButton('inventory-audit')
+                ->text('COM_ALFA_TOOLBAR_INVENTORY_AUDIT')
+                ->url(Route::_(url: 'index.php?option=com_alfa&view=inventoryaudit'))
+                ->icon('icon-search');
+
             $toolbar->preferences('com_alfa');
         }
+
+        TourHelper::toolbarHelp($toolbar, $this->getName());
         \Alfa\Component\Alfa\Administrator\Helper\NotificationHelper::toolbarBadge($toolbar);
     }
 }

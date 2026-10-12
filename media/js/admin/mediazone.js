@@ -3,73 +3,72 @@
  * @subpackage  com_alfa
  * @version     1.0.2
  *
- * Media Manager — handles drag-and-drop uploads, media picker integration,
+ * Media Manager: handles drag-and-drop uploads, media picker integration,
  * URL insertion, sortable grid, thumbnails, and delete actions.
  */
 
 (function () {
     'use strict';
 
-    window.MediaManagerDebug = true;
 
     const MediaManager = {
 
         config: {
-            // ── Containers ──
+            // Containers
             gridSelector:               '#media-grid',
             dropzoneSelector:           '.media-dropzone-inner',
             dropzoneOverlaySelector:    '.media-dropzone-overlay',
             formSelector:               '.adminForm',
 
-            // ── Media card ──
+            // Media card
             cardSelector:               '.media-card',
             deleteButtonSelector:       '.media-btn-delete',
             deleteFlagSelector:         '.media-delete-flag',
             sourceInputSelector:        '.media-source-input',
             cardErrorContainerSelector:    '.errors-container',
 
-            // ── Thumbnail ──
+            // Thumbnail
             thumbnailInputSelector:     '.media-thumbnail-input',
             thumbnailImageSelector:     '.media-thumbnail-img',
             thumbnailButtonSelector:    '.media-thumbnail-btn',
             thumbnailPickerInputSelector: '.media-thumbnail-picker-input',
             thumbnailOpenBtnSelector:   '#media-thumbnail-open-btn',
 
-            // ── Media picker (library) ──
+            // Media picker (library)
             pickerInputSelector:        '#media-picker-input',
             pickerOpenBtnSelector:      '#media-picker-open-btn',
 
-            // ── File input (drag & drop) ──
+            // File input (drag & drop)
             fileInputSelector:          '#media-file-input',
 
-            // ── Toolbar ──
+            // Toolbar
             mediaOptionsDropdownButton: '.button-media-actions',
             selectLibraryBtnSelector:   '.media-action-select-media',
 
-            // ── URL modal ──
+            // URL modal
             urlModalSelector:           '#selectUrlModal',
             urlInputSelector:           '#media-url-input',
             urlErrorSelector:           '#media-url-error',
             urlSubmitSelector:          '#media-url-submit',
             urlThumbnailBtnSelector:    '.media-url-thumbnail-btn',
 
-            // ── Placeholder ──
+            // Placeholder
             placeholderSelector:        '.media-placeholder',
 
-            // ── AJAX ──
+            // AJAX
             ajaxEndpoint: 'index.php?option=com_alfa&task=media.getSource&format=json',
 
-            // ── Validation ──
+            // Validation
             maxFileSize: 5 * 1024 * 1024,
             allowedMimes: Joomla.getOptions('com_alfa.mimes'),
 
-            // ── Allow Multiple Media ──
+            // Allow Multiple Media
             allowMultiple: Joomla.getOptions('com_alfa.multiple'),
 
-            // ── Allowed Types ──
+            // Allowed Types
             allowedTypes: Joomla.getOptions('com_alfa.types'),
 
-            // ── Sortable ──
+            // Sortable
             sortableOptions: {
                 draggable:  '.media-card',
                 handle:     '.drag-handle',
@@ -79,10 +78,10 @@
                 dragClass:   'sortable-drag',
             },
 
-            // ── Deleted Card CSS class ──
+            // Deleted Card CSS class
             deletedCardClass: 'is-deleted',
 
-            // ── Messages ──
+            // Messages
             messages: {
                 deleteConfirm:          'COM_ALFA_MEDIA_DELETE_CONFIRM',
                 noValidFiles:           'COM_ALFA_MEDIA_NO_VALID_FILES',
@@ -98,9 +97,7 @@
         sortableInstance: null,
         basePath: '',
 
-        // =====================================================================
-        //  INIT
-        // =====================================================================
+        //  Init
 
         init() {
             if (window.MediaManagerConfig) {
@@ -151,14 +148,9 @@
 
             this.updateFileInputOrder();
 
-            if (window.MediaManagerDebug) {
-                console.log('[MediaManager] Initialized');
-            }
         },
 
-        // =====================================================================
-        //  UTILITIES
-        // =====================================================================
+        //  Utilities
 
         deepMerge(target, source) {
             const output = Object.assign({}, target);
@@ -212,9 +204,7 @@
             }
         },
 
-        // =====================================================================
-        //  DROP AREA
-        // =====================================================================
+        //  Drop area
 
         setupDropArea() {
             const dropzone = document.querySelector(this.config.dropzoneSelector);
@@ -310,9 +300,7 @@
             this.fetchMediaPreview(blobUrl, blobUrl, 'drop');
         },
 
-        // =====================================================================
         //  MEDIA PICKER (library)
-        // =====================================================================
 
         setupMediaPicker() {
             const toolbarBtn = document.querySelector(this.config.selectLibraryBtnSelector);
@@ -344,9 +332,7 @@
             this.fetchMediaPreview(path, path, 'picker');
         },
 
-        // =====================================================================
-        //  SORTABLE
-        // =====================================================================
+        //  Sortable
 
         setupSortable() {
             const container = document.querySelector(this.config.gridSelector);
@@ -359,16 +345,11 @@
                 onEnd: (evt) => {
                     this.updateFileInputOrder();
 
-                    if (window.MediaManagerDebug) {
-                        console.log('[MediaManager] Reordered:', evt.oldIndex, '→', evt.newIndex);
-                    }
                 },
             });
         },
 
-        // =====================================================================
-        //  DELETE
-        // =====================================================================
+        //  Delete
 
         setupDeleteHandlers() {
             const container = document.querySelector(this.config.gridSelector);
@@ -403,9 +384,7 @@
             });
         },
 
-        // =====================================================================
-        //  THUMBNAIL PICKER
-        // =====================================================================
+        //  Thumbnail picker
 
         setupThumbnailPicker() {
             const sharedInput = document.querySelector(this.config.thumbnailPickerInputSelector);
@@ -448,9 +427,7 @@
             });
         },
 
-        // =====================================================================
-        //  URL MODAL
-        // =====================================================================
+        //  URL modal
 
         setupUrlModal() {
             const modalEl      = document.querySelector(this.config.urlModalSelector);
@@ -494,6 +471,8 @@
                 formData.append('type', 'url');
                 formData.append('url', urlInput.value);
                 formData.append('thumbnail', pickerInput ? pickerInput.value : '');
+                const urlToken = Joomla.getOptions('csrf.token', '');
+                if (urlToken) formData.append(urlToken, '1');
 
                 fetch(this.config.ajaxEndpoint, {
                     method: 'POST',
@@ -517,9 +496,7 @@
             });
         },
 
-        // =====================================================================
-        //  MEDIA ERROR HANDLING
-        // =====================================================================
+        //  Media error handling
 
         mediaErrorHandler() {
             const mediaThumbnails = document.querySelectorAll(this.config.thumbnailImageSelector);
@@ -571,9 +548,7 @@
             });
         },
 
-        // =====================================================================
-        //  MEDIA UPLOAD LIMITER
-        // =====================================================================
+        //  Media upload limiter
 
         mediaLimiter() {
             const inputs = document.querySelectorAll('input[name^="jform[media]"][name$="[type]"]');
@@ -603,15 +578,15 @@
             return availableSlots;
         },
 
-        // =====================================================================
-        //  PREVIEW / GRID HELPERS
-        // =====================================================================
+        //  Preview / grid helpers
 
         fetchMediaPreview(mediaData, identifier, type) {
             const formData = new FormData();
             formData.append('mediaData', mediaData);
             formData.append('identifier', identifier);
             formData.append('type', type);
+            const token = Joomla.getOptions('csrf.token', '');
+            if (token) formData.append(token, '1');
 
             fetch(this.config.ajaxEndpoint, {
                 method: 'POST',
@@ -672,9 +647,6 @@
 
             hiddenInput.files = dataTransfer.files;
 
-            if (window.MediaManagerDebug) {
-                console.log('[MediaManager] File input synced. Total files:', hiddenInput.files.length);
-            }
         },
 
         updatePlaceholder() {
@@ -694,9 +666,7 @@
             }
         },
 
-        // =====================================================================
-        //  CLEANUP
-        // =====================================================================
+        //  Cleanup
 
         destroy() {
             if (this.sortableInstance) {

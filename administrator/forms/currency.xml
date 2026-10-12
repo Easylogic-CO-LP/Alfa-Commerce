@@ -10,7 +10,7 @@
 
     <!-- Decimal Separator Field -->
     <field
-            name="decimal_symbol"
+            name="decimal_separator"
             type="text"
             label="COM_ALFA_FORM_LBL_DECIMAL_SEPARATOR"
             description="COM_ALFA_FORM_DESC_DECIMAL_SEPARATOR"
@@ -36,13 +36,13 @@
             description="COM_ALFA_FORM_DESC_DECIMAL_PLACES"
             default="2"
             min="0"
-            max="10"
+            max="8"
     />
 
     <field
             name="format_pattern"
             type="text"
-            default="{price}{symbol}"
+            default="{number}{symbol}"
             label="COM_ALFA_FORM_LBL_FORMAT_PATTERN"
             description="COM_ALFA_FORM_DESC_FORMAT_PATTERN"
     />
@@ -95,6 +95,5 @@
             validate="UserId"
     />
 
-    <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL" description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>
   </fieldset>
 </form>

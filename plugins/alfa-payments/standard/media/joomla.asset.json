@@ -1,0 +1,19 @@
+{
+  "$schema": "https://developer.joomla.org/schemas/json-schema/web_assets.json",
+  "description": "Action-page assets for plg_alfa-payments_standard",
+  "name": "plg_alfa-payments_standard",
+  "version": "1.0.0",
+  "assets": [
+    {
+      "name": "plg_alfa-payments_standard.refund-partial",
+      "type": "script",
+      "uri": "plg_alfa-payments_standard/refund-partial.js",
+      "dependencies": [
+        "com_alfa.action-page"
+      ],
+      "attributes": {
+        "defer": true
+      }
+    }
+  ]
+}

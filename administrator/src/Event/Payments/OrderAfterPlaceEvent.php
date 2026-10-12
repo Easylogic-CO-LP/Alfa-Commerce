@@ -9,31 +9,19 @@
 
 namespace Alfa\Component\Alfa\Administrator\Event\Payments;
 
+use Alfa\Component\Alfa\Site\Service\Order\Order;
+
 class OrderAfterPlaceEvent extends PaymentsEvent
 {
     /**
-     * Get the order/cart subject carried by the event.
+     * The persisted order, as placement loaded it after the commit.
      *
-     * @return mixed The order or cart object
-     *
-     * @since  1.0.0
-     */
-    public function getOrder()
-    {
-        return $this->getSubject();
-    }
-
-    /**
-     * Replace the order subject carried by the event.
-     *
-     * @param mixed $order The order object
-     *
-     * @return void
+     * @return object
      *
      * @since  1.0.0
      */
-    public function setOrder($order)
+    public function getOrder(): Order
     {
-        $this->setArgument('subject', $order);
+        return Order::of($this->getSubject());
     }
 }

@@ -1,0 +1,63 @@
+/**
+ * User info view: saved details list + edit form. Structural only;
+ * hairlines and accents come from the shared tokens.
+ */
+.com-alfa-userinfo {
+    max-width: 640px;
+}
+
+.com-alfa-userinfo .userinfo-list {
+    list-style: none;
+    margin: 1rem 0 0;
+    padding: 0;
+    border: 1px solid var(--alfa-hairline);
+}
+
+.com-alfa-userinfo .userinfo-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 0.9rem;
+    border-bottom: 1px solid var(--alfa-hairline);
+}
+
+.com-alfa-userinfo .userinfo-row:last-child {
+    border-bottom: 0;
+}
+
+.com-alfa-userinfo .userinfo-row.is-editing {
+    border-inline-start: 3px solid var(--alfa-action-primary-bg);
+    padding-inline-start: calc(0.9rem - 3px);
+}
+
+.com-alfa-userinfo .userinfo-row-label {
+    flex: 1 1 12rem;
+    min-width: 0;
+}
+
+.com-alfa-userinfo .userinfo-row-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-inline-start: auto;
+}
+
+.com-alfa-userinfo .userinfo-row-delete {
+    margin: 0;
+}
+
+.com-alfa-userinfo .userinfo-empty {
+    opacity: 0.7;
+}
+
+.com-alfa-userinfo .userinfo-form-section {
+    margin-top: 2rem;
+}
+
+.com-alfa-userinfo .userinfo-form-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+}

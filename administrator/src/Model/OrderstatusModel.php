@@ -12,13 +12,15 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 // No direct access.
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\Language\LanguageHelper;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\MVC\Model\AdminModel;
+use Joomla\CMS\Log\Log;
 
 /**
  * Admin model for a single order-status row.
@@ -26,28 +28,44 @@ use Joomla\CMS\MVC\Model\AdminModel;
  * Holds the form, the multilingual sync (via MultilingualHelper) and
  * the role-flag invariants on `#__alfa_orders_statuses`:
  *
- *   • is_initial   — singleton: exactly one holder, kept that way by
+ *   - is_initial   - singleton: exactly one holder, kept that way by
  *                    the post-save enforcer.
- *   • is_cancelled — multi-row family (Returned, Refunded, Cancelled).
- *   • is_completed — multi-row family (Delivered, Picked up, Paid).
+ *   - is_cancelled - multi-row family (Returned, Refunded, Cancelled).
+ *   - is_completed - multi-row family (Delivered, Picked up, Paid).
  *
  * Guards read state through OrderStatusHelper::getAll() (request-cached),
  * so checks add one DB roundtrip per request, not per call.
  *
- *   canSaveStatus()      → Save would not (a) put two roles on one row
+ *   canSaveStatus()      -> Save would not (a) put two roles on one row
  *                           or (b) drop the last published holder of a
  *                           role.
- *   removableStatuses()  → Bulk delete / unpublish: returns the subset
+ *   removableStatuses()  -> Bulk delete / unpublish: returns the subset
  *                           of submitted PKs that's safe to remove
  *                           (admin sees a warning per skipped row, the
  *                           rest still process).
- *   clearSingletonStatusOnOtherRows() → post-save side effect that
+ *   clearSingletonStatusOnOtherRows() -> post-save side effect that
  *                           keeps is_initial at exactly one holder.
  *
  * @since  1.0.0
  */
-class OrderstatusModel extends AdminModel
+class OrderstatusModel extends AlfaAdminModel
 {
+    /**
+     * @var string The entity a plugin targets with $context->targets('orderstatus').
+     * @since  1.8.0
+     */
+    protected string $alfaEntity = 'orderstatus';
+
+    /**
+     * CONTRACT COVERAGE NOTES (decided at migration):
+     * - save(): the role-invariant guard (canSaveStatus) returns before parent::save(),
+     *   so the onAlfaAdminValidate/BeforeSave/AfterSave bracket fires only for saves
+     *   that pass the guard: a vetoed save never touches the DB, nothing to observe.
+     * - delete(): the last-role-holder and in-use guards return before parent::delete(),
+     *   so the contract's delete bracket fires only when rows actually reach the table.
+     * - publish() is not a contract seam; its guard stays as-is.
+     */
+
     /**
      * Content-history alias used by Joomla's UCM layer.
      *
@@ -56,7 +74,7 @@ class OrderstatusModel extends AdminModel
     public $typeAlias = 'com_alfa.orderstatus';
 
     /**
-     * Form id — matches `forms/orderstatus.xml`.
+     * Form id: matches `forms/orderstatus.xml`.
      *
      * @var string
      */
@@ -64,7 +82,7 @@ class OrderstatusModel extends AdminModel
 
     /**
      * Role flags. A row may hold at most ONE of these (within-row
-     * exclusion); each one is mandatory ≥1 published holder once
+     * exclusion); each one is mandatory >=1 published holder once
      * first nominated.
      *
      * @var string[]
@@ -81,7 +99,7 @@ class OrderstatusModel extends AdminModel
     private const SINGLETON_FLAGS = ['is_initial'];
 
     /**
-     * Role flag → language key for the human-readable role name,
+     * Role flag -> language key for the human-readable role name,
      * sprintf'd into warning messages so admins see "Cancellation"
      * rather than "is_cancelled".
      *
@@ -130,7 +148,11 @@ class OrderstatusModel extends AdminModel
      */
     protected function loadFormData()
     {
-        $data = Factory::getApplication()->getUserState('com_alfa.edit.orderstatus.data', []);
+        // A post kept for another record never fills this one (KeptPost).
+        $data = KeptPost::forRecord(
+            stateKey: 'com_alfa.edit.orderstatus.data',
+            recordId: (int) $this->getState($this->getName() . '.id'),
+        );
 
         if (empty($data)) {
             if ($this->item === null) {
@@ -220,7 +242,7 @@ class OrderstatusModel extends AdminModel
     /**
      * Replace the admin recipient set for a status with $userIds.
      *
-     * Delete-then-insert pattern — simpler than diffing for a small
+     * Delete-then-insert pattern: simpler than diffing for a small
      * recipient list. PRIMARY KEY (id_orderstatus, id_user) prevents
      * duplicates if $userIds itself contains repeats (extractAdminRecipientIds
      * already de-duplicates, this is just belt-and-suspenders).
@@ -271,11 +293,11 @@ class OrderstatusModel extends AdminModel
      * JSON value per language under the key MultilingualHelper expects.
      *
      * The EmailPositionsField in `forms/orderstatus.xml` submits one
-     * key per language × position:
+     * key per language x position:
      *   jform[email_positions_customer_en_gb_subject]
      *   jform[email_positions_customer_en_gb_header]
      *   jform[email_positions_customer_en_gb_body]
-     *   …
+     *   ...
      *
      * MultilingualHelper::saveMultilingualData() recognises per-language
      * keys by the `_<langCode>` suffix (str_ends_with), so we collect
@@ -298,7 +320,7 @@ class OrderstatusModel extends AdminModel
         $languages = LanguageHelper::getLanguages('lang_code') ?: [];
 
         foreach ($fields as $field) {
-            // Section show/hide flags are NOT per language — they post once as
+            // Section show/hide flags are NOT per language: they post once as
             // <field>_showstruct_<slug>. Harvest them up front and fan the
             // result into every language's JSON as _show_<slug>, so the flag
             // is present whichever language the email later renders in. (The
@@ -329,7 +351,7 @@ class OrderstatusModel extends AdminModel
 
                 // Harvest every posted key under this field+language prefix
                 // rather than a fixed position list. The remainder after the
-                // prefix is the position name — works for any layout's
+                // prefix is the position name; works for any layout's
                 // positions AND for stale slots EmailPositionsField re-rendered
                 // for migration. (Snapshot the keys first: we unset as we go.)
                 foreach (array_keys($data) as $key) {
@@ -384,11 +406,12 @@ class OrderstatusModel extends AdminModel
         $app = Factory::getApplication();
         $input = $app->getInput();
 
-        // The 'raw' filter keeps the per-language flat keys (name_en_gb,
-        // name_el_gr …) that the default 'array' filter strips before
-        // MultilingualHelper can pick them up.
+        // Recover the per-language flat keys (e.g. name_en_gb) and other undeclared
+        // keys the form filter drops, without overwriting any validated field or
+        // resurrecting the housekeeping fields the form unsets. Recovered
+        // per-language values are safehtml-cleaned like their base field.
         $rawData = $input->post->get('jform', [], 'raw');
-        $data = array_merge($data, $rawData);
+        $data = MultilingualHelper::mergeValidatedFormData($data, $rawData, $this->getForm($data, false));
 
         $pk = (int) ($data['id'] ?? $this->getState($this->getName() . '.id'));
         $isNew = $pk <= 0;
@@ -401,6 +424,19 @@ class OrderstatusModel extends AdminModel
         $adminRecipientIds = self::extractAdminRecipientIds(data: $data);
         unset($data['admin_recipient_ids']);
 
+        // Auto-issuance rule rows (subform) -> one JSON column. Normalised on
+        // every full form save (the delivery-note radio always posts), so
+        // removing the last row clears the stored rules too.
+        if (\array_key_exists('issues_delivery_note', $data)) {
+            $rules = $data['issues_doc_rules'] ?? [];
+
+            if (!\is_array($rules)) {
+                $rules = json_decode((string) $rules, true) ?: [];
+            }
+
+            $data['issues_doc_rules'] = json_encode(array_values($rules), JSON_UNESCAPED_UNICODE);
+        }
+
         if (!$this->canSaveStatus(data: $data, prev: $prev)) {
             return false;
         }
@@ -412,7 +448,7 @@ class OrderstatusModel extends AdminModel
         $currentId = $isNew ? (int) $this->getState($this->getName() . '.id') : $pk;
 
         // EmailPositionsField submits one flat key per
-        // language × position (`<field>_<langCode>_<position>`). Bundle
+        // language x position (`<field>_<langCode>_<position>`). Bundle
         // them into one JSON value per language under the `<field>_<langCode>`
         // key MultilingualHelper expects, so the saveMultilingualData
         // call below writes the JSON to the per-language column.
@@ -436,12 +472,12 @@ class OrderstatusModel extends AdminModel
     /**
      * Change the published state of one or more rows.
      *
-     * Re-publishing (state = 1) always passes — it adds a published
+     * Re-publishing (state = 1) always passes: it adds a published
      * holder. Any other target state goes through canRemoveStatuses()
      * with requireState = 1 so a transition that would leave a role
      * without a published holder is refused.
      *
-     * @param array $pks Row primary keys (by reference — Joomla).
+     * @param array $pks Row primary keys (by reference, Joomla).
      * @param int $value 1 published, 0 unpublished, 2 archived,
      *                   -2 trashed.
      *
@@ -452,6 +488,15 @@ class OrderstatusModel extends AdminModel
      */
     public function publish(&$pks, $value = 1)
     {
+        // Permission first: the role guard below names the statuses it keeps, which a user who
+        // may not change state must not be shown. Refused the way AdminModel::publish() refuses.
+        if (!AlfaHelper::can(section: $this->alfaEntity, action: 'edit.state', user: $this->getCurrentUser())) {
+            Log::add(Text::_('JLIB_APPLICATION_ERROR_EDITSTATE_NOT_PERMITTED'), Log::WARNING, 'jerror');
+            $pks = [];
+
+            return false;
+        }
+
         if ((int) $value !== 1) {
             $pks = $this->removableStatuses(
                 pks:          $pks,
@@ -476,12 +521,12 @@ class OrderstatusModel extends AdminModel
     /**
      * Delete one or more rows.
      *
-     * Blocks deletions that would orphan any role (≥1 holder must
-     * survive, regardless of state — a deleted row is gone) before
+     * Blocks deletions that would orphan any role (>=1 holder must
+     * survive, regardless of state: a deleted row is gone) before
      * delegating, then drops the matching per-language rows so the
      * language tables don't keep orphans.
      *
-     * @param array $pks Row primary keys (by reference — Joomla).
+     * @param array $pks Row primary keys (by reference, Joomla).
      *
      * @return bool True on success, false when the guard or the
      *              parent rejects.
@@ -490,6 +535,19 @@ class OrderstatusModel extends AdminModel
      */
     public function delete(&$pks)
     {
+        // Permission first: the role and in-use guards below read the statuses and their order
+        // counts and name them in their messages, which a user who may not delete must not see.
+        if (!AlfaHelper::can(section: $this->alfaEntity, action: 'delete', user: $this->getCurrentUser())) {
+            $this->setError(Text::_('JLIB_APPLICATION_ERROR_DELETE_NOT_PERMITTED'));
+            $pks = [];
+
+            return false;
+        }
+
+        // ApiController::delete() hands the model a SCALAR id; only
+        // parent::delete() normalises, and everything below runs before it.
+        $pks = (array) $pks;
+
         $pks = $this->removableStatuses(
             pks:        $pks,
             messageKey: 'COM_ALFA_ORDERSTATUS_DELETE_LAST_ROLE_HOLDER',
@@ -497,6 +555,28 @@ class OrderstatusModel extends AdminModel
 
         if (empty($pks)) {
             return false;
+        }
+
+        // IN-USE GUARD: a status referenced by orders is part of their
+        // record; reassign those orders first, then delete.
+        $db = $this->getDatabase();
+
+        foreach ($pks as $pk) {
+            $used = (int) $db->setQuery(
+                $db->getQuery(true)
+                    ->select('COUNT(*)')
+                    ->from($db->quoteName('#__alfa_orders'))
+                    ->where($db->quoteName('id_order_status') . ' = ' . (int) $pk),
+            )->loadResult();
+
+            if ($used > 0) {
+                Factory::getApplication()->enqueueMessage(
+                    Text::sprintf('COM_ALFA_ORDERSTATUS_DELETE_IN_USE', (int) $pk, $used),
+                    'error',
+                );
+
+                return false;
+            }
         }
 
         $result = parent::delete($pks);
@@ -519,7 +599,7 @@ class OrderstatusModel extends AdminModel
      * Drop every `#__alfa_orderstatus_recipients` row pointing at any of
      * the deleted status ids.
      *
-     * No FK to `#__alfa_orders_statuses` (MyISAM) — Joomla won't cascade
+     * No FK to `#__alfa_orders_statuses` (MyISAM); Joomla won't cascade
      * the rows away for us. Called by delete() once the parent removal
      * succeeded.
      *
@@ -565,16 +645,14 @@ class OrderstatusModel extends AdminModel
         parent::prepareTable($table);
     }
 
-    // ====================================================================
-    //  Invariant guards — read state via OrderStatusHelper::getAll().
-    // ====================================================================
+    //  Invariant guards: read state via OrderStatusHelper::getAll().
 
     /**
      * Can this save go through? Combines the two save-time invariants:
      *
      *   1. At most one role flag per row (within-row exclusion).
      *   2. The save doesn't drop the last published holder of a role
-     *      — checked only when $prev is set (existing rows). Catches
+     *      - checked only when $prev is set (existing rows). Catches
      *      both un-ticking the flag and unpublishing the row via the
      *      Status dropdown.
      *
@@ -588,7 +666,7 @@ class OrderstatusModel extends AdminModel
      */
     protected function canSaveStatus(array $data, ?object $prev): bool
     {
-        // Rule 1 — within-row exclusion.
+        // Rule 1: within-row exclusion.
         $rolesSet = array_filter(
             self::EXCLUSIVE_FLAGS,
             static fn (string $flag): bool => (int) ($data[$flag] ?? 0) === 1,
@@ -606,7 +684,7 @@ class OrderstatusModel extends AdminModel
             return false;
         }
 
-        // Rule 2 — only existing rows can orphan a role.
+        // Rule 2: only existing rows can orphan a role.
         if ($prev === null) {
             return true;
         }
@@ -658,8 +736,8 @@ class OrderstatusModel extends AdminModel
      * Shared by delete() and publish(): both remove rows from the
      * "active" set, the only difference is what "active" means:
      *
-     *   • delete:  exists at all          → $requireState = null
-     *   • publish: state = 1 (published)  → $requireState = 1
+     *   - delete:  exists at all          -> $requireState = null
+     *   - publish: state = 1 (published)  -> $requireState = 1
      *
      * Walks $pks in admin-selection order with a running holder count
      * per flag. If removing a row would drop a role's count to zero,
@@ -716,7 +794,7 @@ class OrderstatusModel extends AdminModel
             $row = OrderStatusHelper::getById($pk);
 
             if ($row === null) {
-                // Phantom PK — let the parent decide how to react.
+                // Phantom PK: let the parent decide how to react.
                 $approved[] = $pk;
                 continue;
             }
@@ -768,7 +846,7 @@ class OrderstatusModel extends AdminModel
      *
      * Called after `parent::save()` whenever the saved row claims a
      * singleton flag, so the "= 1" invariant holds. Multi-row flags
-     * are skipped — multiple statuses may carry them.
+     * are skipped: multiple statuses may carry them.
      *
      * @param int $currentId PK of the status just saved.
      * @param array $data Submitted form payload.

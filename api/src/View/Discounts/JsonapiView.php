@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Api\View\Discounts;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Api\View\PublishesStoredFigures;
 use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
 
 /**
@@ -20,6 +21,8 @@ use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
  */
 class JsonApiView extends BaseApiView
 {
+    use PublishesStoredFigures;
+
     /**
      * The fields to render item in the documents
      *
@@ -28,12 +31,22 @@ class JsonApiView extends BaseApiView
      */
     protected $fieldsToRenderItem = [
         'id',
-        'state',
         'name',
-        'desc',
+        'name_customer',
         'value',
         'is_amount',
         'behavior',
+        'apply_before_tax',
+        'state',
+        'categories',
+        'manufacturers',
+        'places',
+        'users',
+        'usergroups',
+        'publish_up',
+        'publish_down',
+        'ordering',
+        'translations',
     ];
 
     /**
@@ -44,11 +57,35 @@ class JsonApiView extends BaseApiView
      */
     protected $fieldsToRenderList = [
         'id',
-        'state',
         'name',
-        'desc',
         'value',
         'is_amount',
         'behavior',
+        'apply_before_tax',
+        'state',
+        'ordering',
+        'publish_up',
+        'publish_down',
     ];
+
+    /**
+     * A discount's value as exact decimal text: an amount in the shop's default
+     * currency at its scale, a percentage as its own digits.
+     *
+     * @param object $item The discount.
+     *
+     * @return object
+     *
+     * @since  1.14.0
+     */
+    protected function prepareItem($item)
+    {
+        if (property_exists($item, 'value')) {
+            $item->value = (int) ($item->is_amount ?? 0) === 1
+                ? self::storedAmount(value: $item->value, scale: self::defaultScale())
+                : self::storedRate(value: $item->value);
+        }
+
+        return $item;
+    }
 }

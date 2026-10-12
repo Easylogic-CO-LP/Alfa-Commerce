@@ -5,8 +5,7 @@
  * Rendered from edit.php via $this->loadTemplate('user_popup').
  * Expects $this->linkedUser (bool) and $this->editUrl (string).
  *
- * @version    1.0.1
- * @package    Com_Alfa
+ * @package    Alfa Commerce
  */
 
 // No direct access.
@@ -20,15 +19,15 @@ if (!$this->linkedUser || !$this->editUrl) {
 }
 ?>
 
-<?php // ── Name + email ───────────────────────────────────────────────────── ?>
+<?php // Name + email?>
 <p class="mb-1">
-    <strong><?php echo $this->escape($this->item->joomla_name ?? '—'); ?></strong>
+    <strong><?php echo $this->escape($this->item->joomla_name ?? '-'); ?></strong>
     <span class="text-muted ms-2">
         <?php echo $this->escape($this->item->joomla_email ?? ''); ?>
     </span>
 </p>
 
-<?php // ── Trigger buttons ────────────────────────────────────────────────── ?>
+<?php // Trigger buttons?>
 <button type="button"
         class="btn btn-sm btn-outline-secondary"
         data-bs-toggle="modal"
@@ -46,7 +45,7 @@ $newTabUrl = $this->editUrl
     );
 ?>
 
-<?php // ── Modal ──────────────────────────────────────────────────────────── ?>
+<?php // Modal?>
 <?php
 echo HTMLHelper::_(
     'bootstrap.renderModal',
@@ -79,7 +78,7 @@ echo HTMLHelper::_(
 );
 ?>
 
-<?php // ── JS ─────────────────────────────────────────────────────────────── ?>
+<?php // JS?>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
 

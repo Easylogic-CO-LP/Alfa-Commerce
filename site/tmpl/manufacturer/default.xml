@@ -9,7 +9,7 @@
         <fieldset
                 name="request"
                 label="COM_ALFA_FIELDSET_MANUFACTURER_ID_SELECT_LABEL">
-            <!-- type="model" → Alfa ModelField (language-resolved manufacturer names). -->
+            <!-- type="model" -> Alfa ModelField (language-resolved manufacturer names). -->
             <field
                     name="id"
                     type="model"

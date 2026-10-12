@@ -13,15 +13,19 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 defined('_JEXEC') or die;
 
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
-use Joomla\CMS\MVC\Model\ListModel;
 
 /**
  * Methods supporting a list of Currencies records.
  *
  * @since  1.0.0
  */
-class CurrenciesModel extends ListModel
+class CurrenciesModel extends AlfaListModel
 {
+    /**
+     * @var string The entity a plugin targets with $context->targets('currency').
+     * @since  1.8.0
+     */
+    protected string $alfaEntity = 'currency';
     /**
     * Constructor.
     *

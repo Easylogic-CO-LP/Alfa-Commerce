@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+
+    <field name="name" type="MultilingualText"
+           multilingual_table="#__alfa_item_fields" multilingual_pk="id_item_field"
+           maxlength="400" filter="safehtml" required="true" translateLabel="true"
+           label="COM_ALFA_FORM_LBL_ITEMFIELD_NAME" description="COM_ALFA_FORM_DESC_ITEMFIELD_NAME"
+           hint="COM_ALFA_FORM_LBL_ITEMFIELD_NAME"/>
+
+    <fieldset name="general">
+
+        <field
+                name="type"
+                type="type"
+                label="COM_ALFA_FORM_LBL_TYPE_IS"
+                default="choice"
+                required="true"
+                list_value="name"
+                list_text="name"
+                plugin_type="itemfields"
+        />
+
+        <field
+                name="field_name"
+                type="text"
+                label="COM_ALFA_FORM_LBL_FIELD_NAME"
+                hint="JFIELD_NAME_PLACEHOLDER"
+                required="false"
+        />
+
+        <field
+                name="description"
+                type="MultilingualTextarea"
+                multilingual_table="#__alfa_item_fields"
+                multilingual_pk="id_item_field"
+                label="COM_ALFA_FORM_LBL_ITEMFIELD_DESCRIPTION"
+                rows="3"
+                required="false"
+        />
+
+        <field name="informational" type="radio"
+               layout="joomla.form.field.radio.switcher"
+               label="COM_ALFA_FORM_LBL_ITEMFIELD_INFORMATIONAL"
+               description="COM_ALFA_FORM_DESC_ITEMFIELD_INFORMATIONAL"
+               default="0">
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <!-- Hidden for informational fields: a spec is read, never picked, so it
+             can never be required (ItemConfigurationHelper::isFieldRequired). -->
+        <field name="required" type="radio"
+               layout="joomla.form.field.radio.switcher"
+               label="COM_ALFA_FORM_LBL_REQUIRED"
+               description="COM_ALFA_FORM_DESC_ITEMFIELD_REQUIRED"
+               showon="informational:0"
+               default="0">
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <field name="filterable" type="radio"
+               layout="joomla.form.field.radio.switcher"
+               label="COM_ALFA_FORM_LBL_ITEMFIELD_FILTERABLE"
+               description="COM_ALFA_FORM_DESC_ITEMFIELD_FILTERABLE"
+               default="0">
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <field name="searchable" type="radio"
+               layout="joomla.form.field.radio.switcher"
+               label="COM_ALFA_FORM_LBL_ITEMFIELD_SEARCHABLE"
+               description="COM_ALFA_FORM_DESC_ITEMFIELD_SEARCHABLE"
+               default="0">
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <field name="show_on_listing" type="radio"
+               layout="joomla.form.field.radio.switcher"
+               label="COM_ALFA_FORM_LBL_ITEMFIELD_SHOW_ON_LISTING"
+               description="COM_ALFA_FORM_DESC_ITEMFIELD_SHOW_ON_LISTING"
+               default="0">
+            <option value="0">JNO</option>
+            <option value="1">JYES</option>
+        </field>
+
+        <!-- Alfa CategoriesField (model-backed, language-resolved names).
+             Empty selection = the field is available in ALL categories. -->
+        <field name="categories" type="categories"
+               label="COM_ALFA_FORM_LBL_ITEMFIELD_CATEGORIES"
+               description="COM_ALFA_FORM_DESC_ITEMFIELD_CATEGORIES"
+               layout="joomla.form.field.list-fancy-select"
+               multiple="true" showPath="true"/>
+
+    </fieldset>
+
+    <fieldset name="publish">
+        <field name="state" default="1" type="list" label="JSTATUS" description="JFIELD_PUBLISHED_DESC" class="inputbox"
+               size="1">
+            <option value="1">JPUBLISHED</option>
+            <option value="0">JUNPUBLISHED</option>
+            <option value="2">JARCHIVED</option>
+            <option value="-2">JTRASHED</option>
+        </field>
+
+        <field
+                name="created_by"
+                type="user"
+                label="JGLOBAL_FIELD_CREATED_BY_LABEL"
+                validate="UserId"
+        />
+
+        <field
+                name="modified_by"
+                type="user"
+                label="JGLOBAL_FIELD_MODIFIED_BY_LABEL"
+                class="readonly"
+                readonly="true"
+                filter="unset"
+                validate="UserId"
+        />
+
+        <field name="id" type="text" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
+
+    </fieldset>
+
+    <field name="ordering"/>
+    <field name="checked_out" type="hidden" filter="unset"/>
+    <field name="checked_out_time" type="hidden" filter="unset"/>
+
+    <!-- VISIBILITY: when is this field active on the item page -
+         a showon rule built with the shared builder, plus the effect
+         (hide/disable) when inactive. Stored in params (showon,
+         showon_effect); items can override per assignment. Rendered
+         manually as its own tab in tmpl/itemfield/edit.php. -->
+    <field name="showon_effect" type="list" default="hide"
+           label="COM_ALFA_FORM_LBL_ITEMFIELD_SHOWON_EFFECT"
+           description="COM_ALFA_FORM_DESC_ITEMFIELD_SHOWON_EFFECT">
+        <option value="hide">COM_ALFA_ITEMFIELD_SHOWON_EFFECT_HIDE</option>
+        <option value="disable">COM_ALFA_ITEMFIELD_SHOWON_EFFECT_DISABLE</option>
+    </field>
+
+    <field name="showon" type="showon" source="itemfields"
+           label="COM_ALFA_SHOWON_LBL"
+           description="COM_ALFA_SHOWON_DESC"
+           hiddenLabel="true"/>
+    <!-- /Visibility -->
+
+</form>

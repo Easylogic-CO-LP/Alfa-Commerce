@@ -52,8 +52,16 @@ class HtmlView extends BaseHtmlView
         $this->pagination = $this->get('Pagination');
         $this->params = $app->getParams('com_alfa');
 
+        // Alternative main layout: explicit menu/request layout wins, otherwise the
+        // menu-merged params (menu item, then global config) decide.
+        if ($this->getLayout() === 'default' && ($layout = $this->params->get('manufacturers_layout'))) {
+            $this->setLayout($layout);
+        }
+
         // Whether the filter panel shows here (global default, overridable per menu item).
-        $this->showFilters = (bool) $this->params->get('show_manufacturers_filters', 1);
+        // OFF by default, same reasoning as the items listing: most storefronts
+        // surface filtering through a module rather than an inline bar.
+        $this->showFilters = (bool) $this->params->get('show_manufacturers_filters', 0);
         $this->filterForm = $this->get('FilterForm');
         $this->activeFilters = $this->get('ActiveFilters');
 

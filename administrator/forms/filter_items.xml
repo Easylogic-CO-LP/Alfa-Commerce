@@ -2,7 +2,8 @@
 <form >
     <fields name="filter" addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
         <field name="search" type="text" description="COM_ALFA_SEARCH_FILTER_SUBMIT"
-               label="COM_USERS_FILTER_SEARCH_DESC"
+               label="COM_ALFA_FILTER_SEARCH_LABEL"
+               hint="COM_ALFA_ITEMS_SEARCH_PLACEHOLDER"
                class="js-stools-search-string" />
 
         <field name="state"
@@ -14,15 +15,27 @@
             <option value="">JOPTION_SELECT_PUBLISHED</option>
         </field>
 
+        <!-- Stock position, with the dashboard's definitions (ItemsModel::applyStockFilter):
+             its "Running low" and "Out of stock" tiles land here. -->
+        <field name="stock"
+               type="list"
+               label="COM_ALFA_FILTER_STOCK"
+               layout="joomla.form.field.list-fancy-select"
+               onchange="this.form.submit();"
+        >
+            <option value="">COM_ALFA_FILTER_STOCK_ANY</option>
+            <option value="in">COM_ALFA_FILTER_STOCK_IN</option>
+            <option value="low">COM_ALFA_FILTER_STOCK_LOW</option>
+            <option value="out">COM_ALFA_FILTER_STOCK_OUT</option>
+        </field>
         <field name="category"
                type="categories"
                multiple="true"
                label="COM_ALFA_TITLE_CATEGORIES"
+               hint="COM_ALFA_FILTER_SELECT_CATEGORY"
                layout="joomla.form.field.list-fancy-select"
                onchange="this.form.submit();"
-        >
-            <option value="">COM_ALFA_FILTER_SELECT_CATEGORY</option>
-        </field>
+        />
 
         <field name="manufacturer"
                type="model"
@@ -31,11 +44,24 @@
                column_text="name"
                multiple="true"
                label="COM_ALFA_TITLE_MANUFACTURERS"
+               hint="COM_ALFA_FILTER_SELECT_MANUFACTURER"
                layout="joomla.form.field.list-fancy-select"
                onchange="this.form.submit();"
-        >
-            <option value="">COM_ALFA_FILTER_SELECT_MANUFACTURER</option>
-        </field>
+        />
+
+        <!-- Item-field facets (Size, Color, ...)
+             The SAME field type and the SAME filter[fields][<id>][] contract the
+             storefront uses, in admin scope: values come from the projection, so
+             every field the catalogue actually uses is listed, including ones
+             that have since been unpublished, which are exactly the ones a
+             merchant needs to hunt down. "Used by N items" on the Item fields
+             list links straight in here.
+        -->
+        <field name="fields"
+               type="Itemfieldsfilter"
+               scope="admin"
+               label="COM_ALFA_FILTER_FIELDS_LBL"
+        />
 
     </fields>
 
@@ -49,7 +75,7 @@
                default="a.id DESC"
         >
             <option value="">JGLOBAL_SORT_BY</option>
-            <option value="a.state ASC">COM_ALFA_STATE_ASC</option><option value="a.state DESC">COM_ALFA_STATE_DESC</option><option value="a.ordering ASC">COM_ALFA_ORDERING_ASC</option><option value="a.ordering DESC">COM_ALFA_ORDERING_DESC</option><option value="a.name ASC">COM_ALFA_NAME_ASC</option><option value="a.name DESC">COM_ALFA_NAME_DESC</option><option value="a.id ASC">COM_ALFA_ID_ASC</option><option value="a.id DESC">COM_ALFA_ID_DESC</option><option value="a.sku ASC">COM_ALFA_SKU_ASC</option><option value="a.sku DESC">COM_ALFA_SKU_DESC</option><option value="a.stock ASC">COM_ALFA_STOCK_ASC</option><option value="a.stock DESC">COM_ALFA_STOCK_DESC</option>
+            <option value="a.state ASC">COM_ALFA_STATE_ASC</option><option value="a.state DESC">COM_ALFA_STATE_DESC</option><option value="a.ordering ASC">COM_ALFA_ORDERING_ASC</option><option value="a.ordering DESC">COM_ALFA_ORDERING_DESC</option><option value="name ASC">COM_ALFA_NAME_ASC</option><option value="name DESC">COM_ALFA_NAME_DESC</option><option value="a.id ASC">COM_ALFA_ID_ASC</option><option value="a.id DESC">COM_ALFA_ID_DESC</option><option value="a.sku ASC">COM_ALFA_SKU_ASC</option><option value="a.sku DESC">COM_ALFA_SKU_DESC</option><option value="a.stock ASC">COM_ALFA_STOCK_ASC</option><option value="a.stock DESC">COM_ALFA_STOCK_DESC</option>
 
         </field>
 

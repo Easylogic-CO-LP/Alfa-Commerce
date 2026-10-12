@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension type="module" client="site" method="upgrade">
+    <name>MOD_EASY_ARTICLES</name>
+    <author>Agamemnon Fakas</author>
+    <creationDate>2026-09-14</creationDate>
+    <copyright>(C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.</copyright>
+    <license>GNU General Public License version 3 or later; see LICENSE</license>
+    <authorEmail>info@easylogic.gr</authorEmail>
+    <version>1.0.0</version>
+    <description>MOD_EASY_ARTICLES_DESC</description>
+    <namespace path="src">Easy\Module\EasyArticles</namespace>
+    <files>
+        <folder module="mod_easy_articles">services</folder>
+        <folder>forms</folder>
+        <folder>layouts</folder>
+        <folder>src</folder>
+        <folder>tmpl</folder>
+    </files>
+    <media destination="mod_easy_articles" folder="media">
+        <filename>joomla.asset.json</filename>
+        <folder>js</folder>
+        <folder>css</folder>
+    </media>
+    <languages folder="language">
+        <language tag="en-GB">en-GB/mod_easy_articles.ini</language>
+        <language tag="en-GB">en-GB/mod_easy_articles.sys.ini</language>
+    </languages>
+
+    <config>
+        <fields name="params">
+            <fieldset name="basic">
+
+                <!-- The module IS its tabs: one row per tab, in display order. A single
+                     row renders as a plain list; two or more render a tab strip. -->
+                <field
+                        name="tabs"
+                        type="subform"
+                        formsource="modules/mod_easy_articles/forms/tab.xml"
+                        multiple="true"
+                        min="1"
+                        max="12"
+                        buttons="add,remove,move"
+                        layout="joomla.form.field.subform.repeatable"
+                        groupByFieldset="false"
+                        label="MOD_EASY_ARTICLES_TABS_LBL"
+                        description="MOD_EASY_ARTICLES_TABS_DESC"
+                />
+
+            </fieldset>
+
+            <fieldset name="style" label="MOD_EASY_ARTICLES_STYLE_FIELDSET">
+
+                <field type="note" name="style_note" label="MOD_EASY_ARTICLES_STYLE_NOTE" description="MOD_EASY_ARTICLES_STYLE_NOTE_DESC" class="alert alert-info"/>
+
+                <field type="note" name="style_look" label="MOD_EASY_ARTICLES_STYLE_GROUP_LOOK" heading="h3"/>
+                <field name="card" type="cardlook" level="module" filter="raw" addfieldprefix="Easy\Module\EasyArticles\Site\Field"
+                       label="MOD_EASY_ARTICLES_STYLE_GROUP_LOOK" hiddenLabel="true"/>
+
+                <field type="note" name="style_colours" label="MOD_EASY_ARTICLES_STYLE_GROUP_COLOURS" heading="h3"/>
+                <field name="style_surface" type="color" format="hex" default="" hint="#ffffff"
+                       label="MOD_EASY_ARTICLES_STYLE_SURFACE_LBL" description="MOD_EASY_ARTICLES_STYLE_SURFACE_DESC"/>
+                <field name="style_surface_dark" type="color" format="hex" default="" hint="#1f2937"
+                       label="MOD_EASY_ARTICLES_STYLE_SURFACE_DARK_LBL" description="MOD_EASY_ARTICLES_STYLE_SURFACE_DARK_DESC"/>
+                <field name="style_text" type="color" format="hex" default="" hint="inherit"
+                       label="MOD_EASY_ARTICLES_STYLE_TEXT_LBL" description="MOD_EASY_ARTICLES_STYLE_TEXT_DESC"/>
+                <field name="style_text_dark" type="color" format="hex" default="" hint="#e5e7eb"
+                       label="MOD_EASY_ARTICLES_STYLE_TEXT_DARK_LBL" description="MOD_EASY_ARTICLES_STYLE_TEXT_DARK_DESC"/>
+                <field name="style_muted" type="color" format="hex" default="" hint="#6b7280"
+                       label="MOD_EASY_ARTICLES_STYLE_MUTED_LBL" description="MOD_EASY_ARTICLES_STYLE_MUTED_DESC"/>
+                <field name="style_muted_dark" type="color" format="hex" default="" hint="#9ca3af"
+                       label="MOD_EASY_ARTICLES_STYLE_MUTED_DARK_LBL" description="MOD_EASY_ARTICLES_STYLE_MUTED_DARK_DESC"/>
+                <field name="style_hairline" type="color" format="hex" default="" hint="#e2e2e2"
+                       label="MOD_EASY_ARTICLES_STYLE_HAIRLINE_LBL" description="MOD_EASY_ARTICLES_STYLE_HAIRLINE_DESC"/>
+                <field name="style_hairline_dark" type="color" format="hex" default="" hint="#374151"
+                       label="MOD_EASY_ARTICLES_STYLE_HAIRLINE_DARK_LBL" description="MOD_EASY_ARTICLES_STYLE_HAIRLINE_DARK_DESC"/>
+                <field name="style_accent" type="color" format="hex" default="" hint="#333333"
+                       label="MOD_EASY_ARTICLES_STYLE_ACCENT_LBL" description="MOD_EASY_ARTICLES_STYLE_ACCENT_DESC"/>
+                <field name="style_accent_dark" type="color" format="hex" default="" hint="#e5e7eb"
+                       label="MOD_EASY_ARTICLES_STYLE_ACCENT_DARK_LBL" description="MOD_EASY_ARTICLES_STYLE_ACCENT_DARK_DESC"/>
+
+            </fieldset>
+
+            <fieldset name="advanced">
+
+                <field
+                        name="layout"
+                        type="modulelayout"
+                        label="JFIELD_ALT_LAYOUT_LABEL"
+                        class="form-select"
+                        validate="moduleLayout"
+                />
+
+                <field
+                        name="moduleclass_sfx"
+                        type="textarea"
+                        label="COM_MODULES_FIELD_MODULECLASS_SFX_LABEL"
+                        rows="3"
+                        validate="CssIdentifier"
+                />
+
+                <field name="custom_css" type="textarea" rows="8" filter="raw" class="font-monospace" hint="MOD_EASY_ARTICLES_CUSTOM_CSS_HINT"
+                       label="MOD_EASY_ARTICLES_CUSTOM_CSS_LBL" description="MOD_EASY_ARTICLES_CUSTOM_CSS_DESC"/>
+                <field name="custom_js" type="textarea" rows="8" filter="raw" class="font-monospace"
+                       label="MOD_EASY_ARTICLES_CUSTOM_JS_LBL" description="MOD_EASY_ARTICLES_CUSTOM_JS_DESC"/>
+
+                <field
+                        name="owncache"
+                        type="list"
+                        label="COM_MODULES_FIELD_CACHING_LABEL"
+                        default="1"
+                        filter="integer"
+                        validate="options"
+                >
+                    <option value="1">JGLOBAL_USE_GLOBAL</option>
+                    <option value="0">COM_MODULES_FIELD_VALUE_NOCACHING</option>
+                </field>
+
+                <field
+                        name="cache_time"
+                        type="number"
+                        label="COM_MODULES_FIELD_CACHE_TIME_LABEL"
+                        default="900"
+                        filter="integer"
+                />
+
+            </fieldset>
+        </fields>
+    </config>
+</extension>

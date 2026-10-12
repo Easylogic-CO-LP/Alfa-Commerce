@@ -11,9 +11,7 @@
  * Abstract base for all Alfa commerce plugins (payments, shipments, etc.).
  * Provides the shared logging system, utility methods, and plugin lifecycle.
  *
- * ═══════════════════════════════════════════════════════════════
- *  LOGGING SYSTEM
- * ═══════════════════════════════════════════════════════════════
+ *  Logging system
  *
  * Every plugin can maintain its own log table. The table schema is
  * defined in the plugin's params/logs.xml file. The system:
@@ -24,7 +22,7 @@
  *
  * Usage in any plugin:
  *
- *   // Write a log entry — pass only what you have
+ *   // Write a log entry: pass only what you have
  *   $logId = $this->log([
  *       'id_order'          => $order->id,
  *       'id_order_payment'  => $paymentId,
@@ -59,22 +57,63 @@
  *   // Get XML schema (for the logs view template)
  *   $xml = $this->getLogsSchema();
  *
- * ═══════════════════════════════════════════════════════════════
- *  LOG TABLE NAMING
- * ═══════════════════════════════════════════════════════════════
+ *  METHOD-LEVEL LOG (facts about a method, not about an order)
+ *
+ * A setup checkup, a connection check or a verified notification belongs to
+ * a payment or shipment METHOD. Such rows live in the same table with
+ * id_order = 0 and the method id in the family's method column
+ * (id_payment_method / id_shipment_method):
+ *
+ *   $this->logForMethod($methodId, ['action' => 'connection_check', 'note' => '...']);
+ *   $rows = $this->loadMethodLogs($methodId, ['action' => 'connection_check'], 1);
+ *
+ * Both create or complete the table themselves; never write id_order 0 or
+ * a negative id_order through log().
+ *
+ *  Log table naming
  *
  * Each plugin gets its own table:
  *   #__alfa_payments_standard_logs   (for plugin type=alfa-payments, name=standard)
  *   #__alfa_shipments_standard_logs  (for plugin type=alfa-shipments, name=standard)
- *   #__alfa_payments_stripe_logs     (for plugin type=alfa-payments, name=stripe)
+ *   #__alfa_payments_mygateway_logs  (for plugin type=alfa-payments, name=mygateway)
  *
  * Table has these mandatory columns:
  *   id              int AUTO_INCREMENT PRIMARY KEY
  *   id_order        int NOT NULL
+ *   {identifier}    int DEFAULT NULL       (logIdentifierField)
+ *   {method}        int NOT NULL DEFAULT 0 (logMethodField), indexed with
+ *                   action when the table has an action column
  *
- * Plus all columns defined in the plugin's params/logs.xml.
+ * Plus all columns defined in the plugin's params/logs.xml. A logs.xml
+ * field with the name of a mandatory column is ignored: core owns it.
  *
- * ═══════════════════════════════════════════════════════════════
+ * A failed write is never shown to a shopper. The detail goes to the
+ * plugin's text log (logCategory()); an administrator sees one generic
+ * message per request.
+ *
+ *  TEXT LOG FILE (Joomla Log, separate from the log TABLE above)
+ *
+ * The table above is the merchant-facing audit trail shown in the admin
+ * modal. The text file is the operator-facing one: CRITICAL lines a human
+ * has to act on ("reconcile manually"), written through Joomla's logger.
+ *
+ * Both are per plugin. Write to yours through the accessor, never a
+ * literal:
+ *
+ *   Log::add('My gateway: ...', Log::CRITICAL, $this->logCategory());
+ *
+ * The category is derived, so it cannot drift from the file:
+ *   type=alfa-payments  name=mygateway
+ *     -> category  com_alfa.payments.mygateway
+ *     -> file      administrator/logs/alfa_payments_mygateway.php
+ *
+ * PaymentsPlugin / ShipmentsPlugin register the logger in their
+ * constructors, so a gateway does not have to remember to, and a gateway
+ * that is not installed can no longer take another one's lines down with
+ * it. A SHARED category cannot do this: Joomla routes a message to every
+ * logger registered for its category, so one shared name means every
+ * plugin's lines land in whichever plugin happened to register first, and
+ * nowhere at all when that plugin is absent.
  *
  * Path: administrator/components/com_alfa/src/Plugin/Plugin.php
  *
@@ -83,11 +122,17 @@
 
 namespace Alfa\Component\Alfa\Administrator\Plugin;
 
+use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
+use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
+use Alfa\Component\Alfa\Site\Service\Place\PlaceTree;
 use Exception;
+use Joomla\CMS\Application\CMSApplicationInterface;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Log\Log;
 use Joomla\CMS\Plugin\CMSPlugin;
 use Joomla\Event\SubscriberInterface;
 use SimpleXMLElement;
+use Throwable;
 
 defined('_JEXEC') or die;
 
@@ -128,6 +173,25 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
     protected string $logIdentifierField = '';
 
     /**
+     * Method column of the log table, for method-level rows.
+     *
+     * Payment plugins set this to 'id_payment_method'.
+     * Shipment plugins set this to 'id_shipment_method'.
+     * Set by PaymentsPlugin / ShipmentsPlugin base classes. Empty means the
+     * family keeps no method-level log.
+     *
+     * @since  1.14.0
+     */
+    protected string $logMethodField = '';
+
+    /**
+     * Whether the generic log-failure message was already shown this request.
+     *
+     * @since  1.14.0
+     */
+    private bool $logFailureShown = false;
+
+    /**
      * Cached parsed logs.xml schema. Null = not loaded yet.
      *
      * @var SimpleXMLElement|null|false
@@ -163,9 +227,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
         $this->completePageUrl = 'index.php?option=com_alfa&view=cart&layout=default_order_completed';
     }
 
-    // ═════════════════════════════════════════════════════════
-    //  ABSTRACT HOOKS — Every plugin must implement
-    // ═════════════════════════════════════════════════════════
+    //  ABSTRACT HOOKS: Every plugin must implement
 
     /**
      * Cart display hook.
@@ -174,15 +236,14 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * Called during cart rendering for each active method.
      *
      * Available on $event:
-     *   $event->getCart()    → Cart object with items, totals, and user info
-     *   $event->getMethod()  → The payment/shipment method record
-     *   $event->setLayout('default_cart_view')   → Layout file in tmpl/
-     *   $event->setLayoutData([...])             → Data for the layout
+     *   $event->getRequest() -> MethodViewRequest: methodId, methodType,
+     *                          methodParams, isSelected, cartTotal (Money)
+     *   $event->setLayout('default_cart_view')   -> Layout file in tmpl/
+     *   $event->setLayoutData([...])             -> Data for the layout
      *
      * Usage example:
      * <code>
-     * $cart   = $event->getCart();
-     * $method = $event->getMethod();
+     * $request = $event->getRequest();
      *
      * $event->setLayout('default_cart_view');
      * $event->setLayoutData([
@@ -199,16 +260,56 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
     abstract public function onCartView($event): void;
 
     /**
+     * Cart assets hook: optional; a plugin with no script leaves it alone.
+     *
+     * WHERE A PANEL'S CODE IS DECLARED. Called once per plugin while the cart
+     * page is built (storefront cart and order builder), for every plugin that
+     * owns a published method (offered for this cart or not) and never
+     * inside an AJAX answer. Declared here, the script is on the page before
+     * the shopper's first click; declared in the layout, it is silently lost
+     * the first time that layout arrives over JSON.
+     *
+     * <code>
+     * $wa = $event->getWebAssetManager();
+     * $wa->getRegistry()->addRegistryFile('media/plg_alfa-shipments_x/joomla.asset.json');
+     * $wa->useScript('plg_alfa-shipments_x.cart')->useStyle('plg_alfa-shipments_x.cart');
+     *
+     * Text::script('PLG_ALFA_SHIPMENTS_X_SAVE_FAILED');
+     * $event->getDocument()->addScriptOptions('plg_alfa-shipments_x', ['saveUrl' => $url]);
+     * </code>
+     *
+     * Keep it to the plugin's own bootstrap: a heavy vendor SDK is that
+     * script's business to fetch on first use. Values that change during
+     * checkout (a chosen locker, an amount) belong on the panel as data
+     * attributes, where the JSON re-render refreshes them.
+     *
+     * Name dependencies only from registry files this hook adds itself, plus
+     * com_alfa's own (the cart pages register it): a dependency nobody
+     * registered is raised while the head is compiled, outside any plugin
+     * isolation, and takes the page down.
+     *
+     * @param object $event CartViewAssetsEvent
+     *                      $event->getWebAssetManager(), ->getDocument(),
+     *                      ->getKind(), ->getMethods()
+     *
+     *
+     * @since  1.10.0
+     */
+    public function onCartViewAssets($event): void
+    {
+    }
+
+    /**
      * Item display hook.
      *
      * Every plugin MUST set a layout, even if it is empty.
      * Called during product page rendering for each active method.
      *
      * Available on $event:
-     *   $event->getItem()    → The product item object
-     *   $event->getMethod()  → The payment/shipment method record
-     *   $event->setLayout('default_item_view')   → Layout file in tmpl/
-     *   $event->setLayoutData([...])             → Data for the layout
+     *   $event->getItem()    -> The product item object
+     *   $event->getMethod()  -> The payment/shipment method record
+     *   $event->setLayout('default_item_view')   -> Layout file in tmpl/
+     *   $event->setLayoutData([...])             -> Data for the layout
      *
      * Usage example:
      * <code>
@@ -229,18 +330,22 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      */
     abstract public function onItemView($event): void;
 
-    // ═════════════════════════════════════════════════════════
-    //  LOGGING — Public API
-    // ═════════════════════════════════════════════════════════
+    //  LOGGING: Public API
 
     /**
      * Write a log entry.
      *
-     * Pass only the fields you have — missing fields get defaults from logs.xml.
-     * If 'id' is set and non-empty, the row is UPDATED (REPLACE INTO).
-     * If 'id' is null/empty/0, a new row is INSERTED.
+     * INSERT (no 'id', or an empty one): the columns you pass are written and
+     * everything else takes its logs.xml default.
      *
-     * The 'id_order' field is REQUIRED.
+     * UPDATE (an 'id' that exists): ONLY the columns you pass are written.
+     * Every other column keeps the value it already had; defaults are NOT
+     * re-applied. So amending one field is genuinely one field:
+     *
+     *   $this->log(['id' => $logId, 'id_order' => $order->id, 'status' => 'refunded']);
+     *   // transaction_id, amount, created_on ... all untouched
+     *
+     * The 'id_order' field is REQUIRED either way.
      *
      * Examples:
      *
@@ -255,7 +360,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      *       'created_by'       => Factory::getApplication()->getIdentity()->id,
      *   ]);
      *
-     *   // Update an existing log (pass the id)
+     *   // Amend it later: only 'status' changes
      *   $this->log([
      *       'id'       => $logId,
      *       'id_order' => $order->id,
@@ -270,20 +375,183 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      */
     protected function log(array $data): int
     {
-        $app = $this->getApplication();
-
         // Validate required field
         if (empty($data['id_order'])) {
-            $app->enqueueMessage('log(): id_order is required', 'error');
+            $this->reportLogFailure('log(): id_order is required; the row was not written.');
 
             return 0;
         }
 
+        return $this->writeLogRow($data);
+    }
+
+    /**
+     * Write a METHOD-LEVEL log row: a fact about a payment or shipment method
+     * rather than about an order (a setup checkup, a connection check, a
+     * verified notification).
+     *
+     * The row is stored with id_order = 0 and $methodId in the family's
+     * method column (id_payment_method / id_shipment_method); both are set
+     * here and override anything $data carries for them. Every other column
+     * behaves as in log(): an insert fills what is not passed from the
+     * logs.xml defaults.
+     *
+     * Pass 'id' to amend an earlier method-level row of the SAME method; only
+     * the passed columns change. An id that is not a method-level row of this
+     * method is refused.
+     *
+     *   $this->logForMethod($methodId, [
+     *       'action'             => 'connection_check',
+     *       'transaction_status' => 'ok',
+     *       'note'               => 'Credentials accepted',
+     *   ]);
+     *
+     * The first call of a request creates or completes the log table when it
+     * lacks something, as log() does, and never inside an open transaction.
+     *
+     * @param int $methodId The payment/shipment method id (> 0).
+     * @param array $data Log data (key => value pairs matching logs.xml fields).
+     *
+     * @return int The inserted/updated log row ID, or 0 on failure.
+     *
+     * @since  1.14.0
+     */
+    protected function logForMethod(int $methodId, array $data): int
+    {
+        if ($methodId <= 0 || $this->logMethodField === '') {
+            $this->reportLogFailure(
+                'logForMethod(): ' . ($methodId <= 0 ? 'a positive method id is required' : 'this plugin family keeps no method-level log')
+                . '; the row was not written.',
+            );
+
+            return 0;
+        }
+
+        $data['id_order'] = 0;
+        $data[$this->logMethodField] = $methodId;
+
+        $logId = (int) ($data['id'] ?? 0);
+
+        if ($logId > 0 && !$this->isMethodLogRow($logId, $methodId)) {
+            $this->reportLogFailure(
+                'logForMethod(): row #' . $logId . ' is not a method-level row of method #' . $methodId . '; nothing was changed.',
+            );
+
+            return 0;
+        }
+
+        return $this->writeLogRow($data);
+    }
+
+    /**
+     * Read METHOD-LEVEL log rows of one method, newest first.
+     *
+     * Only rows written by logForMethod() (id_order = 0) are returned; the
+     * order-level rows of that method are loadLogs()'s business. Filters
+     * take the loadLogs() format:
+     *
+     *   // the latest connection check in sandbox
+     *   $last = $this->loadMethodLogs($methodId, [
+     *       'action'      => 'connection_check',
+     *       'environment' => 'sandbox',
+     *   ], 1)[0] ?? null;
+     *
+     * The first call of a request creates or completes the log table, so a
+     * missing table or method column reads as "nothing logged", never as an
+     * error. Inside an open transaction a table that lacks something is left
+     * as it is, and reads as "nothing logged" too.
+     *
+     * @param int $methodId The payment/shipment method id.
+     * @param array $filters Optional extra filters (see loadLogs()).
+     * @param int $limit Maximum rows; 0 = all.
+     *
+     * @return object[] The rows as objects; empty when there are none or the read failed.
+     *
+     * @since  1.14.0
+     */
+    protected function loadMethodLogs(int $methodId, array $filters = [], int $limit = 0): array
+    {
+        if ($methodId <= 0 || $this->logMethodField === '' || $this->getLogsDefaults() === null || !$this->ensureLogTable()) {
+            return [];
+        }
+
+        $db = Factory::getContainer()->get('DatabaseDriver');
+
+        try {
+            $query = $db->getQuery(true)
+                ->select('*')
+                ->from($db->quoteName($this->getLogTableName()))
+                ->where($db->quoteName('id_order') . ' = 0')
+                ->where($db->quoteName($this->logMethodField) . ' = ' . $methodId)
+                ->order($db->quoteName('id') . ' DESC');
+
+            $this->applyLogFilters($query, $filters, $db);
+
+            if ($limit > 0) {
+                $query->setLimit($limit);
+            }
+
+            return $db->setQuery($query)->loadObjectList() ?: [];
+        } catch (Throwable $e) {
+            $this->reportLogFailure(
+                'loadMethodLogs(): the method-level log of method #' . $methodId . ' could not be read ('
+                . $e->getCode() . ') ' . $e->getMessage(),
+            );
+
+            return [];
+        }
+    }
+
+    /**
+     * Whether a log row is a method-level row of the given method.
+     *
+     * @param int $logId The log row id.
+     * @param int $methodId The method id.
+     *
+     *
+     * @since  1.14.0
+     */
+    private function isMethodLogRow(int $logId, int $methodId): bool
+    {
+        if ($this->getLogsDefaults() === null || !$this->ensureLogTable()) {
+            return false;
+        }
+
+        $db = Factory::getContainer()->get('DatabaseDriver');
+
+        try {
+            return (int) $db->setQuery(
+                $db->getQuery(true)
+                    ->select('COUNT(*)')
+                    ->from($db->quoteName($this->getLogTableName()))
+                    ->where($db->quoteName('id') . ' = ' . $logId)
+                    ->where($db->quoteName('id_order') . ' = 0')
+                    ->where($db->quoteName($this->logMethodField) . ' = ' . $methodId),
+            )->loadResult() === 1;
+        } catch (Throwable $e) {
+            $this->reportLogFailure('logForMethod(): row #' . $logId . ' could not be read (' . $e->getCode() . ') ' . $e->getMessage());
+
+            return false;
+        }
+    }
+
+    /**
+     * The shared write of log() and logForMethod(): insert, or update when
+     * $data carries an existing 'id'.
+     *
+     * @param array $data Log data, already validated by the caller.
+     *
+     * @return int The inserted/updated log row ID, or 0 on failure.
+     *
+     * @since  1.14.0
+     */
+    private function writeLogRow(array $data): int
+    {
         // Get default values from logs.xml (cached)
         $defaults = $this->getLogsDefaults();
 
         if ($defaults === null) {
-            // No logs.xml found — nothing to log
+            // No logs.xml found: nothing to log
             return 0;
         }
 
@@ -292,49 +560,169 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
             return 0;
         }
 
-        // Merge: defaults ← user data (user data wins)
-        $merged = array_merge($defaults, $data);
-
-        // Build columns and values for REPLACE INTO
         $db = Factory::getContainer()->get('DatabaseDriver');
-        $insertColumns = [];
-        $insertValues = [];
-
-        foreach ($merged as $key => $value) {
-            // Skip empty 'id' — let auto-increment handle new rows
-            if ($key === 'id' && empty($value)) {
-                continue;
-            }
-
-            $insertColumns[] = $db->quoteName($key);
-
-            // MySQL functions like NOW() — don't quote them
-            if (is_string($value) && str_ends_with($value, '()')) {
-                $insertValues[] = $value;
-            } else {
-                $insertValues[] = $db->quote($value);
-            }
-        }
-
         $tableName = $this->getLogTableName();
-
-        $query = 'REPLACE INTO ' . $db->quoteName($tableName)
-            . ' (' . implode(', ', $insertColumns) . ')'
-            . ' VALUES (' . implode(', ', $insertValues) . ')';
+        $logId = (int) ($data['id'] ?? 0);
 
         try {
-            $db->setQuery($query);
+            if ($logId > 0) {
+                // UPDATE: only what the caller passed
+                $assignments = [];
+
+                foreach ($data as $key => $value) {
+                    if ($key === 'id') {
+                        continue;
+                    }
+
+                    $assignments[] = $db->quoteName($key) . ' = ' . $this->logValueSql($db, $value);
+                }
+
+                if (!$assignments) {
+                    // Nothing but the id: no write, but not a failure either.
+                    return $logId;
+                }
+
+                $db->setQuery(
+                    'UPDATE ' . $db->quoteName($tableName)
+                    . ' SET ' . implode(', ', $assignments)
+                    . ' WHERE ' . $db->quoteName('id') . ' = ' . $logId,
+                );
+                $db->execute();
+
+                return $logId;
+            }
+
+            // INSERT: defaults fill whatever was not passed
+            $merged = array_merge($defaults, $data);
+            unset($merged['id']);
+
+            $columns = [];
+            $values = [];
+
+            foreach ($merged as $key => $value) {
+                $columns[] = $db->quoteName($key);
+                $values[] = $this->logValueSql($db, $value);
+            }
+
+            $db->setQuery(
+                'INSERT INTO ' . $db->quoteName($tableName)
+                . ' (' . implode(', ', $columns) . ')'
+                . ' VALUES (' . implode(', ', $values) . ')',
+            );
             $db->execute();
 
             return (int) $db->insertid();
-        } catch (Exception $e) {
-            $app->enqueueMessage(
-                '(' . $e->getCode() . ') ' . $e->getMessage() . ' — Log data was not inserted.',
-                'error',
+        } catch (Throwable $e) {
+            $this->reportLogFailure(
+                'Log row ' . ($logId > 0 ? '#' . $logId . ' ' : '') . $this->logRowLabel($data)
+                . ' not written to ' . $tableName . ' (' . $e->getCode() . ') ' . $e->getMessage(),
             );
 
             return 0;
         }
+    }
+
+    /**
+     * Which row a failed write meant, for the text log: its action and the
+     * order or method it belongs to.
+     *
+     * @param array $data The row's data.
+     *
+     * @return string E.g. '"refund" for order #42'.
+     *
+     * @since  1.14.0
+     */
+    private function logRowLabel(array $data): string
+    {
+        $action = isset($data['action']) && \is_scalar($data['action']) ? '"' . $data['action'] . '" ' : '';
+        $orderId = (int) ($data['id_order'] ?? 0);
+
+        if ($orderId !== 0) {
+            return $action . 'for order #' . $orderId;
+        }
+
+        $methodId = $this->logMethodField !== '' ? (int) ($data[$this->logMethodField] ?? 0) : 0;
+
+        return $action . ($methodId > 0 ? 'for method #' . $methodId : 'without an order');
+    }
+
+    /**
+     * Record a log-table failure where it can be acted on, and nowhere else.
+     *
+     * The detail (which may carry database or exception text) goes to this
+     * plugin's own text log only. An administrator sees one generic,
+     * translated notice per request; the storefront, the API and the CLI
+     * see nothing.
+     *
+     * @param string $detail Operator-facing description of the failure.
+     *
+     *
+     * @since  1.14.0
+     */
+    private function reportLogFailure(string $detail): void
+    {
+        try {
+            Log::add($detail, Log::ERROR, $this->logCategory());
+        } catch (Throwable $e) {
+            // An unwritable log file must not turn a failed log row into a
+            // failed request.
+        }
+
+        $app = $this->getApplication();
+
+        if ($this->logFailureShown || !$app instanceof CMSApplicationInterface || !$app->isClient('administrator')) {
+            return;
+        }
+
+        $this->logFailureShown = true;
+
+        try {
+            $language = $app->getLanguage();
+            $language->load('com_alfa', JPATH_ADMINISTRATOR);
+            $app->enqueueMessage($language->_('COM_ALFA_PLUGIN_LOG_FAILED'), 'warning');
+        } catch (Throwable $e) {
+            // The notice is advisory; the detail is already in the text log.
+        }
+    }
+
+    /**
+     * Render one log value as SQL.
+     *
+     * Two literals are passed through unquoted rather than as text:
+     *   NOW()  - the timestamp default logs.xml files use
+     *   NULL   - logs.xml writes default="NULL" as a STRING, and quoting it
+     *            stored the four characters 'NULL' (which MySQL then coerced
+     *            to 0 on numeric columns) instead of a real SQL NULL.
+     *
+     * Nothing else is ever unquoted: inferring SQL functions from a value's
+     * shape would let anything ending in "()" splice itself into the query.
+     *
+     * @param object $db The database driver
+     * @param mixed $value The value to render
+     *
+     * @return string SQL-safe fragment
+     *
+     * @since  1.0.0
+     */
+    private function logValueSql(object $db, mixed $value): string
+    {
+        if ($value === null) {
+            return 'NULL';
+        }
+
+        if (is_string($value)) {
+            $trimmed = trim($value);
+
+            if (strcasecmp($trimmed, 'NOW()') === 0) {
+                return 'NOW()';
+            }
+
+            if (strcasecmp($trimmed, 'NULL') === 0) {
+                return 'NULL';
+            }
+        }
+
+        return $db->quote($value);
     }
 
     /**
@@ -387,8 +775,8 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
 
             return $asArray ? $db->loadAssocList() : $db->loadObjectList();
         } catch (Exception $e) {
-            // Table doesn't exist yet (error 1146) — return null, not an error
-            if ($e->getCode() == 1146) {
+            // Table doesn't exist yet (MySQL 1146): return null, not an error
+            if (MysqlError::number($e) === 1146) {
                 return null;
             }
 
@@ -420,8 +808,8 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
             $db->setQuery($query);
             $db->execute();
         } catch (Exception $e) {
-            // Table doesn't exist — nothing to delete
-            if ($e->getCode() != 1146) {
+            // Table doesn't exist (MySQL 1146): nothing to delete
+            if (MysqlError::number($e) !== 1146) {
                 throw $e;
             }
         }
@@ -447,9 +835,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
         return ($schema instanceof SimpleXMLElement) ? $schema : null;
     }
 
-    // ═════════════════════════════════════════════════════════
-    //  LOGGING — Internal (private)
-    // ═════════════════════════════════════════════════════════
+    //  LOGGING: Internal (private)
 
     /**
      * Get the log table name for this plugin.
@@ -464,10 +850,8 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      */
     protected function getLogTableName(int $prefix = 2): string
     {
-        // Normalize type: "alfa-payments" → "alfa_payments"
-        $type = str_replace('-', '_', $this->_type);
-        $name = $this->_name;
-        $bare = $type . '_' . $name . '_logs';
+        // "alfa-payments" / "standard" -> "alfa_payments_standard_logs"
+        $bare = substr(PluginLogTable::nameOf($this->_type, $this->_name), 3);
 
         if ($prefix === 0) {
             return $bare;
@@ -480,6 +864,71 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
         }
 
         return '#__' . $bare;
+    }
+
+    /**
+     * The Joomla Log category this plugin writes under.
+     *
+     * Derived, never declared: "alfa-payments"/"mygateway" becomes
+     * `com_alfa.payments.mygateway`. Scoped to the plugin because Joomla hands
+     * a message to every logger registered for its category: a name shared
+     * between gateways files each one's lines in whichever gateway registered
+     * a logger first, and drops them entirely when none did.
+     *
+     * @return string Category to pass as Log::add()'s third argument.
+     *
+     * @since  1.9.1
+     */
+    protected function logCategory(): string
+    {
+        $family = preg_replace('/^alfa[-_]/', '', (string) $this->_type);
+
+        // A plugin group outside the alfa-* families keeps its own name rather
+        // than being folded into com_alfa.<nothing>.
+        if ($family === '' || $family === null) {
+            $family = (string) $this->_type;
+        }
+
+        return 'com_alfa.' . str_replace('-', '_', $family) . '.' . $this->_name;
+    }
+
+    /**
+     * The text log file this plugin's category writes to.
+     *
+     * Same two parts as {@see self::logCategory()} and
+     * {@see self::getLogTableName()}, so file, category and table can never
+     * name different plugins: `alfa_payments_mygateway.php`.
+     *
+     * @return string File name, relative to Joomla's log path.
+     *
+     * @since  1.9.1
+     */
+    protected function logFileName(): string
+    {
+        return str_replace('-', '_', (string) $this->_type) . '_' . $this->_name . '.php';
+    }
+
+    /**
+     * Register this plugin's text logger.
+     *
+     * Called from PaymentsPlugin / ShipmentsPlugin construction, so every
+     * gateway gets an audit trail without writing a line for it. Registering
+     * twice is harmless: Joomla keys loggers by a hash of their options, so
+     * an identical registration collapses onto the first.
+     *
+     *
+     * @since  1.9.1
+     */
+    protected function registerLogger(): void
+    {
+        Log::addLogger(
+            [
+                'text_file' => $this->logFileName(),
+                'text_file_no_php' => false,
+            ],
+            Log::ALL,
+            [$this->logCategory()],
+        );
     }
 
     /**
@@ -507,10 +956,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
         $xml = simplexml_load_file($formFile);
 
         if (!$xml || !isset($xml->fields->fieldset->field)) {
-            $this->getApplication()->enqueueMessage(
-                'Invalid logs.xml structure in plugin: ' . $this->_name,
-                'warning',
-            );
+            $this->reportLogFailure('Invalid logs.xml structure in plugin ' . $this->_type . '/' . $this->_name . '; nothing is logged.');
 
             $this->logsSchemaCache = false;
 
@@ -527,7 +973,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      *
      * Builds an array from logs.xml with field names as keys
      * and their default values. Includes mandatory columns:
-     *   id, id_order, and the logIdentifierField (if set).
+     *   id, id_order, the logIdentifierField and the logMethodField (if set).
      *
      * @return array|null Defaults array, or null if no logs.xml
      *
@@ -552,16 +998,31 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
             'id_order' => '',
         ];
 
-        // Add the identifier column default (id_order_payment / id_order_shipment)
+        // Add the identifier column default (id_order_payment / id_order_shipment):
+        // NULL, the column's own default. An empty string is not an integer,
+        // and strict mode refused every row that did not pass one.
         if (!empty($this->logIdentifierField)) {
-            $defaults[$this->logIdentifierField] = '';
+            $defaults[$this->logIdentifierField] = 'NULL';
         }
 
-        // Add fields from logs.xml with their default values
+        // Add fields from logs.xml with their default values; a mandatory
+        // column keeps core's definition.
+        $table = $this->logTableOf($xml);
+
         foreach ($xml->fields->fieldset->field as $field) {
             $name = (string) $field['name'];
+
+            if ($table->isCoreColumn($name)) {
+                continue;
+            }
+
             $default = isset($field['default']) ? (string) $field['default'] : 'NULL';
             $defaults[$name] = $default;
+        }
+
+        // Order-level rows name no method unless the plugin passes one.
+        if ($this->logMethodField !== '') {
+            $defaults[$this->logMethodField] = 0;
         }
 
         $this->logsDefaultsCache = $defaults;
@@ -570,15 +1031,29 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
     }
 
     /**
-     * Ensure the log table exists in the database.
+     * Ensure the log table exists AND has every column logs.xml declares.
      *
-     * Runs CREATE TABLE IF NOT EXISTS once per request, then caches.
-     * Builds the table schema from mandatory columns + logs.xml fields.
+     * A plugin that ships its table (its install SQL, completed by its install
+     * script on update) finds it complete here, and no DDL runs. For one that
+     * does not yet, this completes it (PluginLogTable::complete()).
      *
-     * Mandatory columns (always created):
-     *   id              int AUTO_INCREMENT PRIMARY KEY
-     *   id_order        int NOT NULL
-     *   {identifier}    int DEFAULT NULL  (from logIdentifierField, e.g. id_order_payment)
+     * Runs once per request, then caches. What the table has is READ first,
+     * and the DDL runs only when something is missing, in three steps:
+     *   1. CREATE TABLE IF NOT EXISTS: builds it from scratch on a new site.
+     *   2. ADD COLUMN for anything declared but missing, so a plugin that
+     *      gains a log field in a later version starts recording it on sites
+     *      where the table already exists. Without this, the CREATE is a
+     *      no-op there and the new field silently never appears. The core
+     *      method column is reconciled the same way.
+     *   3. ADD INDEX for the method column when it is missing.
+     *
+     * NEVER INSIDE AN OPEN TRANSACTION. MySQL commits the open transaction
+     * before any CREATE or ALTER, so DDL run from a log write inside a
+     * caller's transaction (a placement hook holds one) would commit the
+     * caller's work half done, and leave its driver counting a transaction
+     * the server no longer has. A table that lacks something while a
+     * transaction is open is reported and not written to; the next write
+     * outside a transaction completes it. A complete table needs no DDL.
      *
      * @return bool true if table is ready, false on failure
      *
@@ -586,7 +1061,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      */
     private function ensureLogTable(): bool
     {
-        // Already ensured this request — skip
+        // Already ensured this request: skip
         if ($this->logTableEnsured) {
             return true;
         }
@@ -597,68 +1072,70 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
             return false;
         }
 
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $tableName = $this->getLogTableName();
-
-        // Build CREATE TABLE statement with mandatory columns
-        $sql = 'CREATE TABLE IF NOT EXISTS ' . $db->quoteName($tableName) . ' ('
-            . $db->quoteName('id') . ' INT(11) AUTO_INCREMENT PRIMARY KEY NOT NULL, '
-            . $db->quoteName('id_order') . ' INT(11) NOT NULL';
-
-        // Add the identifier column if set (id_order_payment / id_order_shipment)
-        // This column links each log entry to a specific payment or shipment.
-        if (!empty($this->logIdentifierField)) {
-            $sql .= ', ' . $db->quoteName($this->logIdentifierField) . ' INT(11) DEFAULT NULL';
-        }
-
-        // Add columns from logs.xml
-        foreach ($xml->fields->fieldset->field as $field) {
-            $name = (string) $field['name'];
-            $type = isset($field['mysql_type']) ? (string) $field['mysql_type'] : 'VARCHAR(255)';
-            $default = isset($field['default']) ? (string) $field['default'] : 'NULL';
-            $defaultSql = ($default === 'NULL')
-                ? 'DEFAULT NULL'
-                : 'NOT NULL DEFAULT ' . $db->quote($default);
-
-            $sql .= ', ' . $db->quoteName($name) . ' ' . $type . ' ' . $defaultSql;
-        }
-
-        // Add index on id_order for fast lookups
-        $sql .= ', KEY ' . $db->quoteName('idx_id_order') . ' (' . $db->quoteName('id_order') . ')';
-
-        // Add index on the identifier column for filtered lookups
-        if (!empty($this->logIdentifierField)) {
-            $sql .= ', KEY ' . $db->quoteName('idx_' . $this->logIdentifierField)
-                . ' (' . $db->quoteName($this->logIdentifierField) . ')';
-        }
-
-        $sql .= ') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
+        $table = $this->logTableOf($xml);
 
         try {
-            $db->setQuery($sql);
-            $db->execute();
-
-            $this->logTableEnsured = true;
-
-            return true;
-        } catch (Exception $e) {
-            $this->getApplication()->enqueueMessage(
-                'Failed to create log table: ' . $e->getMessage(),
-                'error',
+            $lacks = $table->lacks();
+        } catch (Throwable $e) {
+            $this->reportLogFailure(
+                'Log table ' . $table->name() . ' could not be read (' . $e->getCode() . ') ' . $e->getMessage(),
             );
 
             return false;
         }
+
+        if ($lacks === []) {
+            $this->logTableEnsured = true;
+
+            return true;
+        }
+
+        if (TransactionState::isOpen(Factory::getContainer()->get('DatabaseDriver'))) {
+            $this->reportLogFailure(
+                'Log table ' . $table->name() . ' lacks ' . implode(', ', $lacks)
+                . ' and is not changed inside an open transaction; the row was not written.'
+                . ' The next write outside a transaction completes the table.',
+            );
+
+            return false;
+        }
+
+        if (!$table->complete(fn (string $detail) => $this->reportLogFailure($detail))) {
+            return false;
+        }
+
+        $this->logTableEnsured = true;
+
+        return true;
+    }
+
+    /**
+     * This plugin's log table, as logs.xml and its family declare it.
+     *
+     * @param object $xml Parsed logs.xml.
+     *
+     *
+     * @since  1.14.0
+     */
+    private function logTableOf(object $xml): PluginLogTable
+    {
+        return new PluginLogTable(
+            db:              Factory::getContainer()->get('DatabaseDriver'),
+            tableName:       $this->getLogTableName(),
+            xml:             $xml,
+            identifierField: $this->logIdentifierField,
+            methodField:     $this->logMethodField,
+        );
     }
 
     /**
      * Apply filter conditions to a log query.
      *
      * Supports:
-     *   ['status' => 'completed']                       → status = 'completed'
-     *   ['amount' => ['>', 100]]                        → amount > 100
-     *   ['status' => ['IN', ['pending', 'completed']]]  → status IN ('pending', 'completed')
-     *   ['__raw'  => 'DATE(created_on) = CURDATE()']    → raw SQL
+     *   ['status' => 'completed']                       -> status = 'completed'
+     *   ['amount' => ['>', 100]]                        -> amount > 100
+     *   ['status' => ['IN', ['pending', 'completed']]]  -> status IN ('pending', 'completed')
+     *   ['__raw'  => 'DATE(created_on) = CURDATE()']    -> raw SQL
      *
      * @param object $query Query builder
      * @param array $filters Filter definitions
@@ -705,7 +1182,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
                         break;
 
                     default:
-                        // Unsupported operator — skip silently
+                        // Unsupported operator: skip silently
                         break;
                 }
             } else {
@@ -715,35 +1192,207 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
         }
     }
 
-    // ═════════════════════════════════════════════════════════
-    //  UTILITY
-    // ═════════════════════════════════════════════════════════
+    //  Utility
 
     /**
-     * Check if a value falls within a numeric or string range.
+     * WHO AN ORDER IS FOR IS THE ORDER'S OWN QUESTION, not this base class's.
      *
-     * Compares numerically when all values are numeric,
-     * otherwise compares as strings (lexicographic).
+     * `customer($order)` and `recipient($order)` used to live here and were a
+     * second way to ask what the order reader already answers, and a worse
+     * one, because `customer()` fell back to the CURRENT account when the
+     * order's own values were empty, which is right for showing a buyer in the
+     * admin and wrong for booking a parcel under someone else's name.
      *
-     * @param mixed $value The value to check
-     * @param mixed $min Range minimum (inclusive)
-     * @param mixed $max Range maximum (inclusive)
+     * Every plugin is handed an {@see \Alfa\Component\Alfa\Site\Service\Order\Order}
+     * by `$event->getOrder()`, so ask it directly:
      *
+     *     $order->getName()                       who BOUGHT, never an account fallback
+     *     $order->getEmail()
+     *     $order->isGuest()
+     *     $order->delivery()->getName()           who the parcel is FOR
+     *     $order->delivery()->getEmail()          trimmed string, '' when absent
+     *     $order->delivery()->role('phone')       a role the merchant may drop
+     *     $order->delivery()->field($configured)  a mapping the merchant chose
+     *     $order->invoice()                       who it is BILLED to
+     *     $order->total(), ->shipmentTotal(), ->items(), ->paymentMethod()
      *
-     * @since  1.0.0
+     * The buyer and the recipient are DIFFERENT PEOPLE as often as a present
+     * is, so a carrier that needs the second must not read the first.
      */
-    protected function isValueInRange($value, $min, $max): bool
-    {
-        $valueStr = is_string($value) ? $value : strval($value);
-        $minStr = is_string($min) ? $min : strval($min);
-        $maxStr = is_string($max) ? $max : strval($max);
 
-        // Numeric comparison when all values are numeric
-        if (is_numeric($valueStr) && is_numeric($minStr) && is_numeric($maxStr)) {
-            return $valueStr >= $minStr && $valueStr <= $maxStr;
+    /**
+     * A place and the places it belongs to, nearest first.
+     *
+     * WHY A PLUGIN NEEDS THIS AT ALL. Shops differ: one sells to a flat list of
+     * countries, the next models prefectures and towns beneath them. A carrier
+     * that compares a configured place against a delivery place directly works
+     * in the first shop and silently stops matching in the second, because the
+     * order is going to a town while the zone names the country. Asking for the
+     * whole chain and matching against any of it works in both.
+     *
+     * ONE ARGUMENT, AND IT IS A PLACE ID. This knows nothing about methods,
+     * carts or field mappings: it expands a place, and that is all. Reading the
+     * place is the caller's own step, and the two stay separate because only
+     * SOME fields hold a place: a postcode is a string, a telephone is a
+     * string, and neither is ever passed here:
+     *
+     *     // the destination this method was configured to read
+     *     $placeId = $cart->delivery()->field($configuredFieldId)->int();
+     *     $places  = $this->placesFor((int) $placeId);
+     *
+     *     // or the shop's own, when the method configures none
+     *     $places  = $cart->delivery()->places();
+     *
+     * A zero or unknown id is NOT an error and is not a fallback: it answers
+     * with an empty chain, which admits only what names no place. That is what
+     * an unfilled field, a cleared one and a deleted one all have to mean.
+     *
+     * The tree is read once per request and shared, so asking repeatedly is
+     * cheap and a plugin never has to reach for the component's internals.
+     *
+     * @param int $placeId The `#__alfa_places` id.
+     *
+     * @return int[] The place and its ancestors; empty for a zero or unknown id.
+     *
+     * @since  1.10.0
+     */
+    protected function placesFor(int $placeId): array
+    {
+        return PlaceTree::placesFor($placeId);
+    }
+
+    /**
+     * Is a value within the limits a configuration row sets?
+     *
+     * ONE TEST FOR POSTCODES, AMOUNTS AND DIMENSIONS. It replaces four
+     * different hand-written conventions that disagreed with each other: a
+     * postcode band that read 0..0 as "unrestricted", an amount band that read
+     * a 0 upper bound as "and above", and four bare `<=` dimension comparisons
+     * that read a 0 ceiling as a real ceiling. A merchant should not have to
+     * know which field they are filling in to know what leaving it empty means.
+     *
+     * AN UNSET LIMIT IS NO LIMIT. null, an empty string, and any numeric value
+     * at or below zero all mean "the merchant did not set this". Every band
+     * field in params.xml ships with default="0", so the shipped default has to
+     * mean unrestricted, and it is why this is not called isValueInRange: a
+     * range test says 5 is not between 0 and 0, and it would be right. This is
+     * not a range test.
+     *
+     * AN ABSENT VALUE IS JUDGED BY THE LOWER BOUND. A cart that has not reached
+     * the address step has no postcode, and refusing it would take the carrier
+     * off every cart in the shop. A band with no real floor (0..999999) still
+     * admits it; a band that names postcodes (10000..20000) does not.
+     *
+     * NUMBERS COMPARE AS NUMBERS. Money and weight are decimals, and 50.5 must
+     * exceed 50.45, which comparing text cannot deliver.
+     *
+     * ANYTHING ELSE COMPARES NATURALLY, via strnatcasecmp(): digit runs inside
+     * the string compare as numbers, letter runs as letters, case ignored.
+     * This is what makes postcodes work. Plain string comparison puts M10
+     * inside M1..M9 because '1' sorts below '9', so a Manchester shop quoting
+     * for district M1 silently quoted for M10 to M99 as well; comparing 10
+     * against 9 as NUMBERS gets it right. It also makes k1a 0b1 match a K..Q
+     * band, which a shopper typing in lower case previously failed.
+     *
+     * SEPARATORS ARE LEFT ALONE, NOT STRIPPED. Deleting the space in M1 4BT
+     * turns it into M14BT and hands district M1 to district M14: the reason
+     * a normalise-then-compare approach was rejected.
+     *
+     * KINDS THAT DO NOT MATCH CANNOT BE JUDGED. A number against a letter (a
+     * 5 kg parcel against a ceiling somebody typed as 'abc', a Greek postcode
+     * against a Canadian K..Q band) is refused rather than admitted. The old
+     * code admitted it: PHP 8 compares 5 with 'abc' as text, every digit sorts
+     * below every letter, and a corrupt weight ceiling therefore accepted a
+     * 900 kg parcel.
+     *
+     * @param mixed $value The value to judge: a postcode, a cart total, a weight.
+     * @param mixed $min The lower limit; null/''/0 for none.
+     * @param mixed $max The upper limit; null/''/0 for none.
+     *
+     *
+     * @since  1.10.0
+     */
+    final protected function isWithinLimits(mixed $value, mixed $min = null, mixed $max = null): bool
+    {
+        $hasMin = !self::isNoLimit($min);
+        $hasMax = !self::isNoLimit($max);
+
+        if (!$hasMin && !$hasMax) {
+            return true;
         }
 
-        // String comparison (lexicographic)
-        return strcmp($valueStr, $minStr) >= 0 && strcmp($valueStr, $maxStr) <= 0;
+        $subject = \is_string($value) ? trim($value) : $value;
+
+        if ($subject === null || $subject === '') {
+            return !$hasMin;
+        }
+
+        if (
+            is_numeric($subject)
+            && (!$hasMin || is_numeric($min))
+            && (!$hasMax || is_numeric($max))
+        ) {
+            return (!$hasMin || (float) $subject >= (float) $min)
+                && (!$hasMax || (float) $subject <= (float) $max);
+        }
+
+        $subject = (string) $subject;
+
+        if ($hasMin && (!self::comparableKinds($subject, (string) $min) || strnatcasecmp($subject, (string) $min) < 0)) {
+            return false;
+        }
+
+        if ($hasMax && (!self::comparableKinds($subject, (string) $max) || strnatcasecmp($subject, (string) $max) > 0)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Whether a configured bound means "no limit at all".
+     *
+     * @param mixed $bound The configured value.
+     *
+     *
+     * @since  1.10.0
+     */
+    private static function isNoLimit(mixed $bound): bool
+    {
+        if ($bound === null) {
+            return true;
+        }
+
+        $bound = trim((string) $bound);
+
+        return $bound === '' || (is_numeric($bound) && (float) $bound <= 0.0);
+    }
+
+    /**
+     * Whether a value and a bound are the same kind of thing at all.
+     *
+     * A value that starts with a number and a bound that starts with a letter
+     * are not two points on one scale: a 5 kg parcel against a ceiling
+     * somebody typed as 'abc', a Greek postcode against a Canadian K..Q band.
+     * PHP will happily order them anyway, and did: comparing 5 with 'abc' as
+     * text puts every digit below every letter, so a corrupt weight ceiling
+     * accepted a 900 kg parcel. Refusing to judge is the honest answer.
+     *
+     * @param string $value The value being judged.
+     * @param string $bound The configured limit.
+     *
+     *
+     * @since  1.10.0
+     */
+    private static function comparableKinds(string $value, string $bound): bool
+    {
+        $first = static function (string $subject): ?string {
+            return preg_match('/[0-9A-Z]/', strtoupper($subject), $matches) ? $matches[0] : null;
+        };
+
+        $left = $first($value);
+        $right = $first($bound);
+
+        return $left !== null && $right !== null && ctype_digit($left) === ctype_digit($right);
     }
 }

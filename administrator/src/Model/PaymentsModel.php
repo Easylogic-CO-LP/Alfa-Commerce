@@ -14,15 +14,32 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
-use Joomla\CMS\MVC\Model\ListModel;
 
 /**
  * Methods supporting a list of Payments records.
  *
  * @since  1.0.0
  */
-class PaymentsModel extends ListModel
+class PaymentsModel extends AlfaListModel
 {
+    /**
+     * The admin-contract entity this list serves.
+     *
+     *
+     * @since  1.8.0
+     */
+    protected string $alfaEntity = 'payment';
+
+    /**
+     * The enriched page of the last getItems() run: the contract's list phases
+     * re-ask getItems(), and without the memo the five fetchRelated() resolutions
+     * would run twice per request.
+     *
+     *
+     * @since  1.8.0
+     */
+    private ?array $alfaEnriched = null;
+
     /**
      * Constructor.
      *
@@ -40,7 +57,7 @@ class PaymentsModel extends ListModel
                 'created_by', 'a.created_by',
                 'modified_by', 'a.modified_by',
                 'state', 'a.state',
-                // Translatable — resolved via the lang-table COALESCE alias.
+                // Translatable: resolved via the lang-table COALESCE alias.
                 'name',
             ];
         }
@@ -81,9 +98,25 @@ class PaymentsModel extends ListModel
      */
     protected function getStoreId($id = '')
     {
-        // Compile the store id.
-        $id .= ':' . $this->getState('filter.search');
-        $id .= ':' . $this->getState('filter.state');
+        // Serialise EVERY filter into the cache identity, including filters a plugin
+        // declared through onAlfaAdminListFilters, which a hand-enumerated list would
+        // silently omit (stale cache + the contract's list phases skipping re-runs).
+        // Same discipline as the orders grid.
+        $filters = [];
+
+        // toArray(), not (array): the model State keeps LITERAL dotted keys, so an
+        // object cast returns its protected properties and matches nothing.
+        foreach ($this->getState()->toArray() as $key => $value) {
+            if (str_starts_with((string) $key, 'filter.')) {
+                $filters[$key] = \is_array($value) ? implode(',', $value) : (string) $value;
+            }
+        }
+
+        ksort($filters);
+
+        foreach ($filters as $key => $value) {
+            $id .= ':' . $key . '=' . $value;
+        }
 
         return parent::getStoreId($id);
     }
@@ -180,6 +213,15 @@ class PaymentsModel extends ListModel
             junctionValue: 'usergroup_id',
             selectAlias:   'usergroup_ids',
         );
+        MultilingualHelper::addRelatedIdsToQuery(
+            query:         $query,
+            mainAlias:     'a',
+            mainPk:        'id',
+            junctionTable: '#__alfa_payment_shipments',
+            junctionFk:    'payment_id',
+            junctionValue: 'shipment_id',
+            selectAlias:   'shipment_ids',
+        );
 
         // Filter by published state
         $published = $this->getState('filter.state');
@@ -198,7 +240,7 @@ class PaymentsModel extends ListModel
                 $query->where('a.id = ' . (int) substr($search, 3));
             } else {
                 $search = $db->Quote('%' . $db->escape($search, true) . '%');
-                // HAVING — `name` is the COALESCE alias from the lang join.
+                // HAVING: `name` is the COALESCE alias from the lang join.
                 $query->having('( ' . $db->quoteName('name') . ' LIKE ' . $search . ' )');
             }
         }
@@ -222,6 +264,10 @@ class PaymentsModel extends ListModel
      */
     public function getItems()
     {
+        if ($this->alfaEnriched !== null) {
+            return $this->alfaEnriched;
+        }
+
         $items = parent::getItems();
 
         if (empty($items)) {
@@ -230,7 +276,7 @@ class PaymentsModel extends ListModel
 
         $db = $this->getDatabase();
 
-        // One query per relationship — names resolved per-language where the
+        // One query per relationship: names resolved per-language where the
         // related table is translatable (categories, manufacturers), or read
         // directly for non-translatable / core tables (users, places, usergroups).
         $catMap = MultilingualHelper::fetchRelated(
@@ -253,7 +299,7 @@ class PaymentsModel extends ListModel
             langFields:        ['name'],
         );
 
-        // #__users is Joomla core — name read directly, no lang tables.
+        // #__users is Joomla core: name read directly, no lang tables.
         $userMap = MultilingualHelper::fetchRelated(
             db:          $db,
             items:       $items,
@@ -262,7 +308,7 @@ class PaymentsModel extends ListModel
             langFields:  ['name'],
         );
 
-        // #__alfa_places — not yet translatable; name read directly.
+        // #__alfa_places: not yet translatable; name read directly.
         $placeMap = MultilingualHelper::fetchRelated(
             db:          $db,
             items:       $items,
@@ -280,14 +326,26 @@ class PaymentsModel extends ListModel
             langFields:  ['title'],
         );
 
+        // Shipping methods the payment method is offered with: translatable name.
+        $shipMap = MultilingualHelper::fetchRelated(
+            db:                $db,
+            items:             $items,
+            idsProperty:       'shipment_ids',
+            table:             '#__alfa_shipments',
+            langTableBase:     '#__alfa_shipments',
+            langPrimaryColumn: 'id_shipment',
+            langFields:        ['name'],
+        );
+
         foreach ($items as $item) {
             MultilingualHelper::bindRelated($item, 'categories', $catMap);
             MultilingualHelper::bindRelated($item, 'manufacturers', $manMap);
             MultilingualHelper::bindRelated($item, 'users', $userMap);
             MultilingualHelper::bindRelated($item, 'places', $placeMap);
             MultilingualHelper::bindRelated($item, 'usergroups', $ugMap);
+            MultilingualHelper::bindRelated($item, 'shipments', $shipMap);
         }
 
-        return $items;
+        return $this->alfaEnriched = $items;
     }
 }

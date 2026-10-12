@@ -1,31 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-    Payment form — complete coverage of #__alfa_order_payments columns.
+    Payment form: complete coverage of #__alfa_order_payments columns.
 
     Used for BOTH:
-    1. Popup add/edit form (getPaymentForm → edit_payment.php)
+    1. Popup add/edit form (getPaymentForm -> edit_payment.php)
     2. List column definitions (edit_payments.php subform)
 
     Field groups:
-      CORE:     id_payment_method, amount, payment_type, transaction_status
+      CORE:     id_payment_method, amount, payment_type, transaction_status, note
       GATEWAY:  transaction_id, gateway_response, processed_at
-      REFUND:   refund_type, refund_reason, id_refunded_payment
-      META:     added, id_employee
+      REFUND:   refund_type, refund_reason, id_refunded_payment, id_document
+      META:     added
       HIDDEN:   id, id_order, id_currency, conversion_rate,
-                payment_method, order_reference
+                payment_method, order_reference, id_employee
 
     List fields (payment_type, transaction_status, refund_type) have
-    NO static options — always injected by OrderModel::getPaymentForm()
-    from OrderPaymentHelper constants. Single source of truth.
+    NO static options; always injected by OrderModel::getPaymentForm()
+    from PaymentLedger constants. Single source of truth.
 
     DB: #__alfa_order_payments
 -->
-<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+<form addfieldprefix="Alfa\Component\Alfa\Administrator\Field" addruleprefix="Alfa\Component\Alfa\Administrator\Rule">
     <fieldset name="payment">
 
-        <!-- ═══════════════════════════════════════════════════════ -->
         <!-- CORE FIELDS                                             -->
-        <!-- ═══════════════════════════════════════════════════════ -->
 
         <!-- Payment method (dropdown from payments table) -->
         <field
@@ -41,17 +39,20 @@
                 layout="joomla.form.field.list-fancy-select"
         />
 
-        <!-- Amount (tax inclusive) -->
+        <!-- Amount (tax inclusive). An amount of the order's money exactly as
+             typed: the input steps by the order's smallest unit, and one finer
+             than the order's currency is refused, never rounded. -->
         <field
                 name="amount"
-                type="number"
+                type="orderMoney"
                 label="COM_ALFA_AMOUNT"
                 description="COM_ALFA_AMOUNT_DESC"
-                step="0.01"
                 required="true"
+                validate="orderMoney"
+                sign="positive"
         />
 
-        <!-- Payment type — options injected by model from OrderPaymentHelper::allTypes() -->
+        <!-- Payment type: options injected by model from PaymentLedger::allTypes() -->
         <field
                 name="payment_type"
                 type="list"
@@ -61,7 +62,7 @@
                 required="true"
         />
 
-        <!-- Transaction status — options injected by model from OrderPaymentHelper::allStatuses() -->
+        <!-- Transaction status: options injected by model from PaymentLedger::allStatuses() -->
         <field
                 name="transaction_status"
                 type="list"
@@ -71,11 +72,19 @@
                 required="true"
         />
 
-        <!-- ═══════════════════════════════════════════════════════ -->
-        <!-- GATEWAY FIELDS                                          -->
-        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- Internal label for this movement: what tells a deposit row from
+             its balance row in the grid. Never shown to the customer. -->
+        <field
+                name="note"
+                type="text"
+                maxlength="255"
+                label="COM_ALFA_PAYMENT_NOTE"
+                description="COM_ALFA_PAYMENT_NOTE_DESC"
+        />
 
-        <!-- Transaction ID from payment gateway (Stripe charge ID, PayPal txn, etc.) -->
+        <!-- GATEWAY FIELDS                                          -->
+
+        <!-- Transaction ID from payment gateway (charge ID, txn reference, etc.) -->
         <field
                 name="transaction_id"
                 type="text"
@@ -106,13 +115,11 @@
                 class="form-control font-monospace"
         />
 
-        <!-- ═══════════════════════════════════════════════════════ -->
         <!-- REFUND FIELDS                                           -->
         <!-- Visible when payment_type = 'refund' or editing a       -->
         <!-- refunded payment. Hidden for normal payments.           -->
-        <!-- ═══════════════════════════════════════════════════════ -->
 
-        <!-- Refund type — options injected by model from OrderPaymentHelper::allRefundTypes() -->
+        <!-- Refund type: options injected by model from PaymentLedger::allRefundTypes() -->
         <field
                 name="refund_type"
                 type="list"
@@ -137,9 +144,30 @@
                 readonly="true"
         />
 
-        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- Links this refund to the credit note it settles. Empty is valid:
+             a goodwill or offline refund has no document.
+
+             EDITABLE by design. This is the ATTRIBUTION primitive, the only
+             way to answer "how much of credit note #N has actually been
+             refunded", which anything recording an intention to refund (an
+             RMA's destination, a credit note's own status) must report from.
+             It was readonly and no code path ever set it, so the question had
+             no answer and consumers were forced towards the order-wide refund
+             total, which is WRONG: an order with two credit notes of 50, one
+             refunded, would report both as settled. -->
+        <field
+                name="id_document"
+                type="CreditDocument"
+                label="COM_ALFA_REFUNDED_DOCUMENT_ID"
+                description="COM_ALFA_REFUNDED_DOCUMENT_ID_DESC"
+        >
+            <!-- '' and not 0: the column is nullable and PaymentLedger maps
+                 '' -> NULL, so "none" clears the attribution instead of
+                 pointing it at document #0. -->
+            <option value="">COM_ALFA_REFUNDED_DOCUMENT_NONE</option>
+        </field>
+
         <!-- META FIELDS                                             -->
-        <!-- ═══════════════════════════════════════════════════════ -->
 
         <!-- Date added -->
         <field
@@ -153,23 +181,15 @@
                 filter="user_utc"
         />
 
-        <!-- Employee who created/modified the payment -->
-        <field
-                name="id_employee"
-                type="user"
-                required="true"
-                label="COM_ALFA_EMPLOYEE"
-                description="COM_ALFA_EMPLOYEE_DESC"
-                validate="UserId"
-        />
+        <!-- Employee audit stamp: auto-filled by PaymentLedger::create();
+             hidden so an empty required picker can't block manual payments. -->
+        <field name="id_employee" type="hidden"/>
 
-        <!-- ═══════════════════════════════════════════════════════ -->
-        <!-- HIDDEN — auto-filled by model, not shown in form/list  -->
-        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- HIDDEN - auto-filled by model, not shown in form/list  -->
 
         <field name="id" type="hidden"/>
         <field name="id_order" type="hidden"/>
-        <field name="id_currency" type="hidden" default="978"/>
+        <field name="id_currency" type="hidden"/>
         <field name="conversion_rate" type="hidden" default="1.00"/>
         <field name="payment_method" type="hidden"/>
         <field name="order_reference" type="hidden"/>

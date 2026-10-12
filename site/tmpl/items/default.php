@@ -1,16 +1,16 @@
 <?php
 /**
- * @version    1.0.1
- * @package    Com_Alfa
+ * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
- * @copyright  2024 Easylogic CO LP
- * @license    GNU General Public License version 2 or later; see LICENSE.txt
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Site\Helper\Layout;
 use Joomla\CMS\Factory;
-use Joomla\CMS\Layout\LayoutHelper;
+use Joomla\CMS\Language\Text;
 
 $app = Factory::getApplication();
 $params = $app->getParams();
@@ -19,91 +19,60 @@ $wa = $this->document->getWebAssetManager();
 $wa->useStyle('com_alfa.list')
     ->useStyle('com_alfa.item')
     ->useScript('com_alfa.item.recalculate')
-    ->useScript('com_alfa.item.addtocart');
+    ->usePreset('com_alfa.item.addtocart')
+    ->useScript('com_alfa.item.variant')
+    ->useScript('com_alfa.showon.engine');
 
-// ============================================================================
-// PRICE SETTINGS - CUSTOMIZABLE
-// ============================================================================
-// Default: Use settings from view (resolved by user group)
+// NO search assets load here, on purpose. The enhancement widget loads in the
+// `list.filter_form` layout, beside the input that declares `data-alfa-search`. The
+// click-attribution beacon is not the component's AT ALL any more: only the Enterprise
+// engine ever issues the attribution it consumes, so the engine's own `search_input`
+// layout (claimed via onAlfaSearchInputLayout) loads it from the PLUGIN's media; a
+// tier-specific script never ships with the component. This template only DECLARES the
+// attribution (the container attribute below); declaring is data-only and engine-neutral.
+
+// Price display settings, resolved per user group by the view. To change what the
+// price layout shows on this page, override with an Alfa\Component\Alfa\Site\Helper\
+// PriceSettings preset (except()/only()/minimal()/full()/compact(), or the make()
+// builder); the full API is documented in the manual.
 $priceSettings = $this->priceSettings;
-
-// TEMPLATE OVERRIDE EXAMPLES (uncomment to use) else you can overwrite the price layout:
-//
-// Example 1: Hide tax on this page
-// $priceSettings = PriceSettings::except('tax');
-//
-// Example 2: Show only final price (minimal display)
-// $priceSettings = PriceSettings::minimal();
-//
-// Example 3: Show everything with labels
-// $priceSettings = PriceSettings::full();
-//
-// Example 4: Show everything without labels (compact)
-// $priceSettings = PriceSettings::compact();
-//
-// Example 5: Custom - show base, discount (no label), and final
-// $priceSettings = PriceSettings::make()
-//     ->show('base')             // With label
-//     ->show('discount', false)  // Without label
-//     ->show('final')            // With label
-//     ->get();
-//
-// Example 6: Show multiple elements without labels
-// $priceSettings = PriceSettings::make()
-//     ->show('base', false)
-//     ->show('discount', false)
-//     ->show('final', false)
-//     ->get();
-//
-// Example 7: Show elements then remove all labels (alternative to example 6)
-// $priceSettings = PriceSettings::make()
-//     ->show('base')
-//     ->show('discount')
-//     ->show('final')
-//     ->withoutLabels()  // Removes all labels
-//     ->get();
-//
-// Example 8: Show only base and final (comparison view)
-// $priceSettings = PriceSettings::only('base', 'final');
-//
-// Example 9: Hide base price and tax
-// $priceSettings = PriceSettings::except('base', 'tax');
-// ============================================================================
 ?>
 
-<?php echo $this->loadTemplate('categories'); ?>
+<?php // Subcategory strip. Gone entirely once a filter has replaced the category
+      // context, when the merchant asked for that (hide_categories_when_filtered):
+      // the view already left $this->categories empty, so an overriding sub-template
+      // that reads it directly obeys the setting without knowing about it. ?>
+<?php if ($this->showCategories): ?>
+<?php echo $this->loadTemplate($this->listCategoriesTpl); ?>
+<?php endif; ?>
 
 <?php if ($this->showFilters): ?>
-<?php echo LayoutHelper::render('filter_form', ['view' => $this]); ?>
+<?php echo Layout::render('list.filter_form', ['view' => $this]); ?>
 <?php endif; ?>
 
 <section>
     <?php echo $this->pagination->getListFooter(); ?>
-    <div class="list-container items-list">
+    <?php
+    // CLICK ATTRIBUTION IS DECLARED, NEVER INFERRED. The search event id belongs to the RESULT
+    // SET, so it is emitted once on the container rather than repeated on every card; the
+    // per-card rank is declared by the card itself. Absent when this listing is not an
+    // attributable search, and the beacon script then does nothing at all.
+    //
+    // The offset makes the rank GLOBAL: without it page 2 would report positions 1-25 again
+    // and every ranking projection built on this data would be wrong in a way nobody notices.
+    $searchEventId = $this->searchEventId ?? null;
+    $positionOffset = (int) ($this->pagination->limitstart ?? 0);
+    $position = $positionOffset;
+    ?>
+    <div class="list-container items-list"<?php echo $searchEventId
+        // The handle is OPAQUE and engine-issued (int|string); escape it, never cast it:
+        // an integer cast would mangle a string handle from an external engine to 0.
+        ? ' data-alfa-search-event="' . htmlspecialchars((string) $searchEventId, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
         <?php foreach ($this->items as $item) : ?>
-            <article class="list-item" data-item-id="<?php echo $item->id; ?>">
-
-                <?php if (!empty($item->medias[0]->thumbnail)): ?>
-                    <div class="item-image">
-                        <a href="<?= $item->link ?>">
-                            <img src="<?= $item->medias[0]->thumbnail_url ?>" alt="<?= $item->name ?>" />
-                        </a>
-                    </div>
-                <?php endif; ?>
-
-                <div class="item-title">
-                    <a href="<?= $item->link ?>">
-                        <?php echo $this->escape($item->name); ?></a>
-                </div>
-
-                <?php echo LayoutHelper::render('price', [ 'item' => $item,  'settings' => $priceSettings ]); ?>
-
-                <?php echo LayoutHelper::render('stock_info', ['item' => $item]); ?>
-
-                <?php echo LayoutHelper::render('add_to_cart', $item); ?>
-
-            </article>
-
+            <?php // ONE overridable card sub-template ("item" slot), shared with the
+                  // single-card reload. Chain per row: item -> category -> menu/global. ?>
+            <?php $this->item = $item; $this->itemPosition = ++$position; ?>
+            <?php echo $this->loadTemplate($this->cardTplFor($item)); ?>
         <?php endforeach; ?>
     </div>
     <?php echo $this->pagination->getListFooter(); ?>

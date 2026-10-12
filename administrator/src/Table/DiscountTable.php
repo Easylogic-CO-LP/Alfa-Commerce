@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Table;
 // No direct access
 defined('_JEXEC') or die;
 
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Table\Table;
 use Joomla\Database\DatabaseDriver;
 
@@ -41,6 +42,50 @@ class DiscountTable extends Table
         $this->typeAlias = 'com_alfa.discount';
         parent::__construct('#__alfa_discounts', 'id', $db);
         $this->setColumnAlias('published', 'state');
+    }
+
+    /**
+     * Enforce the discount value contract for every writer that reaches the table.
+     *
+     * The form rule says the same thing with a field-level message; this holds when
+     * a caller stores a row without going through Form::validate(), which is how a
+     * programmatic save reaches this table. AdminModel::save() turns the refusal
+     * into the model's own error, so the admin screen and the REST route both read
+     * it without a second message.
+     *
+     * @return bool True when the row may be stored.
+     *
+     * @since  1.10.0
+     */
+    public function check()
+    {
+        if (!parent::check()) {
+            return false;
+        }
+
+        if (!is_numeric($this->value ?? null)) {
+            $this->setError(Text::_('COM_ALFA_ERROR_DISCOUNT_VALUE_NOT_A_NUMBER'));
+
+            return false;
+        }
+
+        $value = (float) $this->value;
+
+        if ($value < 0) {
+            $this->setError(Text::_('COM_ALFA_ERROR_DISCOUNT_VALUE_NEGATIVE'));
+
+            return false;
+        }
+
+        // One column, two meanings: only the percentage reading has a ceiling, and a
+        // NULL is_amount IS the percentage reading, exactly as the engine reads it.
+        if ((int) ($this->is_amount ?? 0) !== 1 && $value > 100) {
+            $this->setError(Text::_('COM_ALFA_ERROR_DISCOUNT_PERCENT_RANGE'));
+
+            return false;
+        }
+
+        return true;
     }
 
     /**

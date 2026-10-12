@@ -1,0 +1,383 @@
+/**
+ * @package    Alfa Commerce
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
+ *
+ * The frame a chart is drawn into, and the figures that stand beside one.
+ *
+ * It travels WITH the chart asset rather than with the dashboard stylesheet, because a
+ * chart is not a dashboard feature: any screen that names `card.chart`, or any panel
+ * that attaches a DTO, gets the same frame without having to know which stylesheet the
+ * host happened to load.
+ *
+ * ECharts sizes itself from the container, so every container here has a resolvable
+ * height; a chart in a `height: auto` box renders 0px tall and looks like a bug.
+ */
+
+.alfa-card-chart {
+    min-height: 190px;
+    width: 100%;
+}
+
+/* The hero: one figure, its movement, and the shape behind it
+
+   The figure is the answer, the delta is the judgement, the chart is the evidence.
+   They are stacked in that order so the card is readable at a glance and rewarding
+   when looked at properly. */
+
+.alfa-chart-hero {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.alfa-chart-hero .alfa-card-chart {
+    min-height: 240px;
+}
+
+.alfa-chart-lede {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35rem 1.5rem;
+}
+
+.alfa-chart-figure {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.alfa-chart-figure .alfa-chart-amount {
+    font-size: 2.1rem;
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+}
+
+.alfa-chart-figure--minor .alfa-chart-amount {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--secondary-color, #6c757d);
+}
+
+.alfa-chart-figure .alfa-chart-label {
+    font-size: 0.78rem;
+    color: var(--secondary-color, #6c757d);
+}
+
+/* The movement against the previous period of the same length. Colour alone never
+   carries it; the arrow does, so it survives a monochrome print and a colour-blind
+   reader. */
+.alfa-chart-delta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 1rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    background: var(--secondary-bg, #e9ecef);
+    color: var(--secondary-color, #6c757d);
+}
+
+.alfa-chart-delta[data-trend="up"] {
+    background: var(--success-bg-subtle, #d5e8dc);
+    color: var(--success-text-emphasis, #286c3c);
+}
+
+.alfa-chart-delta[data-trend="down"] {
+    background: var(--danger-bg-subtle, #f7d9dc);
+    color: var(--danger-text-emphasis, #a52834);
+}
+
+.alfa-chart-delta svg {
+    width: 0.7em;
+    height: 0.7em;
+}
+
+/* Charts that sit beside a list
+
+   A donut with a legend, or a heatmap, next to the rows it summarises. Below the
+   breakpoint the two stack rather than shrinking into illegibility. */
+
+.alfa-chart-pair {
+    display: grid;
+    grid-template-columns: minmax(240px, 1fr) minmax(240px, 1fr);
+    gap: 1.25rem;
+    align-items: center;
+}
+
+@media (max-width: 1100px) {
+    .alfa-chart-pair {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Nothing to draw yet
+
+   An empty chart frame is worse than no chart: it reads as broken. A card with no
+   data says so in the space the chart would have taken. */
+
+.alfa-chart-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 190px;
+    padding: 1rem;
+    border: 1px dashed var(--border-color, #dee2e6);
+    border-radius: 0.375rem;
+    color: var(--secondary-color, #6c757d);
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+/* A ranked table under a chart
+
+   Same rhythm as `.alfa-card-rank`, but for rows that carry two figures instead of
+   one: the name grows, the numbers stay on their own tabular columns so the eye can
+   run down them. */
+
+.alfa-chart-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.86rem;
+}
+
+.alfa-chart-table th {
+    padding: 0 0.5rem 0.35rem;
+    color: var(--secondary-color, #6c757d);
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-align: left;
+}
+
+.alfa-chart-table td {
+    padding: 0.32rem 0.5rem;
+    border-top: 1px solid var(--border-color-translucent, #f1f3f5);
+    vertical-align: baseline;
+}
+
+.alfa-chart-table tbody tr:first-child td {
+    border-top: 0;
+}
+
+.alfa-chart-table .is-numeric {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    /* A money column must never wrap: "4.532,02 €" broken across two lines stops
+       looking like one amount, and the name column is the one with room to give. */
+    white-space: nowrap;
+}
+
+.alfa-chart-table .is-name {
+    max-width: 0;
+    width: 60%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.alfa-chart-table a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.alfa-chart-table a:hover,
+.alfa-chart-table a:focus-visible {
+    text-decoration: underline;
+}
+
+/* A dot that carries a row's own colour: the status legend beside the donut. */
+.alfa-chart-swatch {
+    display: inline-block;
+    width: 0.55em;
+    height: 0.55em;
+    margin-right: 0.4em;
+    border-radius: 50%;
+    background: var(--swatch, var(--secondary-color, #6c757d));
+    vertical-align: 0.05em;
+}
+
+/* A figure that is a warning
+
+   Money that did not land, and orders that have waited too long, are not decoration:
+   at zero they stay quiet, above zero they are meant to be noticed. */
+
+.alfa-chart-alert {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding: 0.5rem 0.7rem;
+    border-radius: 0.375rem;
+    background: var(--warning-bg-subtle, #fdf3e3);
+    color: var(--warning-text-emphasis, #b4762a);
+    font-size: 0.85rem;
+}
+
+/* Severity is a judgement about the finding, not about the shop: danger is money the
+   shop already holds and has not delivered against, warning is money still in play.
+   The tint carries it, the wording carries it too; colour is never the only signal. */
+.alfa-chart-alert[data-severity="danger"] {
+    background: var(--danger-bg-subtle, #f7d9dc);
+    color: var(--danger-text-emphasis, #a52834);
+}
+
+.alfa-chart-alert[data-severity="info"],
+.alfa-chart-alert[data-severity="none"] {
+    background: var(--secondary-bg, #e9ecef);
+    color: var(--secondary-color, #6c757d);
+}
+
+/* The sentence beside the figure. It wraps; the figure never does. */
+.alfa-chart-alert-text {
+    min-width: 0;
+}
+
+.alfa-chart-alert-value {
+    font-size: 1.15rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Worth a look: one tile per finding
+
+   Every finding is on the table: a grid, not a strip, so nothing folds and nothing
+   is cut. The wrapper card steps aside (no chrome) so the tiles ARE the cards, sitting
+   on the page the way the metric tiles under them do.
+
+   A tile is a ticket: the kind of trouble (eyebrow), how much (the figure), what it
+   means (the sentence), where to deal with it (the verb). The WEIGHT is the tint of
+   the whole tile (red for money the shop holds or gave away, amber for money in
+   play, blue for housekeeping), from Atum's own subtle palette, so the dark scheme
+   needs nothing of its own and the row still reads as a page, not a warning wall. */
+
+.alfa-card:has(> .alfa-attention) {
+    gap: 0.6rem;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+}
+
+.alfa-card:has(> .alfa-attention) .alfa-card-title {
+    color: var(--body-color, #212529);
+    font-weight: 600;
+}
+
+.alfa-attention {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: var(--alfa-cards-gap, 0.75rem);
+}
+
+.alfa-attention-tile {
+    --alfa-attention-bg: var(--warning-bg-subtle, #fcefdc);
+    --alfa-attention-line: var(--warning-border-subtle, #f9deb8);
+    --alfa-attention-ink: var(--warning-text-emphasis, #60451f);
+    --alfa-attention-edge: var(--warning, #ad5f00);
+
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.9rem 1rem 0.85rem;
+    background: var(--alfa-attention-bg);
+    border: 1px solid var(--alfa-attention-line);
+    border-radius: 0.5rem;
+    color: var(--body-color, #212529);
+    text-decoration: none;
+    transition: border-color 0.15s ease-out, box-shadow 0.15s ease-out, transform 0.15s ease-out;
+}
+
+.alfa-attention-tile[data-severity="danger"] {
+    --alfa-attention-bg: var(--danger-bg-subtle, #f3d4d4);
+    --alfa-attention-line: var(--danger-border-subtle, #e8a9a9);
+    --alfa-attention-ink: var(--danger-text-emphasis, #4f1010);
+    --alfa-attention-edge: var(--danger, #c52827);
+}
+
+.alfa-attention-tile[data-severity="info"],
+.alfa-attention-tile[data-severity="none"] {
+    --alfa-attention-bg: var(--info-bg-subtle, #d4e1f1);
+    --alfa-attention-line: var(--info-border-subtle, #aac3e3);
+    --alfa-attention-ink: var(--info-text-emphasis, #112a4a);
+    --alfa-attention-edge: var(--info, #2a69b8);
+}
+
+/* Only a tile that leads somewhere lifts: a finding the viewer may not open renders
+   as a plain block, and must not look clickable. */
+a.alfa-attention-tile:hover,
+a.alfa-attention-tile:focus-visible {
+    border-color: var(--alfa-attention-edge);
+    box-shadow: 0 8px 20px -10px rgba(0, 0, 0, 0.3);
+    transform: translateY(-1px);
+    color: var(--body-color, #212529);
+    text-decoration: none;
+}
+
+.alfa-attention-tile:focus-visible {
+    outline: 2px solid var(--focus-ring-color, #2a69b740);
+    outline-offset: 2px;
+}
+
+.alfa-attention-kind {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--alfa-attention-ink);
+}
+
+.alfa-attention-figure {
+    font-size: 1.85rem;
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+}
+
+/* The sentence takes whatever height is left, so every verb in a row sits on the
+   same baseline whatever the tile above it had to say. */
+/* Ink on a tint: the severity's own emphasis colour, which Atum keeps readable on
+   the matching subtle background in both schemes. */
+.alfa-attention-text {
+    flex: 1;
+    font-size: 0.83rem;
+    line-height: 1.4;
+    color: var(--alfa-attention-ink);
+    opacity: 0.88;
+}
+
+.alfa-attention-go {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.35rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--alfa-attention-ink);
+}
+
+.alfa-attention-go::after {
+    content: "\2192";
+    transition: transform 0.15s ease-out;
+}
+
+.alfa-attention-tile:hover .alfa-attention-go::after {
+    transform: translateX(3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .alfa-attention-tile,
+    .alfa-attention-go::after {
+        transition: none;
+    }
+
+    a.alfa-attention-tile:hover {
+        transform: none;
+    }
+}

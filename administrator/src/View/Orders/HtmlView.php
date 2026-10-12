@@ -13,8 +13,8 @@ namespace Alfa\Component\Alfa\Administrator\View\Orders;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
-use Alfa\Component\Alfa\Administrator\View\HtmlView as BaseHtmlView;
-use Joomla\CMS\Helper\ContentHelper;
+use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
+use Alfa\Component\Alfa\Administrator\View\AlfaHtmlView as BaseHtmlView;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 
@@ -25,6 +25,14 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
  */
 class HtmlView extends BaseHtmlView
 {
+    /**
+     * The admin-contract entity of this screen.
+     *
+     *
+     * @since  1.8.0
+     */
+    protected string $alfaEntity = 'order';
+
     protected $items;
 
     protected $pagination;
@@ -53,6 +61,8 @@ class HtmlView extends BaseHtmlView
         $this->filterForm = $model->getFilterForm();
         $this->activeFilters = $model->getActiveFilters();
         $this->orderStatuses = AlfaHelper::getOrderStatuses();
+        $this->filteredItemName = $model->getFilteredItemName();
+        $this->unsatisfiableWaiting = $model->getUnsatisfiableWaitingLabel();
 
         $this->addToolbar();
 
@@ -73,18 +83,27 @@ class HtmlView extends BaseHtmlView
      */
     protected function addToolbar()
     {
-        $canDo = ContentHelper::getActions('com_alfa');
+        $user = $this->getCurrentUser();
         $toolbar = $this->getDocument()->getToolbar();
+
+        $canCreate = AlfaHelper::can(section: 'orders', action: 'create', user: $user);
+        $canEdit = AlfaHelper::can(section: 'orders', action: 'edit', user: $user);
+        $canEditState = AlfaHelper::can(section: 'orders', action: 'edit.state', user: $user);
+        $canDelete = AlfaHelper::can(section: 'orders', action: 'delete', user: $user);
 
         ToolbarHelper::title(Text::_('COM_ALFA_TITLE_ORDERS'), 'generic');
 
-        //        if ($canDo->get('core.create'))
-        //        {
-        // TODO: be  able to create a new order from backend
-        //            $toolbar->addNew('order.add');
-        //        }
+        if ($canCreate) {
+            $toolbar->addNew('order.add');
+        }
 
-        if ($canDo->get('core.edit.state')) {
+        // Orders use a binary active/trashed view (the "show_trashed" filter),
+        // so there is no publish/unpublish/archive, just trash, then permanent
+        // delete from within the trashed view.
+        $isTrashed = ((int) $this->state->get('filter.show_trashed') === 1);
+
+        // The dropdown carries state changes (edit.state) and check-in (edit).
+        if ($canEditState || $canEdit) {
             $dropdown = $toolbar->dropdownButton('status-group')
                 ->text('JTOOLBAR_CHANGE_STATUS')
                 ->toggleSplit(false)
@@ -94,40 +113,34 @@ class HtmlView extends BaseHtmlView
 
             $childBar = $dropdown->getChildToolbar();
 
-            //            $childBar->publish('orders.publish')->listCheck(true);
-            //            $childBar->unpublish('orders.unpublish')->listCheck(true);
-            //            $childBar->archive('orders.archive')->listCheck(true);
-            //            $childBar->trash('orders.trash')->listCheck(true);
-
-            //            if ($this->state->get('filter.published') == ContentComponent::CONDITION_TRASHED && $canDo->get('core.delete')) {
-            //			{
-            // If this component does not use state then show a direct delete button as we can not trash
-            // Orders use a binary active/trashed view (the "show_trashed" filter),
-            // so there is no publish/unpublish/archive — just trash, then permanent
-            // delete from within the trashed view.
-            $isTrashed = ((int) $this->state->get('filter.show_trashed') === 1);
-
-            if (!$isTrashed) {
-                $childBar->trash('orders.trash')->listCheck(true);
-            } else {
-                // Restore a trashed order back to active (state -2 → published).
-                $childBar->publish('orders.publish')->text('JTOOLBAR_RESTORE')->listCheck(true);
+            if ($canEditState) {
+                if (!$isTrashed) {
+                    $childBar->trash('orders.trash')->listCheck(true);
+                } else {
+                    // Restore a trashed order back to active (state -2 -> published).
+                    $childBar->publish('orders.publish')->text('JTOOLBAR_UNTRASH')->listCheck(true);
+                }
             }
 
-            if ($isTrashed && $canDo->get('core.delete')) {
-                $toolbar->delete('orders.delete')
-                    ->text('JTOOLBAR_EMPTY_TRASH')
-                    ->message('JGLOBAL_CONFIRM_DELETE')
-                    ->listCheck(true);
+            if ($canEdit) {
+                $childBar->checkin('orders.checkin')->listCheck(true);
             }
-            //			}
-
-            $childBar->checkin('orders.checkin')->listCheck(true);
         }
 
-        if ($canDo->get('core.admin')) {
+        // Emptying the trash is a delete and needs nothing else.
+        if ($isTrashed && $canDelete) {
+            $toolbar->delete('orders.delete')
+                ->text('JTOOLBAR_EMPTY_TRASH')
+                ->message('JGLOBAL_CONFIRM_DELETE')
+                ->listCheck(true);
+        }
+
+        // Options opens com_config, which itself requires core.admin.
+        if ($user->authorise('core.admin', 'com_alfa')) {
             $toolbar->preferences('com_alfa');
         }
+
+        TourHelper::toolbarHelp($toolbar, $this->getName());
         \Alfa\Component\Alfa\Administrator\Helper\NotificationHelper::toolbarBadge($toolbar);
     }
 }

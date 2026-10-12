@@ -18,6 +18,8 @@ use \Joomla\CMS\Language\Text;
 $wa = $this->document->getWebAssetManager();
 $wa->useScript('keepalive')
 	->useScript('form.validate')
+	->useScript('com_alfa.validate.engine')
+	->useStyle('com_alfa.validate')
     ->useStyle('com_alfa.admin');
 HTMLHelper::_('bootstrap.tooltip');
 
@@ -47,7 +49,6 @@ $fieldsets = $this->form->getFieldsets();
     <div class="row">
         <div class="col-lg-9">
             <fieldset class="adminform">
-                <legend><?php echo Text::_('COM_ALFA_FIELDSET_PAYMENT'); ?></legend>
                 <?php echo $this->form->renderFieldset('general'); ?>
             </fieldset>
         </div>

@@ -6,9 +6,9 @@
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
  *
- * Toolbar notification badge — the whole component as ONE node: the `btn btn-action`
+ * Toolbar notification badge, the whole component as ONE node: the `btn btn-action`
  * (icon + label + count, so it matches the other toolbar buttons and reads clearly when
- * the toolbar collapses to one-button-per-line on mobile) plus the panel. Pure markup —
+ * the toolbar collapses to one-button-per-line on mobile) plus the panel. Pure markup;
  * the assets/script options are registered by NotificationHelper::toolbarBadge() on page
  * load; the JS just refreshes this same layout and swaps the node in place.
  *

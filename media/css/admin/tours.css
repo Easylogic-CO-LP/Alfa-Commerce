@@ -1,0 +1,13 @@
+/**
+ * Alfa Admin: guided tour launchers.
+ *
+ * plg_system_guidedtours starts a tour from a click whose `event.target` ITSELF
+ * carries `button-start-guidedtour`; it never walks up from the element clicked.
+ * A toolbar Help button renders its icon as a child `<span>`, so a click landing on
+ * the icon would be swallowed. Making the children click-through hands every click
+ * to the button, which is what the engine listens for.
+ */
+
+.button-start-guidedtour > * {
+    pointer-events: none;
+}

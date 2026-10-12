@@ -1,19 +1,17 @@
 /**
- * Alfa Admin — Bottom Toast Notifications
+ * Alfa Admin: Bottom Toast Notifications
  *
  * Supports auto-dismiss (animation) and sticky (stays until clicked).
  * Error/warning default to sticky; success/info auto-dismiss.
  *
  * File: media/com_alfa/css/admin-notifications.css
  *
- * @package    Com_Alfa
+ * @package    Alfa Commerce
  * @version    4.2.0
  * @since  1.0.0
  */
 
-/* ─────────────────────────────────────────────────────────────────── */
-/* Toast container — fixed bottom-right                                */
-/* ─────────────────────────────────────────────────────────────────── */
+/* Toast container - fixed bottom-right                                */
 #alfa-notification {
     display: flex;
     align-items: center;
@@ -38,17 +36,13 @@
     background: #2c2c2c;
 }
 
-/* ─────────────────────────────────────────────────────────────────── */
-/* Color variants — via data-type attribute                            */
-/* ─────────────────────────────────────────────────────────────────── */
+/* Color variants - via data-type attribute                            */
 #alfa-notification[data-type="success"] { background: #198754; }
 #alfa-notification[data-type="error"]   { background: #dc3545; }
 #alfa-notification[data-type="warning"] { background: #856404; }
 #alfa-notification[data-type="info"]    { background: #0d6efd; }
 
-/* ─────────────────────────────────────────────────────────────────── */
 /* Content layout                                                      */
-/* ─────────────────────────────────────────────────────────────────── */
 #alfa-notification .notify-content {
     flex: 1;
 }
@@ -58,9 +52,7 @@
     font-size: 1.1em;
 }
 
-/* ─────────────────────────────────────────────────────────────────── */
-/* Dismiss button — shown only on sticky notifications                 */
-/* ─────────────────────────────────────────────────────────────────── */
+/* Dismiss button - shown only on sticky notifications                 */
 #alfa-notification .notify-dismiss {
     margin-left: 16px;
     font-size: 1.2em;
@@ -73,9 +65,7 @@
     opacity: 1;
 }
 
-/* ─────────────────────────────────────────────────────────────────── */
-/* Auto-dismiss animation — slides up, stays, slides down              */
-/* ─────────────────────────────────────────────────────────────────── */
+/* Auto-dismiss animation - slides up, stays, slides down              */
 .notify-in {
     animation-fill-mode: forwards;
 }
@@ -122,10 +112,8 @@
     }
 }
 
-/* ─────────────────────────────────────────────────────────────────── */
-/* Sticky mode — slides up and stays until clicked                     */
+/* Sticky mode - slides up and stays until clicked                     */
 /* Uses a simpler animation: just the entrance, then holds position.   */
-/* ─────────────────────────────────────────────────────────────────── */
 .notify-sticky {
     animation: alfaNotifySticky 0.4s ease-out forwards;
 }
@@ -148,9 +136,7 @@
     }
 }
 
-/* ─────────────────────────────────────────────────────────────────── */
-/* Responsive — center on small screens                                */
-/* ─────────────────────────────────────────────────────────────────── */
+/* Responsive - center on small screens                                */
 @media (max-width: 768px) {
     #alfa-notification {
         right: 50%;

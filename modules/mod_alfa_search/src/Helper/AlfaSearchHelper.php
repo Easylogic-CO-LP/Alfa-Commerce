@@ -9,6 +9,12 @@
 
 namespace Alfa\Module\AlfaSearch\Site\Helper;
 
+use Alfa\Component\Alfa\Administrator\Service\Search\CatalogSearchHit;
+use Alfa\Component\Alfa\Administrator\Service\Search\CatalogSearchRequest;
+use Alfa\Component\Alfa\Administrator\Service\Search\CatalogSearchResults;
+use Alfa\Component\Alfa\Administrator\Service\Search\CatalogSearchService;
+use Alfa\Component\Alfa\Administrator\Service\Search\SearchEntity;
+use Alfa\Component\Alfa\Administrator\Service\Search\SearchSuggestion;
 use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Helper\ModuleHelper;
@@ -17,11 +23,22 @@ use Joomla\CMS\Layout\FileLayout;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Response\JsonResponse;
 use Joomla\Registry\Registry;
+use Throwable;
 
 \defined('_JEXEC') or die;
 
 /**
- * Helper for mod_alfa_search
+ * AJAX transport for mod_alfa_search.
+ *
+ * TRANSPORT AND PRESENTATION ONLY. Searching the catalogue is a component capability
+ * ({@see CatalogSearchService}): this class maps THIS module's parameters onto a request,
+ * renders THIS module's layout, and speaks HTTP. That split is what lets a second
+ * presentation package (the premium Enterprise search module) and the storefront filter
+ * input offer the same search without reimplementing it or reaching into this module.
+ *
+ * Reached by convention, not by a reference: `com_ajax` resolves
+ * `option=com_ajax&module=alfa_search&method=get` to `getAjax()` on this class. Grep will
+ * therefore never show a caller; renaming or moving it breaks the endpoint silently.
  *
  * @since  1.0.0
  */
@@ -31,11 +48,6 @@ class AlfaSearchHelper
      * Maximum execution time in seconds
      */
     private const MAX_EXECUTION_TIME = 25;
-
-    /**
-     * Maximum keyword length to prevent DoS
-     */
-    private const MAX_KEYWORD_LENGTH = 100;
 
     /**
      * Handle AJAX search requests
@@ -49,32 +61,24 @@ class AlfaSearchHelper
             // Set the execution time limit to prevent server hanging
             @set_time_limit(self::MAX_EXECUTION_TIME);
 
-            // Initialize application
             $app = Factory::getApplication();
 
-            // Get module
             $module = ModuleHelper::getModule('mod_alfa_search');
+
             if (!$module) {
                 self::sendError(Text::_('MOD_ALFA_SEARCH_ERROR_MODULE_NOT_FOUND'), 404);
                 return;
             }
 
-            // Load language
             $app->getLanguage()->load('mod_alfa_search', JPATH_SITE);
 
-            // Get module parameters
             $params = new Registry($module->params);
-
-            // Get and validate search keyword
             $keyword = self::getAndValidateKeyword($app, $params);
 
-            // Initialize component
-            $mvcFactory = self::initializeComponent($app);
+            $results = CatalogSearchService::create()->search(
+                self::request(keyword: $keyword, lang: $app->getLanguage()->getTag(), params: $params),
+            );
 
-            // Perform searches based on module parameters
-            $results = self::performSearches($mvcFactory, $keyword, $params);
-
-            // Render and send results (layout handles empty check)
             self::renderAndSend($keyword, $results, $params);
         } catch (Exception $e) {
             self::logError('AJAX request failed', [
@@ -86,7 +90,44 @@ class AlfaSearchHelper
     }
 
     /**
+     * Map this module's parameters onto a component search request.
+     *
+     * The mapping is explicit rather than a factory on the request, so the component never
+     * has to know that a parameter called `show_categories` exists anywhere.
+     *
+     * `withLayouts: false` keeps this a data-only lookup: the dropdown shows name, sku and
+     * price, so rendering item-field selectors and cart layouts would be work thrown away.
+     * A results page that renders add-to-cart controls passes true.
+     *
+     * @param string $keyword Validated keyword.
+     * @param string $lang Current language tag.
+     * @param Registry $params Module parameters.
+     *
+     *
+     * @since  1.6.0
+     */
+    private static function request(string $keyword, string $lang, Registry $params): CatalogSearchRequest
+    {
+        return new CatalogSearchRequest(
+            keyword: $keyword,
+            lang: $lang,
+            withCategories: (bool) $params->get('show_categories', 0),
+            categoryLimit: (int) $params->get('categories_limit', 6),
+            withManufacturers: (bool) $params->get('show_manufacturers', 0),
+            manufacturerLimit: (int) $params->get('manufacturers_limit', 6),
+            withSuggestions: (bool) $params->get('show_suggestions', 1),
+            suggestionLimit: max(1, (int) $params->get('suggestions_limit', 8)),
+            withLayouts: false,
+        );
+    }
+
+    /**
      * Get and validate search keyword
+     *
+     * The MINIMUM is this module's call (a dropdown that fires on one character is noise),
+     * so it is enforced here. The hard upper ceiling is the component's, because it exists
+     * to protect the server rather than to shape the UX, but it is still reported with
+     * this module's own message.
      *
      * @param object $app Application instance
      * @param Registry $params Module parameters
@@ -97,10 +138,15 @@ class AlfaSearchHelper
      */
     private static function getAndValidateKeyword($app, Registry $params): string
     {
-        $keyword = trim($app->input->getString('query', ''));
-        $keyword = self::sanitizeKeyword($keyword);
+        $keyword = CatalogSearchService::sanitize($app->input->getString('query', ''));
 
-        $minCharacters = (int) $params->get('minCharacters', 2);
+        // FLOOR OF TWO, whatever the merchant configured: the search service refuses a
+        // keyword below its own minimum outright (one character is a search intent it
+        // cannot yet answer honestly, and answering it with the unfiltered catalogue was
+        // the defect that closed the question). A module set to 1 would accept the
+        // keystroke here and then have nothing to show for it, so the too-short message
+        // is the truthful answer rather than an empty dropdown.
+        $minCharacters = max(2, (int) $params->get('minCharacters', 2));
 
         if (empty($keyword)) {
             throw new Exception(Text::_('MOD_ALFA_SEARCH_ERROR_EMPTY'), 400);
@@ -113,7 +159,7 @@ class AlfaSearchHelper
             );
         }
 
-        if (mb_strlen($keyword) > self::MAX_KEYWORD_LENGTH) {
+        if (mb_strlen($keyword) > CatalogSearchService::MAX_KEYWORD_LENGTH) {
             throw new Exception(Text::_('MOD_ALFA_SEARCH_ERROR_TOO_LONG'), 400);
         }
 
@@ -121,215 +167,49 @@ class AlfaSearchHelper
     }
 
     /**
-     * Sanitize search keyword
-     *
-     * @param string $keyword Raw keyword
-     *
-     * @return string Sanitized keyword
-     * @since  1.0.0
-     */
-    private static function sanitizeKeyword(string $keyword): string
-    {
-        $keyword = strip_tags($keyword);
-        $keyword = str_replace("\0", '', $keyword);
-        $keyword = preg_replace('/\s+/', ' ', $keyword);
-
-        return trim($keyword);
-    }
-
-    /**
-     * Initialize component and get MVC factory
-     *
-     * @param object $app Application instance
-     *
-     * @return mixed MVC Factory instance
-     * @throws Exception
-     * @since  1.0.0
-     */
-    private static function initializeComponent($app)
-    {
-        $component = $app->bootComponent('com_alfa');
-        if (!$component) {
-            throw new Exception('Component initialization failed', 500);
-        }
-
-        $mvcFactory = $component->getMVCFactory();
-        if (!$mvcFactory) {
-            throw new Exception('MVC Factory not available', 500);
-        }
-
-        return $mvcFactory;
-    }
-
-    /**
-     * Perform all enabled searches based on module parameters
-     *
-     * @param mixed $mvcFactory MVC Factory instance
-     * @param string $keyword Search keyword
-     * @param Registry $params Module parameters
-     *
-     * @return array Search results
-     * @since  1.0.0
-     */
-    private static function performSearches($mvcFactory, string $keyword, Registry $params): array
-    {
-        $results = [
-            'products' => [],
-            'categories' => [],
-            'manufacturers' => [],
-        ];
-
-        // Search products (always enabled)
-        try {
-            $results['products'] = self::searchProducts($mvcFactory, $keyword);
-        } catch (Exception $e) {
-            self::logError('Product search failed', [
-                'keyword' => $keyword,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        // Search categories if enabled
-        if ($params->get('show_categories', 0)) {
-            try {
-                $categoryLimit = (int) $params->get('categories_limit', 6);
-                $results['categories'] = self::searchCategories($mvcFactory, $keyword, $categoryLimit);
-            } catch (Exception $e) {
-                self::logError('Category search failed', [
-                    'keyword' => $keyword,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
-
-        // Search manufacturers if enabled
-        if ($params->get('show_manufacturers', 0)) {
-            try {
-                $manufacturerLimit = (int) $params->get('manufacturers_limit', 6);
-                $results['manufacturers'] = self::searchManufacturers($mvcFactory, $keyword, $manufacturerLimit);
-            } catch (Exception $e) {
-                self::logError('Manufacturer search failed', [
-                    'keyword' => $keyword,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
-
-        return $results;
-    }
-
-    /**
-     * Search products
-     *
-     * @param mixed $mvcFactory MVC Factory
-     * @param string $keyword Search keyword
-     * @param int $limit Result limit
-     *
-     * @return array Products array
-     * @since  1.0.0
-     */
-    private static function searchProducts($mvcFactory, string $keyword, int $limit = 50): array
-    {
-        $model = $mvcFactory->createModel('Items', 'Site', ['ignore_request' => true]);
-        if (!$model) {
-            return [];
-        }
-
-        $model->getState('list.ordering');
-        $model->setState('filter.state', '1');
-        $model->setState('filter.search', $keyword);
-        $model->setState('list.limit', $limit);
-        $model->setState('list.start', 0);
-
-        $items = $model->getItems();
-        return is_array($items) ? $items : [];
-    }
-
-    /**
-     * Search categories
-     *
-     * @param mixed $mvcFactory MVC Factory
-     * @param string $keyword Search keyword
-     * @param int $limit Result limit from XML
-     *
-     * @return array Categories array
-     * @since  1.0.0
-     */
-    private static function searchCategories($mvcFactory, string $keyword, int $limit): array
-    {
-        $model = $mvcFactory->createModel('Categories', 'Site', ['ignore_request' => true]);
-        if (!$model) {
-            return [];
-        }
-
-        $model->getState('list.ordering');
-        $model->setState('filter.state', '1');
-        $model->setState('filter.search', $keyword);
-        $model->setState('list.limit', $limit);
-        $model->setState('list.start', 0);
-
-        $items = $model->getItems();
-        return is_array($items) ? $items : [];
-    }
-
-    /**
-     * Search manufacturers
-     *
-     * @param mixed $mvcFactory MVC Factory
-     * @param string $keyword Search keyword
-     * @param int $limit Result limit from XML
-     *
-     * @return array Manufacturers array
-     * @since  1.0.0
-     */
-    private static function searchManufacturers($mvcFactory, string $keyword, int $limit): array
-    {
-        $model = $mvcFactory->createModel('Manufacturers', 'Site', ['ignore_request' => true]);
-        if (!$model) {
-            return [];
-        }
-
-        $model->getState('list.ordering');
-        $model->setState('filter.state', '1');
-        $model->setState('filter.search', $keyword);
-        $model->setState('list.limit', $limit);
-        $model->setState('list.start', 0);
-
-        $items = $model->getItems();
-        return is_array($items) ? $items : [];
-    }
-
-    /**
      * Render layout and send JSON response
      *
      * @param string $keyword Search keyword
-     * @param array $results Search results
+     * @param CatalogSearchResults $results Search results
      * @param Registry $params Module parameters
      *
      * @since  1.0.0
      */
-    private static function renderAndSend(string $keyword, array $results, Registry $params): void
+    private static function renderAndSend(string $keyword, CatalogSearchResults $results, Registry $params): void
     {
         try {
             $layout = new FileLayout('result', JPATH_ROOT . '/modules/mod_alfa_search/tmpl');
 
-            $layoutData = [
+            // THIS MODULE'S WIRE AND MARKUP ARE ITS OWN MINI-CONTRACT and deliberately did
+            // NOT adopt the typed shapes when the service did: the layout keeps rendering
+            // the models' rows and the wire keeps plain suggestion strings, byte-identical
+            // to what shipped. The typed result is unwrapped here, at the presentation
+            // boundary, which is exactly where entity-specific rendering belongs.
+            $rowsFor = static fn (SearchEntity $entity): array => array_map(
+                static fn (CatalogSearchHit $hit): object => $hit->row,
+                $results->section($entity)?->hits ?? [],
+            );
+
+            $suggestionTexts = array_map(
+                static fn (SearchSuggestion $suggestion): string => $suggestion->text,
+                array_values($results->suggestions),
+            );
+
+            $html = $layout->render([
                 'params' => $params,
-                'products' => $results['products'],
-                'categories' => $results['categories'],
-                'manufacturers' => $results['manufacturers'],
-            ];
+                'products' => $rowsFor(SearchEntity::ITEM),
+                'categories' => $rowsFor(SearchEntity::CATEGORY),
+                'manufacturers' => $rowsFor(SearchEntity::MANUFACTURER),
+                'suggestions' => $suggestionTexts,
+            ]);
 
-            $html = $layout->render($layoutData);
-
-            $totalCount = count($results['products'])
-                + count($results['categories'])
-                + count($results['manufacturers']);
+            $totalCount = $results->total();
 
             $data = [
                 'query' => $keyword,
                 'html' => $html,
                 'count' => $totalCount,
+                'suggestions' => $suggestionTexts,
             ];
 
             header('Content-Type: application/json; charset=utf-8');
@@ -375,13 +255,12 @@ class AlfaSearchHelper
      *
      * @since  1.0.0
      */
-    //	TODO: CHECK LOG ERROR IS WORKING FINE WITH JOOMLA
     private static function logError(string $message, array $context = []): void
     {
         try {
             $contextString = !empty($context) ? ' | ' . json_encode($context) : '';
             Log::add($message . $contextString, Log::ERROR, 'mod_alfa_search');
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             error_log('mod_alfa_search: ' . $message);
         }
     }

@@ -1,0 +1,62 @@
+<?php
+
+/**
+ * @package    Alfa Commerce
+ * @author     Agamemnon Fakas <info@easylogic.gr>
+ * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
+ * @license    GNU General Public License version 3 or later; see LICENSE
+ */
+
+namespace Alfa\Component\Alfa\Api\View\Paymentmethods;
+
+\defined('_JEXEC') or die;
+
+use Joomla\CMS\MVC\View\JsonApiView as BaseApiView;
+
+/**
+ * The Payments view
+ *
+ * @since  1.0.0
+ */
+class JsonApiView extends BaseApiView
+{
+    /**
+     * The fields to render item in the documents
+     *
+     * @var array
+     * @since  1.0.0
+     */
+    protected $fieldsToRenderItem = [
+        'id',
+        'name',
+        'type',
+        'color',
+        'bg_color',
+        'show_on_product',
+        'categories',
+        'manufacturers',
+        'places',
+        'users',
+        'usergroups',
+        'ordering',
+        'state',
+        'translations',
+    ];
+
+    /**
+     * The fields to render items in the documents
+     *
+     * @var array
+     * @since  1.0.0
+     */
+    protected $fieldsToRenderList = [
+        'id',
+        'name',
+        'type',
+        'color',
+        'bg_color',
+        'show_on_product',
+        'ordering',
+        'state',
+    ];
+}

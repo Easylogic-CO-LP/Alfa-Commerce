@@ -62,7 +62,6 @@
                 // Set up event listeners
                 this.setupEventListeners();
 
-                this.log('Search module initialized successfully');
                 return true;
 
             } catch (error) {
@@ -97,7 +96,15 @@
                 this.elements.form.getAttribute('data-minchars') || '2',
                 10
             );
-            this.state.ajaxUrl = this.elements.form.getAttribute('data-action') || '';
+            // Trimmed, so a whitespace-only attribute is treated as the absence it is. An absent
+            // attribute already arrives as null from getAttribute.
+            this.state.ajaxUrl = (this.elements.form.getAttribute('data-action') || '').trim();
+
+            if (!this.state.ajaxUrl) {
+                // Said once per page load rather than once per keystroke: this is a broken
+                // configuration, not a runtime condition, and the merchant needs to see it.
+                this.logError('No search endpoint declared (data-action); search is disabled.');
+            }
         }
 
         /**
@@ -111,6 +118,12 @@
 
             // Input event
             this.elements.searchInput.addEventListener('input', () => this.handleInput());
+
+            // Suggestion chips (delegated: the popup HTML is replaced each search).
+            // Picking a suggestion is the USER converting greeklish to the real word:
+            // put it in the box and run the REAL search with the REAL query, never a
+            // machine rewrite.
+            this.elements.searchPopup.addEventListener('click', (e) => this.handleSuggestionClick(e));
 
             // Click outside to close
             document.addEventListener('click', (e) => this.handleOutsideClick(e));
@@ -186,6 +199,34 @@
         }
 
         /**
+         * Handle a click on a suggestion chip.
+         *
+         * @param {Event} event Click event
+         */
+        handleSuggestionClick(event) {
+            const chip = event.target.closest('.search-suggestion');
+
+            if (!chip) {
+                return;
+            }
+
+            event.preventDefault();
+
+            const term = chip.getAttribute('data-suggestion') || chip.textContent.trim();
+
+            if (!term) {
+                return;
+            }
+
+            // Cancel the debounce so the chosen word is not overtaken by a stale
+            // keystroke, put it in the box, and run the real search immediately.
+            clearTimeout(this.state.typingTimer);
+            this.elements.searchInput.value = term;
+            this.elements.searchInput.focus();
+            this.performSearch(term);
+        }
+
+        /**
          * Handle keyboard shortcuts
          *
          * @param {KeyboardEvent} event Keyboard event
@@ -219,6 +260,25 @@
          * @param {string} query Search query
          */
         async performSearch(query) {
+            // FAIL CLOSED WITHOUT AN ENDPOINT. data-action is the only address this module has,
+            // and only PHP can build it: Route::_ is what knows the site's SEF and language
+            // routing. It can legitimately come back empty: an absent attribute, or a Route::_
+            // that returned null (Route::link swallows a component-router RuntimeException and
+            // answers null), which PHP prints as nothing.
+            //
+            // Without this the empty string went straight to fetch(), where it is a RELATIVE url
+            // and therefore resolves to the CURRENT DOCUMENT, so every search POSTed its query
+            // at the page the shopper was standing on. That page answers 200 with HTML, the JSON
+            // parse throws, and the shopper is shown "Network error" while the server has
+            // rendered a whole page per keystroke burst.
+            //
+            // Returning here and nothing else is deliberate: no fallback to the current page, no
+            // guessed endpoint. The box stays a plain input and the form's own submit still
+            // searches, which is what it does with JavaScript off.
+            if (!this.state.ajaxUrl) {
+                return;
+            }
+
             // Cancel previous request
             if (this.state.abortController) {
                 this.state.abortController.abort();
@@ -283,7 +343,6 @@
             this.elements.searchPopup.innerHTML = data.html;
             this.elements.searchPopup.classList.add('active');
 
-            this.log('Results displayed', { count: data.count || 0 });
         }
 
         /**

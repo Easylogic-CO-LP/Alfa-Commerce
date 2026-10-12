@@ -8,26 +8,45 @@
  */
 /**
  * Order Items List (embedded in order edit page)
- * Mirrors edit_payments.php pattern exactly
+ * Follows the edit_payments.php pattern
  *
  * Field definitions come from order_items.xml (via subform in order.xml)
  * Table headers: from form field labels
  * Table data: from $item->{$fieldName}
  * Editing: via modal popup (edit_order_item.php)
  *
- * @see edit_payments.php — identical pattern
+ * @see edit_payments.php (the same pattern)
  */
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Joomla\CMS\Router\Route;
+
+// Adding, editing and running plugin actions on order lines are order edits.
+$canEditOrder = AlfaHelper::can(section: 'orders', action: 'edit', user: $this->getCurrentUser());
+
+// A line's product name links to the catalog item only for a user who may edit items.
+$canEditItems = AlfaHelper::can(section: 'items', action: 'edit', user: $this->getCurrentUser());
 
 $items         = $this->order->items ?? [];
 $items_subform = $this->form->getField('items')->loadSubForm();
 $itemFields    = $items_subform->getFieldset();
+
+// Column span for the per-line configuration row (visible columns + Actions).
+$visibleColumns = 0;
+
+foreach ($itemFields as $columnField) {
+    if ($columnField->getAttribute('type') !== 'hidden') {
+        $visibleColumns++;
+    }
+}
+
+$configColspan = $visibleColumns + 1;
 
 ?>
 
@@ -36,16 +55,18 @@ $itemFields    = $items_subform->getFieldset();
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h3>
                 <span class="icon-cube me-2"></span>
-				<?php echo Text::_('Items'); ?>
+				<?php echo Text::_('COM_ALFA_ITEMS'); ?>
             </h3>
 
             <!-- Add Item Button -->
+            <?php if ($canEditOrder) : ?>
             <a href="#addOrderItemModal"
                data-bs-toggle="modal"
                class="btn btn-success">
                 <span class="icon-plus"></span>
-				<?php echo Text::_('Add item'); ?>
+				<?php echo Text::_('COM_ALFA_ADD_ORDER_ITEM'); ?>
             </a>
+            <?php endif; ?>
         </div>
     </div>
 </div>
@@ -59,7 +80,7 @@ $itemFields    = $items_subform->getFieldset();
                     <th><?php echo Text::_($field->getAttribute('label')); ?></th>
 				<?php endif; ?>
 			<?php endforeach; ?>
-            <th><?php echo Text::_('Actions'); ?></th>
+            <th><?php echo Text::_('COM_ALFA_ACTIONS'); ?></th>
         </tr>
         </thead>
         <tbody id="order-item-rows">
@@ -80,8 +101,25 @@ $itemFields    = $items_subform->getFieldset();
 						<?php
 						$value = $item->{$fieldName} ?? '';
 
-						// Format Money objects
-						if (is_object($value) && method_exists($value, 'format')) {
+						// Frozen names are {lang:text} snapshots; resolve to
+						// the current language for display.
+						if ($fieldName === 'name') {
+							$value = MultilingualHelper::resolveLangMap($value);
+						}
+
+						if ($fieldName === 'name' && !empty($item->id_item) && $canEditItems) {
+							// Product name links to the catalog item (new tab), through the
+							// controller task so the item is checked out like any other edit.
+							echo '<a href="'
+								. Route::_('index.php?option=com_alfa&task=item.edit&id=' . (int) $item->id_item)
+								. '" target="_blank" rel="noopener">'
+								. $this->escape($value)
+								. '</a>';
+						} elseif (isset($item->{$fieldName . '_formatted'})) {
+							// A unit as the one unit rule prints it, at the order's frozen scale.
+							echo $this->escape($item->{$fieldName . '_formatted'});
+						} elseif (is_object($value) && method_exists($value, 'format')) {
+							// Format Money objects
 							echo $value->format();
 						} else {
 							echo $this->escape($value);
@@ -91,6 +129,7 @@ $itemFields    = $items_subform->getFieldset();
 				<?php endforeach; ?>
 
                 <td>
+                    <?php if ($canEditOrder) : ?>
                     <div class="btn-group me-2" role="group">
                         <a href="#<?php echo $modalId; ?>"
                            data-bs-toggle="modal"
@@ -100,19 +139,7 @@ $itemFields    = $items_subform->getFieldset();
 							<?php echo Text::_('JACTION_EDIT'); ?>
                         </a>
                     </div>
-
-                    <!-- Plugin Actions -->
-					<?php if (!empty($actions)): ?>
-                        <div class="btn-group" role="group">
-							<?php foreach ($actions as $action): ?>
-								<?php echo LayoutHelper::render('actions.button', [
-									'action'  => $action,
-									'context' => 'order_item',
-									'id'      => $item->id
-								], JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
-							<?php endforeach; ?>
-                        </div>
-					<?php endif; ?>
+                    <?php endif; ?>
 
 					<?php
 					// Render edit modal
@@ -120,7 +147,9 @@ $itemFields    = $items_subform->getFieldset();
 						'bootstrap.renderModal',
 						$modalId,
 						[
-							'title'      => Text::_('COM_ALFA_EDIT_ORDER_ITEM'),
+							'title'      => Text::_('COM_ALFA_EDIT_ORDER_ITEM')
+								. (!empty($item->name) ? ' - ' . $this->escape(MultilingualHelper::resolveLangMap($item->name)) : '')
+								. (!empty($item->sku) ? ' (' . $this->escape($item->sku) . ')' : ''),
 							'url'        => $editUrl,
 							'width'      => '80%',
 							'bodyHeight' => '70vh',
@@ -129,6 +158,40 @@ $itemFields    = $items_subform->getFieldset();
 					?>
                 </td>
             </tr>
+
+			<?php if (!empty($item->fields)): ?>
+                <tr class="alfa-order-item-config">
+                    <td colspan="<?php echo (int) $configColspan; ?>" class="small text-muted ps-4 py-1">
+						<?php foreach ($item->fields as $configField): ?>
+                            <div class="d-flex justify-content-between align-items-baseline py-1 border-bottom border-light">
+                                <span>
+                                    <strong><?php echo $this->escape($configField->label); ?>:</strong>
+                                    <?php
+                                    if ($configField->value !== "") {
+                                        echo " " . $this->escape($configField->value);
+                                    } elseif ($configField->has_payload) {
+                                        echo " <span class=\"badge bg-body-tertiary text-body-emphasis\">" . Text::_("COM_ALFA_ORDER_ITEM_FIELD_CONFIGURED") . "</span>";
+                                    }
+                                    ?>
+                                </span>
+                                <?php if ($configField->impact !== ""): ?>
+                                    <span class="text-success fw-bold ms-3 flex-shrink-0"><?php echo $this->escape($configField->impact); ?></span>
+                                <?php endif; ?>
+                            </div>
+                            <?php if (!empty($configField->breakdown)): ?>
+                                <?php foreach ($configField->breakdown as $line): ?>
+                                    <div class="d-flex justify-content-between align-items-baseline ps-4 py-1">
+                                        <span>&middot; <?php echo $this->escape($line->label); ?></span>
+                                        <?php if ($line->impact !== ""): ?>
+                                            <span class="text-success ms-3 flex-shrink-0"><?php echo $this->escape($line->impact); ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+						<?php endforeach; ?>
+                    </td>
+                </tr>
+			<?php endif; ?>
 		<?php endforeach; ?>
         </tbody>
     </table>
@@ -166,11 +229,13 @@ echo HTMLHelper::_(
         'use strict';
 
         window.addEventListener('message', function(event) {
-            if (event.data.messageType !== 'alfa:order-item-action') {
+            if (event.origin !== window.location.origin) {
                 return;
             }
 
-            console.log('[Parent] Received order item message:', event.data);
+            if (event.data.messageType !== 'alfa:order-item-action') {
+                return;
+            }
 
             const shouldClose = event.data.shouldClose;
             const shouldReload = event.data.shouldReload;
@@ -201,14 +266,13 @@ echo HTMLHelper::_(
                 return;
             }
 
-            document.body.appendChild(document.createElement('joomla-core-loader'));
-
             const taskInput = orderForm.querySelector('input[name=task]');
             if (taskInput) {
                 taskInput.value = `${view}.reload`;
             }
 
-            orderForm.submit();
+            // Painted first, then submitted; see Alfa.loader.showThen().
+            Alfa.loader.showThen(() => orderForm.submit());
         }
 
         function closeModal(itemId) {
@@ -218,7 +282,6 @@ echo HTMLHelper::_(
             if (modalEl) {
                 const bsModal = bootstrap.Modal.getInstance(modalEl);
                 if (bsModal) {
-                    console.log('[Parent] Closing modal:', modalId);
                     bsModal.hide();
                 }
             }

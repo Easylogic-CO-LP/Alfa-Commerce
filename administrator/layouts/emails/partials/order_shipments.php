@@ -6,9 +6,7 @@
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
  *
- * ─────────────────────────────────────────────────────────────────
- *  Order-email shipments table — overridable partial (customer-minimal)
- * ─────────────────────────────────────────────────────────────────
+ *  Order-email shipments table: overridable partial (customer-minimal)
  *
  *  Rendered by the layout via:
  *    $render('emails.partials.order_shipments', ['shipments' => $shipments])
@@ -16,7 +14,7 @@
  *    templates/<template>/html/layouts/com_alfa/emails/partials/order_shipments.php
  *
  *  $displayData:
- *    object[]  $shipments  Each: {method, tracking, status} — already
+ *    object[]  $shipments  Each: {method, tracking, status}, already
  *                          customer-facing (no cost/carrier/weight/ids).
  *
  *  The tracking column shows a dash when empty. Renders nothing when
@@ -62,7 +60,7 @@ $tdStyle = 'padding:9px 10px;text-align:left;border-bottom:1px solid #e5e7eb;col
             <tr>
                 <td style="<?php echo $tdStyle; ?>"><?php echo htmlspecialchars((string) ($shipment->method ?? ''), ENT_COMPAT, 'UTF-8'); ?></td>
                 <td style="<?php echo $tdStyle; ?>"><?php echo htmlspecialchars((string) ($shipment->status ?? ''), ENT_COMPAT, 'UTF-8'); ?></td>
-                <td style="<?php echo $tdStyle; ?>"><?php echo $tracking !== '' ? htmlspecialchars($tracking, ENT_COMPAT, 'UTF-8') : '—'; ?></td>
+                <td style="<?php echo $tdStyle; ?>"><?php echo $tracking !== '' ? htmlspecialchars($tracking, ENT_COMPAT, 'UTF-8') : '-'; ?></td>
             </tr>
         <?php endforeach; ?>
     </tbody>

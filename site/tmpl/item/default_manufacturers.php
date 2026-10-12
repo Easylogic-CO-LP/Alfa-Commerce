@@ -35,11 +35,11 @@
             <div class="item-list-entry item-manufacturer">
                 <a href="<?php echo $manufacturerUrl; ?>">
                     <div class="item-list-entry-name item-manufacturer-name">
-                        <?php echo $manufacturer['name']; ?>
+                        <?php echo $this->escape($manufacturer['name']); ?>
                     </div>
                     <?php if ($firstImage) : ?>
                         <div class="item-list-entry-image item-manufacturer-image">
-                            <img src="<?php echo $firstImage->url; ?>" alt="<?php echo $imageAlt; ?>">
+                            <img src="<?php echo $this->escape($firstImage->url); ?>" alt="<?php echo $this->escape($imageAlt); ?>">
                         </div>
                     <?php endif; ?>
                 </a>

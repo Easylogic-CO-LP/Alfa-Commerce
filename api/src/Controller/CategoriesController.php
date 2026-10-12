@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Api\Controller;
 
 \defined('_JEXEC') or die;
 
+use Joomla\CMS\Filter\InputFilter;
 use Joomla\CMS\MVC\Controller\ApiController;
 
 /**
@@ -20,6 +21,8 @@ use Joomla\CMS\MVC\Controller\ApiController;
  */
 class CategoriesController extends ApiController
 {
+    use HasApiGuards;
+
     /**
      * The content type of the item.
      *
@@ -35,4 +38,53 @@ class CategoriesController extends ApiController
      * @since  1.0.0
      */
     protected $default_view = 'categories';
+
+    /**
+     * Relations the admin model clears when the key is absent from a PATCH.
+     *
+     * @return string[]
+     *
+     * @since  1.9.0
+     */
+    protected function preserveOnPatch(): array
+    {
+        return [
+            'allowedUsers',
+            'allowedUserGroups',
+            'robots',
+        ];
+    }
+
+    /**
+     * Categories list view amended to add filtering of data
+     *
+     * @return static A BaseController object to support chaining.
+     *
+     * @since  1.9.0
+     */
+    public function displayList()
+    {
+        $apiFilterInfo = $this->input->get('filter', [], 'array');
+        $filter = InputFilter::getInstance();
+
+        if (\array_key_exists('search', $apiFilterInfo)) {
+            $this->modelState->set('filter.search', $filter->clean($apiFilterInfo['search'], 'STRING'));
+        }
+
+        if (\array_key_exists('state', $apiFilterInfo)) {
+            $this->modelState->set('filter.state', $filter->clean($apiFilterInfo['state'], 'INT'));
+        }
+
+        $apiListInfo = $this->input->get('list', [], 'array');
+
+        if (\array_key_exists('ordering', $apiListInfo)) {
+            $this->modelState->set('list.ordering', $filter->clean($apiListInfo['ordering'], 'STRING'));
+        }
+
+        if (\array_key_exists('direction', $apiListInfo)) {
+            $this->modelState->set('list.direction', $filter->clean($apiListInfo['direction'], 'STRING'));
+        }
+
+        return parent::displayList();
+    }
 }

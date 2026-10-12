@@ -3,7 +3,6 @@
 /**
  * Alfa Commerce
  *
- * @copyright  (C) 2023 Open Source Matters, Inc. <https://www.joomla.org>
  * @package    Alfa Commerce
  * @author     Agamemnon Fakas <info@easylogic.gr>
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
@@ -14,37 +13,25 @@ namespace Alfa\Component\Alfa\Administrator\Event\General;
 
 use BadMethodCallException;
 
-//use Joomla\CMS\Form\Form;
-//use Joomla\CMS\Event\Result\ResultAware;
-//use Joomla\CMS\Event\Result\ResultAwareInterface;
-//use Joomla\CMS\Event\Result\ResultTypeStringAware;
-
 // phpcs:disable PSR1.Files.SideEffects
 \defined('_JEXEC') or die;
 // phpcs:enable PSR1.Files.SideEffects
 
 /**
  * View tier: redirect + layout. Hooks rendered inside an HtmlView (cart, item,
- * product, order process/complete, admin order views) extend this — they either
+ * product, order process/complete, admin order views) extend this: they either
  * render the plugin's layout fragment inline (setLayout) or send the buyer away
  * (setRedirectUrl, inherited from RedirectEvent).
  *
  * @since  1.0.0
  */
-class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
+abstract class LayoutEvent extends RedirectEvent
 {
-    //	use ResultAware;
-    //	use ResultTypeStringAware;
-
-    /**
-     * The argument names, in order expected by legacy plugins.
-     *
-     * @var array
-     *
-     * @since  1.0.0
-     * @deprecated 5.0 will be removed in 6.0
-     */
-    // protected $legacyArgumentsOrder = ['subject', 'fieldset', 'form'];
+    // Output travels as named arguments (setLayout/setLayoutData/setLayoutPluginType/
+    // setLayoutPluginName, plus setRedirectUrl from RedirectEvent), so this event does
+    // NOT use Joomla's Result* traits/interface (multi-listener result collection) nor
+    // the ReshapeArgumentsAware legacy positional-argument b/c layer; listeners
+    // receive named arguments only.
 
     /**
      * Constructor.
@@ -89,7 +76,8 @@ class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
     }
 
     /**
-     * Getter for the layout. If not set, return 'default_product_view'.
+     * Plugin TYPE that owns the layout fragment (used by the renderer to resolve
+     * the override path). Empty string when unset.
      *
      *
      * @since  1.0.0
@@ -100,22 +88,26 @@ class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
     }
 
     /**
-     * Setter for the layout argument.
+     * Value filter for the 'layoutPluginType' con
+     * struction/setArgument path
+     * (Joomla magic): setArgument stores what this RETURNS, so it must return the
+     * value. Plugins use the explicit setLayoutPluginType() below for convenience.
      *
-     * @param string $value The layout value to set
+     * @param string $value The plugin type.
      *
+     * @return string
      *
      * @since  1.0.0
      */
-    public function onSetLayoutPluginType($value): void
+    protected function onSetLayoutPluginType($value)
     {
-        $this->setLayoutPluginType($value);
+        return $value;
     }
 
     /**
-     * Store the layout plugin type argument.
+     * Store the layout plugin type (plugin convenience setter).
      *
-     * @param string $value The plugin type to set
+     * @param string $value The plugin type to set.
      *
      *
      * @since  1.0.0
@@ -126,7 +118,7 @@ class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
     }
 
     /**
-     * Getter for the layout. If not set, return 'default_product_view'.
+     * Plugin NAME that owns the layout fragment. Empty string when unset.
      *
      *
      * @since  1.0.0
@@ -137,22 +129,24 @@ class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
     }
 
     /**
-     * Setter for the layout argument.
+     * Value filter for the 'layoutPluginName' construction/setArgument path
+     * (Joomla magic): must return the value. Plugins use setLayoutPluginName().
      *
-     * @param string $value The layout value to set
+     * @param string $value The plugin name.
      *
+     * @return string
      *
      * @since  1.0.0
      */
-    public function onSetLayoutPluginName($value): void
+    protected function onSetLayoutPluginName($value)
     {
-        $this->setLayoutPluginName($value);
+        return $value;
     }
 
     /**
-     * Store the layout plugin name argument.
+     * Store the layout plugin name (plugin convenience setter).
      *
-     * @param string $value The plugin name to set
+     * @param string $value The plugin name to set.
      *
      *
      * @since  1.0.0
@@ -163,34 +157,36 @@ class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
     }
 
     /**
-     * Getter for the layout. If not set, return 'default_product_view'.
+     * The layout fragment this plugin renders. Empty string when the plugin set
+     * none; the orchestrator then renders no surface for this field.
      *
      *
      * @since  1.0.0
      */
     public function getLayout(): string
     {
-        // TODO: Why default_product_view and not just an empty string?
         return $this->arguments['layout'] ?? '';
     }
 
     /**
-     * Setter for the layout argument.
+     * Value filter for the 'layout' construction/setArgument path (Joomla magic):
+     * must return the value. Plugins use the explicit setLayout() for convenience.
      *
-     * @param string $value The layout value to set
+     * @param string $value The layout name.
      *
+     * @return string
      *
      * @since  1.0.0
      */
-    public function onSetLayout($value): void
+    protected function onSetLayout($value)
     {
-        $this->setLayout($value);
+        return $value;
     }
 
     /**
-     * Store the layout argument.
+     * Store the layout fragment to render (plugin convenience setter).
      *
-     * @param string $value The layout value to set
+     * @param string $value The layout name (without extension).
      *
      *
      * @since  1.0.0
@@ -201,7 +197,7 @@ class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
     }
 
     /**
-     * Getter for the layout. If not set, return 'default_product_view'.
+     * The data passed to the resolved layout's $displayData. Empty array when unset.
      *
      *
      * @since  1.0.0
@@ -212,22 +208,24 @@ class LayoutEvent extends RedirectEvent //implements ResultAwareInterface
     }
 
     /**
-     * Setter for the layout argument.
+     * Value filter for the 'layoutData' construction/setArgument path (Joomla
+     * magic): must return the value. Plugins use the explicit setLayoutData().
      *
-     * @param string $value The layout value to set
+     * @param array $value The layout data.
      *
+     * @return array
      *
      * @since  1.0.0
      */
-    public function onSetLayoutData($value): void
+    protected function onSetLayoutData($value)
     {
-        $this->setLayoutData($value);
+        return $value;
     }
 
     /**
-     * Store the layout data argument passed to the resolved layout.
+     * Store the layout data passed to the resolved layout (plugin convenience).
      *
-     * @param array $value The layout data to set
+     * @param array $value The layout data to set.
      *
      *
      * @since  1.0.0

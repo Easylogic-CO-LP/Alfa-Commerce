@@ -32,7 +32,6 @@ if ($isFiles) {
     $note = Text::_('COM_ALFA_TOOLSMEDIA_NOTE_ALL');
 }
 
-$colspan = $isFiles ? 5 : 7;
 ?>
 
 <form action="<?php echo Route::_('index.php?option=com_alfa&view=toolsmedia'); ?>"
@@ -82,13 +81,6 @@ $colspan = $isFiles ? 5 : 7;
                         <?php endif; ?>
                     </tr>
                     </thead>
-                    <tfoot>
-                    <tr>
-                        <td colspan="<?php echo $colspan; ?>">
-                            <?php echo $this->pagination->getListFooter(); ?>
-                        </td>
-                    </tr>
-                    </tfoot>
                     <tbody>
                     <?php if ($isFiles) : ?>
                         <?php foreach ($this->items as $i => $file) : ?>
@@ -147,6 +139,8 @@ $colspan = $isFiles ? 5 : 7;
                     <?php endif; ?>
                     </tbody>
                 </table>
+
+                <?php echo $this->pagination->getListFooter(); ?>
                 <?php endif; ?>
 
                 <template id="joomla-dialog-delete"><?php echo $this->loadTemplate('delete_body'); ?></template>

@@ -9,16 +9,16 @@
  * After-Process Event (onAlfaMediaAfterProcess)
  *
  * Notification hook fired by the component after a successful processing/insert
- * prep. There are NO outputs — a plugin may use it for derivative generation or
+ * prep. There are NO outputs; a plugin may use it for derivative generation or
  * bookkeeping.
  *
  * Input (set by the component, read by the plugin):
- *   $event->getSource()      → absolute source path
- *   $event->getDest()        → absolute destination path that was stored
- *   $event->getOrigin()      → media origin / context
- *   $event->getField()       → logical field name
- *   $event->getColor()       → dominant colour computed for the stored file
- *   $event->isProcessed()    → whether a plugin actually processed the image
+ *   $event->getSource()      -> absolute source path
+ *   $event->getDest()        -> absolute destination path that was stored
+ *   $event->getOrigin()      -> media origin / context
+ *   $event->getField()       -> logical field name
+ *   $event->getColor()       -> dominant colour computed for the stored file
+ *   $event->isProcessed()    -> whether a plugin actually processed the image
  *
  * @since  1.0.0
  */
@@ -36,9 +36,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Media;
  */
 class AfterProcessEvent extends MediaEvent
 {
-    // ═════════════════════════════════════════════════════════
-    //  INPUT — set by the component, read by the plugin (notification only)
-    // ═════════════════════════════════════════════════════════
+    //  INPUT: set by the component, read by the plugin (notification only)
 
     /**
      * Get the dominant colour computed for the stored file (e.g. 'rgb(r,g,b)').

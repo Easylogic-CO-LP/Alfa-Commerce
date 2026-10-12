@@ -1,7 +1,74 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <form>
-	<fields name="paymentsparams">
-		<fieldset name="paymentsparams">
+	<fields name="paymentsparams" addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+		<fieldset name="paymentsparams" label="PLG_ALFA_PAYMENTS_STANDARD_FIELDSET_SETTINGS">
+
+			<!--
+			  The setup checkup of the SAVED method (core field). One list:
+			  Standard has no test and live mode, so the variant is general.
+			  The steps come from Standard::onPaymentCheckup().
+			-->
+			<field name="checkup" type="paymentcheckup" variant="general"/>
+
+			<!--
+			  Order-status automation map. Each payment plugin declares ONLY
+			  the phases its lifecycle actually reaches, as fields named
+			  status_on_<transaction_status>. The core funnel
+			  (PaymentLedger::update) reads these conventional keys from
+			  the method's params whenever transaction_status changes and runs
+			  the transition through Transition: stock, downloads,
+			  emails and activity log all fire from that single path.
+			  Empty = no automatic change (admin drives the order manually).
+			  The standard (offline) plugin reaches completed / cancelled /
+			  refunded via its mark-paid / cancel / refund actions.
+			-->
+
+			<!-- How the automation works, in the words every payment method shares. -->
+			<field
+					name="statuses_note"
+					type="note"
+					label="COM_ALFA_PAYMENT_SETTINGS_SECTION_STATUSES"
+					description="COM_ALFA_PAYMENT_SETTINGS_SECTION_STATUSES_DESC"
+			/>
+
+			<field
+					name="status_on_completed"
+					type="model"
+					model="orderstatuses"
+					column_value="id"
+					column_text="name"
+					orderBy="ordering"
+					label="COM_ALFA_PAYMENT_SETTINGS_STATUS_ON_COMPLETED_LABEL"
+					description="COM_ALFA_PAYMENT_SETTINGS_STATUS_ON_COMPLETED_DESC"
+			>
+				<option value="">COM_ALFA_PAYMENT_SETTINGS_STATUS_NO_CHANGE</option>
+			</field>
+
+			<field
+					name="status_on_cancelled"
+					type="model"
+					model="orderstatuses"
+					column_value="id"
+					column_text="name"
+					orderBy="ordering"
+					label="COM_ALFA_PAYMENT_SETTINGS_STATUS_ON_CANCELLED_LABEL"
+					description="COM_ALFA_PAYMENT_SETTINGS_STATUS_ON_CANCELLED_DESC"
+			>
+				<option value="">COM_ALFA_PAYMENT_SETTINGS_STATUS_NO_CHANGE</option>
+			</field>
+
+			<field
+					name="status_on_refunded"
+					type="model"
+					model="orderstatuses"
+					column_value="id"
+					column_text="name"
+					orderBy="ordering"
+					label="COM_ALFA_PAYMENT_SETTINGS_STATUS_ON_REFUNDED_LABEL"
+					description="COM_ALFA_PAYMENT_SETTINGS_STATUS_ON_REFUNDED_DESC"
+			>
+				<option value="">COM_ALFA_PAYMENT_SETTINGS_STATUS_NO_CHANGE</option>
+			</field>
 
 		</fieldset>
 	</fields>

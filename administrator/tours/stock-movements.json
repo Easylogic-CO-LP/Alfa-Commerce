@@ -1,0 +1,66 @@
+{
+    "uid": "com_alfa.stock-movements",
+    "version": 3,
+    "title": "COM_ALFA_GUIDEDTOUR_STOCK_MOVEMENTS_TITLE",
+    "description": "COM_ALFA_GUIDEDTOUR_STOCK_MOVEMENTS_DESC",
+    "extensions": [
+        "com_alfa"
+    ],
+    "url": "administrator/index.php?option=com_alfa&view=inventorymovements",
+    "autostart": false,
+    "steps": [
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_STOCK_MOVEMENTS_STEP_1_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_STOCK_MOVEMENTS_STEP_1_DESC",
+            "position": "right",
+            "target": "#sidebarmenu a[href*=\"option=com_alfa\"][href*=\"view=inventorymovements\"]",
+            "type": 2,
+            "interactive_type": 1,
+            "url": "administrator/index.php?option=com_alfa&view=inventorymovements"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_STOCK_MOVEMENTS_STEP_2_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_STOCK_MOVEMENTS_STEP_2_DESC",
+            "position": "top",
+            "target": "#adminForm, .table",
+            "type": 2,
+            "interactive_type": 3,
+            "url": "administrator/index.php?option=com_alfa&view=inventorymovements"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_STOCK_MOVEMENTS_STEP_3_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_STOCK_MOVEMENTS_STEP_3_DESC",
+            "position": "bottom",
+            "target": ".js-stools-btn-filter, #filter_search",
+            "type": 2,
+            "interactive_type": 3,
+            "url": "administrator/index.php?option=com_alfa&view=inventorymovements"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_STOCK_MOVEMENTS_STEP_4_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_STOCK_MOVEMENTS_STEP_4_DESC",
+            "position": "bottom",
+            "target": "#toolbar a[href*=\"view=locations\"]",
+            "type": 2,
+            "interactive_type": 3,
+            "url": "administrator/index.php?option=com_alfa&view=inventorymovements"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_STOCK_MOVEMENTS_STEP_5_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_STOCK_MOVEMENTS_STEP_5_DESC",
+            "position": "bottom",
+            "target": "#toolbar a[href*=\"view=reservations\"]",
+            "type": 2,
+            "interactive_type": 3,
+            "url": "administrator/index.php?option=com_alfa&view=inventorymovements"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_STOCK_MOVEMENTS_STEP_6_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_STOCK_MOVEMENTS_STEP_6_DESC",
+            "position": "bottom",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=inventorymovements"
+        }
+    ],
+    "ordering": 210
+}

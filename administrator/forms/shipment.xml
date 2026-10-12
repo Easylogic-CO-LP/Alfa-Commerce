@@ -74,7 +74,7 @@
                 label="COM_ALFA_FORM_LBL_MANUFACTURERS"
                 description="COM_ALFA_FORM_DESC_MANUFACTURERS"
                 layout="joomla.form.field.list-fancy-select"
-                header="COM_ALFA_FORM_HEADER_ALL_MANUFACTURERS"
+                header="COM_ALFA_FORM_MANUFACTURER_ALL"
         />
 
         <field name="places"
@@ -99,9 +99,10 @@
                 layout="joomla.form.field.list-fancy-select"
                 multiple="true"
                 checksuperusergroup="1"
-                default="8"
-                header="COM_ALFA_FORM_HEADER_ALL_USERGROUPS"
-        />
+                default="0"
+        >
+            <option value="0">COM_ALFA_FORM_USERGROUP_ALL</option>
+        </field>
 
         <field
                 name="users" type="sql"
@@ -112,6 +113,22 @@
                 description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERS_DESC"
                 layout="joomla.form.field.list-fancy-select"
                 query="SELECT `id`, `name` FROM `#__users`" key_field="id" value_field="name"
+        />
+
+        <!-- The tax rules this method's charge is taxed with. NO default: an
+             empty list means "use the shop's default shipping taxes", never a
+             wildcard. Each rule's places decide where it applies. -->
+        <field
+                name="taxes" type="model"
+                model="taxes"
+                column_value="id"
+                column_text="name"
+                input_type="list"
+                required="false"
+                multiple="true"
+                label="COM_ALFA_FORM_LBL_SHIPMENT_TAXES"
+                description="COM_ALFA_FORM_DESC_SHIPMENT_TAXES"
+                layout="joomla.form.field.list-fancy-select"
         />
 
     </fieldset>
@@ -154,8 +171,6 @@
                 filter="user_utc"
         />
 
-        <field name="version_note" type="text" label="JGLOBAL_FIELD_VERSION_NOTE_LABEL"
-               description="JGLOBAL_FIELD_VERSION_NOTE_DESC" class="inputbox" size="45" labelclass="control-label"/>
 
         <field name="id" type="text" readonly="true" class="readonly" default="0" description="JGLOBAL_FIELD_ID_DESC"/>
 

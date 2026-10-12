@@ -10,14 +10,14 @@
  *
  * Shared INPUT getters for every alfa-media event. Each concrete event extends
  * this and adds its own inputs/outputs. Extends AbstractImmutableEvent directly
- * (not GeneralEvent) so no `subject` argument is forced — the media events have
+ * (not GeneralEvent) so no `subject` argument is forced; the media events have
  * no subject.
  *
  * Common input (set by the component, read by the plugin):
- *   $event->getSource()  → absolute source path of the upload
- *   $event->getDest()    → absolute destination path the component proposes
- *   $event->getOrigin()  → media origin / context ('item'|'category'|...)
- *   $event->getField()   → logical field name ('image'|'thumbnail')
+ *   $event->getSource()  -> absolute source path of the upload
+ *   $event->getDest()    -> absolute destination path the component proposes
+ *   $event->getOrigin()  -> media origin / context ('item'|'category'|...)
+ *   $event->getField()   -> logical field name ('image'|'thumbnail')
  *
  * @since  1.0.0
  */
@@ -37,9 +37,7 @@ use Joomla\CMS\Event\AbstractImmutableEvent;
  */
 abstract class MediaEvent extends AbstractImmutableEvent
 {
-    // ═════════════════════════════════════════════════════════
-    //  INPUT — set by the component, read by the plugin
-    // ═════════════════════════════════════════════════════════
+    //  INPUT: set by the component, read by the plugin
 
     /**
      * Get the absolute source path of the upload.

@@ -24,14 +24,14 @@ use Joomla\CMS\Log\Log;
  * hardcoding an ID. Admin marks which rows own each role via the three
  * flags in the orderstatus form; OrderstatusModel enforces the invariants:
  *
- *   • is_initial   — singleton: exactly one row across the whole table.
- *   • is_cancelled — multi-row family: any number of rows (Returned,
+ *   - is_initial   - singleton: exactly one row across the whole table.
+ *   - is_cancelled - multi-row family: any number of rows (Returned,
  *                    Refunded, Cancelled all carry it).
- *   • is_completed — multi-row family: any number of rows (Delivered,
+ *   - is_completed - multi-row family: any number of rows (Delivered,
  *                    Picked up, Paid all carry it).
  *
  * Hence getInitialId() returns a single id while getCancelledIds() /
- * getCompletedIds() return arrays — callers that need "is this status
+ * getCompletedIds() return arrays; callers that need "is this status
  * in the cancelled family?" should use isCancelled($id) instead of
  * walking the ids list.
  *
@@ -53,7 +53,7 @@ class OrderStatusHelper
      * different order columns each get their own cached slice so the
      * iteration order matches what they asked for.
      *
-     * Shape: ['ordering' => [id => row, …], 'name' => [id => row, …]]
+     * Shape: ['ordering' => [id => row, ...], 'name' => [id => row, ...]]
      *
      * @var array<string, array<int, object>>
      */
@@ -63,7 +63,7 @@ class OrderStatusHelper
      * Load every status row keyed by id, ordered by the requested column.
      *
      * Memoised per `$orderBy` value for the lifetime of the request.
-     * Includes unpublished rows on purpose — an order may still
+     * Includes unpublished rows on purpose: an order may still
      * reference a status that's been unpublished, and admin-side
      * activity logging needs the historical name without falling
      * through to a blank cell.
@@ -148,7 +148,7 @@ class OrderStatusHelper
     /**
      * Return every status id whose is_cancelled flag is set to 1.
      *
-     * The cancellation role is multi-row by design — "Returned",
+     * The cancellation role is multi-row by design: "Returned",
      * "Refunded", and "Cancelled" can all be in the family. Callers
      * that want to test a single id should prefer isCancelled() over
      * walking this list.
@@ -166,7 +166,7 @@ class OrderStatusHelper
     /**
      * Return every status id whose is_completed flag is set to 1.
      *
-     * The completed role is multi-row by design — "Delivered",
+     * The completed role is multi-row by design: "Delivered",
      * "Picked up", and "Paid" can all be in the family.
      *
      * @return int[] Status PKs in the completed family. Empty array

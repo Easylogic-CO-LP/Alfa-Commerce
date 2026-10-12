@@ -9,6 +9,8 @@
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\Actions;
+use Alfa\Component\Alfa\Administrator\Helper\Columns;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
@@ -18,18 +20,23 @@ use Joomla\CMS\Session\Session;
 
 $user = $this->getCurrentUser();
 
+// Dismissing changes the row for every administrator; offered only to who may do it.
+$canChange = NotificationHelper::canChangeState(user: $user);
+
 $severityLabels = [
     'success' => 'COM_ALFA_NOTIFY_SEVERITY_SUCCESS',
     'info'    => 'COM_ALFA_NOTIFY_SEVERITY_INFO',
     'warning' => 'COM_ALFA_NOTIFY_SEVERITY_WARNING',
     'danger'  => 'COM_ALFA_NOTIFY_SEVERITY_DANGER',
 ];
+
+$columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);   // END-only folding
 ?>
 <form action="<?php echo Route::_('index.php?option=com_alfa&view=notifications'); ?>" method="post" name="adminForm" id="adminForm">
     <div class="row">
         <div class="col-md-12">
             <div id="j-main-container" class="j-main-container">
-                <?php echo LayoutHelper::render('joomla.searchtools.default', ['view' => $this]); ?>
+                <?php echo LayoutHelper::render('joomla.searchtools.default', ['view' => $this]); ?><?php echo $this->renderSlot('before-grid'); ?><?php echo Actions::bulkBar($this->pluginBulkActions ?? []); ?>
 
                 <?php if (empty($this->items)) : ?>
                     <div class="alert alert-info">
@@ -45,13 +52,16 @@ $severityLabels = [
                                 <th class="d-none d-md-table-cell"><?php echo Text::_('COM_ALFA_NOTIFY_COL_GROUP'); ?></th>
                                 <th class="d-none d-md-table-cell"><?php echo Text::_('COM_ALFA_NOTIFY_COL_CREATED'); ?></th>
                                 <th class="d-none d-md-table-cell text-center"><?php echo Text::_('COM_ALFA_NOTIFY_COL_STATE'); ?></th>
-                                <th class="w-5 text-center"><?php echo Text::_('JACTION_DELETE'); ?></th>
+                                <?php if ($canChange) : ?>
+                                <th class="w-5 text-center"><?php echo Text::_('COM_ALFA_NOTIFY_COL_DISMISS'); ?></th>
+                                <?php endif; ?><?php echo Columns::heads($columnsByAnchor, Columns::END); ?><?php echo Actions::head($this->pluginRowActions ?? []); ?>
+
                             </tr>
                         </thead>
                         <tbody>
-                        <?php foreach ($this->items as $item) : ?>
+                        <?php foreach ($this->items as $i => $item) : ?>
                             <?php
-                            // Per-row view-access gate (kept here, not in SQL — ACL is per-user).
+                            // Per-row view-access gate (kept here, not in SQL: ACL is per-user).
                             if (!NotificationHelper::canSee($item, $user)) {
                                 continue;
                             }
@@ -84,9 +94,10 @@ $severityLabels = [
                                     <?php elseif (empty($item->readed)) : ?>
                                         <span class="badge bg-primary"><?php echo Text::_('COM_ALFA_NOTIFY_UNREAD'); ?></span>
                                     <?php else : ?>
-                                        <span class="badge bg-light text-dark"><?php echo Text::_('COM_ALFA_NOTIFY_STATE_ACTIVE'); ?></span>
+                                        <span class="badge bg-body-tertiary text-body-emphasis"><?php echo Text::_('COM_ALFA_NOTIFY_STATE_ACTIVE'); ?></span>
                                     <?php endif; ?>
                                 </td>
+                                <?php if ($canChange) : ?>
                                 <td class="text-center">
                                     <?php if (empty($item->dismissed) && (int) $item->dismissible === 1) : ?>
                                         <a class="btn btn-sm btn-outline-secondary"
@@ -95,6 +106,8 @@ $severityLabels = [
                                         </a>
                                     <?php endif; ?>
                                 </td>
+                                <?php endif; ?><?php echo Columns::cells($columnsByAnchor, Columns::END, $item); ?><?php echo Actions::cell($this->pluginRowActions ?? [], $i, $item); ?>
+
                             </tr>
                         <?php endforeach; ?>
                         </tbody>

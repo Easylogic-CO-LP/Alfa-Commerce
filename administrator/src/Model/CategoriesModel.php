@@ -11,8 +11,8 @@ namespace Alfa\Component\Alfa\Administrator\Model;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Joomla\CMS\Factory;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
-use Joomla\CMS\MVC\Model\ListModel;
 use Joomla\Database\QueryInterface;
 
 // phpcs:disable PSR1.Files.SideEffects
@@ -24,8 +24,26 @@ use Joomla\Database\QueryInterface;
  *
  * @since  1.0.0
  */
-class CategoriesModel extends ListModel
+class CategoriesModel extends AlfaListModel
 {
+    /**
+     * The admin-contract entity this list serves.
+     *
+     *
+     * @since  1.8.0
+     */
+    protected string $alfaEntity = 'category';
+
+    /**
+     * The enriched page of the last getItems() run: the contract's list phases
+     * re-ask getItems(), and without the memo the hierarchy resolution would run
+     * twice per request.
+     *
+     *
+     * @since  1.8.0
+     */
+    private ?array $alfaEnriched = null;
+
     /**
     * Constructor.
     *
@@ -44,7 +62,7 @@ class CategoriesModel extends ListModel
                 'parent_id', 'a.parent_id',
                 'id', 'a.id',
                 'state', 'a.state',
-                // Translatable — resolved via the lang-table COALESCE alias in the query.
+                // Translatable: resolved via the lang-table COALESCE alias in the query.
                 'name',
                 'alias',
             ];
@@ -86,9 +104,25 @@ class CategoriesModel extends ListModel
      */
     protected function getStoreId($id = '')
     {
-        // Compile the store id.
-        $id .= ':' . $this->getState('filter.search');
-        $id .= ':' . $this->getState('filter.state');
+        // Serialise EVERY filter into the cache identity, including filters a plugin
+        // declared through onAlfaAdminListFilters, which a hand-enumerated list would
+        // silently omit (stale cache + the contract's list phases skipping re-runs).
+        // Same discipline as the orders grid.
+        $filters = [];
+
+        // toArray(), not (array): the model State keeps LITERAL dotted keys, so an
+        // object cast returns its protected properties and matches nothing.
+        foreach ($this->getState()->toArray() as $key => $value) {
+            if (str_starts_with((string) $key, 'filter.')) {
+                $filters[$key] = \is_array($value) ? implode(',', $value) : (string) $value;
+            }
+        }
+
+        ksort($filters);
+
+        foreach ($filters as $key => $value) {
+            $id .= ':' . $key . '=' . $value;
+        }
 
         return parent::getStoreId($id);
     }
@@ -135,6 +169,22 @@ class CategoriesModel extends ListModel
             fields:            ['name', 'alias'],
         );
 
+        // Directly-assigned item count. A CORRELATED SUBQUERY, not a JOIN: this
+        // query selects DISTINCT a.* and searches through a bare HAVING (no GROUP
+        // BY), so a junction join would multiply rows and corrupt the total.
+        // COUNT(DISTINCT) because the junction table has no unique key.
+        // The item states mirror the Items list default (a.state IN (0, 1)), so the
+        // badge cannot promise rows the linked list will not show.
+        $query->select(
+            '(SELECT COUNT(DISTINCT ' . $db->quoteName('ic.item_id') . ')'
+            . ' FROM ' . $db->quoteName('#__alfa_items_categories', 'ic')
+            . ' INNER JOIN ' . $db->quoteName('#__alfa_items', 'ci')
+            . ' ON ' . $db->quoteName('ci.id') . ' = ' . $db->quoteName('ic.item_id')
+            . ' WHERE ' . $db->quoteName('ic.category_id') . ' = ' . $db->quoteName('a.id')
+            . ' AND ' . $db->quoteName('ci.state') . ' IN (0, 1)'
+            . ') AS ' . $db->quoteName('item_count'),
+        );
+
         // Filter by published state
         $published = $this->getState('filter.state');
 
@@ -153,7 +203,7 @@ class CategoriesModel extends ListModel
             } else {
                 $search = $db->Quote('%' . $db->escape($search, true) . '%');
                 // HAVING (not WHERE) because `name` is the COALESCE alias from the
-                // lang join — not a real column at WHERE time, and unambiguous as
+                // lang join, not a real column at WHERE time, and unambiguous as
                 // an output alias once main-table translatable columns are dropped.
                 $query->having('( ' . $db->quoteName('name') . ' LIKE ' . $search . ' )');
             }
@@ -180,18 +230,24 @@ class CategoriesModel extends ListModel
      */
     public function getItems()
     {
+        if ($this->alfaEnriched !== null) {
+            return $this->alfaEnriched;
+        }
+
         $items = parent::getItems();
 
-        $items = AlfaHelper::addHierarchyData($items);
+        if (empty($items)) {
+            return $items;
+        }
 
-        //		TROPOS 1
-        //		$categories = AlfaHelper::addHierarchyData($categories,'name','/');
+        // Hierarchy enrichment rebuilds the tree from the CURRENT PAGE only and
+        // drops rows whose ancestors fell outside it, fatal to API pagination,
+        // where every paginated row must be returned. Admin grids page the tree
+        // from the root so the assumption holds there.
+        if (!Factory::getApplication()->isClient('api')) {
+            $items = AlfaHelper::addHierarchyData($items);
+        }
 
-        //		TROPOS 2
-        //	    $nestedCategories = AlfaHelper::buildNestedArray($categories);
-        //		AlfaHelper::sort_nested_items($nestedCategories,'name','desc');
-        //	    $flattenArray = AlfaHelper::flatten_nested_items($nestedCategories,'id','/');
-
-        return $items;
+        return $this->alfaEnriched = $items;
     }
 }

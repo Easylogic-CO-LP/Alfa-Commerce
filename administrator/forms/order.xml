@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <form addfieldprefix="Alfa\Component\Alfa\Administrator\Field">
+    <!-- The customer SNAPSHOT of the order (who placed it: a guest, an account,
+         or an account since deleted). Display-only; the delivery / invoice
+         details are the dynamic checkout fields injected below this fieldset. -->
     <fieldset name="user_details">
-        <field name="user_email" label="COM_ALFA_FORM_LBL_EMAIL" type="text" readonly="true" class="readonly" default=""/>
-        <field name="user_name" label="COM_ALFA_FORM_LBL_NAME" type="text" readonly="true" class="readonly" default=""/>
+        <field name="customer_kind" label="COM_ALFA_FORM_LBL_CUSTOMER_KIND" type="text" readonly="true" class="readonly" default="" filter="unset"/>
+        <field name="user_name" label="COM_ALFA_FORM_LBL_NAME" type="text" readonly="true" class="readonly" default="" filter="unset"/>
+        <field name="user_email" label="COM_ALFA_FORM_LBL_EMAIL" type="text" readonly="true" class="readonly" default="" filter="unset"/>
         <field name="id_user_group" type="hidden" default="1"/>
     </fieldset>
 
@@ -11,6 +15,17 @@
 
     <fieldset name="order_details">
         <field name="id" type="text" readonly="true" default="0" label="ID" description="JGLOBAL_FIELD_ID_DESC"/>
+
+        <!-- validate=UserId: an id with no account behind it would make the
+             order claim a customer that does not exist, and the email rules
+             read "member" straight off this value. Empty (a guest) passes. -->
+        <field
+                name="id_user"
+                type="user"
+                label="COM_ALFA_FORM_LBL_CUSTOMER"
+                description="COM_ALFA_FORM_DESC_CUSTOMER"
+                validate="UserId"
+        />
         <field name="id_address_delivery" type="hidden" default="1"/>
 
         <field

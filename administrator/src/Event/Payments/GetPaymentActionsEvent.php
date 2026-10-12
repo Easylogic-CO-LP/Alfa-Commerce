@@ -12,24 +12,18 @@
  * for a payment. Each payment plugin's onGetActions() receives this
  * event and registers its buttons via the fluent API.
  *
- * ═══════════════════════════════════════════════════════════════
  *  REGISTERING ACTIONS (in plugin's onGetActions)
- * ═══════════════════════════════════════════════════════════════
  *
  *   $event->add('mark_paid', 'Mark as Paid')
  *       ->icon('checkmark')->css('btn-success')
  *       ->confirm('Mark this payment as paid?');
  *
- * ═══════════════════════════════════════════════════════════════
- *  READING CONTEXT
- * ═══════════════════════════════════════════════════════════════
+ *  Reading context
  *
  *   $payment = $event->getPayment();
  *   $order   = $event->getOrder();
  *
- * ═══════════════════════════════════════════════════════════════
  *  CONSUMING ACTIONS (in controller/view)
- * ═══════════════════════════════════════════════════════════════
  *
  *   $actions = $event->getActions();
  *   // PluginAction[] sorted by priority desc, valid + enabled only
@@ -41,7 +35,8 @@
 
 namespace Alfa\Component\Alfa\Administrator\Event\Payments;
 
-use Alfa\Component\Alfa\Administrator\Plugin\HasPluginActionsTrait;
+use Alfa\Component\Alfa\Administrator\Plugin\Traits\HasPluginActionsTrait;
+use Alfa\Component\Alfa\Site\Service\Order\Order;
 use Joomla\CMS\Event\AbstractImmutableEvent;
 
 defined('_JEXEC') or die;
@@ -67,8 +62,8 @@ class GetPaymentActionsEvent extends AbstractImmutableEvent
      *
      * @since  1.0.0
      */
-    public function getOrder(): object
+    public function getOrder(): Order
     {
-        return $this->arguments['order'];
+        return Order::of($this->arguments['order']);
     }
 }

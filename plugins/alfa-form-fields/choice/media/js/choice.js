@@ -1,5 +1,5 @@
 /**
- * alfa-form-fields/choice — client-side glue.
+ * alfa-form-fields/choice: client-side glue.
  *
  * 1. Registers `choice` with document.formvalidator so Joomla's standard
  *    form-validate flow handles submission blocking, .invalid styling, and
@@ -8,7 +8,7 @@
  *
  * Both layers read the same two attrs the server uses:
  *   data-min-selections, data-max-selections.
- * They're stamped onto whatever element the field renders — <fieldset> for
+ * They're stamped onto whatever element the field renders: <fieldset> for
  * radio/checkbox/button variants, <select multiple> for multiselect.
  */
 
@@ -96,11 +96,11 @@
         el.addEventListener('change', () => updateState(el));
         updateState(el);
         // No synthetic 'alfa:field-change' here: radios/checkboxes/<select>
-        // fire native 'change', and showon.js self-evaluates on init —
+        // fire native 'change', and showon.js self-evaluates on init;
         // dispatching it would cause a redundant extra evaluation pass.
     }
 
-    // --- showon trigger support ---
+    // showon trigger support
     function readChoiceValue(root) {
         var sel = root.querySelector('select');
         if (sel) {
@@ -112,16 +112,17 @@
         );
     }
 
-    // Showon value reader — ONE line, no engine internals, any load order.
+    // Showon value reader: ONE line, no engine internals, any load order.
     // Contract: media/com_alfa/js/site/cart/showon.js (queue facade).
     (window.alfaShowOn = window.alfaShowOn || []).push({
         type: 'choice',
-        value: function (name, form) {
-            // Το wrapper που έβαλε το grouped_fields.php (Βήμα D)
-            var box = form.querySelector('[data-showon-name="' + name + '"]');
-            var value = box ? readChoiceValue(box) : null;
-            // console.log(value);
-            return value;
+        value: function (name, form, surface) {
+            // The surface grouped_fields.php wrapped this field in. Prefer the one
+            // the reader hands us: a checkout repeats the same names for delivery
+            // and invoice, and resolving by name alone would answer for the wrong copy.
+            var box = surface || form.querySelector('[data-showon-name="' + name + '"]');
+
+            return box ? readChoiceValue(box) : null;
         }
     });
 

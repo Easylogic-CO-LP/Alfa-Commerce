@@ -29,10 +29,17 @@ class JsonApiView extends BaseApiView
     protected $fieldsToRenderItem = [
         'id',
         'name',
+        'name_customer',
         'color',
         'bg_color',
-        'stock_action',
+        'stock_operation',
+        'is_initial',
+        'is_cancelled',
+        'is_completed',
+        'notify_customer',
+        'ordering',
         'state',
+        'translations',
     ];
 
     /**
@@ -46,7 +53,11 @@ class JsonApiView extends BaseApiView
         'name',
         'color',
         'bg_color',
-        'stock_action',
+        'stock_operation',
+        'is_initial',
+        'is_cancelled',
+        'is_completed',
+        'ordering',
         'state',
     ];
 }
