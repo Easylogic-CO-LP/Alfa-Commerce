@@ -1,0 +1,314 @@
+{
+ "ruling": "chat-rulings/2026-10-12-copy-clean-before-release.md",
+ "format": "one entry per shipped file + rule + exact token (string literal) or exact trimmed line (comment, template or XML text); never a whole file",
+ "entries": [
+  {
+   "file": "administrator/components/com_alfa/layouts/emails/order/default.php",
+   "rule": "R5",
+   "text": "<html lang=\"en\" xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:o=\"urn:schemas-microsoft-com:office:office\">",
+   "class": "name-in-code",
+   "why": "the Office namespace URN desktop mail clients need in the email HTML"
+  },
+  {
+   "file": "administrator/components/com_alfa/layouts/emails/partials/order_totals.php",
+   "rule": "R3",
+   "text": "<td style=\"<?php echo $valueStyle; ?>\">−<?php echo $discount->format(); ?></td>",
+   "class": "screen-glyph",
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+  },
+  {
+   "file": "administrator/components/com_alfa/layouts/emails/partials/order_totals.php",
+   "rule": "R3",
+   "text": "<td style=\"<?php echo $valueStyle; ?>\">−<?php echo $rule->amount->format(); ?></td>",
+   "class": "screen-glyph",
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+  },
+  {
+   "file": "administrator/components/com_alfa/layouts/prices/row.php",
+   "rule": "R3",
+   "text": "' −'",
+   "class": "screen-glyph",
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+  },
+  {
+   "file": "administrator/components/com_alfa/layouts/prices/row.php",
+   "rule": "R3",
+   "text": "'−%'",
+   "class": "screen-glyph",
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+  },
+  {
+   "file": "administrator/components/com_alfa/layouts/prices/row.php",
+   "rule": "R3",
+   "text": "'−'",
+   "class": "screen-glyph",
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+  },
+  {
+   "file": "administrator/components/com_alfa/layouts/seo/preview.php",
+   "rule": "R5",
+   "text": "'COM_ALFA_SEO_GOOGLE_PREVIEW'",
+   "class": "key",
+   "why": "a language KEY the template reads; its value is neutral"
+  },
+  {
+   "file": "administrator/components/com_alfa/layouts/seo/preview.php",
+   "rule": "R5",
+   "text": "<div class=\"seo-google-preview p-3 rounded\">",
+   "class": "name-in-code",
+   "why": "a CSS class name the stylesheet and script select on"
+  },
+  {
+   "file": "administrator/components/com_alfa/src/Field/DocumentChargesField.php",
+   "rule": "R3",
+   "text": "'−'",
+   "class": "screen-glyph",
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+  },
+  {
+   "file": "administrator/components/com_alfa/src/Field/OrderItemsField.php",
+   "rule": "R3",
+   "text": "' (×'",
+   "class": "screen-glyph",
+   "why": "the x the screen prints before a quantity (UI symbol)"
+  },
+  {
+   "file": "administrator/components/com_alfa/src/Plugin/Plugin.php",
+   "rule": "R6",
+   "text": "*       'created_on' => ['>=', '2025-01-01'],",
+   "class": "data",
+   "why": "a date that is an example value in a code sample, not a session date"
+  },
+  {
+   "file": "administrator/components/com_alfa/src/Service/Order/EmailService.php",
+   "rule": "R3",
+   "text": "'−'",
+   "class": "screen-glyph",
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+  },
+  {
+   "file": "administrator/components/com_alfa/tmpl/item/edit_combinations.php",
+   "rule": "R3",
+   "text": "'−%'",
+   "class": "screen-glyph",
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+  },
+  {
+   "file": "administrator/components/com_alfa/tmpl/item/edit_combinations.php",
+   "rule": "R3",
+   "text": "'−'",
+   "class": "screen-glyph",
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+  },
+  {
+   "file": "administrator/components/com_alfa/tmpl/order/edit_payments.php",
+   "rule": "R3",
+   "text": "'−'",
+   "class": "screen-glyph",
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+  },
+  {
+   "file": "administrator/components/com_alfa/tmpl/order/edit_shipments.php",
+   "rule": "R6",
+   "text": "//                   Delivered: 2026-03-05 14:30 <- green bold",
+   "class": "data",
+   "why": "a date that is an example value in a code sample, not a session date"
+  },
+  {
+   "file": "administrator/components/com_alfa/tmpl/order/edit_shipments.php",
+   "rule": "R6",
+   "text": "//                   Shipped: 2026-03-05 10:45   <- blue",
+   "class": "data",
+   "why": "a date that is an example value in a code sample, not a session date"
+  },
+  {
+   "file": "administrator/components/com_alfa/tmpl/order/edit_shipments.php",
+   "rule": "R6",
+   "text": "//    -> Cell shows:  2026-03-04 17:55",
+   "class": "data",
+   "why": "a date that is an example value in a code sample, not a session date"
+  },
+  {
+   "file": "administrator/components/com_alfa/tmpl/order/edit_totals.php",
+   "rule": "R3",
+   "text": "−<?php echo $chargedBack->format(); ?>",
+   "class": "screen-glyph",
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+  },
+  {
+   "file": "administrator/components/com_alfa/tmpl/order/edit_totals.php",
+   "rule": "R3",
+   "text": "−<?php echo $order->total_discounts_tax_incl->format(); ?>",
+   "class": "screen-glyph",
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+  },
+  {
+   "file": "administrator/components/com_alfa/tmpl/order/edit_totals.php",
+   "rule": "R3",
+   "text": "−<?php echo $refunded->format(); ?>",
+   "class": "screen-glyph",
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+  },
+  {
+   "file": "administrator/components/com_alfa/tmpl/orders/default.php",
+   "rule": "R3",
+   "text": "': −'",
+   "class": "screen-glyph",
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+  },
+  {
+   "file": "administrator/components/com_alfa/tmpl/orders/default_discounts.php",
+   "rule": "R3",
+   "text": "−<?php echo $this->escape($cr->value_formatted ?? ''); ?>",
+   "class": "screen-glyph",
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+  },
+  {
+   "file": "administrator/components/com_alfa/tmpl/orders/default_payments.php",
+   "rule": "R3",
+   "text": "'−'",
+   "class": "screen-glyph",
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+  },
+  {
+   "file": "administrator/components/com_alfa/tmpl/orders/default_products.php",
+   "rule": "R3",
+   "text": "(−<?php echo ((float) ($oi->discount_percent ?? 0)) > 0",
+   "class": "screen-glyph",
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+  },
+  {
+   "file": "administrator/components/com_alfa/tmpl/orders/default_products.php",
+   "rule": "R3",
+   "text": "<?php echo Text::_('COM_ALFA_REFUNDED'); ?> ×<?php echo (int) $oi->quantity_refunded; ?>",
+   "class": "screen-glyph",
+   "why": "the x the screen prints before a quantity (UI symbol)"
+  },
+  {
+   "file": "administrator/components/com_alfa/tmpl/orders/default_products.php",
+   "rule": "R3",
+   "text": "<?php echo Text::_('COM_ALFA_RETURNED'); ?> ×<?php echo (int) $oi->quantity_returned; ?>",
+   "class": "screen-glyph",
+   "why": "the x the screen prints before a quantity (UI symbol)"
+  },
+  {
+   "file": "administrator/language/en-GB/com_alfa.ini",
+   "rule": "R3",
+   "text": "← Send another",
+   "class": "screen-glyph",
+   "why": "the back arrow on the \"Send another\" button (UI symbol, main ruling 2026-10-12)"
+  },
+  {
+   "file": "components/com_alfa/layouts/item/price.php",
+   "rule": "R3",
+   "text": "'−'",
+   "class": "screen-glyph",
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+  },
+  {
+   "file": "components/com_alfa/src/Service/Pricing/PriceComputationEngine.php",
+   "rule": "R3",
+   "text": "' (−'",
+   "class": "screen-glyph",
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+  },
+  {
+   "file": "components/com_alfa/tmpl/cart/default_cart_items.php",
+   "rule": "R3",
+   "text": "<td>−<?php echo $rule->discountTaxInclMoney($snapshot->currency)->format(); ?></td>",
+   "class": "screen-glyph",
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+  },
+  {
+   "file": "media/com_alfa/js/admin/combinations.js",
+   "rule": "R3",
+   "text": "'−%'",
+   "class": "screen-glyph",
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+  },
+  {
+   "file": "media/com_alfa/js/admin/combinations.js",
+   "rule": "R3",
+   "text": "'−'",
+   "class": "screen-glyph",
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+  },
+  {
+   "file": "media/com_alfa/js/admin/prices.js",
+   "rule": "R3",
+   "text": "' −'",
+   "class": "screen-glyph",
+   "why": "the typographic minus the screen prints before a negative amount or as the minus operation label (main ruling 2026-10-12)"
+  },
+  {
+   "file": "media/com_alfa/js/libraries/echarts.min.js",
+   "rule": "R1",
+   "text": "/*! *****************************************************************************",
+   "class": "vendored",
+   "why": "ECharts (Apache-2.0), a third-party library shipped byte-identical: its licence header and its own strings"
+  },
+  {
+   "file": "media/com_alfa/js/libraries/echarts.min.js",
+   "rule": "R2",
+   "text": "\"其中，前{displayCnt}项是——\"",
+   "class": "vendored",
+   "why": "ECharts (Apache-2.0), a third-party library shipped byte-identical: its licence header and its own strings"
+  },
+  {
+   "file": "media/com_alfa/js/libraries/echarts.min.js",
+   "rule": "R2",
+   "text": "\"其数据是——\"",
+   "class": "vendored",
+   "why": "ECharts (Apache-2.0), a third-party library shipped byte-identical: its licence header and its own strings"
+  },
+  {
+   "file": "media/com_alfa/js/libraries/echarts.min.js",
+   "rule": "R3",
+   "text": "\"≈ \"",
+   "class": "vendored",
+   "why": "ECharts (Apache-2.0), a third-party library shipped byte-identical: its licence header and its own strings"
+  },
+  {
+   "file": "media/com_alfa/js/libraries/echarts.min.js",
+   "rule": "R3",
+   "text": "\"≤\"",
+   "class": "vendored",
+   "why": "ECharts (Apache-2.0), a third-party library shipped byte-identical: its licence header and its own strings"
+  },
+  {
+   "file": "media/com_alfa/js/libraries/echarts.min.js",
+   "rule": "R3",
+   "text": "\"≥\"",
+   "class": "vendored",
+   "why": "ECharts (Apache-2.0), a third-party library shipped byte-identical: its licence header and its own strings"
+  },
+  {
+   "file": "media/com_alfa/js/libraries/echarts.min.js",
+   "rule": "R3",
+   "text": "\"▶\"",
+   "class": "vendored",
+   "why": "ECharts (Apache-2.0), a third-party library shipped byte-identical: its licence header and its own strings"
+  },
+  {
+   "file": "media/com_alfa/js/libraries/echarts.min.js",
+   "rule": "R3",
+   "text": "\"这是一个关于“{title}”的图表。\"",
+   "class": "vendored",
+   "why": "ECharts (Apache-2.0), a third-party library shipped byte-identical: its licence header and its own strings"
+  },
+  {
+   "file": "media/com_alfa/js/libraries/echarts.min.js",
+   "rule": "R5",
+   "text": "\"Microsoft YaHei\"",
+   "class": "vendored",
+   "why": "ECharts (Apache-2.0), a third-party library shipped byte-identical: its licence header and its own strings"
+  },
+  {
+   "file": "media/com_alfa/js/libraries/echarts.min.js",
+   "rule": "R5",
+   "text": "Copyright (c) Microsoft Corporation.",
+   "class": "vendored",
+   "why": "ECharts (Apache-2.0), a third-party library shipped byte-identical: its licence header and its own strings"
+  }
+ ]
+}
