@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_meta` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Alfa Commerce facts it keeps beside its data: the schema version, the download store path and its protection';
 
 INSERT INTO `#__alfa_meta` (`name`, `value`)
-SELECT 'schema_version', '2.0.0' FROM DUAL
+SELECT 'schema_version', '2.0.1' FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `#__alfa_meta` WHERE `name` = 'schema_version');
 
 --
@@ -168,7 +168,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_categories` (
 CREATE TABLE IF NOT EXISTS `#__alfa_categories_usergroups` (
   `category_id` int(11) NOT NULL,
   `usergroup_id` int(11) NOT NULL,
-  KEY `category_id` (`category_id`,`usergroup_id`)
+  PRIMARY KEY (`category_id`, `usergroup_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -178,7 +178,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_categories_usergroups` (
 CREATE TABLE IF NOT EXISTS `#__alfa_categories_users` (
   `category_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
-  KEY `category_id` (`category_id`,`user_id`)
+  PRIMARY KEY (`category_id`, `user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -434,7 +434,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_discounts` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_discount_categories` (
   `discount_id` int(11) NOT NULL,
-  `category_id` int(11) NOT NULL
+  `category_id` int(11) NOT NULL,
+  PRIMARY KEY (`discount_id`, `category_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -443,7 +444,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_discount_categories` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_discount_manufacturers` (
   `discount_id` int(11) NOT NULL,
-  `manufacturer_id` int(11) NOT NULL
+  `manufacturer_id` int(11) NOT NULL,
+  PRIMARY KEY (`discount_id`, `manufacturer_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -452,7 +454,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_discount_manufacturers` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_discount_places` (
   `discount_id` int(11) NOT NULL,
-  `place_id` int(11) NOT NULL
+  `place_id` int(11) NOT NULL,
+  PRIMARY KEY (`discount_id`, `place_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -461,7 +464,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_discount_places` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_discount_usergroups` (
   `discount_id` int(11) NOT NULL,
-  `usergroup_id` int(11) NOT NULL
+  `usergroup_id` int(11) NOT NULL,
+  PRIMARY KEY (`discount_id`, `usergroup_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -470,7 +474,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_discount_usergroups` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_discount_users` (
   `discount_id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL
+  `user_id` int(11) NOT NULL,
+  PRIMARY KEY (`discount_id`, `user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -576,7 +581,8 @@ WHERE NOT EXISTS (SELECT 1 FROM `#__alfa_form_fields_en_gb`);
 
 CREATE TABLE IF NOT EXISTS `#__alfa_form_fields_usergroups` (
   `field_id` int(11) NOT NULL,
-  `usergroup_id` int(11) NOT NULL
+  `usergroup_id` int(11) NOT NULL,
+  PRIMARY KEY (`field_id`, `usergroup_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -585,7 +591,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_form_fields_usergroups` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_form_fields_users` (
   `field_id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL
+  `user_id` int(11) NOT NULL,
+  PRIMARY KEY (`field_id`, `user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -970,7 +977,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_item_combination_field_params` (
 CREATE TABLE IF NOT EXISTS `#__alfa_item_field_categories` (
   `item_field_id` int(11) UNSIGNED NOT NULL,
   `category_id` int(11) NOT NULL,
-  KEY `idx_item_field_id` (`item_field_id`),
+  PRIMARY KEY (`item_field_id`, `category_id`),
   KEY `idx_category_id` (`category_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -1118,7 +1125,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items` (
 CREATE TABLE IF NOT EXISTS `#__alfa_items_categories` (
   `item_id` int(11) NOT NULL,
   `category_id` int(11) NOT NULL,
-  KEY `idx_item_id` (`item_id`),
+  PRIMARY KEY (`item_id`, `category_id`),
   KEY `idx_category_id` (`category_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -1145,7 +1152,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_item_info_values` (
 CREATE TABLE IF NOT EXISTS `#__alfa_items_manufacturers` (
   `item_id` int(11) NOT NULL,
   `manufacturer_id` int(11) NOT NULL,
-  KEY `idx_item_id` (`item_id`),
+  PRIMARY KEY (`item_id`, `manufacturer_id`),
   KEY `idx_manufacturer_id` (`manufacturer_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -1310,7 +1317,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_search_rebuild_items` (
 CREATE TABLE IF NOT EXISTS `#__alfa_items_usergroups` (
   `item_id` int(11) NOT NULL,
   `usergroup_id` int(11) NOT NULL,
-  KEY `item_id` (`item_id`,`usergroup_id`)
+  PRIMARY KEY (`item_id`, `usergroup_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -1320,7 +1327,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_items_usergroups` (
 CREATE TABLE IF NOT EXISTS `#__alfa_items_users` (
   `item_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
-  KEY `item_id` (`item_id`,`user_id`)
+  PRIMARY KEY (`item_id`, `user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -1954,7 +1961,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_payments_standard_logs` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_payment_categories` (
   `payment_id` int(11) NOT NULL,
-  `category_id` int(11) NOT NULL
+  `category_id` int(11) NOT NULL,
+  PRIMARY KEY (`payment_id`, `category_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -1963,7 +1971,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_payment_categories` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_payment_manufacturers` (
   `payment_id` int(11) NOT NULL,
-  `manufacturer_id` int(11) NOT NULL
+  `manufacturer_id` int(11) NOT NULL,
+  PRIMARY KEY (`payment_id`, `manufacturer_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -1972,7 +1981,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_payment_manufacturers` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_payment_places` (
   `payment_id` int(11) NOT NULL,
-  `place_id` int(11) NOT NULL
+  `place_id` int(11) NOT NULL,
+  PRIMARY KEY (`payment_id`, `place_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -1992,7 +2002,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_payment_shipments` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_payment_usergroups` (
   `payment_id` int(11) NOT NULL,
-  `usergroup_id` int(11) NOT NULL
+  `usergroup_id` int(11) NOT NULL,
+  PRIMARY KEY (`payment_id`, `usergroup_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -2001,7 +2012,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_payment_usergroups` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_payment_users` (
   `payment_id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL
+  `user_id` int(11) NOT NULL,
+  PRIMARY KEY (`payment_id`, `user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -2557,7 +2569,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_shipments` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_shipment_categories` (
   `shipment_id` int(11) NOT NULL,
-  `category_id` int(11) NOT NULL
+  `category_id` int(11) NOT NULL,
+  PRIMARY KEY (`shipment_id`, `category_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -2566,7 +2579,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_shipment_categories` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_shipment_manufacturers` (
   `shipment_id` int(11) NOT NULL,
-  `manufacturer_id` int(11) NOT NULL
+  `manufacturer_id` int(11) NOT NULL,
+  PRIMARY KEY (`shipment_id`, `manufacturer_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -2575,7 +2589,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_shipment_manufacturers` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_shipment_places` (
   `shipment_id` int(11) NOT NULL,
-  `place_id` int(11) NOT NULL
+  `place_id` int(11) NOT NULL,
+  PRIMARY KEY (`shipment_id`, `place_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -2584,7 +2599,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_shipment_places` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_shipment_usergroups` (
   `shipment_id` int(11) NOT NULL,
-  `usergroup_id` int(11) NOT NULL
+  `usergroup_id` int(11) NOT NULL,
+  PRIMARY KEY (`shipment_id`, `usergroup_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -2593,7 +2609,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_shipment_usergroups` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_shipment_users` (
   `shipment_id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL
+  `user_id` int(11) NOT NULL,
+  PRIMARY KEY (`shipment_id`, `user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -2645,7 +2662,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_taxes` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_tax_categories` (
   `tax_id` int(11) NOT NULL,
-  `category_id` int(11) NOT NULL
+  `category_id` int(11) NOT NULL,
+  PRIMARY KEY (`tax_id`, `category_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -2654,7 +2672,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_tax_categories` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_tax_manufacturers` (
   `tax_id` int(11) NOT NULL,
-  `manufacturer_id` int(11) NOT NULL
+  `manufacturer_id` int(11) NOT NULL,
+  PRIMARY KEY (`tax_id`, `manufacturer_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -2663,7 +2682,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_tax_manufacturers` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_tax_places` (
   `tax_id` int(11) NOT NULL,
-  `place_id` int(11) NOT NULL
+  `place_id` int(11) NOT NULL,
+  PRIMARY KEY (`tax_id`, `place_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -2672,7 +2692,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_tax_places` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_tax_usergroups` (
   `tax_id` int(11) NOT NULL,
-  `usergroup_id` int(11) NOT NULL
+  `usergroup_id` int(11) NOT NULL,
+  PRIMARY KEY (`tax_id`, `usergroup_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -2681,7 +2702,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_tax_usergroups` (
 
 CREATE TABLE IF NOT EXISTS `#__alfa_tax_users` (
   `tax_id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL
+  `user_id` int(11) NOT NULL,
+  PRIMARY KEY (`tax_id`, `user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -2843,19 +2865,19 @@ CREATE TABLE IF NOT EXISTS `#__alfa_cart_rule_conditions` (
 CREATE TABLE IF NOT EXISTS `#__alfa_cart_rule_condition_values` (
   `id_condition` int(11) UNSIGNED NOT NULL,
   `id_value` int(11) NOT NULL,
-  KEY `idx_id_condition` (`id_condition`, `id_value`)
+  PRIMARY KEY (`id_condition`, `id_value`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Cart rule condition value sets (OR inside a condition)';
 
 CREATE TABLE IF NOT EXISTS `#__alfa_cart_rules_users` (
   `id_cart_rule` int(11) UNSIGNED NOT NULL,
   `user_id` int(11) NOT NULL,
-  KEY `idx_rule_user` (`id_cart_rule`, `user_id`)
+  PRIMARY KEY (`id_cart_rule`, `user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Cart rule user targeting (empty = everyone)';
 
 CREATE TABLE IF NOT EXISTS `#__alfa_cart_rules_usergroups` (
   `id_cart_rule` int(11) UNSIGNED NOT NULL,
   `usergroup_id` int(11) NOT NULL,
-  KEY `idx_rule_group` (`id_cart_rule`, `usergroup_id`)
+  PRIMARY KEY (`id_cart_rule`, `usergroup_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Cart rule usergroup targeting (empty = every group)';
 
 -- SALES DOCUMENTS: unified document family

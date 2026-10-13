@@ -7543,8 +7543,10 @@ class PaymentLedger
      */
     private static function adoptMethodOnOrderIfEmpty(int $orderId, int $methodId, string $methodName): void
     {
+        // Outside the try: the catch below needs a connection to ask about the transaction.
+        $db = self::db();
+
         try {
-            $db = self::db();
             $query = $db->getQuery(true)
                 ->update($db->quoteName('#__alfa_orders'))
                 ->set([

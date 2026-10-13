@@ -177,7 +177,7 @@ class ToolsmediaModel extends ListModel
 
         $orderCol = $this->state->get('list.ordering', 'a.id');
         $orderDir = $this->state->get('list.direction', 'DESC');
-        $query->order($db->escape($orderCol . ' ' . $orderDir));
+        $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDir) === 'DESC' ? 'DESC' : 'ASC'));
 
         return $query;
     }

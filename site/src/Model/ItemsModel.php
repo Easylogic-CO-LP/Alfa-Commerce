@@ -1263,11 +1263,11 @@ class ItemsModel extends UrlListModel
             // set (no price, or a set not yet prepared) comes after every product
             // that has one, in either direction; those, and equal figures, by id.
             if (str_starts_with($orderCol, 'pf.')) {
-                $query->order($db->escape($orderCol) . ' IS NULL ASC');
-                $query->order($db->escape($orderCol . ' ' . $orderDirn));
+                $query->order($db->quoteName($orderCol) . ' IS NULL ASC');
+                $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDirn) === 'DESC' ? 'DESC' : 'ASC'));
                 $query->order($db->quoteName('a.id') . ' ASC');
             } else {
-                $query->order($db->escape($orderCol . ' ' . $orderDirn));
+                $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDirn) === 'DESC' ? 'DESC' : 'ASC'));
             }
         }
 

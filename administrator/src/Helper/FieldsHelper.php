@@ -265,6 +265,9 @@ class FieldsHelper
             }
 
             foreach ($groupFields as $field) {
+                // Reset per field: a plugin that fails to start must not be logged under the previous field's plugin.
+                $plugin = null;
+
                 try {
                     $plugin = self::boot($field->type ?? '');
 
@@ -303,7 +306,9 @@ class FieldsHelper
                     // which is what the catch already meant to allow.
                     AlfaLog::register();
                     Log::add(
-                        'onAlfaFormFieldsPrepareDom threw in plugin "' . ($plugin->name ?? \get_class($plugin))
+                        (\is_object($plugin)
+                            ? 'onAlfaFormFieldsPrepareDom threw in plugin "' . ($plugin->name ?? \get_class($plugin))
+                            : 'The form-field plugin could not start: "' . ($field->type ?? ''))
                         . '" for field #' . (int) ($field->id ?? 0) . ' in context "' . $context . '": '
                         . $e->getMessage(),
                         Log::ERROR,

@@ -167,7 +167,8 @@ final class HydratedCart
         }
 
         if ($this->lines !== []) {
-            $firstItem = reset($this->lines);
+            // Read by key: reset() moves the array pointer, which PHP refuses on a read-only property.
+            $firstItem = $this->lines[array_key_first($this->lines)];
 
             if (isset($firstItem->data->price) && is_object($firstItem->data->price)) {
                 return $firstItem->data->price->getCurrency();

@@ -183,7 +183,7 @@ class NotificationsModel extends AlfaListModel
         $orderDir = $this->state->get('list.direction', 'DESC');
 
         if ($orderCol !== '') {
-            $query->order($db->escape($orderCol) . ' ' . $db->escape($orderDir));
+            $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDir) === 'DESC' ? 'DESC' : 'ASC'));
         } else {
             $query->order("FIELD(a.severity, 'danger', 'warning', 'info', 'success') ASC, a.created DESC");
         }

@@ -29,7 +29,7 @@ namespace Alfa\Component\Alfa\Administrator\Model\Traits;
  *
  * The obvious fix (adding those names to filter_fields) is what core itself does for
  * `tag` and `level` in com_content, but it would also make them ACCEPTED ORDERING
- * COLUMNS here: our models pass list.ordering into `$query->order($db->escape(...))`, so
+ * COLUMNS here: our models pass list.ordering into `$query->order($db->quoteName(...))`, so
  * `list[fullordering]=date_range ASC` would reach SQL as an unknown column and 500. So
  * the form answers instead: it is the authoritative declaration of what a user can
  * filter by, it already carries plugin-injected filters, and nothing has to be kept in

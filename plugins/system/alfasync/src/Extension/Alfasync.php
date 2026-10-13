@@ -425,8 +425,16 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
         $userId = (int) $user['id'];
 
+        // Every step below uses the connection, so without one there is nothing to do but log it.
         try {
             $db = $this->getDatabase();
+        } catch (Throwable $e) {
+            $this->logError('onUserAfterDelete', $e->getMessage(), ['user_id' => $userId]);
+
+            return;
+        }
+
+        try {
             $query = $db->getQuery(true)
                 ->delete($db->quoteName('#__alfa_users'))
                 ->where($db->quoteName('id_user') . ' = ' . $userId);

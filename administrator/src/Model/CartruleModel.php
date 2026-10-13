@@ -277,10 +277,11 @@ class CartruleModel extends AlfaAdminModel
                 foreach ((array) ($group['conditions'] ?? []) as $condition) {
                     $condition = (array) $condition;
                     $type = (string) ($condition['type'] ?? 'categories');
-                    $values = array_values(array_filter(array_map(
+                    // Each value once: the value table keys on (condition, value).
+                    $values = array_values(array_unique(array_filter(array_map(
                         'intval',
                         (array) ($condition['values'] ?? []),
-                    )));
+                    ))));
 
                     // A condition without values matches nothing; skip it
                     // instead of persisting a dead row.

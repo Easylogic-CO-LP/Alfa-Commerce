@@ -216,7 +216,7 @@ class CategoriesModel extends AlfaListModel
         $query->order('a.parent_id ASC');
 
         if ($orderCol && $orderDirn) {
-            $query->order($db->escape($orderCol . ' ' . $orderDirn));
+            $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDirn) === 'DESC' ? 'DESC' : 'ASC'));
         }
 
         return $query;

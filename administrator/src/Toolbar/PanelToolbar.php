@@ -160,7 +160,7 @@ final class PanelToolbar
      */
     public function edit(string $verb = 'edit'): static
     {
-        $this->toolbar->editList($this->task($verb));
+        $this->toolbar->edit($this->task($verb))->listCheck(true);
 
         return $this;
     }

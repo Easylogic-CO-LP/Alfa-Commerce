@@ -190,7 +190,7 @@ class DocumentsModel extends AlfaListModel
 
         $orderCol = $this->state->get('list.ordering', 'a.id');
         $orderDirn = $this->state->get('list.direction', 'DESC');
-        $query->order($db->escape($orderCol . ' ' . $orderDirn));
+        $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDirn) === 'DESC' ? 'DESC' : 'ASC'));
 
         return $query;
     }

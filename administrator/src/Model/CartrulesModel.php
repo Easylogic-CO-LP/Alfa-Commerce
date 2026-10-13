@@ -137,7 +137,7 @@ class CartrulesModel extends AlfaListModel
 
         $orderCol = $this->state->get('list.ordering', 'a.priority');
         $orderDirn = $this->state->get('list.direction', 'ASC');
-        $query->order($db->escape($orderCol . ' ' . $orderDirn));
+        $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDirn) === 'DESC' ? 'DESC' : 'ASC'));
 
         return $query;
     }

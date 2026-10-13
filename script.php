@@ -132,7 +132,7 @@ class com_alfaInstallerScript extends InstallerScript
      *
      * @var string
      */
-    public const SCHEMA_VERSION = '2.0.0';
+    public const SCHEMA_VERSION = '2.0.1';
 
     /**
      * Whether this run completes an install that never finished: preflight ran
@@ -142,6 +142,78 @@ class com_alfaInstallerScript extends InstallerScript
      * @since 2.0.0
      */
     private bool $completingUnfinishedInstall = false;
+
+    /**
+     * The version of this package ({@see self::ownVersion()}), set in preflight. The
+     * installer's messages name it; {@see self::CLEAN_INSTALL_FLOOR} is only the
+     * oldest version an update may start from.
+     *
+     * @since 2.0.1
+     */
+    private string $packageVersion = self::CLEAN_INSTALL_FLOOR;
+
+    /**
+     * The link tables: two ids per row, each pair meaning one link. Schema 2.0.1
+     * keys every one of them on its pair (sql/updates/mysql/2.0.1.sql), so a
+     * repeated pair is reduced to one row before the key is added.
+     *
+     * @var array<string, array{0: string, 1: string}>
+     * @since 2.0.1
+     */
+    private const LINK_TABLES = [
+        '#__alfa_categories_usergroups' => ['category_id', 'usergroup_id'],
+        '#__alfa_categories_users' => ['category_id', 'user_id'],
+        '#__alfa_discount_categories' => ['discount_id', 'category_id'],
+        '#__alfa_discount_manufacturers' => ['discount_id', 'manufacturer_id'],
+        '#__alfa_discount_places' => ['discount_id', 'place_id'],
+        '#__alfa_discount_usergroups' => ['discount_id', 'usergroup_id'],
+        '#__alfa_discount_users' => ['discount_id', 'user_id'],
+        '#__alfa_form_fields_usergroups' => ['field_id', 'usergroup_id'],
+        '#__alfa_form_fields_users' => ['field_id', 'user_id'],
+        '#__alfa_item_field_categories' => ['item_field_id', 'category_id'],
+        '#__alfa_items_categories' => ['item_id', 'category_id'],
+        '#__alfa_items_manufacturers' => ['item_id', 'manufacturer_id'],
+        '#__alfa_items_usergroups' => ['item_id', 'usergroup_id'],
+        '#__alfa_items_users' => ['item_id', 'user_id'],
+        '#__alfa_payment_categories' => ['payment_id', 'category_id'],
+        '#__alfa_payment_manufacturers' => ['payment_id', 'manufacturer_id'],
+        '#__alfa_payment_places' => ['payment_id', 'place_id'],
+        '#__alfa_payment_usergroups' => ['payment_id', 'usergroup_id'],
+        '#__alfa_payment_users' => ['payment_id', 'user_id'],
+        '#__alfa_shipment_categories' => ['shipment_id', 'category_id'],
+        '#__alfa_shipment_manufacturers' => ['shipment_id', 'manufacturer_id'],
+        '#__alfa_shipment_places' => ['shipment_id', 'place_id'],
+        '#__alfa_shipment_usergroups' => ['shipment_id', 'usergroup_id'],
+        '#__alfa_shipment_users' => ['shipment_id', 'user_id'],
+        '#__alfa_tax_categories' => ['tax_id', 'category_id'],
+        '#__alfa_tax_manufacturers' => ['tax_id', 'manufacturer_id'],
+        '#__alfa_tax_places' => ['tax_id', 'place_id'],
+        '#__alfa_tax_usergroups' => ['tax_id', 'usergroup_id'],
+        '#__alfa_tax_users' => ['tax_id', 'user_id'],
+        '#__alfa_cart_rule_condition_values' => ['id_condition', 'id_value'],
+        '#__alfa_cart_rules_users' => ['id_cart_rule', 'user_id'],
+        '#__alfa_cart_rules_usergroups' => ['id_cart_rule', 'usergroup_id'],
+    ];
+
+    /**
+     * Plain keys of schema 2.0.0 that the 2.0.1 primary key makes redundant
+     * (the same columns, or its first column alone).
+     *
+     * @var array<string, string>
+     * @since 2.0.1
+     */
+    private const REDUNDANT_LINK_KEYS = [
+        '#__alfa_categories_usergroups' => 'category_id',
+        '#__alfa_categories_users' => 'category_id',
+        '#__alfa_item_field_categories' => 'idx_item_field_id',
+        '#__alfa_items_categories' => 'idx_item_id',
+        '#__alfa_items_manufacturers' => 'idx_item_id',
+        '#__alfa_items_usergroups' => 'item_id',
+        '#__alfa_items_users' => 'item_id',
+        '#__alfa_cart_rule_condition_values' => 'idx_id_condition',
+        '#__alfa_cart_rules_users' => 'idx_rule_user',
+        '#__alfa_cart_rules_usergroups' => 'idx_rule_group',
+    ];
 
     /**
      * Default component parameters to seed after install / update.
@@ -313,6 +385,7 @@ class com_alfaInstallerScript extends InstallerScript
         }
 
         $app = Factory::getApplication();
+        $this->packageVersion = $this->ownVersion();
 
         if (version_compare($this->platformVersion(), $this->minimumJoomla, 'lt')) {
             $app->enqueueMessage(
@@ -321,7 +394,7 @@ class com_alfaInstallerScript extends InstallerScript
                     fallback: 'Alfa Commerce %1$s requires Joomla %2$s or newer; this site runs Joomla %3$s.'
                         . ' Update Joomla first, then install Alfa Commerce again.'
                         . ' Nothing was installed and the site was not modified.',
-                    values:   [self::CLEAN_INSTALL_FLOOR, $this->minimumJoomla, $this->platformVersion()],
+                    values:   [$this->packageVersion, $this->minimumJoomla, $this->platformVersion()],
                 ),
                 'error'
             );
@@ -336,7 +409,7 @@ class com_alfaInstallerScript extends InstallerScript
                     key:      'COM_ALFA_INSTALL_ERROR_UNTESTED_JOOMLA',
                     fallback: 'Alfa Commerce %1$s is tested on Joomla %2$s only; this site runs Joomla %3$s,'
                         . ' which it is not tested on yet. Nothing was installed and the site was not modified.',
-                    values:   [self::CLEAN_INSTALL_FLOOR, $this->testedJoomla(), $this->platformVersion()],
+                    values:   [$this->packageVersion, $this->testedJoomla(), $this->platformVersion()],
                 ),
                 'error'
             );
@@ -350,7 +423,7 @@ class com_alfaInstallerScript extends InstallerScript
                     key:      'COM_ALFA_INSTALL_ERROR_MINIMUM_PHP',
                     fallback: 'Alfa Commerce %1$s requires PHP %2$s or newer; this site runs PHP %3$s.'
                         . ' Nothing was installed and the site was not modified.',
-                    values:   [self::CLEAN_INSTALL_FLOOR, $this->minimumPhp, $this->phpVersion()],
+                    values:   [$this->packageVersion, $this->minimumPhp, $this->phpVersion()],
                 ),
                 'error'
             );
@@ -368,7 +441,7 @@ class com_alfaInstallerScript extends InstallerScript
                         . ' Enable the missing extensions, then install Alfa Commerce again.'
                         . ' Nothing was installed and the site was not modified.',
                     values:   [
-                        self::CLEAN_INSTALL_FLOOR,
+                        $this->packageVersion,
                         implode(separator: ', ', array: $this->requiredExtensions),
                         implode(separator: ', ', array: $missing),
                     ],
@@ -389,7 +462,7 @@ class com_alfaInstallerScript extends InstallerScript
                         . ' Alfa Commerce %2$s already on this site. Nothing was modified: no file was'
                         . ' replaced and no database change was made. Remove the existing installation'
                         . ' and install %1$s fresh.',
-                    values:   [self::CLEAN_INSTALL_FLOOR, $installed],
+                    values:   [$this->packageVersion, $installed],
                 ),
                 'error'
             );
@@ -420,7 +493,7 @@ class com_alfaInstallerScript extends InstallerScript
                         fallback: 'Alfa Commerce %1$s found an installation that had stopped before it finished, and could'
                             . ' not complete its database tables: the database refused a statement of the installation'
                             . ' SQL. No file was replaced. Correct the cause, then install %1$s again.',
-                        values:   [self::CLEAN_INSTALL_FLOOR],
+                        values:   [$this->packageVersion],
                     ),
                     'error',
                 );
@@ -434,12 +507,182 @@ class com_alfaInstallerScript extends InstallerScript
                     key:      'COM_ALFA_INSTALL_COMPLETED_UNFINISHED',
                     fallback: 'Alfa Commerce %1$s found an installation that had stopped before it finished, and completed'
                         . ' its database tables; existing tables and rows were left as they were.',
-                    values:   [self::CLEAN_INSTALL_FLOOR],
+                    values:   [$this->packageVersion],
                 ),
             );
         }
 
+        // An update keys the link tables on their pair of ids (2.0.1.sql), which Joomla runs after this
+        // method. A pair written twice before then is reduced to one row first, or the key is refused.
+        if ($type === 'update' && !$unfinished) {
+            try {
+                $this->reduceRepeatedLinks();
+            } catch (\Throwable $e) {
+                $app->enqueueMessage(
+                    $this->installerText(
+                        key:      'COM_ALFA_INSTALL_ERROR_LINK_REPEATS',
+                        fallback: 'Alfa Commerce %1$s could not prepare its link tables for the update: %2$s'
+                            . ' No file was replaced and no table was changed. Correct the cause, then update again.',
+                        values:   [$this->packageVersion, $e->getMessage()],
+                    ),
+                    'error',
+                );
+
+                return false;
+            }
+        }
+
         return true;
+    }
+
+    /**
+     * The version in the manifest beside this script: the package's own while Joomla installs it
+     * (the script runs from the package), the installed one afterwards.
+     *
+     * @return  string
+     * @since   2.0.1
+     */
+    private function ownVersion(): string
+    {
+        $file = __DIR__ . '/alfa.xml';
+        $manifest = is_file($file) ? simplexml_load_file($file) : false;
+
+        return $manifest !== false && (string) $manifest->version !== '' ? (string) $manifest->version : self::CLEAN_INSTALL_FLOOR;
+    }
+
+    /**
+     * Reduce every pair of ids written more than once in a link table without its key to one row.
+     *
+     * Each table is cleaned in its own transaction: the repeated pairs are deleted and written back
+     * once, so a failure leaves that table as it was. A table that already has its key holds no
+     * repeats and is skipped, which makes this safe to run on every update.
+     *
+     * @return  int  The rows removed.
+     * @since   2.0.1
+     */
+    protected function reduceRepeatedLinks(): int
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $existing = array_map('strtolower', $db->getTableList());
+        $removed = 0;
+
+        foreach (self::LINK_TABLES as $table => [$owner, $value]) {
+            if (!\in_array(strtolower($db->replacePrefix($table)), $existing, true) || $this->hasPrimaryKey(table: $table)) {
+                continue;
+            }
+
+            $repeats = $db->setQuery(
+                $db->createQuery()
+                    ->select([$db->quoteName($owner, 'owner_id'), $db->quoteName($value, 'value_id'), 'COUNT(*) AS ' . $db->quoteName('copies')])
+                    ->from($db->quoteName($table))
+                    ->group([$db->quoteName($owner), $db->quoteName($value)])
+                    ->having('COUNT(*) > 1')
+            )->loadObjectList();
+
+            if ($repeats === []) {
+                continue;
+            }
+
+            $db->transactionStart();
+
+            try {
+                foreach ($repeats as $pair) {
+                    $where = [
+                        $db->quoteName($owner) . ' = ' . (int) $pair->owner_id,
+                        $db->quoteName($value) . ' = ' . (int) $pair->value_id,
+                    ];
+                    $db->setQuery($db->createQuery()->delete($db->quoteName($table))->where($where))->execute();
+                    $db->setQuery(
+                        $db->createQuery()
+                            ->insert($db->quoteName($table))
+                            ->columns($db->quoteName([$owner, $value]))
+                            ->values((int) $pair->owner_id . ', ' . (int) $pair->value_id)
+                    )->execute();
+                    $removed += (int) $pair->copies - 1;
+                }
+
+                $db->transactionCommit();
+            } catch (\Throwable $e) {
+                $db->transactionRollback();
+
+                throw new \RuntimeException($db->replacePrefix($table) . ': ' . $e->getMessage(), 0, $e);
+            }
+        }
+
+        if ($removed > 0) {
+            Factory::getApplication()->enqueueMessage(
+                sprintf('Alfa Commerce: %d repeated rows were removed from the link tables before they were keyed.', $removed)
+            );
+        }
+
+        return $removed;
+    }
+
+    /**
+     * Whether a table has its primary key.
+     *
+     * @param   string  $table  The table, with the #__ prefix.
+     *
+     * @return  bool
+     * @since   2.0.1
+     */
+    private function hasPrimaryKey(string $table): bool
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+
+        return $db->setQuery('SHOW KEYS FROM ' . $db->quoteName($table) . ' WHERE ' . $db->quoteName('Key_name') . ' = ' . $db->quote('PRIMARY'))
+            ->loadAssocList() !== [];
+    }
+
+    /**
+     * After the update files have run: every link table has its primary key and none keeps a plain
+     * key the primary key makes redundant.
+     *
+     * 2.0.1.sql adds the keys with statements allowed to fail, so that the file can run again
+     * after an interruption; this check completes whatever it could not, and names what is still
+     * missing instead of passing over it.
+     *
+     * @return  void
+     * @since   2.0.1
+     */
+    private function completeLinkKeys(): void
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $existing = array_map('strtolower', $db->getTableList());
+        $failed = [];
+
+        foreach (self::LINK_TABLES as $table => [$owner, $value]) {
+            if (!\in_array(strtolower($db->replacePrefix($table)), $existing, true)) {
+                continue;
+            }
+
+            try {
+                if (!$this->hasPrimaryKey(table: $table)) {
+                    $this->reduceRepeatedLinks();
+                    $db->setQuery(
+                        'ALTER TABLE ' . $db->quoteName($table) . ' ADD PRIMARY KEY (' . $db->quoteName($owner) . ', ' . $db->quoteName($value) . ')'
+                    )->execute();
+                }
+
+                $redundant = self::REDUNDANT_LINK_KEYS[$table] ?? null;
+
+                if ($redundant !== null && $db->setQuery(
+                    'SHOW KEYS FROM ' . $db->quoteName($table) . ' WHERE ' . $db->quoteName('Key_name') . ' = ' . $db->quote($redundant)
+                )->loadAssocList() !== []) {
+                    $db->setQuery('ALTER TABLE ' . $db->quoteName($table) . ' DROP KEY ' . $db->quoteName($redundant))->execute();
+                }
+            } catch (\Throwable $e) {
+                $failed[] = $db->replacePrefix($table) . ' (' . $e->getMessage() . ')';
+            }
+        }
+
+        if ($failed !== []) {
+            Factory::getApplication()->enqueueMessage(
+                'Alfa Commerce could not key these link tables on their pair of ids: ' . implode('; ', $failed)
+                . '. The shop works; a pair written twice in them stays possible until the key is added.',
+                'error'
+            );
+        }
     }
 
     /**
@@ -509,7 +752,7 @@ class com_alfaInstallerScript extends InstallerScript
                     . ' an earlier version left in this site\'s database (their names start with %2$s).'
                     . ' Nothing was modified: no file was replaced and no database change was made.'
                     . ' Back up the database, delete those tables, then install %1$s again.',
-                values:   [self::CLEAN_INSTALL_FLOOR, $kept['prefix']],
+                values:   [$this->packageVersion, $kept['prefix']],
             );
         }
 
@@ -521,7 +764,7 @@ class com_alfaInstallerScript extends InstallerScript
                     . ' Reinstalling does not convert a database.'
                     . ' Nothing was modified: no file was replaced and no database change was made.'
                     . ' Install Alfa Commerce %2$s to reconnect the data, then update it.',
-                values:   [self::CLEAN_INSTALL_FLOOR, $kept['schema'], self::SCHEMA_VERSION],
+                values:   [$this->packageVersion, $kept['schema'], self::SCHEMA_VERSION],
             );
         }
 
@@ -834,7 +1077,9 @@ class com_alfaInstallerScript extends InstallerScript
         $db  = Factory::getContainer()->get('DatabaseDriver');
         $app = Factory::getApplication();
 
-        // 0. The Alfa tables are at this package's schema now: say so among them.
+        // 0. The link tables have their keys (2.0.1), then the Alfa tables are at this
+        //    package's schema: say so among them.
+        $this->completeLinkKeys();
         $this->recordSchemaVersion();
 
         // 1. Seed params first: SyncHelper::buildDefaultPricesDisplay() reads

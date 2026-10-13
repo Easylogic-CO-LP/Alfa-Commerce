@@ -247,7 +247,7 @@
  *   - the merchant may change the map after your row exists; the read
  *     happens at transition time, so the current setting wins
  *
- * 4. Two guards you cannot override
+ * 4. Four guards you cannot override
  *
  * CREATE never automates. Only a status CHANGE does, so opening a pending
  * attempt does not move the order.
@@ -262,6 +262,12 @@
  * AUTOMATION NEVER LEAVES THE CANCELLED FAMILY. Transition refuses that
  * without force(), which only a conscious admin act passes. Reinstating a
  * cancelled order is a human decision.
+ *
+ * ONLY MONEY TAKEN IN SPEAKS FOR THE ORDER. A refund, reversal or chargeback
+ * row records money going back, so its status change never grants files,
+ * retries a document or moves the order. A write that changes what the row
+ * is (a payment saved as a refund, or the reverse) corrects the record and
+ * does not act for the order either (PaymentLedger::takesMoneyIn()).
  *
  * WHERE THIS LIVES IN CORE (read it if you are debugging)
  *
@@ -1252,12 +1258,14 @@ final class Standard extends PaymentsPlugin
         $event->add('view_details', Text::_('COM_ALFA_VIEW_DETAILS'))
             ->icon('eye')->css('btn-outline-secondary')
             ->modal('action_view_details', Text::_('COM_ALFA_PAYMENT_DETAILS') . ' #' . $payment->id)
+            ->readOnly()
             ->priority(10);
 
         // View Logs: opens a modal with this payment's plugin log history
         $event->add('view_logs', Text::_('COM_ALFA_VIEW_LOGS'))
             ->icon('list')->css('btn-outline-info')
             ->modal('default_order_logs_view', Text::_('COM_ALFA_PAYMENT_LOGS') . ' #' . $payment->id, 'lg')
+            ->readOnly()
             ->priority(5);
 
         // Pending state

@@ -162,8 +162,13 @@ class AlfaHelper
         $db->execute();
 
         // A single-value control posts a scalar and an "all" choice posts ''
-        // - both must reach the same rows as a multiselect would.
-        $data = array_values(array_filter((array) $data, static fn ($value): bool => $value !== '' && $value !== null));
+        // - both must reach the same rows as a multiselect would. Each id is
+        // written once: the link tables key on the pair, so a repeated id
+        // (e.g. [3, 3] through the API) would be refused by the database.
+        $data = array_values(array_unique(array_map(
+            'intval',
+            array_filter((array) $data, static fn ($value): bool => $value !== '' && $value !== null),
+        )));
 
         if ($data === [] && $assignZeroIdIfDataEmpty) {
             $data = [0];
