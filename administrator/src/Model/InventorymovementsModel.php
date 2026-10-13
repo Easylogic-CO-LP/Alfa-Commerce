@@ -20,7 +20,7 @@ use Alfa\Component\Alfa\Administrator\Model\Traits\HasDateRangeFilterTrait;
  * definition: corrections are opposite entries written by the service,
  * never edits here.
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 class InventorymovementsModel extends AlfaListModel
 {
@@ -28,7 +28,7 @@ class InventorymovementsModel extends AlfaListModel
 
     /**
      * @var string The entity a plugin targets with $context->targets('inventorymovement').
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'inventorymovement';
 
@@ -37,7 +37,7 @@ class InventorymovementsModel extends AlfaListModel
      *
      * @param array $config Configuration array.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function __construct($config = [])
     {
@@ -60,7 +60,7 @@ class InventorymovementsModel extends AlfaListModel
      * @param string $ordering Default ordering column.
      * @param string $direction Default direction.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     protected function populateState($ordering = 'a.id', $direction = 'DESC')
     {
@@ -76,7 +76,7 @@ class InventorymovementsModel extends AlfaListModel
      *
      * @return \Joomla\Database\QueryInterface
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     protected function getListQuery()
     {

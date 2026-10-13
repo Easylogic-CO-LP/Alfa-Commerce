@@ -59,27 +59,27 @@ use Throwable;
  * returns an arbitrary subset that changes between runs, which reads as products
  * randomly vanishing from search.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class CatalogJoinProvider implements SearchProviderInterface
 {
     /**
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private readonly DatabaseInterface $db;
 
     /**
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private readonly SearchScope $scope;
 
     /**
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private readonly QueryNormalizer $normalizer;
 
     /**
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private readonly QueryExpander $expander;
 
@@ -90,7 +90,7 @@ final class CatalogJoinProvider implements SearchProviderInterface
      * @param QueryNormalizer|null $normalizer Shared tokeniser.
      * @param QueryExpander|null $expander Core's cross-mode expansion rule.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function __construct(
         ?DatabaseInterface $db = null,
@@ -110,7 +110,7 @@ final class CatalogJoinProvider implements SearchProviderInterface
      * @param SearchQuery $query The query.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function search(SearchQuery $query): SearchResult
     {
@@ -186,7 +186,7 @@ final class CatalogJoinProvider implements SearchProviderInterface
      *
      * @return string SQL fragment, correlated to the outer `i`.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function termMatches(array $variants, string $suffix): string
     {
@@ -295,7 +295,7 @@ final class CatalogJoinProvider implements SearchProviderInterface
      *
      * @return string[]
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function textColumns(callable $like): array
     {
@@ -345,7 +345,7 @@ final class CatalogJoinProvider implements SearchProviderInterface
      * @param string[] $extra Predicates on the joined tables.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function existsIn(
         string $table,

@@ -226,7 +226,7 @@ class HtmlView extends BaseHtmlView
      * @param object $item The listing row
      *
      * @return string loadTemplate() argument for this row's card
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function cardTplFor(object $item): string
     {

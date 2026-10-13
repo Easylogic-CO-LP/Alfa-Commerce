@@ -34,7 +34,7 @@ defined('_JEXEC') or die;
  * A contribution that is not an item field (payment, shipment) has no field, so
  * `only` drops it and `except` keeps it.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class Surface
 {
@@ -48,7 +48,7 @@ final class Surface
      *
      * @return string The rendered HTML ('' when nothing targets the slot).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function render(object $owner, BackedEnum $slot, array $only = [], array $except = []): string
     {
@@ -76,7 +76,7 @@ final class Surface
      * @param array $except Drop these fields (int id / string field_name).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function has(object $owner, BackedEnum $slot, array $only = [], array $except = []): bool
     {
@@ -93,7 +93,7 @@ final class Surface
      *
      * @return array The descriptors, in insertion order.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function select(object $owner, BackedEnum $slot, array $only, array $except): array
     {
@@ -118,7 +118,7 @@ final class Surface
      * @param array $keys Field ids and/or machine names.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function matches(array $descriptor, array $keys): bool
     {

@@ -30,7 +30,7 @@ use Joomla\Database\ParameterType;
  * summary and the formatted number. Nothing is recomputed on read, and
  * nothing may be written back.
  *
- * @since  1.9.1
+ * @since  2.0.0
  */
 class DocumentModel extends ItemModel
 {
@@ -45,7 +45,7 @@ class DocumentModel extends ItemModel
      *
      * @throws ResourceNotFound When no such document exists.
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     public function getItem($pk = null)
     {
@@ -132,7 +132,7 @@ class DocumentModel extends ItemModel
      * @param Currency|null $currency The document's currency; null when it names none.
      *
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     private function projectLines(int $documentId, ?Currency $currency): array
     {
@@ -217,7 +217,7 @@ class DocumentModel extends ItemModel
      * @param Currency|null $currency The document's currency; null when it names none.
      *
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     private function projectTaxes(int $documentId, ?Currency $currency): array
     {
@@ -260,7 +260,7 @@ class DocumentModel extends ItemModel
      * @param object $document The document header.
      *
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     private function documentCurrency(object $document): ?Currency
     {

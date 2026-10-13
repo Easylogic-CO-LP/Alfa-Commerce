@@ -25,7 +25,7 @@ defined('_JEXEC') or die;
  * operator asked for it. The scope matters only while the line carries a
  * custom price; a line without one takes its manual discount in full.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 enum ManualDiscountScope: string
 {
@@ -47,7 +47,7 @@ enum ManualDiscountScope: string
      * @param bool $hasCustomPrice Whether the line carries a custom price.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function effectivePercent(float $manualPercent, bool $hasCustomPrice): float
     {

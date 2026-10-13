@@ -16,7 +16,7 @@ use Joomla\CMS\MVC\Controller\AdminController;
 /**
  * Item fields list controller class.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class ItemfieldsController extends AdminController
 {
@@ -30,7 +30,7 @@ class ItemfieldsController extends AdminController
      *
      * @return object The Model
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getModel($name = 'Itemfield', $prefix = 'Administrator', $config = ['ignore_request' => true]): object
     {

@@ -20,13 +20,13 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
 /**
  * Cart rules list view.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class HtmlView extends BaseHtmlView
 {
     /**
      * @var string The entity a plugin targets with $context->targets('cartrule').
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'cartrule';
 
@@ -47,7 +47,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function display($tpl = null)
     {
@@ -73,7 +73,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function addToolbar()
     {

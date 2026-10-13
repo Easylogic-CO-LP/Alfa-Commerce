@@ -27,7 +27,7 @@ use Joomla\CMS\Factory;
  * class: the item-fields and search families have no order, and a helper
  * everything inherits is a helper nobody can reason about.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 trait HasOrderContextTrait
 {
@@ -48,7 +48,7 @@ trait HasOrderContextTrait
      *
      * @return Order|null NULL when the id names nothing.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function getOrder(int $orderId): ?Order
     {
@@ -83,7 +83,7 @@ trait HasOrderContextTrait
      *
      * @return string Full language tag.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function orderLanguage(Order|int $order): string
     {

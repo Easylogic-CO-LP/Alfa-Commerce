@@ -27,7 +27,7 @@ class HtmlView extends FormView
 {
     /**
      * @var string The entity a plugin targets with $context->targets('usergroup').
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'usergroup';
     /**

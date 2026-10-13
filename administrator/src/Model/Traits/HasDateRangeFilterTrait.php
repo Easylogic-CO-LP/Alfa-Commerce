@@ -29,7 +29,7 @@ use Joomla\CMS\Factory;
  * Preset NAMES are one fixed vocabulary for every list that uses this trait, so a
  * filter reads the same wherever it appears.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 trait HasDateRangeFilterTrait
 {
@@ -60,7 +60,7 @@ trait HasDateRangeFilterTrait
      * @param bool $dateOnly Store bounds as Y-m-d rather than Y-m-d H:i:s.
      *
      *
-     * @since   1.10.0
+     * @since   2.0.0
      */
     protected function resolveDateRangeFilter(bool $dateOnly = false): void
     {

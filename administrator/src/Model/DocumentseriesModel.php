@@ -19,7 +19,7 @@ use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
  * Not multilingual by design: series metadata is internal admin data;
  * only the code/prefix appear on documents, frozen at issue.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class DocumentseriesModel extends AlfaListModel
 {
@@ -27,7 +27,7 @@ class DocumentseriesModel extends AlfaListModel
      * The admin-contract entity this list serves.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'series';
 
@@ -37,7 +37,7 @@ class DocumentseriesModel extends AlfaListModel
      * @param array $config Configuration settings.
      * @param MVCFactoryInterface|null $factory The MVC factory.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct($config = [], ?MVCFactoryInterface $factory = null)
     {
@@ -63,7 +63,7 @@ class DocumentseriesModel extends AlfaListModel
      *
      * @return string
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function getStoreId($id = '')
     {
@@ -96,7 +96,7 @@ class DocumentseriesModel extends AlfaListModel
      *
      * @return \Joomla\Database\DatabaseQuery
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function getListQuery()
     {
@@ -149,7 +149,7 @@ class DocumentseriesModel extends AlfaListModel
 
         $orderCol = $this->state->get('list.ordering', 'a.doc_type');
         $orderDirn = $this->state->get('list.direction', 'ASC');
-        $query->order($db->escape($orderCol . ' ' . $orderDirn));
+        $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDirn) === 'DESC' ? 'DESC' : 'ASC'));
 
         return $query;
     }

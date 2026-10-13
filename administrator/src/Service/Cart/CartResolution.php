@@ -40,7 +40,7 @@ defined('_JEXEC') or die;
  * MUTABLE mode inserts rows for visitors who are only looking, and naming a
  * cart in an ambient mode hands back somebody else's.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 enum CartResolution: string
 {
@@ -59,7 +59,7 @@ enum CartResolution: string
     /**
      * @return bool Whether an operation under this mode may create a cart.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function mayCreate(): bool
     {
@@ -70,7 +70,7 @@ enum CartResolution: string
      * @return bool Whether the shopper's own cart is discovered, and a guest
      *              cart left in this browser adopted along with it.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function discovers(): bool
     {

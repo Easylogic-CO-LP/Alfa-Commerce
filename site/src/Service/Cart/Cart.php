@@ -40,7 +40,7 @@ defined('_JEXEC') or die;
  * construction. Nothing reachable from here recomputes anything: this is the
  * settled state, never CartComputation.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class Cart
 {
@@ -49,7 +49,7 @@ final class Cart
      * @param array $pendingDelivery Checkout values submitted for the delivery section.
      * @param array $pendingInvoice The same for the invoice section.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function __construct(
         private readonly HydratedCart $state,
@@ -75,7 +75,7 @@ final class Cart
      *                          has reached a stage that has one.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function of(
         HydratedCart $state,
@@ -99,7 +99,7 @@ final class Cart
      *
      * @throws LogicException When the hook that built this cart supplied none.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getSubtotal(): Money
     {
@@ -127,7 +127,7 @@ final class Cart
      *
      * @throws LogicException When the calculation has not reached a final total.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getTotal(): Money
     {
@@ -143,25 +143,25 @@ final class Cart
 
     // what is in it
 
-    /** @return int The cart row id, 0 when it has none yet. @since 1.10.0 */
+    /** @return int The cart row id, 0 when it has none yet. @since 2.0.0 */
     public function id(): int
     {
         return (int) $this->state->identity()->cartId;
     }
 
-    /** @return bool @since 1.10.0 */
+    /** @return bool @since 2.0.0 */
     public function isEmpty(): bool
     {
         return $this->state->isEmpty();
     }
 
-    /** @return int How many distinct lines. @since 1.10.0 */
+    /** @return int How many distinct lines. @since 2.0.0 */
     public function itemCount(): int
     {
         return $this->state->itemCount();
     }
 
-    /** @return int Total units across every line. @since 1.10.0 */
+    /** @return int Total units across every line. @since 2.0.0 */
     public function quantity(): int
     {
         return $this->state->quantity();
@@ -174,7 +174,7 @@ final class Cart
      * zero weight: a heavy thing with no weight recorded is still shipped.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function isVirtual(): bool
     {
@@ -193,32 +193,32 @@ final class Cart
      *
      * @return CartLine[] In cart order.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function lines(): array
     {
         return array_map(CartLine::of(...), array_values($this->state->lines()));
     }
 
-    /** @return Currency The currency this cart is priced in. @since 1.10.0 */
+    /** @return Currency The currency this cart is priced in. @since 2.0.0 */
     public function currency(): Currency
     {
         return $this->state->currency();
     }
 
-    /** @return User Whose cart it is. @since 1.10.0 */
+    /** @return User Whose cart it is. @since 2.0.0 */
     public function customer(): User
     {
         return $this->state->subject()->customer();
     }
 
-    /** @return int The chosen carrier's method id, 0 for none. @since 1.10.0 */
+    /** @return int The chosen carrier's method id, 0 for none. @since 2.0.0 */
     public function shipmentId(): int
     {
         return $this->state->shipmentId();
     }
 
-    /** @return int The chosen gateway's method id, 0 for none. @since 1.10.0 */
+    /** @return int The chosen gateway's method id, 0 for none. @since 2.0.0 */
     public function paymentId(): int
     {
         return $this->state->paymentId();
@@ -234,7 +234,7 @@ final class Cart
      *     $placeId  = $cart->delivery()->role('country')->int();
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function delivery(): AddressView
     {
@@ -245,7 +245,7 @@ final class Cart
      * The invoice address, read the same way.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function invoice(): AddressView
     {
@@ -260,7 +260,7 @@ final class Cart
      * close here rather than to route around.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function state(): HydratedCart
     {

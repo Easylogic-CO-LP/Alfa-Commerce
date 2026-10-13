@@ -24,7 +24,7 @@ use Joomla\CMS\Event\AbstractImmutableEvent;
  * Consumers: tax-authority transmission plugins (future), notifications, vendor
  * ledger: anything that reacts to a legal document coming into existence.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class DocumentIssuedEvent extends AbstractImmutableEvent
 {
@@ -33,7 +33,7 @@ final class DocumentIssuedEvent extends AbstractImmutableEvent
      *
      * @return object The `#__alfa_documents` row.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getDocument(): object
     {
@@ -45,7 +45,7 @@ final class DocumentIssuedEvent extends AbstractImmutableEvent
      *
      * @return object[] `#__alfa_document_items` rows.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getLines(): array
     {
@@ -56,7 +56,7 @@ final class DocumentIssuedEvent extends AbstractImmutableEvent
      * The parent order id.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getOrderId(): int
     {

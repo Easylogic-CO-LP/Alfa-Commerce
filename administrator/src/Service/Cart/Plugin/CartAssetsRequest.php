@@ -29,7 +29,7 @@ use Joomla\CMS\Document\HtmlDocument;
  * while the shopper checks out belongs on the panel as data attributes,
  * where the JSON re-render refreshes it, not here.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartAssetsRequest
 {
@@ -38,7 +38,7 @@ final class CartAssetsRequest
      * @param Method[] $methods This plugin's published methods of that kind, keyed by id.
      * @param HtmlDocument $document The page being built.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly string $kind,

@@ -45,7 +45,7 @@ defined('_JEXEC') or die;
  * / item_combinations); a value's field role is wherever it is used, never a
  * re-checked flag; see ItemFieldsAdminHelper.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class ItemFieldsHelper
 {
@@ -55,7 +55,7 @@ class ItemFieldsHelper
      * field sort and the ShowOn forward-only guard read these; mirrors the admin
      * ItemFieldsAdminHelper so backend and storefront agree on "earlier than".
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private const ROLE_VARIATION = 0;
     private const ROLE_OPTION = 1;
@@ -68,7 +68,7 @@ class ItemFieldsHelper
      *
      * @var array<int, object>
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static array $itemCache = [];
 
@@ -78,7 +78,7 @@ class ItemFieldsHelper
      *
      * @var array<int, object|null>
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static array $fieldCache = [];
 
@@ -88,7 +88,7 @@ class ItemFieldsHelper
      *
      * @var array<int, object|null>
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static array $valueCache = [];
 
@@ -107,7 +107,7 @@ class ItemFieldsHelper
      *
      * @var array<string, object>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static array $unitStock = [];
 
@@ -120,7 +120,7 @@ class ItemFieldsHelper
      *
      * @return array<int, object> Item id -> data object (fields/options/combinations/informational).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function getDataForItems(array $itemIds): array
     {
@@ -152,7 +152,7 @@ class ItemFieldsHelper
      *
      * @return object The item's data object.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function getDataForItem(int $itemId): object
     {
@@ -167,7 +167,7 @@ class ItemFieldsHelper
      *
      * @return array<int, object> Field id -> definition (only ids that exist).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function getFields(array $fieldIds): array
     {
@@ -232,7 +232,7 @@ class ItemFieldsHelper
      *
      * @return array<int, object> Value id -> value (only ids that exist).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function getValues(array $valueIds): array
     {
@@ -292,7 +292,7 @@ class ItemFieldsHelper
      *
      * @return object|null The item's field entry, or null when it carries none.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function find(object $item, int|string $key): ?object
     {
@@ -320,7 +320,7 @@ class ItemFieldsHelper
      *
      * @return int[] Field ids, in field order.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function listingFieldIds(object $item, array $readOnlyIds = []): array
     {
@@ -388,7 +388,7 @@ class ItemFieldsHelper
      *
      * @return object|null The unit's facts, or null when the pair is not a unit.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function unitStockFor(int $itemId, int $combinationId): ?object
     {
@@ -410,7 +410,7 @@ class ItemFieldsHelper
      * whose effect the same request must read).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function clearCache(): void
     {
@@ -431,7 +431,7 @@ class ItemFieldsHelper
      * @param int[] $itemIds Item ids known to be absent from the cache.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function loadItems(array $itemIds): void
     {
@@ -692,7 +692,7 @@ class ItemFieldsHelper
      *
      * @return object The facts, shaped as unitStockFor() documents.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function unitFacts(
         bool $managed,
@@ -733,7 +733,7 @@ class ItemFieldsHelper
      *
      * @return int|null The smallest acceptable quantity, or null when no quantity is acceptable.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function saleMinimumOf(?object $combination, ?object $item): ?int
     {
@@ -751,7 +751,7 @@ class ItemFieldsHelper
      *
      * @return string One of the InventoryAvailabilityService STATUS_* constants.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function unitStatus(object $facts): string
     {
@@ -773,7 +773,7 @@ class ItemFieldsHelper
      * @param mixed $value The column value.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function nullableFloat(mixed $value): ?float
     {
@@ -791,7 +791,7 @@ class ItemFieldsHelper
      *                          ->fields + ->options); $field->config is set in place.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function attachFieldConfig(array $entries): void
     {
@@ -998,7 +998,7 @@ class ItemFieldsHelper
      * @param array $fieldMeta Field name => [role, rank] in render order (present fields only).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function resolveEffectiveShowon(object $field, array $comboValueIds, array $fieldMeta): void
     {
@@ -1052,7 +1052,7 @@ class ItemFieldsHelper
      *
      * @return string[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function ruleOperandFields($rule): array
     {
@@ -1071,7 +1071,7 @@ class ItemFieldsHelper
      * @param array $names Accumulator (field name => true), by reference.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function collectOperands(array $node, array &$names): void
     {
@@ -1108,7 +1108,7 @@ class ItemFieldsHelper
      *
      * @return object[] Per-item field objects in definition order.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function deriveFields(object $entry, array $infoValueIds, array $values, array $fieldDefs): array
     {
@@ -1162,7 +1162,7 @@ class ItemFieldsHelper
      * @param string $targetField The row property to overwrite with the name.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function applyLanguageNames(array $rows, string $table, string $foreignKey, string $targetField): void
     {
@@ -1191,7 +1191,7 @@ class ItemFieldsHelper
      * A fresh, empty per-item data object.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function emptyData(): object
     {

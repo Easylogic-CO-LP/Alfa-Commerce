@@ -25,7 +25,7 @@ class OrderstatusesModel extends AlfaListModel
 {
     /**
      * @var string The entity a plugin targets with $context->targets('orderstatus').
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'orderstatus';
 
@@ -183,7 +183,7 @@ class OrderstatusesModel extends AlfaListModel
         $orderDirn = $this->state->get('list.direction', 'DESC');
 
         if ($orderCol && $orderDirn) {
-            $query->order($db->escape($orderCol . ' ' . $orderDirn));
+            $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDirn) === 'DESC' ? 'DESC' : 'ASC'));
         }
 
         return $query;

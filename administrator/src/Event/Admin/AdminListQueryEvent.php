@@ -49,13 +49,13 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  * The filter's VALUE reaches the state through onAlfaAdminListFilters, which is where the
  * field is declared: the two halves of one filter, never a third seam.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 final class AdminListQueryEvent extends AlfaAdminEvent
 {
     /**
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const NAME = 'onAlfaAdminListQuery';
 }

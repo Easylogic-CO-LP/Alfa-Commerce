@@ -26,7 +26,7 @@ defined('_JEXEC') or die;
  * visit" lives. This class exists so that the service deciding what adoption
  * DOES never has to know that.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class AdoptionMemory
 {
@@ -35,7 +35,7 @@ final class AdoptionMemory
      *                                          session; the current one when
      *                                          omitted.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(private ?CMSApplicationInterface $app = null)
     {
@@ -48,7 +48,7 @@ final class AdoptionMemory
      *
      * @return bool Whether this pair has already been settled this session.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function settled(int $memberId, string $recognizeKey): bool
     {
@@ -62,7 +62,7 @@ final class AdoptionMemory
      * @param string $recognizeKey The key their browser carries.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function settle(int $memberId, string $recognizeKey): void
     {
@@ -75,7 +75,7 @@ final class AdoptionMemory
      * @return string The state key, unchanged from the one adoption has always
      *                written, so a session mid-visit is not asked again.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function key(int $memberId): string
     {

@@ -30,13 +30,13 @@ defined('_JEXEC') or die;
  * One shared event travels through all plugins (rejections accumulate); no
  * per-plugin state is produced here, unlike the render events.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class OrderPlaceValidateEvent extends AbstractImmutableEvent
 {
     /**
      * @var string[] Customer-facing rejection messages.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private array $messages = [];
 
@@ -46,7 +46,7 @@ class OrderPlaceValidateEvent extends AbstractImmutableEvent
      * and nothing here can hand a different one back.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getContext(): PlacementEventContext
     {
@@ -59,7 +59,7 @@ class OrderPlaceValidateEvent extends AbstractImmutableEvent
      * @param string $message Translated message shown to the customer.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function reject(string $message): void
     {
@@ -70,7 +70,7 @@ class OrderPlaceValidateEvent extends AbstractImmutableEvent
      * Whether any plugin vetoed the placement.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function isRejected(): bool
     {
@@ -82,7 +82,7 @@ class OrderPlaceValidateEvent extends AbstractImmutableEvent
      *
      * @return string[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getMessages(): array
     {

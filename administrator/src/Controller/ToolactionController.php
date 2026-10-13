@@ -32,7 +32,7 @@ use Throwable;
  * plugin-contributed button reuses the shipped JavaScript unchanged and no extension
  * has to ship a script merely to draw a progress bar.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 class ToolactionController extends BaseController
 {
@@ -42,7 +42,7 @@ class ToolactionController extends BaseController
      * Run an action that completes within one request.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function run(): void
     {
@@ -88,7 +88,7 @@ class ToolactionController extends BaseController
      * instead of dividing by zero.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function plan(): void
     {
@@ -131,7 +131,7 @@ class ToolactionController extends BaseController
      * Advance a chunked action by one step.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function chunk(): void
     {
@@ -196,7 +196,7 @@ class ToolactionController extends BaseController
      *
      * @return bool True when the request was refused and answered.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function refuseUnsafe(): bool
     {

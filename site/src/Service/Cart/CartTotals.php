@@ -44,7 +44,7 @@ use Closure;
 // phpcs:enable PSR1.Files.SideEffects
 
 /**
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartTotals
 {
@@ -55,7 +55,7 @@ final class CartTotals
      * The dispatch that produces it is the computation's, through the plugin
      * dispatch; what is cached is the answer, not the act.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private ?array $shipmentCosts = null;
 
@@ -67,7 +67,7 @@ final class CartTotals
      * @param Closure $shipmentDispatch (): ShippingQuote - the carrier's price, or its refusal.
      * @param Closure $contributions (): array - already-computed charge rows.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         private Closure $lines,
@@ -81,7 +81,7 @@ final class CartTotals
     /**
      * Every payable line price this cart holds, tax included.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function total(): Money
     {
@@ -104,7 +104,7 @@ final class CartTotals
     /**
      * The same, tax excluded.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function totalExcl(): Money
     {
@@ -127,7 +127,7 @@ final class CartTotals
     /**
      * What catalogue discounts already took off the lines.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function discountTotal(): Money
     {
@@ -150,7 +150,7 @@ final class CartTotals
     /**
      * What the lines would have come to before those discounts.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function totalBeforeDiscount(): Money
     {
@@ -160,7 +160,7 @@ final class CartTotals
     /**
      * The tax carried by the lines.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function taxTotal(): Money
     {
@@ -190,7 +190,7 @@ final class CartTotals
      *
      * @return array ['tax_incl' => Money, 'tax_excl' => Money, 'tax_rate' => float, 'basis' => ShippingChargeBasis|null,
      *               'chain' => string[]]
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function shipmentCosts(): array
     {
@@ -213,7 +213,7 @@ final class CartTotals
 
     /**
      * @return float The rate the carrier's charge was taxed at, in percent; 0.0 untaxed.
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function shipmentTaxRate(): float
     {
@@ -222,7 +222,7 @@ final class CartTotals
 
     /**
      * @return ShippingChargeBasis|null How the carrier's charge was formed; null when nothing is charged.
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function shipmentChargeBasis(): ?ShippingChargeBasis
     {
@@ -232,7 +232,7 @@ final class CartTotals
     /**
      * @return string[] The rates the carrier's charge was calculated with, in the order they apply, as exact
      *                  decimal texts; empty when nothing is taxed.
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function shipmentTaxChain(): array
     {
@@ -241,7 +241,7 @@ final class CartTotals
 
     /**
      * @return Money The carrier's gross price, tax included.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function shipmentGross(): Money
     {
@@ -250,7 +250,7 @@ final class CartTotals
 
     /**
      * @return Money The carrier's gross price, tax excluded.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function shipmentGrossExcl(): Money
     {
@@ -260,7 +260,7 @@ final class CartTotals
     /**
      * What the shopper actually pays for shipping, after the rules.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function shipmentTotal(): Money
     {
@@ -270,7 +270,7 @@ final class CartTotals
     /**
      * The same, tax excluded.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function shipmentTotalExcl(): Money
     {
@@ -280,7 +280,7 @@ final class CartTotals
     /**
      * The shipping benefit block the rules produced.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function shippingBenefit(): object
     {
@@ -290,7 +290,7 @@ final class CartTotals
     /**
      * What the commercial plugins added, tax included.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function contributionsTotal(): Money
     {
@@ -306,7 +306,7 @@ final class CartTotals
     /**
      * The same, tax excluded.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function contributionsTotalExcl(): Money
     {
@@ -323,7 +323,7 @@ final class CartTotals
     /**
      * Everything, in the order the cart has always added it up.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function grandTotal(): Money
     {
@@ -336,7 +336,7 @@ final class CartTotals
     /**
      * The same, tax excluded.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function grandTotalExcl(): Money
     {
@@ -349,7 +349,7 @@ final class CartTotals
     /**
      * Forget the carrier's price, so the next ask dispatches again.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function forget(): void
     {

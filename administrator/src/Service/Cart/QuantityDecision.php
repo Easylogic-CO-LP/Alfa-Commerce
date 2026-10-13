@@ -25,7 +25,7 @@ defined('_JEXEC') or die;
  *
  * Immutable, and free of anything that could talk to a shopper.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class QuantityDecision
 {
@@ -45,7 +45,7 @@ final class QuantityDecision
      * @param int $saleIncrement The whole-unit step of the rules
      *                           applied; 1 when they were not read.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function __construct(
         public readonly int $requested,
@@ -68,7 +68,7 @@ final class QuantityDecision
      *                           applied.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function of(
         int $requested,
@@ -91,7 +91,7 @@ final class QuantityDecision
     /**
      * @return bool Nothing may be sold at all.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function refused(): bool
     {
@@ -101,7 +101,7 @@ final class QuantityDecision
     /**
      * @return bool The allowed quantity is not the one asked for.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function adjusted(): bool
     {
@@ -113,7 +113,7 @@ final class QuantityDecision
      *
      * @return bool Whether that rule fired.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function because(QuantityReason $reason): bool
     {
@@ -123,7 +123,7 @@ final class QuantityDecision
     /**
      * @return string[] The reason codes, in firing order.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function reasonCodes(): array
     {

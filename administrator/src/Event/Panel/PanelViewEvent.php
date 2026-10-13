@@ -44,7 +44,7 @@ use Joomla\Input\Input;
  * or the loaded record) with the plugin's layoutData, so the plugin only adds what the model
  * does not already provide.
  *
- * @since  1.7.0
+ * @since  2.0.0
  */
 class PanelViewEvent extends AbstractEvent
 {
@@ -54,7 +54,7 @@ class PanelViewEvent extends AbstractEvent
      * screens it does not own, which the view renders as an empty body.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getScreen(): string
     {
@@ -65,7 +65,7 @@ class PanelViewEvent extends AbstractEvent
      * The request input, so a custom screen can read its own params.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getInput(): Input
     {
@@ -78,7 +78,7 @@ class PanelViewEvent extends AbstractEvent
      *
      * @return array<string, mixed>
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getData(): array
     {
@@ -91,7 +91,7 @@ class PanelViewEvent extends AbstractEvent
      * screen is not a native form screen.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getFormName(): string
     {
@@ -106,7 +106,7 @@ class PanelViewEvent extends AbstractEvent
      * @param string $name Form file basename (in the plugin's forms/ dir, no extension).
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function useForm(string $name): static
     {
@@ -119,7 +119,7 @@ class PanelViewEvent extends AbstractEvent
      * The layout the plugin chose (a file in its own layouts dir, without extension).
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getLayout(): string
     {
@@ -132,7 +132,7 @@ class PanelViewEvent extends AbstractEvent
      * @param string $layout Layout name (in the plugin's own layouts dir, no extension).
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function setLayout(string $layout): static
     {
@@ -146,7 +146,7 @@ class PanelViewEvent extends AbstractEvent
      *
      * @return array<string, mixed>
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getLayoutData(): array
     {
@@ -159,7 +159,7 @@ class PanelViewEvent extends AbstractEvent
      * @param array<string, mixed> $data Layout data.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function setLayoutData(array $data): static
     {
@@ -172,7 +172,7 @@ class PanelViewEvent extends AbstractEvent
      * Who this request is for.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getIdentity(): PanelIdentity
     {

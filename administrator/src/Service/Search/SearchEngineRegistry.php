@@ -54,7 +54,7 @@ use Throwable;
  * console entry point), which is precisely the environment a scheduled rebuild runs in.
  * Loading one plugin group is both simpler and the only form that works everywhere.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class SearchEngineRegistry
 {
@@ -67,7 +67,7 @@ final class SearchEngineRegistry
      * one cannot pull unrelated feature plugins into the request.
      *
      * @var string
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public const PLUGIN_GROUP = 'alfa-search';
 
@@ -75,7 +75,7 @@ final class SearchEngineRegistry
      * Discovered engines, keyed by engine key.
      *
      * @var array<string, SearchEngineInterface>|null
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private ?array $engines = null;
 
@@ -83,7 +83,7 @@ final class SearchEngineRegistry
      * Which extension contributed each engine, for diagnostics.
      *
      * @var array<string, string>
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private array $owners = [];
 
@@ -92,7 +92,7 @@ final class SearchEngineRegistry
      *
      * @return array<string, SearchEngineInterface>
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function all(): array
     {
@@ -116,7 +116,7 @@ final class SearchEngineRegistry
      *
      * @return SearchEngineInterface|null Null whenever the live tables should answer.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function active(): ?SearchEngineInterface
     {
@@ -178,7 +178,7 @@ final class SearchEngineRegistry
      * never take search down for the whole site.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function discover(): void
     {
@@ -280,7 +280,7 @@ final class SearchEngineRegistry
      * @return SearchEngineInterface|null Null when the database search is selected
      *                                    or the chosen engine is not installed.
      *
-     * @since  0.1.0
+     * @since  2.0.0
      */
     public function configured(): ?SearchEngineInterface
     {
@@ -302,7 +302,7 @@ final class SearchEngineRegistry
      *
      * @return string Empty when the merchant has chosen the database search.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function configuredKey(): string
     {
@@ -323,7 +323,7 @@ final class SearchEngineRegistry
      * @param string $key Its key, for the log entry.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function isReady(SearchEngineInterface $engine, string $key): bool
     {

@@ -29,7 +29,7 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
  * edit -> Documents panel) or by status automation, never from a blank
  * form. The toolbar links to the series manager instead.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class HtmlView extends BaseHtmlView
 {
@@ -37,7 +37,7 @@ class HtmlView extends BaseHtmlView
      * The admin-contract entity a plugin targets with $context->targets('document').
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'document';
 
@@ -59,7 +59,7 @@ class HtmlView extends BaseHtmlView
      *
      * @var object|null
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public $voidDocument;
 
@@ -68,7 +68,7 @@ class HtmlView extends BaseHtmlView
      *
      * @var \Joomla\CMS\Form\Form|null
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public $form;
 
@@ -79,7 +79,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function display($tpl = null)
     {
@@ -156,7 +156,7 @@ class HtmlView extends BaseHtmlView
      * removed, which is the whole reason voiding exists.
      *
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     protected function addVoidToolbar(): void
     {
@@ -178,7 +178,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function addToolbar()
     {

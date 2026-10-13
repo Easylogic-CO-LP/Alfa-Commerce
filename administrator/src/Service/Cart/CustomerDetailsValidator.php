@@ -46,7 +46,7 @@ defined('_JEXEC') or die;
  * input would pass the rules on one shape and store another, so the answer
  * here carries the filtered buckets alongside the verdict.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CustomerDetailsValidator
 {
@@ -63,7 +63,7 @@ final class CustomerDetailsValidator
      *
      * @return CheckedDetails The filtered buckets, and why they were refused if they were.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function validate(array $delivery, array $billing = [], int $customerId = 0, ?int $actorId = null): CheckedDetails
     {
@@ -147,7 +147,7 @@ final class CustomerDetailsValidator
      * The checkout form, built without a model or a request.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function form(): ?Form
     {

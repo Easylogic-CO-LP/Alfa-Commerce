@@ -35,7 +35,7 @@ use InvalidArgumentException;
  * the real search runs with the chosen text. The label only tells them what they would
  * be searching for.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 final class SearchSuggestion
 {
@@ -47,7 +47,7 @@ final class SearchSuggestion
      *
      * @throws InvalidArgumentException When the text is empty.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly string $text,

@@ -51,7 +51,7 @@ use InvalidArgumentException;
  * document key and a postings `entity` value can never disagree about a spelling.
  * Variant-grained keys remain rejected outright.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class DocumentId
 {
@@ -60,7 +60,7 @@ final class DocumentId
      *
      * @var string
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public const TYPE_ITEM = 'item';
 
@@ -69,7 +69,7 @@ final class DocumentId
      *
      * @var string
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public const KEY_PATTERN = '/^[a-z]+-[0-9]+-[a-z0-9_]+$/';
 
@@ -80,7 +80,7 @@ final class DocumentId
      *
      * @throws InvalidArgumentException When the assembled key is not engine-legal.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function __construct(
         private readonly string $type,
@@ -105,7 +105,7 @@ final class DocumentId
      * @param LanguageTag $language The content language.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function forItem(int $itemId, LanguageTag $language): self
     {
@@ -124,7 +124,7 @@ final class DocumentId
      * @param LanguageTag $language The content language.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function forEntity(SearchEntity $entity, int $id, LanguageTag $language): self
     {
@@ -143,7 +143,7 @@ final class DocumentId
      *
      * @return self[]
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function allForItem(int $itemId, LanguageTag ...$languages): array
     {
@@ -159,7 +159,7 @@ final class DocumentId
      *
      * @return self[]
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function allForEntity(SearchEntity $entity, int $id, LanguageTag ...$languages): array
     {
@@ -173,7 +173,7 @@ final class DocumentId
      * The engine-legal document key.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function key(): string
     {
@@ -183,7 +183,7 @@ final class DocumentId
     /**
      * @return int The source row id, in the document entity's own table domain.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function itemId(): int
     {
@@ -200,7 +200,7 @@ final class DocumentId
      *
      * @return string e.g. "item", "category".
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function type(): string
     {
@@ -210,7 +210,7 @@ final class DocumentId
     /**
      * @return LanguageTag The document's content language.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function language(): LanguageTag
     {
@@ -220,7 +220,7 @@ final class DocumentId
     /**
      * @return string The engine-legal key.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function __toString(): string
     {

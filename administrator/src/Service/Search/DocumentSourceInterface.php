@@ -46,7 +46,7 @@ defined('_JEXEC') or die;
  * MySQL walk; tomorrow it may be an ERP cursor, a marketplace import or an API
  * scroll. The rebuild pipeline does not change.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 interface DocumentSourceInterface
 {
@@ -55,7 +55,7 @@ interface DocumentSourceInterface
      *
      * @return LanguageTag[]
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function languages(): array;
 
@@ -64,7 +64,7 @@ interface DocumentSourceInterface
      * drifts mid-rebuild must never break the run.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function countRecords(): int;
 
@@ -86,7 +86,7 @@ interface DocumentSourceInterface
      *                                         every language, or [] when it must not
      *                                         be indexed.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function documents(int $afterId = 0): iterable;
 
@@ -108,7 +108,7 @@ interface DocumentSourceInterface
      *
      * @return iterable<int, SearchDocument[]>
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function documentsFor(array $recordIds): iterable;
 }

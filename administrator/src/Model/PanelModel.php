@@ -35,7 +35,7 @@ use Joomla\Database\DatabaseQuery;
  * columns its list layout draws, so the rows come back render-ready: the model is the
  * native frame; the plugin is the data.
  *
- * @since  1.7.0
+ * @since  2.0.0
  */
 class PanelModel extends ListModel
 {
@@ -43,7 +43,7 @@ class PanelModel extends ListModel
     use HasFormDerivedFiltersTrait;
 
     /**
-     * @since  1.7.0
+     * @since  2.0.0
      */
     private ?PanelIdentity $panelIdentity = null;
 
@@ -51,7 +51,7 @@ class PanelModel extends ListModel
      * @param array<string, mixed> $config Model config.
      * @param MVCFactoryInterface|null $factory MVC factory.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function __construct($config = [], ?MVCFactoryInterface $factory = null)
     {
@@ -83,7 +83,7 @@ class PanelModel extends ListModel
      * @param string|null $direction Default ordering direction.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     protected function populateState($ordering = null, $direction = null): void
     {
@@ -131,7 +131,7 @@ class PanelModel extends ListModel
      *
      * @return string[] Sortable column names, no duplicates.
      *
-     * @since   1.10.0
+     * @since   2.0.0
      */
     private function declaredSortColumns(): array
     {
@@ -177,7 +177,7 @@ class PanelModel extends ListModel
      * Absolute path to the panel's filter form, or null when it ships none.
      *
      *
-     * @since   1.10.0
+     * @since   2.0.0
      */
     private function filterFormPath(): ?string
     {
@@ -198,7 +198,7 @@ class PanelModel extends ListModel
      * path because getFilterForm() will parse the same file again later.
      *
      *
-     * @since   1.10.0
+     * @since   2.0.0
      */
     private function declaresDateRangeFilter(): bool
     {
@@ -229,7 +229,7 @@ class PanelModel extends ListModel
      *
      * @return Form|null
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getFilterForm($data = [], $loadData = true)
     {
@@ -253,7 +253,7 @@ class PanelModel extends ListModel
      * The panel being served, resolved once from the request.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getIdentity(): ?PanelIdentity
     {
@@ -270,7 +270,7 @@ class PanelModel extends ListModel
      * @param string $id A prefix.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     protected function getStoreId($id = ''): string
     {
@@ -281,7 +281,7 @@ class PanelModel extends ListModel
      * The list query: built entirely by the owning plugin against its own table.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     protected function getListQuery(): DatabaseQuery
     {
@@ -330,7 +330,7 @@ class PanelModel extends ListModel
      *
      * @return mixed[]
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getItems(): array
     {

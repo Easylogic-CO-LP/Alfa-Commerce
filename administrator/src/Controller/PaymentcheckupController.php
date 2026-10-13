@@ -28,7 +28,7 @@ use Joomla\CMS\MVC\Controller\BaseController;
  * a POST with the form token and the payments edit permission, because it
  * spends the merchant's API credentials on an outbound call.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class PaymentcheckupController extends BaseController
 {
@@ -38,7 +38,7 @@ class PaymentcheckupController extends BaseController
      *
      * @throws NotAllowed Without the token, a POST or the permission.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function check(): void
     {

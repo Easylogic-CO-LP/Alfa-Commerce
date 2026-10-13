@@ -36,7 +36,7 @@ defined('_JEXEC') or die;
  * words that come out of a database or a plugin are not for the person reading
  * the screen, and a caller that had to match on them would not have a contract.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class PlacementOutcome
 {
@@ -55,7 +55,7 @@ final class PlacementOutcome
      * @param array $failures Why it was refused, as {code, params}.
      * @param array $warnings What did not finish afterwards, as {code, params}.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function __construct(
         private string $state,
@@ -71,7 +71,7 @@ final class PlacementOutcome
      * @param array $failures Why.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function rejected(array $failures): self
     {
@@ -85,7 +85,7 @@ final class PlacementOutcome
      * @param array $warnings What did not finish after the commit.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function committed(int $orderId, array $warnings = []): self
     {
@@ -101,7 +101,7 @@ final class PlacementOutcome
      * DOES THE ORDER EXIST? The only question a caller must never get wrong.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function isCommitted(): bool
     {
@@ -112,7 +112,7 @@ final class PlacementOutcome
      * Did anything after the commit fail to finish?
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function hasWarnings(): bool
     {
@@ -123,7 +123,7 @@ final class PlacementOutcome
      * The order id, or 0 when nothing was committed.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function orderId(): int
     {
@@ -133,7 +133,7 @@ final class PlacementOutcome
     /**
      * @return string One of REJECTED, COMMITTED, COMMITTED_WITH_WARNINGS.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function state(): string
     {
@@ -143,7 +143,7 @@ final class PlacementOutcome
     /**
      * @return array<int, array{code: string, params: array}>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function failures(): array
     {
@@ -153,7 +153,7 @@ final class PlacementOutcome
     /**
      * @return array<int, array{code: string, params: array}>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function warnings(): array
     {

@@ -32,7 +32,7 @@ use Joomla\CMS\Language\Text;
  * cross-order attribution this exists to prevent. Voided notes are excluded:
  * they settle nothing.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 class CreditDocumentField extends ListField
 {
@@ -40,7 +40,7 @@ class CreditDocumentField extends ListField
      * The form field type.
      *
      * @var string
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected $type = 'CreditDocument';
 
@@ -49,7 +49,7 @@ class CreditDocumentField extends ListField
      *
      * @return array
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function getOptions()
     {
@@ -117,7 +117,7 @@ class CreditDocumentField extends ListField
      * @param int $orderId The order being edited.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function withStoredValue(array $options, int $orderId): array
     {

@@ -807,7 +807,7 @@ class EmailService
      *
      * @return array<int, array{name: string, bytes: string}> Attachments.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function collectDocumentAttachments(int $orderId): array
     {
@@ -1145,7 +1145,7 @@ class EmailService
      *
      * @return array<string, string>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function htmlTokens(array $tokens): array
     {
@@ -1169,7 +1169,7 @@ class EmailService
      *
      * @return array<string, string>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function subjectTokens(array $tokens): array
     {
@@ -1960,7 +1960,7 @@ class EmailService
      *
      * @return string Formatted total (e.g. '€42.50') or ''.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function formatOrderGrandTotal(int $orderId, array $items): string
     {
@@ -2073,7 +2073,7 @@ class EmailService
      *
      * @return object|null Null when the breakdown cannot be computed.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function orderBreakdown(int $orderId): ?object
     {

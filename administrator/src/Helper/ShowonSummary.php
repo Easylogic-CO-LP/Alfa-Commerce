@@ -23,7 +23,7 @@ use Joomla\CMS\Language\Text;
  * IDs in, labels out: it maps each operand to its field label and each value id to
  * its pool label, reusing the existing COM_ALFA_SHOWON_* operator / glue strings.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class ShowonSummary
 {
@@ -35,7 +35,7 @@ final class ShowonSummary
      * @param object[] $fields The item's fields (carry ->field_name, ->display_name, ->values).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function forItemFields($rule, array $fields): string
     {
@@ -70,7 +70,7 @@ final class ShowonSummary
      *
      * @return array<int, string> field id => summary line.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function globalSummaries(array $fields, array $valueLabels = []): array
     {
@@ -113,7 +113,7 @@ final class ShowonSummary
      * @param array $valueLabels value id => label.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function text($rule, array $operandLabels, array $valueLabels): string
     {
@@ -144,7 +144,7 @@ final class ShowonSummary
      * @param array $valueLabels value id => label.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function group(array $node, array $operandLabels, array $valueLabels): string
     {
@@ -187,7 +187,7 @@ final class ShowonSummary
      * @param array $valueLabels value id => label.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function leaf(array $rule, array $operandLabels, array $valueLabels): string
     {

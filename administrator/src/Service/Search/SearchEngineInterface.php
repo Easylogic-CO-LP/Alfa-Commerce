@@ -59,7 +59,7 @@ defined('_JEXEC') or die;
  * visibility at all: it returns candidate ids that the catalogue query filters with
  * the live policy, which is why an allowlist edit there costs no reindex.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 interface SearchEngineInterface
 {
@@ -70,7 +70,7 @@ interface SearchEngineInterface
      * behaviour.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function key(): string;
 
@@ -78,7 +78,7 @@ interface SearchEngineInterface
      * Human-readable name for the administrator's engine picker.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function label(): string;
 
@@ -86,7 +86,7 @@ interface SearchEngineInterface
      * The read half.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function provider(): SearchProviderInterface;
 
@@ -94,7 +94,7 @@ interface SearchEngineInterface
      * The write half.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function indexer(): SearchIndexerInterface;
 
@@ -107,7 +107,7 @@ interface SearchEngineInterface
      * never an empty catalogue.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function isReady(): bool;
 }

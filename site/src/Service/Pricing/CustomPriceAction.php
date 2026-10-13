@@ -27,7 +27,7 @@ defined('_JEXEC') or die;
  * Collapsing Leave into Clear would make opening and saving a line silently
  * reprice it from the catalogue, which the custom-price contract forbids by name.
  *
- * @since  1.11.0
+ * @since  2.0.0
  */
 enum CustomPriceAction
 {

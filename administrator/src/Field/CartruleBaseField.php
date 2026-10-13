@@ -29,7 +29,7 @@ use Joomla\CMS\Form\Field\ListField;
  * because CartruleTable::check() folds product+cart onto matching on save, so
  * the stored value can never lie regardless of what the browser showed.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 class CartruleBaseField extends ListField
 {
@@ -38,7 +38,7 @@ class CartruleBaseField extends ListField
      *
      * @var string
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected $type = 'CartruleBase';
 
@@ -46,7 +46,7 @@ class CartruleBaseField extends ListField
      * Which bases the current target can actually honour.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function getOptions(): array
     {

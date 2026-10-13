@@ -25,7 +25,7 @@ defined('_JEXEC') or die;
  * it carries the price the cart charges with it in place rather than the price
  * quoted before it existed.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartAddResult
 {
@@ -39,7 +39,7 @@ final class CartAddResult
      *                               when nothing was added and there is nothing
      *                               to show.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly bool $added,

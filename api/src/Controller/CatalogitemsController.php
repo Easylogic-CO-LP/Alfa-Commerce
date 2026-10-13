@@ -24,7 +24,7 @@ use Joomla\CMS\MVC\Controller\ApiController;
  * Never gains write routes: the site models have no getForm()/validate()/
  * save(), and back-office editing already lives at v1/alfa/items.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 class CatalogitemsController extends ApiController
 {
@@ -34,7 +34,7 @@ class CatalogitemsController extends ApiController
      * The content type of the item.
      *
      * @var string
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected $contentType = 'catalogitems';
 
@@ -42,7 +42,7 @@ class CatalogitemsController extends ApiController
      * The default view for the display method.
      *
      * @var string
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected $default_view = 'catalogitems';
 
@@ -50,7 +50,7 @@ class CatalogitemsController extends ApiController
      * Gate this tree on the catalogue's own view permission.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function aclSection(): string
     {
@@ -62,7 +62,7 @@ class CatalogitemsController extends ApiController
      *
      * @return static A BaseController object to support chaining.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function displayList()
     {

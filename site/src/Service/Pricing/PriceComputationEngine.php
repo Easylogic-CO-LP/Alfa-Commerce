@@ -43,14 +43,14 @@ class PriceComputationEngine
      * amount and every unit derived from them are decimals of at most this many
      * places: the precision the catalogue price columns store.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const UNIT_PLACES = 8;
 
     /**
      * How many of the smallest catalogue unit make one: 10 to the power of {@see self::UNIT_PLACES}.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const UNIT_COUNT = 100000000;
 
@@ -58,7 +58,7 @@ class PriceComputationEngine
      * The denominator of a percentage applied to a unit count: a percent is itself a
      * count of the smallest unit, and one percent is a hundredth.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const PERCENT_BASE = 10000000000;
 
@@ -66,14 +66,14 @@ class PriceComputationEngine
      * The decimal places of {@see self::PERCENT_BASE}: an amount times a percent
      * count is that count of this place.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const PERCENT_PLACES = 10;
 
     /**
      * How many ratios {@see self::$rateRatios} keeps before it starts again.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const RATIO_STORE = 512;
 
@@ -83,7 +83,7 @@ class PriceComputationEngine
      *
      * @var array<string, array{0: int, 1: int}>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static array $rateRatios = [];
 
@@ -611,7 +611,7 @@ class PriceComputationEngine
      * @param array $rates The chain's rates, in order.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function exactNetOf(ExactAmount $gross, array $rates): ?ExactAmount
     {
@@ -656,7 +656,7 @@ class PriceComputationEngine
      *
      * @return array{0: Money, 1: Money, 2: array} [net, taxTotal, taxes carrying their money]
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     protected function deriveFromGross(
         Money $gross,
@@ -714,7 +714,7 @@ class PriceComputationEngine
      * Public so the variant pricing path (PriceCalculator) can resolve a
      * combination's own price/adjust row with the identical matching rules.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function selectBaseRow(array $prices, int $quantity, array $groupDistances = []): ?object
     {
@@ -1008,7 +1008,7 @@ class PriceComputationEngine
      * @return array{0: ExactAmount, 1: array<int, array{0: string, 1: ExactAmount}>} [what is left, each step's
      *                                                                                label and what it took, in step order]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function applyDiscountStage(
         ExactAmount $entry,
@@ -1089,7 +1089,7 @@ class PriceComputationEngine
      * @param AppliedDiscount $discount The rule.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function stepLabel(AppliedDiscount $discount): string
     {
@@ -1158,7 +1158,7 @@ class PriceComputationEngine
      * @param Currency $currency Active currency.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function restateAfterTaxSteps(
         PriceBreakdown $breakdown,
@@ -1219,7 +1219,7 @@ class PriceComputationEngine
      *
      * @return AppliedTax[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function absorbInto(array $taxes, Money $leftover, Currency $currency): array
     {
@@ -1374,7 +1374,7 @@ class PriceComputationEngine
      *
      * @throws InvalidArgumentException When the value is not a number: a price is never read as zero by default.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function catalogueUnit(mixed $value): string
     {
@@ -1433,7 +1433,7 @@ class PriceComputationEngine
      * @param string $fraction The digits after it; '' when none.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function unitFromDigits(bool $negative, string $integer, string $fraction): string
     {
@@ -1483,7 +1483,7 @@ class PriceComputationEngine
      *
      * @throws InvalidArgumentException When the line total does not fit in minor units.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function extendUnit(string $unit, int $quantity, Currency $currency): Money
     {
@@ -1507,7 +1507,7 @@ class PriceComputationEngine
      *
      * @throws InvalidArgumentException When the unit is larger than a derived unit can be.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function unitCount(string $unit): int
     {
@@ -1530,7 +1530,7 @@ class PriceComputationEngine
      * @param int $count The count of 10^-8.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function unitText(int $count): string
     {
@@ -1554,7 +1554,7 @@ class PriceComputationEngine
      *
      * @throws InvalidArgumentException When the operation overflowed.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function wholeCount(int|float $result): int
     {
@@ -1573,7 +1573,7 @@ class PriceComputationEngine
      *
      * @return array{0: int, 1: int} [numerator, denominator]; the denominator is positive and divides 10^10.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function ratio(int $percent): array
     {
@@ -1603,7 +1603,7 @@ class PriceComputationEngine
      *
      * @throws InvalidArgumentException When the result does not fit a count.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function scaleUnit(int $units, int $numerator, int $denominator): int
     {
@@ -1628,7 +1628,7 @@ class PriceComputationEngine
      *                         from {@see self::chainFactors()}; empty when the sale states the net.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function saleBelowList(string $sale, string $list, array $factors): bool
     {
@@ -1661,7 +1661,7 @@ class PriceComputationEngine
      *                         from {@see self::chainFactors()}; empty when the sale states the net.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function salePercent(string $sale, string $list, array $factors): float
     {
@@ -1690,7 +1690,7 @@ class PriceComputationEngine
      * @return array{0: int|string, 1: int|string} [the sale's side, the list's side]: two integers, or the
      *                                             decimal digits of both with no leading zero ('' is zero).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function saleSides(string $sale, string $list, array $factors): array
     {
@@ -1729,7 +1729,7 @@ class PriceComputationEngine
      * @param string $unit A canonical unit, never negative.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function countDigits(string $unit): string
     {
@@ -1750,7 +1750,7 @@ class PriceComputationEngine
      *
      * @throws InvalidArgumentException When the multiplier is too large to multiply a group of digits by.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function timesWhole(string $digits, int $by): string
     {
@@ -1777,7 +1777,7 @@ class PriceComputationEngine
      *
      * @return string The digits of the difference, with no leading zero; '0' when the two are equal.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function minusWhole(string $digits, string $less): string
     {
@@ -1806,7 +1806,7 @@ class PriceComputationEngine
      * @param AppliedTax[] $appliedTaxes The chain, in order.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function grossOfLine(ExactAmount $line, array $appliedTaxes): ExactAmount
     {
@@ -1824,7 +1824,7 @@ class PriceComputationEngine
      * @param float $rate The rate, as a percentage.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function factorCount(float $rate): int
     {
@@ -1847,7 +1847,7 @@ class PriceComputationEngine
      *
      * @return array{0: Money, 1: Money} [the net, the gross]
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function basePair(ExactAmount $line, array $appliedTaxes, bool $splittable, Currency $currency): array
     {
@@ -1873,7 +1873,7 @@ class PriceComputationEngine
      * @param bool $toGross True for net to gross, false for gross to net.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function throughChain(int $units, array $factors, bool $toGross): int
     {
@@ -1917,7 +1917,7 @@ class PriceComputationEngine
      *
      * @throws InvalidArgumentException When a unit is larger than a derived unit can be.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function applyVariantAdjust(int $net, ?int $gross, ?string $operation, int $amount, bool $onGross, array $factors): array
     {
@@ -1972,7 +1972,7 @@ class PriceComputationEngine
      *
      * @return array{excl: float, tax: float} The net charge and the tax on top.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function foldCartContribution(
         float $baseExcl,
@@ -2008,7 +2008,7 @@ class PriceComputationEngine
      * @param array $taxes Raw tax rows from PriceDataLoader
      *
      * @return float Multiplier (1.24 for an effective 24% load; 1.0 = no tax)
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function taxFactor(array $taxes): float
     {
@@ -2031,7 +2031,7 @@ class PriceComputationEngine
      *
      * @return array[] Each [numerator, denominator] in lowest terms (24% is [31, 25]); a rate of zero is left out.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function taxFactors(array $taxes): array
     {
@@ -2050,7 +2050,7 @@ class PriceComputationEngine
      *
      * @return AppliedTax[]
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function chainOf(array $taxes, Currency $currency): array
     {
@@ -2065,7 +2065,7 @@ class PriceComputationEngine
      * @param AppliedTax[] $appliedTaxes The chain.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function chainRate(array $appliedTaxes): float
     {
@@ -2079,7 +2079,7 @@ class PriceComputationEngine
      *
      * @return array[] Each [numerator, denominator] in lowest terms (24% is [31, 25]); a rate of zero is left out.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function chainFactors(array $rates): array
     {
@@ -2109,7 +2109,7 @@ class PriceComputationEngine
      *
      * @return array{0: int, 1: int} [numerator, denominator]; the denominator is positive and divides 10^10.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function rateFactor(float $rate): array
     {
@@ -2140,7 +2140,7 @@ class PriceComputationEngine
      * @return array{0: int|string, 1: int|string}|null [numerator, denominator]; null when the factor is not
      *                                                  positive (a rate at or below -100%), which no gross can be divided back through.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function chainFactor(array $rates): ?array
     {
@@ -2171,7 +2171,7 @@ class PriceComputationEngine
      * @param int $by What it is multiplied by, zero or more.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function timesFactor(int|string $product, int $by): int|string
     {
@@ -2199,7 +2199,7 @@ class PriceComputationEngine
      *
      * @throws InvalidArgumentException When the percentage is larger than a count holds.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function percentCount(float $percent): int
     {

@@ -62,7 +62,7 @@ defined('_JEXEC') or die;
  * exact decimal arithmetic, so a listing query judges a unit by exactly the
  * rules the cart applies.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartQuantityPolicy
 {
@@ -70,7 +70,7 @@ final class CartQuantityPolicy
      * The most whole units one cart or order line holds: the capacity of its
      * quantity column. No rule sells more than this on one line.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const LINE_CAPACITY = 4294967295;
 
@@ -78,7 +78,7 @@ final class CartQuantityPolicy
      * How many rule sets {@see self::saleMinimum()} remembers before it starts
      * over.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private const SALE_MINIMUM_MEMO_SIZE = 256;
 
@@ -88,7 +88,7 @@ final class CartQuantityPolicy
      *
      * @var array<string, int|null>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static array $saleMinimums = [];
 
@@ -97,7 +97,7 @@ final class CartQuantityPolicy
      * unit: the inventory's own quantity tolerance, so the cart counts whole
      * units exactly as the stock verdict does.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private const WHOLE_UNIT_TOLERANCE = \Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService::QUANTITY_TOLERANCE;
 
@@ -121,7 +121,7 @@ final class CartQuantityPolicy
      *                          the same pool on its other lines.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function decide(
         object $item,
@@ -275,7 +275,7 @@ final class CartQuantityPolicy
      * @return int|null Null when neither the merchant nor the shelf sets a
      *                  limit; 0 when no quantity is accepted.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function lineMaximum(
         object $item,
@@ -335,7 +335,7 @@ final class CartQuantityPolicy
      * @throws InvalidArgumentException When a value present is not an exact
      *                                  quantity.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function ruleValue(mixed $combination, mixed $item): string
     {
@@ -374,7 +374,7 @@ final class CartQuantityPolicy
      *
      * @throws InvalidArgumentException When a rule is not an exact quantity.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function saleMinimum(string $min, string $step, string $max): ?int
     {
@@ -414,7 +414,7 @@ final class CartQuantityPolicy
      *
      * @throws InvalidArgumentException When the step is not an exact quantity.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function saleGrid(string $step): string
     {
@@ -444,7 +444,7 @@ final class CartQuantityPolicy
      * @throws InvalidArgumentException When a stored rule is not an exact
      *                                  quantity.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function bounds(object $item, ?int $combinationId): array
     {
@@ -489,7 +489,7 @@ final class CartQuantityPolicy
      * @return string A numeric SQL expression of the stored columns' exact
      *                type, never NULL.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function ruleValueSql(string $combinationExpr, string $itemExpr): string
     {
@@ -514,7 +514,7 @@ final class CartQuantityPolicy
      *
      * @return string A parenthesised numeric SQL expression.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function saleGridSql(string $stepExpr): string
     {
@@ -563,7 +563,7 @@ final class CartQuantityPolicy
      * @return string A parenthesised boolean SQL expression, never NULL for
      *                non-NULL rules.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function saleOrderableSql(string $minExpr, string $stepExpr, string $maxExpr): string
     {
@@ -593,7 +593,7 @@ final class CartQuantityPolicy
      *
      * @return string A parenthesised boolean SQL expression.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function saleReachableSql(string $wholeUnitsExpr, string $minExpr, string $stepExpr, string $maxExpr): string
     {
@@ -614,7 +614,7 @@ final class CartQuantityPolicy
      * @return array{step: string, min: string, max: string} Canonical exact
      *                                                       quantities.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function quantityRules(object $item, ?int $combinationId): array
     {
@@ -645,7 +645,7 @@ final class CartQuantityPolicy
      * @param string $value A resolved rule ({@see self::ruleValue()}).
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function isPositive(string $value): bool
     {
@@ -662,7 +662,7 @@ final class CartQuantityPolicy
      *
      * @return int 0 when the unit has no minimum.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function lineMinimum(string $min): int
     {
@@ -679,7 +679,7 @@ final class CartQuantityPolicy
      *
      * @return int 0 when the maximum is below one unit.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function lineLimit(string $max): int
     {
@@ -703,7 +703,7 @@ final class CartQuantityPolicy
      *
      * @return int At least 1.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function lineGrid(string $step): int
     {
@@ -720,7 +720,7 @@ final class CartQuantityPolicy
      * @param int $grid The grid, at least 1.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function floorToMultiple(int $quantity, int $grid): int
     {
@@ -737,7 +737,7 @@ final class CartQuantityPolicy
      *
      * @return string A parenthesised numeric SQL expression.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function capSql(string $maxExpr): string
     {
@@ -752,7 +752,7 @@ final class CartQuantityPolicy
      *
      * @return string A numeric SQL expression.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function firstSql(string $minExpr): string
     {

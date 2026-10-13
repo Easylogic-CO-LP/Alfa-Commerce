@@ -50,7 +50,7 @@ use Throwable;
  * Notification push/clear happens ONLY inside a recompute, and re-alerts only when
  * the verdict actually transitions; a cache hit can never nag.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class SetupHelper
 {
@@ -58,7 +58,7 @@ final class SetupHelper
      * Cache group for the evaluated status (cleaned whole on invalidation).
      *
      * @var string
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const CACHE_GROUP = 'com_alfa.setup';
 
@@ -66,7 +66,7 @@ final class SetupHelper
      * The checklist notification's dedup key.
      *
      * @var string
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const NOTIFICATION_KEY = 'alfa.setup';
 
@@ -76,7 +76,7 @@ final class SetupHelper
      * outside this set costs nothing.
      *
      * @var string[]
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const WATCHED_ENTITIES = [
         'payment',
@@ -97,7 +97,7 @@ final class SetupHelper
      * manual DB edits).
      *
      * @var int
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private const TTL_MINUTES = 360;
 
@@ -109,7 +109,7 @@ final class SetupHelper
      *
      * @return array The status shape documented on {@see self::evaluate()}.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function status(bool $fresh = false): array
     {
@@ -151,7 +151,7 @@ final class SetupHelper
      * admin languages; renderers translate.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function evaluate(): array
     {
@@ -216,7 +216,7 @@ final class SetupHelper
      * safe to call optimistically: the recompute happens lazily, on the next read.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function invalidate(): void
     {
@@ -241,7 +241,7 @@ final class SetupHelper
      * @param string $entity The model's entity name, e.g. `payment`.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function invalidateFor(string $entity): void
     {
@@ -255,7 +255,7 @@ final class SetupHelper
      * at most once per TTL) and never let checklist housekeeping touch the page.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function sync(): void
     {
@@ -275,7 +275,7 @@ final class SetupHelper
      * @param array<string, scalar> $pairs The params to set.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function mergeParams(array $pairs): void
     {
@@ -324,7 +324,7 @@ final class SetupHelper
      *
      * @return array<string, string> e.g. ['el-GR' => 'el', 'en-GB' => 'en'].
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function contentLanguages(): array
     {
@@ -360,7 +360,7 @@ final class SetupHelper
      *
      * @return int[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function createdMenuIds(): array
     {
@@ -396,7 +396,7 @@ final class SetupHelper
      *
      * @return array{ok: bool, error: string}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function provision(string $checkId, array $answers = []): array
     {
@@ -429,7 +429,7 @@ final class SetupHelper
      *
      * @return array<string, SetupCheck> Keyed `owner_group/owner_name:check_id`.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function collect(): array
     {
@@ -512,7 +512,7 @@ final class SetupHelper
      * @param array $status The evaluation from {@see self::evaluate()}.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function applyNotification(array $status): void
     {
@@ -570,7 +570,7 @@ final class SetupHelper
      *
      * @return string The rendered `setup.card` layout.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function renderCard(bool $fresh = false): string
     {
@@ -605,7 +605,7 @@ final class SetupHelper
      *
      * @return array<string, array{id: int, seen: bool}> Keyed by uid; absent = no such tour.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function tourAvailability(array $uids): array
     {
@@ -677,7 +677,7 @@ final class SetupHelper
      *
      * @return string 'open' | 'collapsed'.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function cardState(): string
     {
@@ -710,7 +710,7 @@ final class SetupHelper
      * @param string $state 'open' | 'collapsed' (anything else is coerced to 'open').
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function setCardState(string $state): void
     {
@@ -753,7 +753,7 @@ final class SetupHelper
      *
      * @return string '' when no row carries the key.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function storedTitle(): string
     {

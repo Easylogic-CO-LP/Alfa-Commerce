@@ -39,6 +39,26 @@ jobs:
           commit_message: "style: auto-fix code style with PHP CS Fixer"
           commit_author: "github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
 
+  copy-clean:
+    name: Copy-clean
+    # The shipped comments and the texts a person reads stay clean: no box banners, no em-dashes or
+    # typographic artifacts, no names of other products (the rules are in the gate's docblock).
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+
+      - name: Run the copy-clean gate
+        run: php scripts/copy-clean/copy-clean-gate.php --package=. --allow=scripts/copy-clean/copy-clean-allow.json
+
   phpstan:
     name: PHPStan
     runs-on: ubuntu-latest

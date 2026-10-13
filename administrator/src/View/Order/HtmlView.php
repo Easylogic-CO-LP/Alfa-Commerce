@@ -42,7 +42,7 @@ class HtmlView extends BaseHtmlView
      * Whether the order line's popup shows the sold configuration read-only: the catalogue can no longer draw
      * what the line sold.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public bool $soldReadOnly = false;
 
@@ -50,7 +50,7 @@ class HtmlView extends BaseHtmlView
      * What a refused order-line Save posted, for the popup's kept=1 redisplay
      * (OrderController::saveOrderItem); empty on any other open.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public array $keptPost = [];
 
@@ -59,7 +59,7 @@ class HtmlView extends BaseHtmlView
      * screen of an order that names no currency states. Empty on every other
      * order.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public string $currencyRefusal = '';
 
@@ -67,7 +67,7 @@ class HtmlView extends BaseHtmlView
      * The name of the order's status, for the screen of an order that names no
      * currency.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public string $statusName = '';
 
@@ -76,7 +76,7 @@ class HtmlView extends BaseHtmlView
      * included), so the contract sees one screen identity throughout.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected function alfaScreen(): string
     {
@@ -538,7 +538,7 @@ class HtmlView extends BaseHtmlView
      *
      * @throws Exception When the order no longer exists.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function displayWithoutCurrency(object $model, OrderCurrencyException $refusal): void
     {
@@ -686,7 +686,7 @@ class HtmlView extends BaseHtmlView
      * @param bool $editable Whether the buyer can be edited and previewed.
      *
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     protected function addReplacementToolbar(bool $available, bool $editable): void
     {
@@ -730,7 +730,7 @@ class HtmlView extends BaseHtmlView
      * @param bool $available Whether the proposal can be issued.
      *
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     protected function addCorrectionToolbar(bool $available): void
     {
@@ -754,7 +754,7 @@ class HtmlView extends BaseHtmlView
      * No Delete: a document is never deleted, only voided, and voiding is the
      * panel's own button behind the documents permission.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function addDocumentToolbar(): void
     {
@@ -827,7 +827,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return array The kept fields; [] when there is nothing to redisplay.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private function keptModalDraft(string $modalKey): array
     {

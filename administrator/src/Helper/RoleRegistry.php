@@ -31,7 +31,7 @@ defined('_JEXEC') or die;
  * the RECIPIENT's name and phone. A member's email is never stored on a
  * record (the account's address is authoritative); a guest's is.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class RoleRegistry
 {
@@ -84,7 +84,7 @@ final class RoleRegistry
      *
      * @return string[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function roles(): array
     {
@@ -97,7 +97,7 @@ final class RoleRegistry
      * @param string|null $role The candidate.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function isRole(?string $role): bool
     {
@@ -110,7 +110,7 @@ final class RoleRegistry
      * @param string $role The role.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function isSystem(string $role): bool
     {
@@ -126,7 +126,7 @@ final class RoleRegistry
      *
      * @return int 0 hidden, 1 optional, 2 required.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function floor(string $role, string $section): int
     {
@@ -140,7 +140,7 @@ final class RoleRegistry
      *
      * @return string|null Column name, or null when the role is record-only (phone).
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function accountColumn(string $role): ?string
     {
@@ -160,7 +160,7 @@ final class RoleRegistry
      * @param int $userId The owner of the record (0 = guest).
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function accountOwned(string $role, int $userId): bool
     {
@@ -183,7 +183,7 @@ final class RoleRegistry
      * @param int $userId The customer the form is built for (0 = guest).
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function hiddenIn(string $role, string $context, int $userId): bool
     {
@@ -203,7 +203,7 @@ final class RoleRegistry
      *
      * @return object|null The `#__alfa_form_fields` row, or null when no field carries the role.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function field(string $role): ?object
     {
@@ -230,7 +230,7 @@ final class RoleRegistry
      *
      * @return string|null The column (field_name), or null when no field carries the role.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function column(string $role): ?string
     {
@@ -246,7 +246,7 @@ final class RoleRegistry
      *
      * @return array<string, string> Role => trimmed value ('' when absent).
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function valuesFromRow(?object $row): array
     {
@@ -269,7 +269,7 @@ final class RoleRegistry
      *
      * @return array<string, string> Role => trimmed value ('' when absent).
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function valuesFromData(array $data): array
     {
@@ -283,7 +283,7 @@ final class RoleRegistry
      * @param string $role The role.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function labelFallback(string $role): string
     {
@@ -294,7 +294,7 @@ final class RoleRegistry
      * Forget the memoised rows (after a field save in the same request).
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function clearCache(): void
     {

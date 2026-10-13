@@ -36,26 +36,26 @@ defined('_JEXEC') or die;
  * reads the checkout session, never reads pending cart input, and never falls
  * back to the buyer's account as it stands today.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class Order
 {
-    /** @var AddressView|null Memoised, because a carrier asks repeatedly. @since 1.10.0 */
+    /** @var AddressView|null Memoised, because a carrier asks repeatedly. @since 2.0.0 */
     private ?AddressView $delivery = null;
 
-    /** @var AddressView|null @since 1.10.0 */
+    /** @var AddressView|null @since 2.0.0 */
     private ?AddressView $invoice = null;
 
-    /** @var Shipment[]|null Memoised; a carrier asks repeatedly. @since 1.10.0 */
+    /** @var Shipment[]|null Memoised; a carrier asks repeatedly. @since 2.0.0 */
     private ?array $shipments = null;
 
-    /** @var Payment[]|null @since 1.10.0 */
+    /** @var Payment[]|null @since 2.0.0 */
     private ?array $payments = null;
 
     /**
      * @param object $row The order as the model loaded it.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function __construct(private readonly object $row)
     {
@@ -74,7 +74,7 @@ final class Order
      * @param object $row The order row, or a reader already made of one.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function of(object $row): self
     {
@@ -83,19 +83,19 @@ final class Order
 
     // identity
 
-    /** @return int The order id. @since 1.10.0 */
+    /** @return int The order id. @since 2.0.0 */
     public function id(): int
     {
         return (int) ($this->row->id ?? 0);
     }
 
-    /** @return string The merchant-facing reference. @since 1.10.0 */
+    /** @return string The merchant-facing reference. @since 2.0.0 */
     public function reference(): string
     {
         return (string) ($this->row->reference ?? '');
     }
 
-    /** @return string The key a return link is signed with. @since 1.10.0 */
+    /** @return string The key a return link is signed with. @since 2.0.0 */
     public function secureKey(): string
     {
         return (string) ($this->row->secure_key ?? '');
@@ -123,7 +123,7 @@ final class Order
      * that requires it must check rather than assume.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getName(): string
     {
@@ -137,7 +137,7 @@ final class Order
      * never the current account profile.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getEmail(): string
     {
@@ -153,14 +153,14 @@ final class Order
      * since gone. `customer_is_guest` records what was true at the time.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function isGuest(): bool
     {
         return (int) ($this->row->customer_is_guest ?? 0) === 1;
     }
 
-    /** @return int The account that placed it, 0 for a guest or a deleted account. @since 1.10.0 */
+    /** @return int The account that placed it, 0 for a guest or a deleted account. @since 2.0.0 */
     public function customerId(): int
     {
         return (int) ($this->row->id_user ?? 0);
@@ -197,7 +197,7 @@ final class Order
      *
      * @return AddressView Missing throughout when the order names no address.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function delivery(): AddressView
     {
@@ -211,7 +211,7 @@ final class Order
      * to itself.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function invoice(): AddressView
     {
@@ -250,7 +250,7 @@ final class Order
      *
      * @return Shipment[] Empty when nothing has been shipped yet.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function shipments(): array
     {
@@ -270,7 +270,7 @@ final class Order
      *
      * @return Payment[] Empty when nothing has been taken yet.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function payments(): array
     {
@@ -293,7 +293,7 @@ final class Order
      *
      * @throws OrderCurrencyException When the order names no currency.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function currency(): Currency
     {
@@ -312,7 +312,7 @@ final class Order
      * What the customer pays in total, tax included.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function total(): Money
     {
@@ -331,7 +331,7 @@ final class Order
      * rather than quietly asking a gateway for a total missing its shipping.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function hasComputedTotal(): bool
     {
@@ -346,14 +346,14 @@ final class Order
      * a carrier plugin's log row has been recording a carriage of 0 since it was written.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function shipmentTotal(): Money
     {
         return $this->money($this->row->total_shipping_tax_incl ?? null);
     }
 
-    /** @return Money Carriage, tax excluded. @since 1.10.0 */
+    /** @return Money Carriage, tax excluded. @since 2.0.0 */
     public function shipmentTotalExcl(): Money
     {
         return $this->money($this->row->total_shipping_tax_excl ?? null);
@@ -369,7 +369,7 @@ final class Order
      * a parcel created later states its own rate.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function shipmentTaxRate(): float
     {
@@ -384,7 +384,7 @@ final class Order
      * writes in onOrderAfterPlace. An order read anywhere else states none.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function shipmentChargeBasis(): ?ShippingChargeBasis
     {
@@ -402,7 +402,7 @@ final class Order
      *
      * @return string[]|null
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function shipmentTaxChain(): ?array
     {
@@ -411,13 +411,13 @@ final class Order
         return $chain === null ? null : array_values(array_map('strval', (array) $chain));
     }
 
-    /** @return int The chosen gateway's method id. @since 1.10.0 */
+    /** @return int The chosen gateway's method id. @since 2.0.0 */
     public function paymentMethodId(): int
     {
         return (int) ($this->row->id_payment_method ?? 0);
     }
 
-    /** @return int The shipment method the order was placed with, 0 when none. @since 1.10.0 */
+    /** @return int The shipment method the order was placed with, 0 when none. @since 2.0.0 */
     public function shipmentMethodId(): int
     {
         return (int) ($this->row->id_shipment_method ?? 0);
@@ -432,20 +432,20 @@ final class Order
      *
      * @return int The `#__languages` id, 0 when the order names none.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function languageId(): int
     {
         return (int) ($this->row->id_language ?? 0);
     }
 
-    /** @return object|null The chosen payment method record. @since 1.10.0 */
+    /** @return object|null The chosen payment method record. @since 2.0.0 */
     public function paymentMethod(): ?object
     {
         return \is_object($this->row->selected_payment ?? null) ? $this->row->selected_payment : null;
     }
 
-    /** @return array The ordered lines. @since 1.10.0 */
+    /** @return array The ordered lines. @since 2.0.0 */
     public function items(): array
     {
         return (array) ($this->row->items ?? []);
@@ -459,7 +459,7 @@ final class Order
      * close here rather than to route around.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function row(): object
     {
@@ -480,7 +480,7 @@ final class Order
      *
      * @return object[] In creation order.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function rowsFor(string $table): array
     {
@@ -507,7 +507,7 @@ final class Order
      * @param int $id The address id.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function addressRow(int $id): ?object
     {
@@ -531,7 +531,7 @@ final class Order
      * @param mixed $value The stored total.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function money(mixed $value): Money
     {

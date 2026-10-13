@@ -37,7 +37,7 @@ use Throwable;
  * renamed or removed ({@see self::fieldLabelMap()}). The service never reads
  * a frozen row and never decides which lifetime it is serving.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class ItemFieldDisplayResolver
 {
@@ -50,7 +50,7 @@ final class ItemFieldDisplayResolver
      *
      * @return array<int, array<string, string>> Field id -> {langCode: name}.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function fieldLabelMaps(array $fieldIds): array
     {
@@ -72,7 +72,7 @@ final class ItemFieldDisplayResolver
      *
      * @return array<int, array<string, string>> Value id -> {langCode: name}.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function valueTextMaps(array $valueIds): array
     {
@@ -91,7 +91,7 @@ final class ItemFieldDisplayResolver
      * @param int $fieldId Field definition id.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function fieldLabel(int $fieldId): string
     {
@@ -106,7 +106,7 @@ final class ItemFieldDisplayResolver
      * @param int $valueId Field-value id.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function valueText(int $valueId): string
     {
@@ -129,7 +129,7 @@ final class ItemFieldDisplayResolver
      *
      * @return array<int, array<string, string>>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function labelMaps(array $ids, string $baseTable, string $langTable, string $foreignKey, ?string $nameColumn): array
     {

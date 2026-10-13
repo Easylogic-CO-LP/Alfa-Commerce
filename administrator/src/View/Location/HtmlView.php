@@ -21,7 +21,7 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
 /**
  * Inventory location edit view.
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 class HtmlView extends BaseHtmlView
 {
@@ -38,7 +38,7 @@ class HtmlView extends BaseHtmlView
      * list phases (columns/actions) for it.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected function alfaScreen(): string
     {
@@ -52,7 +52,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function display($tpl = null)
     {
@@ -76,7 +76,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     protected function addToolbar()
     {

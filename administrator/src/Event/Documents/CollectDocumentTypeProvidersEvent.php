@@ -31,7 +31,7 @@ use Joomla\CMS\Event\AbstractEvent;
  * wider provider family (stock, tax, export ... collections follow the
  * same shape).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class CollectDocumentTypeProvidersEvent extends AbstractEvent
 {
@@ -44,7 +44,7 @@ class CollectDocumentTypeProvidersEvent extends AbstractEvent
      * @param string $version The package version.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function addProvider(DocumentTypeProviderInterface $provider, string $element, string $version = ''): void
     {
@@ -64,7 +64,7 @@ class CollectDocumentTypeProvidersEvent extends AbstractEvent
      *
      * @return array<int, array{provider: DocumentTypeProviderInterface, element: string, version: string}>
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getProviders(): array
     {

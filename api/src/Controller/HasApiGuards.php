@@ -42,7 +42,7 @@ use RuntimeException;
  *      re-inserting. An omitted key therefore reads as "remove them all".
  *      Same idea as com_content re-loading tags in preprocessSaveData().
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 trait HasApiGuards
 {
@@ -55,7 +55,7 @@ trait HasApiGuards
      *
      * @return string[]
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function preserveOnPatch(): array
     {
@@ -77,7 +77,7 @@ trait HasApiGuards
      * @throws Save When the task's order names no currency.
      * @throws ResourceNotFound When the task's order has no row.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function execute($task)
     {
@@ -98,7 +98,7 @@ trait HasApiGuards
      * The access.xml section this controller is gated by.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function aclSection(): string
     {
@@ -114,7 +114,7 @@ trait HasApiGuards
      * @param string $task The task about to run.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function assertAuthorisedForTask(string $task): void
     {
@@ -141,7 +141,7 @@ trait HasApiGuards
      *
      * @throws NotAllowed When the identity does not hold the permission.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function assertAuthorised(string $action): void
     {
@@ -159,7 +159,7 @@ trait HasApiGuards
      *
      * @return bool
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function allowAdd($data = [])
     {
@@ -174,7 +174,7 @@ trait HasApiGuards
      *
      * @return bool
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function allowEdit($data = [], $key = 'id')
     {
@@ -197,7 +197,7 @@ trait HasApiGuards
      *
      * @throws Save When the model refused the delete by its own rule; nothing was deleted.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function delete($id = null)
     {
@@ -267,7 +267,7 @@ trait HasApiGuards
      * @param array $data An array of input data.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function preprocessSaveData(array $data): array
     {
@@ -297,7 +297,7 @@ trait HasApiGuards
      * @param array $data The incoming save data.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function normaliseMediaPayload(array $data): array
     {
@@ -354,7 +354,7 @@ trait HasApiGuards
      * @param array $row Client-supplied media row.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function normaliseMediaRow(array $row): array
     {
@@ -409,7 +409,7 @@ trait HasApiGuards
      * @param array $data The incoming save data.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function flattenTranslations(array $data): array
     {
@@ -453,7 +453,7 @@ trait HasApiGuards
      * @param array $data The incoming save data.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function preserveAbsentRelations(array $data): array
     {

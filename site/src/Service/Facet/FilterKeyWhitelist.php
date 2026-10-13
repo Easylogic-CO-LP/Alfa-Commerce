@@ -76,7 +76,7 @@ use Alfa\Component\Alfa\Site\Model\ManufacturersModel;
  *     `parent::populateState()`. It stays a fully working INTERNAL state key; only the URL form
  *     is refused. This list governs the request branch only, never programmatic `setState()`.
  *
- * @since  1.7.0
+ * @since  2.0.0
  */
 final class FilterKeyWhitelist
 {
@@ -87,7 +87,7 @@ final class FilterKeyWhitelist
      *
      * @var array<class-string, string[]>
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     private const KEYS = [
         ItemsModel::class => [
@@ -131,7 +131,7 @@ final class FilterKeyWhitelist
      *
      * @var array<string, class-string>
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     private const CARRIED_STATE_VIEWS = [
         'items' => ItemsModel::class,
@@ -150,7 +150,7 @@ final class FilterKeyWhitelist
      *
      * @return string[] Allowed filter keys; [] when the class is not listed.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public static function forModel(string $modelClass): array
     {
@@ -170,7 +170,7 @@ final class FilterKeyWhitelist
      *
      * @return string[] Allowed filter keys; [] for a view that carries no filter state.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public static function forView(string $view): array
     {
@@ -190,7 +190,7 @@ final class FilterKeyWhitelist
      * @param int|string $key The key as it came out of the request bag.
      * @param string[] $allowed The allow-set from {@see self::forModel()} / {@see self::forView()}.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public static function accepts(int|string $key, array $allowed): bool
     {

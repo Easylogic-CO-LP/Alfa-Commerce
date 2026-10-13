@@ -44,7 +44,7 @@ use Throwable;
  * the name itself, so the merchant may switch it off. One declaration covers every
  * alias the catalogue stores: item, brand, category and field-value aliases.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class SearchScope
 {
@@ -71,7 +71,7 @@ final class SearchScope
      *
      * @var array<string, string>
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private const PARAM_KEYS = [
         self::PART_ALIASES => 'search_index_aliases',
@@ -102,7 +102,7 @@ final class SearchScope
      * @param bool $metaText Search meta title and description. OFF by default:
      *                       written for robots and routinely duplicated.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly bool $aliases = true,
@@ -121,7 +121,7 @@ final class SearchScope
      * rather than failing a storefront search or aborting a rebuild mid-flight.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function fromConfig(): self
     {
@@ -149,7 +149,7 @@ final class SearchScope
      * @return bool False for an unknown part, so a caller asking about something this
      *              version has never heard of degrades instead of failing.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function includes(string $part): bool
     {
@@ -169,7 +169,7 @@ final class SearchScope
      *
      * @return string[]
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function enabled(): array
     {
@@ -198,7 +198,7 @@ final class SearchScope
      *
      * @return string 64-character lowercase hex digest.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function signature(): string
     {

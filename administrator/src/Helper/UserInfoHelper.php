@@ -38,7 +38,7 @@ class UserInfoHelper
      *
      * @return Form The form, control name `uinfo`, fields under FIELDS_KEY.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function adminForm(?array $data = null, int $userId = 0): Form
     {
@@ -107,7 +107,7 @@ class UserInfoHelper
      *
      * @return array<string, true> Column name => true.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private static function writableColumns(): array
     {
@@ -168,7 +168,7 @@ class UserInfoHelper
      *
      * @return int The reused, completed or created row id.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public static function insertOrComplete(int $userId, array $data): int
     {
@@ -350,7 +350,7 @@ class UserInfoHelper
      *
      * @param int $id The row.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function getRowById(int $id): ?object
     {

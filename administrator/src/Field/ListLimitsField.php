@@ -31,7 +31,7 @@ use SimpleXMLElement;
  * placeholder. When no tier sets it, the storefront keeps its stock dropdown
  * (this setting unset changes nothing).
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 class ListLimitsField extends TextField
 {
@@ -47,7 +47,7 @@ class ListLimitsField extends TextField
      * @param string $group The field group control name
      *
      * @return bool True on success
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function setup(SimpleXMLElement $element, $value, $group = null)
     {

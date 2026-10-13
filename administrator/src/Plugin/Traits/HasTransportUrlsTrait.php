@@ -31,7 +31,7 @@ use Joomla\CMS\Router\Route;
  * noun differs, so {@see self::transportTask()} is the single thing a family
  * has to answer.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 trait HasTransportUrlsTrait
 {
@@ -42,7 +42,7 @@ trait HasTransportUrlsTrait
      * another family's callbacks.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     abstract protected function transportTask(): string;
 
@@ -66,7 +66,7 @@ trait HasTransportUrlsTrait
      *
      * @return string Absolute, TLS-forced.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function returnUrl(object $order, array $extra = []): string
     {
@@ -98,7 +98,7 @@ trait HasTransportUrlsTrait
      *
      * @throws InvalidArgumentException On an environment other than sandbox or live.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function webhookUrl(?string $environment = null): string
     {

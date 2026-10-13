@@ -38,7 +38,7 @@ use Joomla\Registry\Registry;
  *
  *   $cfg = FieldParams::getEffective('combination', $combinationId, $fieldId, $itemId);
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class FieldParams
 {
@@ -52,7 +52,7 @@ class FieldParams
      * The scope of the builder ('item', 'combination', 'option').
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected string $scope;
 
@@ -60,7 +60,7 @@ class FieldParams
      * The scope row id (item id, combination id or option-value id).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected int $scopeId;
 
@@ -68,7 +68,7 @@ class FieldParams
      * The field id.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected int $fieldId;
 
@@ -76,7 +76,7 @@ class FieldParams
      * The owning item id (carried on variant rows for cascade + fallback).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected int $itemId;
 
@@ -84,7 +84,7 @@ class FieldParams
      * The working config (stored values merged with builder edits).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected array $config;
 
@@ -97,7 +97,7 @@ class FieldParams
      * @param int $fieldId The field id.
      * @param int $itemId The owning item id.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function __construct(string $scope, int $scopeId, int $fieldId, int $itemId)
     {
@@ -115,7 +115,7 @@ class FieldParams
      * @param int $fieldId The field id.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function item(int $itemId, int $fieldId): static
     {
@@ -131,7 +131,7 @@ class FieldParams
      * @param int $itemId The owning item id.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function variant(string $scope, int $scopeId, int $fieldId, int $itemId): static
     {
@@ -146,7 +146,7 @@ class FieldParams
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function set(string $key, mixed $value): static
     {
@@ -162,7 +162,7 @@ class FieldParams
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function merge(array $config): static
     {
@@ -178,7 +178,7 @@ class FieldParams
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function replace(array $config): static
     {
@@ -191,7 +191,7 @@ class FieldParams
      * The working config as a Registry (read without persisting).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function toRegistry(): Registry
     {
@@ -203,7 +203,7 @@ class FieldParams
      *
      * @return bool True on success.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function save(): bool
     {
@@ -227,7 +227,7 @@ class FieldParams
      *
      * @return Registry Empty when nothing is stored.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function read(string $scope, int $scopeId, int $fieldId): Registry
     {
@@ -261,7 +261,7 @@ class FieldParams
      * @param int $itemId The owning item id.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function getEffective(string $scope, int $scopeId, int $fieldId, int $itemId): Registry
     {
@@ -278,7 +278,7 @@ class FieldParams
      *
      * @return Registry[] field_id => Registry.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function getItemAll(int $itemId): array
     {
@@ -307,7 +307,7 @@ class FieldParams
      *
      * @return Registry[] field_id => Registry.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function getVariantAll(string $scope, int $scopeId): array
     {
@@ -339,7 +339,7 @@ class FieldParams
      *
      * @return int[] Item ids that have config for any of those fields.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function itemsWithConfig(array $fieldIds, array $itemIds): array
     {
@@ -382,7 +382,7 @@ class FieldParams
      *
      * @return bool True on success.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function write(string $scope, int $scopeId, int $fieldId, int $itemId, array $config): bool
     {
@@ -438,7 +438,7 @@ class FieldParams
      * @param array $itemIds Item ids.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function deleteForItems(array $itemIds): void
     {
@@ -463,7 +463,7 @@ class FieldParams
      * @param array $fieldIds Field ids.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function deleteForFields(array $fieldIds): void
     {
@@ -490,7 +490,7 @@ class FieldParams
      * @param array $scopeIds Variant row ids.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function deleteForVariants(string $scope, array $scopeIds): void
     {

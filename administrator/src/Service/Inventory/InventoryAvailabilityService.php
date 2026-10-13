@@ -39,7 +39,7 @@ use Joomla\Database\DatabaseInterface;
  * stock tolerance of a whole number holds that unit; that comparison is the only place
  * the tolerance meets a quantity rule.
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 final class InventoryAvailabilityService
 {
@@ -53,7 +53,7 @@ final class InventoryAvailabilityService
      * and kernel only; storefront surfaces map it to out of stock.
      *
      * @var string
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const STATUS_LEDGER_MISSING = 'ledger_missing';
 
@@ -64,14 +64,14 @@ final class InventoryAvailabilityService
      * comparison and every "non-zero" test uses this tolerance.
      *
      * @var float
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const QUANTITY_TOLERANCE = 0.00005;
 
     private DatabaseInterface $db;
 
     /**
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function __construct()
     {
@@ -96,7 +96,7 @@ final class InventoryAvailabilityService
      *
      * @return array{rows: int, physical: float, reserved: float, available: float, salable: float}
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function availability(
         int $itemId,
@@ -159,7 +159,7 @@ final class InventoryAvailabilityService
      *                                                                                                                item id => combination id (0 for the item level) => facts; salable counts
      *                                                                                                                enabled locations only.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function unitFactsForItems(array $itemIds): array
     {
@@ -231,7 +231,7 @@ final class InventoryAvailabilityService
      *
      * @return array{physical: float, reserved: float, salable: float, item_level_physical: float, item_level_reserved: float, item_level_rows_not_zero: int}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function combinationAggregate(int $itemId): array
     {
@@ -289,7 +289,7 @@ final class InventoryAvailabilityService
      *
      * @return array<int, array{location_id: int, physical: float, reserved: float, available: float}>
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function byLocation(int $itemId, ?int $combinationId = null): array
     {
@@ -329,7 +329,7 @@ final class InventoryAvailabilityService
      *
      * @return array<int, array{location_id: int, title: string, published: bool, is_default: bool, physical: float, reserved: float, available: float}>
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function locationBreakdown(int $itemId, ?int $combinationId = null): array
     {
@@ -379,7 +379,7 @@ final class InventoryAvailabilityService
      *
      * @return string Display string; never empty.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function formatQuantity(float $value): string
     {
@@ -399,7 +399,7 @@ final class InventoryAvailabilityService
      * @param float $b The other.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function quantitiesAgree(float $a, float $b): bool
     {
@@ -417,7 +417,7 @@ final class InventoryAvailabilityService
      * @param float|null $available The salable projection.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function projectionNonZero(?float $stock, ?float $available): bool
     {
@@ -440,7 +440,7 @@ final class InventoryAvailabilityService
      *
      * @return float A whole number; negative when the stock is below the safety stock or oversold.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function wholeUnits(float $salable, float $safety): float
     {
@@ -458,7 +458,7 @@ final class InventoryAvailabilityService
      *
      * @return string A numeric SQL expression.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function wholeUnitsSql(string $salableExpr, string $safetyExpr): string
     {
@@ -504,7 +504,7 @@ final class InventoryAvailabilityService
      *
      * @return string One of the STATUS_* constants.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function statusFrom(
         float $salable,
@@ -549,7 +549,7 @@ final class InventoryAvailabilityService
      * @param string $status One of the STATUS_* constants.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function sellableStatus(string $status): bool
     {
@@ -572,7 +572,7 @@ final class InventoryAvailabilityService
      * @param int|null $saleMinimum The smallest quantity the unit's quantity rules accept; NULL for none.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function isSellable(
         float $salable,
@@ -614,7 +614,7 @@ final class InventoryAvailabilityService
      * @param float $minQty The resolved safety stock.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function ceilingFrom(
         float $salable,
@@ -657,7 +657,7 @@ final class InventoryAvailabilityService
      *
      * @return string A parenthesised scalar subquery.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function ledgerSalableSql(DatabaseInterface $db, string $itemExpr, string $combinationExpr): string
     {
@@ -682,7 +682,7 @@ final class InventoryAvailabilityService
      *
      * @return string A parenthesised boolean expression, never NULL.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function integrityHoldSql(DatabaseInterface $db, string $itemExpr, string $combinationExpr): string
     {
@@ -700,7 +700,7 @@ final class InventoryAvailabilityService
      *
      * @return string A parenthesised boolean expression, never NULL.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function projectionNonZeroSql(string $stockExpr, string $availableExpr): string
     {
@@ -724,7 +724,7 @@ final class InventoryAvailabilityService
      *
      * @return string A parenthesised CASE expression.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function backorderActionSql(DatabaseInterface $db, string $storedExpr, string $globalAction): string
     {
@@ -771,7 +771,7 @@ final class InventoryAvailabilityService
      *
      * @return string A parenthesised boolean expression.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function sellableSql(
         string $itemExpr,
@@ -836,7 +836,7 @@ final class InventoryAvailabilityService
      *
      * @return string A parenthesised boolean expression.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function ledgerMissingSql(string $alias): string
     {
@@ -896,7 +896,7 @@ final class InventoryAvailabilityService
      *
      * @return int 0 when no command has ever run.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function inventoryVersion(DatabaseInterface $db): int
     {
@@ -934,7 +934,7 @@ final class InventoryAvailabilityService
      *
      * @return float 0 when no threshold applies anywhere.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function lowStockThreshold(?float $combination, ?float $item): float
     {
@@ -958,7 +958,7 @@ final class InventoryAvailabilityService
      * @param float $minQty Safety stock withheld from sale.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function safetyStockBinds(?string $itemBackorder, float $minQty): bool
     {
@@ -977,7 +977,7 @@ final class InventoryAvailabilityService
      * @param float $value The quantity.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function sqlQuantity(float $value): string
     {

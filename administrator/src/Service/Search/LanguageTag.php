@@ -32,14 +32,14 @@ defined('_JEXEC') or die;
  * Construction is forgiving (`en-GB`, `en_gb`, `EN-gb` all resolve identically);
  * only the output is strict.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class LanguageTag
 {
     /**
      * @param string $storageKey Lower-snake form, e.g. "en_gb".
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function __construct(private readonly string $storageKey)
     {
@@ -54,7 +54,7 @@ final class LanguageTag
      *
      * @var string
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private const STORAGE_PATTERN = '/^[a-z]{2,3}(_[a-z0-9]{2,8})*$/';
 
@@ -66,7 +66,7 @@ final class LanguageTag
      *
      * @throws InvalidArgumentException When the tag is not a legal language tag.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function from(string $tag): self
     {
@@ -94,7 +94,7 @@ final class LanguageTag
      *
      * @return self[] Never empty; falls back to the site default.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function allContent(): array
     {
@@ -127,7 +127,7 @@ final class LanguageTag
      * and therefore the fallback the index must mirror.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function siteDefault(): self
     {
@@ -149,7 +149,7 @@ final class LanguageTag
      *
      * @return string Lower-snake storage form.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function normalize(string $tag): string
     {
@@ -161,7 +161,7 @@ final class LanguageTag
      *
      * @return string e.g. "en_gb"
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function storageKey(): string
     {
@@ -173,7 +173,7 @@ final class LanguageTag
      * to a table name (`#__alfa_items_` . $tag->tableSuffix()).
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function tableSuffix(): string
     {
@@ -193,7 +193,7 @@ final class LanguageTag
      *
      * @return string e.g. "el-GR"
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function displayTag(): string
     {
@@ -213,7 +213,7 @@ final class LanguageTag
      * value rather than the display form.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function __toString(): string
     {

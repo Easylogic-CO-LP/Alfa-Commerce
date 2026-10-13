@@ -21,7 +21,7 @@ use Joomla\Database\DatabaseDriver;
  * are NOT here: they live in the per-location stock rows, written only
  * by the inventory service.
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 class LocationTable extends Table
 {
@@ -37,7 +37,7 @@ class LocationTable extends Table
      *
      * @param DatabaseDriver $db Database connector.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function __construct(DatabaseDriver $db)
     {

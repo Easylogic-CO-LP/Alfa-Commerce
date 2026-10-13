@@ -180,14 +180,14 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * Set by PaymentsPlugin / ShipmentsPlugin base classes. Empty means the
      * family keeps no method-level log.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected string $logMethodField = '';
 
     /**
      * Whether the generic log-failure message was already shown this request.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private bool $logFailureShown = false;
 
@@ -293,7 +293,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      *                      ->getKind(), ->getMethods()
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function onCartViewAssets($event): void
     {
@@ -414,7 +414,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      *
      * @return int The inserted/updated log row ID, or 0 on failure.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected function logForMethod(int $methodId, array $data): int
     {
@@ -467,7 +467,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      *
      * @return object[] The rows as objects; empty when there are none or the read failed.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected function loadMethodLogs(int $methodId, array $filters = [], int $limit = 0): array
     {
@@ -509,7 +509,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * @param int $methodId The method id.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function isMethodLogRow(int $logId, int $methodId): bool
     {
@@ -543,7 +543,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      *
      * @return int The inserted/updated log row ID, or 0 on failure.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function writeLogRow(array $data): int
     {
@@ -630,7 +630,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      *
      * @return string E.g. '"refund" for order #42'.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function logRowLabel(array $data): string
     {
@@ -657,7 +657,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * @param string $detail Operator-facing description of the failure.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function reportLogFailure(string $detail): void
     {
@@ -877,7 +877,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      *
      * @return string Category to pass as Log::add()'s third argument.
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     protected function logCategory(): string
     {
@@ -901,7 +901,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      *
      * @return string File name, relative to Joomla's log path.
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     protected function logFileName(): string
     {
@@ -917,7 +917,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * an identical registration collapses onto the first.
      *
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     protected function registerLogger(): void
     {
@@ -1115,7 +1115,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * @param object $xml Parsed logs.xml.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function logTableOf(object $xml): PluginLogTable
     {
@@ -1254,7 +1254,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      *
      * @return int[] The place and its ancestors; empty for a zero or unknown id.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function placesFor(int $placeId): array
     {
@@ -1310,7 +1310,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * @param mixed $max The upper limit; null/''/0 for none.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     final protected function isWithinLimits(mixed $value, mixed $min = null, mixed $max = null): bool
     {
@@ -1355,7 +1355,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * @param mixed $bound The configured value.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function isNoLimit(mixed $bound): bool
     {
@@ -1382,7 +1382,7 @@ abstract class Plugin extends CMSPlugin implements SubscriberInterface
      * @param string $bound The configured limit.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function comparableKinds(string $value, string $bound): bool
     {

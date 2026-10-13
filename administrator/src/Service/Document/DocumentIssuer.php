@@ -66,7 +66,7 @@ use Throwable;
  *     (OrderItemLines::claim(), the draft builders' rule; this helper
  *     stores what it is given, frozen)
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class DocumentIssuer
 {
@@ -89,7 +89,7 @@ final class DocumentIssuer
      * (beforeIssue()) and hands the answered draft to issue(), which knows it
      * by this key: a seal of the answered draft.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const ASKED = 'before_issue_asked';
 
@@ -97,7 +97,7 @@ final class DocumentIssuer
      * The key the seals of answered drafts are made with, one per process.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static ?string $askKey = null;
 
@@ -107,7 +107,7 @@ final class DocumentIssuer
      * A nested call is refused in words that name what it was nested in.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static bool $enveloped = false;
 
@@ -115,7 +115,7 @@ final class DocumentIssuer
      * TRUE while replace() owns the transaction.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static bool $replaceOpen = false;
 
@@ -130,7 +130,7 @@ final class DocumentIssuer
      * replacement, however similar the resulting numbers).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static int $replacing = 0;
 
@@ -143,7 +143,7 @@ final class DocumentIssuer
      * instead. The monetary guards beside it ask Money at a frozen scale and
      * take no tolerance at all.
      *
-     * @since  1.13.0
+     * @since  2.0.0
      */
     private const QUANTITY_EPSILON = 0.000001;
 
@@ -223,7 +223,7 @@ final class DocumentIssuer
      * @throws RuntimeException On guard/validation failure or write errors
      *                          (after rollback when this call owns the tx).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function issue(
         array $draft,
@@ -624,11 +624,11 @@ final class DocumentIssuer
      * @return object {valid: bool, reason: string, lines: stdClass[],
      *                totals: object, tax_summary: stdClass[],
      *                currency_code: string, currency_scale: int,
-     *                number_formatted: null, buyer: array (buyerBlock(), since 1.14.0),
+     *                number_formatted: null, buyer: array (buyerBlock(), since 2.0.0),
      *                refusal_key: string, refusal_values: array (the refusal's
-     *                operator words, '' / [] when valid or when it carries none; since 1.14.0)}
+     *                operator words, '' / [] when valid or when it carries none; since 2.0.0)}
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function preview(array $draft): object
     {
@@ -754,7 +754,7 @@ final class DocumentIssuer
      *                          case the chain carries a DocumentRefusedException
      *                          with the operator's sentence.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function void(int $documentId, string $reason, ?int $actorId = null, bool $manageTransaction = true): object
     {
@@ -1041,7 +1041,7 @@ final class DocumentIssuer
      * @throws RuntimeException When nested.
      * @throws Throwable The work's own failure, after the rollback.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function envelope(callable $work): mixed
     {
@@ -1160,7 +1160,7 @@ final class DocumentIssuer
      *
      * @return object The replacement document row, re-read after commit.
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     public static function replace(
         int $sourceId,
@@ -1370,7 +1370,7 @@ final class DocumentIssuer
      *
      * @return object  {draft: ?array, preview: ?object}
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     public static function previewReplacement(int $sourceId, callable $draftBuilder): object
     {
@@ -1405,7 +1405,7 @@ final class DocumentIssuer
      *
      * @throws DocumentRefusedException When the source is not issued, or the enclosing transaction was lost.
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     private static function withSourceReleased(object $db, int $sourceId, callable $draftBuilder): object
     {
@@ -1468,7 +1468,7 @@ final class DocumentIssuer
      *
      * @throws DocumentRefusedException Naming the one condition that refuses it, in the operator's words too.
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     private static function guardReplaceable(object $db, object $source): void
     {
@@ -1576,7 +1576,7 @@ final class DocumentIssuer
      * @param array $buyer buyerBlock() of the confirmed draft.
      *
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     private static function verifyReplacement(object $db, object $source, object $replacement, object $preview, array $buyer): void
     {
@@ -1645,7 +1645,7 @@ final class DocumentIssuer
      * @param array $draft The draft.
      *
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     private static function guardReplacement(object $db, string $docType, int $orderId, array $draft): void
     {
@@ -1713,7 +1713,7 @@ final class DocumentIssuer
      *
      * @return object The order row.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function lockOrder(object $db, int $orderId): object
     {
@@ -1739,7 +1739,7 @@ final class DocumentIssuer
      *
      * @return object The series row.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function lockSeries(object $db, int $seriesId, string $docType): object
     {
@@ -1767,7 +1767,7 @@ final class DocumentIssuer
      * @param array $draft The draft.
      * @param array $lines The draft lines.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function validateDraft(string $docType, array $draft, array $lines): void
     {
@@ -1840,7 +1840,7 @@ final class DocumentIssuer
      *
      * @throws RuntimeException When the corrected document froze an incomplete buyer.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function refuseIncompleteCorrectedBuyer(string $docType, int $correctsId): void
     {
@@ -1880,7 +1880,7 @@ final class DocumentIssuer
      * Over-issue / over-credit guards: computed INSIDE the order lock so a
      * concurrent issuance cannot slip past the sums.
      *
-     * Also the corrected-document rules of a credit (since 1.14.0): its buyer
+     * Also the corrected-document rules of a credit (since 2.0.0): its buyer
      * and its language are the ones the corrected document froze, it credits
      * no more of a line than that document has left, and only a credit may
      * name a corrected document at all.
@@ -1891,7 +1891,7 @@ final class DocumentIssuer
      * @param array $lines The draft lines.
      * @param array $draft The full draft (id_corrects for value credits).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function guardQuantities(object $db, string $docType, int $orderId, array $lines, array $draft): void
     {
@@ -2180,7 +2180,7 @@ final class DocumentIssuer
      *
      * @throws RuntimeException Naming the rule the document breaks.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function guardCorrectable(object $target, int $orderId): void
     {
@@ -2219,7 +2219,7 @@ final class DocumentIssuer
      * @param object $target The sales document row (total_tax_incl and its frozen currency).
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function creditLeft(object $target): Money
     {
@@ -2240,7 +2240,7 @@ final class DocumentIssuer
      * @param array $lines The draft's lines.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function linesTotal(array $lines): float
     {
@@ -2272,7 +2272,7 @@ final class DocumentIssuer
      *
      * @throws RuntimeException When the line states no such total.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function statedTotal(array $line, string $axis, int $index): string|int|float
     {
@@ -2303,7 +2303,7 @@ final class DocumentIssuer
      * @param int $orderId The order id.
      * @param array $lines The draft lines.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function guardCharges(object $db, string $docType, int $orderId, array $lines): void
     {
@@ -2477,7 +2477,7 @@ final class DocumentIssuer
      *                          the corrected document does not carry, points
      *                          the other way, or exceeds what is left of it.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function guardCreditCharges(
         object $db,
@@ -2621,7 +2621,7 @@ final class DocumentIssuer
      *
      * @return array<int, object> Keyed by id_order_item.
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     private static function frozenIdentity(int $orderId, int $correctsId): array
     {
@@ -2691,7 +2691,7 @@ final class DocumentIssuer
      *
      * @return stdClass[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function normalizeLines(
         string $docType,
@@ -2863,7 +2863,7 @@ final class DocumentIssuer
      * @throws RuntimeException When a transaction is open, or a subscriber left one changed.
      * @throws Throwable A subscriber's veto.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function beforeIssue(array $draft): array
     {
@@ -2925,7 +2925,7 @@ final class DocumentIssuer
      *
      * @throws RuntimeException A draft changed after its answer, or one never asked inside an open transaction.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function answeredDraft(array $draft): array
     {
@@ -2961,7 +2961,7 @@ final class DocumentIssuer
      * @param array $draft The answered draft, without its seal.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function seal(array $draft): string
     {
@@ -2980,7 +2980,7 @@ final class DocumentIssuer
      *
      * @throws DocumentRefusedException Naming why, in the operator's words too.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function judgeReplacement(object $built, object $source, string $expectedFingerprint): void
     {
@@ -3045,7 +3045,7 @@ final class DocumentIssuer
      *
      * @return bool True when no transaction is left on the connection.
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     private static function rollbackQuietly(object $db): bool
     {
@@ -3083,7 +3083,7 @@ final class DocumentIssuer
      * @param string $category The category.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function logQuietly(string $entry, int $priority, string $category): void
     {
@@ -3101,7 +3101,7 @@ final class DocumentIssuer
      * @param int $id Its id.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function describe(?object $document, int $id): string
     {
@@ -3137,7 +3137,7 @@ final class DocumentIssuer
      *
      * @return string A hex digest.
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     public static function draftFingerprint(array $draft, object $preview): string
     {
@@ -3203,7 +3203,7 @@ final class DocumentIssuer
      *
      * @throws DocumentRefusedException When the order names no currency.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function documentCurrency(object $order): object
     {
@@ -3229,7 +3229,7 @@ final class DocumentIssuer
      *
      * @return object {excl, tax, incl}
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function sumTotals(array $lines): object
     {
@@ -3255,7 +3255,7 @@ final class DocumentIssuer
      *
      * @return stdClass[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function buildTaxSummary(array $lines): array
     {
@@ -3304,7 +3304,7 @@ final class DocumentIssuer
      *        buyer_activity: string, buyer_country: string, buyer_email: string,
      *        buyer_address: string|null}
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function buyerBlock(array $draft): array
     {
@@ -3343,7 +3343,7 @@ final class DocumentIssuer
      *
      * @throws RuntimeException When the stored address is not a JSON object.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function frozenBuyer(object $document): array
     {
@@ -3384,7 +3384,7 @@ final class DocumentIssuer
      * account, the one destination a note holds headroom for; every other
      * header carries none.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function insertHeader(
         object $db,
@@ -3548,9 +3548,9 @@ final class DocumentIssuer
      * @param string $summary Human-readable summary.
      * @param array $context Structured data.
      * @param int $actorId The acting user; 0 = System.
-     * @param bool $refuseOversize Refuse a record too large to store whole (since 1.14.0).
+     * @param bool $refuseOversize Refuse a record too large to store whole (since 2.0.0).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function logAction(
         object $db,
@@ -3589,7 +3589,7 @@ final class DocumentIssuer
      *
      * @throws RuntimeException On the first figure that does not reconcile.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function verifyCreditCharges(array $record, int $correctsId, string $number): void
     {
@@ -3636,7 +3636,7 @@ final class DocumentIssuer
     /**
      * Load a document header (optionally FOR UPDATE inside a transaction).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function load(object $db, int $documentId, bool $forUpdate = false): object
     {
@@ -3657,7 +3657,7 @@ final class DocumentIssuer
     /**
      * Load a document's lines in sort order.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function loadLines(object $db, int $documentId): array
     {
@@ -3675,7 +3675,7 @@ final class DocumentIssuer
     /**
      * ISO currency code for a currency PK ('' when unknown).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function currencyCode(object $db, int $currencyId): string
     {
@@ -3693,7 +3693,7 @@ final class DocumentIssuer
      * Import the alfa feature-plugin group and dispatch a document event,
      * log-and-continue on listener failure (non-blocking contract).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function dispatch(string $name, object $event): void
     {
@@ -3712,7 +3712,7 @@ final class DocumentIssuer
     /**
      * Current identity id (0 in CLI/unauthenticated contexts).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function currentUserId(): int
     {
@@ -3726,7 +3726,7 @@ final class DocumentIssuer
     /**
      * Current identity display name ('System' outside a session).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function currentUserName(): string
     {
@@ -3749,7 +3749,7 @@ final class DocumentIssuer
      * @param string $reason Why the movement failed.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function reportStockDeferred(int $documentId, string $number, string $reason): void
     {

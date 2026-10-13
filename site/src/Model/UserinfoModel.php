@@ -90,7 +90,7 @@ class UserinfoModel extends FormModel
      *
      * @return array|false The filtered data, or false on validation failure.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function validate($form, $data, $group = null)
     {

@@ -33,62 +33,62 @@ use RuntimeException;
  * Back link and, on a shopper's cart the operator may take over, that one
  * confirmation.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class HtmlView extends BaseHtmlView
 {
     /**
      * @var string The entity a plugin targets with $context->targets('cart').
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'cart';
 
     /**
      * @var object|null The cart, with its lines, its codes and its owner.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected $item;
 
     /**
      * @var int Hours of silence after which a cart with lines reads as abandoned.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected int $abandonedAfterHours = CartActivity::ABANDONED_AFTER_HOURS;
 
     /**
      * @var bool May this operator place carts on a customer's behalf?
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected bool $canCheckout = false;
 
     /**
      * @var bool May this operator add and edit the customer's addresses? The
      *           address editor saves through the User screen's endpoints, which ask users edit.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected bool $canEditAddresses = false;
 
     /**
      * @var bool Was this cart created by a storefront shopper?
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected bool $isShopperCart = false;
 
     /**
      * @var bool May the operator take it over, and have they not yet?
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected bool $canTakeOver = false;
 
     /**
      * @var bool Has this session confirmed taking it over?
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected bool $takenOver = false;
 
     /**
      * @var bool Are the builder's mutating controls drawn for this cart?
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected bool $canOperate = false;
 
@@ -99,42 +99,42 @@ class HtmlView extends BaseHtmlView
      * was overridden; the pipeline beneath it is built, proven and audited.
      *
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     protected bool $canPriceCustom = false;
 
     /**
      * @var object[] The statuses a new order may land in, for the operator to
      *               choose from: the merchant's own, narrowed by OrderCreator.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected array $placementStatuses = [];
 
     /**
      * @var \Joomla\CMS\Form\Form|false The builder form: its only job is to
      *                                  carry plugin-contributed fieldsets as tabs, through onAlfaAdminForm.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected $form = false;
 
     /**
      * @var int The live cart this builder edits: the id the tabs and the
      *          B1B.1c endpoints operate on.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected int $builderCartId = 0;
 
     /**
      * @var \Alfa\Component\Alfa\Site\Service\Cart\CartSnapshot|null The priced,
      *                                                               settled reading the Items tab renders its lines and totals from.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected $builderSnapshot = null;
 
     /**
      * @var object|null The product being configured in the modal layout, priced
      *                  for the cart's customer.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected $configItem = null;
 
@@ -142,42 +142,42 @@ class HtmlView extends BaseHtmlView
      * @var array<int, object[]> Each line's chosen configuration, already
      *                           resolved to names by the cart read model (R.1H), keyed by line id:
      *                           the ONE semantic source both the Summary and Items tabs print from.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected array $builderSelections = [];
 
     /**
      * @var object[] The line whose configuration the selection sub-template is
      *               printing right now; the caller sets it and loads that template.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected array $lineSelections = [];
 
     /**
      * @var object|null The cart line the item popup is re-configuring, or null
      *                  when the popup is adding.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected $configLine = null;
 
     /**
      * @var object|null Who the cart belongs to, their saved addresses, and the
      *                  two addresses it currently points at.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected $builderCustomer = null;
 
     /**
      * @var \Joomla\CMS\Form\Form|null The placement form's delivery and invoice
      *                                 buckets, seeded from the addresses the cart points at.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected $checkoutForm = null;
 
     /**
      * @var int The catalog item chosen in the popup's search but not yet added
      *          (the configure-first state the Order screen's popup also has).
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected int $newItemId = 0;
 
@@ -186,7 +186,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function display($tpl = null)
     {
@@ -308,7 +308,7 @@ class HtmlView extends BaseHtmlView
      * is a look, and the add it leads to goes through the request seam.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function displayBuilderLine(): void
     {
@@ -387,7 +387,7 @@ class HtmlView extends BaseHtmlView
      * the controller decides, the return page closes it.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function addBuilderLineToolbar(): void
     {
@@ -420,7 +420,7 @@ class HtmlView extends BaseHtmlView
      * One button, and it goes back.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function addToolbar(): void
     {

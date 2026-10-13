@@ -18,7 +18,7 @@ use Joomla\CMS\MVC\Controller\AdminController;
  * promises (default location undeletable/always published; footprint
  * rows disable-only).
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 class LocationsController extends AdminController
 {
@@ -31,7 +31,7 @@ class LocationsController extends AdminController
      *
      * @return \Joomla\CMS\MVC\Model\BaseDatabaseModel
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function getModel($name = 'Location', $prefix = 'Administrator', $config = ['ignore_request' => true])
     {

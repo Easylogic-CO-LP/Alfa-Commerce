@@ -40,7 +40,7 @@ use InvalidArgumentException;
  * be a semantic change disguised as an addition: an older consumer ignoring the new
  * key would render "no results" for a query the merchant redirected.
  *
- * @since  1.6.0
+ * @since  2.0.0
  */
 final class CatalogSearchResults
 {
@@ -57,7 +57,7 @@ final class CatalogSearchResults
      * @throws InvalidArgumentException When an element is mistyped, or a redirect is
      *                                  combined with sections.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly array $sections = [],
@@ -101,7 +101,7 @@ final class CatalogSearchResults
      *
      * @return int Total matched rows; 0 when nothing matched.
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     public function total(): int
     {
@@ -119,7 +119,7 @@ final class CatalogSearchResults
      *
      * @return bool True when no entity returned a row.
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     public function isEmpty(): bool
     {
@@ -133,7 +133,7 @@ final class CatalogSearchResults
      *
      * @return CatalogSearchSection|null Null when the entity matched nothing.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function section(SearchEntity $entity): ?CatalogSearchSection
     {

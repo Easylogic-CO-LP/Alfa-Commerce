@@ -44,13 +44,13 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  * Adjusting the record is what onAlfaAdminBeforeSave is for, and it only runs once every
  * handler has agreed the save should happen at all.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 final class AdminValidateEvent extends AlfaAdminEvent
 {
     /**
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const NAME = 'onAlfaAdminValidate';
 }

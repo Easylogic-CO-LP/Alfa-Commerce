@@ -82,7 +82,7 @@ defined('_JEXEC') or die;
  * `search.rebuild` are two distinct actions end to end; found as a real defect by
  * installing a second engine, fixed in the registry, not worked around here.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 abstract class SearchEnginePlugin extends CMSPlugin implements SubscriberInterface
 {
@@ -92,7 +92,7 @@ abstract class SearchEnginePlugin extends CMSPlugin implements SubscriberInterfa
      *
      * @var bool
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     protected $autoloadLanguage = true;
 
@@ -104,7 +104,7 @@ abstract class SearchEnginePlugin extends CMSPlugin implements SubscriberInterfa
      * should defer that to first use, since discovery runs on every storefront search.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     abstract protected function engine(): SearchEngineInterface;
 
@@ -116,7 +116,7 @@ abstract class SearchEnginePlugin extends CMSPlugin implements SubscriberInterfa
      *
      * @return array<string, string>
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function getSubscribedEvents(): array
     {
@@ -135,7 +135,7 @@ abstract class SearchEnginePlugin extends CMSPlugin implements SubscriberInterfa
      * @param CollectSearchEnginesEvent $event The collection event.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function onCollectSearchEngines(CollectSearchEnginesEvent $event): void
     {
@@ -146,7 +146,7 @@ abstract class SearchEnginePlugin extends CMSPlugin implements SubscriberInterfa
      * This plugin's extension element, for the registry's ownership record.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function extensionElement(): string
     {
@@ -159,7 +159,7 @@ abstract class SearchEnginePlugin extends CMSPlugin implements SubscriberInterfa
      * @return string Empty when the manifest cannot be read; a diagnostic detail
      *                must never be the reason an engine fails to register.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function extensionVersion(): string
     {

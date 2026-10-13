@@ -37,7 +37,7 @@ use BadMethodCallException;
  * The subject is the loaded order, or NULL when the gateway payload must identify the
  * order itself (e.g. via the plugin's own transaction reference).
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 class PaymentWebhookEvent extends PaymentsEvent
 {
@@ -51,7 +51,7 @@ class PaymentWebhookEvent extends PaymentsEvent
      *
      * @throws BadMethodCallException If 'subject' or 'method' is missing
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function __construct($name, array $arguments = [])
     {
@@ -68,7 +68,7 @@ class PaymentWebhookEvent extends PaymentsEvent
      *
      * @return Order|null The loaded order object, or null
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function getOrder(): ?Order
     {
@@ -82,7 +82,7 @@ class PaymentWebhookEvent extends PaymentsEvent
      *
      * @param int $code HTTP status code (2xx acknowledges, 5xx requests a retry)
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function setResponseCode(int $code): void
     {
@@ -94,7 +94,7 @@ class PaymentWebhookEvent extends PaymentsEvent
      *
      * @return int Defaults to 200 (acknowledge)
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function getResponseCode(): int
     {
@@ -106,7 +106,7 @@ class PaymentWebhookEvent extends PaymentsEvent
      *
      * @param string $body Response body
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function setResponseBody(string $body): void
     {
@@ -118,7 +118,7 @@ class PaymentWebhookEvent extends PaymentsEvent
      *
      * @return string Defaults to 'OK'
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function getResponseBody(): string
     {
@@ -130,7 +130,7 @@ class PaymentWebhookEvent extends PaymentsEvent
      *
      * @param string $contentType Content-Type header value
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function setContentType(string $contentType): void
     {
@@ -142,7 +142,7 @@ class PaymentWebhookEvent extends PaymentsEvent
      *
      * @return string Defaults to 'text/plain; charset=utf-8'
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function getContentType(): string
     {
@@ -156,7 +156,7 @@ class PaymentWebhookEvent extends PaymentsEvent
      * @param array $payload Data to encode as the JSON body
      * @param int $code HTTP status code
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function setJsonResponse(array $payload, int $code = 200): void
     {

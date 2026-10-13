@@ -17,7 +17,7 @@ use Joomla\CMS\MVC\Controller\ApiController;
 /**
  * The Inventorymovements controller
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 class InventorymovementsController extends ApiController
 {
@@ -44,7 +44,7 @@ class InventorymovementsController extends ApiController
      *
      * @return static A BaseController object to support chaining.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function displayList()
     {

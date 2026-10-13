@@ -36,7 +36,7 @@ defined('_JEXEC') or die;
  * the real chosen text. A greeklish prefix can therefore surface the native-script
  * word it was derived from, and the shopper converts by choosing, not the machine.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 interface SuggestionProviderInterface
 {
@@ -55,7 +55,7 @@ interface SuggestionProviderInterface
      *                            {@see CatalogSearchService}, not owed by the engine. Empty when
      *                            nothing matches or the engine cannot answer right now.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function suggest(string $prefix, string $lang, int $limit = 10): array;
 }

@@ -11,7 +11,7 @@
  * core Guided Tours click contract (plg_system_guidedtours owns it).
  *
  * @package  Alfa Commerce
- * @since  1.10.0
+ * @since  2.0.0
  */
 (function () {
     'use strict';

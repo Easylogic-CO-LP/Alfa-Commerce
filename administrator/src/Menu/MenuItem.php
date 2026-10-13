@@ -23,7 +23,7 @@ namespace Alfa\Component\Alfa\Administrator\Menu;
  * which of its own tasks only read (the only ones the panel accepts by GET). It never draws
  * itself; the menu layout does, so look and behaviour stay in one place.
  *
- * @since  1.7.0
+ * @since  2.0.0
  */
 final class MenuItem
 {
@@ -63,7 +63,7 @@ final class MenuItem
     /**
      * @param string $id Unique id within the menu.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function __construct(string $id)
     {
@@ -73,7 +73,7 @@ final class MenuItem
     /**
      * @param string $section Grouping heading (language key).
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function section(string $section): static
     {
@@ -85,7 +85,7 @@ final class MenuItem
     /**
      * @param string $title Navigation label (language key).
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function title(string $title): static
     {
@@ -99,7 +99,7 @@ final class MenuItem
      *
      * @param string $view The component view.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function view(string $view): static
     {
@@ -116,7 +116,7 @@ final class MenuItem
      * @param string $element Owning plugin element.
      * @param string $panel Screen id within the plugin.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function panel(string $group, string $element, string $panel): static
     {
@@ -141,7 +141,7 @@ final class MenuItem
      * @param string $url The target URL.
      * @param array<string, string> $activeWhen Params that, when all match, mark it active.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function link(string $url, array $activeWhen = []): static
     {
@@ -159,7 +159,7 @@ final class MenuItem
      *
      * @param string $path Icon path, e.g. 'media/com_alfa/images/admin/menu/orders.svg'.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function icon(string $path): static
     {
@@ -171,7 +171,7 @@ final class MenuItem
     /**
      * @param int $ordering Sort order within the section.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function ordering(int $ordering): static
     {
@@ -186,7 +186,7 @@ final class MenuItem
      * @param string $action The ACL action (e.g. 'alfa.orders.view', 'alfa.search.manage').
      * @param string $asset The asset to check it against.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function access(string $action, string $asset = 'com_alfa'): static
     {
@@ -203,7 +203,7 @@ final class MenuItem
      *
      * @param string ...$tasks The bare task verbs, as the panel's task handler names them.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function lookups(string ...$tasks): static
     {
@@ -215,7 +215,7 @@ final class MenuItem
     /**
      * Is this item complete enough to render (an id, a label and a link).
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function isValid(): bool
     {

@@ -28,27 +28,27 @@ use Joomla\Input\Input;
  * value that is not exactly what mint() produces is treated as absent, and the
  * caller mints a fresh one.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class RecognizeKey
 {
     /**
      * @var string The cookie's name. Unchanged since the first release: renaming
      *             it would orphan every cart a visitor is holding right now.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const COOKIE = 'recognize_key';
 
     /**
      * @var int How long a visitor stays recognised, in seconds.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const LIFETIME = 3600 * 24 * 30;
 
     /**
      * @param Input $input The request the cookie is read from and written to.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(private Input $input)
     {
@@ -58,7 +58,7 @@ final class RecognizeKey
      * The key this request presents, or '' when there is none worth having.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function read(): string
     {
@@ -85,7 +85,7 @@ final class RecognizeKey
      *
      * @return string The new key.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function generate(): string
     {
@@ -107,7 +107,7 @@ final class RecognizeKey
      *
      * @return string The new key.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function mint(): string
     {

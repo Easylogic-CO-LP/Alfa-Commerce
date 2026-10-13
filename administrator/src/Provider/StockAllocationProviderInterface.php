@@ -31,7 +31,7 @@ use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryContext;
  * metadata. Nearest-store, priority-warehouse, dropship and
  * vendor-preference strategies are packages built on this contract.
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 interface StockAllocationProviderInterface
 {
@@ -44,7 +44,7 @@ interface StockAllocationProviderInterface
      *
      * @return array<int, float>|null locationId => quantity, or null to pass.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function allocate(array $unit, float $quantity, InventoryContext $context): ?array;
 }

@@ -33,7 +33,7 @@ defined('_JEXEC') or die;
  * Pure, as the policy is: it is given the two shelf figures and looks nothing
  * up.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class KeptQuantity
 {
@@ -41,7 +41,7 @@ final class KeptQuantity
      * The most whole units one cart line holds: the capacity of its quantity
      * column, and so the largest request worth putting to the policy.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const LINE_CAPACITY = 4294967295;
 
@@ -56,7 +56,7 @@ final class KeptQuantity
      *
      * @return int|null The quantity, or null when the policy keeps none that large.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function smallestFrom(object $item, ?int $combinationId, int $floor, ?float $purchasableCeiling, float $pooledDraw): ?int
     {
@@ -112,7 +112,7 @@ final class KeptQuantity
      *
      * @return int|null The quantity, or null when the policy keeps none that is charged, up to the line capacity.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function smallestCharged(object $item, ?int $combinationId, int $from, ?float $purchasableCeiling, float $pooledDraw, array $tierStarts, Closure $unitAt, Currency $currency): ?int
     {

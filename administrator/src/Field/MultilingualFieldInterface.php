@@ -27,7 +27,7 @@ defined('_JEXEC') or die;
  * table like these are, but it posts `<field>_<lang>_<slot>`, so one sibling per language would
  * be the wrong shape.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 interface MultilingualFieldInterface
 {

@@ -23,7 +23,7 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
  * Document series list view: reached from the Documents toolbar, not the
  * component menu (one "Documents" menu entry covers the whole subsystem).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class HtmlView extends BaseHtmlView
 {
@@ -31,7 +31,7 @@ class HtmlView extends BaseHtmlView
      * The admin-contract entity of this grid.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'series';
 
@@ -52,7 +52,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function display($tpl = null)
     {
@@ -78,7 +78,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function addToolbar()
     {

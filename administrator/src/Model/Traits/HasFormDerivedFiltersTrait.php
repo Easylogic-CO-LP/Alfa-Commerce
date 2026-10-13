@@ -29,7 +29,7 @@ namespace Alfa\Component\Alfa\Administrator\Model\Traits;
  *
  * The obvious fix (adding those names to filter_fields) is what core itself does for
  * `tag` and `level` in com_content, but it would also make them ACCEPTED ORDERING
- * COLUMNS here: our models pass list.ordering into `$query->order($db->escape(...))`, so
+ * COLUMNS here: our models pass list.ordering into `$query->order($db->quoteName(...))`, so
  * `list[fullordering]=date_range ASC` would reach SQL as an unknown column and 500. So
  * the form answers instead: it is the authoritative declaration of what a user can
  * filter by, it already carries plugin-injected filters, and nothing has to be kept in
@@ -39,7 +39,7 @@ namespace Alfa\Component\Alfa\Administrator\Model\Traits;
  * Lives in a trait because the two list bases that need it (AlfaListModel and the
  * plugin-panel PanelModel) do not share one.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 trait HasFormDerivedFiltersTrait
 {
@@ -51,7 +51,7 @@ trait HasFormDerivedFiltersTrait
      *
      * @return array Active filters, keyed by filter name.
      *
-     * @since   1.10.0
+     * @since   2.0.0
      */
     public function getActiveFilters()
     {

@@ -25,25 +25,25 @@ use Joomla\CMS\User\User;
  * contributor, and getActions() hands the framework plain descriptors in insertion order,
  * dropping any contribution that would render as a dead control, and any the user may not use.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 final class AdminActions
 {
     /**
      * @var ActionBuilder[] Contributed actions, insertion order.
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private array $actions = [];
 
     /**
      * @var string The plugin group currently contributing.
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private string $ownerGroup = '';
 
     /**
      * @var string The plugin element currently contributing.
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private string $ownerElement = '';
 
@@ -54,7 +54,7 @@ final class AdminActions
      *
      * @return ActionBuilder For chaining.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function action(string $key): ActionBuilder
     {
@@ -76,7 +76,7 @@ final class AdminActions
      *
      * @return array[] Action descriptors (see ActionBuilder::toDescriptor()).
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function getActions(User $user): array
     {
@@ -101,7 +101,7 @@ final class AdminActions
      * @param string $element The contributing plugin's element.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function setOwner(string $group, string $element): void
     {
@@ -117,7 +117,7 @@ final class AdminActions
      * @param User $user The user.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function permitted(?array $permission, User $user): bool
     {

@@ -45,31 +45,31 @@ use Joomla\Registry\Registry;
  * The variants 'sandbox' and 'live' are, by definition, the same strings as
  * PaymentEnvironment::SANDBOX and ::LIVE: a card is the card of one set.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class PaymentCheckupEvent extends PaymentsEvent
 {
-    /** The step is complete. @since 1.10.0 */
+    /** The step is complete. @since 2.0.0 */
     public const DONE = 'done';
 
-    /** The step still has to be taken. @since 1.10.0 */
+    /** The step still has to be taken. @since 2.0.0 */
     public const TODO = 'todo';
 
-    /** The step was tried and is wrong. @since 1.10.0 */
+    /** The step was tried and is wrong. @since 2.0.0 */
     public const FAILED = 'failed';
 
-    /** Only the operator can confirm it; the help says how. @since 1.10.0 */
+    /** Only the operator can confirm it; the help says how. @since 2.0.0 */
     public const MANUAL = 'manual';
 
     /**
      * The provider or this method cannot do it, or does not offer it yet; the
      * help says which. Not counted in the progress.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const UNAVAILABLE = 'unavailable';
 
-    /** Which list is asked for: a gateway's test or live mode, or a method without modes. @since 1.10.0 */
+    /** Which list is asked for: a gateway's test or live mode, or a method without modes. @since 2.0.0 */
     public const VARIANTS = ['sandbox', 'live', 'general'];
 
     /**
@@ -78,7 +78,7 @@ final class PaymentCheckupEvent extends PaymentsEvent
      *
      * @throws BadMethodCallException When the variant is not sandbox, live or general.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct($name, array $arguments = [])
     {
@@ -95,7 +95,7 @@ final class PaymentCheckupEvent extends PaymentsEvent
     /**
      * @return int The payment method's id.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getMethodId(): int
     {
@@ -107,7 +107,7 @@ final class PaymentCheckupEvent extends PaymentsEvent
      * half-edited form.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getParams(): Registry
     {
@@ -117,7 +117,7 @@ final class PaymentCheckupEvent extends PaymentsEvent
     /**
      * @return string 'sandbox', 'live' or 'general'.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getVariant(): string
     {
@@ -129,7 +129,7 @@ final class PaymentCheckupEvent extends PaymentsEvent
      * false for a card without a set ('general').
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function isInUse(): bool
     {
@@ -140,7 +140,7 @@ final class PaymentCheckupEvent extends PaymentsEvent
     /**
      * @return bool True when the operator asked for the provider to be contacted.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function isCheck(): bool
     {
@@ -151,7 +151,7 @@ final class PaymentCheckupEvent extends PaymentsEvent
      * Declare that this gateway has checks worth a "Check connection" button.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function offerCheck(): static
     {
@@ -163,7 +163,7 @@ final class PaymentCheckupEvent extends PaymentsEvent
     /**
      * @return bool Whether the button is shown.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function isCheckOffered(): bool
     {
@@ -181,7 +181,7 @@ final class PaymentCheckupEvent extends PaymentsEvent
      * @param string $detail Plain text: what was found and when (escaped on output).
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function addStep(string $title, string $status, string $help = '', string $detail = ''): static
     {
@@ -197,7 +197,7 @@ final class PaymentCheckupEvent extends PaymentsEvent
     /**
      * @return array<int, array{title: string, status: string, help: string, detail: string}>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getSteps(): array
     {
@@ -211,7 +211,7 @@ final class PaymentCheckupEvent extends PaymentsEvent
      * @param string $text Plain text, e.g. "Last checked 24 Sep 13:42, all accepted".
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function setLastChecked(string $text): static
     {
@@ -223,7 +223,7 @@ final class PaymentCheckupEvent extends PaymentsEvent
     /**
      * @return string The last-check line, or ''.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getLastChecked(): string
     {
@@ -236,7 +236,7 @@ final class PaymentCheckupEvent extends PaymentsEvent
      * that set; a card without a set prints the plain address.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function webhookUrl(): string
     {
@@ -250,7 +250,7 @@ final class PaymentCheckupEvent extends PaymentsEvent
      * The address a buyer returns to from the gateway, for this method's plugin.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function returnUrl(): string
     {
@@ -278,7 +278,7 @@ final class PaymentCheckupEvent extends PaymentsEvent
      *
      * @throws InvalidArgumentException On an environment other than sandbox or live.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function siteUrl(string $element, string $task, ?string $environment = null): string
     {
@@ -306,7 +306,7 @@ final class PaymentCheckupEvent extends PaymentsEvent
      *
      * @return string 'en/' or ''.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function languagePrefix(): string
     {

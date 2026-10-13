@@ -95,7 +95,7 @@ class OrderPlacement
 
     /**
      * @var CartSubject Who the order is for, and who is placing it.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected CartSubject $subject;
     protected ?PlacementCart $cart = null;
@@ -123,40 +123,40 @@ class OrderPlacement
 
     /**
      * @var PlacementCommand|null What this placement was asked to do.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected ?PlacementCommand $command = null;
 
     /**
      * @var array<int, array{code: string, params: array}> Why it was refused.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected array $failures = [];
 
     /**
      * @var array<int, array{code: string, params: array}> What did not finish
      *                                                     AFTER the commit. Never a reason the order does not exist.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected array $warnings = [];
 
     /**
      * @var bool Set the instant COMMIT returns, and never unset.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected bool $committed = false;
 
     /**
      * @var int The order the commit created. Independent of $this->order,
      *          which is a convenience reload that can itself fail.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected int $committedOrderId = 0;
 
     /**
      * @var array<string, \Alfa\Component\Alfa\Site\Service\Pricing\Money>|null
      *                                                                          What the purchase came to, read while the cart still held it.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private ?array $completedTotals = null;
 
@@ -315,7 +315,7 @@ class OrderPlacement
      *
      * @return bool True on success, false on failure.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function place(PlacementCommand $command): bool
     {
@@ -746,7 +746,7 @@ class OrderPlacement
      * @param string $type The message type.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function fail(
         string $code,
@@ -776,7 +776,7 @@ class OrderPlacement
      * @param array $params What a caller needs to render it.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function warn(
         string $code,
@@ -804,7 +804,7 @@ class OrderPlacement
      * sitting in the database.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getOutcome(): PlacementOutcome
     {
@@ -818,7 +818,7 @@ class OrderPlacement
      * went wrong afterwards.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function isCommitted(): bool
     {
@@ -829,7 +829,7 @@ class OrderPlacement
      * The committed order's id, or 0 when nothing was committed.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getCommittedOrderId(): int
     {
@@ -841,7 +841,7 @@ class OrderPlacement
      *
      * @return array<int, array{code: string, params: array}>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getWarnings(): array
     {
@@ -857,7 +857,7 @@ class OrderPlacement
      *
      * @return array<int, array{code: string, params: array}>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getFailures(): array
     {
@@ -879,7 +879,7 @@ class OrderPlacement
      * be booted and called.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     /**
      * Is the plugin behind a chosen method actually switched on?
@@ -901,7 +901,7 @@ class OrderPlacement
      * @param string $type The method's plugin element.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function methodPluginLive(string $group, string $type): bool
     {
@@ -1181,7 +1181,7 @@ class OrderPlacement
      * request that an operator's or an importer's placement did not make.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function eventContext(): PlacementEventContext
     {
@@ -1425,7 +1425,7 @@ class OrderPlacement
      *
      * @return array The draft for OrderCreator::create().
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     /**
      * The #__languages.lang_id of the language this order is being placed in.
@@ -1448,14 +1448,14 @@ class OrderPlacement
      *
      * @return int Joomla language id, 0 when unresolvable.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     /**
      * The language this customer is written to in, with no request involved.
      *
      * @return string A language tag, or '' when the shop has no site default.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function customerLanguageTag(): string
     {
@@ -1604,7 +1604,7 @@ class OrderPlacement
      *
      * @return array One OrderCreator draft line.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function freezeLineFromCartItem(object $item): array
     {
@@ -1683,7 +1683,7 @@ class OrderPlacement
      * @param int $orderId The order id (the order object loads only AFTER
      *                     commit, so it cannot be read from \$this->order here).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function freezeCartLineExtras(array $lineIds, int $orderId): void
     {
@@ -1719,7 +1719,7 @@ class OrderPlacement
      * @param object $cartItem The cart line (cart-item id + configured item).
      * @param int $orderId The order id (denormalized onto every frozen row).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function saveOrderItemFields(int $orderItemId, object $cartItem, int $orderId): void
     {
@@ -1817,7 +1817,7 @@ class OrderPlacement
      *
      * @throws RuntimeException When a contribution row cannot be written.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function saveOrderContributions(int $orderId): void
     {
@@ -1865,7 +1865,7 @@ class OrderPlacement
      *
      * @throws RuntimeException When a rule ran out between evaluation and now.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function assertCartRuleUsageAvailable(): void
     {
@@ -2260,7 +2260,7 @@ class OrderPlacement
      *
      * @return int The invoice user_info row id.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     protected function resolveInvoiceInfo(int $deliveryId): int
     {
@@ -2556,7 +2556,7 @@ class OrderPlacement
      * PaymentLedger::amountToCollect(). Non-fatal by contract.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     /**
      * Let a failure that has already killed the transaction out of a catch that
@@ -2584,7 +2584,7 @@ class OrderPlacement
      *
      * @throws Throwable The same failure, when the transaction did not survive it.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function rethrowIfTransactionFatal(Throwable $e): void
     {
@@ -2619,7 +2619,7 @@ class OrderPlacement
      * @param Throwable $e The failure.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function abortsTransaction(Throwable $e): bool
     {
@@ -2639,7 +2639,7 @@ class OrderPlacement
      *
      * @return int 0 when neither is a statement's failure.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function errorNumber(Throwable $e): int
     {
@@ -2654,7 +2654,7 @@ class OrderPlacement
      * Asked once per request, and only when a timeout has actually happened.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function rollsBackOnTimeout(): bool
     {
@@ -2697,7 +2697,7 @@ class OrderPlacement
      * its frozen rules exist, and one statement before the cart does not.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function captureCompletedTotals(): void
     {

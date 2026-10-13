@@ -26,7 +26,7 @@ namespace Alfa\Component\Alfa\Administrator\Panel;
  * A plugin may one day declare "supports Panel Framework v1" rather than pinning a Joomla
  * major. Today it is simply 1.
  *
- * @since  1.7.0
+ * @since  2.0.0
  */
 final class PanelFramework
 {
@@ -34,7 +34,7 @@ final class PanelFramework
      * The current contract version.
      *
      * @var int
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public const VERSION = 1;
 }

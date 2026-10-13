@@ -32,7 +32,7 @@ defined('_JEXEC') or die;
  * mirrors OrderController::updateOrder so the client (inline-edit.js) is uniform:
  *   { success: bool, message: string, data: array|null, messages: array }
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 trait HasInlineEditTrait
 {
@@ -44,7 +44,7 @@ trait HasInlineEditTrait
      *
      * @throws RuntimeException When the token is invalid or the user cannot edit.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     protected function assertInlineAuthorised(): void
     {
@@ -72,7 +72,7 @@ trait HasInlineEditTrait
      *
      * @throws RuntimeException When the row is missing or checked out by a different user.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     protected function assertRecordUnlocked(int $id, string $table, string $pkColumn = 'id'): void
     {
@@ -122,7 +122,7 @@ trait HasInlineEditTrait
      *
      * @return string The rendered editor chrome (inputs + Save/Cancel).
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     protected function renderInlineMultilingualEditor(
         int $id,
@@ -184,7 +184,7 @@ trait HasInlineEditTrait
      *
      * @throws RuntimeException When nothing was posted or the write failed.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     protected function saveInlineMultilingualField(
         int $id,
@@ -231,7 +231,7 @@ trait HasInlineEditTrait
      *
      * @return array The decoded payload (empty array when the body is absent/invalid).
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     protected function readInlineJsonBody(): array
     {
@@ -250,7 +250,7 @@ trait HasInlineEditTrait
      * @param array|null $data Optional payload (e.g. ['display' => '...']).
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     protected function sendInlineJson(bool $success, string $message, ?array $data = null): void
     {

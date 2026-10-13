@@ -53,7 +53,7 @@ use Joomla\CMS\Filter\OutputFilter;
  * an identical installation folds identically; that is the whole guarantee the
  * index/query pair needs.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class QueryExpander
 {
@@ -68,7 +68,7 @@ final class QueryExpander
      *                the caller decides whether that drops the variant or the
      *                word).
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function transliterate(string $term, LanguageTag $language): string
     {
@@ -93,7 +93,7 @@ final class QueryExpander
      *
      * @return string[] Variant group, original first; never empty.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function expand(string $term, LanguageTag $language): array
     {
@@ -127,7 +127,7 @@ final class QueryExpander
      *
      * @return string Space-joined transliterated words, '' when nothing differs.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function transliterateText(string $text, LanguageTag $language): string
     {

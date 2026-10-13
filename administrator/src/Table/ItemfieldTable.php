@@ -22,7 +22,7 @@ use Joomla\Database\DatabaseDriver;
  * translatable label/description live in the per-language aux tables
  * #__alfa_item_fields_<langtag>, not here.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class ItemfieldTable extends Table
 {
@@ -30,7 +30,7 @@ class ItemfieldTable extends Table
      * Indicates that columns fully support the NULL value in the database
      *
      * @var bool
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected $_supportNullValue = true;
 
@@ -39,7 +39,7 @@ class ItemfieldTable extends Table
      *
      * @param DatabaseDriver $db A database connector object
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct(DatabaseDriver $db)
     {

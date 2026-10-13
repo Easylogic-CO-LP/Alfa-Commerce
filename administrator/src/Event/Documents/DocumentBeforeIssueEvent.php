@@ -26,7 +26,7 @@ use Joomla\CMS\Event\AbstractEvent;
  * The mutator is deliberately NOT named set<Argument>(); Joomla's Event
  * magic would shadow it.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class DocumentBeforeIssueEvent extends AbstractEvent
 {
@@ -34,7 +34,7 @@ class DocumentBeforeIssueEvent extends AbstractEvent
      * The document draft as the issuer will consume it.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getDraft(): array
     {
@@ -48,7 +48,7 @@ class DocumentBeforeIssueEvent extends AbstractEvent
      * @param array $draft The amended draft.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function updateDraft(array $draft): void
     {

@@ -23,7 +23,7 @@ defined('_JEXEC') or die;
  *
  * Immutable: a plain data holder with no behaviour beyond emptiness reporting.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class VariantSelection
 {
@@ -32,7 +32,7 @@ final class VariantSelection
      * @param int[] $optionValueIds Selected option value ids (each may carry a delta).
      * @param PriceContribution[] $contributions Plugin-computed declarative price lines (onCalculateItemPrice).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly int $combinationId = 0,
@@ -46,7 +46,7 @@ final class VariantSelection
      * Plugin contributions count: a configured field with no combination/option
      * still changes the price, so it must route through the variant path.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function isEmpty(): bool
     {

@@ -33,7 +33,7 @@ defined('_JEXEC') or die;
  * READ ONLY. Changing a method is an administrative act with its own model and
  * its own permissions, never something a plugin does while pricing a basket.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class Method
 {
@@ -41,7 +41,7 @@ final class Method
      * @param object $record The method row, params already decoded.
      * @param bool $selected Whether the cart currently carries this method.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function __construct(
         private readonly object $record,
@@ -56,20 +56,20 @@ final class Method
      * @param bool $selected Whether this is the method the cart records as chosen.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function of(object $record, bool $selected = false): self
     {
         return new self($record, $selected);
     }
 
-    /** @return int This method's id. @since 1.10.0 */
+    /** @return int This method's id. @since 2.0.0 */
     public function id(): int
     {
         return (int) ($this->record->id ?? 0);
     }
 
-    /** @return string The plugin type that answers for it. @since 1.10.0 */
+    /** @return string The plugin type that answers for it. @since 2.0.0 */
     public function type(): string
     {
         return (string) ($this->record->type ?? '');
@@ -79,7 +79,7 @@ final class Method
      * The shopper-facing name, in the active language.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function name(): string
     {
@@ -90,7 +90,7 @@ final class Method
      * The shopper-facing description, in the active language.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function description(): string
     {
@@ -101,7 +101,7 @@ final class Method
      * Whether the cart currently carries this method.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function isSelected(): bool
     {
@@ -116,7 +116,7 @@ final class Method
      * `params` inside the first.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function params(): array
     {
@@ -130,7 +130,7 @@ final class Method
      * @param mixed $default Returned when the merchant has not set it.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function param(string $key, mixed $default = null): mixed
     {
@@ -149,7 +149,7 @@ final class Method
      * @param mixed $default Returned when the record has no such property.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function get(string $property, mixed $default = null): mixed
     {

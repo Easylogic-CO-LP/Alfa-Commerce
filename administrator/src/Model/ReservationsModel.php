@@ -19,7 +19,7 @@ use Alfa\Component\Alfa\Administrator\Model\Traits\HasDateRangeFilterTrait;
  * partially fulfilled), never stored; the filter maps it onto the
  * quantity condition.
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 class ReservationsModel extends AlfaListModel
 {
@@ -27,7 +27,7 @@ class ReservationsModel extends AlfaListModel
 
     /**
      * @var string The entity a plugin targets with $context->targets('reservation').
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'reservation';
 
@@ -36,7 +36,7 @@ class ReservationsModel extends AlfaListModel
      *
      * @param array $config Configuration array.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function __construct($config = [])
     {
@@ -58,7 +58,7 @@ class ReservationsModel extends AlfaListModel
      * @param string $ordering Default ordering column.
      * @param string $direction Default direction.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     protected function populateState($ordering = 'a.id', $direction = 'DESC')
     {
@@ -74,7 +74,7 @@ class ReservationsModel extends AlfaListModel
      *
      * @return \Joomla\Database\QueryInterface
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     protected function getListQuery()
     {

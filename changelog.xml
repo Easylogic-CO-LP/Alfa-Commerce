@@ -3,6 +3,31 @@
     <changelog>
         <element>com_alfa</element>
         <type>component</type>
+        <version>2.0.1</version>
+
+        <note>
+            <item>Maintenance release for 2.0.0. It updates an installed 2.0.0 shop in place: Joomla runs its database change automatically. Requirements are unchanged.</item>
+        </note>
+
+        <fix>
+            <item>A cart whose currency can no longer be loaded is shown in the shop's default currency instead of failing.</item>
+            <item>The panel toolbar's Edit button, offered to extensions, works on Joomla 6.</item>
+            <item>A form-field plugin that cannot start is logged under its own name, and the form still renders without it.</item>
+            <item>Two error handlers (payment method recording and the clean-up after a user is deleted) no longer use a database connection that could not be obtained.</item>
+            <item>The bundled locale library now includes its data folder, so its region and language name functions work.</item>
+            <item>The bundled Standard payment method declares View details and View logs read-only, like the Standard shipping method, so they can be refreshed or opened from a link.</item>
+            <item>The installer's messages name the version being installed.</item>
+        </fix>
+
+        <change>
+            <item>Every link table (for example a discount's categories or a product's user groups) is keyed on its pair of ids, so a link cannot be stored twice. The update reduces any pair stored twice to one row first, table by table, and checks that every key is in place.</item>
+            <item>Admin and storefront lists build their sort clause from the quoted column name and an explicit direction.</item>
+            <item>Version tags in the code comments name 2.0.0 where they named internal versions that were never released.</item>
+        </change>
+    </changelog>
+    <changelog>
+        <element>com_alfa</element>
+        <type>component</type>
         <version>2.0.0</version>
 
         <note>

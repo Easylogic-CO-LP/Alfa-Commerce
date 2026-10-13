@@ -22,7 +22,7 @@ use Throwable;
  * builder offers exactly the ids the engine will compare. Labels are display-only;
  * a value pending translation falls back to '#id'.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class FieldValuePoolProvider implements ValuePoolProvider
 {
@@ -34,7 +34,7 @@ final class FieldValuePoolProvider implements ValuePoolProvider
      *
      * @return ValuePool An 'enum' pool (empty when the field or its values are absent).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function get(string $operand, array $context = []): ValuePool
     {
@@ -58,7 +58,7 @@ final class FieldValuePoolProvider implements ValuePoolProvider
      *
      * @return array<int, array<int, array{id:int,label:string}>> field id => ordered [{id,label}].
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getManyByField(array $fieldIds): array
     {

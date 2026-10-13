@@ -32,7 +32,7 @@ use Throwable;
  * rollback. One notification per item (deduplicated by key), shown to Super Users
  * only, cleared by the audited repair and after the item is deleted.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class InventoryIntegrityNotice
 {
@@ -60,7 +60,7 @@ final class InventoryIntegrityNotice
      * @param string $kind ledger_missing | figures_disagree | restored_on_defect.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function queue(int $itemId, string $kind): void
     {
@@ -82,7 +82,7 @@ final class InventoryIntegrityNotice
      * Advisory: a failure is logged and never reaches the caller.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function flush(): void
     {
@@ -133,7 +133,7 @@ final class InventoryIntegrityNotice
      * @param int $itemId The item whose figures were repaired or which was deleted.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function clear(int $itemId): void
     {
@@ -156,7 +156,7 @@ final class InventoryIntegrityNotice
      * @param int $itemId The item.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function key(int $itemId): string
     {

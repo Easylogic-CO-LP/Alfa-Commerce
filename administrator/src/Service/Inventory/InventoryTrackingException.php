@@ -37,7 +37,7 @@ use Throwable;
  * translated sentence for a screen, built by openLinesText(), which also words the
  * same refusal when a check made before a save reports it.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class InventoryTrackingException extends RuntimeException
 {
@@ -51,7 +51,7 @@ final class InventoryTrackingException extends RuntimeException
      * The validateTargets() code of a TARGET refusal. Named apart from the
      * exception's own integer code, which it must not shadow.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public readonly ?string $targetCode;
 
@@ -65,7 +65,7 @@ final class InventoryTrackingException extends RuntimeException
      * @param int|null $locationId The refused location, for TARGET.
      * @param int $orders The orders the relying lines belong to, for OPEN_LINES.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly int $itemId,
@@ -125,7 +125,7 @@ final class InventoryTrackingException extends RuntimeException
      * @param int $orders The orders those lines belong to.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function openLinesText(int $lines, int $orders): string
     {
@@ -139,7 +139,7 @@ final class InventoryTrackingException extends RuntimeException
      * they are not there yet. A failure is logged; the message then shows its key.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function loadAdministratorStrings(): void
     {

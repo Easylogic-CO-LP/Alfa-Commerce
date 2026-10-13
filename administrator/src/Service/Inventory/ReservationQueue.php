@@ -31,7 +31,7 @@ use Joomla\Database\DatabaseInterface;
  * waits for stock. A shipment never takes stock that backs a reservation ahead
  * of its own ({@see InventoryService::commitReservation()}).
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class ReservationQueue
 {
@@ -43,7 +43,7 @@ final class ReservationQueue
      *
      * @return string Three terms, comma separated.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function orderSql(DatabaseInterface $db, string $alias): string
     {
@@ -61,7 +61,7 @@ final class ReservationQueue
      *
      * @return int Below 0 when $one is served first.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function compare(object $one, object $other): int
     {
@@ -76,7 +76,7 @@ final class ReservationQueue
      *
      * @return object[] The same rows, the one served first first.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function sorted(array $rows): array
     {
@@ -96,7 +96,7 @@ final class ReservationQueue
      * @return array<int, array{backed: float, waiting: float}> By reservation id: the part the on-hand
      *                                                          covers and the part that waits for stock.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function backing(array $queue, float $onHand): array
     {

@@ -30,7 +30,7 @@ use Joomla\Database\ParameterType;
  * which the ledger allows only for a row that never moved money: the payment
  * is then back in that earlier state.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class RefundMark
 {
@@ -41,7 +41,7 @@ final class RefundMark
      *
      * @return int The newest refund row's id; 0 while the payment has none.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function of(int $paymentId): int
     {

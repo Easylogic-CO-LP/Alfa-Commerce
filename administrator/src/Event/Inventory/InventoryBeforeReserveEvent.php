@@ -22,14 +22,14 @@ use Joomla\CMS\Event\AbstractEvent;
  * Quantities are never changed from AFTER events; this is the only
  * place a package may reshape a reservation ask.
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 class InventoryBeforeReserveEvent extends AbstractEvent
 {
     /**
      * @return array The reservation request lines.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function getLines(): array
     {
@@ -42,7 +42,7 @@ class InventoryBeforeReserveEvent extends AbstractEvent
      * @param array $lines The amended lines.
      *
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function updateLines(array $lines): void
     {
@@ -52,7 +52,7 @@ class InventoryBeforeReserveEvent extends AbstractEvent
     /**
      * @return string The reservation source domain.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function getSourceType(): string
     {
@@ -62,7 +62,7 @@ class InventoryBeforeReserveEvent extends AbstractEvent
     /**
      * @return int The source row id.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function getSourceId(): int
     {
@@ -72,7 +72,7 @@ class InventoryBeforeReserveEvent extends AbstractEvent
     /**
      * @return InventoryContext|null The command's audit context.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function getContext(): ?InventoryContext
     {

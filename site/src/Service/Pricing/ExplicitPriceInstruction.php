@@ -30,7 +30,7 @@ use InvalidArgumentException;
  * object would either poison the key space or serve one customer's price to
  * another.
  *
- * @since  1.11.0
+ * @since  2.0.0
  */
 final class ExplicitPriceInstruction
 {
@@ -38,14 +38,14 @@ final class ExplicitPriceInstruction
      * The most significant digits a unit rate may carry: what a float-carried amount survives through
      * every write, because the database drivers write a float as (string) at PHP's precision of 14.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const MAX_SIGNIFICANT_DIGITS = 14;
 
     /**
      * The exception code of a rate refused for its precision, so a write boundary can word it.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const REFUSED_PRECISION = 1;
 
@@ -75,7 +75,7 @@ final class ExplicitPriceInstruction
      * @throws InvalidArgumentException When the amount is not a finite, non-negative plain decimal within
      *                                  Alfa's unit-rate precision.
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public static function perUnitTaxIncl(float|int|string $amount): self
     {
@@ -108,7 +108,7 @@ final class ExplicitPriceInstruction
      * @throws InvalidArgumentException Code 0 when the value is not a non-negative plain decimal; code
      *                                  {@see self::REFUSED_PRECISION} when it is finer than Alfa keeps.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function canonicalRate(mixed $value): string
     {
@@ -176,7 +176,7 @@ final class ExplicitPriceInstruction
      *
      * @return string E.g. '9.995e+0', '1e-5'.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function roundTripText(float $value): string
     {
@@ -198,7 +198,7 @@ final class ExplicitPriceInstruction
      *
      * @return string E.g. '0.000010'.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function plainDecimal(string $text): string
     {
@@ -245,7 +245,7 @@ final class ExplicitPriceInstruction
      *
      * @throws InvalidArgumentException When a stored value is not a usable amount.
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public static function fromStoredColumn(mixed $stored): ?self
     {

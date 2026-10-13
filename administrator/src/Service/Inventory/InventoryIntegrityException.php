@@ -32,7 +32,7 @@ use Throwable;
  * sentence for a screen, built by refusalText(), which also words the same refusal
  * when a dry run of a stock change reports it.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class InventoryIntegrityException extends RuntimeException
 {
@@ -45,7 +45,7 @@ final class InventoryIntegrityException extends RuntimeException
      * @param bool $held The unit has stock records but is held until its
      *                   figures are repaired.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly int $itemId,
@@ -73,7 +73,7 @@ final class InventoryIntegrityException extends RuntimeException
      * @param float|null $value The stored figure.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function figure(?float $value): string
     {
@@ -88,7 +88,7 @@ final class InventoryIntegrityException extends RuntimeException
      * report these refusals too).
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function operatorMessage(): string
     {
@@ -111,7 +111,7 @@ final class InventoryIntegrityException extends RuntimeException
      *                   figures are repaired.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function refusalText(?float $stock, ?float $available, bool $held): string
     {
@@ -131,7 +131,7 @@ final class InventoryIntegrityException extends RuntimeException
      * @param float|null $available The stored available figure.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function shownFigure(?float $stock, ?float $available): float
     {
@@ -145,7 +145,7 @@ final class InventoryIntegrityException extends RuntimeException
      * they are not there yet. A failure is logged; the message then shows its key.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function loadAdministratorStrings(): void
     {

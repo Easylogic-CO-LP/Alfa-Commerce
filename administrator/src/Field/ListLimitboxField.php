@@ -30,7 +30,7 @@ use Joomla\CMS\Form\Field\LimitboxField;
  * With no sizes configured anywhere, the field behaves byte-identically to
  * core's limitbox (the J5..J500 defaults all resolve normally).
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 class ListLimitboxField extends LimitboxField
 {
@@ -43,7 +43,7 @@ class ListLimitboxField extends LimitboxField
      * duplicate values collapsed.
      *
      * @return object[] The field option objects
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function getOptions()
     {

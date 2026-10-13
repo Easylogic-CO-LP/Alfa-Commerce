@@ -18,7 +18,7 @@ use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
  * physical/reserved figures (read from the authoritative stock rows,
  * display only).
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 class LocationsModel extends AlfaListModel
 {
@@ -26,7 +26,7 @@ class LocationsModel extends AlfaListModel
      * The admin-contract entity this list serves.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'location';
 
@@ -35,7 +35,7 @@ class LocationsModel extends AlfaListModel
      *
      * @param array $config Configuration array.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function __construct($config = [])
     {
@@ -58,7 +58,7 @@ class LocationsModel extends AlfaListModel
      * @param string $ordering Default ordering column.
      * @param string $direction Default direction.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     protected function populateState($ordering = 'a.ordering', $direction = 'ASC')
     {
@@ -70,7 +70,7 @@ class LocationsModel extends AlfaListModel
      *
      * @return \Joomla\Database\QueryInterface
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     protected function getListQuery()
     {

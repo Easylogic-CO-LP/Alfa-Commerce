@@ -18,7 +18,7 @@ defined('_JEXEC') or die;
  * lives in ItemFieldsPlugin (getConfig()/saveConfig()), fed this event, so one
  * helper serves every scoped surface.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 interface ScopedFieldEvent
 {
@@ -26,7 +26,7 @@ interface ScopedFieldEvent
      * The surface asking: 'item' | 'combination' | 'option' | 'order'.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getScope(): string;
 
@@ -34,7 +34,7 @@ interface ScopedFieldEvent
      * The scope row id (item / combination / option-value / order-item id).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getScopeId(): int;
 
@@ -42,7 +42,7 @@ interface ScopedFieldEvent
      * The owning item id.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getItemId(): int;
 
@@ -50,7 +50,7 @@ interface ScopedFieldEvent
      * The field definition row.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getField(): object;
 }

@@ -40,7 +40,7 @@ use RuntimeException;
  * In that context $showModify additionally offers per-row Adjust mode
  * (a +/-/% delta routed to the impacts table on save).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class AlfapricesField extends FormField
 {
@@ -52,14 +52,14 @@ class AlfapricesField extends FormField
     /**
      * @var array|null Cached select options shared by every render on the page.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static $options = null;
 
     /**
      * @var array[] Per-(item x row dimensions) engine previews, cached for the request.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static $previews = [];
 
@@ -68,7 +68,7 @@ class AlfapricesField extends FormField
      *
      * @return string
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function getInput()
     {
@@ -91,7 +91,7 @@ class AlfapricesField extends FormField
      *
      * @return string HTML
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function renderPrices(string $controlBase, array $rows, bool $showModify = false, int $itemId = 0): string
     {
@@ -127,7 +127,7 @@ class AlfapricesField extends FormField
      * @param int $combinationId The variant.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function chargedPrice(int $itemId, int $combinationId): Money
     {
@@ -159,7 +159,7 @@ class AlfapricesField extends FormField
      *
      * @return float The base net price, or 0.0 when none is defined.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function baseNet(int $itemId, array $row = []): float
     {
@@ -180,7 +180,7 @@ class AlfapricesField extends FormField
      *
      * @return array{base_net: float, base_sale: bool, tax_factor: float, lines: array<int, array>}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function baseResolution(int $itemId, array $row): array
     {
@@ -212,7 +212,7 @@ class AlfapricesField extends FormField
      * @param array $row The price row values.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function previewContext(array $row): PriceContext
     {
@@ -242,7 +242,7 @@ class AlfapricesField extends FormField
      *
      * @return int[]
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function previewGroups(int $usergroupId): array
     {
@@ -259,7 +259,7 @@ class AlfapricesField extends FormField
      * @param array $row The price row values.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function previewQuantity(array $row): int
     {
@@ -292,7 +292,7 @@ class AlfapricesField extends FormField
      *
      * @throws RuntimeException When the row's currency, rules or base cannot be resolved.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function rowPreview(int $itemId, array $row): array
     {
@@ -384,7 +384,7 @@ class AlfapricesField extends FormField
      *
      * @return array{currencies: array, places: array, usergroups: array, users: array}
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected static function loadOptions(): array
     {

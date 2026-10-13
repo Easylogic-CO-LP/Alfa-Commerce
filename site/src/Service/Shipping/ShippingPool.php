@@ -30,7 +30,7 @@ defined('_JEXEC') or die;
  * are rounded: of 10.00 = 8.06 + 1.94 at 24%, a part of 0.80 takes 0.64 of the
  * net (0.80 x 8.06 / 10.00), never 0.80 / 1.24 = 0.65.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class ShippingPool
 {
@@ -40,7 +40,7 @@ final class ShippingPool
      *
      * @throws InvalidArgumentException When the two figures are not one charge.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly Money $gross,
@@ -66,7 +66,7 @@ final class ShippingPool
      *
      * @throws InvalidArgumentException When more is taken than the charge holds, or less than nothing.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function netTaken(Money $taken): Money
     {
@@ -93,7 +93,7 @@ final class ShippingPool
      *
      * @throws InvalidArgumentException When the parts take more than the charge holds.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function netOf(Money $part, Money $before): Money
     {

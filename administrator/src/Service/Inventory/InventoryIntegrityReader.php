@@ -119,7 +119,7 @@ use Joomla\Database\DatabaseInterface;
  * inside a read-only consistent-snapshot transaction so every figure comes from
  * one point in time. Repairs are separate, explicit, audited inventory commands.
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 final class InventoryIntegrityReader
 {
@@ -146,7 +146,7 @@ final class InventoryIntegrityReader
     /**
      * An order line whose open reservations hold more than the line still owes.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const CATEGORY_EXCESS_RESERVATION = 'excess_reservation';
 
@@ -154,7 +154,7 @@ final class InventoryIntegrityReader
      * An order line of an order whose status deducts stock with less delivered
      * for it than was ordered.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const CATEGORY_SHORT_DEDUCTION = 'short_deduction';
 
@@ -171,7 +171,7 @@ final class InventoryIntegrityReader
     /**
      * Every inconsistency category, in report order.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const CATEGORIES = [
         self::CATEGORY_LEDGER_MISSING,
@@ -211,7 +211,7 @@ final class InventoryIntegrityReader
      * reservations in the order they are served, each with what the stock on hand
      * covers of it and what waits for stock.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const CLASSIFICATION_RESERVATION_QUEUE = 'reservation_queue';
 
@@ -219,7 +219,7 @@ final class InventoryIntegrityReader
      * Every classification, in report order: listed for information, never an
      * inconsistency.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const CLASSIFICATIONS = [
         self::CLASSIFICATION_HISTORICAL_PARENT_LINE,
@@ -242,7 +242,7 @@ final class InventoryIntegrityReader
     /**
      * Items audited per round of queries; bounds memory on a large catalogue.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const BATCH_SIZE = 500;
 
@@ -253,7 +253,7 @@ final class InventoryIntegrityReader
      *                                   omitted. A caller that opens the snapshot transaction passes the
      *                                   connection it opened it on.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function __construct(?DatabaseInterface $db = null)
     {
@@ -299,7 +299,7 @@ final class InventoryIntegrityReader
      *                                                                                                                                                                       counts the current stock units of the existing items audited (an archived product has
      *                                                                                                                                                                       none) and the stock records read.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function audit(?array $itemIds): array
     {
@@ -354,7 +354,7 @@ final class InventoryIntegrityReader
      *
      * @return int[] Ascending, unique.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function catalogueItemIds(): array
     {
@@ -381,7 +381,7 @@ final class InventoryIntegrityReader
      *
      * @return int[]
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function normaliseIds(array $itemIds): array
     {
@@ -398,7 +398,7 @@ final class InventoryIntegrityReader
      *
      * @return array{findings: list<array<string, mixed>>, units: int, rows: int}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function auditBatch(array $itemIds): array
     {
@@ -853,7 +853,7 @@ final class InventoryIntegrityReader
      *
      * @return list<array<string, mixed>>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function excessReservationFindings(array $itemIds): array
     {
@@ -1079,7 +1079,7 @@ final class InventoryIntegrityReader
      *
      * @return list<array<string, mixed>>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function shortDeductionFindings(array $itemIds, array $unresolved): array
     {
@@ -1220,7 +1220,7 @@ final class InventoryIntegrityReader
      *
      * @return string A CASE expression.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function orderClaimSql(string $orderAlias, string $statusAlias): string
     {
@@ -1260,7 +1260,7 @@ final class InventoryIntegrityReader
      *
      * @return list<array<string, mixed>>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function queueFindings(array $rowsByItem, array $active, array $items, array $combinations, array $owners): array
     {
@@ -1399,7 +1399,7 @@ final class InventoryIntegrityReader
      *                                 product's own unit.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function backordersDenied(?object $item, ?object $combination): bool
     {
@@ -1421,7 +1421,7 @@ final class InventoryIntegrityReader
      *
      * @return array<int, int> Combination id => owning item id.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function foreignOwners(array $rowsByItem, array $active, array $known): array
     {
@@ -1451,7 +1451,7 @@ final class InventoryIntegrityReader
      *
      * @return array<int, int> Combination id => owning item id; ids without a row are absent.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function combinationOwners(array $combinationIds): array
     {
@@ -1486,7 +1486,7 @@ final class InventoryIntegrityReader
      *
      * @return string|null item_gone | combination_gone | combination_foreign
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function identityProblem(bool $itemExists, array $combinations, array $owners, int $combinationId): ?string
     {
@@ -1517,7 +1517,7 @@ final class InventoryIntegrityReader
      *
      * @return list<array<string, mixed>>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function unitFindings(int $itemId, int $combinationId, string $unit, bool $tracked, ?float $stock, ?float $available, array $rows, bool $archived): array
     {
@@ -1555,7 +1555,7 @@ final class InventoryIntegrityReader
      *
      * @return list<array<string, mixed>>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function figureFindings(int $itemId, int $combinationId, string $unit, bool $tracked, ?float $stock, ?float $available, array $rows): array
     {
@@ -1642,7 +1642,7 @@ final class InventoryIntegrityReader
      *
      * @return list<array<string, mixed>>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function parentFindings(int $itemId, ?float $stock, ?float $available, float $physical, float $salable, int $combinations, int $counting): array
     {
@@ -1691,7 +1691,7 @@ final class InventoryIntegrityReader
      *
      * @return list<array<string, mixed>>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function rowFindings(object $row, ?object $movement, ?object $active): array
     {
@@ -1757,7 +1757,7 @@ final class InventoryIntegrityReader
      *
      * @return list<array<string, mixed>>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function strandedFindings(array $strandedByItem, array $active, array $pending, array $relying): array
     {
@@ -1824,7 +1824,7 @@ final class InventoryIntegrityReader
      *
      * @return list<array<string, mixed>>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function untrackedStockFindings(array $rows, array $active, array $relying): array
     {
@@ -1872,7 +1872,7 @@ final class InventoryIntegrityReader
      *
      * @return list<array<string, mixed>>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function archivedStockFindings(array $rows, array $active, array $pending, array $relying, array $archivedItems): array
     {
@@ -1926,7 +1926,7 @@ final class InventoryIntegrityReader
      *
      * @return list<array<string, mixed>>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function untrackedClaimLineFindings(array $untrackedUnits, array $relying, array $rowsByItem): array
     {
@@ -2014,7 +2014,7 @@ final class InventoryIntegrityReader
      *
      * @return array<int, array<int, int>> Item id => combination id (0 for the item itself) => number of obligations.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function pendingEffects(array $itemIds): array
     {
@@ -2068,7 +2068,7 @@ final class InventoryIntegrityReader
      * @return array<int, array<int, list<array{order_id: int, line_id: int, ordered: float, delivered: float, returned: float, outstanding: float, placed_tracked: bool}>>>
      *                                                                                                                                                                       Item id => combination id (0 for the item itself) => lines, by order and line.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function relyingLines(array $itemIds): array
     {
@@ -2108,7 +2108,7 @@ final class InventoryIntegrityReader
      * @param int $combinationId The combination, 0 for the item itself.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function activeReservationsOf(array $active, int $itemId, int $combinationId): int
     {
@@ -2129,7 +2129,7 @@ final class InventoryIntegrityReader
      * @param array $lines Entries with an outstanding quantity.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function outstandingOf(array $lines): float
     {
@@ -2162,7 +2162,7 @@ final class InventoryIntegrityReader
      *
      * @return list<array<string, mixed>>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function holdFindings(array $itemIds, array $items, array $combinations, array $current, array $rowsByItem): array
     {
@@ -2261,7 +2261,7 @@ final class InventoryIntegrityReader
      *
      * @return list<array<string, mixed>>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function lineFindings(array $itemIds, array $items, array $combinations, array $current, array $owners, array $rowsByItem): array
     {
@@ -2534,7 +2534,7 @@ final class InventoryIntegrityReader
      *
      * @return list<array{combination_id: int, archived: bool, sku: string}>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function candidates(array $combinations): array
     {
@@ -2562,7 +2562,7 @@ final class InventoryIntegrityReader
      * @return list<object> Lines {id, order_id, item_id, combination_id (0 for the item itself), quantity, order_open,
      *                      placed_tracked}.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function orderLineRows(string $condition): array
     {
@@ -2610,7 +2610,7 @@ final class InventoryIntegrityReader
      *                            (stock has moved for the line on its resolved identity since it was recorded),
      *                            superseded (the resolutions it replaced, earliest first)}.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function lineResolutions(string $lineList): array
     {
@@ -2675,7 +2675,7 @@ final class InventoryIntegrityReader
      *
      * @return array{resolution_id: int, action: string, created: string, created_by: int, reason: string, revision: int, resolved_combination_id: int, consumed: bool, superseded: list<array<string, mixed>>}|null
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function recorded(?object $resolution): ?array
     {
@@ -2703,7 +2703,7 @@ final class InventoryIntegrityReader
      *
      * @return array<int, int> Order id => number of refused obligations.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function refusedEffects(array $orderIds): array
     {
@@ -2733,7 +2733,7 @@ final class InventoryIntegrityReader
      *
      * @return array{items: array<int, object>, combinations: array<int, array<int, object>>, parent: array<int, array{on_hand: float, salable: float}>}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function outsideItems(array $itemIds): array
     {
@@ -2798,7 +2798,7 @@ final class InventoryIntegrityReader
      *
      * @return array<string, mixed>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function lineFinding(string $category, object $line, array $detail): array
     {
@@ -2831,7 +2831,7 @@ final class InventoryIntegrityReader
      *
      * @return array<string, mixed>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function figurePairFinding(string $category, int $itemId, int $combinationId, string $unit, ?float $stock, ?float $available, array $figures): array
     {
@@ -2873,7 +2873,7 @@ final class InventoryIntegrityReader
      *
      * @return array<string, mixed>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function finding(
         string $category,
@@ -2907,7 +2907,7 @@ final class InventoryIntegrityReader
      *
      * @return array{rows: int, physical: float, reserved: float, salable: float}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function figures(array $rows): array
     {
@@ -2932,7 +2932,7 @@ final class InventoryIntegrityReader
      *
      * @return list<object>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function heldRows(array $rows): array
     {
@@ -2951,7 +2951,7 @@ final class InventoryIntegrityReader
      * @param float $canonical The authoritative figure.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function agree(?float $projection, float $canonical): bool
     {
@@ -2966,7 +2966,7 @@ final class InventoryIntegrityReader
      * @param mixed $item The item's manage_stock.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function effectiveTracking(mixed $own, mixed $item): bool
     {
@@ -2980,7 +2980,7 @@ final class InventoryIntegrityReader
      *
      * @return string UNIT_ITEM or UNIT_COMBINATION.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function unitOf(int $combinationId): string
     {
@@ -2995,7 +2995,7 @@ final class InventoryIntegrityReader
      * @param int $locationId The location.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function identityKey(int $itemId, int $combinationId, int $locationId): string
     {
@@ -3008,7 +3008,7 @@ final class InventoryIntegrityReader
      * @param mixed $value The column value.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function nullableFloat(mixed $value): ?float
     {
@@ -3022,7 +3022,7 @@ final class InventoryIntegrityReader
      *
      * @return list<object>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function select(string $sql): array
     {

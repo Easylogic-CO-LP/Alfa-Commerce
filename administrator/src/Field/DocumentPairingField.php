@@ -24,7 +24,7 @@ use Joomla\CMS\HTML\HTMLHelper;
  * emptied on the form then saves as "corrects none" instead of being left as
  * it was.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 class DocumentPairingField extends ListField
 {
@@ -32,7 +32,7 @@ class DocumentPairingField extends ListField
      * Field type id: must match the filename and the XML `type`.
      *
      * @var string
-     * @since 1.14.0
+     * @since 2.0.0
      */
     protected $type = 'DocumentPairing';
 
@@ -41,7 +41,7 @@ class DocumentPairingField extends ListField
      *
      * @return object[]
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected function getOptions(): array
     {
@@ -58,7 +58,7 @@ class DocumentPairingField extends ListField
      * The list, after an empty value of the same name.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected function getInput(): string
     {

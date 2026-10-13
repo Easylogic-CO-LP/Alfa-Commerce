@@ -47,7 +47,7 @@ use Joomla\CMS\Language\Text;
  *                   itself is the root of the chain and simply omits it.
  *   - inheritlabel  language key for the wording (default JGLOBAL_USE_GLOBAL).
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 trait InheritsGlobalParam
 {
@@ -55,7 +55,7 @@ trait InheritsGlobalParam
      * Whether this tier inherits from another (i.e. has an inherit state).
      *
      * @return bool True when `globalparam` names a config param
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function inherits(): bool
     {
@@ -73,7 +73,7 @@ trait InheritsGlobalParam
      *
      * @return string The effective inherited value, '' when the param has no
      *                stored value AND no declared default
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function inheritedValue(): string
     {
@@ -92,7 +92,7 @@ trait InheritsGlobalParam
      *
      * @param string $name The config param name
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function configDeclaredDefault(string $name): string
     {
@@ -117,7 +117,7 @@ trait InheritsGlobalParam
      *                      exists ("Newest first" rather than "a.id DESC").
      *
      * @return string e.g. "Use Global (25)", "Inherit (Name (A-Z))", "Inherit"
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function inheritLabel(string $shown = ''): string
     {
@@ -134,7 +134,7 @@ trait InheritsGlobalParam
      *                          stored form ("a.id DESC").
      *
      * @return object The select option for "not set here"
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function inheritOption(array $options): object
     {

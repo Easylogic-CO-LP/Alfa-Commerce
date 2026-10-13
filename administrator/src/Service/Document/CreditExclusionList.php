@@ -32,7 +32,7 @@ use Joomla\CMS\Language\Text;
  * are escaped here, once. A caller prints it as given; escaping it again would
  * print a label holding "&" as "&amp;amp;".
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class CreditExclusionList
 {
@@ -48,7 +48,7 @@ final class CreditExclusionList
      *
      * @return string[]
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function rows(array $exclusions, object $corrected): array
     {
@@ -104,7 +104,7 @@ final class CreditExclusionList
      *
      * @return string|null Null when nothing was left out.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function message(array $exclusions, object $corrected): ?string
     {

@@ -31,13 +31,13 @@ use Throwable;
  *
  * The rows are drawn in the order the admin menu shows their screens ({@see self::orderByMenu()}).
  *
- * @since  1.7.0
+ * @since  2.0.0
  */
 class AlfarulesField extends RulesField
 {
     /**
      * @var string
-     * @since  1.7.0
+     * @since  2.0.0
      */
     protected $type = 'Alfarules';
 
@@ -60,7 +60,7 @@ class AlfarulesField extends RulesField
      *
      * @return bool True on success
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function setup(SimpleXMLElement $element, $value, $group = null)
     {
@@ -108,7 +108,7 @@ class AlfarulesField extends RulesField
      *
      * @return array
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function getLayoutData()
     {
@@ -139,7 +139,7 @@ class AlfarulesField extends RulesField
      *
      * @return object[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function orderByMenu(array $actions, array $menuOrder): array
     {

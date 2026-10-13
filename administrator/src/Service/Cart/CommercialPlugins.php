@@ -38,13 +38,13 @@ defined('_JEXEC') or die;
  * should: this is for the three dispatch points where a listener can change
  * what the customer is charged or whether the order may proceed at all.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CommercialPlugins
 {
     /**
      * @var array<string, object[]> Rows per group and view-level signature.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static array $cache = [];
 
@@ -60,7 +60,7 @@ final class CommercialPlugins
      *
      * @return object[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function for(User $customer, string $group = 'alfa'): array
     {
@@ -106,7 +106,7 @@ final class CommercialPlugins
      * inside one process; production reads each group once per request.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function forget(): void
     {

@@ -47,7 +47,7 @@ abstract class UrlListModel extends ListModel
      * simplexml pass that reads the defaults; null until that pass has run.
      *
      * @var string[]|null
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected ?array $listFilters = null;
 
@@ -284,7 +284,7 @@ abstract class UrlListModel extends ListModel
      * @param array $defaults The `list` defaults parsed from the filter form
      *
      * @return array The defaults to use, same shape
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function contextListDefaults(array $defaults): array
     {
@@ -305,7 +305,7 @@ abstract class UrlListModel extends ListModel
      * @param string $param The listing's param name, e.g. `media_placeholder_items`
      *
      * @return bool True to hand MediaHelper the placeholder fallback
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function usePlaceholder(string $param): bool
     {
@@ -712,7 +712,7 @@ abstract class UrlListModel extends ListModel
      * the shape it arrived in, exactly as before.
      *
      * @param string $name Filter key.
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function isListFilter(string $name): bool
     {
@@ -749,7 +749,7 @@ abstract class UrlListModel extends ListModel
      * @param bool $isList The key is form-declared `multiple="true"`, i.e. a flat list of values.
      *                     Its keys carry no meaning, so only the strict test may apply to it:
      *                     `filter[category][7]=337` is one category, never a map.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function isNestedFilterMap(array $value, bool $isList = false): bool
     {
@@ -773,7 +773,7 @@ abstract class UrlListModel extends ListModel
      * @param array $value The raw nested map.
      *
      * @return array<int|string, array> key => normalised list
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function normalizeFilterMap(array $value): array
     {

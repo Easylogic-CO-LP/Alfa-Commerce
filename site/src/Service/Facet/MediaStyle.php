@@ -37,7 +37,7 @@ defined('_JEXEC') or die;
  *     SITE ROOT while a CSS url() resolves against the current page: on a SEF page like
  *     /en/katastema an `images/x.jpg` would be fetched from /en/images/x.jpg and 404.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class MediaStyle
 {
@@ -47,7 +47,7 @@ final class MediaStyle
      * keeps the result safe inside url().
      *
      * @var string
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private const IMAGE_PATTERN = '#^(?:https?:)?/?[\w./%-]+\.(?:jpe?g|png|gif|webp|svg)$#i';
 
@@ -62,7 +62,7 @@ final class MediaStyle
      * @param string $raw The stored media value.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function image(string $raw): string
     {
@@ -81,7 +81,7 @@ final class MediaStyle
      * @param string $raw The stored media value.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function imageUrl(string $raw): string
     {

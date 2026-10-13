@@ -32,7 +32,7 @@ use Joomla\Input\Input;
  * follows the redirect, and, for a custom task, treats an unhandled event as "unknown task".
  * The plugin never calls enqueueMessage, setRedirect on the app, or checkToken itself.
  *
- * @since  1.7.0
+ * @since  2.0.0
  */
 abstract class PanelResultEvent extends AbstractEvent
 {
@@ -40,7 +40,7 @@ abstract class PanelResultEvent extends AbstractEvent
      * Who this request is for.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getIdentity(): PanelIdentity
     {
@@ -51,7 +51,7 @@ abstract class PanelResultEvent extends AbstractEvent
      * The request input: the handler reads its own fields here.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getInput(): Input
     {
@@ -65,7 +65,7 @@ abstract class PanelResultEvent extends AbstractEvent
      * @param string $type 'message' | 'error' | 'warning' | 'notice'.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function addMessage(string $text, string $type = 'message'): static
     {
@@ -82,7 +82,7 @@ abstract class PanelResultEvent extends AbstractEvent
      *
      * @return array<int, array{text:string, type:string}>
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getMessages(): array
     {
@@ -95,7 +95,7 @@ abstract class PanelResultEvent extends AbstractEvent
      * @param string $url A URL (relative to the site is fine).
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function setRedirect(string $url): static
     {
@@ -108,7 +108,7 @@ abstract class PanelResultEvent extends AbstractEvent
      * The chosen redirect, or '' to let the controller fall back to the panel's list.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getRedirect(): string
     {
@@ -120,7 +120,7 @@ abstract class PanelResultEvent extends AbstractEvent
      * unhandled task is treated as unknown).
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function markHandled(): static
     {
@@ -133,7 +133,7 @@ abstract class PanelResultEvent extends AbstractEvent
      * Did the plugin handle this request.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function isHandled(): bool
     {

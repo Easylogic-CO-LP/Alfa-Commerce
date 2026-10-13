@@ -28,7 +28,7 @@ use Joomla\CMS\Factory;
  * Every edit model's loadFormData() and every field that overlays the post
  * read it here. OrderModel::keptPostFor() applies the same rule.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class KeptPost
 {
@@ -40,7 +40,7 @@ final class KeptPost
      *
      * @return array The kept post, or [] when there is none for this record.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function forRecord(string $stateKey, int $recordId): array
     {

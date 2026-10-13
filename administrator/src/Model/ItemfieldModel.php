@@ -35,7 +35,7 @@ use Throwable;
  * Translatable name/description persist through MultilingualHelper into
  * #__alfa_item_fields_<langtag>.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class ItemfieldModel extends AlfaAdminModel
 {
@@ -43,7 +43,7 @@ class ItemfieldModel extends AlfaAdminModel
      * The admin-contract entity of this screen.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'itemfield';
 
@@ -67,7 +67,7 @@ class ItemfieldModel extends AlfaAdminModel
     /**
      * @var object|null Item data cache
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected $item = null;
 
@@ -82,7 +82,7 @@ class ItemfieldModel extends AlfaAdminModel
      *
      * @return \Joomla\CMS\Form\Form|false The Form object on success, false on failure.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getForm($data = [], $loadData = true)
     {
@@ -120,7 +120,7 @@ class ItemfieldModel extends AlfaAdminModel
      *
      * @return mixed The data for the form.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function loadFormData()
     {
@@ -160,7 +160,7 @@ class ItemfieldModel extends AlfaAdminModel
      *
      * @return object|bool The populated field object, or false on failure.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getItem($pk = null)
     {
@@ -182,7 +182,7 @@ class ItemfieldModel extends AlfaAdminModel
      *
      * @return array Value row objects ordered by ordering.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getValues(int $fieldId): array
     {
@@ -225,7 +225,7 @@ class ItemfieldModel extends AlfaAdminModel
      *
      * @return bool True on success, False on error.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function save($data)
     {
@@ -361,7 +361,7 @@ class ItemfieldModel extends AlfaAdminModel
      * @param string $deletedValueIds Comma list of removed existing value ids.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function saveValues(int $fieldId, array $rows, string $deletedValueIds): void
     {
@@ -526,7 +526,7 @@ class ItemfieldModel extends AlfaAdminModel
      *                                                                                            The value ids actually in use, how many distinct items depend on
      *                                                                                            them, and how many rows of each kind.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function usageBinding(array $valueIds): array
     {
@@ -587,7 +587,7 @@ class ItemfieldModel extends AlfaAdminModel
      * @param array $valueIds Value ids to delete.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
 
     protected function cascadeDeleteValues(array $valueIds): void
@@ -654,7 +654,7 @@ class ItemfieldModel extends AlfaAdminModel
      *
      * @return void
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function prepareTable($table)
     {
@@ -691,7 +691,7 @@ class ItemfieldModel extends AlfaAdminModel
      *
      * @return bool True on success.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function publish(&$pks, $value = 1)
     {
@@ -729,7 +729,7 @@ class ItemfieldModel extends AlfaAdminModel
      *
      * @return int[]
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function itemsUsingFields(array $fieldIds): array
     {
@@ -763,7 +763,7 @@ class ItemfieldModel extends AlfaAdminModel
      *
      * @return bool True on success.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function delete(&$pks)
     {

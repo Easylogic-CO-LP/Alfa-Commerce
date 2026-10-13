@@ -31,7 +31,7 @@ defined('_JEXEC') or die;
  * The caller defaults the layout owner to the invoked plugin
  * (Surfaces::appendTo), exactly like the item-fields dispatches.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class CartItemDisplayEvent extends AbstractImmutableEvent
 {
@@ -41,7 +41,7 @@ class CartItemDisplayEvent extends AbstractImmutableEvent
      * A row in the line's main details area (under the name/config summary).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function main(): SurfaceBuilder
     {
@@ -53,7 +53,7 @@ class CartItemDisplayEvent extends AbstractImmutableEvent
      *
      * @return object The cart line (id_item, quantity, name, ...).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getLine(): object
     {
@@ -65,7 +65,7 @@ class CartItemDisplayEvent extends AbstractImmutableEvent
      *
      * @return object The loaded item.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getItem(): object
     {

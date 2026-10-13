@@ -20,7 +20,7 @@
  * The cap is enforced by PaymentLedger::refundPayment(); max below is a
  * courtesy to the typist, never the guard.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 
 defined('_JEXEC') or die;

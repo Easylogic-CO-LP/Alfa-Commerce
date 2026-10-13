@@ -29,11 +29,11 @@ defined('_JEXEC') or die;
  * through here so the sentence and the log line are identical wherever the
  * failure happened.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartMessaging
 {
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function __construct(private readonly CMSApplicationInterface $app)
     {
     }
@@ -47,7 +47,7 @@ final class CartMessaging
      * @param string $key The language key of the shopper's sentence.
      * @param string $category The log category.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function failed(string $operation, int $cartId, Throwable $e, string $key, string $category = 'com_alfa.orders'): void
     {
@@ -73,7 +73,7 @@ final class CartMessaging
      * @param QuantityDecision $decision The quantity policy's decision.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function announce(QuantityDecision $decision): void
     {
@@ -98,7 +98,7 @@ final class CartMessaging
     /**
      * A sentence already in the shopper's language, as a warning.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function warn(string $sentence): void
     {
@@ -108,7 +108,7 @@ final class CartMessaging
     /**
      * A language key, as an error.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function error(string $key): void
     {

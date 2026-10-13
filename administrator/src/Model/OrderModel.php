@@ -112,7 +112,7 @@ class OrderModel extends AlfaAdminModel
      * The admin-contract entity of this screen.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'order';
 
@@ -123,7 +123,7 @@ class OrderModel extends AlfaAdminModel
      * the onAlfaAdminForm / onAlfaAdminPrepareData events.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private bool $alfaMainForm = false;
 
@@ -137,7 +137,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return void
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected function preprocessForm(\Joomla\CMS\Form\Form $form, $data, $group = 'content')
     {
@@ -351,13 +351,13 @@ class OrderModel extends AlfaAdminModel
      *
      * A refused issue's kept draft reaches this as ordinary $data (the view
      * reads it, never this builder) and binds like any other: lines and
-     * charges whole, for their fields to render (since 1.14.0).
+     * charges whole, for their fields to render (since 2.0.0).
      *
      * @param array|object $data Data to bind (objects are normalised via objectToFormData).
      *
      * @return \Joomla\CMS\Form\Form|false The Form object on success, false on failure.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getDocumentForm($data = [])
     {
@@ -555,7 +555,7 @@ class OrderModel extends AlfaAdminModel
      * @param bool $isCombined Whether "also serves as delivery note" is ticked.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function issueFormShowsMovement(string $docType, bool $isCombined): bool
     {
@@ -574,7 +574,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return \Joomla\CMS\Form\Form|false The Form object on success, false on failure.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getDocumentListForm()
     {
@@ -767,7 +767,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return array The kept post, or [] when there is none for this order.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function keptPostFor(int $orderId): array
     {
@@ -783,7 +783,7 @@ class OrderModel extends AlfaAdminModel
      * choice, read from the stored ids instead of a posted checkbox.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function hasSeparateInvoice(): bool
     {
@@ -808,7 +808,7 @@ class OrderModel extends AlfaAdminModel
      * operator changed from one the modal itself moved (loadFormData).
      *
      * @var string
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public const LOADED_STATUS_KEY = 'loaded_status';
 
@@ -816,7 +816,7 @@ class OrderModel extends AlfaAdminModel
      * "Different invoice details" as the form getForm() last built shows it.
      *
      * @var bool|null Null until a form is built.
-     * @since 1.14.0
+     * @since 2.0.0
      */
     private ?bool $formInvoiceDiffers = null;
 
@@ -839,7 +839,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @throws LogicException When no order form has been built yet.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function invoiceDiffersOnForm(): bool
     {
@@ -861,7 +861,7 @@ class OrderModel extends AlfaAdminModel
      * @param object|null $row The #__alfa_user_info row backing this bucket.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function prefillBucket(Form $form, string $bucket, array $state, ?object $row): void
     {
@@ -896,7 +896,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return array|bool The filtered data, or false on validation failure.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function validate($form, $data, $group = null)
     {
@@ -964,7 +964,7 @@ class OrderModel extends AlfaAdminModel
      * @param int $deliveryId The delivery record the order now points at.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function refreshGuestSnapshot(int $orderId, ?object $prevOrder, int $deliveryId): void
     {
@@ -1024,7 +1024,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return void
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function saveInvoiceInfo(int $orderId, array &$data, int $customerId, int $previousInvoiceId): bool
     {
@@ -1089,7 +1089,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return int The new user_info id, 0 when nothing was submitted.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function createUserInfo(array $fields, int $userId = 0): int
     {
@@ -1390,7 +1390,7 @@ class OrderModel extends AlfaAdminModel
      *                     contributions rows, its history, and
      *                     currency = null; null when there is no such order.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function getItemWithoutMoney(int $pk): ?object
     {
@@ -1449,7 +1449,7 @@ class OrderModel extends AlfaAdminModel
      *                      on it.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function attachCustomer(object $order): void
     {
@@ -1847,7 +1847,7 @@ class OrderModel extends AlfaAdminModel
      * @param int $itemId The #__alfa_items row id.
      *
      * @return object|null The hydrated item, or null when not found.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function loadConfiguredItem(int $itemId): ?object
     {
@@ -1904,7 +1904,7 @@ class OrderModel extends AlfaAdminModel
      *                                      ({@see self::postedSelection()}), or null for the frozen one.
      *
      * @return object|null {orderItem, item, soldReadOnly}, or null when the line/item is gone.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getOrderItemConfig(int $orderItemId, ?array $keptConfiguration = null): ?object
     {
@@ -1952,7 +1952,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return object The same item, without surfaces.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function drawnAsSold(object $item): object
     {
@@ -1970,7 +1970,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return array{0: bool, 1: array{resolves: bool, variant: ?VariantSelection}} [offered, the resolution].
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function soldConfigurationOf(object $row, object $item): array
     {
@@ -1992,7 +1992,7 @@ class OrderModel extends AlfaAdminModel
      *                                      ({@see self::postedSelection()}), or null for the defaults.
      *
      * @return object|null The hydrated item with surfaces, or null.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getNewItemConfig(int $itemId, ?array $keptConfiguration = null): ?object
     {
@@ -2028,7 +2028,7 @@ class OrderModel extends AlfaAdminModel
      *                               for a fresh configure.
      *
      * @return object|null The hydrated item with surfaces, or null.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getSeededItemConfig(int $itemId, ?callable $seedFor = null): ?object
     {
@@ -2075,7 +2075,7 @@ class OrderModel extends AlfaAdminModel
      * @param object $item The hydrated item (fields + variant resolved).
      * @param array $seed lineSelection()-shaped seed (payloads consumed here).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function dispatchItemConfigSurfaces(object $item, array $seed): void
     {
@@ -2143,7 +2143,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @throws RuntimeException When the quantity is below 1.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function priceConfigIn(int $itemId, PriceContext $context, int $quantity, ?ExplicitPriceInstruction $price): ?PriceResult
     {
@@ -2316,7 +2316,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return object Object carrying sku, gtin, mpn and weight.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function resolveLineIdentity(int $combinationId, ?object $item): object
     {
@@ -2361,7 +2361,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return int|null The quantity, or null when the value is not one.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function positiveQuantity(mixed $value): ?int
     {
@@ -2387,7 +2387,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return float|null The percentage, or null when the value is not one.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function manualDiscountPercent(mixed $value): ?float
     {
@@ -2413,7 +2413,7 @@ class OrderModel extends AlfaAdminModel
      * same to staff editing an order line. Each takes the storefront key's parameters.
      *
      * @var array<string, string>
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const OPERATOR_CONFIGURATION_WORDING = [
         'COM_ALFA_CART_FIELD_REQUIRED' => 'COM_ALFA_ORDER_ITEM_ERROR_FIELD_REQUIRED',
@@ -2481,7 +2481,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @throws RuntimeException When the edit is refused; the message is for the operator.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function planOrderItemLine(
         array $data,
@@ -2854,7 +2854,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return array<string, string|bool>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function describeOrderItemPlan(array $plan): array
     {
@@ -2913,7 +2913,7 @@ class OrderModel extends AlfaAdminModel
      * @param int $quantity The planned quantity, which the unit columns are derived at.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function withManualDiscount(OrderLineMoney $preManual, int $hundredths, Currency $currency, int $quantity): OrderLineMoney
     {
@@ -2950,7 +2950,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @throws RuntimeException When the stored scope is unknown, or the tick is asked for without a custom price.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function manualIntentOf(?object $row, ?float $percent, ?ManualDiscountScope $scope, bool $hasCustomPrice): array
     {
@@ -3000,7 +3000,7 @@ class OrderModel extends AlfaAdminModel
      * @param array $filesChosen The preview's per-slot markers of a chosen file, field id => slot => flag.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function configurationDiffers(object $item, array $frozen, array $posted, array $files, array $filesChosen = []): bool
     {
@@ -3046,7 +3046,7 @@ class OrderModel extends AlfaAdminModel
      * @param mixed $payload A stored or posted payload.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function canonicalPayload(mixed $payload): mixed
     {
@@ -3087,7 +3087,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return array{selection: array<int, int>, optionValueIds: array, payloads: array}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function postedSelection(array $configuration): array
     {
@@ -3124,7 +3124,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return array{selection: array, optionValueIds: array, payloads: array}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function frozenSelectionOf(int $orderItemId, object $item, int $combinationId): array
     {
@@ -3151,7 +3151,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return array{selection: array<int, int>, optionValueIds: array, payloads: array}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function selectionOfCombination(object $item, int $combinationId): array
     {
@@ -3200,7 +3200,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return array{resolves: bool, variant: ?VariantSelection}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function resolveSoldConfiguration(object $row, object $item, array $frozen, PriceContext $context): array
     {
@@ -3239,7 +3239,7 @@ class OrderModel extends AlfaAdminModel
      * @param int $combinationId The combination.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function combinationExists(int $itemId, int $combinationId): bool
     {
@@ -3276,7 +3276,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @throws RuntimeException When the line has no quantity or only part of its authority.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function planOnStoredTerms(array $plan, object $row, CustomPriceCommand $price, array $intent, int $quantity, Currency $currency): array
     {
@@ -3305,7 +3305,7 @@ class OrderModel extends AlfaAdminModel
      * @param string $message The operator-facing reason.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function refuseOrderItem(string $message): void
     {
@@ -3524,7 +3524,7 @@ class OrderModel extends AlfaAdminModel
      * @param string $lineName The line's own name, for the message.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function warnNegativeStock(int $itemId, int $combinationId, string $lineName): void
     {
@@ -3573,7 +3573,7 @@ class OrderModel extends AlfaAdminModel
      * @param object $totalsBefore The order totals before the write.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function logOrderItemWrite(array $plan, int $lineId, object $totalsBefore): void
     {
@@ -4009,7 +4009,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return string One of the documented origins: storefront | admin | renewal | api.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function newOrderSource(): string
     {
@@ -4389,7 +4389,7 @@ class OrderModel extends AlfaAdminModel
      * @param int $target The status the operator asked for.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function applyStatusChange(int $orderId, int $from, int $target): void
     {
@@ -4561,7 +4561,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return string Something safe to put in a message.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function statusName(int $statusId): string
     {
@@ -4608,7 +4608,7 @@ class OrderModel extends AlfaAdminModel
      * @param int[] $ids Address rows this save re-pointed away from.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function discardSupersededAddresses(array $ids): void
     {
@@ -4756,7 +4756,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return bool True on success.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function publish(&$pks, $value = 1)
     {
@@ -5064,7 +5064,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return string[] Human-readable document identifiers, empty when clear.
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     public function ordersWithDocuments(array $pks): array
     {
@@ -5100,7 +5100,7 @@ class OrderModel extends AlfaAdminModel
      *                      refused whole, and the sentence says so.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function refuseDeleteForDocuments(array $blocked, int $selected): void
     {
@@ -5123,7 +5123,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return string[] Sorted, so two readings of unchanged rows are equal.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function pluginRowFacts(iterable $payments, iterable $shipments): array
     {
@@ -5156,7 +5156,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return array<int, string[]> Per order id, as pluginRowFacts() states them.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function lockedPluginRowFacts(array $pks): array
     {
@@ -5206,7 +5206,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return string[] Human-readable document identifiers, empty when clear.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function documentsWithLine(int $orderItemId): array
     {
@@ -5458,7 +5458,7 @@ class OrderModel extends AlfaAdminModel
      * created_by, id_user, ...) through order.updateOrder. The fat admin form
      * keeps its own richer field set; THIS list is only for raw bodies.
      *
-     * @since 1.10.0
+     * @since 2.0.0
      */
     public const INLINE_EDITABLE_COLUMNS = ['id_order_status', 'note', 'customer_note'];
 
@@ -5474,7 +5474,7 @@ class OrderModel extends AlfaAdminModel
      * screen enforced it, so a request that did not come from that screen was
      * never asked.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const STATUS_CHANGE_ACTION = 'alfa.orders.edit.state';
 
@@ -5486,7 +5486,7 @@ class OrderModel extends AlfaAdminModel
      * knows not to overwrite the error the caller already set, nor to log a
      * fault where there was none.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private const PHASE_B_REFUSED = 'com_alfa.order.phase_b_refused';
 
@@ -5501,7 +5501,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return bool True when the actor holds STATUS_CHANGE_ACTION on com_alfa.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function mayChangeStatus(): bool
     {
@@ -5521,7 +5521,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return int The persisted status id, or 0 when the order does not exist.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function persistedStatus(int $orderId): int
     {
@@ -5548,7 +5548,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return array Only the allowlisted keys.
      *
-     * @since 1.10.0
+     * @since 2.0.0
      */
     public static function filterInlineOrderData(array $data): array
     {
@@ -5640,7 +5640,7 @@ class OrderModel extends AlfaAdminModel
      *
      * @return array<string, string> Column => its figure (e.g. '5.004'); a column that states none is left out.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function storedFigures(object $row, array $columns): array
     {
@@ -5828,14 +5828,14 @@ class OrderModel extends AlfaAdminModel
      * @param array|null $context Structured data.
      * @param int|null $entityId Related entity PK.
      * @param int|null $actorId The acting user, stated by the caller: 0 = System;
-     *                          null = the current identity (since 1.14.0).
+     *                          null = the current identity (since 2.0.0).
      * @param bool $refuseOversize Refuse a context above ACTIVITY_CONTEXT_MAX_BYTES
-     *                             instead of storing it truncated (since 1.14.0).
+     *                             instead of storing it truncated (since 2.0.0).
      *
      *
      * @throws Throwable When the entry cannot be written.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function logOrderActivityStrict(
         int $orderId,
@@ -5858,7 +5858,7 @@ class OrderModel extends AlfaAdminModel
     /**
      * The most context an activity row stores: the column is TEXT (64 KB).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const ACTIVITY_CONTEXT_MAX_BYTES = 60000;
 
@@ -5875,7 +5875,7 @@ class OrderModel extends AlfaAdminModel
      * @param bool $refuseOversize Refuse an oversize context instead of truncating it.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function writeActivity(
         int $orderId,

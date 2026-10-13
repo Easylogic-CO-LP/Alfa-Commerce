@@ -25,7 +25,7 @@ use Joomla\CMS\Session\Session;
  * envelope, and a restatement is where the two eventually drift: one endpoint
  * validating the token, the next forgetting to.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 trait HasToolsAjaxTrait
 {
@@ -38,7 +38,7 @@ trait HasToolsAjaxTrait
      * with a one-time key by the endpoint, once it knows which action it is.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function ajaxGuard(): void
     {
@@ -61,7 +61,7 @@ trait HasToolsAjaxTrait
      * @param string $message Message; used as the error text when failing.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function ajaxRespond(array $data = [], bool $success = true, string $message = ''): void
     {

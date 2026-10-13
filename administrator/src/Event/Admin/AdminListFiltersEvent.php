@@ -44,13 +44,13 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  * plugin needs before reading `$context->state->get('filter.<name>')` in onAlfaAdminListQuery.
  * (filter_fields is a different whitelist: it validates ORDERING columns, not filter values.)
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 final class AdminListFiltersEvent extends AlfaAdminEvent
 {
     /**
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const NAME = 'onAlfaAdminListFilters';
 }

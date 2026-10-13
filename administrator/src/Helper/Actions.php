@@ -34,7 +34,7 @@ defined('_JEXEC') or die;
  * renders through its owner plugin's layout with its per-row resolver data (null = nothing
  * for that row).
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 final class Actions
 {
@@ -44,7 +44,7 @@ final class Actions
      * @param array[] $actions The row-action descriptors (view harvest).
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public static function head(array $actions): string
     {
@@ -64,7 +64,7 @@ final class Actions
      *
      * @return int 0 or 1.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public static function span(array $actions): int
     {
@@ -80,7 +80,7 @@ final class Actions
      * @param object $row The list row.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public static function cell(array $actions, int $i, object $row): string
     {
@@ -144,7 +144,7 @@ final class Actions
      * @param array[] $actions The bulk-action descriptors (view harvest).
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public static function bulkBar(array $actions): string
     {

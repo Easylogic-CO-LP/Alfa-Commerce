@@ -17,7 +17,7 @@ use Joomla\CMS\MVC\Controller\FormController;
 /**
  * Inventory location edit controller.
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 class LocationController extends FormController
 {

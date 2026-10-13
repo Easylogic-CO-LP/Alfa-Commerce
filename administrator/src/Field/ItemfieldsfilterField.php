@@ -42,13 +42,13 @@ use Joomla\CMS\Layout\LayoutHelper;
  * Options come from the Items model's memoised getAvailableItemFieldValues(), so
  * the View and the module share the SAME computation: no separate/duplicate query.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class ItemfieldsfilterField extends FormField
 {
     /**
      * @var string
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected $type = 'Itemfieldsfilter';
 
@@ -56,7 +56,7 @@ class ItemfieldsfilterField extends FormField
      * Render one fancy multi-select per filterable item-field.
      *
      * @return string The field HTML ('' when nothing is filterable).
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function getInput()
     {
@@ -87,7 +87,7 @@ class ItemfieldsfilterField extends FormField
      * The storefront facet bar: one fancy-select per filterable field.
      *
      * @return string The field HTML ('' when nothing is filterable).
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function siteInput()
     {
@@ -177,7 +177,7 @@ class ItemfieldsfilterField extends FormField
      * field is the one somebody is hunting for), so those are labelled instead.
      *
      * @return string The field HTML ('' when the catalogue uses no item fields).
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function adminInput()
     {

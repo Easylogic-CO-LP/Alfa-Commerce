@@ -32,35 +32,35 @@ defined('_JEXEC') or die;
  * after the field dispatch when the card hides a dimension or required field the
  * buyer must answer. A MAIN a plugin sets here is never replaced by the core.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 trait HasCartLayout
 {
     /**
      * @var string The layout that replaces the add-to-cart MAIN slot ('' = none).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected string $cartLayout = '';
 
     /**
      * @var array|object The cart layout's display data (item passed when empty).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected array|object $cartLayoutData = [];
 
     /**
      * @var string The plugin group owning the cart layout ('' = orchestrator defaults it).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected string $cartLayoutPluginType = '';
 
     /**
      * @var string The plugin element owning the cart layout ('' = orchestrator defaults it).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected string $cartLayoutPluginName = '';
 
@@ -68,7 +68,7 @@ trait HasCartLayout
      * Whether a (non-empty) cart layout was set.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function hasCartLayout(): bool
     {
@@ -82,7 +82,7 @@ trait HasCartLayout
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setCartLayout(string $layout): static
     {
@@ -95,7 +95,7 @@ trait HasCartLayout
      * The cart layout name ('' when none).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getCartLayout(): string
     {
@@ -110,7 +110,7 @@ trait HasCartLayout
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setCartLayoutData(array|object $data): static
     {
@@ -123,7 +123,7 @@ trait HasCartLayout
      * The display data for the cart layout.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getCartLayoutData(): array|object
     {
@@ -138,7 +138,7 @@ trait HasCartLayout
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setCartLayoutPluginType(string $type): static
     {
@@ -151,7 +151,7 @@ trait HasCartLayout
      * The plugin group set for this cart layout ('' = let the orchestrator default it).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getCartLayoutPluginType(): string
     {
@@ -166,7 +166,7 @@ trait HasCartLayout
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setCartLayoutPluginName(string $name): static
     {
@@ -179,7 +179,7 @@ trait HasCartLayout
      * The plugin element set for this cart layout ('' = let the orchestrator default it).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getCartLayoutPluginName(): string
     {
@@ -191,28 +191,28 @@ trait HasCartLayout
      *             the orchestrator APPENDS beside the MAIN slot (vs the MAIN which
      *             it REPLACES). Same granular contract as the MAIN slot above.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected string $cartChildLayout = '';
 
     /**
      * @var array|object The child layout's display data (item passed when empty).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected array|object $cartChildLayoutData = [];
 
     /**
      * @var string The plugin group owning the child layout ('' = orchestrator defaults it).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected string $cartChildLayoutPluginType = '';
 
     /**
      * @var string The plugin element owning the child layout ('' = orchestrator defaults it).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected string $cartChildLayoutPluginName = '';
 
@@ -220,7 +220,7 @@ trait HasCartLayout
      * Whether a (non-empty) child layout was set.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function hasCartChild(): bool
     {
@@ -236,7 +236,7 @@ trait HasCartLayout
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setCartChildLayout(string $layout): static
     {
@@ -249,7 +249,7 @@ trait HasCartLayout
      * The child layout name ('' when none).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getCartChildLayout(): string
     {
@@ -264,7 +264,7 @@ trait HasCartLayout
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setCartChildLayoutData(array|object $data): static
     {
@@ -277,7 +277,7 @@ trait HasCartLayout
      * The display data for the child layout.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getCartChildLayoutData(): array|object
     {
@@ -292,7 +292,7 @@ trait HasCartLayout
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setCartChildLayoutPluginType(string $type): static
     {
@@ -305,7 +305,7 @@ trait HasCartLayout
      * The plugin group set for this child layout ('' = let the orchestrator default it).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getCartChildLayoutPluginType(): string
     {
@@ -320,7 +320,7 @@ trait HasCartLayout
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setCartChildLayoutPluginName(string $name): static
     {
@@ -333,7 +333,7 @@ trait HasCartLayout
      * The plugin element set for this child layout ('' = let the orchestrator default it).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getCartChildLayoutPluginName(): string
     {

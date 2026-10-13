@@ -37,7 +37,7 @@ defined('_JEXEC') or die;
  * was issued under, and rendering asks THIS class rather than the currency
  * table. The accident becomes a rule, and the rule is right at every scale.
  *
- * @since  1.13.0
+ * @since  2.0.0
  */
 final class DocumentMoney
 {
@@ -63,7 +63,7 @@ final class DocumentMoney
      *
      * @return callable(float): string
      *
-     * @since  1.13.0
+     * @since  2.0.0
      */
     public static function formatter(?object $document): callable
     {
@@ -89,7 +89,7 @@ final class DocumentMoney
      * @return callable(float|int|string, float|int|string, float|int|string, float|int|string|null=): string
      *                                                                                                        (unit, lineTotal, quantity, rate)
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function unitFormatter(?object $document): callable
     {
@@ -130,7 +130,7 @@ final class DocumentMoney
      * @throws OrderCurrencyException When the document names no currency and
      *                                neither does its order.
      *
-     * @since  1.13.0
+     * @since  2.0.0
      */
     public static function currencyOf(?object $document): Currency
     {
@@ -179,7 +179,7 @@ final class DocumentMoney
      * @param object|null $document The document row.
      *
      *
-     * @since  1.13.0
+     * @since  2.0.0
      */
     public static function scaleOf(?object $document): int
     {

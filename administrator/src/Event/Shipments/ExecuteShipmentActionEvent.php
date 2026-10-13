@@ -79,7 +79,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
      * the reader, so nothing is decoded twice.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getOrderShipment(): Shipment
     {
@@ -276,7 +276,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function addButton(string $label, array $opts = []): static
     {
@@ -296,7 +296,7 @@ class ExecuteShipmentActionEvent extends AbstractImmutableEvent
     /**
      * @return array The declared footer buttons.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getButtons(): array
     {

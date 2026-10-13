@@ -50,7 +50,7 @@ use Throwable;
  * Transactions: by default create() runs inside its own transaction.
  * Callers that already hold one (checkout) pass manageTransaction: false.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class OrderCreator
 {
@@ -67,7 +67,7 @@ final class OrderCreator
      * column is VARCHAR(255)) but a combined name joined with ' + ' can.
      * Clamping there beats losing the sale to a label.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const TAX_NAME_MAX = 255;
 
@@ -121,7 +121,7 @@ final class OrderCreator
      * @throws RuntimeException On invalid drafts or write failures (after
      *                          rollback when this call owns the transaction).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function create(array $draft, bool $manageTransaction = true): object
     {
@@ -347,7 +347,7 @@ final class OrderCreator
      * @param int $statusId Status PK.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function mayCreateInto(int $statusId): bool
     {
@@ -364,7 +364,7 @@ final class OrderCreator
      * @param int $statusId Status PK.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function statusRequiresPayment(int $statusId): bool
     {
@@ -377,7 +377,7 @@ final class OrderCreator
      * @param int $statusId Status PK.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function statusAllowsUnpaidException(int $statusId): bool
     {
@@ -391,7 +391,7 @@ final class OrderCreator
      * @param string $column Flag column.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function statusFlag(int $statusId, string $column): bool
     {
@@ -416,7 +416,7 @@ final class OrderCreator
      *
      * @return int New order PK.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function insertOrder(object $db, array $draft, int $statusId): int
     {
@@ -516,7 +516,7 @@ final class OrderCreator
      *
      * @return int New order-item PK.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function insertLine(object $db, int $orderId, array $draft, array $line, Currency $currency): int
     {
@@ -623,7 +623,7 @@ final class OrderCreator
      *
      * @return string The name as it will be stored.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function clampTaxName(string $name, string $context): string
     {
@@ -653,7 +653,7 @@ final class OrderCreator
      *
      * @return array{customer_name: string, customer_email: string, customer_is_guest: int}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function customerSnapshot(object $db, array $draft, int $userId): array
     {
@@ -709,7 +709,7 @@ final class OrderCreator
      * @param int $statusId Landing status.
      * @param array $draft The order draft (source tag, actor).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function logCreation(object $db, int $orderId, int $statusId, array $draft): void
     {
@@ -744,7 +744,7 @@ final class OrderCreator
      *
      * @throws RuntimeException When the configured currency does not exist.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function defaultCurrencyId(object $db): int
     {
@@ -770,7 +770,7 @@ final class OrderCreator
     /**
      * Current identity id, tolerant of console contexts.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function currentUserId(): int
     {

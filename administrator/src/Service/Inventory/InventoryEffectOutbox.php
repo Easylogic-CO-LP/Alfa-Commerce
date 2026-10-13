@@ -74,7 +74,7 @@ use Throwable;
  * applying once. Underneath both, the effect itself is still capped by the
  * ledger, so even a pathological double-apply cannot exceed what was deducted.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class InventoryEffectOutbox
 {
@@ -87,7 +87,7 @@ final class InventoryEffectOutbox
      * Refused by the inventory service in a way a retry cannot change: never
      * claimable, re-opened only when the producer re-states the obligation.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const STATUS_REFUSED = 'refused';
 
@@ -98,7 +98,7 @@ final class InventoryEffectOutbox
      * The notice raised for owed movements nothing has announced: a request that was
      * cut off cannot warn about itself.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const NOTICE_STRANDED = 'inventory.effects.stranded';
 
@@ -107,7 +107,7 @@ final class InventoryEffectOutbox
      * them, and a drain raises one for every refusal it meets; this class, which
      * knows what is still owed, retires them.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const ORDER_NOTICE_PREFIX = 'orders.transition.stockfailed.';
     public const DOCUMENT_NOTICE_PREFIX = 'documents.stockfailed.';
@@ -115,7 +115,7 @@ final class InventoryEffectOutbox
     /**
      * Minutes between checks from the notification bell, like the integrity check.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private const NOTICE_CHECK_MINUTES = 10;
 
@@ -144,7 +144,7 @@ final class InventoryEffectOutbox
      * @param bool $restate Whether a settled obligation may be revived.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function enqueue(
         string $sourceType,
@@ -225,7 +225,7 @@ final class InventoryEffectOutbox
      *
      * @return list<array{source_type: string, source_id: int}> The obligations queued again.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function rearmRefused(int $orderId): array
     {
@@ -296,7 +296,7 @@ final class InventoryEffectOutbox
      *
      * @return array{claimed: int, applied: int, failed: int, refused: int, results: array, errors: array, refusals: array, refusalReasons: array, reservedFloor: array}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function drain(
         int $limit = 25,
@@ -423,7 +423,7 @@ final class InventoryEffectOutbox
      * @param string $onlySourceType Restrict to one producing domain, or ''.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function candidates(
         object $db,
@@ -469,7 +469,7 @@ final class InventoryEffectOutbox
      *
      * @return bool True when this worker owns the row.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function claim(object $db, int $id, string $token, int $staleSeconds): bool
     {
@@ -508,7 +508,7 @@ final class InventoryEffectOutbox
      *                        must not be recorded.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function settle(
         object $db,
@@ -550,7 +550,7 @@ final class InventoryEffectOutbox
      *
      * @return string {@see self::STATUS_REFUSED} or {@see self::STATUS_FAILED}.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function classify(Throwable $failure): string
     {
@@ -584,7 +584,7 @@ final class InventoryEffectOutbox
      * @param Throwable $failure The refusal.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function refusalReason(Throwable $failure): string
     {
@@ -653,7 +653,7 @@ final class InventoryEffectOutbox
      * @param bool $terminal Whether a retry cannot apply the obligation.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function announceRefusal(
         object $row,
@@ -735,7 +735,7 @@ final class InventoryEffectOutbox
      *                   leaves the obligation retryable, or refused when a
      *                   retry cannot apply it.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function apply(object $row): ?array
     {
@@ -783,7 +783,7 @@ final class InventoryEffectOutbox
      * @param Throwable $failure What failed.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function endsTransaction(Throwable $failure): bool
     {
@@ -800,7 +800,7 @@ final class InventoryEffectOutbox
      *
      * @return int[] The order line ids.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function documentOrderLines(int $documentId): array
     {
@@ -844,7 +844,7 @@ final class InventoryEffectOutbox
      *                          its message is the operator's sentence.
      * @throws Throwable Whatever the reconciliation throws.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function applyOrderClaim(int $orderId): array
     {
@@ -892,7 +892,7 @@ final class InventoryEffectOutbox
      *
      * @return string The dedup key of that order's failed-stock notice.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function orderNoticeKey(int $orderId): string
     {
@@ -904,7 +904,7 @@ final class InventoryEffectOutbox
      *
      * @return string The dedup key of that document's failed-stock notice.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function documentNoticeKey(int $documentId): string
     {
@@ -933,7 +933,7 @@ final class InventoryEffectOutbox
      *
      * @return array Options for NotificationHelper::push().
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function noticeOptions(string $message, bool $refused = false): array
     {
@@ -958,7 +958,7 @@ final class InventoryEffectOutbox
      * @param int|null $staleSeconds Age after which a claim counts as abandoned.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function outstandingCount(?int $staleSeconds = null): int
     {
@@ -978,7 +978,7 @@ final class InventoryEffectOutbox
      * line is resolved.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function refusedCount(): int
     {
@@ -1002,7 +1002,7 @@ final class InventoryEffectOutbox
      *
      * @return object[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function strandedRows(int $limit = 200, ?int $staleSeconds = null): array
     {
@@ -1033,7 +1033,7 @@ final class InventoryEffectOutbox
      * opens a screen raises it for it.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function syncNotice(): void
     {
@@ -1062,7 +1062,7 @@ final class InventoryEffectOutbox
      *
      * @return bool Always true, for the cache callback.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function doSyncNotice(): bool
     {
@@ -1115,7 +1115,7 @@ final class InventoryEffectOutbox
      *
      * @return int How many warnings were retired.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function retireSettledNotices(): int
     {
@@ -1144,7 +1144,7 @@ final class InventoryEffectOutbox
      *
      * @return bool Whether any movement for it is still outstanding.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function owes(string $kind, int $id): bool
     {
@@ -1169,7 +1169,7 @@ final class InventoryEffectOutbox
      * @param string $key The dedup key.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function retireNotice(string $key): void
     {
@@ -1196,7 +1196,7 @@ final class InventoryEffectOutbox
      *
      * @return string SQL condition.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function claimableWhere(object $db, int $staleSeconds): string
     {

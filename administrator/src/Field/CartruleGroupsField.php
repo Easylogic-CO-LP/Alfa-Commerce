@@ -52,7 +52,7 @@ use Throwable;
  * a type the user may not view is kept as it is: its type and values post back
  * unchanged, shown by id, with no search and no other type to switch to.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 class CartruleGroupsField extends FormField
 {
@@ -61,14 +61,14 @@ class CartruleGroupsField extends FormField
      *
      * @var string
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected $type = 'CartruleGroups';
 
     /**
      * Placeholder indexes in the clone templates, swapped for real ones on add.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private const GROUP_PLACEHOLDER = '__GIDX__';
     private const CONDITION_PLACEHOLDER = '__CIDX__';
@@ -78,7 +78,7 @@ class CartruleGroupsField extends FormField
      *
      * @var int
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private const FIRST_PAGE = 30;
 
@@ -87,7 +87,7 @@ class CartruleGroupsField extends FormField
      *
      * @var array<string, string>
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private const TYPES = [
         'items' => 'COM_ALFA_CARTRULE_CONDITION_ITEMS',
@@ -100,7 +100,7 @@ class CartruleGroupsField extends FormField
      *
      * @var string[]|null
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private ?array $readableTypes = null;
 
@@ -108,7 +108,7 @@ class CartruleGroupsField extends FormField
      * Render the builder: the saved tree, the clone templates, the add button.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function getInput(): string
     {
@@ -148,7 +148,7 @@ class CartruleGroupsField extends FormField
      *
      * @return string[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function readableTypes(): array
     {
@@ -170,7 +170,7 @@ class CartruleGroupsField extends FormField
      *
      * @return array<int, array{min_quantity: int, conditions: array}>
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function normalise($value): array
     {
@@ -207,7 +207,7 @@ class CartruleGroupsField extends FormField
      * @param array $group The group data.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function groupRow(string $gi, array $group): string
     {
@@ -251,7 +251,7 @@ class CartruleGroupsField extends FormField
      * @param array $condition The condition data.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function conditionRow(string $gi, string $ci, array $condition): string
     {
@@ -301,7 +301,7 @@ class CartruleGroupsField extends FormField
      * @param array $selected Chosen ids.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function valuesPicker(string $name, string $type, array $selected): string
     {
@@ -354,7 +354,7 @@ class CartruleGroupsField extends FormField
      * @param array $selected Chosen ids.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function lockedValues(string $name, string $type, array $selected): string
     {
@@ -387,7 +387,7 @@ class CartruleGroupsField extends FormField
      *
      * @return array<int, string> id => label
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function labelsFor(string $type, array $ids): array
     {
@@ -435,7 +435,7 @@ class CartruleGroupsField extends FormField
      *
      * @return array<int, array{value: string, text: string}>
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function firstPage(string $type): array
     {
@@ -477,7 +477,7 @@ class CartruleGroupsField extends FormField
      *
      * @return array{0: string, 1: string}
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function source(string $type): array
     {
@@ -493,7 +493,7 @@ class CartruleGroupsField extends FormField
      * no match type: there is nothing a new condition could match by.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function templates(): string
     {
@@ -520,7 +520,7 @@ class CartruleGroupsField extends FormField
      * @param string $value Raw value.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function esc(string $value): string
     {

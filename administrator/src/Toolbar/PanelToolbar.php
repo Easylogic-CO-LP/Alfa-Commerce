@@ -29,7 +29,7 @@ use Joomla\CMS\Toolbar\Toolbar;
  * adapts and every plugin keeps working. For anything not wrapped here, {@see self::joomla()}
  * returns the raw Toolbar: an escape hatch, not the default path.
  *
- * @since  1.7.0
+ * @since  2.0.0
  */
 final class PanelToolbar
 {
@@ -47,7 +47,7 @@ final class PanelToolbar
      * reads on the buttons, not the task verbs behind them ('new' is the New button even
      * though its task is panel.add).
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const NATIVE_NEW = 'new';
     public const NATIVE_DELETE = 'delete';
@@ -56,14 +56,14 @@ final class PanelToolbar
 
     /**
      * @var array<string, bool> The native buttons this panel has vetoed, by button name.
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private array $suppressed = [];
 
     /**
      * @param Toolbar $toolbar The native toolbar this adapts.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function __construct(private readonly Toolbar $toolbar)
     {
@@ -96,7 +96,7 @@ final class PanelToolbar
      * @throws InvalidArgumentException On a name that is not a native button; caught before any
      *                                  veto is recorded, so a typo cannot half-configure the bar.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function suppressNative(string ...$buttons): static
     {
@@ -130,7 +130,7 @@ final class PanelToolbar
      * @param string $button A NATIVE_* button name.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function isSuppressed(string $button): bool
     {
@@ -142,7 +142,7 @@ final class PanelToolbar
      *
      * @param string $verb The task verb (default 'add').
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function addNew(string $verb = 'add'): static
     {
@@ -156,11 +156,11 @@ final class PanelToolbar
      *
      * @param string $verb The task verb (default 'edit').
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function edit(string $verb = 'edit'): static
     {
-        $this->toolbar->editList($this->task($verb));
+        $this->toolbar->edit($this->task($verb))->listCheck(true);
 
         return $this;
     }
@@ -171,7 +171,7 @@ final class PanelToolbar
      * @param string $verb The task verb (default 'delete').
      * @param string $message Confirm message language key.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function delete(string $verb = 'delete', string $message = 'JGLOBAL_CONFIRM_DELETE'): static
     {
@@ -187,7 +187,7 @@ final class PanelToolbar
      *
      * @param string $verb The task verb (default 'publish').
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function publish(string $verb = 'publish'): static
     {
@@ -201,7 +201,7 @@ final class PanelToolbar
      *
      * @param string $verb The task verb (default 'unpublish').
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function unpublish(string $verb = 'unpublish'): static
     {
@@ -218,7 +218,7 @@ final class PanelToolbar
      * @param string $text Button label (a language key or literal).
      * @param bool $listCheck Whether it requires a checked row.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function custom(string $verb, string $icon, string $text, bool $listCheck = false): static
     {
@@ -244,7 +244,7 @@ final class PanelToolbar
      * @param string $url Target URL.
      * @param string $icon Icon name (without the icon- prefix); '' for none.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function link(string $text, string $url, string $icon = ''): static
     {
@@ -263,7 +263,7 @@ final class PanelToolbar
      * The raw Joomla toolbar: for buttons this adapter does not wrap. An escape hatch;
      * prefer the methods above so the common surface stays insulated from Joomla churn.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function joomla(): Toolbar
     {
@@ -279,7 +279,7 @@ final class PanelToolbar
      *
      * @throws InvalidArgumentException When the verb already carries a controller prefix.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     private function task(string $verb): string
     {

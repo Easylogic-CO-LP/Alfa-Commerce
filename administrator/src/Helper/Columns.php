@@ -31,7 +31,7 @@ defined('_JEXEC') or die;
  * table stays rectangular. A cell whose data resolver returns null renders
  * empty: every row always emits every cell.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class Columns
 {
@@ -40,7 +40,7 @@ final class Columns
      *
      * @var string
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public const END = '';
 
@@ -53,7 +53,7 @@ final class Columns
      *
      * @return array<string, array[]> anchor => descriptors.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function prepare(array $columns, array $anchors): array
     {
@@ -75,7 +75,7 @@ final class Columns
      *
      * @return string The rendered header cells ('' when none).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function heads(array $byAnchor, string $anchor): string
     {
@@ -99,7 +99,7 @@ final class Columns
      *
      * @return string The rendered cells ('' when none).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function cells(array $byAnchor, string $anchor, object $row): string
     {

@@ -47,7 +47,7 @@ defined('_JEXEC') or die;
  * a rule whose leaves are all skipped leaves the field VISIBLE. A present
  * field with no value is NOT neutral: that is a real "not set" fact.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class RuleEvaluator
 {
@@ -70,7 +70,7 @@ final class RuleEvaluator
      * @param StateBag $bag The state every consumer reads.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function isVisible(?array $rule, StateBag $bag): bool
     {
@@ -96,7 +96,7 @@ final class RuleEvaluator
      *
      * @return bool|null Null = neutral (no evaluable leaf in this form).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function matches(array $node, StateBag $bag): ?bool
     {
@@ -152,7 +152,7 @@ final class RuleEvaluator
      * @param mixed $value The rule's compare value (id, array of ids, or primitive).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function compare(mixed $current, string $operator, mixed $value): bool
     {
@@ -187,7 +187,7 @@ final class RuleEvaluator
      * @param mixed $value A two-element bounds array.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function isBetween(mixed $current, mixed $value): bool
     {
@@ -207,7 +207,7 @@ final class RuleEvaluator
      * @param mixed $value The value to test.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function isEmpty(mixed $value): bool
     {
@@ -225,7 +225,7 @@ final class RuleEvaluator
      *
      * @return string[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function toStringList(mixed $value): array
     {
@@ -246,7 +246,7 @@ final class RuleEvaluator
      * @param mixed $value The primitive.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function toString(mixed $value): string
     {
@@ -263,7 +263,7 @@ final class RuleEvaluator
      * @param mixed $value Scalar, array, or null.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function toFloat(mixed $value): float
     {

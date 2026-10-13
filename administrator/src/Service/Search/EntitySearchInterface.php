@@ -36,7 +36,7 @@ defined('_JEXEC') or die;
  * question only ever matters for the other entities; answering true for ITEM is
  * still required, so a caller may probe uniformly.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 interface EntitySearchInterface
 {
@@ -47,7 +47,7 @@ interface EntitySearchInterface
      *
      * @return bool True when a search for this entity would scan real documents.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function canSearch(SearchEntity $entity): bool;
 }

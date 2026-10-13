@@ -30,7 +30,7 @@ use Throwable;
  * column -> `documents.<doc_type>.default`. Layouts obey the dompdf-safe
  * subset documented in layouts/documents/partials/style.php (header docblock).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class DocumentRenderer
 {
@@ -51,7 +51,7 @@ final class DocumentRenderer
      *
      * @throws RuntimeException When the document does not exist.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function render(int $documentId): string
     {
@@ -141,7 +141,7 @@ final class DocumentRenderer
      * @return array<int, array{type: string, name: string}> Ordered entries,
      *                                                       type 'position'|'struct'; struct names are partial layout ids.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function discoverSequence(string $layoutId): array
     {
@@ -202,7 +202,7 @@ final class DocumentRenderer
      *
      * @return string[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function discoverPositions(string $layoutId): array
     {
@@ -233,7 +233,7 @@ final class DocumentRenderer
      * @return string Default HTML, or '' when no language in the chain
      *                translates the key.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function defaultContent(string $position, string $langTag): string
     {
@@ -253,7 +253,7 @@ final class DocumentRenderer
      *
      * @return array<string, string> position => default HTML.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function defaultsForLanguage(string $layoutId, string $langTag): array
     {
@@ -280,7 +280,7 @@ final class DocumentRenderer
      *
      * @return array<string, string>
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function structFlags(?object $series): array
     {
@@ -318,7 +318,7 @@ final class DocumentRenderer
      *
      * @return array<string, string> position name => resolved HTML.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function positionContent(?object $series, object $document, string $layoutId): array
     {
@@ -402,7 +402,7 @@ final class DocumentRenderer
      * partials read, with renderable empties.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function skeletonDocument(): object
     {
@@ -431,7 +431,7 @@ final class DocumentRenderer
      *
      * @return string Layout id, e.g. 'documents.invoice.default'.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function layoutId(object $document, ?object $series): string
     {
@@ -452,7 +452,7 @@ final class DocumentRenderer
      *
      * @return string A layout id guaranteed to resolve.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function defaultLayoutId(string $docType): string
     {
@@ -475,7 +475,7 @@ final class DocumentRenderer
      * @param string $layoutId Layout id in dot notation.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function layoutExists(string $layoutId): bool
     {
@@ -499,7 +499,7 @@ final class DocumentRenderer
      *
      * @return string[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function enabledAdminTemplates(): array
     {
@@ -527,7 +527,7 @@ final class DocumentRenderer
     /**
      * Load a series row (null when the document has none yet: drafts).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function loadSeries(object $db, int $seriesId): ?object
     {
@@ -548,7 +548,7 @@ final class DocumentRenderer
     /**
      * Load a bare document header (corrective reference display).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function loadHeader(object $db, int $documentId): ?object
     {
@@ -565,7 +565,7 @@ final class DocumentRenderer
     /**
      * Load the document's lines in sort order.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function loadLines(object $db, int $documentId): array
     {
@@ -583,7 +583,7 @@ final class DocumentRenderer
     /**
      * Load the frozen per-rate VAT summary rows.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function loadTaxes(object $db, int $documentId): array
     {

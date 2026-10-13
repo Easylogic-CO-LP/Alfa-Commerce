@@ -58,7 +58,7 @@
  * Results live in a plain property rather than event arguments, like the cart layouts on
  * the sibling events, to avoid Joomla's onSet/set magic-argument trap.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\ItemFields;
@@ -73,7 +73,7 @@ class ValueFacetGroupsEvent extends AbstractImmutableEvent
      * Group memberships per value id, as the type reported them.
      *
      * @var array<int, array<int, array>>
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private array $groups = [];
 
@@ -81,14 +81,14 @@ class ValueFacetGroupsEvent extends AbstractImmutableEvent
      * Per-value chip layouts, as the type reported them.
      *
      * @var array<int, array{layout: string, layoutData: array}>
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private array $valueLayouts = [];
 
     /**
      * Whether this FIELD wants its values grouped by default, as the type reported it.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private bool $fieldGrouping = false;
 
@@ -96,7 +96,7 @@ class ValueFacetGroupsEvent extends AbstractImmutableEvent
      * The field definition being asked about (id, type, params, ...).
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getField(): object
     {
@@ -109,7 +109,7 @@ class ValueFacetGroupsEvent extends AbstractImmutableEvent
      *
      * @return array<int, array>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getValues(): array
     {
@@ -142,7 +142,7 @@ class ValueFacetGroupsEvent extends AbstractImmutableEvent
      * @param array $groups Ordered list of membership descriptors.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function putValueGroups(int $valueId, array $groups): void
     {
@@ -171,7 +171,7 @@ class ValueFacetGroupsEvent extends AbstractImmutableEvent
      * @param array $data Data for that layout.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function putValueLayout(int $valueId, string $layout, array $data = []): void
     {
@@ -191,7 +191,7 @@ class ValueFacetGroupsEvent extends AbstractImmutableEvent
      *
      * @return array<int, array{layout: string, layoutData: array}>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getValueLayouts(): array
     {
@@ -209,7 +209,7 @@ class ValueFacetGroupsEvent extends AbstractImmutableEvent
      * @param bool $grouping True when this field's values should be grouped by default.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function putFieldGrouping(bool $grouping): void
     {
@@ -220,7 +220,7 @@ class ValueFacetGroupsEvent extends AbstractImmutableEvent
      * The field's own grouping default.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getFieldGrouping(): bool
     {
@@ -232,7 +232,7 @@ class ValueFacetGroupsEvent extends AbstractImmutableEvent
      *
      * @return array<int, array<int, array>>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getGroups(): array
     {

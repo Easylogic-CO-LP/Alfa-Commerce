@@ -23,7 +23,7 @@ use Joomla\CMS\Factory;
  * Plain English on purpose: this runs inside the installer, where the plugin's
  * language file may not be loaded yet, and a key would render raw.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 class PlgAlfaShipmentsStandardInstallerScript
 {
@@ -37,7 +37,7 @@ class PlgAlfaShipmentsStandardInstallerScript
      *
      * @return bool Always true.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function postflight(string $type, object $adapter): bool
     {
@@ -61,7 +61,7 @@ class PlgAlfaShipmentsStandardInstallerScript
      *
      * @return string[] What could not be done, in words; empty when the table is complete.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function completeLogTable(): array
     {

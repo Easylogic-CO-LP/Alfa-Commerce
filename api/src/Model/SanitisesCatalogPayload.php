@@ -34,7 +34,7 @@ use Joomla\CMS\Factory;
  *     payment/shipment method carries its decoded `params`, i.e. gateway
  *     merchant ids, API keys and client secrets. Those are stripped here.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 trait SanitisesCatalogPayload
 {
@@ -48,7 +48,7 @@ trait SanitisesCatalogPayload
      * ?currency= and ?place= makes the dimension explicit instead of implied.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function applyPricingContext(): void
     {
@@ -72,7 +72,7 @@ trait SanitisesCatalogPayload
      * @param object $item Item assembled by a site model, modified in place.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function sanitiseCatalogItem(object $item): void
     {
@@ -143,7 +143,7 @@ trait SanitisesCatalogPayload
      * @param PriceResult $price The priced result.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function catalogPrice(PriceResult $price): array
     {
@@ -176,7 +176,7 @@ trait SanitisesCatalogPayload
      * @param int|null $scale The priced result's currency scale, or null when the item has none.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function projectFieldGraph(object $item, ?int $scale): void
     {

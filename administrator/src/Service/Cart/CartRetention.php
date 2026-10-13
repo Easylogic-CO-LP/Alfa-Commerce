@@ -44,21 +44,21 @@ use Joomla\CMS\Factory;
  * than clamped, because a caller asking for something that dangerous is a caller
  * whose intent cannot be guessed.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartRetention
 {
     /**
      * Days of silence after which an EMPTY cart is disposable.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const EMPTY_RETENTION_DAYS = 7;
 
     /**
      * Days of silence after which a cart WITH LINES is disposable.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const LINES_RETENTION_DAYS = 90;
 
@@ -69,7 +69,7 @@ final class CartRetention
      * below this is refused. It is the difference between a retention policy
      * and an accident.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const MINIMUM_RETENTION_DAYS = 1;
 
@@ -79,7 +79,7 @@ final class CartRetention
      *
      * @throws InvalidArgumentException When either window is below the floor.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         private int $emptyAfterDays = self::EMPTY_RETENTION_DAYS,
@@ -103,7 +103,7 @@ final class CartRetention
      * @param string|null $now The moment to measure from; the clock when omitted.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function emptyExpiredBefore(?string $now = null): string
     {
@@ -116,7 +116,7 @@ final class CartRetention
      * @param string|null $now The moment to measure from; the clock when omitted.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function linesExpiredBefore(?string $now = null): string
     {
@@ -134,7 +134,7 @@ final class CartRetention
      * @param string $linesBefore From linesExpiredBefore().
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function isExpired(object $cart, string $emptyBefore, string $linesBefore): bool
     {
@@ -152,7 +152,7 @@ final class CartRetention
     /**
      * @return array{empty: int, lines: int, floor: int} The windows in force.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function windows(): array
     {
@@ -168,7 +168,7 @@ final class CartRetention
      * @param string|null $now The moment to measure from.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function minus(int $days, ?string $now): string
     {

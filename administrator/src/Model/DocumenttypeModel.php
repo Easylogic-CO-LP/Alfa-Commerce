@@ -31,7 +31,7 @@ use Joomla\CMS\Language\Text;
  * provider declares it. Core rows are never deletable, and no type is
  * deleted while a credit type is set to correct it.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class DocumenttypeModel extends AlfaAdminModel
 {
@@ -39,7 +39,7 @@ class DocumenttypeModel extends AlfaAdminModel
      * The admin-contract entity this model serves.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'documenttype';
 
@@ -57,7 +57,7 @@ class DocumenttypeModel extends AlfaAdminModel
 
     /**
      * @var string Message prefix for translations.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected $text_prefix = 'COM_ALFA_DOCUMENTTYPE';
 
@@ -65,7 +65,7 @@ class DocumenttypeModel extends AlfaAdminModel
      * Registry-owned columns a form POST may never touch.
      *
      * @var string[]
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private const PROTECTED_COLUMNS = [
         'alias', 'family', 'quantity_pool', 'shows_prices', 'movement_mode',
@@ -81,7 +81,7 @@ class DocumenttypeModel extends AlfaAdminModel
      *
      * @return \Joomla\CMS\Form\Form|false
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getForm($data = [], $loadData = true)
     {
@@ -100,7 +100,7 @@ class DocumenttypeModel extends AlfaAdminModel
      *
      * @return mixed Object on success, false on failure.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function getItem($pk = null)
     {
@@ -118,7 +118,7 @@ class DocumenttypeModel extends AlfaAdminModel
      *
      * @return mixed
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function loadFormData()
     {
@@ -142,7 +142,7 @@ class DocumenttypeModel extends AlfaAdminModel
      *
      * @return bool
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function save($data)
     {
@@ -206,7 +206,7 @@ class DocumenttypeModel extends AlfaAdminModel
      *
      * @return string HTML-safe: the message queue prints it as given.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function pairingRefusal(PairingRefusedException $refusal): string
     {
@@ -235,7 +235,7 @@ class DocumenttypeModel extends AlfaAdminModel
      *
      * @return bool
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function canDelete($record)
     {
@@ -278,7 +278,7 @@ class DocumenttypeModel extends AlfaAdminModel
      *
      * @return string[]
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function pairedBy(string $alias): array
     {
@@ -301,7 +301,7 @@ class DocumenttypeModel extends AlfaAdminModel
      * @param string $alias The type alias.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function isReferenced(string $alias): bool
     {

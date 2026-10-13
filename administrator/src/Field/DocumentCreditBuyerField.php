@@ -33,7 +33,7 @@ use RuntimeException;
  * picker names (the same pattern as the charge groups). They hold no form
  * control at all, so nothing in them can post, visible or not.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 class DocumentCreditBuyerField extends FormField
 {
@@ -41,7 +41,7 @@ class DocumentCreditBuyerField extends FormField
      * The field type.
      *
      * @var string
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected $type = 'DocumentCreditBuyer';
 
@@ -51,7 +51,7 @@ class DocumentCreditBuyerField extends FormField
      * @return string The field HTML, or nothing when the order has nothing a credit may correct
      *                or can take no credit at all.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     protected function getInput(): string
     {
@@ -125,7 +125,7 @@ class DocumentCreditBuyerField extends FormField
      *
      * @return array<string, string> Language key => value.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private function rows(array $block): array
     {
@@ -153,7 +153,7 @@ class DocumentCreditBuyerField extends FormField
      *
      * @return string Empty.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     protected function getLabel(): string
     {

@@ -36,7 +36,7 @@ use Throwable;
  * The WRITE side lives exclusively in DocumentIssuer; nothing here
  * mutates rows.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class DocumentHelper
 {
@@ -72,7 +72,7 @@ final class DocumentHelper
      * The column carries NO database default either, so a writer that forgets
      * the lifecycle intent fails loudly instead of persisting a silent zero.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public const STATUS_ISSUED = 1;
     public const STATUS_VOIDED = 2;
@@ -90,7 +90,7 @@ final class DocumentHelper
      *
      * @return array<string, object>
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function typeRows(): array
     {
@@ -123,7 +123,7 @@ final class DocumentHelper
      * @param string $docType The type alias.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function typeRow(string $docType): ?object
     {
@@ -140,7 +140,7 @@ final class DocumentHelper
      * @param string $docType The type alias.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function typeLabel(string $docType, string $langTag = ''): string
     {
@@ -190,7 +190,7 @@ final class DocumentHelper
      *
      * @return string[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function types(): array
     {
@@ -210,7 +210,7 @@ final class DocumentHelper
      *
      * @return string[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function salesTypes(): array
     {
@@ -222,7 +222,7 @@ final class DocumentHelper
      *
      * @return string[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function creditTypes(): array
     {
@@ -237,7 +237,7 @@ final class DocumentHelper
      *
      * @return string[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function aliasesByPool(string $pool): array
     {
@@ -264,7 +264,7 @@ final class DocumentHelper
      *
      * @return string[] The sales type aliases; empty for none or an unknown alias.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function correctedTypes(string $creditType): array
     {
@@ -289,7 +289,7 @@ final class DocumentHelper
      *                                                                       paired lists the enabled ones and disabled the disabled ones, each
      *                                                                       in registry order.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function pairedCreditType(string $salesType): object
     {
@@ -327,7 +327,7 @@ final class DocumentHelper
      * @param object $row The registry row.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function pairingIsDeclared(object $row): bool
     {
@@ -340,7 +340,7 @@ final class DocumentHelper
      * @param string $docType The type alias.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function poolOf(string $docType): string
     {
@@ -353,7 +353,7 @@ final class DocumentHelper
      * @param string $docType The type alias.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function familyOf(string $docType): string
     {
@@ -368,7 +368,7 @@ final class DocumentHelper
      * @param string $docType The type alias.
      *
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public static function stockEffectForDocument(string $docType, bool $isCombined): string
     {
@@ -409,7 +409,7 @@ final class DocumentHelper
      * @param string $docType The type alias.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function stockEffectOf(string $docType): string
     {
@@ -423,7 +423,7 @@ final class DocumentHelper
      * @param string $docType The type alias.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function isFiscal(string $docType): bool
     {
@@ -441,7 +441,7 @@ final class DocumentHelper
      * @param string $docType The type alias.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function requiresBuyerVat(string $docType): bool
     {
@@ -461,7 +461,7 @@ final class DocumentHelper
      * @param string $docType The type alias.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function requiresMovement(string $docType): bool
     {
@@ -475,7 +475,7 @@ final class DocumentHelper
      * @param string $docType The type alias.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function supportsMovement(string $docType): bool
     {
@@ -491,7 +491,7 @@ final class DocumentHelper
      *
      * @return bool True when com_alfa is the issuer.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function isIssuerEnabled(): bool
     {
@@ -510,7 +510,7 @@ final class DocumentHelper
      *
      * @return object|null The row, or null when no such document exists.
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     public static function getById(int $documentId): ?object
     {
@@ -534,7 +534,7 @@ final class DocumentHelper
      *
      * @return object[] Header rows + series_code/series_prefix.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function getForOrder(int $orderId): array
     {
@@ -577,7 +577,7 @@ final class DocumentHelper
      *                anomalies: array<int, array{kind: string, at: int}>}.
      *                A document that does not exist reads as an empty chain.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function replacementChain(int $documentId): object
     {
@@ -756,7 +756,7 @@ final class DocumentHelper
      * @param object $document The document row (id, doc_type, is_combined).
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function movesStock(object $document): bool
     {
@@ -793,7 +793,7 @@ final class DocumentHelper
      *
      * @return array<int, float> Document id => credited total, tax included.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function creditedTotals(array $documentIds): array
     {
@@ -833,7 +833,7 @@ final class DocumentHelper
      *
      * @return float Credited total, tax included.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function creditedTotal(int $documentId): float
     {
@@ -867,7 +867,7 @@ final class DocumentHelper
      *
      * @return object[] The correctable subset, in the given order.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function correctableDocuments(array $documents): array
     {
@@ -898,7 +898,7 @@ final class DocumentHelper
      *
      * @return array<int, float> id_order_item => consumed quantity.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function consumedQuantities(int $orderId, array $docTypes): array
     {
@@ -973,7 +973,7 @@ final class DocumentHelper
      *
      * @return array<int, array{incl: float, excl: float}> id_order_item => documented value.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function consumedAmounts(int $orderId, array $docTypes): array
     {
@@ -1024,7 +1024,7 @@ final class DocumentHelper
      *
      * @return array<int, array{ordered: float, remaining: float}> keyed by order line id.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function remainingQuantities(int $orderId, string $docType): array
     {
@@ -1083,7 +1083,7 @@ final class DocumentHelper
      *
      * @return int|null Series PK, or null when none is nominated.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function defaultSeriesId(string $docType): ?int
     {
@@ -1113,7 +1113,7 @@ final class DocumentHelper
      *
      * @return object[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function seriesForType(string $docType): array
     {
@@ -1142,7 +1142,7 @@ final class DocumentHelper
      * @param int $localYear The shop-timezone year of issuance.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function formatNumber(object $series, int $number, int $localYear): string
     {
@@ -1166,7 +1166,7 @@ final class DocumentHelper
      * of the component is untouched.
      *
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     public static function shopTimezone(): DateTimeZone
     {
@@ -1181,7 +1181,7 @@ final class DocumentHelper
      *
      * @return string Language tag, e.g. 'en-GB'.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function defaultLanguageTag(): string
     {
@@ -1212,7 +1212,7 @@ final class DocumentHelper
      *
      * @throws RuntimeException When the document does not exist.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function creditLanguageTag(int $correctsId): string
     {

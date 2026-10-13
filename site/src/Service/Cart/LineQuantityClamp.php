@@ -26,11 +26,11 @@ defined('_JEXEC') or die;
  * holds of the same thing), hands them over, and tells the shopper what the
  * decision meant.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class LineQuantityClamp
 {
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function __construct(
         private readonly CartRepository $repository,
         private readonly CartMessaging $messaging,
@@ -46,7 +46,7 @@ final class LineQuantityClamp
      * @param int $quantity What was asked for.
      * @param int $excludeLineId A line not to count as already held.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function allowed(int $cartId, object $item, ?int $combinationId, int $quantity, int $excludeLineId = 0): int
     {
@@ -80,7 +80,7 @@ final class LineQuantityClamp
      *
      * @return int|null The quantity, or null when the cart may hold none that is charged.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function smallestCharged(int $cartId, object $item, ?int $combinationId, int $from, array $tierStarts, Closure $unitAt, Currency $currency, int $excludeLineId = 0): ?int
     {
@@ -109,7 +109,7 @@ final class LineQuantityClamp
      *
      * @return array{0: float|null, 1: float} The ceiling (null when nothing limits it) and the pooled draw.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function shelf(int $cartId, object $item, ?int $combinationId, int $excludeLineId): array
     {

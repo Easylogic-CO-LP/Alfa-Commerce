@@ -38,7 +38,7 @@ use Throwable;
  * Notification NEVER fails a save: the catalogue is the source of truth and has
  * already been written; a stale copy is recoverable, a lost edit is not.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 final class EntityChangeNotifier
 {
@@ -52,7 +52,7 @@ final class EntityChangeNotifier
      *                      re-read); false for every other change.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function changed(string $entity, array $ids, bool $removed = false): void
     {

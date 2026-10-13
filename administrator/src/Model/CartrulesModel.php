@@ -17,7 +17,7 @@ use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 /**
  * Cart rules list model.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class CartrulesModel extends AlfaListModel
 {
@@ -25,7 +25,7 @@ class CartrulesModel extends AlfaListModel
      * The admin-contract entity this list serves.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'cartrule';
 
@@ -35,7 +35,7 @@ class CartrulesModel extends AlfaListModel
      * @param array $config Configuration array.
      * @param MVCFactoryInterface|null $factory MVC factory.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct($config = [], ?MVCFactoryInterface $factory = null)
     {
@@ -62,7 +62,7 @@ class CartrulesModel extends AlfaListModel
      *
      * @return \Joomla\Database\DatabaseQuery
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function getListQuery()
     {
@@ -137,7 +137,7 @@ class CartrulesModel extends AlfaListModel
 
         $orderCol = $this->state->get('list.ordering', 'a.priority');
         $orderDirn = $this->state->get('list.direction', 'ASC');
-        $query->order($db->escape($orderCol . ' ' . $orderDirn));
+        $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDirn) === 'DESC' ? 'DESC' : 'ASC'));
 
         return $query;
     }
@@ -149,7 +149,7 @@ class CartrulesModel extends AlfaListModel
      *
      * @return string
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function getStoreId($id = '')
     {

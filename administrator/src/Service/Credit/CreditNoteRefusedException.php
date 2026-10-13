@@ -55,7 +55,7 @@ use RuntimeException;
  * plain words on that pay-in; a screen without one names only the failure, and
  * the log keeps the reason.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class CreditNoteRefusedException extends RuntimeException
 {
@@ -64,7 +64,7 @@ final class CreditNoteRefusedException extends RuntimeException
      * @param string $hint What else staff can do, as one plain sentence, for a reason
      *                     that has such advice; it holds only before a number is drawn.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function __construct(private readonly string $reason, private readonly string $hint = '')
     {
@@ -77,7 +77,7 @@ final class CreditNoteRefusedException extends RuntimeException
      * refusal before a number is drawn shows.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function reason(): string
     {
@@ -89,7 +89,7 @@ final class CreditNoteRefusedException extends RuntimeException
      * that sentence says what to do with the note, so the hint is left out.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function reasonWithoutHint(): string
     {

@@ -45,86 +45,86 @@ use Joomla\Input\Input;
  * works out from where the action goes. The task it submits still checks for itself: hiding a
  * control is not what protects the data.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 final class ActionBuilder
 {
     /**
      * @var string Label language key.
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private string $title = '';
 
     /**
      * @var string Icon class (Joomla's icomoon set, e.g. 'icon-refresh').
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private string $icon = '';
 
     /**
      * @var string The controller task the action submits.
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private string $task = '';
 
     /**
      * @var string A navigation URL, for actions that only go somewhere.
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private string $url = '';
 
     /**
      * @var string Confirmation prompt language key ('' = act immediately).
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private string $confirm = '';
 
     /**
      * @var string Extra CSS classes for the rendered control.
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private string $cssClass = '';
 
     /**
      * @var string The layout that renders the action ('' = the default button).
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private string $layout = '';
 
     /**
      * @var Closure|null Per-row data resolver: fn (object $row): array|object|null.
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private ?Closure $data = null;
 
     /**
      * @var string The plugin group owning the layout.
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private string $pluginType = '';
 
     /**
      * @var string The plugin element owning the layout.
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private string $pluginName = '';
 
     /**
      * @var string The permission the plugin declared ('' = let Alfa work it out).
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private string $access = '';
 
     /**
      * @var string The asset the declared permission is asked on.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private string $accessAsset = 'com_alfa';
 
     /**
      * @param string $key The action's identity key (unique per contributor).
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function __construct(private readonly string $key)
     {
@@ -137,7 +137,7 @@ final class ActionBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function title(string $title): static
     {
@@ -153,7 +153,7 @@ final class ActionBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function icon(string $icon): static
     {
@@ -169,7 +169,7 @@ final class ActionBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function task(string $task): static
     {
@@ -186,7 +186,7 @@ final class ActionBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function url(string $url): static
     {
@@ -203,7 +203,7 @@ final class ActionBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function confirm(string $message): static
     {
@@ -219,7 +219,7 @@ final class ActionBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function cssClass(string $cssClass): static
     {
@@ -241,7 +241,7 @@ final class ActionBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function access(string $action, string $asset = 'com_alfa'): static
     {
@@ -258,7 +258,7 @@ final class ActionBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function setLayout(string $layout): static
     {
@@ -276,7 +276,7 @@ final class ActionBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function setData(Closure $data): static
     {
@@ -292,7 +292,7 @@ final class ActionBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function setPluginType(string $type): static
     {
@@ -308,7 +308,7 @@ final class ActionBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function setPluginName(string $name): static
     {
@@ -323,7 +323,7 @@ final class ActionBuilder
      * none of the three is dropped rather than rendered as a dead control.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function isActionable(): bool
     {
@@ -344,7 +344,7 @@ final class ActionBuilder
      *                                                                                                                                                 a screen for AlfaHelper::mayOpenScreen(), an empty array when nothing is needed, or
      *                                                                                                                                                 null when nothing can tell.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function permission(): ?array
     {
@@ -377,7 +377,7 @@ final class ActionBuilder
      *
      * @return array{section: string, action: string}|array{screen: string, layout: string, id: int}|array{}|null
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function linkPermission(string $url): ?array
     {
@@ -445,7 +445,7 @@ final class ActionBuilder
      *               confirm: string, cssClass: string, layout: string, layoutPluginType: string,
      *               layoutPluginName: string, data: ?Closure, access: string}
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function toDescriptor(): array
     {

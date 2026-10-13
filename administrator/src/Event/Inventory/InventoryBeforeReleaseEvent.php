@@ -18,14 +18,14 @@ use Joomla\CMS\Event\AbstractEvent;
  * opens. Read-only payload; a subscriber vetoes by throwing (nothing
  * was released yet).
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 class InventoryBeforeReleaseEvent extends AbstractEvent
 {
     /**
      * @return string The reservation source domain.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function getSourceType(): string
     {
@@ -35,7 +35,7 @@ class InventoryBeforeReleaseEvent extends AbstractEvent
     /**
      * @return int The source row id.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function getSourceId(): int
     {
@@ -45,7 +45,7 @@ class InventoryBeforeReleaseEvent extends AbstractEvent
     /**
      * @return string The target release state (released|cancelled|expired).
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function getToState(): string
     {

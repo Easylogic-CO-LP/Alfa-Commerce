@@ -21,7 +21,7 @@ namespace Alfa\Component\Alfa\Administrator\Provider;
  * implemented interfaces and subscribed events), never in manifest
  * metadata.
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 interface ReservationPolicyInterface
 {
@@ -32,7 +32,7 @@ interface ReservationPolicyInterface
      *                      (id, status, totals; shape of the order table).
      *
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function shouldReserve(object $order): bool;
 }

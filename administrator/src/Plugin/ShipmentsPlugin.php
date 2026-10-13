@@ -185,7 +185,7 @@ abstract class ShipmentsPlugin extends Plugin
     /**
      * This family answers on the shipment.* controller.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function transportTask(): string
     {
@@ -390,7 +390,7 @@ abstract class ShipmentsPlugin extends Plugin
      *
      * @return int WRITE_OK | WRITE_RACED | WRITE_FAILED
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function settleAttempt(
         ShipmentLedger $write,
@@ -460,7 +460,7 @@ abstract class ShipmentsPlugin extends Plugin
      * PER REQUEST, NOT PER PROCESS. It was static once, so one cart's refusal
      * reason leaked into the next cart quoted in the same request.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private string $refusal = '';
 
@@ -476,7 +476,7 @@ abstract class ShipmentsPlugin extends Plugin
      *
      * @return string The language key.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     final protected function refusalKey(string $reason): string
     {
@@ -491,7 +491,7 @@ abstract class ShipmentsPlugin extends Plugin
      * only see `null` would pass while the carrier blamed the wrong dimension.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     final public function refusal(): string
     {
@@ -548,7 +548,7 @@ abstract class ShipmentsPlugin extends Plugin
      *
      * @return string|null The refusal language key, or null when it can be carried.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function parcelRefusal(array $lines, array $limits): ?string
     {
@@ -609,7 +609,7 @@ abstract class ShipmentsPlugin extends Plugin
      *
      * @return float|null The price, or NULL when this carrier cannot carry the cart.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     final public function costFromZones(
         array $zones,
@@ -729,7 +729,7 @@ abstract class ShipmentsPlugin extends Plugin
      *                    meant to win. NULL is "no row fits", which the caller
      *                    turns into a refusal. Returning 0 for both is what
      *                    made an oversized cart ship free.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     final public function cheapestMatchingCost(
         array $products,
@@ -778,7 +778,7 @@ abstract class ShipmentsPlugin extends Plugin
      *
      * @param CartLine[] $products What there is to carry.
      * @return array ['width' => float, 'height' => float, 'depth' => float, 'weight' => float]
-     * @since  1.10.0
+     * @since  2.0.0
      */
     final public function packageOf(array $products): array
     {

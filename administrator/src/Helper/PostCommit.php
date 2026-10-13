@@ -37,7 +37,7 @@ defined('_JEXEC') or die;
  * TransactionState::commitLevel() or rollBackLevel(): a plain commit or
  * rollback of the driver leaves the work waiting.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class PostCommit
 {
@@ -46,7 +46,7 @@ final class PostCommit
      *
      * @var WeakMap<DatabaseDriver, list<array{level: int, label: string, work: callable}>>|null
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static ?WeakMap $queues = null;
 
@@ -61,7 +61,7 @@ final class PostCommit
      * @param callable $work fn(): void.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function defer(DatabaseDriver $db, string $label, callable $work): void
     {
@@ -90,7 +90,7 @@ final class PostCommit
      * @param DatabaseDriver $db The connection.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function flush(DatabaseDriver $db): void
     {
@@ -114,7 +114,7 @@ final class PostCommit
      * @param int $fromDepth The outermost level rolled back; 1 = every level.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function drop(DatabaseDriver $db, int $fromDepth = 1): void
     {
@@ -144,7 +144,7 @@ final class PostCommit
      * @param int $level The level that was released (2 or deeper).
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function release(DatabaseDriver $db, int $level): void
     {
@@ -173,7 +173,7 @@ final class PostCommit
      * @param callable $work The work.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function run(DatabaseDriver $db, string $label, callable $work): void
     {
@@ -210,7 +210,7 @@ final class PostCommit
      * @param string $entry The line.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function report(string $entry): void
     {
@@ -226,7 +226,7 @@ final class PostCommit
      * The queues, made on first use.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function queues(): WeakMap
     {

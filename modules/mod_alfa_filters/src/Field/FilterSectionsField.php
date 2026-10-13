@@ -35,7 +35,7 @@ defined('_JEXEC') or die;
  * Grouping is not offered here. Whether a field's values collapse into groups is that
  * field's own setting and is deliberately not repeated per module.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class FilterSectionsField extends FormField
 {
@@ -43,7 +43,7 @@ class FilterSectionsField extends FormField
      * Field type id: must match the filename and the XML `type` attribute.
      *
      * @var string
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected $type = 'FilterSections';
 
@@ -51,7 +51,7 @@ class FilterSectionsField extends FormField
      * Build the composer.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function getInput(): string
     {
@@ -122,7 +122,7 @@ class FilterSectionsField extends FormField
      * registered there yet, hence the explicit registry file.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function loadAssets(): void
     {

@@ -16,7 +16,7 @@
  * No markup is created here. Rows are cloned from server-rendered <template>s.
  *
  * @package  Alfa Commerce
- * @since    1.9.0
+ * @since    2.0.0
  */
 ((document) => {
   'use strict';

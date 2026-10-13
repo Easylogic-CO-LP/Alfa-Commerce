@@ -86,32 +86,32 @@ use Throwable;
  * changed after it was invoiced is one too: a credit at the old ratio would
  * clear the gross and leave the VAT wrong.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class IncrementalCorrection
 {
-    /** @var string @since 1.3.0 */
+    /** @var string @since 2.0.0 */
     public const DIRECTION_NEGATIVE = 'negative';
 
-    /** @var string @since 1.3.0 */
+    /** @var string @since 2.0.0 */
     public const DIRECTION_POSITIVE = 'positive';
 
-    /** @var string @since 1.3.0 */
+    /** @var string @since 2.0.0 */
     public const DIRECTION_NONE = 'none';
 
-    /** @var string @since 1.3.0 */
+    /** @var string @since 2.0.0 */
     public const REASON_NO_DRIFT = 'no_drift';
 
-    /** @var string @since 1.3.0 */
+    /** @var string @since 2.0.0 */
     public const REASON_SEMANTIC_MISMATCH = 'semantic_mismatch';
 
-    /** @var string @since 1.3.0 */
+    /** @var string @since 2.0.0 */
     public const REASON_NO_SOURCE = 'no_source_document';
 
-    /** @var string @since 1.3.0 */
+    /** @var string @since 2.0.0 */
     public const REASON_POOL_EXHAUSTED = 'pool_exhausted';
 
-    /** @var string @since 1.3.0 */
+    /** @var string @since 2.0.0 */
     public const REASON_NO_SERIES = 'no_series';
 
     /**
@@ -119,7 +119,7 @@ final class IncrementalCorrection
      * no credit type is known to correct it and nothing is issued.
      *
      * @var string
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public const REASON_NO_CREDIT_TYPE = 'no_credit_type';
 
@@ -128,7 +128,7 @@ final class IncrementalCorrection
      * document's type; which one corrects it is not chosen for the shop.
      *
      * @var string
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public const REASON_CREDIT_TYPE_AMBIGUOUS = 'credit_type_ambiguous';
 
@@ -137,7 +137,7 @@ final class IncrementalCorrection
      * disabled, so none is issued: the refusal names them.
      *
      * @var string
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public const REASON_CREDIT_TYPE_DISABLED = 'credit_type_disabled';
 
@@ -146,7 +146,7 @@ final class IncrementalCorrection
      * of its status choose no sales type for it.
      *
      * @var string
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public const REASON_NO_SALES_TYPE = 'no_sales_type';
 
@@ -155,7 +155,7 @@ final class IncrementalCorrection
      * type of an additional one is not known.
      *
      * @var string
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public const REASON_SALES_TYPE_AMBIGUOUS = 'sales_type_ambiguous';
 
@@ -165,7 +165,7 @@ final class IncrementalCorrection
      * known.
      *
      * @var string
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public const REASON_SALES_RULES_DISAGREE = 'sales_rules_disagree';
 
@@ -173,7 +173,7 @@ final class IncrementalCorrection
      * The sales type an additional document would be issued as is disabled.
      *
      * @var string
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public const REASON_SALES_TYPE_DISABLED = 'sales_type_disabled';
 
@@ -189,7 +189,7 @@ final class IncrementalCorrection
      * keeps the charge-only test.
      *
      * @var string
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public const REASON_ZERO_TOTAL = 'zero_total';
 
@@ -202,7 +202,7 @@ final class IncrementalCorrection
      * again.
      *
      * @var string
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public const REASON_PREVIEW_CHANGED = 'preview_changed';
 
@@ -213,7 +213,7 @@ final class IncrementalCorrection
      * section 17 names a semantic mismatch, rather than corrected with money.
      *
      * @var string
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public const REASON_DISCOUNT_NOT_ADDITIVE = 'discount_not_additive';
 
@@ -227,7 +227,7 @@ final class IncrementalCorrection
      * which holds no tax ID; it is issued by hand, where one is entered.
      *
      * @var string
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public const REASON_BUYER_INSUFFICIENT = 'buyer_insufficient';
 
@@ -244,7 +244,7 @@ final class IncrementalCorrection
      *
      * @return object  {available, reason, detail, direction, draft, preview, fingerprint}
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     public static function propose(int $orderId, int $sourceDocumentId = 0, ?User $user = null): object
     {
@@ -463,7 +463,7 @@ final class IncrementalCorrection
      *
      * @throws RuntimeException When the issuer refuses the draft.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function issue(int $orderId, int $sourceId, string $fingerprint, ?User $user = null): object
     {
@@ -489,7 +489,7 @@ final class IncrementalCorrection
      * @param array $byKind ['shipping' => [id => amount], 'fees' => [id => amount]].
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function drifted(array $byKind): bool
     {
@@ -508,7 +508,7 @@ final class IncrementalCorrection
      *
      * @return array{positive: array<int, float>, negative: array<int, float>}
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     public static function lineDrift(int $orderId): array
     {
@@ -568,7 +568,7 @@ final class IncrementalCorrection
      *
      * @return string The type alias, or '' when no single credit type corrects it.
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     private static function creditTypeFor(int $sourceDocumentId): string
     {
@@ -590,7 +590,7 @@ final class IncrementalCorrection
      *
      * @return object The refusal.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function pairingRefusal(int $orderId, int $sourceDocumentId): object
     {
@@ -643,7 +643,7 @@ final class IncrementalCorrection
      *
      * @return object  {type: string, refusal: ?object} - the sales type, or '' and the refusal.
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     private static function positiveTypeFor(int $orderId): object
     {
@@ -720,7 +720,7 @@ final class IncrementalCorrection
      * @param array $buyer The buyer_* block the document is made out to.
      *
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     private static function proposal(
         string $direction,
@@ -819,7 +819,7 @@ final class IncrementalCorrection
      *
      * @return array{shipping: int[], fees: int[], rules: int[], amounts?: array}
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     public static function chargePicks(int $orderId, string $docType, int $correctsId): array
     {
@@ -849,7 +849,7 @@ final class IncrementalCorrection
      * @return object{picks: array{shipping: int[], fees: int[], rules: int[], amounts: array}, unabsorbed: object[]}
      *                                                                                                                `amounts` is [shipping => [id => incl], fees => [id => incl], rules => [id => incl]].
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function creditCharges(int $orderId, int $correctsId, object $charges): object
     {
@@ -882,7 +882,7 @@ final class IncrementalCorrection
      *
      * @return array{shipping: int[], fees: int[], rules: int[]}
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function salesCharges(int $orderId, object $charges): array
     {
@@ -905,7 +905,7 @@ final class IncrementalCorrection
      *
      * @return string "SAVE10 (goods_credited), WELCOME (tax_changed)"
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function blockedDetail(array $blocked): string
     {
@@ -928,7 +928,7 @@ final class IncrementalCorrection
      *
      * @return array buyer_* draft keys; empty when the order cannot be read.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function orderBuyer(int $orderId): array
     {
@@ -945,7 +945,7 @@ final class IncrementalCorrection
      *
      * @return string[] The missing buyer_* keys; empty when nothing is missing.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function missingBuyer(string $docType, array $buyer): array
     {
@@ -965,7 +965,7 @@ final class IncrementalCorrection
      * @param string $direction Which way the drift ran, if known.
      *
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     private static function refused(string $reason, string $detail, string $direction): object
     {

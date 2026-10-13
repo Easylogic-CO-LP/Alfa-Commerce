@@ -22,7 +22,7 @@ defined('_JEXEC') or die;
  * The slice is `['value' => <id|ids|null>]`: a stable id, an array of ids for a
  * multi-select, or null when nothing is selected (the bag treats null as "not set").
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class EnumerableFieldState
 {
@@ -34,7 +34,7 @@ final class EnumerableFieldState
      *
      * @return array{value: int|int[]|null}
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function of(object $field, object $item): array
     {

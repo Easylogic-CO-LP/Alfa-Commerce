@@ -420,7 +420,7 @@ class Router extends RouterView
      *
      * @return \Joomla\Database\QueryInterface
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function buildItemAliasQuery(string $segment)
     {

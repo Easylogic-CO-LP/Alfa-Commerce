@@ -27,7 +27,7 @@ defined('_JEXEC') or die;
  * reach the figure it is about to move. The rule the docblock states is
  * enforced by which class is handed over, not by leaving the caller in the dark.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class ContributionRequest
 {
@@ -37,7 +37,7 @@ final class ContributionRequest
      * @param Cart $cart The cart being charged against, entire but for
      *                   the lines flagged unavailable.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly array $lines,

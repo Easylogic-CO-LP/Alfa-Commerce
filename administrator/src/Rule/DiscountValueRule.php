@@ -33,7 +33,7 @@ use UnexpectedValueException;
  * says the same thing for a writer that never reaches a form, and the pricing
  * engine keeps its own defensive clamp for values that never pass a save at all.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class DiscountValueRule extends FormRule
 {
@@ -48,7 +48,7 @@ class DiscountValueRule extends FormRule
      *
      * @throws UnexpectedValueException With a translated message the operator reads.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function test(SimpleXMLElement $element, $value, $group = null, ?Registry $input = null, ?Form $form = null)
     {

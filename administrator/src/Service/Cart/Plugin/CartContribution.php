@@ -35,7 +35,7 @@ defined('_JEXEC') or die;
  * cart rules engine: a negative contribution would bypass the discount
  * accounting. Credits may extend the vocabulary later.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class CartContribution
 {
@@ -50,7 +50,7 @@ final class CartContribution
      * @param int $sortOrder Fold/display order; lower folds first.
      * @param string $source Owning plugin element (the collector fills it when empty).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly string $code,

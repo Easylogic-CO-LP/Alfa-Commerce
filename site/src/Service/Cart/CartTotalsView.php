@@ -21,7 +21,7 @@ defined('_JEXEC') or die;
  * resolved once when the snapshot is assembled and never re-asked, so two reads
  * of the same snapshot cannot disagree.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartTotalsView
 {
@@ -38,7 +38,7 @@ final class CartTotalsView
      * @param Money $grand What the shopper pays.
      * @param Money $grandExcl The same, tax excluded.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly Money $goods,

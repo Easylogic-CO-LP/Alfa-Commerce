@@ -24,7 +24,7 @@ use SimpleXMLElement;
  * both run Form::validate() against the XML this rule is attached to, so the
  * same guard fires on every tier's save. 0 is valid (= show everything).
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 class ListLimitRule extends FormRule
 {
@@ -36,7 +36,7 @@ class ListLimitRule extends FormRule
      * @param Form $form The form
      *
      * @return bool True when the value is a whole number or empty
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function test(SimpleXMLElement $element, $value, $group = null, ?Registry $input = null, ?Form $form = null)
     {

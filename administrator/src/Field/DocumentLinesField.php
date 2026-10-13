@@ -42,7 +42,7 @@ use Joomla\Database\ParameterType;
  * Posts as lines[<id>][selected] and lines[<id>][quantity], the shape
  * OrderItemLines::buildSalesLines() and buildCreditLines() read.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class DocumentLinesField extends FormField
 {
@@ -50,7 +50,7 @@ class DocumentLinesField extends FormField
      * The field type.
      *
      * @var string
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected $type = 'DocumentLines';
 
@@ -59,7 +59,7 @@ class DocumentLinesField extends FormField
      *
      * @return string The field HTML.
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     protected function getInput(): string
     {
@@ -168,7 +168,7 @@ class DocumentLinesField extends FormField
      *
      * @return string The group's table, hidden until the script shows it.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private function creditGroup(object $doc, ?array $kept): string
     {
@@ -218,7 +218,7 @@ class DocumentLinesField extends FormField
      *
      * @return string The <thead> and the opening <tbody>.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private function tableHead(): string
     {
@@ -241,7 +241,7 @@ class DocumentLinesField extends FormField
      *
      * @return string For example "2", "0.5" or "0.125".
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function quantityText(float $quantity): string
     {
@@ -259,7 +259,7 @@ class DocumentLinesField extends FormField
      *
      * @return array<int, object> The line rows.
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     private function orderLines(int $orderId): array
     {
@@ -279,7 +279,7 @@ class DocumentLinesField extends FormField
      *
      * @return string Empty.
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     protected function getLabel(): string
     {

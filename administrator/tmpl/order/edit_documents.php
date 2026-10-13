@@ -22,7 +22,7 @@
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 
 \defined('_JEXEC') or die;
@@ -474,7 +474,7 @@ echo HTMLHelper::_(
          * Reload the order edit page by submitting the form with a
          * special "reload" task. This preserves the current tab state
          * and shows a Joomla loading spinner during the reload.
-         * @since  1.3.0
+         * @since  2.0.0
          */
         function reloadOrderPage() {
             var orderForm = document.querySelector('#order-form');
@@ -501,7 +501,7 @@ echo HTMLHelper::_(
          * the per-document Void modal that names its document.
          *
          * @param {number|undefined} documentId  Set by a void, absent on an issue.
-         * @since  1.3.0
+         * @since  2.0.0
          */
         function closeModal() {
             // Several modals share this message (Issue, Void, Correct and

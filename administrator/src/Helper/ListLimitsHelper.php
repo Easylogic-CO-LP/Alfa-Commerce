@@ -23,7 +23,7 @@ use Joomla\CMS\Language\Text;
  * time, but the DB can be written directly, so consumers go through parse()
  * and never trust the raw string.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 abstract class ListLimitsHelper
 {
@@ -36,7 +36,7 @@ abstract class ListLimitsHelper
      * @param string $raw The stored setting value
      *
      * @return int[] Clean sizes; empty when nothing valid is configured
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function parse(string $raw): array
     {
@@ -64,7 +64,7 @@ abstract class ListLimitsHelper
      * @param int[] $sizes Parsed sizes
      *
      * @return string Display label, '' for an empty list
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function label(array $sizes): string
     {

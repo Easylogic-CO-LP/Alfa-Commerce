@@ -24,7 +24,7 @@ defined('_JEXEC') or die;
  * caller renders nothing) must not pay for a reading nobody displays. So the
  * snapshot is here when the caller shows one and null when it does not.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartMutationResult
 {
@@ -34,7 +34,7 @@ final class CartMutationResult
      * @param CartSnapshot|null $snapshot One settled reading taken after the change,
      *                                    or null when the caller renders nothing.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly bool $succeeded,

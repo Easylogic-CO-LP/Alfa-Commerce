@@ -38,7 +38,7 @@ defined('_JEXEC') or die;
  *   selector templates read the graft back off them. Offers here are a read
  *   projection; a selector that needs the decorated ones still asks the cart.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartSnapshot
 {
@@ -55,7 +55,7 @@ final class CartSnapshot
      * @param User $customer Whose cart it is.
      * @param int|null $placeId The delivery place fixed for this request.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly int $cartId,
@@ -75,7 +75,7 @@ final class CartSnapshot
     /**
      * @return bool Whether there is nothing in it.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function isEmpty(): bool
     {
@@ -85,7 +85,7 @@ final class CartSnapshot
     /**
      * @return bool Whether a cart was found at all.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function exists(): bool
     {

@@ -29,19 +29,19 @@ defined('_JEXEC') or die;
  * keeps the driver's own message only in the previous exception, where a
  * presentation layer will not reach for it by accident.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartPersistenceException extends RuntimeException
 {
     /**
      * @var string The repository operation that failed.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private string $operation;
 
     /**
      * @var int The cart the operation concerned; 0 when it spanned several.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private int $cartId;
 
@@ -50,7 +50,7 @@ final class CartPersistenceException extends RuntimeException
      * @param int $cartId The cart concerned, or 0.
      * @param Throwable $previous The driver failure.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(string $operation, int $cartId, Throwable $previous)
     {
@@ -68,7 +68,7 @@ final class CartPersistenceException extends RuntimeException
      * The repository operation that failed.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getOperation(): string
     {
@@ -79,7 +79,7 @@ final class CartPersistenceException extends RuntimeException
      * The cart the failed operation concerned; 0 when it spanned several.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getCartId(): int
     {
@@ -91,7 +91,7 @@ final class CartPersistenceException extends RuntimeException
      * message. Never show this to a shopper.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getLogDetail(): string
     {

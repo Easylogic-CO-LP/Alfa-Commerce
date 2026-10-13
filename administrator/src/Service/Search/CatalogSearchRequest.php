@@ -27,7 +27,7 @@ defined('_JEXEC') or die;
  * its own configuration to these named arguments instead; that mapping is a handful of
  * lines and it keeps the boundary honest.
  *
- * @since  1.6.0
+ * @since  2.0.0
  */
 final class CatalogSearchRequest
 {
@@ -57,7 +57,7 @@ final class CatalogSearchRequest
      *                        own price (per user/group/currency). FALSE skips the
      *                        whole pricing pass, the expensive one.
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly string $keyword,

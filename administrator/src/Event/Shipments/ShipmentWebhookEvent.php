@@ -42,7 +42,7 @@ use BadMethodCallException;
  * The subject is NULL until the plugin resolves the parcel from its own
  * payload; a static webhook URL names no order, by design.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class ShipmentWebhookEvent extends ShipmentsEvent
 {
@@ -56,7 +56,7 @@ class ShipmentWebhookEvent extends ShipmentsEvent
      *
      * @throws BadMethodCallException If 'subject' or 'method' is missing
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct($name, array $arguments = [])
     {
@@ -71,7 +71,7 @@ class ShipmentWebhookEvent extends ShipmentsEvent
      *
      * @return Order|null The loaded order object, or null
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getOrder(): ?Order
     {
@@ -85,7 +85,7 @@ class ShipmentWebhookEvent extends ShipmentsEvent
      *
      * @param int $code HTTP status code (2xx acknowledges, 5xx requests a retry)
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function setResponseCode(int $code): void
     {
@@ -97,7 +97,7 @@ class ShipmentWebhookEvent extends ShipmentsEvent
      *
      * @return int Defaults to 200 (acknowledge)
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getResponseCode(): int
     {
@@ -109,7 +109,7 @@ class ShipmentWebhookEvent extends ShipmentsEvent
      *
      * @param string $body Response body
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function setResponseBody(string $body): void
     {
@@ -121,7 +121,7 @@ class ShipmentWebhookEvent extends ShipmentsEvent
      *
      * @return string Defaults to 'OK'
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getResponseBody(): string
     {
@@ -133,7 +133,7 @@ class ShipmentWebhookEvent extends ShipmentsEvent
      *
      * @param string $contentType Content-Type header value
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function setContentType(string $contentType): void
     {
@@ -145,7 +145,7 @@ class ShipmentWebhookEvent extends ShipmentsEvent
      *
      * @return string Defaults to 'text/plain; charset=utf-8'
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getContentType(): string
     {
@@ -159,7 +159,7 @@ class ShipmentWebhookEvent extends ShipmentsEvent
      * @param array $payload Data to encode as the JSON body
      * @param int $code HTTP status code
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function setJsonResponse(array $payload, int $code = 200): void
     {

@@ -36,14 +36,14 @@ defined('_JEXEC') or die;
  * principals, so this costs nothing today; it exists so that installing an engine
  * cannot introduce a leak in a class the engine author never sees.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class MemoizedSearchProvider implements SearchProviderInterface
 {
     /**
      * @var array<string, SearchResult>
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private static array $cache = [];
 
@@ -51,7 +51,7 @@ final class MemoizedSearchProvider implements SearchProviderInterface
      * @param SearchProviderInterface $inner The provider whose results are memoised.
      * @param string $scope Distinguishes provider compositions sharing the cache.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function __construct(
         private readonly SearchProviderInterface $inner,
@@ -65,7 +65,7 @@ final class MemoizedSearchProvider implements SearchProviderInterface
      * @param SearchQuery $query The normalised search request.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function search(SearchQuery $query): SearchResult
     {
@@ -86,7 +86,7 @@ final class MemoizedSearchProvider implements SearchProviderInterface
      * @param SearchQuery $query The request being keyed.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function keyFor(SearchQuery $query): string
     {

@@ -57,7 +57,7 @@ defined('_JEXEC') or die;
  * It is also the same line the robots rule already draws, so a page that keeps its tiles is
  * exactly a page that stays indexable.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class NarrowingFilters
 {
@@ -66,7 +66,7 @@ final class NarrowingFilters
      *
      * @var string[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private const EXEMPT = [
         'price_min',
@@ -82,7 +82,7 @@ final class NarrowingFilters
      * @param array<string, mixed> $activeFilters As returned by
      *                                            {@see \Alfa\Component\Alfa\Site\Model\UrlListModel::getActiveFilters()}.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function present(array $activeFilters): bool
     {
@@ -97,7 +97,7 @@ final class NarrowingFilters
      *
      * @return array<string, mixed> The same set minus {@see self::EXEMPT}.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function only(array $activeFilters): array
     {

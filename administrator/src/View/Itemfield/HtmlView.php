@@ -25,7 +25,7 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
  * per-value config are managed on this one screen; no separate values view.
  * Pricing and value-pair logic live with the ITEM (wizard + combinations).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class HtmlView extends FormView
 {
@@ -33,21 +33,21 @@ class HtmlView extends FormView
      * The admin-contract entity a plugin targets with $context->targets('itemfield').
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'itemfield';
 
     /**
      * @var array Content languages: [{tag, key, title}, ...] for the per-row name inputs.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public $contentLanguages = [];
 
     /**
      * @var string|null Path of the type plugin's params/value.xml (null = none).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public $valueXmlPath = null;
 
@@ -58,7 +58,7 @@ class HtmlView extends FormView
      *
      * @return void
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function initializeView()
     {
@@ -102,7 +102,7 @@ class HtmlView extends FormView
      *
      * @return void
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function addToolbar()
     {

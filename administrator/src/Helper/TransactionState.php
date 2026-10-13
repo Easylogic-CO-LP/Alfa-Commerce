@@ -38,7 +38,7 @@ defined('_JEXEC') or die;
  * it, so nothing deferred runs before the outermost commit or after a
  * rollback.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class TransactionState
 {
@@ -48,7 +48,7 @@ final class TransactionState
      * @param DatabaseDriver $db The connection.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function isOpen(DatabaseDriver $db): bool
     {
@@ -64,7 +64,7 @@ final class TransactionState
      * @param DatabaseDriver $db The connection.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function level(DatabaseDriver $db): int
     {
@@ -87,7 +87,7 @@ final class TransactionState
      *
      * @throws RuntimeException When no level is open: the work it was to commit is already gone.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function commitLevel(DatabaseDriver $db): void
     {
@@ -146,7 +146,7 @@ final class TransactionState
      *
      * @return bool True when no transaction is left on the connection.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function rollBackLevel(DatabaseDriver $db, ?Throwable $failure = null): bool
     {
@@ -206,7 +206,7 @@ final class TransactionState
      *
      * @return bool True when the failure must be rethrown.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function endedBy(DatabaseDriver $db, Throwable $failure): bool
     {
@@ -217,7 +217,7 @@ final class TransactionState
      * The driver's count of the transactions and savepoints it opened.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function depth(): ReflectionProperty
     {

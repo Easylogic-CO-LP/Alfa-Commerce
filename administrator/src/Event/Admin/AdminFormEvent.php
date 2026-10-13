@@ -42,13 +42,13 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  * plugin's own table written from onAlfaAdminAfterSave). A bare top-level field whose column
  * does not exist is dropped on save without a word.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 final class AdminFormEvent extends AlfaAdminEvent
 {
     /**
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const NAME = 'onAlfaAdminForm';
 }

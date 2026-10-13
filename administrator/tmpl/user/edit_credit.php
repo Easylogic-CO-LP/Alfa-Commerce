@@ -22,7 +22,7 @@
  * one through formaction. jform never rides along, so profile edits are
  * untouched (and unsaved ones are still lost; the hint says so).
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 
 defined('_JEXEC') or die;

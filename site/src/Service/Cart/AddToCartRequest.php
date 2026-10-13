@@ -22,7 +22,7 @@ defined('_JEXEC') or die;
  * line is being edited in a posted field. This is the one place they are
  * read; below it the add is a command and knows nothing of a request.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class AddToCartRequest
 {
@@ -31,7 +31,7 @@ final class AddToCartRequest
      * @param int $itemId The product.
      * @param int|float $quantity How many.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function command(Input $input, int $itemId, int|float $quantity): AddToCartCommand
     {

@@ -42,7 +42,7 @@ class MediaHelper
      * The capability group that owns media processing.
      *
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private const MEDIA_GROUP = 'alfa-media';
 
@@ -76,7 +76,7 @@ class MediaHelper
      * extension (e.g. a ".php" masquerading as an image).
      *
      * @var array<string, string>
-     * @since  1.3.1
+     * @since  2.0.0
      */
     private const MIME_EXTENSION_MAP = [
         'image/jpeg' => 'jpg',
@@ -118,7 +118,7 @@ class MediaHelper
      * @param string $url Client-supplied media source.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function isSafeRemoteUrl(string $url): bool
     {
@@ -149,7 +149,7 @@ class MediaHelper
      * @return string|null Canonical extension (e.g. "jpg"), or null when the file
      *                     is not a valid image of an allowed type.
      *
-     * @since  1.3.1
+     * @since  2.0.0
      */
     private static function validatedImageExtension(string $source, array $allowedMimes): ?string
     {
@@ -198,7 +198,7 @@ class MediaHelper
      *
      * @return bool True when GD can decode this format on this server.
      *
-     * @since  1.3.1
+     * @since  2.0.0
      */
     private static function gdCanDecode(string $mime): bool
     {
@@ -1644,7 +1644,7 @@ class MediaHelper
      *
      * @return AbstractEvent The same event, after every listener has (maybe) mutated it.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private static function dispatchMedia(AbstractEvent $event): AbstractEvent
     {

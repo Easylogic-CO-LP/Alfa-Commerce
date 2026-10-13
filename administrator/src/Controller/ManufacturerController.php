@@ -39,14 +39,14 @@ class ManufacturerController extends FormController
     /**
      * Base table backing the inline quick-edit endpoints.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private const INLINE_TABLE = '#__alfa_manufacturers';
 
     /**
      * Primary column of this entity's per-language aux tables.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private const INLINE_PRIMARY_COLUMN = 'id_manufacturer';
 
@@ -54,7 +54,7 @@ class ManufacturerController extends FormController
      * Translatable fields this list may quick-edit. Anything else is refused, so
      * a crafted request cannot reach a field the list does not render.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private const INLINE_FIELDS = ['name'];
 
@@ -66,7 +66,7 @@ class ManufacturerController extends FormController
      * (no fallback), so the editor shows empty where a translation is missing.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function inlineLoad(): void
     {
@@ -102,7 +102,7 @@ class ManufacturerController extends FormController
      * matching and the new one never does.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function inlineSave(): void
     {
@@ -156,7 +156,7 @@ class ManufacturerController extends FormController
      * @param int $manufacturerId The renamed manufacturer id.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function resyncLinkedItems(int $manufacturerId): void
     {

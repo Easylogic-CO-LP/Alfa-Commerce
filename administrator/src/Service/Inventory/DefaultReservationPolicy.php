@@ -18,7 +18,7 @@ use Alfa\Component\Alfa\Administrator\Provider\ReservationPolicyInterface;
  * it exists. Packages holding the commitment for a later business moment
  * (payment confirmation, approval) replace this via the policy seam.
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 final class DefaultReservationPolicy implements ReservationPolicyInterface
 {
@@ -27,7 +27,7 @@ final class DefaultReservationPolicy implements ReservationPolicyInterface
      *
      * @return bool Always true: reserve at placement.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function shouldReserve(object $order): bool
     {

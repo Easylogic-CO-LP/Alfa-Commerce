@@ -42,7 +42,7 @@ use Throwable;
  * The result is plain data the menu layout renders; the menu lives entirely inside our
  * own page, never injected into Joomla's chrome.
  *
- * @since  1.7.0
+ * @since  2.0.0
  */
 final class MenuBuilder
 {
@@ -51,7 +51,7 @@ final class MenuBuilder
      * request, and building it boots every alfa* plugin, so do it once.
      *
      * @var array<int, array{label:string, items:MenuItem[]}>|null
-     * @since  1.7.0
+     * @since  2.0.0
      */
     private static ?array $cache = null;
 
@@ -64,7 +64,7 @@ final class MenuBuilder
      * @return array<int, array{label:string, items:MenuItem[]}> Ordered groups; the
      *                                                           ungrouped bucket (label '') first.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function build(Input $input, User $user): array
     {
@@ -93,7 +93,7 @@ final class MenuBuilder
      *
      * @return string[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function accessOrder(): array
     {
@@ -115,7 +115,7 @@ final class MenuBuilder
      * Gather every entry, core and plugin, with the headings that place them.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function collect(): BuildMenuEvent
     {
@@ -149,7 +149,7 @@ final class MenuBuilder
      * @param string $panel Panel id.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function canAccessPanel(Input $input, User $user, string $group, string $element, string $panel): bool
     {
@@ -169,7 +169,7 @@ final class MenuBuilder
      *
      * @return string[]
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function panelLookups(Input $input, User $user, string $group, string $element, string $panel): array
     {
@@ -186,7 +186,7 @@ final class MenuBuilder
      * @param string $panel Panel id.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function panelItem(Input $input, User $user, string $group, string $element, string $panel): ?MenuItem
     {
@@ -208,14 +208,14 @@ final class MenuBuilder
      *
      * @return MenuItem[]
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     /**
      * The headings menu.xml places, keyed by language key.
      *
      * @return array<string, int>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function coreSections(): array
     {
@@ -303,7 +303,7 @@ final class MenuBuilder
      * @param Input $input The request.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     private function isActive(MenuItem $item, Input $input): bool
     {
@@ -332,7 +332,7 @@ final class MenuBuilder
      *
      * @return array<int, array{label:string, items:MenuItem[]}>
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     private function group(array $items, array $sections = []): array
     {

@@ -17,7 +17,7 @@ use Joomla\CMS\MVC\Controller\FormController;
 /**
  * Document series edit controller.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class SeriesController extends FormController
 {
@@ -25,7 +25,7 @@ class SeriesController extends FormController
 
     /**
      * @var string The URL view list variable.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected $view_list = 'documentseries';
 }

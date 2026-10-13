@@ -60,20 +60,20 @@ use Throwable;
  * transaction already open, so `transactionStart(true)` is used throughout: an
  * outer transaction gets a savepoint, a bare call gets a real transaction.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class CartRepository
 {
     /**
      * @var DatabaseInterface The connection every statement runs on.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private DatabaseInterface $db;
 
     /**
      * @param DatabaseInterface|null $db The connection; the container's when omitted.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(?DatabaseInterface $db = null)
     {
@@ -95,7 +95,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses a statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function insertLine(int $cartId, int $itemId, ?int $combinationId, int $quantity, array $selectionRows): int
     {
@@ -138,7 +138,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses a statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function replaceLineConfiguration(int $lineId, ?int $combinationId, int $quantity, array $selectionRows): void
     {
@@ -178,7 +178,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses the statement.
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public function setLineCustomPriceValue(int $lineId, ?float $amount, int $cartId = 0): void
     {
@@ -226,7 +226,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses the statement.
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public function loadLineCustomPrice(int $lineId, int $cartId = 0): ?float
     {
@@ -262,7 +262,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses the statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function setLineQuantityValue(int $lineId, int $quantity, int $cartId = 0): void
     {
@@ -293,7 +293,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses the statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function lineQuantity(int $cartId, int $lineId): int
     {
@@ -334,7 +334,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses for any other reason.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function holdCoupon(int $cartId, string $code): bool
     {
@@ -366,7 +366,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses the statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function dropCoupon(int $cartId, string $code): void
     {
@@ -402,7 +402,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses a statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function removeLine(int $cartId, int $lineId): bool
     {
@@ -462,7 +462,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses a statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function emptyCart(int $cartId): void
     {
@@ -513,7 +513,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses the statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function deleteCart(int $cartId): void
     {
@@ -560,7 +560,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses a statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function removeLinesForItems(array $itemIds): array
     {
@@ -581,7 +581,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses a statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function removeLinesForCombinations(array $combinationIds): array
     {
@@ -604,7 +604,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses a statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function removeSelectionsForFieldValues(array $valueIds): array
     {
@@ -621,7 +621,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses a statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function removeSelectionsForFields(array $fieldIds): array
     {
@@ -652,7 +652,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses the statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function deleteOrphanSelections(array $selectionIds): int
     {
@@ -687,7 +687,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses the statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function findOrphanSelections(int $limit = 1000): array
     {
@@ -721,7 +721,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses the statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function nextLineId(): int
     {
@@ -757,7 +757,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses the statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function findExpiredCartIds(string $emptyBefore, string $linesBefore, int $limit = 200): array
     {
@@ -806,7 +806,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses a statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function purgeCart(int $cartId, string $quietSince): bool
     {
@@ -875,7 +875,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses the statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function loadCartFor(CartOwner $owner): ?object
     {
@@ -909,7 +909,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses the statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function findCartIdFor(CartOwner $owner, int $excludeCartId = 0): int
     {
@@ -940,7 +940,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses the statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function loadCart(int $cartId): ?object
     {
@@ -978,7 +978,7 @@ class CartRepository
      * @param CartOwner $owner The shopper.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function ownerQuery(CartOwner $owner): \Joomla\Database\QueryInterface
     {
@@ -1010,7 +1010,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses the statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function insertCart(object $cart): int
     {
@@ -1048,7 +1048,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses the statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function setUserInfoPointers(int $cartId, int $deliveryId, ?int $invoiceId = null): void
     {
@@ -1087,7 +1087,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses the statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function setShipmentMethod(int $cartId, int $shipmentId, ?string $at = null): bool
     {
@@ -1104,7 +1104,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses the statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function setPaymentMethod(int $cartId, int $paymentId, ?string $at = null): bool
     {
@@ -1125,7 +1125,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses the statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function repointCurrency(array $fromCurrencyIds, int $toCurrencyId): int
     {
@@ -1168,7 +1168,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses the statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function claimCart(int $cartId, int $userId): bool
     {
@@ -1215,7 +1215,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses a statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function mergeCartInto(int $guestCartId, int $ownCartId): array
     {
@@ -1278,7 +1278,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses the statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function touch(int $cartId, ?string $at = null): bool
     {
@@ -1305,7 +1305,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses the statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function stampCarts(array $cartIds, ?string $at = null): int
     {
@@ -1343,7 +1343,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the read fails.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function loadLines(int $cartId): array
     {
@@ -1381,7 +1381,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the read fails.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function loadLine(int $lineId, int $cartId): ?object
     {
@@ -1414,7 +1414,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the read fails.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function lineBelongsTo(int $lineId, int $cartId): bool
     {
@@ -1446,7 +1446,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the read fails.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function findLinesForItem(int $cartId, int $itemId): array
     {
@@ -1477,7 +1477,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the read fails.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function loadSelectionRows(int $lineId): array
     {
@@ -1516,7 +1516,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the read fails.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function pooledQuantity(int $cartId, int $itemId, ?int $combinationId, int $excludeLineId = 0): float
     {
@@ -1565,7 +1565,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the read fails.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function loadCouponCodes(int $cartId): array
     {
@@ -1591,7 +1591,7 @@ class CartRepository
      * The moment a stamp records. UTC, in the format the columns store.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function now(): string
     {
@@ -1607,7 +1607,7 @@ class CartRepository
      * @param array $rows fieldId => ['value_id' => ?int, 'payload' => ?string].
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function writeSelections(int $lineId, array $rows): void
     {
@@ -1644,7 +1644,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses the statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function setMethodColumn(int $cartId, string $column, int $value, string $operation, ?string $at = null): bool
     {
@@ -1680,7 +1680,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses a statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function removeLinesMatching(string $column, array $values, string $operation): array
     {
@@ -1754,7 +1754,7 @@ class CartRepository
      *
      * @throws CartPersistenceException When the database refuses a statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function removeSelectionsMatching(string $column, array $values, string $operation): array
     {
@@ -1812,7 +1812,7 @@ class CartRepository
      *
      * @return int[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function ids(array $values): array
     {

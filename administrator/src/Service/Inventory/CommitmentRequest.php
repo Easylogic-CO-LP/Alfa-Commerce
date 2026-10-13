@@ -30,7 +30,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Inventory;
  *                           connectors - default)
  *   location_id    int|null pinned location; null = consume the line's allocation
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 final class CommitmentRequest
 {
@@ -39,7 +39,7 @@ final class CommitmentRequest
      * @param int $sourceId Trigger row id within its domain.
      * @param array $lines Fulfilment lines (see class docblock).
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly string $sourceType,

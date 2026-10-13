@@ -73,51 +73,51 @@ use Throwable;
  * that asked for it draws what it can: the dashboard is a report, and a report must
  * never be the reason an admin cannot work.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class DashboardStatsService
 {
     /**
      * @var int Seconds in a day, for the bucket arithmetic.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private const DAY = 86400;
 
     /**
      * @var int How long an order may sit before "sitting" is the finding; shared with
      *          the orders list, whose "Needs attention" filter counts the same way.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const STALE_HOURS = 48;
 
     /**
      * @var int How many products every caller asks for: ONE number, so the card and
      *          the best-seller-running-low signal share a single query.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const TOP_LIMIT = 8;
 
     /**
      * @var int Same, for cart rules.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const PROMO_LIMIT = 8;
 
     /**
      * @var int|null The store currency's row id, resolved once. -1 = none configured.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private ?int $currencyId = null;
 
     /**
      * @var string|null Window start, as a UTC SQL datetime.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private ?string $start = null;
 
     /**
      * @var string|null Window end (exclusive), as a UTC SQL datetime.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private ?string $end = null;
 
@@ -132,13 +132,13 @@ final class DashboardStatsService
      * the window is immutable, so an answer given once is the answer.
      *
      * @var array<string, mixed>
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private array $memo = [];
 
     /**
      * @var DateTimeImmutable Shop-local midnight the window opens on.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private readonly DateTimeImmutable $localStart;
 
@@ -146,13 +146,13 @@ final class DashboardStatsService
      * @var DateTimeImmutable Shop-local instant the window closes on: EXCLUSIVE, so a
      *                        window ending "on the 31st" runs to the last second of the 31st and never
      *                        swallows the first second of the 1st.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private readonly DateTimeImmutable $localEnd;
 
     /**
      * @var int Whole days in the window: the number of buckets a series has.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private readonly int $days;
 
@@ -169,7 +169,7 @@ final class DashboardStatsService
      * @param DateTimeImmutable|null $localStart Shop-local start (inclusive).
      * @param DateTimeImmutable|null $localEnd Shop-local end (inclusive, to the second).
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(int $days = 30, ?DateTimeImmutable $localStart = null, ?DateTimeImmutable $localEnd = null)
     {
@@ -202,7 +202,7 @@ final class DashboardStatsService
      * @param string $localEnd 'Y-m-d H:i:s' in shop time, '' for "now".
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function between(string $localStart, string $localEnd): self
     {
@@ -222,7 +222,7 @@ final class DashboardStatsService
      * The shop's timezone: every window is anchored on it, never on the viewer's.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function zone(): DateTimeZone
     {
@@ -239,7 +239,7 @@ final class DashboardStatsService
      * @return array{start: DateTimeImmutable, end: DateTimeImmutable} End is INCLUSIVE here
      *                                                                 (the last second), because that is how a human reads a range.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function bounds(): array
     {
@@ -265,7 +265,7 @@ final class DashboardStatsService
      *     others: int, noCurrency: int
      * }
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function money(): array
     {
@@ -438,7 +438,7 @@ final class DashboardStatsService
      *
      * @return array<int, array{id: int, name: string, quantity: int, revenue: float}>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function topProducts(int $limit = 8): array
     {
@@ -521,7 +521,7 @@ final class DashboardStatsService
      *
      * @return array<int, string> Product id => catalogue name.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function catalogueNames(array $ids): array
     {
@@ -556,7 +556,7 @@ final class DashboardStatsService
      *
      * @return array<int, string> Product id => resolved name.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function frozenNames(array $ids): array
     {
@@ -610,7 +610,7 @@ final class DashboardStatsService
      * @return array<int, array{id: int, name: string, code: string, class: string,
      *                          orders: int, discount: float, revenue: float}>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function promoImpact(int $limit = 8): array
     {
@@ -701,7 +701,7 @@ final class DashboardStatsService
      * @return array<int, array{key: string, count: int, money: float, extra: array}>
      *                                                                                Ranked, money first.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function attention(int $staleHours = self::STALE_HOURS): array
     {
@@ -758,7 +758,7 @@ final class DashboardStatsService
      * @param int $hours How long it may sit.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function unfulfilled(int $hours): ?array
     {
@@ -816,7 +816,7 @@ final class DashboardStatsService
      * @param int $hours How long it may sit before it counts as abandoned.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function unpaid(int $hours): ?array
     {
@@ -872,7 +872,7 @@ final class DashboardStatsService
      * ever.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function failedPayments(): ?array
     {
@@ -940,7 +940,7 @@ final class DashboardStatsService
      * number; "your best seller has 3 left" is a purchase order.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function bestSellerLow(): ?array
     {
@@ -999,7 +999,7 @@ final class DashboardStatsService
      * itself, a product with combinations lets its units answer.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function outOfStock(): ?array
     {
@@ -1041,7 +1041,7 @@ final class DashboardStatsService
      * one of them. Product and order rules are the ones that can actually bleed.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function promoBleed(): ?array
     {
@@ -1076,7 +1076,7 @@ final class DashboardStatsService
      * this signal is a comparison rather than a total.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function refundsUp(): ?array
     {
@@ -1107,7 +1107,7 @@ final class DashboardStatsService
      * @param int $hours How far back.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function hoursAgo(int $hours): string
     {
@@ -1121,7 +1121,7 @@ final class DashboardStatsService
      *
      * @return string SQL datetime.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function staleBefore(int $hours = self::STALE_HOURS): string
     {
@@ -1138,7 +1138,7 @@ final class DashboardStatsService
      * @param int[] $ids Statuses to exclude.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function statusList(array $ids): string
     {
@@ -1153,7 +1153,7 @@ final class DashboardStatsService
      * How many days every question here covers.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function days(): int
     {
@@ -1164,7 +1164,7 @@ final class DashboardStatsService
      * The store's currency, or null when none is configured yet.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function currency(): ?Currency
     {
@@ -1180,7 +1180,7 @@ final class DashboardStatsService
      *
      * @return string[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function labels(): array
     {
@@ -1196,7 +1196,7 @@ final class DashboardStatsService
     }
 
     /**
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function db(): DatabaseInterface
     {
@@ -1208,7 +1208,7 @@ final class DashboardStatsService
      * reason {@see self::window()} is: a collaborator filters money the way core does.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function currencyId(): int
     {
@@ -1227,7 +1227,7 @@ final class DashboardStatsService
      * The site's current offset from UTC, in seconds.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function offsetSeconds(): int
     {
@@ -1244,7 +1244,7 @@ final class DashboardStatsService
      * Midnight, in the merchant's timezone, `days - 1` days ago, as a local Date.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function windowStartLocal(): DateTimeImmutable
     {
@@ -1255,7 +1255,7 @@ final class DashboardStatsService
      * That same instant, as the UTC datetime the rows are stored in.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function start(): string
     {
@@ -1268,7 +1268,7 @@ final class DashboardStatsService
      * The window's EXCLUSIVE end, as the UTC datetime the rows are stored in.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function end(): string
     {
@@ -1291,7 +1291,7 @@ final class DashboardStatsService
      * @param string $column Column, alias.path form.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function window(string $column): string
     {
@@ -1308,7 +1308,7 @@ final class DashboardStatsService
      * @param string $expression Already-quoted SQL naming a datetime.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function windowExpr(string $expression): string
     {
@@ -1328,7 +1328,7 @@ final class DashboardStatsService
      * @param string $column Column expression, already an alias.path form.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function bucket(string $column): string
     {
@@ -1341,7 +1341,7 @@ final class DashboardStatsService
      * @param string $expression Already-quoted SQL naming a datetime.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function bucketExpr(string $expression): string
     {
@@ -1362,7 +1362,7 @@ final class DashboardStatsService
      *
      * @return array{revenue: float, orders: int, refunds: float}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function previousPeriod(int $currency): array
     {
@@ -1434,7 +1434,7 @@ final class DashboardStatsService
      * @param float $previous The one before it.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function delta(float $now, float $previous): float
     {
@@ -1454,7 +1454,7 @@ final class DashboardStatsService
      * It is counted and said, and never added to the store's.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function ordersWithoutCurrency(): int
     {
@@ -1480,7 +1480,7 @@ final class DashboardStatsService
      *
      * @return array<int, float> Rule id => revenue.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function revenueByRule(array $ruleIds, int $currency): array
     {
@@ -1537,7 +1537,7 @@ final class DashboardStatsService
      * @param string $alias The orders table's alias in it.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function excludeCancelled($query, string $alias): void
     {
@@ -1555,7 +1555,7 @@ final class DashboardStatsService
      * @param string $alias The orders table's alias in it.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function excludeCompleted($query, string $alias): void
     {

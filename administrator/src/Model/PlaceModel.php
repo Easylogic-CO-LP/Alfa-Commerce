@@ -33,7 +33,7 @@ class PlaceModel extends AlfaAdminModel
 {
     /**
      * @var string The entity a plugin targets with $context->targets('place').
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'place';
     /**
@@ -197,7 +197,7 @@ class PlaceModel extends AlfaAdminModel
      *
      * @return bool True on success.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function delete(&$pks)
     {

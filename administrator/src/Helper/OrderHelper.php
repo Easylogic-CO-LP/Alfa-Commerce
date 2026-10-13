@@ -148,7 +148,7 @@ class OrderHelper
      *
      * @param array $items Order line objects (each carries ->id = order_items.id).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function attachOrderItemFields(array $items): void
     {

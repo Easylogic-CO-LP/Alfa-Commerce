@@ -149,7 +149,7 @@ class Dispatcher extends ComponentDispatcher
      *
      * @throws NotAllowed When the page may not be opened.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getController(string $name, string $client = '', array $config = []): BaseController
     {
@@ -204,7 +204,7 @@ class Dispatcher extends ComponentDispatcher
      *
      * @throws NotAllowed When the user may not open the screen.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function checkAccess()
     {
@@ -243,7 +243,7 @@ class Dispatcher extends ComponentDispatcher
      * @param string $view The requested view, lower-cased.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function mayOpen(string $view): bool
     {

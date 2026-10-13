@@ -35,50 +35,50 @@ defined('_JEXEC') or die;
  * cell, so the table stays rectangular). The anchor keys accepted by after()
  * belong to the dispatching screen (each list documents its own).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class ColumnBuilder
 {
     /**
      * @var string Header language key for the column's <th>.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private string $title = '';
 
     /**
      * @var string The cell layout (without .php).
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private string $layout = '';
 
     /**
      * @var Closure|null Per-row data resolver: fn (object $row): array|object|null.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private ?Closure $data = null;
 
     /**
      * @var string The plugin group owning the cell layout.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private string $pluginType = '';
 
     /**
      * @var string The plugin element owning the cell layout.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private string $pluginName = '';
 
     /**
      * @var string Core column key the column anchors after ('' = appended last).
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private string $after = '';
 
     /**
      * @param string $key The column's identity key (unique per contributor).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct(private readonly string $key)
     {
@@ -91,7 +91,7 @@ final class ColumnBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function title(string $title): static
     {
@@ -107,7 +107,7 @@ final class ColumnBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setLayout(string $layout): static
     {
@@ -124,7 +124,7 @@ final class ColumnBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setData(Closure $data): static
     {
@@ -140,7 +140,7 @@ final class ColumnBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setPluginType(string $type): static
     {
@@ -156,7 +156,7 @@ final class ColumnBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setPluginName(string $name): static
     {
@@ -173,7 +173,7 @@ final class ColumnBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function after(string $coreColumn): static
     {
@@ -186,7 +186,7 @@ final class ColumnBuilder
      * Whether a (non-empty) cell layout was set.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function hasLayout(): bool
     {
@@ -199,7 +199,7 @@ final class ColumnBuilder
      * @return array{key: string, title: string, after: string, layout: string,
      *               layoutPluginType: string, layoutPluginName: string, data: ?Closure}
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function toDescriptor(): array
     {

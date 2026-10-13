@@ -37,14 +37,14 @@ defined('_JEXEC') or die;
  * charge has neither, so they are not read. How several rules combine (only
  * this, combined, one after another) is the pricing engine's own reading.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class ShippingTaxResolver
 {
     /**
      * The component option holding the shop's default shipping taxes.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const SHOP_DEFAULT = 'shipping_tax_rules';
 
@@ -55,7 +55,7 @@ final class ShippingTaxResolver
      *
      * @return AppliedTax[] Empty when the carriage is untaxed here.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function resolve(ShipmentPricingContext $context): array
     {
@@ -115,7 +115,7 @@ final class ShippingTaxResolver
      *
      * @return int[]
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function methodTaxIds(DatabaseInterface $db, int $methodId): array
     {
@@ -139,7 +139,7 @@ final class ShippingTaxResolver
      *
      * @return int[]
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function positiveIds(array $values): array
     {

@@ -58,14 +58,14 @@ class ItemController extends FormController
     /**
      * Base table backing the inline quick-edit endpoints.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private const INLINE_TABLE = '#__alfa_items';
 
     /**
      * Primary column of this entity's per-language aux tables.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private const INLINE_PRIMARY_COLUMN = 'id_item';
 
@@ -73,7 +73,7 @@ class ItemController extends FormController
      * Fields the items list may quick-edit. An explicit whitelist: anything
      * else is refused before a single row is read.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private const INLINE_FIELDS = ['name', 'sku', 'stock'];
 
@@ -82,7 +82,7 @@ class ItemController extends FormController
      * carries no uniqueness constraint and the edit form declares none, so the
      * inline editor enforces length only, never a rule the full form permits.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private const SKU_MAX_LENGTH = 255;
 
@@ -90,7 +90,7 @@ class ItemController extends FormController
      * The stock editor's figures, as the item form posts them: the plain figure,
      * the per-location figures and the baselines they were rendered with.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private const STOCK_EDITOR_KEYS = ['stock', 'inventory_stock', 'inventory_stock_baseline'];
 
@@ -110,7 +110,7 @@ class ItemController extends FormController
      *
      * @return array The data to save.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function preSaveHook(BaseDatabaseModel $model, array $validData = []): array
     {
@@ -171,7 +171,7 @@ class ItemController extends FormController
      *          stock managed).
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function inlineLoad(): void
     {
@@ -265,7 +265,7 @@ class ItemController extends FormController
      * the client's markers are a UX affordance, never an authorisation.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function inlineSave(): void
     {
@@ -580,7 +580,7 @@ class ItemController extends FormController
      *
      * @return string The rendered editor (input + Save/Cancel).
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function renderInlineScalarEditor(
         string $value,
@@ -625,7 +625,7 @@ class ItemController extends FormController
      *
      * @return string The cell markup.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function renderAvailabilityCell(int $itemId): string
     {
@@ -713,7 +713,7 @@ class ItemController extends FormController
      * @param InventoryIntegrityException $exception The kernel's refusal.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function ledgerMissingMessage(InventoryIntegrityException $exception): string
     {
@@ -738,7 +738,7 @@ class ItemController extends FormController
      *
      * @return list<string> One text per distinct refusal.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function inlineTargetRefusals(array $problems, array $titles): array
     {
@@ -792,7 +792,7 @@ class ItemController extends FormController
      *
      * @return mixed The stored value, or null when the row is gone.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function loadItemColumn(int $itemId, string $column): mixed
     {
@@ -815,7 +815,7 @@ class ItemController extends FormController
      *
      * @throws RuntimeException When the product has combinations.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function assertItemHasNoCombinations(int $itemId): void
     {
@@ -833,7 +833,7 @@ class ItemController extends FormController
      * @param int $itemId The product.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function countCombinations(int $itemId): int
     {
@@ -863,7 +863,7 @@ class ItemController extends FormController
      *
      * @throws RuntimeException When this product's stock is not inline-editable.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function assertStockInlineEditable(int $itemId): void
     {
@@ -891,7 +891,7 @@ class ItemController extends FormController
      * notifies the parent item screen via postMessage.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function saveCombination(): void
     {
@@ -907,7 +907,7 @@ class ItemController extends FormController
      *
      * @return void Emits JSON {created: N} and closes the application.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function generateCombinations(): void
     {
@@ -971,7 +971,7 @@ class ItemController extends FormController
      *
      * @return void Emits JSON {html} and closes the application.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function fieldsPopup(): void
     {
@@ -1052,7 +1052,7 @@ class ItemController extends FormController
      *
      * @return void Streams `text/javascript` to an admin; 403/404 otherwise.
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     public function studioAsset(): void
     {
@@ -1101,7 +1101,7 @@ class ItemController extends FormController
      *
      * @return void Emits JSON and closes the application.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function executeFieldAction(): void
     {
@@ -1199,7 +1199,7 @@ class ItemController extends FormController
      *
      * @return void Emits JSON {added: N} and closes the application.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function addOptions(): void
     {
@@ -1239,7 +1239,7 @@ class ItemController extends FormController
      *
      * @return void Emits JSON {added: N} and closes the application.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function addInfoValues(): void
     {
@@ -1280,7 +1280,7 @@ class ItemController extends FormController
      *
      * @return void Emits JSON {saved: bool} and closes the application.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function saveVisibility(): void
     {
@@ -1329,7 +1329,7 @@ class ItemController extends FormController
      *
      * @return void Emits JSON and closes the application.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function pricePreview(): void
     {
@@ -1363,7 +1363,7 @@ class ItemController extends FormController
      * Studio Apply: save the combination and STAY in the dialog.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function applyCombination(): void
     {
@@ -1382,7 +1382,7 @@ class ItemController extends FormController
      * @param int $closeAfter 1 = the popup tells the parent to close after saving.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function persistCombination(int $closeAfter): void
     {
@@ -1549,7 +1549,7 @@ class ItemController extends FormController
      * @param int $closeAfter 1 = the popup tells the parent to close.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function redirectToStudio(int $itemId, int $combinationId, bool $saved, int $closeAfter): void
     {

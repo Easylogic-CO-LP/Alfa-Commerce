@@ -38,7 +38,7 @@
  * would null it at construction; see Dev-Notes -> "AbstractEvent set{Ucfirst} magic
  * trap").
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\ItemFields;
@@ -58,14 +58,14 @@ class CalculateItemPriceEvent extends AbstractImmutableEvent
     /**
      * @var array<PriceContribution|PriceContributionBuilder> The lines this field's plugin appended.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected array $contributions = [];
 
     /**
      * @var float|null The pinned final price, or null when no override.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected ?float $overrideFinal = null;
 
@@ -73,7 +73,7 @@ class CalculateItemPriceEvent extends AbstractImmutableEvent
      * The item being priced (the event subject).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getItem(): object
     {
@@ -84,7 +84,7 @@ class CalculateItemPriceEvent extends AbstractImmutableEvent
      * The field driving this dispatch (type, decoded params, value pool).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getField(): object
     {
@@ -97,7 +97,7 @@ class CalculateItemPriceEvent extends AbstractImmutableEvent
      * Only the field's own plugin interprets it; the engine never inspects it.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getPayload(): mixed
     {
@@ -108,7 +108,7 @@ class CalculateItemPriceEvent extends AbstractImmutableEvent
      * The per-item plugin config of this field (the admin "rule").
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getConfig(): Registry
     {
@@ -119,7 +119,7 @@ class CalculateItemPriceEvent extends AbstractImmutableEvent
      * The pricing context (currency/place/usergroup/quantity), when provided.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getContext(): ?object
     {
@@ -138,7 +138,7 @@ class CalculateItemPriceEvent extends AbstractImmutableEvent
      * @param string $code Stable id for the line.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function contribution(string $code): PriceContributionBuilder
     {
@@ -153,7 +153,7 @@ class CalculateItemPriceEvent extends AbstractImmutableEvent
      * @param PriceContribution $contribution The line to add.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function addContribution(PriceContribution $contribution): static
     {
@@ -169,7 +169,7 @@ class CalculateItemPriceEvent extends AbstractImmutableEvent
      *
      * @return PriceContribution[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getContributions(): array
     {
@@ -189,7 +189,7 @@ class CalculateItemPriceEvent extends AbstractImmutableEvent
      * @param float $final The customer-facing final price.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setOverrideFinal(float $final): static
     {
@@ -202,7 +202,7 @@ class CalculateItemPriceEvent extends AbstractImmutableEvent
      * The pinned final, or null when no override.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getOverrideFinal(): ?float
     {

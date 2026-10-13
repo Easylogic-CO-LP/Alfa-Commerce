@@ -22,7 +22,7 @@ defined('_JEXEC') or die;
  * returns; a caller that validated and then kept what it was given would
  * store a different shape from the same form.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CheckedDetails
 {
@@ -33,7 +33,7 @@ final class CheckedDetails
      *                        `[['code' => language key, 'params' => []], ...]`;
      *                        empty when they were not.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly array $delivery,
@@ -46,7 +46,7 @@ final class CheckedDetails
      * Whether the details may be placed with.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function valid(): bool
     {
@@ -61,7 +61,7 @@ final class CheckedDetails
      * @param array $billing The invoice details as given.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function uncheckable(array $delivery, array $billing): self
     {

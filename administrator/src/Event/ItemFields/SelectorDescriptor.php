@@ -28,7 +28,7 @@ defined('_JEXEC') or die;
  * target / request strategy) is added HERE and flows to templates through
  * toLayoutData(), without touching the SurfaceBuilder API or any template.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class SelectorDescriptor
 {
@@ -37,7 +37,7 @@ final class SelectorDescriptor
      * changes); an OPTION change only re-prices. Emitted as data-item-reload,
      * read by site/item/variant.js.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public const RELOAD_ITEM = 'item';
     public const RELOAD_PRICE = 'price';
@@ -46,7 +46,7 @@ final class SelectorDescriptor
      * @param string $inputName The control's form name (sel[id] / opt[id]).
      * @param string $reloadScope The reload scope (RELOAD_ITEM / RELOAD_PRICE).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function __construct(
         private string $inputName,
@@ -60,7 +60,7 @@ final class SelectorDescriptor
      * @param int $fieldId The field id.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function variant(int $fieldId): self
     {
@@ -73,7 +73,7 @@ final class SelectorDescriptor
      * @param int $fieldId The field id.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function option(int $fieldId): self
     {
@@ -86,7 +86,7 @@ final class SelectorDescriptor
      *
      * @return array{inputName: string, reloadScope: string}
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function toLayoutData(): array
     {

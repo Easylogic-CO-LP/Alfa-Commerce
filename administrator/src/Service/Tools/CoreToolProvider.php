@@ -59,7 +59,7 @@ use Throwable;
  * signatures a contributing plugin implements, so nothing about the collection,
  * rendering, routing or execution pipeline has a second branch for core.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class CoreToolProvider
 {
@@ -71,7 +71,7 @@ final class CoreToolProvider
      *
      * @var string
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public const OWNER_GROUP = 'core';
 
@@ -80,7 +80,7 @@ final class CoreToolProvider
      *
      * @var string
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public const OWNER_NAME = 'com_alfa';
 
@@ -93,7 +93,7 @@ final class CoreToolProvider
      *
      * @var int
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private const PROJECTION_CHUNK = 200;
 
@@ -104,7 +104,7 @@ final class CoreToolProvider
      *
      * @var int
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private const BACKFILL_CHUNK = 500;
 
@@ -114,7 +114,7 @@ final class CoreToolProvider
      *
      * @var int
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private const STOCK_EFFECTS_CHUNK = 25;
 
@@ -133,7 +133,7 @@ final class CoreToolProvider
      * @param GetToolActionsEvent $event The collection event.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function onGetToolActions(GetToolActionsEvent $event): void
     {
@@ -288,7 +288,7 @@ final class CoreToolProvider
      * @param ExecuteToolActionEvent $event The execution event.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function onExecuteToolAction(ExecuteToolActionEvent $event): void
     {
@@ -330,7 +330,7 @@ final class CoreToolProvider
      * @param ExecuteToolActionEvent $event The tool request.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function applyStockEffects(ExecuteToolActionEvent $event): void
     {
@@ -396,7 +396,7 @@ final class CoreToolProvider
      * @param ExecuteToolActionEvent $event The execution event.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function rebuildProjections(ExecuteToolActionEvent $event): void
     {
@@ -449,7 +449,7 @@ final class CoreToolProvider
      *
      * @return array{owed: bool, text: string} Whether it asks for the merchant's eye, and what it says.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function priceSetsState(): array
     {
@@ -523,7 +523,7 @@ final class CoreToolProvider
      * @param ExecuteToolActionEvent $event The execution event.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function syncLanguages(ExecuteToolActionEvent $event): void
     {
@@ -565,7 +565,7 @@ final class CoreToolProvider
      * @param ExecuteToolActionEvent $event The execution event.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function backfillTranslations(ExecuteToolActionEvent $event): void
     {
@@ -663,7 +663,7 @@ final class CoreToolProvider
      * @param int $limit Rows the chunk covered.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function refreshAfterBackfill(string $table, int $offset, int $limit): void
     {
@@ -727,7 +727,7 @@ final class CoreToolProvider
      * @param ExecuteToolActionEvent $event The execution event.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function refreshSetupChecklist(ExecuteToolActionEvent $event): void
     {
@@ -752,7 +752,7 @@ final class CoreToolProvider
      * @param ExecuteToolActionEvent $event The execution event.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function reseedTours(ExecuteToolActionEvent $event): void
     {
@@ -781,7 +781,7 @@ final class CoreToolProvider
      * @param ExecuteToolActionEvent $event The execution event.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function exportTours(ExecuteToolActionEvent $event): void
     {
@@ -800,7 +800,7 @@ final class CoreToolProvider
      * @param ExecuteToolActionEvent $event The execution event.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function syncUsers(ExecuteToolActionEvent $event): void
     {
@@ -820,7 +820,7 @@ final class CoreToolProvider
      * The configured engine, when it can be rebuilt at all.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private function rebuildableEngine(): ?RebuildableEngine
     {
@@ -839,7 +839,7 @@ final class CoreToolProvider
      * @param ExecuteToolActionEvent $event The execution event.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private function rebuildSearchIndex(ExecuteToolActionEvent $event): void
     {
@@ -872,7 +872,7 @@ final class CoreToolProvider
      *
      * @return float Seconds.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private function rebuildTimeout(): float
     {
@@ -891,7 +891,7 @@ final class CoreToolProvider
      * @param ExecuteToolActionEvent $event The execution event.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function beginRebuild(
         SearchEngineInterface $engine,
@@ -945,7 +945,7 @@ final class CoreToolProvider
      * @param ExecuteToolActionEvent $event The execution event.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function advanceRebuild(
         SearchEngineInterface $engine,

@@ -38,7 +38,7 @@ defined('_JEXEC') or die;
  * includes the carriage this request exists to decide, and asking for it from
  * inside a shipping quote is a question that answers itself forever.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class ShippingCostRequest
 {
@@ -53,7 +53,7 @@ final class ShippingCostRequest
      *                   needing the destination had to be handed it or resolve it a
      *                   second way.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly Method $method,

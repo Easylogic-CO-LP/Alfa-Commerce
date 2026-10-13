@@ -30,7 +30,7 @@ use Throwable;
  * getMessage() is the English text for logs; openLinesMessage() is the translated
  * sentence naming the relying order lines for a screen.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class InventoryUnitRetirementException extends RuntimeException
 {
@@ -62,7 +62,7 @@ final class InventoryUnitRetirementException extends RuntimeException
      *                        rows (stock_id, location_id, quantity, reserved) and
      *                        open_lines (order_id, line_id, ordered, outstanding).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly int $itemId,
@@ -117,7 +117,7 @@ final class InventoryUnitRetirementException extends RuntimeException
      *
      * @return int[]
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function combinationIds(): array
     {
@@ -129,7 +129,7 @@ final class InventoryUnitRetirementException extends RuntimeException
      * blocked units, one sentence per such unit; null when no line relies on them.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function openLinesMessage(): ?string
     {
@@ -151,7 +151,7 @@ final class InventoryUnitRetirementException extends RuntimeException
      *                        line_id, ordered, outstanding).
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function openLinesText(int $itemId, array $blockers): ?string
     {
@@ -192,7 +192,7 @@ final class InventoryUnitRetirementException extends RuntimeException
      * they are not there yet. A failure is logged; the message then shows its keys.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function loadAdministratorStrings(): void
     {

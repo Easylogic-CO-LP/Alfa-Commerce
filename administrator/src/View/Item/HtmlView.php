@@ -29,7 +29,7 @@ class HtmlView extends FormView
      * The admin-contract entity of this screen.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'item';
 
@@ -170,7 +170,7 @@ class HtmlView extends FormView
      * notifies the parent. Mirrors the order-edit shipment popup pattern.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function addCombinationToolbar(): void
     {

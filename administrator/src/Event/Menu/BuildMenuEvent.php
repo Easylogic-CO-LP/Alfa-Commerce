@@ -37,7 +37,7 @@ use Joomla\CMS\Event\AbstractEvent;
  * read daily sits above the once-configured Market, not below it merely because a
  * plugin added it. A heading nobody places renders after every placed one.
  *
- * @since  1.7.0
+ * @since  2.0.0
  */
 class BuildMenuEvent extends AbstractEvent
 {
@@ -45,7 +45,7 @@ class BuildMenuEvent extends AbstractEvent
      * Items added so far.
      *
      * @var MenuItem[]
-     * @since  1.7.0
+     * @since  2.0.0
      */
     protected array $items = [];
 
@@ -53,7 +53,7 @@ class BuildMenuEvent extends AbstractEvent
      * Where each placed section heading sorts, keyed by its language key.
      *
      * @var array<string, int>
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected array $sections = [];
 
@@ -63,7 +63,7 @@ class BuildMenuEvent extends AbstractEvent
      * @param string $id Unique id within the menu.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function item(string $id): MenuItem
     {
@@ -79,7 +79,7 @@ class BuildMenuEvent extends AbstractEvent
      * @param MenuItem $item The item.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function add(MenuItem $item): static
     {
@@ -98,7 +98,7 @@ class BuildMenuEvent extends AbstractEvent
      * @param int $ordering Sort position among headings; core uses 100..900.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function section(string $section, int $ordering): static
     {
@@ -114,7 +114,7 @@ class BuildMenuEvent extends AbstractEvent
      *
      * @return array<string, int>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function sections(): array
     {
@@ -126,7 +126,7 @@ class BuildMenuEvent extends AbstractEvent
      *
      * @return MenuItem[]
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function all(): array
     {

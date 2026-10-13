@@ -26,7 +26,7 @@ use Joomla\Registry\Registry;
  * Arguments: subject = the cart line, method = the field definition row,
  * snapshot = the stored configuration snapshot of this line+field.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class CartItemViewEvent extends LayoutEvent
 {
@@ -37,7 +37,7 @@ class CartItemViewEvent extends LayoutEvent
      * no enum import: main()->setLayout('cart_view')->setData([...]).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function main(): SurfaceBuilder
     {
@@ -49,7 +49,7 @@ class CartItemViewEvent extends LayoutEvent
      *
      * @return mixed
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getLine()
     {
@@ -59,7 +59,7 @@ class CartItemViewEvent extends LayoutEvent
     /**
      * The field definition this snapshot belongs to.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getField(): object
     {
@@ -69,7 +69,7 @@ class CartItemViewEvent extends LayoutEvent
     /**
      * The stored payload snapshot (what onValidateCartAdd accepted).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getSnapshot(): array
     {
@@ -79,7 +79,7 @@ class CartItemViewEvent extends LayoutEvent
     /**
      * The per-item plugin config of this field.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getConfig(): Registry
     {

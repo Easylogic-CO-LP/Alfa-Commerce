@@ -42,7 +42,7 @@ use Joomla\CMS\Event\AbstractImmutableEvent;
  * a listener that wants them reads them; carrying a copy here would freeze a second shape of
  * the same rows into a contract.
  *
- * @since  1.7.0
+ * @since  2.0.0
  */
 class OrderPlacedEvent extends AbstractImmutableEvent
 {
@@ -51,7 +51,7 @@ class OrderPlacedEvent extends AbstractImmutableEvent
      * @param int $orderId The order id, separately so no listener guesses which property
      *                     of the row is the key.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function __construct(
         protected object $order,
@@ -68,7 +68,7 @@ class OrderPlacedEvent extends AbstractImmutableEvent
      *
      * @return object
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getOrder(): Order
     {
@@ -79,7 +79,7 @@ class OrderPlacedEvent extends AbstractImmutableEvent
      * The placed order's id.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getOrderId(): int
     {

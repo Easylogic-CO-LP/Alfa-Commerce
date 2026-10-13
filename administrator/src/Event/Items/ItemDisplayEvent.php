@@ -32,7 +32,7 @@ defined('_JEXEC') or die;
  * The caller defaults the layout owner to the invoked plugin
  * (Surfaces::appendTo), exactly like the item-fields dispatches.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class ItemDisplayEvent extends AbstractImmutableEvent
 {
@@ -42,7 +42,7 @@ class ItemDisplayEvent extends AbstractImmutableEvent
      * A surface beside the product title, e.g. a badge.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function title(): SurfaceBuilder
     {
@@ -53,7 +53,7 @@ class ItemDisplayEvent extends AbstractImmutableEvent
      * A surface on the product image / gallery: overlay/badge.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function image(): SurfaceBuilder
     {
@@ -64,7 +64,7 @@ class ItemDisplayEvent extends AbstractImmutableEvent
      * A surface in the short description block.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function shortDescription(): SurfaceBuilder
     {
@@ -75,7 +75,7 @@ class ItemDisplayEvent extends AbstractImmutableEvent
      * A surface in the full description block.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function fullDescription(): SurfaceBuilder
     {
@@ -86,7 +86,7 @@ class ItemDisplayEvent extends AbstractImmutableEvent
      * A surface inside the buy form.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function buyForm(): SurfaceBuilder
     {
@@ -97,7 +97,7 @@ class ItemDisplayEvent extends AbstractImmutableEvent
      * A surface next to the add-to-cart button: extra note/control.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function nearAddToCart(): SurfaceBuilder
     {
@@ -108,7 +108,7 @@ class ItemDisplayEvent extends AbstractImmutableEvent
      * A surface in the read-only specifications block.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function specifications(): SurfaceBuilder
     {
@@ -120,7 +120,7 @@ class ItemDisplayEvent extends AbstractImmutableEvent
      *
      * @return object The loaded item.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getItem(): object
     {

@@ -42,7 +42,7 @@ class SeoController extends BaseController
      * @param CMSApplicationInterface|null $app The Application for the dispatcher.
      * @param Input|null $input The Input object for the request.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct($config = [], ?MVCFactoryInterface $factory = null, ?CMSApplicationInterface $app = null, ?Input $input = null)
     {
@@ -133,7 +133,7 @@ class SeoController extends BaseController
      * @param string $itemType The posted itemType, or '' when absent.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function mayPreview(string $itemType): bool
     {

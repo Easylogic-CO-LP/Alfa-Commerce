@@ -73,7 +73,7 @@ class PackageHelper
      * the licence still ships while developer notes do not.
      *
      * @var string[]
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const EXCLUDED_PATTERNS = [
         // Test trees and developer notes: source artifacts, never shipped.
@@ -117,7 +117,7 @@ class PackageHelper
      * made before the file exists simply carries no changelog.
      *
      * @var string
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const CHANGELOG_FILENAME = 'changelog.xml';
 
@@ -128,7 +128,7 @@ class PackageHelper
      * a verifier accepts only a catalog produced with its own method.
      *
      * @var string
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const HASH_METHOD = 'sha256-ws';
 
@@ -137,7 +137,7 @@ class PackageHelper
      * counts as text as well; everything else is hashed byte for byte.
      *
      * @var string[]
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const TEXT_EXTENSIONS = ['php', 'js', 'css', 'ini', 'xml', 'json', 'html', 'htm', 'sql', 'svg', 'txt', 'md'];
 
@@ -276,7 +276,7 @@ class PackageHelper
      *
      * @return string|false The lowercase hex digest, or false when the file can't be read.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function contentHash(string $path): string|false
     {
@@ -301,7 +301,7 @@ class PackageHelper
      *
      * @param string $path File path; only the name is inspected.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function isTextFile(string $path): bool
     {
@@ -860,7 +860,7 @@ class PackageHelper
      * @throws RuntimeException If zip support is missing, the archive cannot be read,
      *                          or either manifest is missing/invalid.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function census(string $zipPath, string $sourceRoot): array
     {
@@ -929,7 +929,7 @@ class PackageHelper
      *
      * @return string[] Archive-relative paths (no leading slash).
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function archiveEntries(string $packageRoot): array
     {
@@ -1041,7 +1041,7 @@ class PackageHelper
      * @param string $path Absolute path to a joomla.asset.json.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function assetRegistryVersion(string $path): string
     {
@@ -2288,7 +2288,7 @@ class PackageHelper
      *
      * @return bool True when the entry must not ship.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function isExcluded(string $name): bool
     {

@@ -47,7 +47,7 @@ class PaymentModel extends AlfaAdminModel
      *   only when something actually reaches the table.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'payment';
 

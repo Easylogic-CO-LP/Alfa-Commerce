@@ -33,7 +33,7 @@ namespace Alfa\Component\Alfa\Administrator\Panel;
  * so a plugin handed an identity on an event can read it and build URLs from it but can never
  * trigger a side effect through it. It is the "vars bag" idea from another shop system made an immutable value.
  *
- * @since  1.7.0
+ * @since  2.0.0
  */
 final readonly class PanelIdentity
 {
@@ -42,7 +42,7 @@ final readonly class PanelIdentity
      * @param string $element Owning plugin element.
      * @param string $panel Screen id within the plugin.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function __construct(
         public string $group,
@@ -55,7 +55,7 @@ final readonly class PanelIdentity
      * Composite identity string: group/element:panel.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function key(): string
     {
@@ -67,7 +67,7 @@ final readonly class PanelIdentity
      * derivation; no filesystem or plugin access.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function pluginPath(): string
     {
@@ -79,7 +79,7 @@ final readonly class PanelIdentity
      * component's routing.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function listUrl(): string
     {
@@ -95,7 +95,7 @@ final readonly class PanelIdentity
      * @param int $id The record id.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function editUrl(int $id = 0): string
     {
@@ -109,7 +109,7 @@ final readonly class PanelIdentity
      * @param string $suffix A sub-key.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function stateKey(string $suffix): string
     {
@@ -127,7 +127,7 @@ final readonly class PanelIdentity
      *
      * @return string A block of hidden <input> elements.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function mutationFields(string $verb, string $token): string
     {

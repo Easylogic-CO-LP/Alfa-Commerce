@@ -26,7 +26,7 @@ use Joomla\CMS\Language\Text;
  * and JS (rule-evaluator.js, instant client toggling); a tiny frozen mirror that
  * is the price of visibility being both server-authoritative and client-instant.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class ShowonOperators
 {
@@ -74,7 +74,7 @@ final class ShowonOperators
      *
      * @return string[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function keys(): array
     {
@@ -86,7 +86,7 @@ final class ShowonOperators
      *
      * @return array<string, string>
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function labels(): array
     {

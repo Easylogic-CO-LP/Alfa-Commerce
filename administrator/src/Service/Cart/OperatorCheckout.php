@@ -46,7 +46,7 @@ defined('_JEXEC') or die;
  * because every one of those has an ambient source that would answer with the
  * OPERATOR's version of it.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class OperatorCheckout
 {
@@ -61,7 +61,7 @@ final class OperatorCheckout
      * @param array $delivery The typed delivery details.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function placeFromDelivery(array $delivery): ?int
     {
@@ -88,7 +88,7 @@ final class OperatorCheckout
      * @param User $actor The member of staff.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function authorized(User $actor): bool
     {
@@ -118,7 +118,7 @@ final class OperatorCheckout
      *
      * @return array{placed: bool, committed: bool, orderId: int, failures: array, warnings: array}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function place(
         User $actor,
@@ -248,7 +248,7 @@ final class OperatorCheckout
      *
      * @return array{placed: bool, committed: bool, orderId: int, failures: array, warnings: array}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function refused(array $failures): array
     {

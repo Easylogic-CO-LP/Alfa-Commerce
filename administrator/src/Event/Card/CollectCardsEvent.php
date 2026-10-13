@@ -30,19 +30,19 @@ use Joomla\CMS\Event\AbstractEvent;
  * and lets a broken contributor's half-registered cards be pinned to the
  * contributor that actually added them.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class CollectCardsEvent extends AbstractEvent
 {
     /**
      * @var string The event a plugin implements as a method of this name.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const NAME = 'onAlfaCollectCards';
 
     /**
      * @var AdminCard[]
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private array $cards = [];
 
@@ -57,7 +57,7 @@ class CollectCardsEvent extends AbstractEvent
      * dies: a segfault with no message (sibling of the `set{Ucfirst}` trap).
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function screen(): string
     {
@@ -72,7 +72,7 @@ class CollectCardsEvent extends AbstractEvent
      *
      * @return AdminCard The card, for chaining.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function top(string $id, string $title): AdminCard
     {
@@ -87,7 +87,7 @@ class CollectCardsEvent extends AbstractEvent
      *
      * @return AdminCard The card, for chaining.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function metrics(string $id, string $title): AdminCard
     {
@@ -102,7 +102,7 @@ class CollectCardsEvent extends AbstractEvent
      *
      * @return AdminCard The card, for chaining.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function main(string $id, string $title): AdminCard
     {
@@ -117,7 +117,7 @@ class CollectCardsEvent extends AbstractEvent
      *
      * @return AdminCard The card, for chaining.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function side(string $id, string $title): AdminCard
     {
@@ -132,7 +132,7 @@ class CollectCardsEvent extends AbstractEvent
      *
      * @return AdminCard The card, for chaining.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function bottom(string $id, string $title): AdminCard
     {
@@ -149,7 +149,7 @@ class CollectCardsEvent extends AbstractEvent
      *
      * @return AdminCard The card, for chaining.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function on(DashboardSurface $surface, string $id, string $title): AdminCard
     {
@@ -167,7 +167,7 @@ class CollectCardsEvent extends AbstractEvent
      *
      * @return AdminCard[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getCards(): array
     {
@@ -187,7 +187,7 @@ class CollectCardsEvent extends AbstractEvent
      * @param string $name Contributor name.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function attributeTo(string $group, string $name): void
     {

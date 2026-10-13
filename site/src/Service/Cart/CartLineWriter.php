@@ -37,11 +37,11 @@ defined('_JEXEC') or die;
  * refusal names the smallest quantity this cart may hold of it that is
  * charged.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartLineWriter
 {
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function __construct(
         private readonly CartRepository $repository,
         private readonly CartHydrator $hydrator,
@@ -85,7 +85,7 @@ final class CartLineWriter
      *
      * @return int|false The line it landed on, or false.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function add(AddToCartCommand $command): int|false
     {
@@ -343,7 +343,7 @@ final class CartLineWriter
      *
      * @return bool Whether the change was applied.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function setQuantity(int $lineId, int $quantity): bool
     {
@@ -424,7 +424,7 @@ final class CartLineWriter
      *
      * @return array{0: bool, 1: float|null, 2: float|null} [succeeded, previous, next]
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public function setCustomPrice(int $lineId, CustomPriceCommand $command): array
     {
@@ -490,7 +490,7 @@ final class CartLineWriter
      *
      * @return bool Whether a line of this cart was removed.
      *
-     * @since 1.10.0
+     * @since 2.0.0
      */
     public function remove(int $lineId): bool
     {
@@ -513,7 +513,7 @@ final class CartLineWriter
      * @param object[] $lines The adopted line rows (id, id_item, id_combination, quantity).
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function reclamp(array $lines): void
     {
@@ -577,7 +577,7 @@ final class CartLineWriter
      *
      * @return AddToCartCommand The same add, carrying the product's own configuration only.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function asOffered(object $item, AddToCartCommand $command): AddToCartCommand
     {
@@ -604,7 +604,7 @@ final class CartLineWriter
      *                    unpublished, outside its publish window or not visible.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function refuseWithheld(int $itemId, string $key): void
     {
@@ -637,7 +637,7 @@ final class CartLineWriter
      *
      * @return bool True when the quantity is charged, or the line is free.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function charged(object $item, ?int $combinationId, array $configuration, int $quantity, ?ExplicitPriceInstruction $price, int $lineId = 0): bool
     {
@@ -682,7 +682,7 @@ final class CartLineWriter
      *
      * @return array{selection: array, optionValueIds: array, payloads: array}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function configurationOf(object $item, int $lineId): array
     {
@@ -698,7 +698,7 @@ final class CartLineWriter
      * @param int $lineId The line.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function instructionOf(int $lineId): ?ExplicitPriceInstruction
     {

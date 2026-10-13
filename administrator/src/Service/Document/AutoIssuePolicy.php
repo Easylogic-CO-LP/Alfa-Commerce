@@ -34,7 +34,7 @@ use Throwable;
  * manual partials) -> skip, and where the admin must act, push a backend
  * notification. Inert while documents_issuer = external.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class AutoIssuePolicy
 {
@@ -44,7 +44,7 @@ final class AutoIssuePolicy
      * one prefix read, whatever the reason or document type.
      *
      * @var string
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private const KEY_PREFIX = 'documents.autoissue.';
 
@@ -56,7 +56,7 @@ final class AutoIssuePolicy
      *
      * @return void Never throws: log-and-continue by contract.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function handleTransition(int $orderId, int $newStatusId): void
     {
@@ -145,7 +145,7 @@ final class AutoIssuePolicy
      * @param int $orderId Order PK.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function retryAfterPayment(int $orderId): void
     {
@@ -184,7 +184,7 @@ final class AutoIssuePolicy
      *
      * @return string[] The distinct type aliases, in status order.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function salesTypesFor(int $orderId): array
     {
@@ -235,7 +235,7 @@ final class AutoIssuePolicy
      *                    winning row (id_series 0 = type default), or null
      *                    when no row matches; deliberately no document.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function resolveRules(int $orderId, string $rulesJson): ?array
     {
@@ -293,7 +293,7 @@ final class AutoIssuePolicy
      *                    (id_series 0 = type default), or null when the
      *                    value no longer resolves.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function resolveSeriesTarget(string $target): ?array
     {
@@ -336,7 +336,7 @@ final class AutoIssuePolicy
      * @param string $docType The document type to issue.
      * @param int $seriesId Explicit series (rule rows); 0 = type default.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     /**
      * Issue ONE document, and keep its failure to itself.
@@ -364,7 +364,7 @@ final class AutoIssuePolicy
      * @param int $seriesId Pinned series, 0 = the type's default.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function issueGuarded(int $orderId, string $docType, int $seriesId = 0): void
     {
@@ -498,7 +498,7 @@ final class AutoIssuePolicy
      *
      * @return array buyer_* draft keys.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function buyerFromOrder(int $orderId): array
     {
@@ -524,7 +524,7 @@ final class AutoIssuePolicy
      *
      * @param int $orderId The order whose document was just issued.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function clearFor(int $orderId): void
     {
@@ -548,7 +548,7 @@ final class AutoIssuePolicy
      * @param string $key Dedup key.
      * @param string $title Notification title.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function notify(int $orderId, string $key, string $title): void
     {

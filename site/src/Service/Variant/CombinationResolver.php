@@ -40,7 +40,7 @@ defined('_JEXEC') or die;
  * already loaded by ItemFieldsHelper plus the request's sel[fieldId]=valueId,
  * and re-renders the item component on each change.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class CombinationResolver
 {
@@ -75,7 +75,7 @@ class CombinationResolver
      *
      * @return stdClass The resolution (shape above).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function resolve(array $fields, array $combinations, array $selection, ?array $shownFieldIds = null): stdClass
     {
@@ -237,7 +237,7 @@ class CombinationResolver
      *
      * @return array fieldId => valueId (empty when there are no combinations).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function defaultSelection(array $fields, array $combinations): array
     {
@@ -292,7 +292,7 @@ class CombinationResolver
      *
      * @return array|null The chosen entry of $comboMaps, or null when none agrees.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function preferred(array $comboMaps, array $constraint): ?array
     {
@@ -337,7 +337,7 @@ class CombinationResolver
      *
      * @return object[] The same combinations, reindexed in canonical order.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function canonicalOrder(array $combinations): array
     {
@@ -359,7 +359,7 @@ class CombinationResolver
      * @param array $subset fieldId => valueId to agree with.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function matchesSubset(array $map, array $subset): bool
     {
@@ -382,7 +382,7 @@ class CombinationResolver
      *
      * @return array<int, array<int, true>> fieldId => [valueId => true].
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function dimensionValues(array $fields, array $combinations): array
     {
@@ -419,7 +419,7 @@ class CombinationResolver
      *
      * @return array fieldId => valueId.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function withFixedDimensions(array $fields, array $combinations, array $selection): array
     {

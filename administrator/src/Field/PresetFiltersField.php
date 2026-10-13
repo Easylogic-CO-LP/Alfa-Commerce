@@ -39,7 +39,7 @@ use Joomla\CMS\Language\Text;
  *   - a hint appears when exactly ONE preset category is chosen and no
  *     identity is set: a single category belongs in the Category field.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 class PresetFiltersField extends FormField
 {
@@ -49,7 +49,7 @@ class PresetFiltersField extends FormField
      * Render the mounted filter fields plus the XOR note and single-category hint.
      *
      * @return string The composite input markup
-     * @since  1.5.0
+     * @since  2.0.0
      */
     protected function getInput(): string
     {

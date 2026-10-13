@@ -30,7 +30,7 @@
  *       $event->setStoredPayload($payload);
  *   }
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\ItemFields;
@@ -48,7 +48,7 @@ class PrepareForCartEvent extends AbstractImmutableEvent
     /**
      * The item being added to the cart.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getItem(): object
     {
@@ -58,7 +58,7 @@ class PrepareForCartEvent extends AbstractImmutableEvent
     /**
      * The field definition row.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getField(): object
     {
@@ -69,7 +69,7 @@ class PrepareForCartEvent extends AbstractImmutableEvent
      * The RAW full client payload for this field (untrusted): the composition to
      * be stored on the cart line, BEFORE files are turned into paths.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getPayload(): string
     {
@@ -82,7 +82,7 @@ class PrepareForCartEvent extends AbstractImmutableEvent
      *
      * @return array<int|string, array>
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getFiles(): array
     {
@@ -92,7 +92,7 @@ class PrepareForCartEvent extends AbstractImmutableEvent
     /**
      * The per-item plugin config of this field.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getConfig(): Registry
     {
@@ -104,7 +104,7 @@ class PrepareForCartEvent extends AbstractImmutableEvent
      *
      * @param string $message Translated error message.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setError(string $message): void
     {
@@ -112,7 +112,7 @@ class PrepareForCartEvent extends AbstractImmutableEvent
     }
 
     /**
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getError(): string
     {
@@ -120,7 +120,7 @@ class PrepareForCartEvent extends AbstractImmutableEvent
     }
 
     /**
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function isValid(): bool
     {
@@ -133,7 +133,7 @@ class PrepareForCartEvent extends AbstractImmutableEvent
      *
      * @param array|string $payload The data to persist (array is JSON-encoded).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setStoredPayload(array|string $payload): void
     {
@@ -144,7 +144,7 @@ class PrepareForCartEvent extends AbstractImmutableEvent
      * The payload to persist: the prepared one when set, else the raw payload
      * (a plain field that contributed nothing).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getStoredPayload(): string
     {

@@ -23,7 +23,7 @@ class FormfieldgroupModel extends AlfaAdminModel
      * The admin-contract entity this model serves.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'formfieldgroup';
 
@@ -90,7 +90,7 @@ class FormfieldgroupModel extends AlfaAdminModel
      *
      * @return bool True on success, false on error.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function save($data)
     {

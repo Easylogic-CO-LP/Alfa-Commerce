@@ -48,13 +48,13 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  * how a plugin adds something the core row object simply lacks, but rowData is the supported
  * channel; a row object's shape is the model's business and can change.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 final class AdminListRowDataEvent extends AlfaAdminEvent
 {
     /**
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const NAME = 'onAlfaAdminListRowData';
 }

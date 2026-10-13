@@ -25,7 +25,7 @@ use Throwable;
  * An order id that has no row is refused with the sentence for an order that
  * was not found: it is not an order waiting for a repair.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class OrderCurrencyException extends RuntimeException
 {
@@ -35,7 +35,7 @@ final class OrderCurrencyException extends RuntimeException
      * @param Throwable|null $previous What failed, if a read did.
      * @param bool $orderExists False when the order has no row.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function __construct(
         private readonly int $orderId,
@@ -57,7 +57,7 @@ final class OrderCurrencyException extends RuntimeException
      * Whether the order has a row: false when the id names no order at all.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function orderExists(): bool
     {
@@ -68,7 +68,7 @@ final class OrderCurrencyException extends RuntimeException
      * The order that names no currency.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function orderId(): int
     {
@@ -79,7 +79,7 @@ final class OrderCurrencyException extends RuntimeException
      * Why the order names no currency, as written to the log.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function detail(): string
     {

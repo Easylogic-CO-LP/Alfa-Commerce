@@ -34,7 +34,7 @@ use InvalidArgumentException;
  * module / section-order policy) lands; it will arrive as an appended nullable field
  * fed by the model's scores passback, the same route the eventId travels.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 final class CatalogSearchHit
 {
@@ -59,7 +59,7 @@ final class CatalogSearchHit
      *
      * @var array<string, array{url: string|null, description: string}>
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private const ROW_MAP = [
         'item' => ['url' => 'link', 'description' => 'short_desc'],
@@ -83,7 +83,7 @@ final class CatalogSearchHit
      *
      * @throws InvalidArgumentException When the id is not positive.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly SearchEntity $entity,
@@ -111,7 +111,7 @@ final class CatalogSearchHit
      *
      * @throws InvalidArgumentException When the row carries no positive id.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function fromRow(SearchEntity $entity, object $row): self
     {

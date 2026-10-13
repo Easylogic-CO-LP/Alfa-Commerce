@@ -32,14 +32,14 @@ defined('_JEXEC') or die;
  * view, unbounded, on the table this schema indexes hardest. A value that is not
  * exactly 64 lowercase hex characters identifies nobody.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartOwner
 {
     /**
      * The shape a recognition key must have to identify anyone.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const KEY_PATTERN = '/^[0-9a-f]{64}$/';
 
@@ -47,7 +47,7 @@ final class CartOwner
      * @param int $customerId The account, or 0 for a guest.
      * @param string $recognizeKey The recognition key, or '' for none.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function __construct(private int $customerId, private string $recognizeKey)
     {
@@ -59,7 +59,7 @@ final class CartOwner
      * @param int $customerId The account.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function member(int $customerId): self
     {
@@ -73,7 +73,7 @@ final class CartOwner
      * @param string $recognizeKey The key from the cookie.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function guest(string $recognizeKey): self
     {
@@ -84,7 +84,7 @@ final class CartOwner
      * Nobody: a first-time visitor who has not been given a key yet.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function nobody(): self
     {
@@ -102,7 +102,7 @@ final class CartOwner
      * @param string $recognizeKey The key the browser presented.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function of(int $customerId, string $recognizeKey): self
     {
@@ -115,7 +115,7 @@ final class CartOwner
      * @param string $value The candidate.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function isWellFormedKey(string $value): bool
     {
@@ -127,7 +127,7 @@ final class CartOwner
      * no cart to find.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function isIdentified(): bool
     {
@@ -137,7 +137,7 @@ final class CartOwner
     /**
      * @return bool True when the owner is an account rather than a cookie.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function isMember(): bool
     {
@@ -147,7 +147,7 @@ final class CartOwner
     /**
      * @return int The account, or 0 for a guest.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function customerId(): int
     {
@@ -157,7 +157,7 @@ final class CartOwner
     /**
      * @return string The recognition key, or '' when the owner is a member or nobody.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function recognizeKey(): string
     {

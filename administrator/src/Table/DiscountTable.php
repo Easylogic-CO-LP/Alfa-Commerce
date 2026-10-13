@@ -55,7 +55,7 @@ class DiscountTable extends Table
      *
      * @return bool True when the row may be stored.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function check()
     {

@@ -39,7 +39,7 @@ class ManufacturerModel extends AlfaAdminModel
 {
     /**
      * @var string The entity a plugin targets with $context->targets('manufacturer').
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'manufacturer';
 
@@ -179,7 +179,7 @@ class ManufacturerModel extends AlfaAdminModel
      * @param int ...$manufacturerIds The saved or state-changed manufacturer ids.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function resyncLinkedItems(int ...$manufacturerIds): void
     {
@@ -361,7 +361,7 @@ class ManufacturerModel extends AlfaAdminModel
      *
      * @return bool True on success.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function publish(&$pks, $value = 1)
     {

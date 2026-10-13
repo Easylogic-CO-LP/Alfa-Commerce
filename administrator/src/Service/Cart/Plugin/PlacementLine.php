@@ -19,7 +19,7 @@ defined('_JEXEC') or die;
  * the order may proceed, not what it costs, and a validator that could read a
  * total would be reading a number the placement is still assembling.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class PlacementLine
 {
@@ -29,7 +29,7 @@ final class PlacementLine
      * @param int $quantity How many.
      * @param int|null $combinationId The variant, when the product has them.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly int $lineId,

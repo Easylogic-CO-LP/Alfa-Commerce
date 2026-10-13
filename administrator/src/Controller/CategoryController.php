@@ -37,14 +37,14 @@ class CategoryController extends FormController
     /**
      * Base table backing the inline quick-edit endpoints.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private const INLINE_TABLE = '#__alfa_categories';
 
     /**
      * Primary column of this entity's per-language aux tables.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private const INLINE_PRIMARY_COLUMN = 'id_category';
 
@@ -52,7 +52,7 @@ class CategoryController extends FormController
      * Translatable fields this list may quick-edit. Anything else is refused, so
      * a crafted request cannot reach a field the list does not render.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private const INLINE_FIELDS = ['name'];
 
@@ -65,7 +65,7 @@ class CategoryController extends FormController
      *
      * @return bool True if successful, false otherwise and internal error is set.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function batch($model = null)
     {
@@ -93,7 +93,7 @@ class CategoryController extends FormController
      * (no fallback), so the editor shows empty where a translation is missing.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function inlineLoad(): void
     {
@@ -129,7 +129,7 @@ class CategoryController extends FormController
      * every assigned item's search document embeds the category name.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function inlineSave(): void
     {

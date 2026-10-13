@@ -41,7 +41,7 @@ use Throwable;
  * component's own language folder, exactly where core's
  * GuidedtoursHelper::loadTranslationFiles() looks for `com_*` uids.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class TourSeeder
 {
@@ -49,7 +49,7 @@ final class TourSeeder
      * Only tours in our namespace are ours to create, update or delete.
      *
      * @var string
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const UID_PREFIX = 'com_alfa.';
 
@@ -57,7 +57,7 @@ final class TourSeeder
      * Where the JSON sources live.
      *
      * @var string
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const TOURS_PATH = JPATH_ADMINISTRATOR . '/components/com_alfa/tours';
 
@@ -66,7 +66,7 @@ final class TourSeeder
      * as an array key on EVERY step, interactive or not. See {@see self::interactiveType()}.
      *
      * @var int
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private const INTERACTIVE_TYPE_FILLER = 1;
 
@@ -80,7 +80,7 @@ final class TourSeeder
      * once on the next update, without touching 33 files to say the same thing.
      *
      * @var int
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private const WRITE_REVISION = 2;
 
@@ -92,7 +92,7 @@ final class TourSeeder
      *
      * @return array{seeded: string[], skipped: string[], removed: string[], errors: string[]}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function seedAll(bool $force = false): array
     {
@@ -169,7 +169,7 @@ final class TourSeeder
      *
      * @return string[] Absolute paths, core first so a plugin cannot shadow a core tour.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function sources(): array
     {
@@ -203,7 +203,7 @@ final class TourSeeder
      *
      * @throws RuntimeException On unreadable/invalid files or a foreign uid.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function read(string $file): array
     {
@@ -233,7 +233,7 @@ final class TourSeeder
      *
      * @return bool True when written, false when version-skipped.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function seedOne(DatabaseInterface $db, array $tour, bool $force): bool
     {
@@ -359,7 +359,7 @@ final class TourSeeder
      * @param array $step One step as the JSON file declares it.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function interactiveType(array $step): int
     {
@@ -375,7 +375,7 @@ final class TourSeeder
      *
      * @return array<string, int>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function storedTours(DatabaseInterface $db): array
     {
@@ -410,7 +410,7 @@ final class TourSeeder
      * @param int $id The tour id.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function removeTour(DatabaseInterface $db, int $id): void
     {
@@ -443,7 +443,7 @@ final class TourSeeder
      *
      * @throws RuntimeException When the tours folder cannot be written.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function exportAll(): array
     {

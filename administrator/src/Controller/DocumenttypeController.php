@@ -19,7 +19,7 @@ use Joomla\CMS\MVC\Controller\FormController;
  * backend (registry rows come from the installer or package providers),
  * so `add` is blocked at the controller level too.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class DocumenttypeController extends FormController
 {
@@ -40,7 +40,7 @@ class DocumenttypeController extends FormController
      *
      * @return bool Always false.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function allowAdd($data = [])
     {

@@ -35,7 +35,7 @@ defined('_JEXEC') or die;
  * surfaces onto. That is the extension contract, and this class is only
  * where it is orchestrated.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartLinePresenter
 {
@@ -43,7 +43,7 @@ final class CartLinePresenter
      * @param CMSApplication $app Boots the plugins.
      * @param User $customer Whose context decides which commercial plugins take part.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(private readonly CMSApplication $app, private readonly User $customer)
     {
@@ -56,7 +56,7 @@ final class CartLinePresenter
      * @param object $item The configured, priced product on it.
      * @param array $payloads The stored payloads, by field id.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function decorate(object $cartItem, object $item, array $payloads): void
     {

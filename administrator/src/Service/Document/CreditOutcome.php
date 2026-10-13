@@ -20,7 +20,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Document;
  * message, but it must not independently calculate whether the credit is
  * zero").
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 enum CreditOutcome: string
 {
@@ -47,7 +47,7 @@ enum CreditOutcome: string
      *
      * @return bool True for Issuable and QuantityCorrection only.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public function issuable(): bool
     {

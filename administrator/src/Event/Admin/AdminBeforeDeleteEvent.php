@@ -43,13 +43,13 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  * before they go (to archive, to log what was there) must do it here. Cleaning up the plugin's
  * own rows belongs in onAlfaAdminAfterDelete, once the delete has actually happened.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 final class AdminBeforeDeleteEvent extends AlfaAdminEvent
 {
     /**
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const NAME = 'onAlfaAdminBeforeDelete';
 }

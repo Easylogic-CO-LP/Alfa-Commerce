@@ -158,7 +158,7 @@ class PluginAction
      * @param array<string, scalar> $fields Field name => value.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function data(array $fields): static
     {
@@ -178,7 +178,7 @@ class PluginAction
      * The item-field endpoint requires a POST.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function mutating(): static
     {
@@ -196,7 +196,7 @@ class PluginAction
      * stays state-changing.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function readOnly(): static
     {

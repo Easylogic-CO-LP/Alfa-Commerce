@@ -23,7 +23,7 @@ use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
  * model is strictly read-side: no publish/trash states, no editing. The
  * only mutation reachable from the list is void (DocumentsController).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class DocumentsModel extends AlfaListModel
 {
@@ -33,7 +33,7 @@ class DocumentsModel extends AlfaListModel
      * The admin-contract entity this list serves.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'document';
 
@@ -43,7 +43,7 @@ class DocumentsModel extends AlfaListModel
      * @param array $config Configuration settings.
      * @param MVCFactoryInterface|null $factory The MVC factory.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct($config = [], ?MVCFactoryInterface $factory = null)
     {
@@ -71,7 +71,7 @@ class DocumentsModel extends AlfaListModel
      *
      * @return string
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function getStoreId($id = '')
     {
@@ -106,7 +106,7 @@ class DocumentsModel extends AlfaListModel
      *
      * @return void
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function populateState($ordering = 'a.id', $direction = 'DESC')
     {
@@ -123,7 +123,7 @@ class DocumentsModel extends AlfaListModel
      *
      * @return \Joomla\Database\DatabaseQuery
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function getListQuery()
     {
@@ -190,7 +190,7 @@ class DocumentsModel extends AlfaListModel
 
         $orderCol = $this->state->get('list.ordering', 'a.id');
         $orderDirn = $this->state->get('list.direction', 'DESC');
-        $query->order($db->escape($orderCol . ' ' . $orderDirn));
+        $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDirn) === 'DESC' ? 'DESC' : 'ASC'));
 
         return $query;
     }
@@ -207,7 +207,7 @@ class DocumentsModel extends AlfaListModel
      *
      * @return \Joomla\CMS\Form\Form|false The Form object on success, false on failure.
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     public function getVoidForm(int $documentId)
     {

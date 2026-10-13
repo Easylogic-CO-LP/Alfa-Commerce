@@ -59,7 +59,7 @@ class DisplayController extends BaseController
      *
      * @return bool True when the request was refused and redirected.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function refuseUnheldRecord(): bool
     {
@@ -94,7 +94,7 @@ class DisplayController extends BaseController
      * dispatcher queues on every page, is not a reason for this refusal.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function checkoutRefusalQueued(): bool
     {
@@ -116,7 +116,7 @@ class DisplayController extends BaseController
      * @param string $view A record screen.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function recordList(string $view): string
     {

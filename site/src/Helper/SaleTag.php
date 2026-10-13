@@ -25,7 +25,7 @@ use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemSurface;
  * The slot string is validated against the CONTEXT's own surface enum; a value that
  * is not a real slot for this context falls back to the image corner.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class SaleTag
 {
@@ -37,7 +37,7 @@ final class SaleTag
      *                        false for the product page (ItemSurface slots).
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function contribute(object $item, bool $isListing): void
     {

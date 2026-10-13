@@ -31,7 +31,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Panel;
  * ({@see \Alfa\Component\Alfa\Administrator\Menu\MenuItem::lookups()}); every other task
  * comes from a form's POST. A task no plugin marks handled is treated as unknown.
  *
- * @since  1.7.0
+ * @since  2.0.0
  */
 class PanelTaskEvent extends PanelResultEvent
 {
@@ -39,7 +39,7 @@ class PanelTaskEvent extends PanelResultEvent
      * The task verb, without the controller prefix (e.g. 'rebuild', 'toggle').
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getTask(): string
     {

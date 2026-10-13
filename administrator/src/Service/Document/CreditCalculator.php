@@ -35,7 +35,7 @@ use Throwable;
  * charge with money left after its discount, or, when no goods are picked,
  * goods with money left after theirs.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class CreditCalculator
 {
@@ -43,7 +43,7 @@ final class CreditCalculator
      * Quantity precision, the issuer's: a quantity is not money and has no
      * currency scale to be exact at.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const QUANTITY_EPSILON = 0.000001;
 
@@ -64,7 +64,7 @@ final class CreditCalculator
      * @param CreditInput $input What to calculate.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function calculate(CreditInput $input): CreditResult
     {
@@ -225,7 +225,7 @@ final class CreditCalculator
      *
      * @return array CreditResult::exclusions entries.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function chargesLeftOut(int $orderId, int $correctsId): array
     {
@@ -277,7 +277,7 @@ final class CreditCalculator
      *
      * @throws RuntimeException When the document does not exist, or the lines and the selection disagree.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function decisionRecord(int $correctsId, array $selected, array $lines): array
     {
@@ -463,7 +463,7 @@ final class CreditCalculator
      *
      * @throws RuntimeException When the corrected document does not exist.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function zeroOutcome(int $orderId, int $correctsId, array $lines, float $totalIncl, array $record): CreditOutcome
     {
@@ -513,7 +513,7 @@ final class CreditCalculator
      *
      * @return array<int, float> Units keyed by order line id.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function quantityCorrectionAllowance(int $orderId, int $correctsId): array
     {
@@ -541,7 +541,7 @@ final class CreditCalculator
      * @param array $lines The draft lines.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function quantityCorrection(int $orderId, int $correctsId, array $lines): bool
     {
@@ -583,7 +583,7 @@ final class CreditCalculator
      * @param array $lines The draft lines.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function carriesItems(array $lines): bool
     {
@@ -604,7 +604,7 @@ final class CreditCalculator
      * @param Currency $currency The corrected document's currency.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function holdsMoney(array $entry, Currency $currency): bool
     {
@@ -620,7 +620,7 @@ final class CreditCalculator
      * @param Currency $currency The corrected document's currency.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function chargeHoldsMoney(array $record, Currency $currency): bool
     {
@@ -642,7 +642,7 @@ final class CreditCalculator
      * @param Currency $currency The corrected document's currency.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function exclusions(array $record, Currency $currency): array
     {
@@ -666,7 +666,7 @@ final class CreditCalculator
      * @param string $fingerprint The fingerprint of an issuable credit.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function judged(
         CreditOutcome $outcome,
@@ -715,7 +715,7 @@ final class CreditCalculator
      * @param string $language The credit's language, when it was resolved.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function refused(Throwable $error, ?object $corrected, string $language = ''): CreditResult
     {
@@ -747,7 +747,7 @@ final class CreditCalculator
      * @param string $fingerprint The fingerprint.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function answer(
         CreditOutcome $outcome,
@@ -785,7 +785,7 @@ final class CreditCalculator
      *
      * @return string Exactly $scale decimals ('12.40' at 2, '12' at 0).
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function decimal(int $minor, int $scale): string
     {

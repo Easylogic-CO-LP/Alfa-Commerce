@@ -10,7 +10,7 @@ class UsergroupsModel extends AlfaListModel
 {
     /**
      * @var string The entity a plugin targets with $context->targets('usergroup').
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'usergroup';
 
@@ -81,7 +81,7 @@ class UsergroupsModel extends AlfaListModel
         $orderCol = $this->state->get('list.ordering', 'ug.title');
         $orderDirn = $this->state->get('list.direction', 'ASC');
 
-        $query->order($db->escape($orderCol . ' ' . $orderDirn));
+        $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDirn) === 'DESC' ? 'DESC' : 'ASC'));
 
         return $query;
     }

@@ -35,7 +35,7 @@ defined('_JEXEC') or die;
  * the row writer, the line configuration) and exposes only what placement
  * reads and does. It is not a plugin API and not the application API.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class PlacementCart
 {
@@ -48,7 +48,7 @@ final class PlacementCart
     /**
      * @param OpenedCart $cart The cart, opened, held privately.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function __construct(private readonly OpenedCart $cart)
     {
@@ -63,7 +63,7 @@ final class PlacementCart
      * @param CartSubject $subject Whose cart, and on whose terms it is priced.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function current(CartSubject $subject): self
     {
@@ -80,7 +80,7 @@ final class PlacementCart
      * @param CartSubject $subject Whose it must be, and who is acting.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function named(int $cartId, CartSubject $subject): self
     {
@@ -92,7 +92,7 @@ final class PlacementCart
     /**
      * @return int The cart's id; 0 when there is none.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function cartId(): int
     {
@@ -103,7 +103,7 @@ final class PlacementCart
      * Whether this is the exact cart that was named, rather than one discovered.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function isNamed(): bool
     {
@@ -118,7 +118,7 @@ final class PlacementCart
      * be re-priced later in the currency it was actually placed in.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function currencyId(): int
     {
@@ -136,7 +136,7 @@ final class PlacementCart
      * @param int|null $placeId The delivery place, or null when the form has none.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function bindDeliveryPlace(?int $placeId): void
     {
@@ -157,7 +157,7 @@ final class PlacementCart
      * @param int $shipmentMethodId The carrier this submission chose.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function assumeShipment(int $shipmentMethodId): void
     {
@@ -175,7 +175,7 @@ final class PlacementCart
      * @param int $invoiceId The invoice address, which may be the same one.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function freezeAddresses(int $deliveryId, int $invoiceId): void
     {
@@ -186,7 +186,7 @@ final class PlacementCart
     /**
      * @return int The frozen delivery address id; 0 until frozen.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function frozenDeliveryAddressId(): int
     {
@@ -196,7 +196,7 @@ final class PlacementCart
     /**
      * @return int The frozen invoice address id; 0 until frozen.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function frozenInvoiceAddressId(): int
     {
@@ -210,7 +210,7 @@ final class PlacementCart
      *
      * @return object[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function lines(): array
     {
@@ -225,7 +225,7 @@ final class PlacementCart
      * @param int $quantity How many.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function lineBreakdown(object $item, int $lineId, int $quantity): array
     {
@@ -234,55 +234,55 @@ final class PlacementCart
 
     // money, rules, contributions
 
-    /** @return Money What the carrier charged, before any shipping rule. @since 1.10.0 */
+    /** @return Money What the carrier charged, before any shipping rule. @since 2.0.0 */
     public function shipmentGross(): Money
     {
         return $this->cart->computation->totals()->shipmentGross();
     }
 
-    /** @return Money The same, before tax. @since 1.10.0 */
+    /** @return Money The same, before tax. @since 2.0.0 */
     public function shipmentGrossExcl(): Money
     {
         return $this->cart->computation->totals()->shipmentGrossExcl();
     }
 
-    /** @return float The rate the carrier's charge was taxed at, in percent; 0.0 untaxed. @since 1.14.0 */
+    /** @return float The rate the carrier's charge was taxed at, in percent; 0.0 untaxed. @since 2.0.0 */
     public function shipmentTaxRate(): float
     {
         return $this->cart->computation->totals()->shipmentTaxRate();
     }
 
-    /** @return ShippingChargeBasis|null How the carrier's charge was formed; null when nothing is charged. @since 1.14.0 */
+    /** @return ShippingChargeBasis|null How the carrier's charge was formed; null when nothing is charged. @since 2.0.0 */
     public function shipmentChargeBasis(): ?ShippingChargeBasis
     {
         return $this->cart->computation->totals()->shipmentChargeBasis();
     }
 
-    /** @return string[] The rates the carrier's charge was calculated with, in order, as exact decimal texts. @since 1.14.0 */
+    /** @return string[] The rates the carrier's charge was calculated with, in order, as exact decimal texts. @since 2.0.0 */
     public function shipmentTaxChain(): array
     {
         return $this->cart->computation->totals()->shipmentTaxChain();
     }
 
-    /** @return Money What the purchase comes to. @since 1.10.0 */
+    /** @return Money What the purchase comes to. @since 2.0.0 */
     public function grandTotal(): Money
     {
         return $this->cart->computation->totals()->grandTotal();
     }
 
-    /** @return Money The same, before tax. @since 1.10.0 */
+    /** @return Money The same, before tax. @since 2.0.0 */
     public function grandTotalExcl(): Money
     {
         return $this->cart->computation->totals()->grandTotalExcl();
     }
 
-    /** @return object[] The cart rules that applied. @since 1.10.0 */
+    /** @return object[] The cart rules that applied. @since 2.0.0 */
     public function appliedRules(): array
     {
         return $this->cart->computation->rules()->applied();
     }
 
-    /** @return array The charges the commercial plugins contributed. @since 1.10.0 */
+    /** @return array The charges the commercial plugins contributed. @since 2.0.0 */
     public function contributions(): array
     {
         return $this->cart->computation->contributions();
@@ -290,7 +290,7 @@ final class PlacementCart
 
     // offered methods
 
-    /** @return bool Whether any payment method could be offered at all. @since 1.10.0 */
+    /** @return bool Whether any payment method could be offered at all. @since 2.0.0 */
     public function hasPaymentCandidates(): bool
     {
         return $this->cart->computation->methods()->hasPaymentCandidates();
@@ -300,26 +300,26 @@ final class PlacementCart
      * Whether this cart must name a payment method: the same verdict the
      * checkout offers were built from, not a count taken of them here.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function paymentRequirement(): MethodRequirement
     {
         return $this->cart->computation->methods()->paymentRequirement();
     }
 
-    /** @return array The payment methods offered, keyed by id. @since 1.10.0 */
+    /** @return array The payment methods offered, keyed by id. @since 2.0.0 */
     public function paymentMethods(): array
     {
         return $this->cart->computation->methods()->payments();
     }
 
-    /** @return array The same, ignoring the carrier's restrictions. @since 1.10.0 */
+    /** @return array The same, ignoring the carrier's restrictions. @since 2.0.0 */
     public function paymentMethodsIgnoringShipping(): array
     {
         return $this->cart->computation->methods()->paymentsIgnoringShipping();
     }
 
-    /** @return bool Whether any carrier could be offered at all. @since 1.10.0 */
+    /** @return bool Whether any carrier could be offered at all. @since 2.0.0 */
     public function hasShipmentCandidates(): bool
     {
         return $this->cart->computation->methods()->hasShipmentCandidates();
@@ -329,14 +329,14 @@ final class PlacementCart
      * Whether this cart must name a carrier: the same verdict, for the same
      * reason as its payment twin.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function shipmentRequirement(): MethodRequirement
     {
         return $this->cart->computation->methods()->shipmentRequirement();
     }
 
-    /** @return array The carriers offered, keyed by id. @since 1.10.0 */
+    /** @return array The carriers offered, keyed by id. @since 2.0.0 */
     public function shipmentMethods(): array
     {
         return $this->cart->computation->methods()->shipments();
@@ -350,7 +350,7 @@ final class PlacementCart
      * is reached, so a cart the carrier has refused is declined while the
      * shopper still has their money.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function shipmentQuote(): ShippingQuote
     {
@@ -369,7 +369,7 @@ final class PlacementCart
      * @param int $shipmentMethodId The shipment method the placement chose; 0 for none.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function eventContext(int $customerId = 0, int $shipmentMethodId = 0): PlacementEventContext
     {
@@ -402,7 +402,7 @@ final class PlacementCart
      *
      * @return bool Whether the cart went.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function discard(): bool
     {
