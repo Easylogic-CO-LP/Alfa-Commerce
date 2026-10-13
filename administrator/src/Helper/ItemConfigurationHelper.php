@@ -38,7 +38,7 @@ use Throwable;
  * ({@see self::payloadFields()}); a composition posted for any other field
  * refuses the configuration on both writers ({@see self::compositionRefusal()}).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class ItemConfigurationHelper
 {
@@ -47,7 +47,7 @@ class ItemConfigurationHelper
      *
      * @var array<int, array<int, \Joomla\Registry\Registry>>
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected static array $requiredOverrides = [];
 
@@ -73,7 +73,7 @@ class ItemConfigurationHelper
      *
      * @return array{key: ?string, params: list<string>, text: ?string}|null The refusal, exactly one of
      *                                                                       key and text set; null when valid.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function validate(object $item, ?int $combinationId, array $request, float $quantity): ?array
     {
@@ -171,7 +171,7 @@ class ItemConfigurationHelper
      * @param array<string, string> $wording Storefront key => the reader's key.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function refusalText(array $refusal, array $wording = []): string
     {
@@ -199,7 +199,7 @@ class ItemConfigurationHelper
      *
      * @return array<int, true>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function payloadFields(object $item): array
     {
@@ -237,7 +237,7 @@ class ItemConfigurationHelper
      *
      * @return array{key: ?string, params: list<string>, text: ?string}|null The refusal; null when there is none.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function compositionRefusal(object $item, array $request, array $fullPayloads = [], array $files = []): ?array
     {
@@ -290,7 +290,7 @@ class ItemConfigurationHelper
      *
      * @return object|null The booted plugin, or null.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function payloadHandler(object $field): ?object
     {
@@ -318,7 +318,7 @@ class ItemConfigurationHelper
      * @param mixed $payload A posted payload or full composition.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function isComposition(mixed $payload): bool
     {
@@ -340,7 +340,7 @@ class ItemConfigurationHelper
      * @param Throwable $e The failure.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function logDispatchFailure(string $event, ?object $plugin, object $field, Throwable $e): void
     {
@@ -364,7 +364,7 @@ class ItemConfigurationHelper
      * @param object $field The field definition (carries ->required).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function isFieldRequired(int $itemId, object $field): bool
     {
@@ -405,7 +405,7 @@ class ItemConfigurationHelper
      * @param int[] $itemIds The items about to be resolved.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function warmRequiredOverrides(array $itemIds): void
     {
@@ -456,7 +456,7 @@ class ItemConfigurationHelper
      *
      * @return array{choiceIds: int[], payloadIds: int[], missing: string[], labels: array<int, string>}
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function requiredState(object $item, string $payloadLabel): array
     {
@@ -511,7 +511,7 @@ class ItemConfigurationHelper
      * @param array $files conf_file uploads, keyed field id => slot => file.
      *
      * @return array|string The updated request, or an error message on a hard failure.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function preparePayloads(object $item, array $request, array $fullPayloads, array $files): array|string
     {
@@ -586,7 +586,7 @@ class ItemConfigurationHelper
      * @param array $request requestSelection() output.
      *
      * @return array<int, array{value_id: int|null, payload: string|null}>
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function buildRows(object $item, array $request): array
     {
@@ -622,7 +622,7 @@ class ItemConfigurationHelper
      * @param object $item The hydrated item.
      * @param int $fieldId The field id.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected static function fieldValueId(object $item, int $fieldId): ?int
     {
@@ -644,7 +644,7 @@ class ItemConfigurationHelper
      * @param array $request requestSelection() output.
      *
      * @return array{sel: array<int, int>, opt: int[]}
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected static function selectionsOf(array $request): array
     {
@@ -664,7 +664,7 @@ class ItemConfigurationHelper
      * @param array $request requestSelection() output.
      *
      * @return array The request, selection filled.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected static function withFixedDimensions(object $item, array $request): array
     {

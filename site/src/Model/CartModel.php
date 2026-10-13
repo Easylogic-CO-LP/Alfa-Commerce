@@ -109,7 +109,7 @@ class CartModel extends FormModel
      *
      * @return array|false The filtered data, or false on validation failure.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function validate($form, $data, $group = null)
     {
@@ -175,7 +175,7 @@ class CartModel extends FormModel
      *
      * @return array
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     protected function loadFormData()
     {
@@ -189,7 +189,7 @@ class CartModel extends FormModel
      *
      * @return object[]
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function getSavedUserInfo(): array
     {
@@ -223,7 +223,7 @@ class CartModel extends FormModel
      *
      * @return int Row id, 0 = none.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function getPickedUserInfoId(): int
     {
@@ -250,7 +250,7 @@ class CartModel extends FormModel
      *
      * @return int Row id, 0 = none.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function getPickedBillingInfoId(): int
     {
@@ -267,7 +267,7 @@ class CartModel extends FormModel
      * Whether the billing picker explicitly chose "New details".
      *
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function isNewBillingPicked(): bool
     {
@@ -279,7 +279,7 @@ class CartModel extends FormModel
      * held in the same checkout state as the rest of the form.
      *
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function isInvoiceDifferent(): bool
     {
@@ -291,7 +291,7 @@ class CartModel extends FormModel
      * form, with the sole-row default disabled.
      *
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function isNewUserInfoPicked(): bool
     {
@@ -301,7 +301,7 @@ class CartModel extends FormModel
     /**
      * @return int The logged-in user id (0 for guests).
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function currentUserId(): int
     {

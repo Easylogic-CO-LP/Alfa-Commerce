@@ -25,7 +25,7 @@ defined('_JEXEC') or die;
  * while documents are known to be missing from it. That decision belongs to
  * whoever reads this, which is why the data survives to be read.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class RebuildProgress
 {
@@ -47,7 +47,7 @@ final class RebuildProgress
      *                           Captured at start() because after activation the engine
      *                           no longer distinguishes it from any older generation.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly string $generation,
@@ -68,7 +68,7 @@ final class RebuildProgress
      *
      * @return array<string, mixed>
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function toArray(): array
     {
@@ -92,7 +92,7 @@ final class RebuildProgress
      * @param array<string, mixed> $state A value previously produced by toArray().
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function fromArray(array $state): self
     {

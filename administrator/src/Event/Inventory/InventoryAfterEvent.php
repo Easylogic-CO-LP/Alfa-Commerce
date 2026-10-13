@@ -23,14 +23,14 @@ use Joomla\CMS\Event\AbstractEvent;
  * Every event carries the command's operation summary via getResult()
  * (operation_id included) plus its own named arguments.
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 abstract class InventoryAfterEvent extends AbstractEvent
 {
     /**
      * @return array The command's result summary (operation_id included).
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function getResult(): array
     {
@@ -44,7 +44,7 @@ abstract class InventoryAfterEvent extends AbstractEvent
      * @param mixed $default Fallback when absent.
      *
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function argument(string $key, mixed $default = null): mixed
     {

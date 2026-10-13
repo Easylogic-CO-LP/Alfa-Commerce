@@ -37,7 +37,7 @@ use Throwable;
  * Writes go through {@see Table\Menu} (a nested set, never raw INSERTs):
  * setLocation + store + rebuildPath keep lft/rgt/path sane.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class MenuProvisioningService
 {
@@ -47,7 +47,7 @@ final class MenuProvisioningService
      * already had.
      *
      * @var string
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const MENUTYPE = 'alfa-storefront';
 
@@ -61,7 +61,7 @@ final class MenuProvisioningService
      * nothing, but never gating the checklist.
      *
      * @var array<string, array{title: string, alias: string}>
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const STOREFRONT = [
         'items' => ['title' => 'COM_ALFA_SETUP_MENU_TITLE_SHOP',     'alias' => 'shop'],
@@ -75,7 +75,7 @@ final class MenuProvisioningService
      * is created as a convenience and never reported as missing.
      *
      * @var string[]
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const REQUIRED = ['items', 'cart'];
 
@@ -84,7 +84,7 @@ final class MenuProvisioningService
      * writes, or the switcher would not read what we create.
      *
      * @var string
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const ASSOCIATIONS_CONTEXT = 'com_menus.item';
 
@@ -108,7 +108,7 @@ final class MenuProvisioningService
      *                          refuses to store: surfaced, never swallowed: a half
      *                          provisioned storefront must be visible.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function provisionStorefront(?string $menutype = null, bool $ignoreExisting = false, ?array $views = null): array
     {
@@ -209,7 +209,7 @@ final class MenuProvisioningService
      *
      * @return array<string, string>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function menuOptions(): array
     {
@@ -239,7 +239,7 @@ final class MenuProvisioningService
      * @param string $menutype The menu type.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function menuExists(string $menutype): bool
     {
@@ -264,7 +264,7 @@ final class MenuProvisioningService
      * @param DatabaseInterface $db The database.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function soleRootCategoryId(DatabaseInterface $db): int
     {
@@ -296,7 +296,7 @@ final class MenuProvisioningService
      *
      * @throws RuntimeException When the menu type cannot be stored.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function ensureOwnMenu(DatabaseInterface $db): string
     {
@@ -339,7 +339,7 @@ final class MenuProvisioningService
      * @param string|null $language A content language tag, or null for any.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function viewReachable(DatabaseInterface $db, string $view, ?string $language = null): bool
     {
@@ -373,7 +373,7 @@ final class MenuProvisioningService
      * @param string|null $language Content language tag, or null for any.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function reachable(string $view, ?string $language = null): bool
     {
@@ -392,7 +392,7 @@ final class MenuProvisioningService
      *
      * @return array<string, string[]> view => missing language tags
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function missingViews(?array $views = null): array
     {
@@ -426,7 +426,7 @@ final class MenuProvisioningService
      *
      * @return array<string, array<string, int>> view => language => menu item id
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function unassociatedViews(): array
     {
@@ -476,7 +476,7 @@ final class MenuProvisioningService
      *
      * @return string[] The views that were associated.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function associateStorefront(): array
     {
@@ -519,7 +519,7 @@ final class MenuProvisioningService
      *
      * @return array<string, int>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function storefrontRows(DatabaseInterface $db, string $view): array
     {
@@ -555,7 +555,7 @@ final class MenuProvisioningService
      *
      * @return string[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function associationKeys(DatabaseInterface $db, array $ids): array
     {
@@ -581,7 +581,7 @@ final class MenuProvisioningService
      *
      * @return string `shop`, or `shop-2` ... when taken.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function uniqueAlias(DatabaseInterface $db, string $base): string
     {
@@ -613,7 +613,7 @@ final class MenuProvisioningService
      * @param int[] $ids The created menu ids.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function trackCreated(array $ids): void
     {
@@ -630,7 +630,7 @@ final class MenuProvisioningService
      * @param DatabaseInterface $db The database.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function componentId(DatabaseInterface $db): int
     {

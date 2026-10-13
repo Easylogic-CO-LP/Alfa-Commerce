@@ -27,11 +27,11 @@ defined('_JEXEC') or die;
  * attached. And the name alone, for a line whose product has left the
  * catalogue and must still be shown as the thing it was.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartItemLoader
 {
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function __construct(private readonly DatabaseInterface $db)
     {
     }
@@ -42,7 +42,7 @@ final class CartItemLoader
      * @param int $itemId The product.
      * @param bool $requirePublished Whether it must be on sale right now.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function load(int $itemId, bool $requirePublished = false): ?object
     {
@@ -93,7 +93,7 @@ final class CartItemLoader
     /**
      * The product's name in the current language, for a stranded line.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function name(int $itemId): string
     {

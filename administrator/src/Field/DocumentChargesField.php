@@ -44,7 +44,7 @@ use Joomla\CMS\Language\Text;
  * the draft that claimed what it reduces: permanently unclaimable, and the
  * documents would over-bill.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class DocumentChargesField extends FormField
 {
@@ -52,7 +52,7 @@ class DocumentChargesField extends FormField
      * The field type.
      *
      * @var string
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected $type = 'DocumentCharges';
 
@@ -61,7 +61,7 @@ class DocumentChargesField extends FormField
      *
      * @return string The field HTML, or nothing when the order has no claimable charges.
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     protected function getInput(): string
     {
@@ -248,7 +248,7 @@ class DocumentChargesField extends FormField
      * @param string $note Muted explanatory suffix, or empty.
      * @param float $amount The remaining amount, tax included.
      * @param string $sign Prefix for the amount, e.g. a minus for a discount.
-     * @param bool $open Whether money is left on the charge (since 1.14.0): a closed
+     * @param bool $open Whether money is left on the charge (since 2.0.0): a closed
      *                   row is rendered disabled.
      * @param bool $pickable False renders no checkbox: the row rides another one.
      * @param bool $ticked Whether the row arrives ticked while money is left on it.
@@ -256,14 +256,14 @@ class DocumentChargesField extends FormField
      * @param string $remaining A credit row's remaining at its document's scale, machine
      *                          formatted; set, the row carries an amount input.
      * @param array|null $kept The kept draft's charges when this row's group is the one it
-     *                         claimed (since 1.14.0): the tick and the typed amount are its.
-     * @param string|null $charged A credit row's charged figure (since 1.14.0); with $credited
+     *                         claimed (since 2.0.0): the tick and the typed amount are its.
+     * @param string|null $charged A credit row's charged figure (since 2.0.0); with $credited
      *                             set, the row prints both before its remaining.
-     * @param string|null $credited What credits already gave back of it (since 1.14.0).
+     * @param string|null $credited What credits already gave back of it (since 2.0.0).
      *
      * @return string The <tr>.
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     private function chargeRow(
         string $kind,
@@ -322,7 +322,7 @@ class DocumentChargesField extends FormField
      *
      * @return string Empty.
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     protected function getLabel(): string
     {

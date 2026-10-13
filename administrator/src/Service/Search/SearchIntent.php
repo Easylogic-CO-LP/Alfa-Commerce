@@ -35,7 +35,7 @@ defined('_JEXEC') or die;
  * type-ahead, and only that caller can say which. Adding a case whose recording policy is
  * ambiguous would reintroduce the guessing one layer higher.
  *
- * @since  1.6.0
+ * @since  2.0.0
  */
 enum SearchIntent: string
 {
@@ -45,7 +45,7 @@ enum SearchIntent: string
      * THE SAFE DEFAULT EVERYWHERE. A query in flight is not a query the shopper has
      * expressed: they are mid-word, and the next keystroke replaces it.
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     case TYPEAHEAD = 'typeahead';
 
@@ -56,7 +56,7 @@ enum SearchIntent: string
      * The only intent that is worth a merchant's attention, and therefore the only one
      * recorded.
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     case SEARCH = 'search';
 
@@ -66,7 +66,7 @@ enum SearchIntent: string
      * Never recorded: a report about the shop's own maintenance traffic tells a merchant
      * nothing and dilutes the counts that do.
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     case SYSTEM = 'system';
 
@@ -81,7 +81,7 @@ enum SearchIntent: string
      * be clicked as searches). One expressed search = one event; its continuations are the
      * same fact re-read.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     case CONTINUATION = 'continuation';
 
@@ -99,7 +99,7 @@ enum SearchIntent: string
      *
      * @return bool True only for {@see self::SEARCH}.
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     public function recordsAnalytics(): bool
     {
@@ -118,7 +118,7 @@ enum SearchIntent: string
      *
      * @return self The matching case, or {@see self::TYPEAHEAD}.
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     public static function fromDeclared(mixed $value): self
     {

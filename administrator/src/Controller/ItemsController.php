@@ -30,7 +30,7 @@ class ItemsController extends AdminController
      *
      * @var array<string, int>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const STATE_TASKS = ['publish' => 1, 'unpublish' => 0, 'archive' => 2, 'trash' => -2, 'report' => -3];
 
@@ -47,7 +47,7 @@ class ItemsController extends AdminController
      * selection is reported as the platform reports it.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function publish(): void
     {
@@ -115,7 +115,7 @@ class ItemsController extends AdminController
      *
      * @throws NotAllowed Without a POST, the form token or Super User rights.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function restoreArchived(): void
     {

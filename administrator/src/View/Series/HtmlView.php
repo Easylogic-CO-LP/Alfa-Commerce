@@ -22,7 +22,7 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
 /**
  * Document series edit view.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class HtmlView extends BaseHtmlView
 {
@@ -39,7 +39,7 @@ class HtmlView extends BaseHtmlView
      * wrapper (not FormView), so the contract must be told the screen identity.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected function alfaScreen(): string
     {
@@ -53,7 +53,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function display($tpl = null)
     {
@@ -79,7 +79,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function addToolbar()
     {

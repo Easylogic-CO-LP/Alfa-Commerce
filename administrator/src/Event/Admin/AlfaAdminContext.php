@@ -66,7 +66,7 @@ use LogicException;
  * set-magic: no event in the family declares a set<Argument>() method, so nothing intercepts
  * the constructor's setArgument() pass.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 final class AlfaAdminContext
 {
@@ -74,7 +74,7 @@ final class AlfaAdminContext
      * A list screen (the grid).
      *
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const SCREEN_LIST = 'list';
 
@@ -82,7 +82,7 @@ final class AlfaAdminContext
      * An edit screen (the record form).
      *
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const SCREEN_EDIT = 'edit';
 
@@ -90,7 +90,7 @@ final class AlfaAdminContext
      * A save round trip (validate -> before -> after).
      *
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const SCREEN_SAVE = 'save';
 
@@ -98,7 +98,7 @@ final class AlfaAdminContext
      * A delete round trip (before -> after).
      *
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const SCREEN_DELETE = 'delete';
 
@@ -106,7 +106,7 @@ final class AlfaAdminContext
      * The list query is being built.
      *
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const PHASE_LIST_QUERY = 'listquery';
 
@@ -114,7 +114,7 @@ final class AlfaAdminContext
      * The list filter form is being prepared.
      *
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const PHASE_LIST_FILTERS = 'listfilters';
 
@@ -122,7 +122,7 @@ final class AlfaAdminContext
      * List columns are being collected.
      *
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const PHASE_LIST_COLUMNS = 'listcolumns';
 
@@ -130,7 +130,7 @@ final class AlfaAdminContext
      * Per-row data for the current page is being collected.
      *
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const PHASE_LIST_ROW_DATA = 'listrowdata';
 
@@ -138,7 +138,7 @@ final class AlfaAdminContext
      * Per-row actions are being collected.
      *
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const PHASE_LIST_ROW_ACTIONS = 'listrowactions';
 
@@ -146,7 +146,7 @@ final class AlfaAdminContext
      * Bulk (checked-rows) actions are being collected.
      *
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const PHASE_LIST_BULK_ACTIONS = 'listbulkactions';
 
@@ -154,7 +154,7 @@ final class AlfaAdminContext
      * The screen's toolbar is being built.
      *
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const PHASE_TOOLBAR = 'toolbar';
 
@@ -162,7 +162,7 @@ final class AlfaAdminContext
      * The edit form's schema is being prepared.
      *
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const PHASE_FORM = 'form';
 
@@ -170,7 +170,7 @@ final class AlfaAdminContext
      * The edit form's data is being prepared, before it is bound.
      *
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const PHASE_PREPARE_DATA = 'preparedata';
 
@@ -178,7 +178,7 @@ final class AlfaAdminContext
      * Submitted data is being validated (the veto point of a save).
      *
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const PHASE_VALIDATE = 'validate';
 
@@ -186,7 +186,7 @@ final class AlfaAdminContext
      * A record is about to be written.
      *
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const PHASE_BEFORE_SAVE = 'beforesave';
 
@@ -194,7 +194,7 @@ final class AlfaAdminContext
      * A record has been written.
      *
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const PHASE_AFTER_SAVE = 'aftersave';
 
@@ -202,7 +202,7 @@ final class AlfaAdminContext
      * Records are about to be deleted (the veto point of a delete).
      *
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const PHASE_BEFORE_DELETE = 'beforedelete';
 
@@ -210,7 +210,7 @@ final class AlfaAdminContext
      * Records have been deleted.
      *
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const PHASE_AFTER_DELETE = 'afterdelete';
 
@@ -218,7 +218,7 @@ final class AlfaAdminContext
      * A named render slot on the screen is being filled.
      *
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const PHASE_RENDER = 'render';
 
@@ -229,7 +229,7 @@ final class AlfaAdminContext
      * handler that finds {@see self::isMutating()} false must not write.
      *
      * @var string[]
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private const MUTATING_PHASES = [
         self::PHASE_VALIDATE,
@@ -271,7 +271,7 @@ final class AlfaAdminContext
      *                         (PHASE_VALIDATE, PHASE_BEFORE_DELETE).
      * @param string $html RESULT: markup for the slot (PHASE_RENDER).
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly string $entity,
@@ -325,7 +325,7 @@ final class AlfaAdminContext
      *
      * @throws LogicException When a screen name is passed where an entity belongs.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function targets(string $entity, string ...$more): bool
     {
@@ -351,7 +351,7 @@ final class AlfaAdminContext
      * typo-proof set, deliberately with no variant that matches more than one screen.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function isListScreen(): bool
     {
@@ -362,7 +362,7 @@ final class AlfaAdminContext
      * Whether this is an EDIT screen (the record form).
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function isEditScreen(): bool
     {
@@ -373,7 +373,7 @@ final class AlfaAdminContext
      * Whether this is a SAVE round trip (validate -> before -> after).
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function isSaveScreen(): bool
     {
@@ -384,7 +384,7 @@ final class AlfaAdminContext
      * Whether this is a DELETE round trip (before -> after).
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function isDeleteScreen(): bool
     {
@@ -398,7 +398,7 @@ final class AlfaAdminContext
      * @param string $slot The slot name.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function at(string $slot): bool
     {
@@ -412,7 +412,7 @@ final class AlfaAdminContext
      * @param string ...$phases PHASE_* constants.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function is(string ...$phases): bool
     {
@@ -425,7 +425,7 @@ final class AlfaAdminContext
      * task, so a handler that writes when this is false is writing on a GET.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function isMutating(): bool
     {
@@ -440,7 +440,7 @@ final class AlfaAdminContext
      *
      * @return string e.g. 'com_alfa.order'.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function contentContext(): string
     {
@@ -452,7 +452,7 @@ final class AlfaAdminContext
      * traceable to the exact dispatch.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function key(): string
     {
@@ -467,7 +467,7 @@ final class AlfaAdminContext
      * @param string $message The reason, already translated.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function addError(string $message): void
     {
@@ -478,7 +478,7 @@ final class AlfaAdminContext
      * Whether any handler vetoed.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function hasErrors(): bool
     {
@@ -491,7 +491,7 @@ final class AlfaAdminContext
      * @param string $html The markup.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function append(string $html): void
     {
@@ -510,7 +510,7 @@ final class AlfaAdminContext
      * @param string $element The contributing plugin's element.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function withContributor(string $group, string $element): void
     {

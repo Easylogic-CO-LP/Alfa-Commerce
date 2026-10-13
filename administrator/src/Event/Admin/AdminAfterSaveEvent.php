@@ -48,13 +48,13 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  * Throwing does not undo the save either: the record is committed by the time this fires. Work
  * that must be all-or-nothing with the record belongs in the model, not in a plugin.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 final class AdminAfterSaveEvent extends AlfaAdminEvent
 {
     /**
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const NAME = 'onAlfaAdminAfterSave';
 }

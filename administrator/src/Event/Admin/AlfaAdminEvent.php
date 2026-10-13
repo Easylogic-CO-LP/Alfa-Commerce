@@ -47,7 +47,7 @@ use LogicException;
  * event in this family declares a setter of any kind: the context is passed once at
  * construction and mutated through the context object, never through the event.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 abstract class AlfaAdminEvent extends AbstractEvent
 {
@@ -55,7 +55,7 @@ abstract class AlfaAdminEvent extends AbstractEvent
      * The event name: the exact method a plugin implements. Every concrete event overrides this.
      *
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const NAME = '';
 
@@ -64,7 +64,7 @@ abstract class AlfaAdminEvent extends AbstractEvent
      *
      * @throws LogicException When a concrete event forgot to declare its NAME.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function __construct(AlfaAdminContext $context)
     {
@@ -85,7 +85,7 @@ abstract class AlfaAdminEvent extends AbstractEvent
      * by a `get` prefix while returning different types would be a trap of its own.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function getAdminContext(): AlfaAdminContext
     {
@@ -107,7 +107,7 @@ abstract class AlfaAdminEvent extends AbstractEvent
      * predicates for the screen.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function getContext(): string
     {
@@ -123,7 +123,7 @@ abstract class AlfaAdminEvent extends AbstractEvent
      * @param string ...$more Further entity names; matching ANY of them passes.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function targets(string $entity, string ...$more): bool
     {
@@ -135,7 +135,7 @@ abstract class AlfaAdminEvent extends AbstractEvent
      * guard stays one object. A closed set of four; none matches more than one screen.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function isListScreen(): bool
     {
@@ -143,7 +143,7 @@ abstract class AlfaAdminEvent extends AbstractEvent
     }
 
     /**
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function isEditScreen(): bool
     {
@@ -151,7 +151,7 @@ abstract class AlfaAdminEvent extends AbstractEvent
     }
 
     /**
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function isSaveScreen(): bool
     {
@@ -159,7 +159,7 @@ abstract class AlfaAdminEvent extends AbstractEvent
     }
 
     /**
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function isDeleteScreen(): bool
     {
@@ -172,7 +172,7 @@ abstract class AlfaAdminEvent extends AbstractEvent
      * @param string $slot The slot name.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function at(string $slot): bool
     {
@@ -185,7 +185,7 @@ abstract class AlfaAdminEvent extends AbstractEvent
      * @param string ...$phases PHASE_* constants.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function is(string ...$phases): bool
     {

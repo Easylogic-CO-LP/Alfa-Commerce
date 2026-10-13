@@ -38,7 +38,7 @@ use Joomla\Database\DatabaseInterface;
  * ABANDONMENT IS A QUERY, NEVER A COLUMN. A cart the shopper opens again stops
  * being abandoned by itself, which no stored status could do.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartActivity
 {
@@ -48,7 +48,7 @@ final class CartActivity
      * Measured from the LAST ACTIVITY, not from creation, so a cart someone has
      * been editing for three days is not reported as abandoned on day two.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const ABANDONED_AFTER_HOURS = 24;
 
@@ -61,7 +61,7 @@ final class CartActivity
      *
      * @return string The cutoff, UTC, in the format the column stores.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function cutoff(): string
     {
@@ -81,7 +81,7 @@ final class CartActivity
      * @param string $alias The cart table's alias in the outer query.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function hasLines(DatabaseInterface $db, string $alias = 'a'): string
     {
@@ -103,7 +103,7 @@ final class CartActivity
      * @param string $alias The cart table's alias.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function predicate(DatabaseInterface $db, string $bucket, string $cutoff, string $alias = 'a'): string
     {
@@ -130,7 +130,7 @@ final class CartActivity
      *
      * @return string 'active', 'abandoned' or 'empty'.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function bucketOf(object $cart, string $cutoff): string
     {

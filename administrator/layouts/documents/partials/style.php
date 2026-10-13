@@ -30,7 +30,7 @@
  * @copyright  (C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.
  * @license    GNU General Public License version 3 or later; see LICENSE
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 
 defined('_JEXEC') or die;

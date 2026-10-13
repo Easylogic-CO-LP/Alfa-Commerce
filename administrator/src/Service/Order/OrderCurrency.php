@@ -38,28 +38,28 @@ use Throwable;
  * currency an order that does not exist yet will take
  * ({@see self::forNewOrder()}).
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class OrderCurrency
 {
     /**
      * Language key of the sentence a refused command shows.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const REFUSAL_KEY = 'COM_ALFA_ORDER_CURRENCY_MISSING';
 
     /**
      * Language key of the words a screen or a list shows in place of money.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const NOTICE_KEY = 'COM_ALFA_ORDER_CURRENCY_NONE';
 
     /**
      * Language key of the sentence shown when the order itself has no row.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const NOT_FOUND_KEY = 'COM_ALFA_ORDER_NOT_FOUND';
 
@@ -68,7 +68,7 @@ final class OrderCurrency
      *
      * @var array<int, true>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static array $logged = [];
 
@@ -81,7 +81,7 @@ final class OrderCurrency
      * @throws OrderCurrencyException When the order does not exist, names no
      *                                currency, or names one that has no row.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function of(int $orderId): Currency
     {
@@ -109,7 +109,7 @@ final class OrderCurrency
      * @throws OrderCurrencyException When the row names no currency, or one
      *                                that has no row.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function ofRow(int $orderId, mixed $currencyId, mixed $scale): Currency
     {
@@ -134,7 +134,7 @@ final class OrderCurrency
      * @param int $orderId Order PK.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function find(int $orderId): ?Currency
     {
@@ -151,7 +151,7 @@ final class OrderCurrency
      * @param mixed $scale The row's currency_scale, as stored.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function findRow(int $orderId, mixed $currencyId, mixed $scale): ?Currency
     {
@@ -173,7 +173,7 @@ final class OrderCurrency
      *
      * @throws OrderCurrencyException As {@see self::of()}.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function idOf(int $orderId): int
     {
@@ -188,7 +188,7 @@ final class OrderCurrency
      * Never an answer about an order that exists.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function forNewOrder(): Currency
     {
@@ -201,7 +201,7 @@ final class OrderCurrency
      * Plain text: the screen that prints it escapes it.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function refusal(): string
     {
@@ -214,7 +214,7 @@ final class OrderCurrency
      * Plain text: the screen that prints it escapes it.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function notice(): string
     {
@@ -227,7 +227,7 @@ final class OrderCurrency
      * Plain text: the screen that prints it escapes it.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function notFound(): string
     {
@@ -241,7 +241,7 @@ final class OrderCurrency
      *
      * @return object|null {id_currency, currency_scale}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function row(int $orderId): ?object
     {
@@ -274,7 +274,7 @@ final class OrderCurrency
      *
      * @return Currency|array{detail: string, cause: Throwable|null}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function resolve(int $orderId, ?object $row): Currency|array
     {
@@ -323,7 +323,7 @@ final class OrderCurrency
      * @param bool $orderExists False when the order has no row.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function refuse(int $orderId, string $detail, ?Throwable $previous, bool $orderExists): OrderCurrencyException
     {
@@ -355,7 +355,7 @@ final class OrderCurrency
      * @param string $key Language key.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function text(string $key): string
     {

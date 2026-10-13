@@ -75,7 +75,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * The set of pricing groups each account held when its save began, by user id.
      *
      * @var array<int, string>
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private array $groupSetBeforeSave = [];
 
@@ -137,7 +137,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * @param Event|array $event
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function onUserBeforeSave($event): void
     {
@@ -214,7 +214,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * actually running.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function onBeforeCompileHead(): void
     {
@@ -318,7 +318,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * @param Event|array $event
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function onUserAfterDeleteGroup($event): void
     {
@@ -339,7 +339,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * @param int $userId The account.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function followAccount(string $caller, int $userId): void
     {
@@ -367,7 +367,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * @param string $caller The handler, for the log.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function followCustomerGroups(string $caller): void
     {
@@ -390,7 +390,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * @param Event|array $event
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function onContentCleanCache($event): void
     {
@@ -539,7 +539,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * here: removing the shop or cart link must un-tick the setup checklist.
      *
      * @param Event|array $event
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function onContentAfterDelete($event): void
     {
@@ -564,7 +564,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * routine the installer and the admin "Resync languages" button use.
      *
      * @param Event|array $event
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function onExtensionAfterSave($event): void
     {
@@ -619,7 +619,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * tour-first buttons from that state, so the cached verdict must re-derive.
      *
      * @param Event|array $event
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function onAfterTourSaveUserState($event): void
     {
@@ -657,7 +657,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      * the `alfa.setup` notification. Never breaks the caller's save.
      *
      * @param string $why Log context.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function invalidateSetup(string $why): void
     {

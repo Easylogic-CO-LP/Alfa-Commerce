@@ -33,7 +33,7 @@ use Joomla\CMS\Language\Text;
  * addfieldprefix="Alfa\Component\Alfa\Administrator\Field". The labels are COM_ALFA_*
  * because this component class is what renders them, wherever the field appears.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class DaterangeField extends ListField
 {
@@ -44,7 +44,7 @@ class DaterangeField extends ListField
      *
      * @return array The option set.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function getOptions(): array
     {

@@ -16,7 +16,7 @@
  * Nothing here computes money. The popup renders it at open and the
  * cart.priceLineConfig endpoint renders it again on every change.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 
 defined('_JEXEC') or die;

@@ -22,7 +22,7 @@ defined('_JEXEC') or die;
  *
  * A contribution says which method it belongs to. The selector looks it up.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class MethodViewContribution
 {
@@ -33,7 +33,7 @@ final class MethodViewContribution
      * @param string $pluginType The layout's plugin group.
      * @param string $pluginName The layout's plugin.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly int $methodId,

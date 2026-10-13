@@ -31,7 +31,7 @@ use Throwable;
  * write a new engine's indexer and build their own mapping without asking Commerce
  * Core anything?* Every field here earns its place by that question.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class SearchDocumentBuilder
 {
@@ -44,7 +44,7 @@ class SearchDocumentBuilder
      *
      * @var int
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private const MAX_DESCRIPTION_CHARS = 4000;
 
@@ -53,7 +53,7 @@ class SearchDocumentBuilder
      *
      * @var string[]
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private const DESCRIPTION_COLUMNS = ['short_desc', 'full_desc', 'meta_title', 'meta_desc'];
 
@@ -66,14 +66,14 @@ class SearchDocumentBuilder
      *
      * @var array<string, string[]>
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private array $descriptionColumns = [];
 
     /**
      * @param DatabaseInterface|null $db Injected for testing; defaults to the container driver.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct(?DatabaseInterface $db = null)
     {
@@ -94,7 +94,7 @@ class SearchDocumentBuilder
      * @param string $langTag The language tag, lower-snake form (e.g. en_gb).
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function buildDocument(int $itemId, string $langTag): ?SearchDocument
     {
@@ -153,7 +153,7 @@ class SearchDocumentBuilder
      * @param int $itemId The item id.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function readItem(int $itemId): ?object
     {
@@ -180,7 +180,7 @@ class SearchDocumentBuilder
      *
      * @return array{0: string, 1: string} Title and alias.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function readItemText(int $itemId, string $suffix): array
     {
@@ -209,7 +209,7 @@ class SearchDocumentBuilder
      *
      * @return array{name: string, alias: string}
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function readItemTextRow(int $itemId, string $suffix): array
     {
@@ -250,7 +250,7 @@ class SearchDocumentBuilder
      * @param string $suffix Normalised language suffix.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function readDescriptions(int $itemId, string $suffix): SearchDescriptions
     {
@@ -291,7 +291,7 @@ class SearchDocumentBuilder
      *
      * @return string[] Empty when the table is unreadable or has none of them.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function descriptionColumnsFor(string $suffix): array
     {
@@ -325,7 +325,7 @@ class SearchDocumentBuilder
      *
      * @return FieldValue[]
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function readFieldValues(int $itemId, string $suffix): array
     {
@@ -393,7 +393,7 @@ class SearchDocumentBuilder
      *
      * @return SearchCombination[]
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function readCombinations(int $itemId, string $suffix): array
     {
@@ -459,7 +459,7 @@ class SearchDocumentBuilder
      *
      * @return FacetRef[]
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function readFacets(
         int $pivotItemId,

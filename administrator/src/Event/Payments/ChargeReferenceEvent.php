@@ -34,7 +34,7 @@
  *         Once an answer says money may have moved (success or pending), a
  *         later setFailure() does not replace it.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\Payments;
@@ -52,28 +52,28 @@ class ChargeReferenceEvent extends AbstractImmutableEvent
     /**
      * Outcome: the provider confirmed the charge.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const OUTCOME_SUCCESS = 'success';
 
     /**
      * Outcome: the provider refused the charge, or it was never sent.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const OUTCOME_FAILURE = 'failure';
 
     /**
      * Outcome: the provider may have taken the money and has not said so.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const OUTCOME_PENDING = 'pending';
 
     /**
      * The order this charge pays for.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getOrder(): Order
     {
@@ -89,7 +89,7 @@ class ChargeReferenceEvent extends AbstractImmutableEvent
      * currency instead of the subscription price, unattended, with no buyer
      * watching. A gateway wanting minor units asks ->getMinorUnits().
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getAmount(): Money
     {
@@ -107,7 +107,7 @@ class ChargeReferenceEvent extends AbstractImmutableEvent
     /**
      * ISO 4217 alphabetic currency code (e.g. 'EUR').
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getCurrencyCode(): string
     {
@@ -117,7 +117,7 @@ class ChargeReferenceEvent extends AbstractImmutableEvent
     /**
      * The opaque reference the plugin returned from StoreReferenceEvent.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getReference(): array
     {
@@ -128,7 +128,7 @@ class ChargeReferenceEvent extends AbstractImmutableEvent
      * Operation kind: 'charge' today; room for 'capture'/'void' later
      * without a new event shape.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getOperation(): string
     {
@@ -145,7 +145,7 @@ class ChargeReferenceEvent extends AbstractImmutableEvent
      *                              is not booked: the caller asks for review
      *                              at once and never charges again.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setSuccess(string $transactionId): void
     {
@@ -162,7 +162,7 @@ class ChargeReferenceEvent extends AbstractImmutableEvent
      *
      * @param string $error Operator-safe reason (translated, no secrets).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setFailure(string $error): void
     {
@@ -186,7 +186,7 @@ class ChargeReferenceEvent extends AbstractImmutableEvent
      *                          for review at once.
      * @param string $reason Operator-safe reason (translated, no secrets).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function setPending(string $reference, string $reason): void
     {
@@ -197,7 +197,7 @@ class ChargeReferenceEvent extends AbstractImmutableEvent
      * The plugin's answer: one of the OUTCOME_* constants, '' when it gave
      * none.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function getOutcome(): string
     {
@@ -207,7 +207,7 @@ class ChargeReferenceEvent extends AbstractImmutableEvent
     /**
      * Whether the provider confirmed the charge.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function isSuccess(): bool
     {
@@ -217,7 +217,7 @@ class ChargeReferenceEvent extends AbstractImmutableEvent
     /**
      * Whether the outcome is unknown and awaits the provider's confirmation.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function isPending(): bool
     {
@@ -227,7 +227,7 @@ class ChargeReferenceEvent extends AbstractImmutableEvent
     /**
      * The provider's id of a successful charge ('' otherwise).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getTransactionId(): string
     {
@@ -237,7 +237,7 @@ class ChargeReferenceEvent extends AbstractImmutableEvent
     /**
      * The reference a pending charge is matched by ('' otherwise).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function getPendingReference(): string
     {
@@ -247,7 +247,7 @@ class ChargeReferenceEvent extends AbstractImmutableEvent
     /**
      * Why a pending charge is unconfirmed ('' otherwise).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function getPendingReason(): string
     {
@@ -257,7 +257,7 @@ class ChargeReferenceEvent extends AbstractImmutableEvent
     /**
      * The reason of a failed charge ('' otherwise).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getError(): string
     {
@@ -273,7 +273,7 @@ class ChargeReferenceEvent extends AbstractImmutableEvent
      * @param string $reference Transaction id or pending reference.
      * @param string $message Failure error or pending reason.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function answer(string $outcome, string $reference, string $message): void
     {

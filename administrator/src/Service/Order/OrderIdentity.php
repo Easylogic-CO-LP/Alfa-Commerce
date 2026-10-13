@@ -25,7 +25,7 @@ defined('_JEXEC') or die;
  * member follows the live account while it exists (an email typo fixed in
  * the profile the day after ordering must still receive the shipping mail).
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class OrderIdentity
 {
@@ -40,7 +40,7 @@ final class OrderIdentity
      *
      * @return array{customer_name: string, customer_email: string, customer_is_guest: int}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function snapshotFromUser(int $userId): array
     {
@@ -61,7 +61,7 @@ final class OrderIdentity
      *
      * @return array{customer_name: string, customer_email: string, customer_is_guest: int}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function snapshotFromDetails(array|object|null $details): array
     {
@@ -85,7 +85,7 @@ final class OrderIdentity
      *
      * @return array{name: string, email: string, is_guest: bool, kind: string}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function forOrder(object $order): array
     {
@@ -123,7 +123,7 @@ final class OrderIdentity
      *
      * @return string The address, '' when none is known.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function notificationEmail(object $order): string
     {
@@ -151,7 +151,7 @@ final class OrderIdentity
      *
      * @return array{buyer_name: string, buyer_email: string}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function buyer(object $order): array
     {
@@ -189,7 +189,7 @@ final class OrderIdentity
      * @param int $orderId The order id.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function loadOrder(int $orderId): ?object
     {
@@ -224,7 +224,7 @@ final class OrderIdentity
      * @param int $userId The user id.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function account(int $userId): ?object
     {
@@ -257,7 +257,7 @@ final class OrderIdentity
      * @param int $id The record id.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function record(int $id): ?object
     {

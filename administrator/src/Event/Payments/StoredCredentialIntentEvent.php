@@ -18,7 +18,7 @@
  * stays false (customer consent for stored credentials is never requested
  * on ordinary purchases).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\Payments;
@@ -33,7 +33,7 @@ class StoredCredentialIntentEvent extends AbstractImmutableEvent
     /**
      * The order about to be paid.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getOrder(): Order
     {
@@ -43,7 +43,7 @@ class StoredCredentialIntentEvent extends AbstractImmutableEvent
     /**
      * Declare that this order needs a stored credential.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setRequired(): void
     {
@@ -53,7 +53,7 @@ class StoredCredentialIntentEvent extends AbstractImmutableEvent
     /**
      * Whether any listener requested a stored credential.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function isRequired(): bool
     {

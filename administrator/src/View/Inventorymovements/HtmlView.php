@@ -22,13 +22,13 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
  * Inventory movements audit view: the ledger, strictly read-only:
  * corrections happen as new opposite movements written by the service.
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 class HtmlView extends BaseHtmlView
 {
     /**
      * @var string The entity a plugin targets with $context->targets('inventorymovement').
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'inventorymovement';
 
@@ -49,7 +49,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function display($tpl = null)
     {
@@ -75,7 +75,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     protected function addToolbar()
     {

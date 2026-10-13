@@ -376,7 +376,7 @@ class com_alfaInstallerScript extends InstallerScript
      * @param   object  $parent  The installer adapter.
      *
      * @return  bool  False aborts the install before anything is modified.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function preflight($type, $parent): bool
     {
@@ -811,7 +811,7 @@ class com_alfaInstallerScript extends InstallerScript
      * and the files are what this build is about to overwrite.
      *
      * @return  string|null
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function installedVersion(): ?string
     {
@@ -836,7 +836,7 @@ class com_alfaInstallerScript extends InstallerScript
      * The Joomla version this refusal is measured against.
      *
      * @return  string
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function platformVersion(): string
     {
@@ -908,7 +908,7 @@ class com_alfaInstallerScript extends InstallerScript
      * @param   string[]  $values    Substituted into whichever pattern is used.
      *
      * @return  string
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function installerText(string $key, string $fallback, array $values): string
     {
@@ -1384,7 +1384,7 @@ class com_alfaInstallerScript extends InstallerScript
      * @param   string  $type  The installer's operation: only 'install' seeds.
      *
      * @return  void
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function seedDeliveryPlaceMapping(string $type): void
     {

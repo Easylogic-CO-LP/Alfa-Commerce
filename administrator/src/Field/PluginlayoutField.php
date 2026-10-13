@@ -55,7 +55,7 @@ use Joomla\Database\ParameterType;
  *   - inherit        true adds a first option with the value "inherit"
  *   - inherit_label  language key of that option (default COM_ALFA_LAYOUT_INHERIT)
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class PluginlayoutField extends FormField
 {
@@ -70,7 +70,7 @@ class PluginlayoutField extends FormField
      *
      * @throws InvalidArgumentException When plugin_group or plugin is missing.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function getInput(): string
     {
@@ -200,7 +200,7 @@ class PluginlayoutField extends FormField
      *
      * @return string Absolute path of plugins/<group>/<element>/tmpl.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function pluginLayoutDir(string $group, string $element): string
     {
@@ -217,7 +217,7 @@ class PluginlayoutField extends FormField
      * @return array<string, string> Template element => absolute path of its
      *                               html/plg_<group>_<element> folder.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function templateLayoutDirs(string $group, string $element): array
     {
@@ -240,7 +240,7 @@ class PluginlayoutField extends FormField
      *
      * @return string[] Names, sorted.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function layoutNames(string $dir, string $prefix, array $exclude): array
     {
@@ -271,7 +271,7 @@ class PluginlayoutField extends FormField
      *
      * @return string The translated option text.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function optionText(string $name, array $labels, string $keyPrefix): string
     {
@@ -297,7 +297,7 @@ class PluginlayoutField extends FormField
      *
      * @return string[] Template element names, unique, the default site template first.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function getStorefrontTemplates(): array
     {

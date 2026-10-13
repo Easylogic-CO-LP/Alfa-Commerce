@@ -43,7 +43,7 @@ use Alfa\Component\Alfa\Site\Service\Pricing\PublishedDecimal;
  * hydration): stripping markup is the component's safety concern; deciding that 50
  * characters fit a dropdown is presentation.
  *
- * @since  1.6.0
+ * @since  2.0.0
  */
 final class CatalogSearchPayload
 {
@@ -52,7 +52,7 @@ final class CatalogSearchPayload
      *
      * @var int
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public const CONTRACT = 3;
 
@@ -63,7 +63,7 @@ final class CatalogSearchPayload
      *
      * @var string[]
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     public const SECTIONS = ['products', 'categories', 'manufacturers'];
 
@@ -107,7 +107,7 @@ final class CatalogSearchPayload
      *         `redirect` non-null means: do not render sections; navigate there. Born
      *         with the contract so no consumer can treat a redirected search as empty.
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     public static function fromResults(CatalogSearchResults $results, string $query, ?float $elapsedMs = null, array $fields = []): array
     {
@@ -172,7 +172,7 @@ final class CatalogSearchPayload
      *
      * @return array<string, callable(CatalogSearchHit): array<string, string|null>>
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function enrichers(array $fields): array
     {
@@ -222,7 +222,7 @@ final class CatalogSearchPayload
      *
      * @return list<array{text: string, type: string|null}>
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function suggestions(array $suggestions): array
     {

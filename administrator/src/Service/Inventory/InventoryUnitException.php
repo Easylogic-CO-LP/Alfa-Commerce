@@ -30,7 +30,7 @@ use Throwable;
  * getMessage() is the English text for logs; operatorMessage() is the translated
  * sentence for a screen.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class InventoryUnitException extends RuntimeException
 {
@@ -60,7 +60,7 @@ final class InventoryUnitException extends RuntimeException
      * @param int $combinationId The combination named by the command, 0 for the item unit.
      * @param string $reason One of the class constants.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly int $itemId,
@@ -91,7 +91,7 @@ final class InventoryUnitException extends RuntimeException
      * reactivation of a combination that is current.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function identityLost(): bool
     {
@@ -107,7 +107,7 @@ final class InventoryUnitException extends RuntimeException
      * screens and other extensions' requests report these refusals too.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function operatorMessage(): string
     {
@@ -132,7 +132,7 @@ final class InventoryUnitException extends RuntimeException
      * The unit this refusal names, as the operator knows it ({@see self::labelFor()}).
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function unitLabel(): string
     {
@@ -148,7 +148,7 @@ final class InventoryUnitException extends RuntimeException
      * @param int $combinationId The combination, 0 for the product itself.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function labelFor(int $itemId, int $combinationId): string
     {
@@ -171,7 +171,7 @@ final class InventoryUnitException extends RuntimeException
      * @param int $itemId The product.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function productName(DatabaseInterface $db, int $itemId): string
     {
@@ -205,7 +205,7 @@ final class InventoryUnitException extends RuntimeException
      * @param int $combinationId The combination.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function variantLabel(DatabaseInterface $db, int $itemId, int $combinationId): string
     {
@@ -254,7 +254,7 @@ final class InventoryUnitException extends RuntimeException
      * they are not there yet. A failure is logged; the message then shows its keys.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function loadAdministratorStrings(): void
     {

@@ -29,7 +29,7 @@ defined('_JEXEC') or die;
  * into one. Deeper in, where only an operator is watching, it is meant to be
  * seen.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class ValueException extends RuntimeException
 {

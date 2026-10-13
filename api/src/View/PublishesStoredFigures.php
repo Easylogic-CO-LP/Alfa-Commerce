@@ -25,7 +25,7 @@ use Alfa\Component\Alfa\Site\Service\Pricing\PublishedDecimal;
  * digits with no trailing zero ("24", "10"). A figure that is not a number (null
  * included) is left as it is.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 trait PublishesStoredFigures
 {
@@ -37,7 +37,7 @@ trait PublishesStoredFigures
      *
      * @return mixed The published text, or the value itself when it is not a number.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected static function storedAmount(mixed $value, int $scale): mixed
     {
@@ -51,7 +51,7 @@ trait PublishesStoredFigures
      *
      * @return mixed The published text, or the value itself when it is not a number.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected static function storedRate(mixed $value): mixed
     {
@@ -62,7 +62,7 @@ trait PublishesStoredFigures
      * The scale of the shop's default currency, in which a catalogue rule's amount is stated.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected static function defaultScale(): int
     {

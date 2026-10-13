@@ -39,7 +39,7 @@ use Throwable;
  * when a dry run of a stock change reports it, or, for reservations ahead, by
  * claimOrderText().
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class InventoryReservedFloorException extends RuntimeException
 {
@@ -58,7 +58,7 @@ final class InventoryReservedFloorException extends RuntimeException
      *                     sources, in the order they are served, each {source_type, source_id};
      *                     empty for every other refusal.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly int $itemId,
@@ -99,7 +99,7 @@ final class InventoryReservedFloorException extends RuntimeException
      * @param float $reserved The quantity active reservations hold on the record.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function minimumFor(float $onHand, float $reserved): float
     {
@@ -111,7 +111,7 @@ final class InventoryReservedFloorException extends RuntimeException
      * ({@see self::refusalText()}).
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function operatorMessage(): string
     {
@@ -157,7 +157,7 @@ final class InventoryReservedFloorException extends RuntimeException
      * @param float $requested The on-hand asked for.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function refusalText(
         int $itemId,
@@ -198,7 +198,7 @@ final class InventoryReservedFloorException extends RuntimeException
      * @param array $ahead Their sources, each {source_type, source_id}.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function claimOrderText(
         int $itemId,
@@ -237,7 +237,7 @@ final class InventoryReservedFloorException extends RuntimeException
      * @param int $locationId The location.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function locationTitle(int $locationId): string
     {
@@ -258,7 +258,7 @@ final class InventoryReservedFloorException extends RuntimeException
      * they are not there yet. A failure is logged; the message then shows its key.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function loadAdministratorStrings(): void
     {

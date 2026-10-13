@@ -37,7 +37,7 @@ class CartViewEvent extends ShipmentsLayoutEvent
      * @param string $name The event name.
      * @param array $arguments Must carry the MethodViewRequest as 'subject'.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct($name, array $arguments = [])
     {
@@ -54,7 +54,7 @@ class CartViewEvent extends ShipmentsLayoutEvent
      * comes to that on.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getRequest(): MethodViewRequest
     {
@@ -70,7 +70,7 @@ class CartViewEvent extends ShipmentsLayoutEvent
      * a getter the component has not written yet.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getMethod(): Method
     {
@@ -91,7 +91,7 @@ class CartViewEvent extends ShipmentsLayoutEvent
      * out of the totals.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getCart(): Cart
     {

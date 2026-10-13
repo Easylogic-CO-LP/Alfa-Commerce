@@ -27,14 +27,14 @@ use InvalidArgumentException;
  * value is held as its decimal digits and the number of places after the
  * point, with a sign: no float holds it, and no size limits it.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class ExactAmount
 {
     /**
      * How many digits an integer always holds.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const INT_DIGITS = 18;
 
@@ -58,7 +58,7 @@ final class ExactAmount
      *
      * @throws InvalidArgumentException When the text is not a plain decimal.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function of(string $decimal): self
     {
@@ -82,7 +82,7 @@ final class ExactAmount
      *
      * @throws InvalidArgumentException When the value is not a finite number.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function ofNumber(string|int|float $value): self
     {
@@ -113,7 +113,7 @@ final class ExactAmount
      * @param Money $money The amount.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function ofMoney(Money $money): self
     {
@@ -132,7 +132,7 @@ final class ExactAmount
      * @param int $whole The multiplier (a quantity).
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function times(int $whole): self
     {
@@ -148,7 +148,7 @@ final class ExactAmount
      * @param int $places The place it counts, zero or more.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function timesCount(int $count, int $places): self
     {
@@ -174,7 +174,7 @@ final class ExactAmount
      *
      * @throws InvalidArgumentException When the divisor is zero or too large to divide by.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function dividedBy(int $whole, int $places): self
     {
@@ -205,7 +205,7 @@ final class ExactAmount
      * @param int $places The places it is held at after each factor.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function throughFactors(array $counts, int $places): self
     {
@@ -224,7 +224,7 @@ final class ExactAmount
      * @param self $other The other amount.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function plus(self $other): self
     {
@@ -248,7 +248,7 @@ final class ExactAmount
      * @param self $other The other amount.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function minus(self $other): self
     {
@@ -259,7 +259,7 @@ final class ExactAmount
      * The same amount with the other sign.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function negated(): self
     {
@@ -272,7 +272,7 @@ final class ExactAmount
      * @param self $other The other amount.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function compare(self $other): int
     {
@@ -293,7 +293,7 @@ final class ExactAmount
      * Whether the amount is above zero.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function isPositive(): bool
     {
@@ -304,7 +304,7 @@ final class ExactAmount
      * Whether the amount is below zero.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function isNegative(): bool
     {
@@ -315,7 +315,7 @@ final class ExactAmount
      * Whether the amount is zero.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function isZero(): bool
     {
@@ -329,7 +329,7 @@ final class ExactAmount
      * @param int $places The places to keep, zero or more.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function roundedAt(int $places): self
     {
@@ -357,7 +357,7 @@ final class ExactAmount
      *
      * @throws InvalidArgumentException When the amount is more than minor units can hold.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function toMoney(Currency $currency): Money
     {
@@ -368,7 +368,7 @@ final class ExactAmount
      * The amount as a plain decimal, with no padding zero.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function text(): string
     {

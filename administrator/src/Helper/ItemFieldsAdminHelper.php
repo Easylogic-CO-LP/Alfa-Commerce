@@ -56,7 +56,7 @@ use Throwable;
  * the single source of truth is #__alfa_items_prices (item rows and
  * per-combination rows), options being line modifiers on top.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class ItemFieldsAdminHelper
 {
@@ -65,7 +65,7 @@ class ItemFieldsAdminHelper
      * write, in one order: what the grid's price cell and the Edit window read,
      * and what the Edit window's rendered state is made of.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const PRICE_ROW_COLUMNS = [
         'id', 'mode', 'operation', 'value', 'override_value', 'override_type',
@@ -81,7 +81,7 @@ class ItemFieldsAdminHelper
      * informational values are static, never a switch. Mirrors the Site
      * ItemFieldsHelper so picker, badge and storefront agree.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public const ROLE_VARIATION = 0;
     public const ROLE_OPTION = 1;
@@ -94,7 +94,7 @@ class ItemFieldsAdminHelper
      * @param int $role A ROLE_* value.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function isInteractiveRole(int $role): bool
     {
@@ -110,7 +110,7 @@ class ItemFieldsAdminHelper
      *
      * @var string[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public const COMBINATION_OVERRIDABLES = [
         'weight', 'width', 'height', 'depth',
@@ -139,7 +139,7 @@ class ItemFieldsAdminHelper
      *
      * @var array<string, string>
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public const COMBINATION_OVERRIDE_CASTS = [
         'weight' => self::CAST_FLOAT,
@@ -161,7 +161,7 @@ class ItemFieldsAdminHelper
      * '' => null, anything else => float. `0` survives: an explicit zero is a
      * decision ("no safety stock here"), not an absent override.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public const CAST_FLOAT = 'float';
 
@@ -172,7 +172,7 @@ class ItemFieldsAdminHelper
      * before it is cast ({@see self::changedQuantityRules()}), so a value that
      * is not an exact quantity never reaches the column.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const CAST_QUANTITY_RULE = 'quantity_rule';
 
@@ -182,7 +182,7 @@ class ItemFieldsAdminHelper
      *
      * @var string[]
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const QUANTITY_RULE_COLUMNS = ['quantity_min', 'quantity_step', 'quantity_max'];
 
@@ -191,7 +191,7 @@ class ItemFieldsAdminHelper
      * switch: routing a string enum through it stores every one of its values
      * as 0, which is exactly how `stock_action` overrides were destroyed.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public const CAST_BOOL = 'bool';
 
@@ -199,7 +199,7 @@ class ItemFieldsAdminHelper
      * The four-valued visibility enum, including its "from configuration"
      * sentinel ({@see StockVisibilityPolicy::normaliseStoredValue()}).
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public const CAST_ENUM_STOCK_ACTION = 'stock_action';
 
@@ -208,7 +208,7 @@ class ItemFieldsAdminHelper
      * shop") and whose "inherit" is a reserved token
      * ({@see BackorderPolicy::normaliseStoredValue()}).
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public const CAST_ENUM_BACKORDER = 'backorder';
 
@@ -220,7 +220,7 @@ class ItemFieldsAdminHelper
      *
      * @var string[]
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public const COMBINATION_DIMENSION_FIELDS = ['weight', 'width', 'height', 'depth'];
 
@@ -232,7 +232,7 @@ class ItemFieldsAdminHelper
      *
      * @var array<string, array>
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static array $fieldsPopupCache = [];
 
@@ -243,7 +243,7 @@ class ItemFieldsAdminHelper
      *
      * @var array{operation_id: ?string, movements: int, kept_rows: int, kept_on_hand: float}|null
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static ?array $lastTrackingChange = null;
 
@@ -267,7 +267,7 @@ class ItemFieldsAdminHelper
      *
      * @return array<string, object> name => descriptor
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function getCombinationOverrideDescriptors(bool $virtual = false): array
     {
@@ -356,7 +356,7 @@ class ItemFieldsAdminHelper
      *
      * @return string Reserved token, or '' when blank is unambiguous.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     protected static function combinationInheritValue(string $cast, array $options): string
     {
@@ -390,7 +390,7 @@ class ItemFieldsAdminHelper
      * @throws InvalidArgumentException When a quantity rule is not an exact quantity
      *                                  (the save judges every posted rule first).
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     protected static function castCombinationOverride(string $cast, mixed $value): float|int|string|null
     {
@@ -426,7 +426,7 @@ class ItemFieldsAdminHelper
      *
      * @throws InvalidArgumentException When the value is not an exact quantity.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function inheritableQuantityRule(mixed $value): ?string
     {
@@ -465,7 +465,7 @@ class ItemFieldsAdminHelper
      *
      * @throws RuntimeException With the translated refusal naming the combination.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function changedQuantityRules(int $itemId, int $combinationId, object $stored, array $row): array
     {
@@ -579,7 +579,7 @@ class ItemFieldsAdminHelper
      * @param object $update The columns the save writes, already cast.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function saleOverridesChanged(object $stored, object $update): bool
     {
@@ -613,7 +613,7 @@ class ItemFieldsAdminHelper
      *
      * @return array Field descriptor objects.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function getFieldsPopupData(int $itemId, array $categoryIds): array
     {
@@ -808,7 +808,7 @@ class ItemFieldsAdminHelper
      *
      * @return int[] Unique value ids, unordered.
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     private static function usedValueIds(int $itemId): array
     {
@@ -838,7 +838,7 @@ class ItemFieldsAdminHelper
      *
      * @return int[] Field ids, unique, unordered.
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     private static function fieldIdsOfValues(array $valueIds): array
     {
@@ -866,7 +866,7 @@ class ItemFieldsAdminHelper
      *
      * @return array Unique ids including every ancestor.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected static function expandWithAncestors(array $categoryIds): array
     {
@@ -943,7 +943,7 @@ class ItemFieldsAdminHelper
      *
      * @throws RuntimeException With a merchant-readable message when generation is refused.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function generateCombinations(int $itemId, array $valuesByField): int
     {
@@ -1216,7 +1216,7 @@ class ItemFieldsAdminHelper
      * @param int $itemId The item id.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function ensureOnePublishedDefault(int $itemId): void
     {
@@ -1274,7 +1274,7 @@ class ItemFieldsAdminHelper
      *
      * @return array<string, object> signature => row {id, signature}.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function loadArchivedBySignature(int $itemId): array
     {
@@ -1306,7 +1306,7 @@ class ItemFieldsAdminHelper
      *
      * @return int|null Null when the product has no row.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function itemState(int $itemId, bool $lock): ?int
     {
@@ -1328,7 +1328,7 @@ class ItemFieldsAdminHelper
      *
      * @return int[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function getItemCategoryIds(int $itemId): array
     {
@@ -1357,7 +1357,7 @@ class ItemFieldsAdminHelper
      *
      * @return int[] Field ids in definition order.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function getEligibleChoiceFieldIds(int $itemId): array
     {
@@ -1400,7 +1400,7 @@ class ItemFieldsAdminHelper
      *
      * @return int Number of option rows created.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function addItemOptions(int $itemId, array $valueIds): int
     {
@@ -1481,7 +1481,7 @@ class ItemFieldsAdminHelper
      *
      * @return bool True on success.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function saveItemShowon(int $itemId, int $fieldId, string $rule): bool
     {
@@ -1517,7 +1517,7 @@ class ItemFieldsAdminHelper
      *
      * @return array|null ['field' => object, 'itemId' => int, 'rule' => string], or null when absent.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function getShowonPopupData(int $itemId, int $fieldId): ?array
     {
@@ -1562,7 +1562,7 @@ class ItemFieldsAdminHelper
      *
      * @return array<int, string> field id => 'set' | 'inherited' | 'none'.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     /**
      * Per-field GLOBAL (field-definition) ShowOn summaries for the item-fields list,
@@ -1574,7 +1574,7 @@ class ItemFieldsAdminHelper
      *
      * @return array<int, string> field id => human summary.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function getGlobalShowonSummaries(array $fields): array
     {
@@ -1669,7 +1669,7 @@ class ItemFieldsAdminHelper
      *
      * @return array<string, array<int, string>> Operand => [value id => name].
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function valueNamesByOperand(array $idsByOperand): array
     {
@@ -1711,7 +1711,7 @@ class ItemFieldsAdminHelper
      * @param array $payload jform[field_required]: fieldId => ''|'0'|'1'.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function saveItemFieldRequired(int $itemId, array $payload): void
     {
@@ -1863,7 +1863,7 @@ class ItemFieldsAdminHelper
      *
      * @return array<string, array{role:int, rank:int}> field name => role + rank.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function fieldRoleRank(array $fields, array $comboFieldIdSet): array
     {
@@ -1915,7 +1915,7 @@ class ItemFieldsAdminHelper
      *
      * @return string[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function ruleOperandFields($rule): array
     {
@@ -1934,7 +1934,7 @@ class ItemFieldsAdminHelper
      * @param array $names Accumulator (field name => true), by reference.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function collectRuleOperands(array $node, array &$names): void
     {
@@ -1966,7 +1966,7 @@ class ItemFieldsAdminHelper
      *
      * @return array<int, int[]> field id => value ids.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function getItemCombinationValueIdsByField(int $itemId): array
     {
@@ -2052,7 +2052,7 @@ class ItemFieldsAdminHelper
      * @return void Nothing of the list is written when a delta is refused; the
      *              refusals are queued as error messages naming each figure.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function saveItemOptions(int $itemId, array $payload, string $deletedValueIds): void
     {
@@ -2178,7 +2178,7 @@ class ItemFieldsAdminHelper
      *
      * @return int Number of rows created.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function addItemInfoValues(int $itemId, array $valueIds): int
     {
@@ -2246,7 +2246,7 @@ class ItemFieldsAdminHelper
      * @param string $deletedValueIds Comma list of value ids removed in the list.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function deleteItemInfoValues(int $itemId, string $deletedValueIds): void
     {
@@ -2276,7 +2276,7 @@ class ItemFieldsAdminHelper
      * @param array $orderedValueIds Posted value ids in displayed (dragged) order.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function saveItemInfoOrder(int $itemId, array $orderedValueIds): void
     {
@@ -2319,7 +2319,7 @@ class ItemFieldsAdminHelper
      * @param array $orderedFieldIds Posted field ids in displayed (dragged) order.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function saveItemFieldOrder(int $itemId, array $orderedFieldIds): void
     {
@@ -2400,7 +2400,7 @@ class ItemFieldsAdminHelper
      * @param int $itemId The item primary key.
      * @param int[] $fieldIds The fields whose per-item ordering to clear.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function resetItemFieldOrder(int $itemId, array $fieldIds): void
     {
@@ -2446,7 +2446,7 @@ class ItemFieldsAdminHelper
      * @param int[] $orderedVariantIds Variant field ids in the chosen (dragged) order.
      *
      * @return bool True when the stored field order actually changed.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function applyGeneratorFieldOrder(int $itemId, array $orderedVariantIds): bool
     {
@@ -2500,7 +2500,7 @@ class ItemFieldsAdminHelper
      *
      * @return int[] Field ids; empty when the item has no combinations.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function getCombinationFieldIds(int $itemId): array
     {
@@ -2532,7 +2532,7 @@ class ItemFieldsAdminHelper
      *
      * @return array Combination row objects ordered by ordering.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function getCombinations(int $itemId): array
     {
@@ -2689,7 +2689,7 @@ class ItemFieldsAdminHelper
      * @param int $combinationId The combination id.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function getCombination(int $itemId, int $combinationId): ?object
     {
@@ -2708,7 +2708,7 @@ class ItemFieldsAdminHelper
      *
      * @return string[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function combinationTranslatableFields(): array
     {
@@ -2723,7 +2723,7 @@ class ItemFieldsAdminHelper
      *
      * @return string[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function contentLanguageKeys(): array
     {
@@ -2765,7 +2765,7 @@ class ItemFieldsAdminHelper
      *
      * @return string[] Translated refusal texts; empty when the save may run.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function combinationSaveRefusals(int $itemId, array $payload, string $deletedCombinationIds): array
     {
@@ -2910,7 +2910,7 @@ class ItemFieldsAdminHelper
      *
      * @throws RuntimeException When the save is refused; nothing is written.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function saveCombinations(int $itemId, array $payload, string $defaultId, string $deletedCombinationIds): void
     {
@@ -3197,7 +3197,7 @@ class ItemFieldsAdminHelper
      *
      * @throws RuntimeException With the merchant-readable refusal.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function retireDeletedUnits(InventoryService $inventory, int $itemId, array $deletedIds): array
     {
@@ -3303,7 +3303,7 @@ class ItemFieldsAdminHelper
      * @throws RuntimeException When a figure is not a number, has no rendered
      *                          figure to compare with, or its target is refused.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public static function applyCombinationLocationStock(int $itemId, int $combinationId, array $posted, array $baseline): array
     {
@@ -3418,7 +3418,7 @@ class ItemFieldsAdminHelper
      *
      * @throws RuntimeException When the figure is refused.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private static function applyCombinationStockEdit(int $itemId, int $combinationId, ?string $posted, ?string $baseline): ?string
     {
@@ -3501,7 +3501,7 @@ class ItemFieldsAdminHelper
      *                                                                              does not track stock or is gone, text is the reason; 'apply': converge
      *                                                                              location to target.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function gridStockDecision(int $itemId, int $combinationId, ?string $posted, ?string $baseline): array
     {
@@ -3562,7 +3562,7 @@ class ItemFieldsAdminHelper
      * @param string|null $baseline The figure it was rendered with.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function gridFigureChanged(?string $posted, ?string $baseline): bool
     {
@@ -3590,7 +3590,7 @@ class ItemFieldsAdminHelper
      * @param int[] $enabledLocationIds Enabled location ids.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function gridStockLocation(array $unitRows, array $enabledLocationIds): ?int
     {
@@ -3619,7 +3619,7 @@ class ItemFieldsAdminHelper
      *
      * @return array<int, array<int, array{physical: float, reserved: float}>> [combination_id => [location_id => figures]]
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function combinationStockByLocation(int $itemId): array
     {
@@ -3680,7 +3680,7 @@ class ItemFieldsAdminHelper
      *                                                                                    transition 'on', 'off' or null; the targets the save would apply (the
      *                                                                                    openings for 'on'); translated refusal texts, empty when the save may run.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function studioStockPlan(
         int $itemId,
@@ -3838,7 +3838,7 @@ class ItemFieldsAdminHelper
      *                                                                                                The inventory service's changeTracking() result, or null when that
      *                                                                                                save changed no unit's tracking.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function lastTrackingChange(): ?array
     {
@@ -3857,7 +3857,7 @@ class ItemFieldsAdminHelper
      *
      * @throws RuntimeException When a figure is not a number or has no rendered figure.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function changedLocationFigures(array $posted, array $baseline): array
     {
@@ -3906,7 +3906,7 @@ class ItemFieldsAdminHelper
      *                                                                                 value is the override the post stores (0, 1 or null = follow the
      *                                                                                 product); null when the combination is not a current combination of the item.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function studioTracking(int $itemId, int $combinationId, array $row, bool $lock): ?array
     {
@@ -3982,7 +3982,7 @@ class ItemFieldsAdminHelper
      *                   its product is archived (every identity of an
      *                   archived product is history only).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function combinationTracks(int $itemId, int $combinationId): ?bool
     {
@@ -4011,7 +4011,7 @@ class ItemFieldsAdminHelper
      *
      * @return string Translated reason.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function notTrackedReason(int $itemId, int $combinationId, ?bool $tracks): string
     {
@@ -4054,7 +4054,7 @@ class ItemFieldsAdminHelper
      *
      * @return string Translated warning naming the variant (escaped) and the reason.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function notAppliedText(int $itemId, int $combinationId, ?bool $tracks): string
     {
@@ -4082,7 +4082,7 @@ class ItemFieldsAdminHelper
      *
      * @return string[]
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function targetProblemTexts(int $itemId, int $combinationId, array $problems): array
     {
@@ -4145,7 +4145,7 @@ class ItemFieldsAdminHelper
      *               reservations, pending stock effects, or open order lines
      *               that still have stock to deduct from the unit.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function heldBlockers(array $blockers): array
     {
@@ -4163,7 +4163,7 @@ class ItemFieldsAdminHelper
      * @param array $blocker One of the inventory service's retirement blockers.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function holdsStock(array $blocker): bool
     {
@@ -4188,7 +4188,7 @@ class ItemFieldsAdminHelper
      *
      * @return string Translated text.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function stockHeldText(int $itemId, string $key, array $blockers, bool $markup): string
     {
@@ -4234,7 +4234,7 @@ class ItemFieldsAdminHelper
      * @param string $text The text.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function escapedText(string $text): string
     {
@@ -4254,7 +4254,7 @@ class ItemFieldsAdminHelper
      *
      * @return string[] Translated texts, one per blocked combination.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function deletionBlockedTexts(int $itemId, array $blockers): array
     {
@@ -4308,7 +4308,7 @@ class ItemFieldsAdminHelper
      * @return array<int, int> combination_id => number of order lines naming it;
      *                         combinations without order history are absent.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function orderHistoryCombinationIds(int $itemId, array $combinationIds): array
     {
@@ -4360,7 +4360,7 @@ class ItemFieldsAdminHelper
      *
      * @return array<int, string> combination_id => label.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function combinationLabels(int $itemId): array
     {
@@ -4383,7 +4383,7 @@ class ItemFieldsAdminHelper
      *
      * @return int[]
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function deletableIds(array $existing, string $deletedCombinationIds): array
     {
@@ -4402,7 +4402,7 @@ class ItemFieldsAdminHelper
      * @return array<int, array{posted: ?string, baseline: ?string}> An empty
      *                                                               figure counts as not posted; an empty baseline as missing.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function gridStockEdits(array $existing, array $payload, array $deletedIds): array
     {
@@ -4460,7 +4460,7 @@ class ItemFieldsAdminHelper
      *
      * @throws RuntimeException When the edit would remove a custom discount.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected static function upsertQuickRow(int $itemId, int $combinationId, array $quick, ?array $baseline): void
     {
@@ -4533,7 +4533,7 @@ class ItemFieldsAdminHelper
      *
      * @return string[] The changed fields among mode, value, operation, target.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function quickCellChanges(array $quick, ?array $baseline): array
     {
@@ -4585,7 +4585,7 @@ class ItemFieldsAdminHelper
      * @return array{action: string, rowId: int, set: array<string, mixed>}
      *                                                                      action: none, insert, update, delete or refuse; set: column => value.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function quickRowPlan(array $rows, array $quick, array $changes): array
     {
@@ -4669,7 +4669,7 @@ class ItemFieldsAdminHelper
      *
      * @return array{mode: string, operation: string, value: string, target: string}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function quickCell(array $cell): array
     {
@@ -4688,7 +4688,7 @@ class ItemFieldsAdminHelper
      * @param string $b Another.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function sameQuickValue(string $a, string $b): bool
     {
@@ -4706,7 +4706,7 @@ class ItemFieldsAdminHelper
      * @param array $row A price row.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function isAnyContextPriceRow(array $row): bool
     {
@@ -4735,7 +4735,7 @@ class ItemFieldsAdminHelper
      *
      * @return array<int, list<array>> combination_id => its rows, by id.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function variantPriceRows(array $combinationIds, bool $lock): array
     {
@@ -4769,7 +4769,7 @@ class ItemFieldsAdminHelper
      * @param array $rows The variant's price rows, as read from the table.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function priceRowsState(array $rows): string
     {
@@ -4795,7 +4795,7 @@ class ItemFieldsAdminHelper
      *
      * @return string Translated, the label escaped for the message markup.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function keepsDiscountText(string $label): string
     {
@@ -4849,7 +4849,7 @@ class ItemFieldsAdminHelper
      * @throws RuntimeException When the quantity rules or the stock-tracking switch are refused, or the
      *                          price rows were changed elsewhere since the window rendered them.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function saveSingleCombination(int $itemId, int $combinationId, array $row, array $priceRows, ?array $openingTargets): bool
     {
@@ -5005,7 +5005,7 @@ class ItemFieldsAdminHelper
      *
      * @return string Translated text.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function trackingRefusalText(int $itemId, int $combinationId, Throwable $refusal): string
     {
@@ -5078,7 +5078,7 @@ class ItemFieldsAdminHelper
      * @param array $row The combination payload (name_<lang>, short_desc_<lang> keys).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected static function saveCombinationTranslations(int $combinationId, array $row): void
     {
@@ -5167,7 +5167,7 @@ class ItemFieldsAdminHelper
      * language, and the grid save reaches the writer once per variant row.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function ensureCombinationLangSchema(): void
     {
@@ -5198,7 +5198,7 @@ class ItemFieldsAdminHelper
      *
      * @return array<int, array<string, string>>
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function loadCombinationNames(int $itemId): array
     {
@@ -5242,7 +5242,7 @@ class ItemFieldsAdminHelper
      * @param array $rows Editor rows ({_mode, ...}).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected static function syncCombinationPrices(int $itemId, int $combinationId, array $rows): void
     {
@@ -5338,7 +5338,7 @@ class ItemFieldsAdminHelper
      *
      * @return array<int, object>
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected static function loadCombinationRows(int $itemId): array
     {

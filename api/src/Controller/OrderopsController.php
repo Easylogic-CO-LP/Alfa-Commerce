@@ -55,14 +55,14 @@ use Throwable;
  * Every verb answers with the FULL updated order, so a client sees the
  * recomputed totals and payment/fulfilment status without a second request.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 class OrderopsController extends OrdersController
 {
     /**
      * The one task on this controller that moves the order between statuses.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private const STATUS_TASK = 'changeStatus';
 
@@ -91,7 +91,7 @@ class OrderopsController extends OrdersController
      * @param string $task The task about to run.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function assertAuthorisedForTask(string $task): void
     {
@@ -121,7 +121,7 @@ class OrderopsController extends OrdersController
      *
      * @throws NotAllowed When the identity lacks the state permission.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function assertStateChangeAuthorised(): void
     {
@@ -151,7 +151,7 @@ class OrderopsController extends OrdersController
      *
      * @return static
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function addLine()
     {
@@ -218,7 +218,7 @@ class OrderopsController extends OrdersController
      *
      * @return static
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function updateLine()
     {
@@ -257,7 +257,7 @@ class OrderopsController extends OrdersController
      *
      * @throws Save 400 when the value is not a quantity.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private function lineQuantity(mixed $value): int
     {
@@ -304,7 +304,7 @@ class OrderopsController extends OrdersController
      *
      * @throws Save 400 on an input that is not a usable instruction.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private function linePricing(array $body): array
     {
@@ -365,7 +365,7 @@ class OrderopsController extends OrdersController
      *
      * @return static
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function removeLine()
     {
@@ -392,7 +392,7 @@ class OrderopsController extends OrdersController
      *
      * @return static
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function addPayment()
     {
@@ -455,7 +455,7 @@ class OrderopsController extends OrdersController
      *
      * @return static
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function addShipment()
     {
@@ -522,7 +522,7 @@ class OrderopsController extends OrdersController
      *
      * @return static
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     public function updateShipment()
     {
@@ -584,7 +584,7 @@ class OrderopsController extends OrdersController
      *
      * @return static
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     public function refundPayment()
     {
@@ -675,7 +675,7 @@ class OrderopsController extends OrdersController
      *
      * @return static
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     public function settlePayment()
     {
@@ -796,7 +796,7 @@ class OrderopsController extends OrdersController
      *
      * @return static
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     public function changeStatus()
     {
@@ -893,7 +893,7 @@ class OrderopsController extends OrdersController
      *
      * @return object The payment row, with amount hydrated to Money.
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     private function requireOwnedPayment(int $orderId): object
     {
@@ -917,7 +917,7 @@ class OrderopsController extends OrdersController
      *
      * @return object The order-item row.
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     private function requireOwnedLine(int $orderId): object
     {
@@ -949,7 +949,7 @@ class OrderopsController extends OrdersController
      *
      * @return object The shipment row.
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     private function requireOwnedShipment(int $orderId): object
     {
@@ -981,7 +981,7 @@ class OrderopsController extends OrdersController
      * @param array $result The verdict from PaymentLedger::refundPayment().
      *
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     private function assertRefundOutcome(array $result): void
     {
@@ -1015,7 +1015,7 @@ class OrderopsController extends OrdersController
      * @param array $arguments Further arguments, by name (the line writer's pricing instructions).
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function runOrderWrite(string $method, array $data, array $arguments = []): void
     {
@@ -1031,7 +1031,7 @@ class OrderopsController extends OrdersController
      *
      * @return \Joomla\CMS\MVC\Model\AdminModel
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function orderModel()
     {
@@ -1048,7 +1048,7 @@ class OrderopsController extends OrdersController
      * The order id from the route, verified to exist.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function requireOrderId(): int
     {
@@ -1067,7 +1067,7 @@ class OrderopsController extends OrdersController
      * @param string $name Route variable name.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function requireSubId(string $name): int
     {
@@ -1089,7 +1089,7 @@ class OrderopsController extends OrdersController
      * changes fulfilment state.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function body(): array
     {
@@ -1118,7 +1118,7 @@ class OrderopsController extends OrdersController
      *
      * @throws Save 400 when the value is not an amount this order can return.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function refundAmount($value, Money $remainder): Money
     {
@@ -1142,7 +1142,7 @@ class OrderopsController extends OrdersController
      *
      * @throws Save 400 when the value is not such a percentage.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function parcelRate(mixed $value): string
     {
@@ -1166,7 +1166,7 @@ class OrderopsController extends OrdersController
      *
      * @throws Save 400 when the value is not an amount of this order's money, or is below zero.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private function parcelCost(mixed $value, string $field, Currency $currency): Money
     {
@@ -1200,7 +1200,7 @@ class OrderopsController extends OrdersController
      *
      * @throws Save 400 when the value is not an amount of this order's money.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private function exactAmount(mixed $value, string $field, Currency $currency): Money
     {
@@ -1232,7 +1232,7 @@ class OrderopsController extends OrdersController
      * @param string $fallback Message when the model set none.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function modelError($model, string $fallback): string
     {
@@ -1251,7 +1251,7 @@ class OrderopsController extends OrdersController
      * @param int $told How many messages were queued before the write.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private function ledgerRefusal(int $told): string
     {
@@ -1279,7 +1279,7 @@ class OrderopsController extends OrdersController
      * @param string $name Route variable name.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function routeInt(string $name): int
     {

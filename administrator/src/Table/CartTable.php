@@ -27,7 +27,7 @@ use Joomla\Database\DatabaseDriver;
  * policy both read, so it must move only when the shopper's cart actually
  * changes, never as a side effect of a row being rewritten.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class CartTable extends Table
 {
@@ -36,7 +36,7 @@ class CartTable extends Table
      *
      * @param DatabaseDriver $db A database connector object.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(DatabaseDriver $db)
     {
@@ -57,7 +57,7 @@ class CartTable extends Table
      *
      * @return bool True when the row may be stored.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function check()
     {

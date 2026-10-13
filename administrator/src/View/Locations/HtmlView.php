@@ -21,7 +21,7 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
 /**
  * Inventory locations list view.
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 class HtmlView extends BaseHtmlView
 {
@@ -29,7 +29,7 @@ class HtmlView extends BaseHtmlView
      * The admin-contract entity of this screen.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'location';
 
@@ -50,7 +50,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function display($tpl = null)
     {
@@ -76,7 +76,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     protected function addToolbar()
     {

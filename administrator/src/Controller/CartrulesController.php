@@ -16,7 +16,7 @@ use Joomla\CMS\MVC\Controller\AdminController;
 /**
  * Cart rules list controller.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class CartrulesController extends AdminController
 {
@@ -29,7 +29,7 @@ class CartrulesController extends AdminController
      *
      * @return object The model.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getModel($name = 'Cartrule', $prefix = 'Administrator', $config = ['ignore_request' => true]): object
     {

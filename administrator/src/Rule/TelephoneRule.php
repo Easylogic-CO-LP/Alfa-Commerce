@@ -62,7 +62,7 @@ use SimpleXMLElement;
  * stops validating is worse than one that validates loosely), so the pattern
  * check takes over and the number is still compacted before it is stored.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class TelephoneRule extends FormRule
 {
@@ -77,7 +77,7 @@ class TelephoneRule extends FormRule
      *
      * @throws RuntimeException With a translated message the person reads.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function test(SimpleXMLElement $element, $value, $group = null, ?Registry $input = null, ?Form $form = null)
     {
@@ -122,7 +122,7 @@ class TelephoneRule extends FormRule
      * @param Registry|null $input The whole posted data.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function testWithLibrary(SimpleXMLElement $element, string $value, ?string $group, ?Registry $input): bool
     {
@@ -184,7 +184,7 @@ class TelephoneRule extends FormRule
      * @param Registry|null $input The whole posted data.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function testWithPattern(SimpleXMLElement $element, string $value, ?string $group, ?Registry $input): bool
     {
@@ -227,7 +227,7 @@ class TelephoneRule extends FormRule
      * @param string $value The number as typed.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function looksTyped(string $value): bool
     {
@@ -248,7 +248,7 @@ class TelephoneRule extends FormRule
      *
      * @return string An alpha-2 code, or '' when the shop has not said.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function region(SimpleXMLElement $element): string
     {
@@ -265,7 +265,7 @@ class TelephoneRule extends FormRule
      *
      * @return string[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function listAttribute(SimpleXMLElement $element, string $name): array
     {

@@ -15,7 +15,7 @@
  *
  * Path: administrator/components/com_alfa/tmpl/documents/void.php
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 
 defined('_JEXEC') or die;

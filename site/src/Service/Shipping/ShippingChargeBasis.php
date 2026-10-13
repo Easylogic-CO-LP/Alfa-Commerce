@@ -20,7 +20,7 @@ defined('_JEXEC') or die;
  * and never derived again. Only a carrier's answer, or a carrier's own write,
  * makes a charge carrier-stated; nobody chooses it.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 enum ShippingChargeBasis: string
 {
@@ -34,7 +34,7 @@ enum ShippingChargeBasis: string
      * @param ShippingPriceEntryMode $mode The mode the price was read under.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function ofMode(ShippingPriceEntryMode $mode): self
     {
@@ -45,7 +45,7 @@ enum ShippingChargeBasis: string
      * The entry mode the figures were derived under; null for a carrier's own.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function mode(): ?ShippingPriceEntryMode
     {

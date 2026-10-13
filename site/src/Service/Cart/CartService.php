@@ -41,7 +41,7 @@ defined('_JEXEC') or die;
  * owner that does the thing (the line writer, the row writer, the rules
  * engine, the computation) and takes one reading of what is left.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartService
 {
@@ -50,7 +50,7 @@ final class CartService
      * @param CartOpener $opener Opens the cart for one operation.
      * @param CartSnapshotFactory $snapshots Takes the settled readings.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function __construct(
         private readonly CartSubject $subject,
@@ -63,7 +63,7 @@ final class CartService
      * The visitor's own cart, whoever they are.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function ambient(): self
     {
@@ -76,7 +76,7 @@ final class CartService
      * @param CartSubject $subject Whose cart, and on whose terms.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function forSubject(CartSubject $subject): self
     {
@@ -99,7 +99,7 @@ final class CartService
      *
      * @return CartAddResult The line it landed on, and what the cart comes to.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function add(int $itemId, int|float $quantity): CartAddResult
     {
@@ -157,7 +157,7 @@ final class CartService
      *
      * @return CartMutationResult With a reading, because both callers re-render.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function setLineQuantity(int $lineId, int $quantity): CartMutationResult
     {
@@ -187,7 +187,7 @@ final class CartService
      *
      * @return CartMutationResult With a settled reading when the write took.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function setLineQuantityAtCheckout(int $lineId, int $quantity, ?int $placeId): CartMutationResult
     {
@@ -214,7 +214,7 @@ final class CartService
      *
      * @return bool Whether the operation completed without a storage failure.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function clear(): bool
     {
@@ -231,7 +231,7 @@ final class CartService
      * @return string A CouponOutcome constant: which of the several ways this
      *                could go actually happened.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function applyCoupon(string $code): string
     {
@@ -247,7 +247,7 @@ final class CartService
      * @param string $code The code to drop.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function removeCoupon(string $code): void
     {
@@ -265,7 +265,7 @@ final class CartService
      * @param int|null $invoiceId Where the invoice goes, when it differs.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function pointAtSavedDetails(int $deliveryId, ?int $invoiceId = null): void
     {
@@ -288,7 +288,7 @@ final class CartService
      *
      * @return CartMutationResult With the reading the method panels render from.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function chooseShipment(int $shipmentId, ?int $placeId): CartMutationResult
     {
@@ -305,7 +305,7 @@ final class CartService
      *
      * @return CartMutationResult With the reading the method panels render from.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function choosePayment(int $paymentId, ?int $placeId): CartMutationResult
     {
@@ -323,7 +323,7 @@ final class CartService
      *
      * @return CartSnapshot One settled reading, carrying the reconcile notices.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function checkout(?int $placeId): CartSnapshot
     {
@@ -338,7 +338,7 @@ final class CartService
      * is a look, and leaves a first-time visitor with nothing.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function openCheckout(): CheckoutCart
     {
@@ -363,7 +363,7 @@ final class CartService
      *
      * @return NamedCartEditor Bound to the new cart, or to 0 if it could not be minted.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function createNamedCart(): NamedCartEditor
     {
@@ -385,7 +385,7 @@ final class CartService
      * @param int $cartId The cart to edit.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function editCart(int $cartId): NamedCartEditor
     {
@@ -412,7 +412,7 @@ final class CartService
      *
      * @throws InvalidArgumentException When asked to read under a creating mode.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function read(CartResolution $mode, int $cartId = 0): CartSnapshot
     {
@@ -437,7 +437,7 @@ final class CartService
      *
      * @return array|null The stored selection, or null when it is not theirs.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function lineConfiguration(object $item, int $lineId): ?array
     {
@@ -454,7 +454,7 @@ final class CartService
      * @param int|null $placeId Where the checkout form says it is going.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function choose(string $kind, int $id, ?int $placeId): CartMutationResult
     {
@@ -491,7 +491,7 @@ final class CartService
      * @param int $cartId A named cart, when the operation names one.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function cart(CartResolution $mode, int $cartId = 0): OpenedCart
     {

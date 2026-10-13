@@ -16,7 +16,7 @@
  *
  * Path: administrator/components/com_alfa/tmpl/order/edit_document_return.php
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 
 defined('_JEXEC') or die;
@@ -94,7 +94,7 @@ $message = Text::_('COM_ALFA_MODAL_RETURN_DONE');
          * 1. Show any messages (from dataToReturn.messages)
          * 2. Close the modal (because shouldClose: true)
          * 3. Reload the page (because shouldReload: true)
-         * @since  1.3.0
+         * @since  2.0.0
          */
         function notifyParent() {
             if (window.parent && window.parent !== window) {

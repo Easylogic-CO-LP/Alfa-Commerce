@@ -22,13 +22,13 @@ defined('_JEXEC') or die;
  * per invoked plugin (defaulting each descriptor's layout owner to that
  * plugin), and the template renders them through the Columns helper.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 trait HasColumns
 {
     /**
      * @var ColumnBuilder[] Contributed columns, insertion order.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private array $columns = [];
 
@@ -38,7 +38,7 @@ trait HasColumns
      * @param string $key The column's identity key (unique per contributor).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function column(string $key): ColumnBuilder
     {
@@ -51,7 +51,7 @@ trait HasColumns
      *
      * @return array[] Column descriptors (see ColumnBuilder::toDescriptor()).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getColumns(): array
     {

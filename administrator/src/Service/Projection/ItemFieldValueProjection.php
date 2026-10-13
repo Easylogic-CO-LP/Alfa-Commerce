@@ -33,7 +33,7 @@ use Throwable;
  * That transaction is a savepoint when a caller already holds one: a second
  * START TRANSACTION would commit the caller's work on the spot.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class ItemFieldValueProjection implements ProjectionInterface
 {
@@ -55,7 +55,7 @@ class ItemFieldValueProjection implements ProjectionInterface
      * @param ItemFieldValueCollector|null $collector Injected for testing; defaults to a new collector.
      * @param IndexRebuildLock|null $lock Injected for testing; defaults to a new lock.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct(
         ?DatabaseInterface $db = null,
@@ -69,7 +69,7 @@ class ItemFieldValueProjection implements ProjectionInterface
 
     /**
      * @inheritDoc
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function syncItem(int $itemId): void
     {
@@ -115,7 +115,7 @@ class ItemFieldValueProjection implements ProjectionInterface
 
     /**
      * @inheritDoc
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function syncItems(array $itemIds): void
     {
@@ -159,7 +159,7 @@ class ItemFieldValueProjection implements ProjectionInterface
 
     /**
      * @inheritDoc
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function deleteForItem(int $itemId): void
     {
@@ -176,7 +176,7 @@ class ItemFieldValueProjection implements ProjectionInterface
      *
      * @param int[] $itemIds The item primary keys.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function deleteForItems(array $itemIds): void
     {
@@ -208,7 +208,7 @@ class ItemFieldValueProjection implements ProjectionInterface
     /**
      * Rebuild the entire index from scratch (post-install / bulk import).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function syncAll(): void
     {
@@ -227,7 +227,7 @@ class ItemFieldValueProjection implements ProjectionInterface
      *
      * @param int[] $itemIds The item primary keys.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function deleteRows(array $itemIds): void
     {
@@ -247,7 +247,7 @@ class ItemFieldValueProjection implements ProjectionInterface
      * @param int $itemId The item primary key.
      * @param ItemFieldValueReference[] $references The (field, value) pairs to store.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function insertRows(int $itemId, array $references): void
     {
@@ -275,7 +275,7 @@ class ItemFieldValueProjection implements ProjectionInterface
      *
      * @param string $message The message to log.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function logWarning(string $message): void
     {
@@ -300,7 +300,7 @@ class ItemFieldValueProjection implements ProjectionInterface
      *
      * @return string A boolean expression for QueryInterface::where(), '1 = 1' when unconstrained.
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     public static function existsSql(string $itemAlias, int $fieldId, array $valueIds = []): string
     {
@@ -338,7 +338,7 @@ class ItemFieldValueProjection implements ProjectionInterface
      *
      * @return int[] Field ids that appear in the projection at least once.
      *
-     * @since   1.9.0
+     * @since   2.0.0
      */
     public static function usedFieldIds(): array
     {

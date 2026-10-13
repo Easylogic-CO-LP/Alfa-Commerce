@@ -22,7 +22,7 @@ use Joomla\CMS\Router\Route;
  * tasks; deletion is further guarded by the model: never for core
  * rows, never while referenced).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class DocumenttypesController extends AdminController
 {
@@ -35,7 +35,7 @@ class DocumenttypesController extends AdminController
      *
      * @return \Joomla\CMS\MVC\Model\BaseDatabaseModel
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getModel($name = 'Documenttype', $prefix = 'Administrator', $config = ['ignore_request' => true])
     {
@@ -48,7 +48,7 @@ class DocumenttypesController extends AdminController
      * trigger the same sync. Writes type rows, so it needs the documents edit permission.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function syncProviders(): void
     {

@@ -69,7 +69,7 @@ use RuntimeException;
  * priced at nothing. {@see self::hasAuthority()} is the one test, and a
  * consumer that cannot make that distinction must not aggregate the row.
  *
- * @since  1.12.0
+ * @since  2.0.0
  */
 final class OrderLineMoney
 {
@@ -78,7 +78,7 @@ final class OrderLineMoney
      * none writes none of them, so a NULL reference stays NULL and is never guessed.
      *
      * @var string[]
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const AUTHORITY_COLUMNS = [
         'base_total_tax_excl', 'base_total_tax_incl', 'reference_total_tax_excl', 'reference_total_tax_incl',
@@ -151,7 +151,7 @@ final class OrderLineMoney
      * @param PriceResult $price The engine's result for this line.
      *
      *
-     * @since  1.12.0
+     * @since  2.0.0
      */
     public static function fromPriceResult(PriceResult $price): self
     {
@@ -264,7 +264,7 @@ final class OrderLineMoney
      *                         quantity.
      * @throws InvalidArgumentException When the new quantity is not positive.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function rescaledForQuantity(object|array $row, int $newQuantity, Currency $currency): self
     {
@@ -396,7 +396,7 @@ final class OrderLineMoney
      *
      * @throws DomainException When the stored scope is unknown.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function customPriceCut(object $row): float
     {
@@ -429,7 +429,7 @@ final class OrderLineMoney
      * @throws InvalidArgumentException When the quantity is not positive.
      * @throws DomainException When the row has no positive quantity, or only part of its authority.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function customPriceOnStoredTerms(object|array $row, string $rate, int $quantity, Currency $currency): self
     {
@@ -529,7 +529,7 @@ final class OrderLineMoney
      *
      * @throws InvalidArgumentException When the quantity is not positive.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function withPreManualTotals(Currency $currency, int $quantity, float $taxRate): self
     {
@@ -626,7 +626,7 @@ final class OrderLineMoney
      *
      * @throws InvalidArgumentException When the quantity is not positive.
      *
-     * @since  1.12.0
+     * @since  2.0.0
      */
     public function withManualDiscountPercent(float $percent, Currency $currency, int $quantity): self
     {
@@ -686,7 +686,7 @@ final class OrderLineMoney
      * @return string|null The sentence that names the smallest quantity that is charged; null when that
      *                     quantity is charged, or the unit is free.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function refusalAt(ChargeableQuantity $unit, int $quantity): ?string
     {
@@ -713,7 +713,7 @@ final class OrderLineMoney
      *
      * @return string|null The sentence the line is refused in; null when it may be written.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function refusalOnLeave(?string $payableUnit, bool $moved, int $quantity, Currency $currency): ?string
     {
@@ -752,7 +752,7 @@ final class OrderLineMoney
      *
      * @return array{0: string, 1: string}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function unitsOf(Money $net, Money $gross, int $quantity, ?string $rate, bool $chargedAtRate, Currency $currency): array
     {
@@ -801,7 +801,7 @@ final class OrderLineMoney
      * @param float $taxRate The line's stored tax rate, a percentage.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function netAtStoredRate(Money $gross, float $taxRate): Money
     {
@@ -820,7 +820,7 @@ final class OrderLineMoney
      * @param float $percent The cut, 0-100.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function cutBy(Money $amount, float $percent): Money
     {
@@ -834,7 +834,7 @@ final class OrderLineMoney
      * @param Currency $currency The currency, at the line's scale.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function finerThan(string $rate, Currency $currency): bool
     {
@@ -867,7 +867,7 @@ final class OrderLineMoney
      * @throws RuntimeException When the line may not be written; the message is the refusal, for the person
      *                          writing the line.
      *
-     * @since  1.12.0
+     * @since  2.0.0
      */
     public function toColumns(): array
     {
@@ -922,7 +922,7 @@ final class OrderLineMoney
      * @param object|array $row The stored order line.
      *
      *
-     * @since  1.12.0
+     * @since  2.0.0
      */
     public static function hasAuthority(object|array $row): bool
     {
@@ -949,7 +949,7 @@ final class OrderLineMoney
      * @param bool $withTax Gross when true, net when false.
      *
      *
-     * @since  1.12.0
+     * @since  2.0.0
      */
     public static function storedSaving(object $row, bool $withTax = true): ?float
     {
@@ -967,7 +967,7 @@ final class OrderLineMoney
      *
      * @return ExactAmount|null Never below zero; null when the row has no authority.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function storedSavingExact(object $row, bool $withTax = true): ?ExactAmount
     {

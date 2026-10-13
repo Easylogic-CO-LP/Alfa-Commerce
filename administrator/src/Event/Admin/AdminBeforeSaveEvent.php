@@ -37,13 +37,13 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  * The plugin's OWN tables are written in onAlfaAdminAfterSave, once the record has an id; a
  * new record has none yet at this point.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 final class AdminBeforeSaveEvent extends AlfaAdminEvent
 {
     /**
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const NAME = 'onAlfaAdminBeforeSave';
 }

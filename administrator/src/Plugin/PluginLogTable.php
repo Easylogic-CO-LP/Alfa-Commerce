@@ -34,7 +34,7 @@ defined('_JEXEC') or die;
  * logs are an audit trail, and a type change that truncates one is not a
  * decision this should be making on its own.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class PluginLogTable
 {
@@ -42,7 +42,7 @@ final class PluginLogTable
      * The identifier and method columns of each plugin family.
      *
      * @var array<string, array{0: string, 1: string}>
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const FAMILY_COLUMNS = [
         'alfa-payments' => ['id_order_payment', 'id_payment_method'],
@@ -52,7 +52,7 @@ final class PluginLogTable
     /**
      * SQL definition of the core method column.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const METHOD_COLUMN_SQL = 'INT(11) NOT NULL DEFAULT 0';
 
@@ -63,7 +63,7 @@ final class PluginLogTable
      * @param string $identifierField The family's identifier column ('' for none).
      * @param string $methodField The family's method column ('' for none).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function __construct(
         private readonly DatabaseDriver $db,
@@ -83,7 +83,7 @@ final class PluginLogTable
      *
      * @return self|null Null when the plugin declares no log (no or no readable logs.xml).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function ofPlugin(DatabaseDriver $db, string $type, string $name): ?self
     {
@@ -107,7 +107,7 @@ final class PluginLogTable
      *
      * @return string E.g. '#__alfa_payments_standard_logs'.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function nameOf(string $type, string $name): string
     {
@@ -118,7 +118,7 @@ final class PluginLogTable
      * The table name, with the #__ prefix.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function name(): string
     {
@@ -131,7 +131,7 @@ final class PluginLogTable
      * @param string $name The column name.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function isCoreColumn(string $name): bool
     {
@@ -152,7 +152,7 @@ final class PluginLogTable
      *
      * @throws RuntimeException When the table cannot be read for a reason other than not existing.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function lacks(): array
     {
@@ -195,7 +195,7 @@ final class PluginLogTable
      *
      * @return string CREATE TABLE IF NOT EXISTS, with the #__ prefix.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function createStatement(): string
     {
@@ -261,7 +261,7 @@ final class PluginLogTable
      *
      * @throws RuntimeException When a transaction is open on the connection.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function complete(Closure $report): bool
     {
@@ -294,7 +294,7 @@ final class PluginLogTable
      * @param string $name The column name.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function declaresColumn(string $name): bool
     {
@@ -314,7 +314,7 @@ final class PluginLogTable
      *
      * @return array{name: string, columns: string[]}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function methodIndex(bool $withAction): array
     {
@@ -329,7 +329,7 @@ final class PluginLogTable
      *
      * @return array<string, string> Column name => definition.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function wantedColumns(): array
     {
@@ -366,7 +366,7 @@ final class PluginLogTable
      *
      * @return string E.g. "varchar(32) NOT NULL DEFAULT ''", "JSON NOT NULL DEFAULT ('{}')".
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function declaredDefinition(object $field): string
     {
@@ -392,7 +392,7 @@ final class PluginLogTable
      * @param array<string, true> $columns The table's columns, lower-cased.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function hasMethodIndex(array $columns): bool
     {
@@ -419,7 +419,7 @@ final class PluginLogTable
      *
      * @return array<string, true> The table's columns afterwards, lower-cased.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function addMissingColumns(Closure $report): array
     {
@@ -473,7 +473,7 @@ final class PluginLogTable
      * @param Closure $report fn(string $detail): void.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function addMissingMethodIndex(array $columns, Closure $report): void
     {

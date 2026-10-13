@@ -34,31 +34,31 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
  * never be served to somebody asking for ninety), so it is passed to the registry as a
  * scope rather than read behind its back.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class HtmlView extends BaseHtmlView
 {
     /**
      * @var string The rendered setup card.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public string $cardHtml = '';
 
     /**
      * @var string The store's configured name, '' until the merchant sets it.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public string $storeName = '';
 
     /**
      * @var array<string, string> Rendered card surfaces, keyed by surface value.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public array $surfaces = [];
 
     /**
      * @var int How many days back the cards on this screen are reading.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public int $days = DashboardPeriod::DEFAULT_DAYS;
 
@@ -67,7 +67,7 @@ class HtmlView extends BaseHtmlView
      * and the checklist strip hides itself. Read from the same evaluation the card
      * rendered, which is request-static, so it costs nothing extra.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public bool $setupReady = false;
 
@@ -76,7 +76,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function display($tpl = null)
     {
@@ -110,7 +110,7 @@ class HtmlView extends BaseHtmlView
      * home, not a list screen, so the toolbar stays quiet.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function addToolbar(): void
     {

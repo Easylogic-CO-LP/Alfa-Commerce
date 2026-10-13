@@ -41,7 +41,7 @@ use Throwable;
  * lookup, which may also come by GET
  * ({@see \Alfa\Component\Alfa\Administrator\Menu\MenuItem::lookups()}).
  *
- * @since  1.7.0
+ * @since  2.0.0
  */
 class PanelController extends BaseController
 {
@@ -49,7 +49,7 @@ class PanelController extends BaseController
      * The verbs the framework owns, never delegated to a plugin as a custom task.
      *
      * @var string[]
-     * @since  1.7.0
+     * @since  2.0.0
      */
     private const NATIVE_TASKS = ['display', 'add', 'edit', 'cancel', 'save', 'apply', 'delete'];
 
@@ -61,7 +61,7 @@ class PanelController extends BaseController
      *
      * @return mixed
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function execute($task)
     {
@@ -77,7 +77,7 @@ class PanelController extends BaseController
     /**
      * Open the edit screen for a new record.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function add(): void
     {
@@ -87,7 +87,7 @@ class PanelController extends BaseController
     /**
      * Open the edit screen for the checked record.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function edit(): void
     {
@@ -99,7 +99,7 @@ class PanelController extends BaseController
     /**
      * Leave the edit screen without saving.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function cancel(): void
     {
@@ -110,7 +110,7 @@ class PanelController extends BaseController
      * Persist a submitted record: the framework's native save, doing its work through the
      * owning plugin.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function save(): void
     {
@@ -145,7 +145,7 @@ class PanelController extends BaseController
      * Save (an alias kept so a plugin's "apply"-style button routes natively, not as a
      * custom task).
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function apply(): void
     {
@@ -155,7 +155,7 @@ class PanelController extends BaseController
     /**
      * Delete the checked records: the framework's native delete, through the owning plugin.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function delete(): void
     {
@@ -185,7 +185,7 @@ class PanelController extends BaseController
      *
      * @param string $task The task verb.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     private function pluginTask(string $task): void
     {
@@ -234,7 +234,7 @@ class PanelController extends BaseController
      * @param PanelResultEvent $event The completed mutation.
      * @param string $default The fallback redirect (the panel's list).
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     private function finish(PanelResultEvent $event, string $default): void
     {
@@ -264,7 +264,7 @@ class PanelController extends BaseController
      * @param string $back The URL to return to (edit for save, list otherwise).
      * @param bool $keepInput Whether to stash the POST so the edit form restores it.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     private function failed(PanelIdentity $identity, string $back, bool $keepInput = false): void
     {
@@ -283,7 +283,7 @@ class PanelController extends BaseController
      *
      * @param int $id The record id (0 for a new record).
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     private function editScreen(int $id): void
     {
@@ -304,7 +304,7 @@ class PanelController extends BaseController
      *
      * @throws RuntimeException 404 unknown panel, 403 not permitted.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     private function requireIdentity(bool $strict = true): PanelIdentity
     {
@@ -328,7 +328,7 @@ class PanelController extends BaseController
      * @param PanelIdentity $identity The panel.
      *
      * @return string[]
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function lookups(PanelIdentity $identity): array
     {
@@ -346,7 +346,7 @@ class PanelController extends BaseController
      *
      * @param PanelIdentity $identity The panel.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     private function listUrl(PanelIdentity $identity): string
     {
@@ -358,7 +358,7 @@ class PanelController extends BaseController
      *
      * @param PanelIdentity $identity The panel.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     private function panelUrl(PanelIdentity $identity): string
     {

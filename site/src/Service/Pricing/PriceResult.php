@@ -58,7 +58,7 @@ class PriceResult
      * the rounded base, which could miss it by a minor unit and report a
      * saving no discount gave.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private Money $baseTotalWithTax;
 
@@ -69,21 +69,21 @@ class PriceResult
      *
      * @var int[]
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private array $payableFactors;
 
     /**
      * What the customer pays a piece before discounts, once it was asked for.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private ?string $payableUnit = null;
 
     /**
      * What the customer pays a piece before discounts, exactly, once it was asked for.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private ?string $payableUnitExact = null;
 
@@ -93,35 +93,35 @@ class PriceResult
      * row and a sale on the net state the net; a sale typed as a final price,
      * a variant's gross target and an explicit custom rate state the gross.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private string $authoritativeUnit;
 
     /**
      * Where the stated unit comes from. Runtime provenance for presentation only.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private UnitOrigin $statedOrigin;
 
     /**
      * Which side of the tax the stated unit is on. Runtime provenance for presentation only.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private UnitAxis $statedAxis;
 
     /**
      * Whether a discount, or a sale below its list, took anything from the line, exactly.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private bool $reduced;
 
     /**
      * The price row's own value the line is listed at, before a sale states it.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private string $listUnit;
 
@@ -129,7 +129,7 @@ class PriceResult
      * The line's exact net and gross after every discount, as decimal text; the net is null when the
      * chain cannot be divided. Runtime provenance for presentation only.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private ?string $shownNetLine;
     private string $shownGrossLine;
@@ -139,7 +139,7 @@ class PriceResult
      *
      * @var array<string, string|null>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private array $discountedUnits = [];
 
@@ -208,7 +208,7 @@ class PriceResult
      * once.
      *
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public function getReference(): PriceReference
     {
@@ -225,7 +225,7 @@ class PriceResult
      * today.
      *
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public function hasExplicitPrice(): bool
     {
@@ -236,7 +236,7 @@ class PriceResult
      * The operator's instruction, exactly as stated.
      *
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public function getExplicitPrice(): ?ExplicitPriceInstruction
     {
@@ -254,7 +254,7 @@ class PriceResult
      * freezes both.
      *
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public function getExplicitPriceTotal(): ?Money
     {
@@ -265,7 +265,7 @@ class PriceResult
      * The instruction as applied: whole-line GROSS, at the currency's scale.
      *
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public function getExplicitPriceTotalWithTax(): ?Money
     {
@@ -290,7 +290,7 @@ class PriceResult
      * stay distinguishable.
      *
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public function getLineSaving(): Money
     {
@@ -301,7 +301,7 @@ class PriceResult
      * The same saving, whole-line and GROSS.
      *
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public function getLineSavingWithTax(): Money
     {
@@ -322,7 +322,7 @@ class PriceResult
      *
      * @return float Percentage with 2 decimal places.
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public function getLineSavingPercent(): float
     {
@@ -376,7 +376,7 @@ class PriceResult
      *
      * The tax-inclusive twin of getBaseTotal(), so a layout that shows a
      * before-discount "with tax" figure does no Money arithmetic of its own.
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function getBaseTotalWithTax(): Money
     {
@@ -434,7 +434,7 @@ class PriceResult
      * The tax-inclusive twin of getBasePrice(); the per-unit face of the
      * struck gross, divided like every other per-unit face. No tax is charged
      * on a per-unit figure already rounded for display.
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function getBasePriceWithTax(): Money
     {
@@ -550,7 +550,7 @@ class PriceResult
      * @return string A plain decimal of at most eight places, with no padding zeros; '0' when the line has
      *                no price row.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function getAuthoritativeUnit(): string
     {
@@ -568,7 +568,7 @@ class PriceResult
      * @return string A plain decimal of at most eight places, with no padding zeros; '0' when the line has
      *                no price row.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function getPayableUnit(): string
     {
@@ -590,7 +590,7 @@ class PriceResult
      * @return string A plain decimal with no padding zeros, of as many places as the chain gives; '0' when the
      *                line has no price row.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function getPayableUnitExact(): string
     {
@@ -615,7 +615,7 @@ class PriceResult
      * no amount is computed from it.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function getStatedOrigin(): UnitOrigin
     {
@@ -630,7 +630,7 @@ class PriceResult
      * and no amount is computed from it.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function getStatedAxis(): UnitAxis
     {
@@ -645,7 +645,7 @@ class PriceResult
      * Runtime provenance for presentation: no amount is computed from it.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function isReduced(): bool
     {
@@ -660,7 +660,7 @@ class PriceResult
      *
      * @return string A plain decimal of at most eight places; '0' when the line has no price row.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function getListUnit(): string
     {
@@ -680,7 +680,7 @@ class PriceResult
      * @return string|null A plain decimal of at most eight places; null for a net the chain cannot
      *                     divide, or a line of no quantity.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function getDiscountedUnitExact(bool $withTax): ?string
     {

@@ -38,7 +38,7 @@ defined('_JEXEC') or die;
  * only a statement failure of one of the two drivers has one: anything else
  * answers 0.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class MysqlError
 {
@@ -49,7 +49,7 @@ final class MysqlError
      *
      * @return int The MySQL error number, or 0 when the failure is not a statement's.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function number(Throwable $error): int
     {

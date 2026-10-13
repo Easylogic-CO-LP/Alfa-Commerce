@@ -34,7 +34,7 @@ use Joomla\CMS\Router\Route;
  * carrier-specific (a signature, a shared secret, a callback to the carrier's
  * own tracking API) and only the carrier's plugin knows how to check it.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class ShipmentController extends BaseController
 {
@@ -47,7 +47,7 @@ class ShipmentController extends BaseController
      *
      * @return void
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function response()
     {
@@ -102,7 +102,7 @@ class ShipmentController extends BaseController
      *
      * @return void
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function webhook()
     {
@@ -160,7 +160,7 @@ class ShipmentController extends BaseController
      * @param string $contentType Content-Type header value
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function answerWebhook(int $code, string $body, string $contentType = 'text/plain; charset=utf-8'): void
     {

@@ -31,7 +31,7 @@ use Joomla\CMS\Form\FormField;
  * It renders NOTHING on purpose: the visible input is already drawn by the owning Multilingual*
  * field, and a second input with the same name would be appended after the first and silently win.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class MultilingualStorageField extends FormField
 {
@@ -40,7 +40,7 @@ class MultilingualStorageField extends FormField
      *
      * @var string
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected $type = 'MultilingualStorage';
 
@@ -48,7 +48,7 @@ class MultilingualStorageField extends FormField
      * Render nothing: the owning Multilingual* field draws the real input.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function getInput(): string
     {
@@ -61,7 +61,7 @@ class MultilingualStorageField extends FormField
      * @param array $options Ignored; this field is never visible.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function renderField($options = []): string
     {
@@ -72,7 +72,7 @@ class MultilingualStorageField extends FormField
      * And no label.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function getLabel(): string
     {

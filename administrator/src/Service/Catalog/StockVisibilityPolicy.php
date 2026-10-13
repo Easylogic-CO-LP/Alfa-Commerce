@@ -71,7 +71,7 @@ use Joomla\Database\QueryInterface;
  * nothing happen until the cache expires. Category product counts are cached for a
  * long time and are computed through this predicate.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class StockVisibilityPolicy
 {
@@ -79,7 +79,7 @@ final class StockVisibilityPolicy
      * Inherit the shop-wide setting.
      *
      * @var int
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public const ACTION_INHERIT = -1;
 
@@ -87,7 +87,7 @@ final class StockVisibilityPolicy
      * Do nothing special when there is no salable stock.
      *
      * @var int
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public const ACTION_NONE = 0;
 
@@ -95,7 +95,7 @@ final class StockVisibilityPolicy
      * Offer a "notify me" button instead of add-to-cart.
      *
      * @var int
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public const ACTION_NOTIFY = 1;
 
@@ -103,7 +103,7 @@ final class StockVisibilityPolicy
      * Remove the product from listings and counts while it has no salable stock.
      *
      * @var int
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public const ACTION_HIDE_OUT_OF_STOCK = 2;
 
@@ -111,7 +111,7 @@ final class StockVisibilityPolicy
      * Every value a merchant may store on an item or a combination override.
      *
      * @var int[]
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public const ALLOWED_VALUES = [
         self::ACTION_INHERIT,
@@ -126,7 +126,7 @@ final class StockVisibilityPolicy
      * would be a self-reference.
      *
      * @var int[]
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public const GLOBAL_VALUES = [
         self::ACTION_NONE,
@@ -137,7 +137,7 @@ final class StockVisibilityPolicy
     /**
      * The shop-wide fallback, already normalised to a real action.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private readonly int $global;
 
@@ -146,12 +146,12 @@ final class StockVisibilityPolicy
      * the predicate: an item that inherits them is judged by the SAME rule the
      * storefront flag and the cart clamp apply.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private readonly string $globalBackorder;
 
     /**
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private readonly float $globalMinQty;
 
@@ -160,7 +160,7 @@ final class StockVisibilityPolicy
      *                         parameters. Pass it explicitly from CLI and from
      *                         tests, where there is no application to ask.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function __construct(?int $global = null)
     {
@@ -179,7 +179,7 @@ final class StockVisibilityPolicy
      *
      * @return int One of GLOBAL_VALUES.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function globalAction(): int
     {
@@ -196,7 +196,7 @@ final class StockVisibilityPolicy
      *
      * @return int One of GLOBAL_VALUES; never ACTION_INHERIT.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function effectiveAction(int|string|null $stored): int
     {
@@ -220,7 +220,7 @@ final class StockVisibilityPolicy
      *
      * @return int|null A member of ALLOWED_VALUES, or null for "no override".
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function normaliseStoredValue(mixed $value): ?int
     {
@@ -243,7 +243,7 @@ final class StockVisibilityPolicy
      * @param string $alias Alias `#__alfa_items` is joined under.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function effectiveExpression(string $alias = 'a'): string
     {
@@ -262,7 +262,7 @@ final class StockVisibilityPolicy
      * @param string $alias Alias `#__alfa_items` is joined under.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function condition(string $alias = 'a'): string
     {
@@ -301,7 +301,7 @@ final class StockVisibilityPolicy
      *
      * @return string A boolean SQL expression, parenthesised.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function sellableExpression(string $alias = 'a'): string
     {
@@ -382,7 +382,7 @@ final class StockVisibilityPolicy
      * @param string $alias Alias `#__alfa_items` is joined under.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function applyToItems(QueryInterface $query, string $alias = 'a'): void
     {
@@ -395,7 +395,7 @@ final class StockVisibilityPolicy
      * changes it.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function cacheKey(): string
     {

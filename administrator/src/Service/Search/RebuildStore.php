@@ -43,21 +43,21 @@ use Throwable;
  * adoptable, which needs no lock service, no lease renewal and no cleanup cron, and
  * degrades safely: the worst case is one wasted rebuild, never two writers.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class RebuildStore
 {
     /**
      * @var string
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private const TABLE = '#__alfa_search_rebuilds';
 
     /**
      * @var string
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private const ITEMS_TABLE = '#__alfa_search_rebuild_items';
 
@@ -71,19 +71,19 @@ final class RebuildStore
      *
      * @var int
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public const STALE_AFTER_SECONDS = 900;
 
     /**
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private readonly DatabaseInterface $db;
 
     /**
      * @param DatabaseInterface|null $db Injected for testing; defaults to the container driver.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function __construct(?DatabaseInterface $db = null)
     {
@@ -96,7 +96,7 @@ final class RebuildStore
      * @param string $engine Engine key.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function current(string $engine): ?RebuildProgress
     {
@@ -114,7 +114,7 @@ final class RebuildStore
      *
      * @throws RuntimeException When a rebuild is already in flight and still alive.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function open(string $engine, RebuildProgress $progress): void
     {
@@ -157,7 +157,7 @@ final class RebuildStore
      * @param RebuildProgress $progress Current state.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function save(string $engine, RebuildProgress $progress): void
     {
@@ -187,7 +187,7 @@ final class RebuildStore
      * @param string $engine Engine key.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function close(string $engine): void
     {
@@ -228,7 +228,7 @@ final class RebuildStore
      * @param int[] $itemIds Items just written.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function noteWritten(string $engine, array $itemIds): void
     {
@@ -271,7 +271,7 @@ final class RebuildStore
      *
      * @return int[]
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function writtenDuringRebuild(string $engine): array
     {
@@ -296,7 +296,7 @@ final class RebuildStore
      * @param object $row Stored row.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function isStale(object $row): bool
     {
@@ -309,7 +309,7 @@ final class RebuildStore
      * @param string $engine Engine key.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function row(string $engine): ?object
     {
@@ -331,7 +331,7 @@ final class RebuildStore
      * @param object $row Stored row.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function toProgress(object $row): RebuildProgress
     {
@@ -362,7 +362,7 @@ final class RebuildStore
      * @param RebuildProgress $progress State to bind.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function bindProgress(object $query, string $engine, RebuildProgress $progress): void
     {

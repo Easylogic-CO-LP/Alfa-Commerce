@@ -36,7 +36,7 @@ use Alfa\Component\Alfa\Site\Service\Pricing\PublishedDecimal;
  * where PriceResult::toArray() already emits {amount, formatted} plus a single
  * currency block.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 trait ProjectsMoney
 {
@@ -52,7 +52,7 @@ trait ProjectsMoney
      *
      * @return array|null {amount, formatted, minor_units}, or null.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function money(mixed $value, ?Currency $currency = null): ?array
     {
@@ -95,7 +95,7 @@ trait ProjectsMoney
      *
      * @return array|null {amount, formatted, minor_units}, or null.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected function rate(mixed $value, ?Currency $currency = null): ?array
     {
@@ -136,7 +136,7 @@ trait ProjectsMoney
      *
      * @return array|null {amount, formatted, minor_units}, or null.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected function unit(mixed $value, mixed $lineTotal, mixed $quantity, mixed $rate, ?Currency $currency): ?array
     {
@@ -176,7 +176,7 @@ trait ProjectsMoney
      *
      * @return string|null Null when there is no figure.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected static function decimal(mixed $value): ?string
     {
@@ -191,7 +191,7 @@ trait ProjectsMoney
      * @param int|float|string $value A numeric figure.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function storedText(int|float|string $value): string
     {
@@ -204,7 +204,7 @@ trait ProjectsMoney
      * @param Currency|null $currency The resolved currency.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function currencyBlock(?Currency $currency): ?array
     {

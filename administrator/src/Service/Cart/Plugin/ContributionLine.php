@@ -22,7 +22,7 @@ defined('_JEXEC') or die;
  * price could reach the discounts, the currency and the catalogue behind it,
  * and none of that is what an extension point is for.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class ContributionLine
 {
@@ -33,7 +33,7 @@ final class ContributionLine
      *                       carries no price, which is the case for a product
      *                       withdrawn from the catalogue.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly int $lineId,

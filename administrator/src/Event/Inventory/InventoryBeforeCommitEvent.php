@@ -19,14 +19,14 @@ use Joomla\CMS\Event\AbstractEvent;
  * transaction opens. Subscribers may replace the CommitmentRequest
  * (updateRequest) or veto by throwing; nothing was deducted yet.
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 class InventoryBeforeCommitEvent extends AbstractEvent
 {
     /**
      * @return CommitmentRequest The fulfilment ask.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function getRequest(): CommitmentRequest
     {
@@ -40,7 +40,7 @@ class InventoryBeforeCommitEvent extends AbstractEvent
      * @param CommitmentRequest $request The amended request.
      *
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function updateRequest(CommitmentRequest $request): void
     {

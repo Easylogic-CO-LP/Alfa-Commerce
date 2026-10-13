@@ -48,7 +48,7 @@ use Throwable;
  * GROUPS ARE DISCOVERED, NOT LISTED. Any enabled plugin group whose folder begins
  * `alfa` participates, so shipping a new group never requires editing this file.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class ToolRegistry
 {
@@ -61,7 +61,7 @@ final class ToolRegistry
      *
      * @var PluginAction[]|null
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private static ?array $actions = null;
 
@@ -75,7 +75,7 @@ final class ToolRegistry
      *
      * @var array<string, PluginAction|null>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static array $resolved = [];
 
@@ -84,7 +84,7 @@ final class ToolRegistry
      *
      * @return array<string, PluginAction> Keyed `owner_group/owner_name:action_id`.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function actions(): array
     {
@@ -169,7 +169,7 @@ final class ToolRegistry
      *
      * @return PluginAction[]
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function forSurface(string $surface): array
     {
@@ -194,7 +194,7 @@ final class ToolRegistry
      *
      * @return array<string, PluginAction[]> Keyed by surface id, in first-seen order.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function extraSurfaces(array $known): array
     {
@@ -239,7 +239,7 @@ final class ToolRegistry
      * @throws RuntimeException When the action is unknown, disabled, or its provider
      *                          cannot be booted.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function execute(
         string $actionId,
@@ -314,7 +314,7 @@ final class ToolRegistry
      * @param string $ownerHint The `group/name` the card sent back, or ''.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function mutates(string $actionId, string $ownerHint = ''): bool
     {
@@ -329,7 +329,7 @@ final class ToolRegistry
      *
      * @return PluginAction|null Null when no enabled action of that id exists.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private static function resolve(string $actionId, string $ownerHint): ?PluginAction
     {
@@ -350,7 +350,7 @@ final class ToolRegistry
      * @param string $ownerHint Untrusted `group/name`; '' to scan everything.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function resolveUncached(string $actionId, string $ownerHint): ?PluginAction
     {
@@ -388,7 +388,7 @@ final class ToolRegistry
      *
      * @return PluginAction[] Enabled actions only.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private static function askPlugin(string $group, string $name): array
     {
@@ -447,7 +447,7 @@ final class ToolRegistry
      *
      * @return string[]
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private static function groups(): array
     {
@@ -458,7 +458,7 @@ final class ToolRegistry
      * Forget the collected actions.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function invalidate(): void
     {

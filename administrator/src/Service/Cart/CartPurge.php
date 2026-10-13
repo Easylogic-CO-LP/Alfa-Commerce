@@ -42,7 +42,7 @@ use Joomla\CMS\Log\Log;
  *   run would take, which is the only honest way to introduce a thing like this
  *   to a live shop.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartPurge
 {
@@ -50,7 +50,7 @@ final class CartPurge
      * @param CartRepository $repository The only thing that deletes.
      * @param CartRetention $retention The policy.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         private CartRepository $repository,
@@ -72,7 +72,7 @@ final class CartPurge
      *
      * @throws CartPersistenceException When the database refuses a statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function run(int $limit = 200, bool $dryRun = false, ?string $now = null): array
     {
@@ -137,7 +137,7 @@ final class CartPurge
      * @param array $result The pass's outcome.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function report(array $result): void
     {

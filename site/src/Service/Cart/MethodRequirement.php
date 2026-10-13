@@ -36,7 +36,7 @@ namespace Alfa\Component\Alfa\Site\Service\Cart;
  * ship; reading NOT APPLICABLE as permission is how a cart of downloads takes a
  * carrier id nobody offered it, and is charged carriage for it.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 enum MethodRequirement: string
 {
@@ -52,7 +52,7 @@ enum MethodRequirement: string
     /**
      * @return bool Whether a method id must be named for this cart.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function mustBeNamed(): bool
     {
@@ -62,7 +62,7 @@ enum MethodRequirement: string
     /**
      * @return bool Whether placing with no method at all is legitimate here.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function permitsNone(): bool
     {

@@ -72,7 +72,7 @@ use Throwable;
  * A veto is data: before-save and before-delete collect every objection and refuse cleanly through
  * setError(), which is what the controller already knows how to redisplay.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 abstract class AlfaAdminModel extends AdminModel
 {
@@ -81,7 +81,7 @@ abstract class AlfaAdminModel extends AdminModel
     /**
      * @var array|null Data a contributor changed in the prepare-data phase, waiting for
      *                 {@see self::loadForm()} to bind it over the component's own.
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private ?array $alfaPreparedData = null;
 
@@ -94,7 +94,7 @@ abstract class AlfaAdminModel extends AdminModel
      *
      * @return bool
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function canDelete($record)
     {
@@ -111,7 +111,7 @@ abstract class AlfaAdminModel extends AdminModel
      *
      * @return bool
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function canEditState($record)
     {
@@ -128,7 +128,7 @@ abstract class AlfaAdminModel extends AdminModel
      *
      * @return int|bool The number checked in, or false when refused or failed.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function checkin($pks = [])
     {
@@ -159,7 +159,7 @@ abstract class AlfaAdminModel extends AdminModel
      *
      * @return bool|null
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function reorder($pks, $delta = 0)
     {
@@ -184,7 +184,7 @@ abstract class AlfaAdminModel extends AdminModel
      *
      * @return void
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected function preprocessForm(Form $form, $data, $group = 'content')
     {
@@ -263,7 +263,7 @@ abstract class AlfaAdminModel extends AdminModel
      *
      * @return Form
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected function loadForm($name, $source = null, $options = [], $clear = false, $xpath = null)
     {
@@ -292,7 +292,7 @@ abstract class AlfaAdminModel extends AdminModel
      *
      * @return array|bool The filtered data on success, false when the component or a plugin refused.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function validate($form, $data, $group = null)
     {
@@ -343,7 +343,7 @@ abstract class AlfaAdminModel extends AdminModel
      *
      * @return bool True on success.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function save($data)
     {
@@ -410,7 +410,7 @@ abstract class AlfaAdminModel extends AdminModel
      *
      * @return bool True on success.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function delete(&$pks)
     {
@@ -486,7 +486,7 @@ abstract class AlfaAdminModel extends AdminModel
      *
      * @return bool True on success.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function publish(&$pks, $value = 1)
     {
@@ -506,7 +506,7 @@ abstract class AlfaAdminModel extends AdminModel
      * @param array $data The form data.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private function alfaIsNew($data): bool
     {
@@ -526,7 +526,7 @@ abstract class AlfaAdminModel extends AdminModel
      *
      * @return int The record id, or 0 for a record that does not exist yet.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private function alfaRecordId($data): int
     {
@@ -553,7 +553,7 @@ abstract class AlfaAdminModel extends AdminModel
      *
      * @return Table|null Null when there is no such record.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private function alfaLoadRecord(int $id): ?Table
     {

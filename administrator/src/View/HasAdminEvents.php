@@ -44,7 +44,7 @@ use Throwable;
  * The preamble runs ONCE per view: templates call loadTemplate() again for their own partials, and
  * a toolbar built twice would show every contributed button twice.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 trait HasAdminEvents
 {
@@ -60,7 +60,7 @@ trait HasAdminEvents
      *
      * @return string A SCREEN_* constant.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected function alfaScreen(): string
     {
@@ -74,7 +74,7 @@ trait HasAdminEvents
      * both the old wiring and the contract.
      *
      * @var array[]
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public array $pluginColumns = [];
 
@@ -82,7 +82,7 @@ trait HasAdminEvents
      * Plugin-declared per-row actions for this render.
      *
      * @var array[]
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public array $pluginRowActions = [];
 
@@ -90,13 +90,13 @@ trait HasAdminEvents
      * Plugin-declared bulk actions for this render.
      *
      * @var array[]
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public array $pluginBulkActions = [];
 
     /**
      * @var bool Whether the once-per-view preamble has run.
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private bool $alfaPreambleDone = false;
 
@@ -107,7 +107,7 @@ trait HasAdminEvents
      *
      * @return string The rendered template.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function loadTemplate($tpl = null)
     {
@@ -130,7 +130,7 @@ trait HasAdminEvents
      *
      * @return string The contributed markup, already assembled in plugin order.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function renderSlot(string $slot): string
     {
@@ -162,7 +162,7 @@ trait HasAdminEvents
      * collect the contributed columns and actions.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private function alfaPreamble(): void
     {
@@ -184,7 +184,7 @@ trait HasAdminEvents
      * Hand plugins the finished toolbar.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private function alfaDispatchToolbar(): void
     {
@@ -218,7 +218,7 @@ trait HasAdminEvents
      * phases: it owns the rows, and it is the only place that can guarantee they are final.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private function alfaCollectColumns(): void
     {
@@ -235,7 +235,7 @@ trait HasAdminEvents
      *
      * @return array<int, array<string, mixed>>
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private function alfaRowData(): array
     {
@@ -248,7 +248,7 @@ trait HasAdminEvents
      * Collect the contributed row and bulk actions: presentation, so the view asks, not the model.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private function alfaDispatchActions(): void
     {

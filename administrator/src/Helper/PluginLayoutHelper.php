@@ -42,7 +42,7 @@ class PluginLayoutHelper
      *
      * @var string[]|null
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static ?array $siteTemplates = null;
 
@@ -111,7 +111,7 @@ class PluginLayoutHelper
      *
      * @return FileLayout Ready to call ->render($displayData)
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function storefrontLayout(string $pluginType, string $pluginName, string $fileName): FileLayout
     {
@@ -156,7 +156,7 @@ class PluginLayoutHelper
      *
      * @return string[] Template element names; empty when no default style is set.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function siteTemplates(): array
     {

@@ -49,7 +49,7 @@ use Throwable;
  * link in the new email, previously mailed links die. That rotation is a
  * feature (leaked old links expire), not a bug.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class Entitlements
 {
@@ -92,7 +92,7 @@ class Entitlements
      *
      * @param int $status One of the STATUS_* constants.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function isServable(int $status): bool
     {
@@ -114,7 +114,7 @@ class Entitlements
      *                         onAlfaOrderStatusChange event payload).
      * @param int $newStatusId New order status id.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function handleStatusTransition(int $orderId, int $oldStatusId, int $newStatusId): void
     {
@@ -161,7 +161,7 @@ class Entitlements
      * @param int $statusId Order status id.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     /**
      * Whether an order in this status may hold live entitlements.
@@ -172,7 +172,7 @@ class Entitlements
      * @param int $statusId Order status id.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function statusEntitles(int $statusId): bool
     {
@@ -203,7 +203,7 @@ class Entitlements
      * @param int $orderId Order PK.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function currentStatusOf(int $orderId): int
     {
@@ -235,7 +235,7 @@ class Entitlements
      *
      * @return int Number of rows created or reactivated.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function grantForOrder(int $orderId): int
     {
@@ -427,7 +427,7 @@ class Entitlements
      *
      * @return int How many entitlement rows changed.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function syncForLine(int $orderItemId): int
     {
@@ -574,7 +574,7 @@ class Entitlements
      *
      * @return int Number of rows revoked.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function revokeForOrder(int $orderId): int
     {
@@ -612,7 +612,7 @@ class Entitlements
      * @param string $oldStatus Previous transaction_status.
      * @param string $newStatus New transaction_status.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function handlePaymentTransition(int $orderId, string $oldStatus, string $newStatus): void
     {
@@ -657,7 +657,7 @@ class Entitlements
      *
      * @return object[] `#__alfa_item_downloads` rows, in display order.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function getFilesForItem(int $itemId): array
     {
@@ -692,7 +692,7 @@ class Entitlements
      * @param int $itemId Item PK.
      * @param array $payload Posted grid rows keyed by download row id.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function saveItemDownloadsMeta(int $itemId, array $payload): void
     {
@@ -739,7 +739,7 @@ class Entitlements
      *
      * @return object[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function getForOrder(int $orderId): array
     {
@@ -764,7 +764,7 @@ class Entitlements
      *
      * @return object|null Entitlement row, or null when unknown/malformed.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function findByToken(string $rawToken): ?object
     {
@@ -805,7 +805,7 @@ class Entitlements
      *
      * @return bool True when the claim succeeded and streaming may start.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function claimDownload(int $entitlementId, string $ip, string $userAgent): bool
     {
@@ -858,7 +858,7 @@ class Entitlements
      *
      * @param int $entitlementId Entitlement PK.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function markExpired(int $entitlementId): void
     {
@@ -891,7 +891,7 @@ class Entitlements
      *
      * @return object[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function getLinksForOrder(int $orderId, ?string $secureKey = null): array
     {

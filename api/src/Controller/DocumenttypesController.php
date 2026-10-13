@@ -17,7 +17,7 @@ use Joomla\CMS\MVC\Controller\ApiController;
 /**
  * The Documenttypes controller
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 class DocumenttypesController extends ApiController
 {
@@ -46,7 +46,7 @@ class DocumenttypesController extends ApiController
      * managed from the Documents screen, and an undeclared section can never be granted.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function aclSection(): string
     {
@@ -58,7 +58,7 @@ class DocumenttypesController extends ApiController
      *
      * @return static A BaseController object to support chaining.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function displayList()
     {
@@ -96,7 +96,7 @@ class DocumenttypesController extends ApiController
      * @param array $data The save data after core's PATCH backfill.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     protected function preprocessSaveData(array $data): array
     {

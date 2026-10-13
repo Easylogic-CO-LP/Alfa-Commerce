@@ -39,7 +39,7 @@ class NotificationsModel extends AlfaListModel
      * The admin-contract entity this list serves.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'notification';
 

@@ -23,7 +23,7 @@ defined('_JEXEC') or die;
  * fields). The machine name is the address prefix and matches `data-showon-name`,
  * so the serialised bag and the DOM agree for the JS twin.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class StateBagBuilder
 {
@@ -33,7 +33,7 @@ final class StateBagBuilder
      * @param object $item The item (carries ->fields plus selection context).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function fromItem(object $item): StateBag
     {

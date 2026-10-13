@@ -22,7 +22,7 @@ use RuntimeException;
  * re-armed stock effect remains. The reason tells the caller which sentence to
  * show; the message names the order line.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class InventoryLineResolutionException extends RuntimeException
 {
@@ -67,7 +67,7 @@ final class InventoryLineResolutionException extends RuntimeException
      * @param int $lineId The order line.
      * @param string $reason One of the class constants.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly int $lineId,

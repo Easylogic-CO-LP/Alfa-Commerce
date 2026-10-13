@@ -74,7 +74,7 @@ class CalculateShippingCostEvent extends ShipmentsEvent
      * safe here; CartComputation would not have been.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getRequest(): ShippingCostRequest
     {
@@ -90,7 +90,7 @@ class CalculateShippingCostEvent extends ShipmentsEvent
      * a getter the component has not written yet.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getMethod(): Method
     {
@@ -110,7 +110,7 @@ class CalculateShippingCostEvent extends ShipmentsEvent
      * a licence to quote for goods this request did not ask about.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getCart(): Cart
     {
@@ -148,7 +148,7 @@ class CalculateShippingCostEvent extends ShipmentsEvent
      * @param string $reasonKey Language key explaining the refusal.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function setUnavailable(string $reasonKey = ''): void
     {
@@ -161,7 +161,7 @@ class CalculateShippingCostEvent extends ShipmentsEvent
      * Whether the carrier refused the cart.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function isUnavailable(): bool
     {
@@ -172,7 +172,7 @@ class CalculateShippingCostEvent extends ShipmentsEvent
      * The language key explaining a refusal, or '' when none was given.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getUnavailableReason(): string
     {
@@ -239,7 +239,7 @@ class CalculateShippingCostEvent extends ShipmentsEvent
      * carrier as having answered before it was even booted.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function hasAnswered(): bool
     {
@@ -267,7 +267,7 @@ class CalculateShippingCostEvent extends ShipmentsEvent
      * @param float $taxRate The rate the tax was charged at, in percent.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function setShippingAmounts(string|int|float $taxExcl, string|int|float $taxAmount, string|int|float $taxIncl, float $taxRate): void
     {
@@ -285,7 +285,7 @@ class CalculateShippingCostEvent extends ShipmentsEvent
      *
      * @return array{taxExcl: string|int|float, taxAmount: string|int|float, taxIncl: string|int|float, taxRate: float}|null
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function statedAmounts(): ?array
     {

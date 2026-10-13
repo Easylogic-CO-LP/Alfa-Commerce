@@ -116,7 +116,7 @@ class PriceCalculator
      * @param PriceContext|null $context Pricing context; resolved from session when null.
      *
      * @return PriceResult The computed price for this variant.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function calculateVariant(int $itemId, int $quantity, VariantSelection $selection, ?PriceContext $context = null, ?ExplicitPriceInstruction $price = null): PriceResult
     {
@@ -159,7 +159,7 @@ class PriceCalculator
      *
      * @return int[] Ascending, without repeats.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function tierStarts(int $itemId, ?int $combinationId, PriceContext $context): array
     {
@@ -209,7 +209,7 @@ class PriceCalculator
      * @param array<int,VariantSelection> $selections Map itemId => selection (absent/empty = base).
      *
      * @return PriceResult[] Results keyed by item id.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function calculateBatch(array $itemIds, $quantities = 1, ?PriceContext $context = null, array $selections = []): array
     {
@@ -288,7 +288,7 @@ class PriceCalculator
      * @param PriceContext $context Pricing context.
      *
      * @return PriceResult The computed price for this variant.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function computeVariantFromData(int $itemId, int $quantity, VariantSelection $selection, array $itemPrices, array $discounts, array $taxes, array $comboRows, PriceContext $context, ?ExplicitPriceInstruction $price = null): PriceResult
     {
@@ -410,7 +410,7 @@ class PriceCalculator
      * @param array<int,int> $groupDistances How far each group is from the nearest group the customer is placed in.
      *
      * @return string The effective net unit price, as a canonical unit (never negative).
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function resolveVariantNet(array $baseRows, ?object $adjustRow, array $optionDeltas, array $contributions, array $taxes, int $quantity, ?array &$steps = null, ?string &$grossTarget = null, array $groupDistances = []): string
     {
@@ -502,7 +502,7 @@ class PriceCalculator
      * @param PriceContext|null $context Pricing context; session when null.
      *
      * @return array{base_net: float, base_sale: bool, tax_factor: float, lines: array<int, array>}
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function breakdownVariant(int $itemId, int $quantity, VariantSelection $selection, ?PriceContext $context = null): array
     {
@@ -547,7 +547,7 @@ class PriceCalculator
      * @param array[] $factors The exact tax chain, from PriceComputationEngine::taxFactors().
      *
      * @return array{0: int, 1: int|null} [the net unit, the gross unit the row states or null], as counts of the smallest unit.
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected function rowUnit(?object $row, bool $taxed, array $factors): array
     {

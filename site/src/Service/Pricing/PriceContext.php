@@ -217,7 +217,7 @@ class PriceContext
      * return to live NOW() evaluation. Apply LAST in a with*() chain.
      *
      * @param string|null $referenceDate SQL datetime, or null for NOW()
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function withReferenceDate(?string $referenceDate): self
     {
@@ -230,7 +230,7 @@ class PriceContext
     /**
      * The moment publish windows are evaluated at; null = live (NOW()).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getReferenceDate(): ?string
     {
@@ -308,7 +308,7 @@ class PriceContext
      *                       leaves the id empty for an account that does not exist.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function withCustomer(User $customer): self
     {
@@ -347,7 +347,7 @@ class PriceContext
      *
      * @return int[] Distinct group ids.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function customerGroups(User $customer): array
     {
@@ -382,7 +382,7 @@ class PriceContext
      *
      * @return int[] Group ids from the root down to the group itself.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function groupLineage(int $groupId): array
     {
@@ -404,7 +404,7 @@ class PriceContext
      * @return array<int, int[]> Group id => group ids from the root down to it. A group that does
      *                           not exist, the "any group" sentinel and a negative id are left out.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function groupLineages(array $groupIds): array
     {
@@ -451,7 +451,7 @@ class PriceContext
      *
      * @return array<int, int> Group id => distance; the "any group" sentinel is no group and is not in it.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function groupDistances(): array
     {

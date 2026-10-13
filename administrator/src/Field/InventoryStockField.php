@@ -40,14 +40,14 @@ use Joomla\Database\ParameterType;
  * Either rendering is an ADAPTER: the model turns changed figures into
  * inventory commands; no rendering writes a column.
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 class InventoryStockField extends FormField
 {
     /**
      * The user-state key the item edit form keeps its post under.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private const KEPT_POST_KEY = 'com_alfa.edit.item.data';
 
@@ -61,7 +61,7 @@ class InventoryStockField extends FormField
      *
      * @return string
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     protected function getInput()
     {
@@ -210,7 +210,7 @@ class InventoryStockField extends FormField
      * @param int $itemId The product.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function combinationAggregateInput(int $itemId): string
     {
@@ -246,7 +246,7 @@ class InventoryStockField extends FormField
      * @param int $itemId The product.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function countCombinations(int $itemId): int
     {
@@ -269,7 +269,7 @@ class InventoryStockField extends FormField
      *
      * @return int|null The stored value; null when unset or the row is gone.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function storedManageStock(int $itemId): ?int
     {
@@ -294,7 +294,7 @@ class InventoryStockField extends FormField
      *
      * @return string|null The posted figure; null when none was posted.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function keptFigure(array $values, int|string $key): ?string
     {
@@ -307,7 +307,7 @@ class InventoryStockField extends FormField
      * @param string $value The value.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function escape(string $value): string
     {
@@ -330,7 +330,7 @@ class InventoryStockField extends FormField
      * @param string $value The baseline figure.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function baselineInput(int $key, string $value): string
     {

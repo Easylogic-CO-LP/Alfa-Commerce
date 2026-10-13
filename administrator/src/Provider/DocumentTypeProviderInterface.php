@@ -28,7 +28,7 @@ use Alfa\Component\Alfa\Administrator\Service\DocumentTypes\DocumentTypeRegistry
  * Providers declare; the registry decides. All validation, lifecycle
  * and protection rules live in DocumentTypeRegistry.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 interface DocumentTypeProviderInterface
 {
@@ -41,7 +41,7 @@ interface DocumentTypeProviderInterface
      * @param DocumentTypeRegistry $registry The registry service.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function register(DocumentTypeRegistry $registry): void;
 }

@@ -17,7 +17,7 @@
  * dispatch site logs and continues; same non-blocking contract as
  * onOrderStatusChange).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\Items;
@@ -31,7 +31,7 @@ class ItemAfterSaveEvent extends AbstractImmutableEvent
     /**
      * The saved item id.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getItemId(): int
     {
@@ -42,7 +42,7 @@ class ItemAfterSaveEvent extends AbstractImmutableEvent
      * The validated + merged form data that was saved (includes the
      * plugin-injected keys the form filter recovered).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getData(): array
     {
@@ -52,7 +52,7 @@ class ItemAfterSaveEvent extends AbstractImmutableEvent
     /**
      * Whether this save CREATED the item.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function isNew(): bool
     {

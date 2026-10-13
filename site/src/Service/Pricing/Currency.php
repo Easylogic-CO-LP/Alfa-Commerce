@@ -30,7 +30,7 @@ class Currency
      * A currency with no minor unit is a real currency, so 0 is a valid answer,
      * not a missing one.
      *
-     * @since 1.10.0
+     * @since 2.0.0
      */
     public const SCALE_MIN = 0;
 
@@ -46,7 +46,7 @@ class Currency
      * roughly 9.2e10 major units; and eight places is what Money's eight-decimal
      * crypto support is built for.
      *
-     * @since 1.10.0
+     * @since 2.0.0
      */
     public const SCALE_MAX = 8;
 
@@ -327,7 +327,7 @@ class Currency
      *
      * @throws RuntimeException When the scale is outside the supported range.
      *
-     * @since  1.13.0
+     * @since  2.0.0
      */
     public function atScale(int $scale): self
     {
@@ -489,7 +489,7 @@ class Currency
      * @param int $minimum The fewest decimals to show, usually the currency's scale.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function rateDecimals(float|string $rate, int $minimum): int
     {
@@ -509,7 +509,7 @@ class Currency
      * @param bool $includeSymbol Whether to include the currency symbol.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function formatRate(float|string $rate, bool $includeSymbol = true): string
     {
@@ -531,7 +531,7 @@ class Currency
      *
      * @return bool True for Auto, false for "Currency decimals".
      *
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public static function unitPrecisionIsAuto(): bool
     {
@@ -583,7 +583,7 @@ class Currency
      * @throws InvalidArgumentException When a value is not a number, the scale is outside the supported
      *                                  range, or the unit is more than minor units can hold.
      *
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public static function unitFigure(
         float|int|string $unit,
@@ -655,7 +655,7 @@ class Currency
      *                        setting, for a figure that is data or stored text.
      *
      *
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public function formatUnit(
         float|int|string $unit,
@@ -695,7 +695,7 @@ class Currency
      * @param bool|null $auto Null: the shop's setting. True: the Auto form whatever the setting.
      *
      *
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public function formatStored(float|int|string $value, bool $includeSymbol = true, ?bool $auto = null): string
     {
@@ -710,7 +710,7 @@ class Currency
      * @param string $thousandSeparator The thousands separator ('' for none).
      *
      *
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public static function groupFigure(string $figure, string $decimalSeparator, string $thousandSeparator): string
     {
@@ -736,7 +736,7 @@ class Currency
      *
      * @throws InvalidArgumentException When the value is not a finite number or is more than an integer holds.
      *
-     * @since 1.14.0
+     * @since 2.0.0
      */
     private static function countAt(float|int|string $value, int $places): int
     {
@@ -782,7 +782,7 @@ class Currency
      *
      * @return array{0: int, 1: int}
      *
-     * @since 1.14.0
+     * @since 2.0.0
      */
     private static function quantityCount(float|int|string $quantity): array
     {
@@ -805,7 +805,7 @@ class Currency
      *
      * @throws InvalidArgumentException When the value is not a finite number.
      *
-     * @since 1.14.0
+     * @since 2.0.0
      */
     private static function exactOf(float|int|string $value): ExactAmount
     {
@@ -838,7 +838,7 @@ class Currency
      *
      * @return array{figure: string, decimals: int}
      *
-     * @since 1.14.0
+     * @since 2.0.0
      */
     private static function exactFigure(ExactAmount $amount, int $decimals): array
     {
@@ -856,7 +856,7 @@ class Currency
      *
      * @return array{figure: string, decimals: int}
      *
-     * @since 1.14.0
+     * @since 2.0.0
      */
     private static function figureOf(int $count, int $decimals): array
     {

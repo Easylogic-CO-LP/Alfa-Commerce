@@ -81,7 +81,7 @@ class AssociationsHelper extends AssociationExtensionHelper
      *
      * @return bool
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function allowEdit($typeName, $id)
     {
@@ -97,7 +97,7 @@ class AssociationsHelper extends AssociationExtensionHelper
      *
      * @return bool
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function allowAdd($typeName)
     {

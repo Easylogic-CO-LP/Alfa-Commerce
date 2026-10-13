@@ -25,7 +25,7 @@
  * here: this event carries no cart setters; a plugin that must change a card's
  * cart here writes $item->cart itself.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\ItemFields;
@@ -42,7 +42,7 @@ class ItemsListPrepareEvent extends AbstractImmutableEvent
      *
      * @return object[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getItems(): array
     {

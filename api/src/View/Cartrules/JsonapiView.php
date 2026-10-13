@@ -94,7 +94,7 @@ class JsonApiView extends BaseApiView
      *
      * @return object
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected function prepareItem($item)
     {

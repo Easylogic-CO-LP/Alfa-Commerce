@@ -31,7 +31,7 @@ use InvalidArgumentException;
  *
  * The text a person reads is published beside it, as its own field.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class PublishedDecimal
 {
@@ -39,7 +39,7 @@ final class PublishedDecimal
      * The most places a published unit or rate keeps: the places of a stored unit,
      * where a derived unit is held as well.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const PLACES = 8;
 
@@ -50,7 +50,7 @@ final class PublishedDecimal
      *
      * @return string E.g. '12.40', '-3.50', '1000' at scale 0, '105.637' at scale 3.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function money(Money $money): string
     {
@@ -77,7 +77,7 @@ final class PublishedDecimal
      *
      * @throws InvalidArgumentException When the text is not a number.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function unit(ExactAmount|string $value, int $scale): string
     {
@@ -99,7 +99,7 @@ final class PublishedDecimal
      *
      * @throws InvalidArgumentException When the text is not a number.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function decimal(ExactAmount|string $value): string
     {
@@ -120,7 +120,7 @@ final class PublishedDecimal
      *
      * @throws InvalidArgumentException When the percentage is not finite or larger than a count of hundredths holds.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function percent(float $percent): string
     {
@@ -146,7 +146,7 @@ final class PublishedDecimal
      *
      * @throws InvalidArgumentException When the text is not a number.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function minorUnits(ExactAmount|string $value, int $scale): ?int
     {

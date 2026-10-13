@@ -102,7 +102,7 @@ use RuntimeException;
  * correcting it; DocumentIssuer re-checks that per (line_type, id_source)
  * inside the order lock.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 final class OrderChargeLines
 {
@@ -127,7 +127,7 @@ final class OrderChargeLines
      * SCALE and compare integers. Quantity keeps this.
      *
      * @var float
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private const QUANTITY_EPSILON = 0.000001;
 
@@ -142,7 +142,7 @@ final class OrderChargeLines
      * @param Currency $currency The authoritative source record's currency, at its frozen scale.
      *
      *
-     * @since  1.13.0
+     * @since  2.0.0
      */
     private static function isPositive(float $amount, Currency $currency): bool
     {
@@ -157,7 +157,7 @@ final class OrderChargeLines
      *
      * @return bool
      *
-     * @since  1.13.0
+     * @since  2.0.0
      */
     /**
      * An amount as the authoritative record's money, exactly.
@@ -175,7 +175,7 @@ final class OrderChargeLines
      * @param Currency $currency The authoritative source record's currency, at its frozen scale.
      *
      *
-     * @since  1.13.0
+     * @since  2.0.0
      */
     private static function exact(float $amount, Currency $currency): float
     {
@@ -194,7 +194,7 @@ final class OrderChargeLines
      * @param Currency $currency The authoritative source record's currency, at its frozen scale.
      *
      *
-     * @since  1.13.0
+     * @since  2.0.0
      */
     private static function remainder(float $gross, float $used, Currency $currency): float
     {
@@ -212,7 +212,7 @@ final class OrderChargeLines
      * @param float $used What the active documents claimed of it.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function remainderOf(Money $gross, float $used): Money
     {
@@ -238,7 +238,7 @@ final class OrderChargeLines
      * @param Currency $currency The authoritative source record's currency, at its frozen scale.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function sumOf(array $amounts, Currency $currency): Money
     {
@@ -260,7 +260,7 @@ final class OrderChargeLines
      *
      * @return float At the currency's scale.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function difference(float $amount, float $less, Currency $currency): float
     {
@@ -276,7 +276,7 @@ final class OrderChargeLines
      *                                                            carries the frozen source row's amounts and what remains
      *                                                            claimable (remaining_excl / remaining_incl).
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function remaining(int $orderId): object
     {
@@ -435,7 +435,7 @@ final class OrderChargeLines
      *                                                                                                     amount_excl, remaining_incl, remaining_excl, buckets}; the item
      *                                                                                                     basis is creditItemBases()' entry for the document.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function correctedChargesFor(array $correctsIds): array
     {
@@ -691,7 +691,7 @@ final class OrderChargeLines
      *
      * @return object{shipping: object[], fees: object[], rules: object[], item_basis: object}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function correctedCharges(int $correctsId): object
     {
@@ -738,7 +738,7 @@ final class OrderChargeLines
      *
      * @throws RuntimeException When such a note is issued without a number.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function unrecordedCreditNotes(int $orderId, int $releasing = 0, int $standing = 0): array
     {
@@ -847,7 +847,7 @@ final class OrderChargeLines
      * @throws RuntimeException When the document does not exist, states more shipping discount than shipping,
      *                          or a credited amount names no parcel of it or exceeds what the parcel has left.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function shippingDiscountDetail(int $correctsId, array $creditedShipping): object
     {
@@ -890,7 +890,7 @@ final class OrderChargeLines
      *
      * @throws RuntimeException When the document does not exist.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function goodsMoneyLeft(int $correctsId): float
     {
@@ -921,7 +921,7 @@ final class OrderChargeLines
      * @param string|null $code Exemption reason code.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function vatBucketKey(float $rate, int|string|null $category, ?string $code): string
     {
@@ -957,7 +957,7 @@ final class OrderChargeLines
      *
      * @return array Draft lines ready for DocumentIssuer::issue().
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function buildLines(
         int $orderId,
@@ -1184,7 +1184,7 @@ final class OrderChargeLines
      *
      * @return int[]
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function issuedSalesDocuments(object $db, int $orderId): array
     {
@@ -1218,7 +1218,7 @@ final class OrderChargeLines
      *
      * @throws RuntimeException When the corrected document does not exist.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function creditLines(int $orderId, int $correctsId, array $itemLines, ?array $picks): array
     {
@@ -1422,7 +1422,7 @@ final class OrderChargeLines
      *                                                                                              reader of the walk; the credit's lines are built from the parts) and its parts in minor units by
      *                                                                                              rate; and what the credit gives back after them.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function merchandiseDiscounts(object $charges, float $valueIncl, array $credited, bool $final, Currency $currency): object
     {
@@ -1474,7 +1474,7 @@ final class OrderChargeLines
      * @param float $rate VAT rate.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function rateKey(float $rate): string
     {
@@ -1490,7 +1490,7 @@ final class OrderChargeLines
      *
      * @return array<string, int> Magnitudes keyed by rateKey(); rates with nothing left are left out.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function leftByRate(object $rule, Currency $currency): array
     {
@@ -1524,7 +1524,7 @@ final class OrderChargeLines
      *
      * @return array{0: int, 1: int, 2: int}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function rateTerm(int $left, ?object $credited, ?object $basis, Currency $currency): array
     {
@@ -1556,7 +1556,7 @@ final class OrderChargeLines
      *
      * @return array<string, int> Each rate's part, minor units, summing to the give-back.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function ratesShare(array $terms, Currency $currency): array
     {
@@ -1587,7 +1587,7 @@ final class OrderChargeLines
      *
      * @return object The candidate with those buckets and that remaining.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function atRate(object $rule, string $rate, Currency $currency): object
     {
@@ -1618,7 +1618,7 @@ final class OrderChargeLines
      *
      * @return array{shipping: array<int, int>, fees: array<int, int>} Source id => minor units, in candidate order.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function chargeClaims(object $charges, ?array $picks, Currency $currency): array
     {
@@ -1659,7 +1659,7 @@ final class OrderChargeLines
      *
      * @throws RuntimeException When an argument is outside those bounds.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function proportionalMinor(int $pool, int $part, int $whole): int
     {
@@ -1679,7 +1679,7 @@ final class OrderChargeLines
      *
      * @throws RuntimeException When an argument is outside those bounds.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function longDivision(int $pool, int $part, int $whole): array
     {
@@ -1750,7 +1750,7 @@ final class OrderChargeLines
      * @throws RuntimeException When the document states more shipping discount than shipping, or a credited
      *                          amount names no parcel of it, is negative, or exceeds what the parcel has left.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function shippingDiscountAllocation(object $charges, array $credited, Currency $currency): object
     {
@@ -1929,7 +1929,7 @@ final class OrderChargeLines
      *
      * @throws RuntimeException When a part cannot be stated at its bucket's tax rate.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function allocateClaim(object $entry, float $claimIncl, Currency $currency, bool $shipping = false): array
     {
@@ -2011,7 +2011,7 @@ final class OrderChargeLines
      *
      * @throws RuntimeException Always.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function refuseImpossiblePart(object $entry, array $bucket, Currency $currency): never
     {
@@ -2049,7 +2049,7 @@ final class OrderChargeLines
      *
      * @return int[] One part per cap, in the same order, summing to the amount.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function allocateWithin(int $amount, array $caps, Currency $currency): array
     {
@@ -2075,7 +2075,7 @@ final class OrderChargeLines
      * @param array $part One allocateClaim() part.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function creditLine(string $type, object $entry, array $part, Currency $currency): array
     {
@@ -2111,7 +2111,7 @@ final class OrderChargeLines
      *
      * @return array{0: float, 1: float} What could not be taken (gross, net).
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function take(object $entry, string $key, float $incl, float $excl, Currency $currency): array
     {
@@ -2140,7 +2140,7 @@ final class OrderChargeLines
      *
      * @return array{0: float, 1: float} What no bucket could absorb (gross, net).
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function drain(array $targets, float $incl, float $excl, Currency $currency): array
     {
@@ -2165,7 +2165,7 @@ final class OrderChargeLines
      *
      * @return array<int, array{0: object, 1: string}> [candidate, bucket key] pairs.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function bucketsLargestFirst(array $entries): array
     {
@@ -2197,7 +2197,7 @@ final class OrderChargeLines
      *                           rates: array<string, object{remaining_incl: float, remaining_qty: float}>}>
      *         One per id; `rates` keyed by rateKey(), one per rate the document's goods carry.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function creditItemBases(object $db, array $correctsIds, array $currencies): array
     {
@@ -2295,7 +2295,7 @@ final class OrderChargeLines
      * @param array $itemLines The draft's item lines.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function itemShare(int $orderId, string $docType, array $itemLines): float
     {
@@ -2348,7 +2348,7 @@ final class OrderChargeLines
      *
      * @return array<int, array{rate: float, incl: float, excl: float}>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function discountParts(array $rateLines, float $claimIncl, object $rule, array &$taken, Currency $currency): array
     {
@@ -2411,7 +2411,7 @@ final class OrderChargeLines
      *
      * @throws LogicException When a part falls on a rate no claimed shipping carries.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function shippingDiscountParts(array $rateLines, float $claimIncl, object $rule, array &$taken, Currency $currency): array
     {
@@ -2469,7 +2469,7 @@ final class OrderChargeLines
      *
      * @return array<int, array{rate: float, incl: float, excl: float}>
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function splitAcrossRates(array $itemLines, float $claimIncl, object $rule, Currency $currency, array $taken = []): array
     {
@@ -2544,7 +2544,7 @@ final class OrderChargeLines
      * @param float $rate VAT rate of the bucket being reduced.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function adjustmentLine(int $sourceId, string $name, float $incl, float $excl, float $rate, Currency $currency): array
     {
@@ -2577,7 +2577,7 @@ final class OrderChargeLines
      *
      * @return array<string, array<int, array{incl: float, excl: float, name: string}>>
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function consumedBySource(object $db, int $orderId, ?array $docTypes = null): array
     {
@@ -2670,7 +2670,7 @@ final class OrderChargeLines
      *         Gross amounts at the order's frozen scale, non-zero entries only.
      *         `labels` names every negative source as its documents printed it.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function chargeDrift(int $orderId): object
     {
@@ -2790,7 +2790,7 @@ final class OrderChargeLines
      * @param Currency $currency The order's frozen currency.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function discountDrift(object $db, int $orderId, object $drift, Currency $currency): void
     {
@@ -2865,7 +2865,7 @@ final class OrderChargeLines
      * @param Currency $currency The order's frozen currency.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function discountTaxHolds(object $db, int $orderId, object $rule, Currency $currency): bool
     {
@@ -2929,7 +2929,7 @@ final class OrderChargeLines
      *                unabsorbed: list<object{kind: string, id: int, label: string, incl: float, scale: int}>}
      *         `scale` is the order's frozen scale, the one `incl` is stated at.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function creditableDrift(int $orderId, object $drift, object $source): object
     {
@@ -2995,7 +2995,7 @@ final class OrderChargeLines
      *                           reversed_incl: Money, reversed_excl: Money, label: string, discount_class: string}>
      *         Keyed by #__alfa_order_cart_rule id; reversed and granted are magnitudes.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function discountLedger(object $db, int $orderId, Currency $currency): array
     {
@@ -3097,7 +3097,7 @@ final class OrderChargeLines
      *                           reversible_incl: float, documented_incl: float, label: string,
      *                           ledger: object|null}> Keyed by rule id.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function discountHeadroom(int $orderId): array
     {
@@ -3164,7 +3164,7 @@ final class OrderChargeLines
      * @return list<array{rate: float, vat_category: ?int, vat_exemption_code: ?string, incl: float, excl: float}>
      *                                                                                                             Magnitudes, largest first.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function ruleBuckets(object $db, array $documentIds, int $ruleId): array
     {
@@ -3184,7 +3184,7 @@ final class OrderChargeLines
      *
      * @return list<array{rate: float, vat_category: ?int, vat_exemption_code: ?string, incl: float, excl: float}>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function goodsBuckets(object $db, int $documentId): array
     {
@@ -3202,7 +3202,7 @@ final class OrderChargeLines
      *
      * @return list<array{rate: float, vat_category: ?int, vat_exemption_code: ?string, incl: float, excl: float}>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function bucketsOf(object $db, array $documentIds, array $where): array
     {
@@ -3262,7 +3262,7 @@ final class OrderChargeLines
      *
      * @return list<array{bucket: array, incl: float, excl: float}> Magnitudes; empty parts omitted.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function spread(array $buckets, float $incl, bool $ownRatio, Currency $currency): array
     {
@@ -3304,7 +3304,7 @@ final class OrderChargeLines
      * @param Currency $currency The order's frozen currency.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function discountLine(int $ruleId, string $label, array $part, Currency $currency): array
     {
@@ -3354,7 +3354,7 @@ final class OrderChargeLines
      *
      * @throws RuntimeException Naming the charge and what is wrong with its amount.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function manualCreditPicks(int $correctsId, array $posted): array
     {
@@ -3423,7 +3423,7 @@ final class OrderChargeLines
      * @param Money $money The figure.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function shownFigure(Money $money): string
     {
@@ -3446,7 +3446,7 @@ final class OrderChargeLines
      * @param float $amount The amount, as a preview totals it.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function isZeroAtOrderScale(int $orderId, float $amount): bool
     {
@@ -3461,7 +3461,7 @@ final class OrderChargeLines
      *
      * @return float Rate rounded to 3 decimals (e.g. 24.0).
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function rateFrom(float $incl, float $excl, Currency $currency): float
     {

@@ -24,7 +24,7 @@ defined('_JEXEC') or die;
  * {@see \Alfa\Component\Alfa\Administrator\Event\ItemFields\Surfaces::showonAttr}.
  * A `disable`-effect field stays visible (inert), so there is no FOUC to suppress.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class InitialState
 {
@@ -36,7 +36,7 @@ final class InitialState
      *
      * @return string '' when visible / rule-less / disable-effect; ' hidden data-showon-off=""' otherwise.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function hiddenAttr(object $field, StateBag $bag): string
     {

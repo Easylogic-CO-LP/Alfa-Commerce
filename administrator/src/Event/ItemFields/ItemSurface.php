@@ -17,7 +17,7 @@ defined('_JEXEC') or die;
  * so a plugin's surface lands exactly where the theme exposes it. Typed per
  * event: a wrong slot is an IDE/compile error, never a silent miss.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 enum ItemSurface: string
 {

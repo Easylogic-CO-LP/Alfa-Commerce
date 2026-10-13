@@ -42,42 +42,42 @@ use InvalidArgumentException;
  * Rounding belongs to a Money boundary inside Alfa, never to a figure someone
  * typed.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class ExactMoney
 {
     /**
      * {@see ExactMoneyRefusal::reason()}: the value is not a plain decimal.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const NOT_A_NUMBER = 'not-a-number';
 
     /**
      * {@see ExactMoneyRefusal::reason()}: more decimal places than the currency holds.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const FINER = 'finer';
 
     /**
      * {@see ExactMoneyRefusal::reason()}: larger than Money or a money column holds.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const LARGER = 'larger';
 
     /**
      * {@see ExactMoneyRefusal::reason()}: a float that does not carry its figure exactly.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const NOT_EXACT = 'not-exact';
 
     /**
      * {@see ExactMoneyRefusal::reason()}: where a comma is a decimal mark, a fraction longer than the currency's places.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const GROUPED = 'grouped';
 
@@ -94,7 +94,7 @@ final class ExactMoney
      *                           the currency, is written past its places where a comma is a decimal mark,
      *                           or is larger than an amount of it holds.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function of(string|int|float $value, Currency $currency, bool $commaDecimal = false): Money
     {

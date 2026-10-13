@@ -76,7 +76,7 @@ class IntegrityHelper
      * reported.
      *
      * @var string[]
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private const EXTENSION_ROOT_PATTERNS = [
         '#^(components/[^/]+)/#',
@@ -201,7 +201,7 @@ class IntegrityHelper
      *
      * @return array Same shape as {@see self::verifyAgainstOfficial()}, without `checkedAt`.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function verdictFromCatalog(array $doc, bool $fellBack, string $siteVersion, string $root): array
     {
@@ -244,7 +244,7 @@ class IntegrityHelper
      *
      * @return array{modified: string[], missing: string[], injected: string[]}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function compareTree(array $files, string $root): array
     {
@@ -277,7 +277,7 @@ class IntegrityHelper
      *
      * @return string[] Root-relative folders, no leading or trailing slash.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function walkRoots(array $files): array
     {

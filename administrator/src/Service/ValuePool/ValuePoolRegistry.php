@@ -24,7 +24,7 @@ use Joomla\CMS\Language\Text;
  * a lazy endpoint can replace the embedded hydration later without the builder
  * changing.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class ValuePoolRegistry
 {
@@ -34,7 +34,7 @@ final class ValuePoolRegistry
     /**
      * @param FieldValuePoolProvider|null $fieldProvider Injected for tests; defaults otherwise.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct(?FieldValuePoolProvider $fieldProvider = null)
     {
@@ -48,7 +48,7 @@ final class ValuePoolRegistry
      * @param array $context ['field' => $row] / ['fieldId' => int].
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function get(string $operand, array $context = []): ValuePool
     {
@@ -76,7 +76,7 @@ final class ValuePoolRegistry
      *
      * @return array<string, array> operand => ValuePool::toArray().
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getMany(array $fields): array
     {

@@ -20,7 +20,7 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
  * gateway verification remains the real authentication; this only proves the
  * caller knows the order.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 final class PaymentToken
 {
@@ -32,7 +32,7 @@ final class PaymentToken
      *
      * @return string Hex sha256 HMAC.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function for(int $orderId, string $secureKey): string
     {
@@ -49,7 +49,7 @@ final class PaymentToken
      * @param string $candidate The token presented by the caller.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function verify(int $orderId, string $secureKey, string $candidate): bool
     {

@@ -19,7 +19,7 @@ class OrderBeforePlaceEvent extends ShipmentsEvent
      * hand a different one back; placement's state is placement's.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getContext(): PlacementEventContext
     {

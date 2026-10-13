@@ -40,7 +40,7 @@ use RuntimeException;
  * opened with, so every price, rule and eligible method is the customer's,
  * never the operator's.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class NamedCartEditor
 {
@@ -50,7 +50,7 @@ final class NamedCartEditor
      * @param CartSnapshotFactory $snapshots Assembles a reading for a caller that re-renders.
      * @param int $cartId The cart this handle edits.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         private readonly CartSubject $subject,
@@ -64,7 +64,7 @@ final class NamedCartEditor
      * The cart this handle edits.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function cartId(): int
     {
@@ -82,7 +82,7 @@ final class NamedCartEditor
      * @param AddToCartCommand $command The product and its configuration.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function add(AddToCartCommand $command): CartAddResult
     {
@@ -115,7 +115,7 @@ final class NamedCartEditor
      *                      drops the line at zero.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function setQuantity(int $lineId, int $quantity): CartMutationResult
     {
@@ -151,7 +151,7 @@ final class NamedCartEditor
      *
      * @throws RuntimeException 403 when this operator may not price this cart.
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public function setCustomPrice(int $lineId, CustomPriceCommand $command, User $actor): array
     {
@@ -188,7 +188,7 @@ final class NamedCartEditor
      *              belongs to another cart, or to none, removes nothing and
      *              says so: the caller has an act to report or not report.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function remove(int $lineId): bool
     {
@@ -202,7 +202,7 @@ final class NamedCartEditor
      *
      * @return string A CouponOutcome constant.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function applyCoupon(string $code): string
     {
@@ -215,7 +215,7 @@ final class NamedCartEditor
      * @param string $code The code to drop.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function removeCoupon(string $code): void
     {
@@ -229,7 +229,7 @@ final class NamedCartEditor
      * @param int|null $invoiceId Where the invoice goes, when it differs.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function pointAtSavedDetails(int $deliveryId, ?int $invoiceId = null): void
     {
@@ -245,7 +245,7 @@ final class NamedCartEditor
      * @param int|null $placeId The delivery place.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function chooseShipment(int $shipmentId, ?int $placeId = null): CartMutationResult
     {
@@ -259,7 +259,7 @@ final class NamedCartEditor
      * @param int|null $placeId The delivery place.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function choosePayment(int $paymentId, ?int $placeId = null): CartMutationResult
     {
@@ -273,7 +273,7 @@ final class NamedCartEditor
      * @param int|null $placeId The delivery place.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function snapshot(?int $placeId = null): CartSnapshot
     {
@@ -291,7 +291,7 @@ final class NamedCartEditor
      * they belong to the settle.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function reading(): CartSnapshot
     {
@@ -310,7 +310,7 @@ final class NamedCartEditor
      * @param int|null $placeId The delivery place.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function snapshotForPage(HtmlDocument $page, ?int $placeId = null): CartSnapshot
     {
@@ -331,7 +331,7 @@ final class NamedCartEditor
      * @param int|null $placeId The delivery place.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function choose(string $kind, int $id, ?int $placeId): CartMutationResult
     {
@@ -359,7 +359,7 @@ final class NamedCartEditor
      * opens the shopper's own.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function cart(): OpenedCart
     {

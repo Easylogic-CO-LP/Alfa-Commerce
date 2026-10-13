@@ -35,14 +35,14 @@ defined('_JEXEC') or die;
  * as the merchant set the bands up in the same unit, which is the merchant's
  * decision, and not one the cart can make for them.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartLine
 {
     /**
      * @param object $row The hydrated cart line, with its product as ->data.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function __construct(private readonly object $row)
     {
@@ -52,26 +52,26 @@ final class CartLine
      * @param object $row The hydrated cart line.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function of(object $row): self
     {
         return new self($row);
     }
 
-    /** @return int The cart line's own id. @since 1.10.0 */
+    /** @return int The cart line's own id. @since 2.0.0 */
     public function id(): int
     {
         return (int) ($this->row->id ?? 0);
     }
 
-    /** @return int The product on it. @since 1.10.0 */
+    /** @return int The product on it. @since 2.0.0 */
     public function itemId(): int
     {
         return (int) ($this->row->id_item ?? 0);
     }
 
-    /** @return int|null The chosen variant, or null for a plain product. @since 1.10.0 */
+    /** @return int|null The chosen variant, or null for a plain product. @since 2.0.0 */
     public function combinationId(): ?int
     {
         $id = $this->row->combination_id ?? null;
@@ -79,37 +79,37 @@ final class CartLine
         return $id === null ? null : (int) $id;
     }
 
-    /** @return int How many units. @since 1.10.0 */
+    /** @return int How many units. @since 2.0.0 */
     public function quantity(): int
     {
         return (int) ($this->row->quantity ?? 0);
     }
 
-    /** @return string What the shopper bought, in the active language. @since 1.10.0 */
+    /** @return string What the shopper bought, in the active language. @since 2.0.0 */
     public function name(): string
     {
         return (string) ($this->row->data->name ?? '');
     }
 
-    /** @return float Resolved width, per unit. @since 1.10.0 */
+    /** @return float Resolved width, per unit. @since 2.0.0 */
     public function width(): float
     {
         return $this->measure('width');
     }
 
-    /** @return float Resolved height, per unit. @since 1.10.0 */
+    /** @return float Resolved height, per unit. @since 2.0.0 */
     public function height(): float
     {
         return $this->measure('height');
     }
 
-    /** @return float Resolved depth, per unit. @since 1.10.0 */
+    /** @return float Resolved depth, per unit. @since 2.0.0 */
     public function depth(): float
     {
         return $this->measure('depth');
     }
 
-    /** @return float Resolved weight, per unit. @since 1.10.0 */
+    /** @return float Resolved weight, per unit. @since 2.0.0 */
     public function weight(): float
     {
         return $this->measure('weight');
@@ -122,7 +122,7 @@ final class CartLine
      * a heavy thing whose weight nobody recorded still has to be shipped.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function isVirtual(): bool
     {
@@ -134,7 +134,7 @@ final class CartLine
      * what it was, and nothing may be priced against it.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function isUnavailable(): bool
     {
@@ -151,7 +151,7 @@ final class CartLine
      * @param string $column The measurement.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function measure(string $column): float
     {

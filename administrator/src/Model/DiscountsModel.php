@@ -26,7 +26,7 @@ class DiscountsModel extends AlfaListModel
      * The admin-contract entity this list serves.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'discount';
 
@@ -36,7 +36,7 @@ class DiscountsModel extends AlfaListModel
      * would run twice per request.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private ?array $alfaEnriched = null;
 

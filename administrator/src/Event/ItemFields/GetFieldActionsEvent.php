@@ -27,7 +27,7 @@
  *       }
  *   }
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\ItemFields;
@@ -45,7 +45,7 @@ class GetFieldActionsEvent extends AbstractImmutableEvent implements ScopedField
     /**
      * The surface asking: 'item' | 'combination' | 'option' | 'order'.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getScope(): string
     {
@@ -55,7 +55,7 @@ class GetFieldActionsEvent extends AbstractImmutableEvent implements ScopedField
     /**
      * The scope row id (item / combination / option-value / order-item id).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getScopeId(): int
     {
@@ -65,7 +65,7 @@ class GetFieldActionsEvent extends AbstractImmutableEvent implements ScopedField
     /**
      * The owning item id.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getItemId(): int
     {
@@ -75,7 +75,7 @@ class GetFieldActionsEvent extends AbstractImmutableEvent implements ScopedField
     /**
      * The field definition row.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getField(): object
     {

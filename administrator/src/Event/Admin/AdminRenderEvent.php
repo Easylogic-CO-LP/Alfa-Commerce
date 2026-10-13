@@ -38,13 +38,13 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  * A handler that finds nothing to say simply leaves html untouched, and the slot renders
  * nothing at all rather than an empty wrapper.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 final class AdminRenderEvent extends AlfaAdminEvent
 {
     /**
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const NAME = 'onAlfaAdminRender';
 }

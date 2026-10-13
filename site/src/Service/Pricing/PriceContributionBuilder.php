@@ -31,44 +31,44 @@ defined('_JEXEC') or die;
  * when a required part is missing, so a half-written line fails loudly
  * instead of silently dropping money.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class PriceContributionBuilder
 {
     /**
      * @var string The breakdown label.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private string $label = '';
 
     /**
      * @var string|null '+' | '-' | '%' | '-%', chosen by the typed op methods.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private ?string $operation = null;
 
     /**
      * @var float The magnitude (currency for +/-, percent for %/-%).
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private float $amount = 0.0;
 
     /**
      * @var string 'start' (net) or 'final' (gross).
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private string $target = 'final';
 
     /**
      * @var int Fold order.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private int $sortOrder = 0;
 
     /**
      * @param string $code Stable id for the line, e.g. 'configurator3d.images'.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct(private readonly string $code)
     {
@@ -84,7 +84,7 @@ final class PriceContributionBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function label(string $label): static
     {
@@ -100,7 +100,7 @@ final class PriceContributionBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function add(float $amount): static
     {
@@ -114,7 +114,7 @@ final class PriceContributionBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function subtract(float $amount): static
     {
@@ -128,7 +128,7 @@ final class PriceContributionBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function percent(float $percent): static
     {
@@ -142,7 +142,7 @@ final class PriceContributionBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function subtractPercent(float $percent): static
     {
@@ -154,7 +154,7 @@ final class PriceContributionBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function onNet(): static
     {
@@ -168,7 +168,7 @@ final class PriceContributionBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function onGross(): static
     {
@@ -184,7 +184,7 @@ final class PriceContributionBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function sortOrder(int $sortOrder): static
     {
@@ -198,7 +198,7 @@ final class PriceContributionBuilder
      * this; a missing required part throws, naming the contribution.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function build(): PriceContribution
     {
@@ -229,7 +229,7 @@ final class PriceContributionBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function operation(string $operation, float $amount, string $method): static
     {
@@ -254,7 +254,7 @@ final class PriceContributionBuilder
      * The builder's identity for error messages.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function who(): string
     {

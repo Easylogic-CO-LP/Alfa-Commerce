@@ -26,7 +26,7 @@
  *   amounts   array<int, string>  count => one instalment, formatted (InstalmentTiers::amounts()).
  *   selected  int                 The count shown as chosen (InstalmentTiers::selected()).
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 
 \defined('_JEXEC') or die;

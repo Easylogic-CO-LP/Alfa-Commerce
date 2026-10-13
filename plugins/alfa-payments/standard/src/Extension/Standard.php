@@ -640,7 +640,7 @@ final class Standard extends PaymentsPlugin
      * nothing that would exist anywhere else if one is not.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function supportsOperatorPlacement(): bool
     {
@@ -1732,7 +1732,7 @@ final class Standard extends PaymentsPlugin
      * browser's tooltip and the server-side message would be unreachable.
      *
      * @param object $event ExecutePaymentActionEvent
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function handleRefundPartialForm($event): void
     {
@@ -1779,7 +1779,7 @@ final class Standard extends PaymentsPlugin
      * message ours rather than a silent false from ->save().
      *
      * @param object $event ExecutePaymentActionEvent
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function handleRefundPartial($event): void
     {
@@ -1913,7 +1913,7 @@ final class Standard extends PaymentsPlugin
      *
      * @return Money|string The amount, or a translated refusal for the operator.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function partialRefundAmount(Input $input, Money $remainder): Money|string
     {
@@ -2033,7 +2033,7 @@ final class Standard extends PaymentsPlugin
      *
      * @var array<string, string>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const CHECKUP_STATUS_FIELDS = [
         'status_on_completed' => 'COM_ALFA_PAYMENT_SETTINGS_STATUS_ON_COMPLETED_LABEL',
@@ -2057,7 +2057,7 @@ final class Standard extends PaymentsPlugin
      * @param PaymentCheckupEvent $event The checkup being drawn.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function onPaymentCheckup(PaymentCheckupEvent $event): void
     {
@@ -2140,7 +2140,7 @@ final class Standard extends PaymentsPlugin
      *
      * @return object|null id, id_order and moment (when the money moved), or null.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function firstLedgerRow(int $methodId, array $predicates): ?object
     {

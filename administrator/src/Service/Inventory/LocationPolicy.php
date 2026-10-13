@@ -49,7 +49,7 @@ use Joomla\Database\DatabaseInterface;
  * precisely that request. The table is tiny (a shop has single-digit locations),
  * so the subquery costs nothing measurable, and it is always current.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class LocationPolicy
 {
@@ -64,7 +64,7 @@ final class LocationPolicy
      *
      * @return string A boolean SQL fragment.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function enabledPredicate(DatabaseInterface $db, string $column): string
     {
@@ -78,7 +78,7 @@ final class LocationPolicy
      *
      * @return int[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function enabledIds(DatabaseInterface $db): array
     {
@@ -110,7 +110,7 @@ final class LocationPolicy
      * @param bool $lockInShareMode Read the row with a shared lock (current read).
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function isEnabled(DatabaseInterface $db, int $locationId, bool $lockInShareMode): bool
     {

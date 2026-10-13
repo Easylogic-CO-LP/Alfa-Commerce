@@ -51,7 +51,7 @@ use Joomla\CMS\Component\ComponentHelper;
  * The inherit option therefore posts {@see self::INHERIT_TOKEN}, a reserved value
  * that is never stored: {@see self::normaliseStoredValue()} maps it back to NULL.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class BackorderPolicy
 {
@@ -61,7 +61,7 @@ final class BackorderPolicy
      * its own meaning ("follow the shop").
      *
      * @var string
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public const INHERIT_TOKEN = '__inherit';
 
@@ -70,7 +70,7 @@ final class BackorderPolicy
      * and a combination; on a combination it additionally SKIPS the item.
      *
      * @var string
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public const FOLLOW_GLOBAL = '';
 
@@ -78,7 +78,7 @@ final class BackorderPolicy
      * Every action a merchant may store, shop-wide or as an override.
      *
      * @var string[]
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public const VALUES = [
         InventoryService::BACKORDER_DENY,
@@ -89,7 +89,7 @@ final class BackorderPolicy
     /**
      * The shop-wide fallback, already normalised to a real action.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private readonly string $global;
 
@@ -98,7 +98,7 @@ final class BackorderPolicy
      *                            parameters. Pass it explicitly from CLI and from
      *                            tests, where there is no application to ask.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function __construct(?string $global = null)
     {
@@ -118,7 +118,7 @@ final class BackorderPolicy
      *
      * @return string One of VALUES.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function globalAction(): string
     {
@@ -138,7 +138,7 @@ final class BackorderPolicy
      *
      * @return string One of VALUES; never the empty string, never INHERIT_TOKEN.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function effective(?string $stored): string
     {
@@ -161,7 +161,7 @@ final class BackorderPolicy
      * @return string|null A member of VALUES, '' for "follow the shop", or null for
      *                     "no override".
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function normaliseStoredValue(mixed $value): ?string
     {

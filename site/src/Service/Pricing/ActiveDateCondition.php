@@ -60,7 +60,7 @@ class ActiveDateCondition
      * here, so the listing, the product page and the price index can never disagree.
      *
      * @return string SQL datetime, UTC.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function now(): string
     {

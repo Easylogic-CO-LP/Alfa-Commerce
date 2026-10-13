@@ -26,7 +26,7 @@
  * Dispatch lands with the cart stage (task #7); the contract is fixed now
  * so plugins can already implement against it.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\ItemFields;
@@ -44,7 +44,7 @@ class ValidateCartAddEvent extends AbstractImmutableEvent
     /**
      * The item being added to the cart.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getItem(): object
     {
@@ -54,7 +54,7 @@ class ValidateCartAddEvent extends AbstractImmutableEvent
     /**
      * The field definition row.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getField(): object
     {
@@ -64,7 +64,7 @@ class ValidateCartAddEvent extends AbstractImmutableEvent
     /**
      * The RAW client payload for this field (untrusted).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getPayload(): string
     {
@@ -74,7 +74,7 @@ class ValidateCartAddEvent extends AbstractImmutableEvent
     /**
      * The per-item plugin config of this field.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getConfig(): Registry
     {
@@ -84,7 +84,7 @@ class ValidateCartAddEvent extends AbstractImmutableEvent
     /**
      * The requested quantity.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getQuantity(): float
     {
@@ -96,7 +96,7 @@ class ValidateCartAddEvent extends AbstractImmutableEvent
      *
      * @param string $message Translated error message.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setError(string $message): void
     {
@@ -104,7 +104,7 @@ class ValidateCartAddEvent extends AbstractImmutableEvent
     }
 
     /**
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getError(): string
     {
@@ -112,7 +112,7 @@ class ValidateCartAddEvent extends AbstractImmutableEvent
     }
 
     /**
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function isValid(): bool
     {
@@ -125,7 +125,7 @@ class ValidateCartAddEvent extends AbstractImmutableEvent
      *
      * @param array $snapshot The data to persist.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setSnapshot(array $snapshot): void
     {
@@ -133,7 +133,7 @@ class ValidateCartAddEvent extends AbstractImmutableEvent
     }
 
     /**
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getSnapshot(): array
     {
@@ -147,7 +147,7 @@ class ValidateCartAddEvent extends AbstractImmutableEvent
      * @param string $operation One of '+', '-', '%', '-%'.
      * @param float $amount The delta amount.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setPriceImpact(string $operation, float $amount): void
     {
@@ -159,7 +159,7 @@ class ValidateCartAddEvent extends AbstractImmutableEvent
      *
      * @return array{operation: string, amount: float}|null
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getPriceImpact(): ?array
     {

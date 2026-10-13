@@ -61,7 +61,7 @@
      * Whether a row's selected operator is a stored one its operand's type does not
      * allow, or one outside the known set: the server kept it selected and marked.
      *
-     * @since 1.14.0
+     * @since 2.0.0
      */
     function operatorUnavailable(operatorSel) {
         var opt = operatorSel.options[operatorSel.selectedIndex];
@@ -164,7 +164,7 @@
     /**
      * The stored value a row's value container carries (its data-value JSON), or null.
      *
-     * @since 1.14.0
+     * @since 2.0.0
      */
     function storedOf(valueEl) {
         try {
@@ -292,7 +292,7 @@
      * order) without changing it. A no-value operator has none, as when the controls
      * are read.
      *
-     * @since 1.14.0
+     * @since 2.0.0
      */
     function storedValue(ruleEl, operator, config) {
         if (config.noValueOps.indexOf(operator) !== -1) {
@@ -306,7 +306,7 @@
      * Mark the rule row an edit came from: from then on its controls, not its stored
      * value, speak for it.
      *
-     * @since 1.14.0
+     * @since 2.0.0
      */
     function touch(target) {
         var row = target && target.closest ? target.closest('.aso-rule') : null;

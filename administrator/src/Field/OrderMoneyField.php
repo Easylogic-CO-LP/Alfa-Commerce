@@ -27,7 +27,7 @@ use Joomla\CMS\Form\Field\NumberField;
  * Joomla's number input without its float cast): a float prints fourteen
  * digits, and a Save that changed nothing else would write back what it showed.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 class OrderMoneyField extends NumberField
 {
@@ -36,7 +36,7 @@ class OrderMoneyField extends NumberField
      *
      * @var string
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected $type = 'OrderMoney';
 
@@ -45,7 +45,7 @@ class OrderMoneyField extends NumberField
      *
      * @var string
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected $layout = 'form.field.ordermoney';
 
@@ -54,7 +54,7 @@ class OrderMoneyField extends NumberField
      *
      * @return string[]
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected function getLayoutPaths()
     {
@@ -66,7 +66,7 @@ class OrderMoneyField extends NumberField
      *
      * @return array
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected function getLayoutData()
     {

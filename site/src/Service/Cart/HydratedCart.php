@@ -29,7 +29,7 @@ defined('_JEXEC') or die;
  * OF, and because it moves exactly where the reading does: after the row is
  * read, after a cart is created, after one is discarded.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class HydratedCart
 {
@@ -41,7 +41,7 @@ final class HydratedCart
      * @param object|null $deliveryAddress The delivery address row the cart points at.
      * @param object|null $invoiceAddress The invoice address row the cart points at.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function __construct(
         private readonly CartIdentity $identity,
@@ -56,7 +56,7 @@ final class HydratedCart
     /**
      * A reading of a cart that has no row: nobody yet, or a load that failed.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function none(CartIdentity $identity, CartSubject $subject): self
     {
@@ -66,7 +66,7 @@ final class HydratedCart
     /**
      * A reading of a loaded cart.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function of(
         CartIdentity $identity,
@@ -81,25 +81,25 @@ final class HydratedCart
 
     // which cart
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function identity(): CartIdentity
     {
         return $this->identity;
     }
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function subject(): CartSubject
     {
         return $this->subject;
     }
 
-    /** @return bool Whether a row was loaded. @since 1.10.0 */
+    /** @return bool Whether a row was loaded. @since 2.0.0 */
     public function exists(): bool
     {
         return $this->row !== null;
     }
 
-    /** @return int The row's id; 0 when there is no row. @since 1.10.0 */
+    /** @return int The row's id; 0 when there is no row. @since 2.0.0 */
     public function id(): int
     {
         return (int) ($this->row->id ?? 0);
@@ -107,43 +107,43 @@ final class HydratedCart
 
     // the row's columns
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function currencyId(): int
     {
         return (int) ($this->row->id_currency ?? 0);
     }
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function shipmentId(): int
     {
         return (int) ($this->row->id_shipment ?? 0);
     }
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function paymentId(): int
     {
         return (int) ($this->row->id_payment ?? 0);
     }
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function deliveryAddressId(): int
     {
         return (int) ($this->row->id_user_info_delivery ?? 0);
     }
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function invoiceAddressId(): int
     {
         return (int) ($this->row->id_user_info_invoice ?? 0);
     }
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function deliveryAddress(): ?object
     {
         return $this->deliveryAddress;
     }
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function invoiceAddress(): ?object
     {
         return $this->invoiceAddress;
@@ -153,7 +153,7 @@ final class HydratedCart
      * The currency the cart is priced in: the row's, else the first priced
      * line's, else the shop's default.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function currency(): Currency
     {
@@ -180,13 +180,13 @@ final class HydratedCart
 
     // the lines
 
-    /** @return object[] @since 1.10.0 */
+    /** @return object[] @since 2.0.0 */
     public function lines(): array
     {
         return $this->lines;
     }
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function line(int $lineId): ?object
     {
         foreach ($this->lines as $cartItem) {
@@ -198,19 +198,19 @@ final class HydratedCart
         return null;
     }
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function isEmpty(): bool
     {
         return count($this->lines) === 0;
     }
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function itemCount(): int
     {
         return count($this->lines);
     }
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function quantity(): int
     {
         $quantity = 0;
@@ -232,7 +232,7 @@ final class HydratedCart
      *
      * @return object[] The same line objects as lines(), in the same order.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function payableLines(): array
     {
@@ -246,7 +246,7 @@ final class HydratedCart
      * Whether every payable line is a virtual product. A cart with no payable
      * line is not virtual, as an empty cart is not.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function isVirtual(): bool
     {
@@ -269,7 +269,7 @@ final class HydratedCart
      * The category and manufacturer scopes of each line, for method
      * eligibility; a carrier is not asked about virtual lines.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function lineScopes(string $kind): array
     {
@@ -291,31 +291,31 @@ final class HydratedCart
 
     // the next value
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function withIdentity(CartIdentity $identity): self
     {
         return new self($identity, $this->subject, $this->row, $this->lines, $this->deliveryAddress, $this->invoiceAddress);
     }
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function withLines(array $lines): self
     {
         return new self($this->identity, $this->subject, $this->row, array_values($lines), $this->deliveryAddress, $this->invoiceAddress);
     }
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function withShipment(int $shipmentId): self
     {
         return $this->withColumn('id_shipment', $shipmentId);
     }
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function withPayment(int $paymentId): self
     {
         return $this->withColumn('id_payment', $paymentId);
     }
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function withPointers(int $deliveryId, ?int $invoiceId): self
     {
         $next = $this->withColumn('id_user_info_delivery', $deliveryId);
@@ -323,7 +323,7 @@ final class HydratedCart
         return $invoiceId !== null && $invoiceId > 0 ? $next->withColumn('id_user_info_invoice', $invoiceId) : $next;
     }
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function withUpdated(string $at): self
     {
         return $this->withColumn('updated', $at);

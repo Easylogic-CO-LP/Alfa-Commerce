@@ -36,28 +36,28 @@ defined('_JEXEC') or die;
  * it writes. Nothing here prices, raises a quantity or charges a minor unit:
  * the command is refused and says which quantity is the smallest one charged.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class ChargeableQuantity
 {
     /**
      * The refusal, naming the smallest quantity that is charged.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const TOO_SMALL = 'COM_ALFA_QUANTITY_TOO_SMALL_TO_CHARGE';
 
     /**
      * The refusal when no quantity that may be ordered is charged.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const NEVER = 'COM_ALFA_QUANTITY_NEVER_CHARGED';
 
     /**
      * The most places of a unit's fraction that one whole number holds.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const WHOLE_PLACES = 18;
 
@@ -65,7 +65,7 @@ final class ChargeableQuantity
      * The largest quantity a unit held on its digits is multiplied by; past it no
      * line can hold the quantity anyway.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const MOST = 900000000000000;
 
@@ -76,7 +76,7 @@ final class ChargeableQuantity
      * @param ExactAmount|null $fine A unit of more places than two whole numbers hold, as it is; null otherwise.
      * @param int $scale The currency's decimal places, for a unit held as it is.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function __construct(
         private readonly int $amount,
@@ -101,7 +101,7 @@ final class ChargeableQuantity
      * @param Currency $currency The currency, at the scale the line is charged in.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function ofUnit(string $unit, Currency $currency): self
     {
@@ -143,7 +143,7 @@ final class ChargeableQuantity
      * @param int $quantity The quantity the line would hold.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function refuses(int $quantity): bool
     {
@@ -168,7 +168,7 @@ final class ChargeableQuantity
      * any quantity a line can hold the answer is PHP_INT_MAX.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function smallest(): int
     {
@@ -189,7 +189,7 @@ final class ChargeableQuantity
      * doubled until it is charged, then the gap is halved.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function firstCharged(): int
     {
@@ -228,7 +228,7 @@ final class ChargeableQuantity
      * @param int|null $smallest The smallest quantity that may be ordered and is charged; null when there is none.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function sentence(?int $smallest): string
     {

@@ -35,7 +35,7 @@
  * magic-argument trap; the model harvests it onto $item->cart, which the
  * template renders through Layout::render().
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\ItemFields;
@@ -56,7 +56,7 @@ class ItemListPrepareEvent extends AbstractImmutableEvent
      * buyForm()->setLayout('item-radio')->setData([...]).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function buyForm(): SurfaceBuilder
     {
@@ -67,7 +67,7 @@ class ItemListPrepareEvent extends AbstractImmutableEvent
      * A surface beside the card title, e.g. a badge.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function title(): SurfaceBuilder
     {
@@ -78,7 +78,7 @@ class ItemListPrepareEvent extends AbstractImmutableEvent
      * A surface on the card image: overlay/badge.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function image(): SurfaceBuilder
     {
@@ -90,7 +90,7 @@ class ItemListPrepareEvent extends AbstractImmutableEvent
      * render. A passive surface: no selector, no input.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function specifications(): SurfaceBuilder
     {
@@ -103,28 +103,28 @@ class ItemListPrepareEvent extends AbstractImmutableEvent
      *             harvests it onto $item->surfaces (the buy-form slot) so the card
      *             renders the SAME buyer-facing selector the product page does.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected string $layout = '';
 
     /**
      * @var array|object The selector-surface layout's display data.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected array|object $layoutData = [];
 
     /**
      * @var string The plugin group owning the selector surface ('' = model defaults it).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected string $layoutPluginType = '';
 
     /**
      * @var string The plugin element owning the selector surface ('' = model defaults it).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected string $layoutPluginName = '';
 
@@ -132,7 +132,7 @@ class ItemListPrepareEvent extends AbstractImmutableEvent
      * The item being decorated (the event subject).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getItem(): object
     {
@@ -145,7 +145,7 @@ class ItemListPrepareEvent extends AbstractImmutableEvent
      * plays in the payments group.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getField(): object
     {
@@ -156,7 +156,7 @@ class ItemListPrepareEvent extends AbstractImmutableEvent
      * Whether a (non-empty) selector-surface layout was set.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function hasLayout(): bool
     {
@@ -171,7 +171,7 @@ class ItemListPrepareEvent extends AbstractImmutableEvent
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setLayout(string $layout): static
     {
@@ -184,7 +184,7 @@ class ItemListPrepareEvent extends AbstractImmutableEvent
      * The selector-surface layout name ('' when none).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getLayout(): string
     {
@@ -198,7 +198,7 @@ class ItemListPrepareEvent extends AbstractImmutableEvent
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setLayoutData(array|object $data): static
     {
@@ -211,7 +211,7 @@ class ItemListPrepareEvent extends AbstractImmutableEvent
      * The display data for this field's card selector surface.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getLayoutData(): array|object
     {
@@ -226,7 +226,7 @@ class ItemListPrepareEvent extends AbstractImmutableEvent
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setLayoutPluginType(string $type): static
     {
@@ -239,7 +239,7 @@ class ItemListPrepareEvent extends AbstractImmutableEvent
      * The plugin group set for this selector surface ('' = let the model default it).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getLayoutPluginType(): string
     {
@@ -254,7 +254,7 @@ class ItemListPrepareEvent extends AbstractImmutableEvent
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setLayoutPluginName(string $name): static
     {
@@ -267,7 +267,7 @@ class ItemListPrepareEvent extends AbstractImmutableEvent
      * The plugin element set for this selector surface ('' = let the model default it).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getLayoutPluginName(): string
     {

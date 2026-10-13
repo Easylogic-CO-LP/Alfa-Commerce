@@ -53,13 +53,13 @@ defined('_JEXEC') or die;
  * Identity discovery is not done here. It arrives resolved; what happens here
  * is that the row read points it at the row it found, or at nothing.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartHydrator
 {
     private ?HydratedCart $current = null;
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function __construct(
         private readonly CartRepository $repository,
         private readonly CartItemLoader $items,
@@ -75,14 +75,14 @@ final class CartHydrator
      * carrying the identity, so a write that runs before the first load has a
      * cart id to write against and no row to mirror onto.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function begin(CartIdentity $identity, CartSubject $subject): void
     {
         $this->current = HydratedCart::none($identity, $subject);
     }
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function current(): HydratedCart
     {
         if ($this->current === null) {
@@ -92,7 +92,7 @@ final class CartHydrator
         return $this->current;
     }
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function replace(HydratedCart $state): void
     {
         $this->current = $state;
@@ -101,7 +101,7 @@ final class CartHydrator
     /**
      * Read the cart again, as it is now, for the identity it has now.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function reload(): void
     {
@@ -112,7 +112,7 @@ final class CartHydrator
     /**
      * Read the lines again; the row and the addresses stand.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function reloadLines(): void
     {
@@ -247,7 +247,7 @@ final class CartHydrator
      *
      * @return object[] The hydrated lines.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function lines(int $cartId, CartSubject $subject): array
     {
@@ -395,7 +395,7 @@ final class CartHydrator
      * @param int $itemId The product.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function hiddenForStock(int $itemId): bool
     {
@@ -417,7 +417,7 @@ final class CartHydrator
      *
      * @return array<int, object> Item id => the listed product.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function catalogue(array $itemIds, array $quantities, bool $stockVisibility): array
     {
@@ -453,7 +453,7 @@ final class CartHydrator
      *                            and sale_increment are set on each.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function applyQuantityLimits(array $cartItems): void
     {
@@ -508,7 +508,7 @@ final class CartHydrator
      * @param ExplicitPriceInstruction|null $instruction The negotiated unit price the line would carry, or null.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function priceAt(object $item, array $selection, array $optionValueIds, array $payloads, int $quantity, ?ExplicitPriceInstruction $instruction): PriceResult
     {
@@ -537,7 +537,7 @@ final class CartHydrator
      * @param CartSubject $subject Whose cart it is.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function terms(CartSubject $subject): PriceContext
     {
@@ -560,7 +560,7 @@ final class CartHydrator
      * @param PriceCalculator $calculator The pricing service.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function price(object $item, array $selection, array $optionValueIds, array $payloads, int $quantity, ?ExplicitPriceInstruction $instruction, ?PriceContext $context, PriceCalculator $calculator): void
     {
@@ -595,7 +595,7 @@ final class CartHydrator
      * @param int $cartId The cart.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function markUncharged(object $cartItem, object $product, array $configuration, CartSubject $subject, int $cartId): void
     {
@@ -650,7 +650,7 @@ final class CartHydrator
      * @param int $excludeLineId The line being changed; 0 for a new one.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function smallestCharged(object $item, ?int $combinationId, array $configuration, ?ExplicitPriceInstruction $instruction, int $from, Closure $unitOf, Currency $currency, int $excludeLineId = 0): ?int
     {
@@ -690,7 +690,7 @@ final class CartHydrator
      * @param int $excludeLineId A line not to count as already held.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function chargeableFrom(CartSubject $subject, int $cartId, object $item, object $product, ?int $combinationId, array $configuration, ?ExplicitPriceInstruction $instruction, int $from, Closure $unitOf, Currency $currency, int $excludeLineId): ?int
     {

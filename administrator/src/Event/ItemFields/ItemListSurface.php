@@ -16,7 +16,7 @@ defined('_JEXEC') or die;
  * (onItemListPrepare): a compact context with fewer slots than the product
  * page. Each case is a REAL card template position.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 enum ItemListSurface: string
 {

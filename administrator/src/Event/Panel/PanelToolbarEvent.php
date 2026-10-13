@@ -28,7 +28,7 @@ use Joomla\CMS\Event\AbstractEvent;
  * The view has already set the page title; the plugin only adds buttons, in Alfa's terms,
  * never touching Joomla's ToolbarHelper.
  *
- * @since  1.7.0
+ * @since  2.0.0
  */
 class PanelToolbarEvent extends AbstractEvent
 {
@@ -36,7 +36,7 @@ class PanelToolbarEvent extends AbstractEvent
      * The fluent toolbar to add buttons to.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getToolbar(): PanelToolbar
     {
@@ -47,7 +47,7 @@ class PanelToolbarEvent extends AbstractEvent
      * Which screen is rendering: 'list' or 'edit'.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getScreen(): string
     {
@@ -62,7 +62,7 @@ class PanelToolbarEvent extends AbstractEvent
      * Read filters as $event->getState()?->get('filter.<name>', '').
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function getState(): ?object
     {
@@ -73,7 +73,7 @@ class PanelToolbarEvent extends AbstractEvent
      * Who this request is for.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getIdentity(): PanelIdentity
     {

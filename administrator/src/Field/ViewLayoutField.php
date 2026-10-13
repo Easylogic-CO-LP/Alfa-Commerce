@@ -35,7 +35,7 @@ use SimpleXMLElement;
  *   - view          (required) site view whose tmpl dir is scanned
  *   - inheritlabel  language key for the empty option (default COM_ALFA_LAYOUT_USE_DEFAULT)
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 class ViewLayoutField extends GroupedlistField
 {
@@ -50,7 +50,7 @@ class ViewLayoutField extends GroupedlistField
      * @param string $group The field group control name
      *
      * @return bool True on success
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function setup(SimpleXMLElement $element, $value, $group = null)
     {
@@ -67,7 +67,7 @@ class ViewLayoutField extends GroupedlistField
      * Build the option groups: inherit, component layouts, per-template overrides.
      *
      * @return array[] Option objects keyed by translated group label
-     * @since  1.5.0
+     * @since  2.0.0
      */
     protected function getGroups()
     {
@@ -140,7 +140,7 @@ class ViewLayoutField extends GroupedlistField
      * @param string $name Layout basename without extension
      *
      * @return string Prettified label
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private static function pretty(string $name): string
     {

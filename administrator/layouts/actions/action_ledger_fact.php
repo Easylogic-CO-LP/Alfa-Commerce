@@ -26,7 +26,7 @@
  * amount, reference and reason exactly as posted) fills the fields again, and
  * refusal (plain text) reads above them. Both are escaped once, here.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 
 defined('_JEXEC') or die;

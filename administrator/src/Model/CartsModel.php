@@ -38,7 +38,7 @@ use Throwable;
  *              being abandoned by itself.
  *   ACTIVE     everything else (an empty cart is shown as such).
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class CartsModel extends AlfaListModel
 {
@@ -46,7 +46,7 @@ class CartsModel extends AlfaListModel
 
     /**
      * @var string The entity a plugin targets with $context->targets('cart').
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'cart';
 
@@ -61,7 +61,7 @@ class CartsModel extends AlfaListModel
 
     /**
      * @var string|null The instant THIS request measures abandonment from.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private ?string $cutoff = null;
 
@@ -73,7 +73,7 @@ class CartsModel extends AlfaListModel
      *
      * @param array $config Configuration array.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct($config = [])
     {
@@ -97,7 +97,7 @@ class CartsModel extends AlfaListModel
      * @param string $ordering Default ordering column.
      * @param string $direction Default direction.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function populateState($ordering = 'a.updated', $direction = 'DESC')
     {
@@ -120,7 +120,7 @@ class CartsModel extends AlfaListModel
      *
      * @return string
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function getStoreId($id = '')
     {
@@ -145,7 +145,7 @@ class CartsModel extends AlfaListModel
      * The instant this request measures abandonment from.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getAbandonedCutoff(): string
     {
@@ -160,7 +160,7 @@ class CartsModel extends AlfaListModel
      *
      * @return \Joomla\Database\QueryInterface
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function getListQuery()
     {
@@ -264,7 +264,7 @@ class CartsModel extends AlfaListModel
      *
      * @return array{active: int, abandoned: int, empty: int}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getSummary(): array
     {

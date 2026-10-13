@@ -28,17 +28,17 @@ use Joomla\CMS\Factory;
  * Gateways read the tiers only through their MethodProfile, which applies the
  * gateway's own gating (an instant-payment scheme, manual capture) before asking here.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class InstalmentTiers
 {
-    /** The params key of the subform. @since 1.14.0 */
+    /** The params key of the subform. @since 2.0.0 */
     public const FIELD = 'instalments';
 
-    /** cartform[instalments]: the customer's choice, where the shop picks the count. @since 1.14.0 */
+    /** cartform[instalments]: the customer's choice, where the shop picks the count. @since 2.0.0 */
     public const CART_INPUT = 'instalments';
 
-    /** User state holding the choice between placement and the gateway visit. @since 1.14.0 */
+    /** User state holding the choice between placement and the gateway visit. @since 2.0.0 */
     public const STATE_KEY = 'com_alfa.payment.instalments';
 
     /**
@@ -59,7 +59,7 @@ final class InstalmentTiers
      *
      * @throws InvalidArgumentException When $ceiling is below 1.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function maxCount(array $params, Money $amount, int $ceiling): int
     {
@@ -110,7 +110,7 @@ final class InstalmentTiers
      *
      * @return array<int, string> count => formatted amount, for 2 to $max; [] when $max is below 2.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function amounts(Money $total, int $max): array
     {
@@ -131,7 +131,7 @@ final class InstalmentTiers
      *
      * @return int From 1 to $max.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function selected(int $max): int
     {
@@ -152,7 +152,7 @@ final class InstalmentTiers
      * @param int $count The chosen count.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function remember(int $count): void
     {
@@ -164,7 +164,7 @@ final class InstalmentTiers
      *
      * @return int The choice, or 1 when there is none.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function take(): int
     {
@@ -183,7 +183,7 @@ final class InstalmentTiers
      *
      * @return int 0 when it is not a whole number.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function count(mixed $value): int
     {
@@ -203,7 +203,7 @@ final class InstalmentTiers
      *
      * @return Money|null Null when it is not an amount.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function threshold(mixed $value, Money $amount, MoneyInputFormat $format): ?Money
     {

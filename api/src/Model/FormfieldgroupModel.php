@@ -20,7 +20,7 @@ use Alfa\Component\Alfa\Administrator\Model\FormfieldgroupModel as AdminFormfiel
  * Admin getItem() leaves translatable fields to the form layer (per-language
  * keys); an API item response needs them resolved in the request language.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 class FormfieldgroupModel extends AdminFormfieldgroupModel
 {
@@ -31,7 +31,7 @@ class FormfieldgroupModel extends AdminFormfieldgroupModel
      *
      * @return mixed Object on success, false on failure.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function getItem($pk = null)
     {

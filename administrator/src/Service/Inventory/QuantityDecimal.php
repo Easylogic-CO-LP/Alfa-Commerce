@@ -24,35 +24,35 @@ use InvalidArgumentException;
  *
  * Pure: it reads nothing and writes nothing.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class QuantityDecimal
 {
     /**
      * Decimal places of the quantity type.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const SCALE = 8;
 
     /**
      * Digits the quantity type holds before the decimal point.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const INTEGER_DIGITS = 16;
 
     /**
      * Zero in canonical form.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const ZERO = '0.00000000';
 
     /**
      * Ten to the power SCALE: a quantity times this is a whole number.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const SCALE_FACTOR = '100000000';
 
@@ -68,7 +68,7 @@ final class QuantityDecimal
      * ({@see self::wholeGrid()}) and the SQL form built from the same ladders
      * therefore take the same branch for every value.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const WHOLE_GRID_LADDERS = [
         [256 => 1, 128 => 2, 64 => 4, 32 => 8, 16 => 16, 8 => 32, 4 => 64, 2 => 128, 1 => 256],
@@ -95,7 +95,7 @@ final class QuantityDecimal
      * @return string|null The canonical string, or null when the value is not
      *                     an exact quantity of this type.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function parse(mixed $value): ?string
     {
@@ -151,7 +151,7 @@ final class QuantityDecimal
      * @throws InvalidArgumentException When the value is not an exact quantity
      *                                  of this type ({@see self::parse()}).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function canonical(mixed $value): string
     {
@@ -177,7 +177,7 @@ final class QuantityDecimal
      *
      * @throws InvalidArgumentException When either is not an exact quantity.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function compare(string|int|float $a, string|int|float $b): int
     {
@@ -192,7 +192,7 @@ final class QuantityDecimal
      *
      * @throws InvalidArgumentException When it is not an exact quantity.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function isZero(string|int|float $a): bool
     {
@@ -207,7 +207,7 @@ final class QuantityDecimal
      *
      * @throws InvalidArgumentException When it is not an exact quantity.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function isNegative(string|int|float $a): bool
     {
@@ -223,7 +223,7 @@ final class QuantityDecimal
      *
      * @throws InvalidArgumentException When it is not an exact quantity.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function ceilWhole(string|int|float $a): string
     {
@@ -246,7 +246,7 @@ final class QuantityDecimal
      *
      * @throws InvalidArgumentException When it is not an exact quantity.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function floorWhole(string|int|float $a): string
     {
@@ -275,7 +275,7 @@ final class QuantityDecimal
      *
      * @throws InvalidArgumentException When it is not an exact quantity.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function wholeGrid(string|int|float $step): string
     {
@@ -312,7 +312,7 @@ final class QuantityDecimal
      *
      * @throws InvalidArgumentException When it is not an exact quantity.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function display(string|int|float $a): string
     {
@@ -332,7 +332,7 @@ final class QuantityDecimal
      *
      * @return string What var_export printed, e.g. '2.5' or '1.0E-5'.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function exportFloat(float $value): string
     {
@@ -366,7 +366,7 @@ final class QuantityDecimal
      * @return string|null Plain decimal notation, or null when the text is not
      *                     one var_export prints for a finite float.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function plainDigits(string $exported): ?string
     {

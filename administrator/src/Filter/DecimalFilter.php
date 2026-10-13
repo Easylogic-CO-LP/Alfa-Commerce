@@ -30,7 +30,7 @@ use InvalidArgumentException;
  * refuses it by name, so the column never rounds or cuts it. A number sent as
  * a JSON number arrives as a float and is read at the digits Money reads one at.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class DecimalFilter
 {
@@ -41,7 +41,7 @@ final class DecimalFilter
      *
      * @return mixed The column's text, or the value untouched.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function text(mixed $value): mixed
     {

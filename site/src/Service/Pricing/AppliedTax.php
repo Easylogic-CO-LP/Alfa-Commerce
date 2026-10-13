@@ -28,7 +28,7 @@ class AppliedTax
      * Defaulted so a typed property is never uninitialised on an instance that
      * did not come from the constructor (unserialize, reflection, a fixture).
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public ?Money $amount = null;
 
@@ -55,7 +55,7 @@ class AppliedTax
      * @param Money $amount The tax this rate charged on this line.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function withAmount(Money $amount): self
     {

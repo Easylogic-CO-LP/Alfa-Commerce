@@ -30,7 +30,7 @@ use Throwable;
  *
  *   groups: [{min_quantity, conditions: [{type, exclude, values: []}]}]
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class CartruleModel extends AlfaAdminModel
 {
@@ -38,25 +38,25 @@ class CartruleModel extends AlfaAdminModel
      * The admin-contract entity of this screen.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'cartrule';
 
     /**
      * @var string The prefix to use with controller messages.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected $text_prefix = 'COM_ALFA';
 
     /**
      * @var string Type alias.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public $typeAlias = 'com_alfa.cartrule';
 
     /**
      * @var object|null Item cache.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected $item = null;
 
@@ -68,7 +68,7 @@ class CartruleModel extends AlfaAdminModel
      *
      * @return \Joomla\CMS\Form\Form|bool
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getForm($data = [], $loadData = true)
     {
@@ -92,7 +92,7 @@ class CartruleModel extends AlfaAdminModel
      *
      * @return bool
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function save($data)
     {
@@ -153,7 +153,7 @@ class CartruleModel extends AlfaAdminModel
      *
      * @return bool True when a cart can reach the minimum.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected function validateMinimumAmount(mixed $minimum): bool
     {
@@ -195,7 +195,7 @@ class CartruleModel extends AlfaAdminModel
      *
      * @return bool True when every group carries at least one usable condition.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function validateConditionGroups(array $groups): bool
     {
@@ -234,7 +234,7 @@ class CartruleModel extends AlfaAdminModel
      * @param array $groups The `groups` subform rows.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function syncConditionTree(int $ruleId, array $groups): void
     {
@@ -345,7 +345,7 @@ class CartruleModel extends AlfaAdminModel
      *
      * @return mixed Object on success, false on failure.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getItem($pk = null)
     {
@@ -367,7 +367,7 @@ class CartruleModel extends AlfaAdminModel
      *
      * @return array groups rows.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function loadConditionTree(int $ruleId): array
     {
@@ -445,7 +445,7 @@ class CartruleModel extends AlfaAdminModel
      *
      * @return mixed The data for the form.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function loadFormData()
     {
@@ -473,7 +473,7 @@ class CartruleModel extends AlfaAdminModel
      *
      * @return void
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function prepareTable($table)
     {
@@ -507,7 +507,7 @@ class CartruleModel extends AlfaAdminModel
      *
      * @return bool True on success.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function delete(&$pks)
     {

@@ -33,7 +33,7 @@ defined('_JEXEC') or die;
  * element takes it out of `Form::filter()` too, so a value posted for a field the
  * rules hide can never reach the order or the saved user-info row.
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 final class SubmitAuthority
 {
@@ -59,7 +59,7 @@ final class SubmitAuthority
      *
      * @return array The values with every hidden field removed.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public static function prune(Form $form, array $fields, array $values, string $group, array $extra = []): array
     {
@@ -106,7 +106,7 @@ final class SubmitAuthority
      *
      * @return array<string, true> The hidden field names, as a set.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private static function hidden(array $names, array $rules, array $values): array
     {
@@ -158,7 +158,7 @@ final class SubmitAuthority
      * @param object $field The field definition row.
      *
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private static function ruleOf(object $field): ?array
     {
@@ -186,7 +186,7 @@ final class SubmitAuthority
      *
      * @return mixed Scalar, list of scalars, or null.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private static function normalise(mixed $value): mixed
     {

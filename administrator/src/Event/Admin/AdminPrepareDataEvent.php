@@ -45,13 +45,13 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  * Data may also arrive from a failed save the framework kept, so a handler must tolerate a
  * value already being present and not overwrite what the user just typed.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 final class AdminPrepareDataEvent extends AlfaAdminEvent
 {
     /**
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const NAME = 'onAlfaAdminPrepareData';
 }

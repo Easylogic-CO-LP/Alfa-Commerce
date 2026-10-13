@@ -31,7 +31,7 @@ class ItemsController extends ApiController
      * and read as a figure the client never sent.
      *
      * @var string[]
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const STOCK_INTENT_KEYS = ['stock', 'inventory_stock'];
 
@@ -56,7 +56,7 @@ class ItemsController extends ApiController
      *
      * @return string[]
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function preserveOnPatch(): array
     {
@@ -75,7 +75,7 @@ class ItemsController extends ApiController
      *
      * @return static A BaseController object to support chaining.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function displayList()
     {
@@ -123,7 +123,7 @@ class ItemsController extends ApiController
      * @param array $data The save data after core's PATCH backfill.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     protected function preprocessSaveData(array $data): array
     {
@@ -144,7 +144,7 @@ class ItemsController extends ApiController
      * The request body exactly as core's save() reads it.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private function requestBody(): array
     {

@@ -29,7 +29,7 @@ use Throwable;
  * delete lifecycle; the ONLY mutation is void, which flips status while
  * keeping the number (immutability invariant). Everything else is display.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class DocumentsController extends BaseController
 {
@@ -43,7 +43,7 @@ class DocumentsController extends BaseController
      * the dialog.
      *
      * @var string
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected $option = 'com_alfa';
 
@@ -57,10 +57,10 @@ class DocumentsController extends BaseController
      * stored it (read as text, so markup is dropped): it is kept
      * under the document's own user-state key and the redirect carries
      * `kept=1`, the one open of the form that reads it back, the pattern the
-     * issue and replacement modals follow (since 1.14.0).
+     * issue and replacement modals follow (since 2.0.0).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function void(): void
     {
@@ -132,7 +132,7 @@ class DocumentsController extends BaseController
      * reason to re-render. Also forgets a reason a refusal kept for it.
      *
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     public function cancelVoid(): void
     {
@@ -157,7 +157,7 @@ class DocumentsController extends BaseController
      * dompdf). Read-only GET, opened in a new tab.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function printDocument(): void
     {
@@ -185,7 +185,7 @@ class DocumentsController extends BaseController
      * (nothing is stored). GET, opened in a tab.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function downloadPdf(): void
     {

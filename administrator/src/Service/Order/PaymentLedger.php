@@ -174,7 +174,7 @@ class PaymentLedger
      *
      * @var string[]
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public const UNRECORDED_PAYMENT_STATUSES = [
         self::STATUS_FAILED,
@@ -201,7 +201,7 @@ class PaymentLedger
      * @var string A provider fact that undoes all or part of a refund row or a
      *             chargeback row. Written only by {@see self::recordReversal()}.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const TYPE_REVERSAL = 'reversal';
 
@@ -209,7 +209,7 @@ class PaymentLedger
      * @var string Money the customer's bank took back from a collected gateway
      *             payment. Written only by {@see self::recordChargeback()}.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const TYPE_CHARGEBACK = 'chargeback';
 
@@ -217,7 +217,7 @@ class PaymentLedger
      * @var string[] The types only the ledger's own verbs write. A row of one of
      *               them is history: it is never edited or deleted.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const FACT_TYPES = [self::TYPE_REVERSAL, self::TYPE_CHARGEBACK];
 
@@ -225,7 +225,7 @@ class PaymentLedger
      * @var string The payment_method_type of money that moved through the
      *             customer's wallet: a wallet spend, and a refund of one.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const METHOD_TYPE_CREDIT = 'credit';
 
@@ -293,7 +293,7 @@ class PaymentLedger
      *
      * @return string A parenthesised SQL predicate.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function settledPaymentPredicate(string $alias = ''): string
     {
@@ -318,7 +318,7 @@ class PaymentLedger
      *
      * @return string A parenthesised SQL predicate.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function livePaymentPredicate(string $alias = ''): string
     {
@@ -342,7 +342,7 @@ class PaymentLedger
      *
      * @return string A parenthesised SQL predicate.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function failedAttemptPredicate(string $alias = ''): string
     {
@@ -365,7 +365,7 @@ class PaymentLedger
      *
      * @return string A parenthesised SQL predicate.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function refundPredicate(string $alias = ''): string
     {
@@ -391,7 +391,7 @@ class PaymentLedger
      *
      * @return string A parenthesised SQL predicate.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function moneyMovedPredicate(string $alias = ''): string
     {
@@ -419,7 +419,7 @@ class PaymentLedger
      *
      * @return string An SQL expression naming a datetime.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function moneyMoment(string $alias = ''): string
     {
@@ -438,7 +438,7 @@ class PaymentLedger
      *
      * @return string A parenthesised SQL predicate.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function reversalPredicate(string $alias = ''): string
     {
@@ -458,7 +458,7 @@ class PaymentLedger
      *
      * @return string A parenthesised SQL predicate.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function chargebackPredicate(string $alias = ''): string
     {
@@ -478,7 +478,7 @@ class PaymentLedger
      *
      * @return string A LEFT JOIN clause.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function reversalTargetJoin(string $alias, string $targetAlias): string
     {
@@ -505,7 +505,7 @@ class PaymentLedger
      *
      * @return string One INNER JOIN clause, or two.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function orderJoin(string $alias, string $orderAlias, ?string $currencyAlias = null): string
     {
@@ -533,7 +533,7 @@ class PaymentLedger
      *
      * @return string A parenthesised SQL predicate.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function takingsPredicate(string $alias, string $targetAlias): string
     {
@@ -552,7 +552,7 @@ class PaymentLedger
      *
      * @return string An SQL expression.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function takingsAmount(string $alias): string
     {
@@ -576,7 +576,7 @@ class PaymentLedger
      *
      * @return string A parenthesised SQL predicate.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function refundFlowPredicate(string $alias, string $targetAlias): string
     {
@@ -592,7 +592,7 @@ class PaymentLedger
      *
      * @return string An SQL expression.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function refundFlowAmount(string $alias): string
     {
@@ -609,7 +609,7 @@ class PaymentLedger
      *
      * @return string A parenthesised SQL predicate.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function liveRefundPredicate(string $alias = ''): string
     {
@@ -639,7 +639,7 @@ class PaymentLedger
      *
      * @return string|null 64 hex characters, or null for ''.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function referenceHash(string $reference): ?string
     {
@@ -674,7 +674,7 @@ class PaymentLedger
      *             this transaction_id: the provider retrying one refund, not a
      *             second one. Never reported for an empty reference.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const OUTCOME_DUPLICATE = 'duplicate';
 
@@ -696,7 +696,7 @@ class PaymentLedger
     /**
      * @var string recordReversal() / recordChargeback(): the fact is written.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const OUTCOME_RECORDED = 'recorded';
 
@@ -704,7 +704,7 @@ class PaymentLedger
      * @var string recordReversal() / recordChargeback(): nothing written, because
      *             the request is not a fact this ledger can take. A retry cannot help.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const OUTCOME_REFUSED = 'refused';
 
@@ -1027,7 +1027,7 @@ class PaymentLedger
      *
      * @param int $documentId #__alfa_documents.id (a credit invoice/receipt)
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function document(int $documentId): static
     {
@@ -1181,7 +1181,7 @@ class PaymentLedger
      *
      * @param string $status The transaction_status the row must still hold
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function expectStatus(string $status): static
     {
@@ -1219,7 +1219,7 @@ class PaymentLedger
      *
      * Update mode only; ignored in create mode.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function bookkeeping(): static
     {
@@ -1278,7 +1278,7 @@ class PaymentLedger
      *
      * @return int WRITE_OK | WRITE_RACED | WRITE_FAILED
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function saveVerdict(): int
     {
@@ -1334,7 +1334,7 @@ class PaymentLedger
      *
      * @return array ['payment', 'refund', 'authorization']
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function recordableTypes(): array
     {
@@ -1479,7 +1479,7 @@ class PaymentLedger
      *
      * @return int WRITE_OK | WRITE_RACED | WRITE_FAILED
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function writeUpdate(): int
     {
@@ -1685,7 +1685,7 @@ class PaymentLedger
      *
      * @return int|false New payment row ID, or false if a guard refused
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function createLocked(array $data, int $orderId, Money|float $grandTotalHint, bool $ledgerFact = false): int|false
     {
@@ -2220,7 +2220,7 @@ class PaymentLedger
      * @param int $orderId Order PK.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function logCreatedRow(int $paymentId, int $orderId): void
     {
@@ -2247,7 +2247,7 @@ class PaymentLedger
      * @param int $orderId Order PK.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function writeCreatedRowEntry(int $paymentId, int $orderId): void
     {
@@ -2520,7 +2520,7 @@ class PaymentLedger
      * @return bool False if any named order does not exist, or if the row
      *              cannot be locked (another writer holds it)
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function lockOrders(object $db, int ...$orderIds): bool
     {
@@ -2619,7 +2619,7 @@ class PaymentLedger
      *
      * @throws OrderCurrencyException When the order names no currency: nothing is written.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function updateIfStatus(
         int $id,
@@ -2776,7 +2776,7 @@ class PaymentLedger
      *
      * @return int Affected rows, or -1 when a guard refused the write
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function updateIfStatusLocked(
         object $db,
@@ -2934,7 +2934,7 @@ class PaymentLedger
      *
      * @return bool True when the row still holds $expectedStatus.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function stillHoldsStatus(object $db, int $id, string $expectedStatus): bool
     {
@@ -2984,7 +2984,7 @@ class PaymentLedger
      *
      * @return string|null Why the write is refused, or null when it may proceed.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function classifyOwned(array &$data, object $stored): ?string
     {
@@ -3110,7 +3110,7 @@ class PaymentLedger
      *
      * @return string|null Why the write is refused, or null.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function refuseLockedWrite(object $stored, array $data, int $orderId): ?string
     {
@@ -3210,7 +3210,7 @@ class PaymentLedger
      * @param string $type TYPE_REVERSAL or TYPE_CHARGEBACK.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function countFactsNaming(string $column, int $rowId, string $type): int
     {
@@ -3239,7 +3239,7 @@ class PaymentLedger
      * @param object $stored The row as read under the order lock.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function keepsWalletLabel(object $stored): bool
     {
@@ -3255,7 +3255,7 @@ class PaymentLedger
      * @param array $data The row data about to be written (by reference).
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function withoutReferenceHash(array &$data): void
     {
@@ -3309,7 +3309,7 @@ class PaymentLedger
      *             WRITE_RACED (0) no longer pending, nothing written;
      *             WRITE_FAILED (-1) row missing, rejected or DB error
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function supersedeAttempt(int $paymentId, string $reason = ''): int
     {
@@ -3424,7 +3424,7 @@ class PaymentLedger
      * @return array ['outcome' => OUTCOME_*, 'refund_id' => int (0 when no
      *               row was written), 'reason' => string (empty on success)]
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function refundPayment(int $paymentId, ?Money $amount = null, array $options = []): array
     {
@@ -3809,7 +3809,7 @@ class PaymentLedger
      * @return object|null The earliest matching row (id, amount, transaction_status,
      *                     transaction_id), or null.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function refundUnderReference(int $paymentId, string $reference): ?object
     {
@@ -3838,7 +3838,7 @@ class PaymentLedger
      * @return object|null The earliest matching row (id, amount, transaction_status,
      *                     transaction_id), or null.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function rowUnderReference(string $linkColumn, int $linkId, string $type, string $reference): ?object
     {
@@ -3880,7 +3880,7 @@ class PaymentLedger
      *
      * @return object|null id, amount, transaction_status and transaction_id; or null.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function findLinkedRow(int $paymentId, string $type, string $reference): ?object
     {
@@ -3899,7 +3899,7 @@ class PaymentLedger
      * @return Money The row's amount minus its completed reversals, never negative;
      *               zero for a missing row or another type.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function unreversedRemainder(int $rowId): Money
     {
@@ -3945,7 +3945,7 @@ class PaymentLedger
      * @return string REFUND_FULL or REFUND_PARTIAL. A payment that does not
      *                exist answers partial: no refund of it can be full.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function refundTypeFor(int $paymentId, ?Money $amount): string
     {
@@ -3990,7 +3990,7 @@ class PaymentLedger
      *                                                                                   OUTCOME_REFUSED (a retry cannot help) or OUTCOME_FAILED (lock
      *                                                                                   or database; a retry may succeed).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function recordReversal(int $rowId, ?Money $amount = null, array $options = []): array
     {
@@ -4279,7 +4279,7 @@ class PaymentLedger
      * @return array{outcome:string,row_id:int,reason:string,amount:float,reopened:bool}
      *                                                                                   As recordReversal(); 'reopened' is always false.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function recordChargeback(int $paymentId, Money $amount, array $options = []): array
     {
@@ -4466,7 +4466,7 @@ class PaymentLedger
      * @param string $zeroHint Appended to the zero refusal.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function factAmountRefusal(?Money $amount, int $orderId, string $noun, string $verb, string $zeroHint): ?string
     {
@@ -4504,7 +4504,7 @@ class PaymentLedger
      * @param array $options The verb's options.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function validProcessedAt(array $options): bool
     {
@@ -4522,7 +4522,7 @@ class PaymentLedger
      *
      * @return array Columns to add to the row.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function factOptions(array $options): array
     {
@@ -4552,7 +4552,7 @@ class PaymentLedger
      *
      * @return array A FAILED result.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function factFailure(string $verb, int $rowId, Throwable $error): array
     {
@@ -4583,7 +4583,7 @@ class PaymentLedger
      * @param string $kind 'refund_reversed', 'chargeback_reversed' or 'charged_back'.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function afterFact(int $newId, int $orderId, Money $amount, int $targetId, string $kind): void
     {
@@ -4617,7 +4617,7 @@ class PaymentLedger
      *                         "nothing written" would not be true.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function duplicateReason(int $paymentId, string $reference, object $booked, bool $flipUndone = false): string
     {
@@ -4638,7 +4638,7 @@ class PaymentLedger
      *
      * @return array{outcome:string,refund_id:int,reason:string,amount:float}
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     /**
      * Register the ledger's own file logger once per request.
@@ -4651,7 +4651,7 @@ class PaymentLedger
      * no payment plugin installed at all still runs this code.
      *
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     public static function ensureLogger(): void
     {
@@ -4685,7 +4685,7 @@ class PaymentLedger
      *
      * @return array{outcome:string,row_id:int,reason:string,amount:float,reopened:bool}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function factResult(string $outcome, int $rowId = 0, string $reason = '', float $amount = 0.0, bool $reopened = false): array
     {
@@ -4708,7 +4708,7 @@ class PaymentLedger
      * @param int $orderId Order PK.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function logFactRow(int $rowId, int $orderId): void
     {
@@ -4763,7 +4763,7 @@ class PaymentLedger
      * @param int $targetId The refund, chargeback or payment it names.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function notifyFact(string $kind, int $newId, int $orderId, Money $amount, int $targetId): void
     {
@@ -4808,7 +4808,7 @@ class PaymentLedger
      *                       ({@see self::refundDocumentRefusal()}).
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function markUnreconciledSettle(int $refundId, int $orderId, array $refusal): void
     {
@@ -4888,7 +4888,7 @@ class PaymentLedger
      * @param array $data Fields the write carried (amount already float)
      * @param bool $bookkeeping Suppress the merchant-visible side effects
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function applyWriteSideEffects(
         int $id,
@@ -5001,7 +5001,7 @@ class PaymentLedger
      * @param array $data The fields the write carried.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function takesMoneyIn(object $row, array $data): bool
     {
@@ -5030,7 +5030,7 @@ class PaymentLedger
      * Never throws; automation failure must not break the payment write.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     /**
      * Sum every refund already recorded against one payment.
@@ -5044,7 +5044,7 @@ class PaymentLedger
      *
      * @return float Total already refunded, in major units
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     /**
      * Net customer-credit ("wallet") amount settling this order's credit
@@ -5054,7 +5054,7 @@ class PaymentLedger
      *
      * @return float
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     /**
      * The ONE note shape for every wallet return of a credit payment.
@@ -5076,7 +5076,7 @@ class PaymentLedger
      *
      * @return string Prefix shared by every return note for that payment.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function walletReturnPrefix(int $paymentId): string
     {
@@ -5107,7 +5107,7 @@ class PaymentLedger
      *
      * @return Money Net returned so far, in the ORDER'S OWN currency and scale.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function walletReturnedNet(int $paymentId, int $orderId): Money
     {
@@ -5179,7 +5179,7 @@ class PaymentLedger
      *
      * @return Money Uncovered wallet returns, in the order's own currency.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function sumUncoveredWalletReturns(
         int $orderId,
@@ -5265,7 +5265,7 @@ class PaymentLedger
      *
      * @return Money Total returned, in the order's own currency and scale.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function returnedTotal(
         int $orderId,
@@ -5298,7 +5298,7 @@ class PaymentLedger
      * @param int $orderId Order PK.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function sumWalletSettled(int $orderId): Money
     {
@@ -5335,7 +5335,7 @@ class PaymentLedger
      *
      * @return string Settled refund total in major units, as the SUM's decimal text
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function sumRefundsAgainst(int $paymentId, int $excludeId = 0): string
     {
@@ -5358,7 +5358,7 @@ class PaymentLedger
      *
      * @return string Net chargeback total in major units, as the SUM's decimal text
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function sumChargebacksAgainst(int $paymentId): string
     {
@@ -5385,7 +5385,7 @@ class PaymentLedger
      *
      * @return string Net total in major units, as the SUM's decimal text
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function sumNetAmounts(
         string $type,
@@ -5430,7 +5430,7 @@ class PaymentLedger
      *
      * @return string An SQL expression; served by idx_id_reversed_payment.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function netAmountSql(string $alias): string
     {
@@ -5454,7 +5454,7 @@ class PaymentLedger
      * total (checkout, where the shipment row is not written yet) park it
      * here for the duration of one flip. Always reset in a finally.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static float $updateGrandTotalHint = 0.0;
 
@@ -5465,7 +5465,7 @@ class PaymentLedger
      * @param float $total In-memory grand total, 0.0 to clear.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function setUpdateGrandTotalHint(float $total): void
     {
@@ -5517,7 +5517,7 @@ class PaymentLedger
      * @throws RuntimeException When failClosed and the money cannot move, or
      *                          when a clawback finds the credit already spent.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function settleWalletForPayment(int $paymentId, int $orderId, bool $failClosed): array
     {
@@ -5562,7 +5562,7 @@ class PaymentLedger
      *
      * @throws RuntimeException As settleWalletForPayment().
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function settleWalletLocked(int $paymentId, int $orderId, bool $failClosed): ?array
     {
@@ -5782,7 +5782,7 @@ class PaymentLedger
      * @return object|null The entry (id_user, amount, source_type, source_id),
      *                     or null when it is not an authentic spend.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function authenticSpendEntry(int $entryId, int $orderId, Money|string|float $amount): ?object
     {
@@ -5820,7 +5820,7 @@ class PaymentLedger
      * @param string $newStatus Status the row reached
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function applyStatusAutomation(
         int $orderId,
@@ -5902,7 +5902,7 @@ class PaymentLedger
      * @param string $cause What asked for it.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function reportMoveNotMade(int $orderId, int $targetStatusId, string $cause): void
     {
@@ -5946,7 +5946,7 @@ class PaymentLedger
      *
      * @return bool True when the write may proceed, false when capped (logged)
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function recheckCapsOnUpdate(int $id, int $orderId, object $old, array $data): bool
     {
@@ -6158,7 +6158,7 @@ class PaymentLedger
      * @return array{reason: string, kind: string, documentId: int, document: string, amount: Money, paid: ?Money, total: ?Money}|null
      *                                                                                                                                 The refusal (its sentence, the words staff read, and its facts), or null.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function refundDocumentRefusal(
         int $documentId,
@@ -6260,7 +6260,7 @@ class PaymentLedger
      * @return array|null The refusal ({@see self::refundDocumentRefusal()}), or
      *                    null when the write may proceed.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function refundDocumentRefusalOnUpdate(int $id, int $orderId, object $old, array $data): ?array
     {
@@ -6327,7 +6327,7 @@ class PaymentLedger
      *
      * @return string Total in major units, as the SUM's decimal text
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function sumAbsAmounts(
         string $type,
@@ -6389,7 +6389,7 @@ class PaymentLedger
      *
      * @return float Recorded payment total in major units
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     /**
      * The order's own currency, as a Currency object.
@@ -6411,7 +6411,7 @@ class PaymentLedger
      *
      * @throws OrderCurrencyException When the order names no currency.
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     private static function orderCurrency(int $orderId): Currency
     {
@@ -6426,7 +6426,7 @@ class PaymentLedger
      *
      * @var array<int, Currency>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static array $orderCurrencies = [];
 
@@ -6449,7 +6449,7 @@ class PaymentLedger
      *
      * @return array<int, true> The orders among them that name no currency, by id.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function warmOrderCurrencies(array $orderIds): array
     {
@@ -6516,7 +6516,7 @@ class PaymentLedger
      * @param int $orderId Order whose frozen currency the money is in.
      *
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     private static function money(Money|string|int|float $amount, int $orderId): Money
     {
@@ -6577,7 +6577,7 @@ class PaymentLedger
      *
      * @return bool True when the write must be refused
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function exceedsCap(array $candidate, Money|string|float $limit, int $orderId): bool
     {
@@ -6611,7 +6611,7 @@ class PaymentLedger
      *
      * @return string Collected total in major units, as the SUM's decimal text
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function sumCollectedPayments(int $orderId, int $excludeId = 0): string
     {
@@ -6639,7 +6639,7 @@ class PaymentLedger
      *
      * @return string Ever-collected total in major units, as the SUM's decimal text
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function sumRefundablePool(int $orderId, int $excludeId = 0): string
     {
@@ -6664,7 +6664,7 @@ class PaymentLedger
      *
      * @return string Settled refund total in major units, as the SUM's decimal text
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function sumSettledRefunds(int $orderId, int $excludeId = 0): string
     {
@@ -6683,7 +6683,7 @@ class PaymentLedger
      *
      * @return string Net chargeback total in major units, as the SUM's decimal text
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function sumChargebacks(int $orderId): string
     {
@@ -6708,7 +6708,7 @@ class PaymentLedger
      *
      * @return string Grand total (tax incl) as exact decimal text
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function orderGrandTotal(int $orderId, ?object $order = null): string
     {
@@ -6887,7 +6887,7 @@ class PaymentLedger
      *
      * @return object|null The same row, amount hydrated.
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     public static function hydrate(?object $row, int $orderId = 0): ?object
     {
@@ -6910,7 +6910,7 @@ class PaymentLedger
      *
      * @return array The same rows, amounts hydrated.
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     public static function hydrateAll(array $rows, int $orderId = 0): array
     {
@@ -7004,7 +7004,7 @@ class PaymentLedger
      *                              an order that names no currency carry the
      *                              stored amount, not Money.
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     public static function getByOrders(array $orderIds, bool $oldestFirst = false): array
     {
@@ -7063,7 +7063,7 @@ class PaymentLedger
      *
      * @return float Collected total in major units
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     /**
      * THE amount a gateway should collect for an order: the ONE public
@@ -7092,7 +7092,7 @@ class PaymentLedger
      *
      * @return float Amount still to collect, never negative.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function amountToCollect(object $order): float
     {
@@ -7107,7 +7107,7 @@ class PaymentLedger
      *
      * @return Money Amount still to collect at the order's frozen scale, never negative.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function amountToCollectMoney(object $order): Money
     {
@@ -7152,7 +7152,7 @@ class PaymentLedger
      * @return Money Collected total in the order's currency; zero, in the
      *               currency a new order takes, when there is no order.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function paidTotal(int $orderId): Money
     {
@@ -7176,7 +7176,7 @@ class PaymentLedger
      * @return Money Settled refund total in the order's currency; zero, in
      *               the currency a new order takes, when there is no order.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function refundedTotal(int $orderId): Money
     {
@@ -7208,7 +7208,7 @@ class PaymentLedger
      *
      * @return Money Signed balance in the order's currency and scale
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function balance(int $orderId): Money
     {
@@ -7227,7 +7227,7 @@ class PaymentLedger
      *
      * @return Money Money still held, in the order's currency and scale
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function stillHeld(int $orderId): Money
     {
@@ -7250,7 +7250,7 @@ class PaymentLedger
      * @return float Remaining refundable amount, never negative
      *               (0.0 when the row is missing)
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     /**
      * How much may still be refunded on this order: the PREFLIGHT every
@@ -7272,7 +7272,7 @@ class PaymentLedger
      * @return Money Refundable amount, never negative; zero, in the currency
      *               a new order takes, when there is no order.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function refundableNow(int $orderId): Money
     {
@@ -7309,7 +7309,7 @@ class PaymentLedger
      *
      * @return float Settled refund total in major units, never negative.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function settledRefundTotal(int $orderId): float
     {
@@ -7335,7 +7335,7 @@ class PaymentLedger
      *
      * @return float Settled refund total for that document, never negative.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function settledRefundForDocument(int $documentId): float
     {
@@ -7360,7 +7360,7 @@ class PaymentLedger
      * @return array<int, float> [documentId => net settled refund]; a document
      *                           with no refund row is absent.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function settledRefundsForDocuments(array $documentIds): array
     {
@@ -7385,7 +7385,7 @@ class PaymentLedger
      *
      * @return float The net amount held, in major units, never negative.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function refundsHoldingDocument(int $documentId, int $excludeId = 0): float
     {
@@ -7414,7 +7414,7 @@ class PaymentLedger
      *
      * @return array<int, float> [documentId => net refund].
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function refundsByDocument(array $documentIds, bool $inFlight, int $excludeId): array
     {
@@ -7473,7 +7473,7 @@ class PaymentLedger
      * @param int $documentId Credit document PK.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function documentHasLiveRefund(int $documentId): bool
     {
@@ -7506,7 +7506,7 @@ class PaymentLedger
      *
      * @return float Remaining refundable amount in major units
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function refundableRemainder(int $paymentId): Money
     {

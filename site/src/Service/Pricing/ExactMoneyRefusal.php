@@ -23,7 +23,7 @@ use Throwable;
  * words() is the sentence a staff screen shows, in the administrator's
  * language.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class ExactMoneyRefusal extends InvalidArgumentException
 {
@@ -33,7 +33,7 @@ final class ExactMoneyRefusal extends InvalidArgumentException
      * @param Currency $currency The currency it was read in.
      * @param Throwable|null $previous What refused it, when not this reader.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function __construct(
         private readonly string $reason,
@@ -58,7 +58,7 @@ final class ExactMoneyRefusal extends InvalidArgumentException
      * Why: ExactMoney::NOT_A_NUMBER, ::NOT_EXACT, ::FINER, ::GROUPED or ::LARGER.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function reason(): string
     {
@@ -69,7 +69,7 @@ final class ExactMoneyRefusal extends InvalidArgumentException
      * The figure as it was typed.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function typed(): string
     {
@@ -80,7 +80,7 @@ final class ExactMoneyRefusal extends InvalidArgumentException
      * The currency it was read in, at the record's scale.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function currency(): Currency
     {
@@ -95,7 +95,7 @@ final class ExactMoneyRefusal extends InvalidArgumentException
      * @param string $field The field's label, translated.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function words(string $field): string
     {

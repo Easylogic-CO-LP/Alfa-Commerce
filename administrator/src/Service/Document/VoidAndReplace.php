@@ -67,20 +67,20 @@ use Throwable;
  * takes the corrected invoice's buyer, all seven columns, and operator edits
  * are ignored. The issuer refuses any other buyer on a credit.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class VoidAndReplace
 {
-    /** @var string @since 1.3.0 */
+    /** @var string @since 2.0.0 */
     public const REASON_NO_REPLACEMENT_TARGET = 'no_replacement_target';
 
-    /** @var string @since 1.3.0 */
+    /** @var string @since 2.0.0 */
     public const REASON_REFUND_SETTLED = 'refund_settled';
 
-    /** @var string @since 1.3.0 */
+    /** @var string @since 2.0.0 */
     public const REASON_WALLET_SPENT = 'wallet_credit_spent';
 
-    /** @var string @since 1.3.0 */
+    /** @var string @since 2.0.0 */
     public const REASON_ISSUER_REFUSED = 'issuer_refused';
 
     /**
@@ -88,7 +88,7 @@ final class VoidAndReplace
      * com_alfa voids and issues nothing.
      *
      * @var string
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public const REASON_ISSUER_EXTERNAL = 'issuer_external';
 
@@ -97,7 +97,7 @@ final class VoidAndReplace
      * email address.
      *
      * @var string
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public const REASON_INVALID_BUYER_EMAIL = 'invalid_buyer_email';
 
@@ -109,7 +109,7 @@ final class VoidAndReplace
      * so a screen offers no buyer to edit. Also a correction's reason.
      *
      * @var string
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public const REASON_BUYER_UNAVAILABLE = 'buyer_unavailable';
 
@@ -118,7 +118,7 @@ final class VoidAndReplace
      * are carried from the source unchanged.
      *
      * @var string[]
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public const EDITABLE_BUYER = ['buyer_name', 'buyer_vat_number', 'buyer_tax_office', 'buyer_activity', 'buyer_email'];
 
@@ -138,7 +138,7 @@ final class VoidAndReplace
      *
      * @return object  {available, reason, detail, source, surviving, draft, preview, fingerprint, buyer}
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     public static function propose(int $sourceId, ?User $user = null, ?array $buyer = null): object
     {
@@ -275,7 +275,7 @@ final class VoidAndReplace
      *
      * @throws RuntimeException With the one condition that refused it.
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     public static function execute(int $sourceId, string $reason, string $fingerprint, ?User $user = null, ?array $buyer = null, ?callable $beforeNumbering = null): object
     {
@@ -342,7 +342,7 @@ final class VoidAndReplace
      * @throws DocumentRefusedException When the replacement is unavailable, naming the notes that make it so.
      * @throws RuntimeException When a credit note names no corrected document to take the buyer from.
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     public static function buildDraft(object $source, ?array $buyer = null): ?array
     {
@@ -474,7 +474,7 @@ final class VoidAndReplace
      *
      * @return array<int, object> {id, number_formatted, doc_type, total_tax_incl}
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     public static function survivingClaims(object $source): array
     {
@@ -512,7 +512,7 @@ final class VoidAndReplace
      * @param int $documentId The document.
      *
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     private static function refundSettled(int $documentId): bool
     {
@@ -535,7 +535,7 @@ final class VoidAndReplace
      * @return string What the note credited and what the account still holds, in the
      *                order's money, as staff read it under the refusal, or ''.
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     public static function walletShortfall(object $source): string
     {
@@ -605,7 +605,7 @@ final class VoidAndReplace
      *
      * @return array buyer_* draft keys.
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     public static function buyerOf(object $source, ?array $edits = null): array
     {
@@ -636,7 +636,7 @@ final class VoidAndReplace
      *
      * @throws RuntimeException When a credit note names no corrected document that exists.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function replacementBuyer(object $source, ?array $edits = null): array
     {
@@ -663,7 +663,7 @@ final class VoidAndReplace
      * @param object $source The source document row.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function isCredit(object $source): bool
     {
@@ -684,7 +684,7 @@ final class VoidAndReplace
      * @param array|null $edits Operator edits; null = none.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function invalidEmailEdit(object $source, ?array $edits): string
     {
@@ -712,7 +712,7 @@ final class VoidAndReplace
      * @param array $draft The replacement draft.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function draftMovesStock(array $draft): bool
     {
@@ -737,7 +737,7 @@ final class VoidAndReplace
      * @param array $buyer The replacement's buyer block as the header would freeze it.
      *
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     private static function refused(string $reason, string $detail, ?object $source, array $buyer): object
     {

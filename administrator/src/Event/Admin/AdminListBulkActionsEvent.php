@@ -41,13 +41,13 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  * the plugin's own controller task, which runs on POST behind Joomla's native token check.
  * Nothing on a display render may write: this event fires while the grid is being drawn.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 final class AdminListBulkActionsEvent extends AlfaAdminEvent
 {
     /**
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const NAME = 'onAlfaAdminListBulkActions';
 }

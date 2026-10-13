@@ -29,7 +29,7 @@ use Joomla\CMS\Event\AbstractEvent;
  * Same shape as the document type provider collection: the typed
  * signature IS the developer contract.
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 class CollectStockAllocationProvidersEvent extends AbstractEvent
 {
@@ -42,7 +42,7 @@ class CollectStockAllocationProvidersEvent extends AbstractEvent
      * @param int $priority Chain position; higher asks first.
      *
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function addProvider(StockAllocationProviderInterface $provider, string $element, int $priority = 0): void
     {
@@ -62,7 +62,7 @@ class CollectStockAllocationProvidersEvent extends AbstractEvent
      *
      * @return array<int, array{provider: StockAllocationProviderInterface, element: string, priority: int}>
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function getProviders(): array
     {

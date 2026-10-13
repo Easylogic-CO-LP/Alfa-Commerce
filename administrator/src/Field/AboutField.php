@@ -42,7 +42,7 @@ use Joomla\Database\DatabaseInterface;
  * The field stores nothing: it renders no input, so the form never receives
  * a value for it.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class AboutField extends FormField
 {
@@ -80,7 +80,7 @@ class AboutField extends FormField
      * The card renders its own heading, so the form label is empty.
      *
      * @return string
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function getLabel()
     {
@@ -91,7 +91,7 @@ class AboutField extends FormField
      * Render the card.
      *
      * @return string
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function getInput()
     {
@@ -247,7 +247,7 @@ class AboutField extends FormField
      * update server it announces.
      *
      * @return array{version: string, server: string} Empty strings when the manifest cannot be read
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function manifest(): array
     {
@@ -265,7 +265,7 @@ class AboutField extends FormField
      * with the version each registered on install.
      *
      * @return object[] Rows with id, kind, type, version, enabled; component first
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function installedExtensions(): array
     {
@@ -315,7 +315,7 @@ class AboutField extends FormField
      * @param object[] $extensions The rows from {@see installedExtensions()}
      *
      * @return string '' when the component is not registered
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function registeredVersion(array $extensions): string
     {
@@ -335,7 +335,7 @@ class AboutField extends FormField
      * @param string $installed The installed version
      *
      * @return string '' when nothing newer is recorded
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function availableUpdate(string $installed): string
     {
@@ -366,7 +366,7 @@ class AboutField extends FormField
      * timezone.
      *
      * @return string 'Y-m-d H:i', '' when the server was never queried
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function lastUpdateCheck(): string
     {
@@ -392,7 +392,7 @@ class AboutField extends FormField
      * The runtime the shop is on: the first thing a support request needs.
      *
      * @return array<string, string> Label => value, in display order
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function environment(): array
     {
@@ -427,7 +427,7 @@ class AboutField extends FormField
      * the shop can run without it.
      *
      * @return array<int, array{name: string, used: string, required: bool, loaded: bool}>
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function requirements(): array
     {
@@ -458,7 +458,7 @@ class AboutField extends FormField
      * caching, routing, templates, languages and the table prefix.
      *
      * @return array<string, string> Label => value, in display order
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function joomlaState(): array
     {
@@ -493,7 +493,7 @@ class AboutField extends FormField
      * @param int $clientId 0 for the site, 1 for the administrator
      *
      * @return string 'unknown' when no default style is set
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function homeTemplate(int $clientId): string
     {
@@ -521,7 +521,7 @@ class AboutField extends FormField
      * @param array<string, string> $joomla Joomla configuration facts
      * @param object[] $extensions Installed Alfa extensions
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function report(
         string $installed,
@@ -576,7 +576,7 @@ class AboutField extends FormField
      * @param string $body The content, already HTML
      * @param bool $padded Whether the content sits in a card body (false for a flush table)
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function panel(string $title, string $body, bool $padded = true): string
     {
@@ -591,7 +591,7 @@ class AboutField extends FormField
      * @param string $term The label, escaped here
      * @param string $html The value, already HTML
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function fact(string $term, string $html): string
     {
@@ -605,7 +605,7 @@ class AboutField extends FormField
      * @param string $text The visible text, escaped here
      * @param bool $external Whether the target leaves the site
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function link(string $url, string $text, bool $external = true): string
     {
@@ -620,7 +620,7 @@ class AboutField extends FormField
      * @param string $text The visible text, escaped here
      * @param bool $external Whether the target leaves the site
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function button(string $url, string $text, bool $external = true): string
     {
@@ -633,7 +633,7 @@ class AboutField extends FormField
      *
      * @param string $text The raw text
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function e(string $text): string
     {

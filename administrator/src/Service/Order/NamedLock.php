@@ -28,7 +28,7 @@ use Throwable;
  * It fails closed: a lock the database gives no answer for is an exception,
  * and the work does not run.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 trait NamedLock
 {
@@ -44,7 +44,7 @@ trait NamedLock
      *
      * @throws RuntimeException When the lock cannot be taken.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function runLocked(string $name, string $label, string $logCategory, callable $work): bool
     {
@@ -84,7 +84,7 @@ trait NamedLock
      *
      * @return string alfa.<kind>.<site>.<id>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function lockName(DatabaseInterface $db, string $kind, int $id): string
     {

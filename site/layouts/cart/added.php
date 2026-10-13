@@ -55,7 +55,7 @@ use Joomla\CMS\Router\Route;
  *   messages       array        buyer messages [{message, type}] when the add was rejected
  *   placement, effect, offsetY, offsetX, timeout   the Options -> Cart values (timeout in seconds, fractions allowed)
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 
 $line          = $displayData['line'] ?? null;

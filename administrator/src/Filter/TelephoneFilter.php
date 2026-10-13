@@ -44,7 +44,7 @@ use SimpleXMLElement;
  * anything it cannot make sense of is passed through untouched for the rule to
  * refuse by name.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class TelephoneFilter implements FormFilterInterface
 {
@@ -58,7 +58,7 @@ class TelephoneFilter implements FormFilterInterface
      * @return string The canonical number, or the value untouched when it is
      *                not one; the rule answers for that.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function filter(SimpleXMLElement $element, $value, $group = null, ?Registry $input = null, ?Form $form = null)
     {
@@ -93,7 +93,7 @@ class TelephoneFilter implements FormFilterInterface
      * @param string $value The typed number.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function viaLibrary(SimpleXMLElement $element, string $value): ?string
     {
@@ -143,7 +143,7 @@ class TelephoneFilter implements FormFilterInterface
      *
      * @return PhoneNumberFormat The library's own format enum.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function storeFormat(SimpleXMLElement $element): PhoneNumberFormat
     {
@@ -161,7 +161,7 @@ class TelephoneFilter implements FormFilterInterface
      * @param string $value The typed number.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function compact(string $value): string
     {

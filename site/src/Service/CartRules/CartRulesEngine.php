@@ -66,7 +66,7 @@ defined('_JEXEC') or die;
  *   {userId: int, userGroups: int[], codes: string[],
  *    shipping_tax_incl: float, shipping_tax_excl: float}
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class CartRulesEngine
 {
@@ -75,7 +75,7 @@ final class CartRulesEngine
      *
      * @var string[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private const CLASS_SEQUENCE = ['product', 'order', 'shipping'];
 
@@ -86,7 +86,7 @@ final class CartRulesEngine
      *
      * @var array<string, string>
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private array $codeOutcomes = [];
 
@@ -100,7 +100,7 @@ final class CartRulesEngine
      *                rejected_codes: string[]} - progress carries the
      *                distance-to-eligibility structure of near-miss rules.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     /**
      * THE ROUNDING CONTRACT. A discount is MONEY the moment it
@@ -131,7 +131,7 @@ final class CartRulesEngine
      *
      * @throws LogicException When the context named none.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function currency(): Currency
     {
@@ -158,7 +158,7 @@ final class CartRulesEngine
      *
      * @return object The full result shape, with every discount at zero.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function neutralResult(object $context): object
     {
@@ -297,7 +297,7 @@ final class CartRulesEngine
      * @return object {cost: float, discount: float, final: float,
      *                benefit: 'free_shipping'|'partial'|'none'}
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function shippingBenefit(object $context, array $applied): object
     {
@@ -361,7 +361,7 @@ final class CartRulesEngine
      * @param string $outcome A CouponOutcome constant.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function noteOutcome(string $code, string $outcome): void
     {
@@ -383,7 +383,7 @@ final class CartRulesEngine
      *
      * @return array<int, object> Rule rows keyed by id.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function loadCandidateRules(object $context): array
     {
@@ -454,7 +454,7 @@ final class CartRulesEngine
      *
      * @return array<int, object>
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function filterByTargeting(array $rules, object $context): array
     {
@@ -515,7 +515,7 @@ final class CartRulesEngine
      *
      * @return array<int, object>
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function filterByUsage(array $rules, int $userId): array
     {
@@ -585,7 +585,7 @@ final class CartRulesEngine
      * @param string $outcome A CouponOutcome constant.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function noteRuleOutcome(object $rule, string $outcome): void
     {
@@ -606,7 +606,7 @@ final class CartRulesEngine
      * @param array<int, object> $rules The surviving candidates.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function classifyUnmatchedCodes(array $codes, array $rules): void
     {
@@ -690,7 +690,7 @@ final class CartRulesEngine
      *
      * @return array<int, array> rule id => group list.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function loadConditions(array $ruleIds): array
     {
@@ -767,7 +767,7 @@ final class CartRulesEngine
      *
      * @return object {categories: array<int,int[]>, manufacturers: array<int,int[]>}.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function loadLineFacts(array $lines): object
     {
@@ -820,7 +820,7 @@ final class CartRulesEngine
      *
      * @throws LogicException When the rule states a minimum amount and the context named no currency.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function evaluateRule(object $rule, array $groups, array $lines, object $facts): object
     {
@@ -951,7 +951,7 @@ final class CartRulesEngine
      *
      * @return Money|null Null when minor units cannot hold the minimum.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function minimumAmount(mixed $stated, Currency $currency): ?Money
     {
@@ -988,7 +988,7 @@ final class CartRulesEngine
      * @param object $facts The line facts.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function lineMatchesGroup(object $line, object $group, object $facts): bool
     {
@@ -1044,7 +1044,7 @@ final class CartRulesEngine
      *
      * @return AppliedCartRule[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function applyClass(string $class, array $candidates, array $lines, object $context, array &$productDiscountByLine): array
     {
@@ -1166,7 +1166,7 @@ final class CartRulesEngine
      *
      * @throws LogicException When the context named no currency.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function computeDiscount(
         object $rule,
@@ -1391,7 +1391,7 @@ final class CartRulesEngine
      *
      * @return bool True when the first unit is strictly below the second.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function unitBelow(Money $gross, int $quantity, Money $than, int $thanQuantity): bool
     {
@@ -1421,7 +1421,7 @@ final class CartRulesEngine
      * @param Money $baseIncl The tax-inclusive base.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function actionAmount(object $rule, Money $baseIncl): Money
     {
@@ -1466,7 +1466,7 @@ final class CartRulesEngine
      * @param object $rule Rule row carrying the joined per-language names.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function displayName(object $rule): string
     {

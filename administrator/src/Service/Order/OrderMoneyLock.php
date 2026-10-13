@@ -35,7 +35,7 @@ use Throwable;
  * It fails closed: a lock that cannot be taken is an exception, and the
  * operation is not sent.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class OrderMoneyLock
 {
@@ -52,7 +52,7 @@ final class OrderMoneyLock
      *
      * @throws RuntimeException When the lock cannot be taken.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function run(int $orderId, callable $work): bool
     {
@@ -95,7 +95,7 @@ final class OrderMoneyLock
      *
      * @return string At most 43 characters.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function name(DatabaseInterface $db, int $orderId): string
     {

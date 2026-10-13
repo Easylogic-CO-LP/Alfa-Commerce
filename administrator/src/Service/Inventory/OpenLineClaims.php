@@ -44,14 +44,14 @@ use Joomla\Database\DatabaseInterface;
  * has locked the identity's stock records: a fulfilment of such a line locks the
  * same records first.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class OpenLineClaims
 {
     /**
      * @param DatabaseInterface $db The database driver.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function __construct(
         private readonly DatabaseInterface $db,
@@ -70,7 +70,7 @@ final class OpenLineClaims
      * @return array<int, array<int, list<array{order_id: int, line_id: int, ordered: float, delivered: float, returned: float, outstanding: float}>>>
      *                                                                                                                                                 item id => acting combination id => lines.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function forItems(array $itemIds): array
     {
@@ -159,7 +159,7 @@ final class OpenLineClaims
      *
      * @return string A parenthesised numeric expression.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function deliveredTermSql(DatabaseInterface $db, string $movementAlias): string
     {
@@ -184,7 +184,7 @@ final class OpenLineClaims
      *
      * @return string A parenthesised numeric expression.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function returnedTermSql(DatabaseInterface $db, string $movementAlias): string
     {
@@ -200,7 +200,7 @@ final class OpenLineClaims
      *
      * @return string A comma-separated list of quoted literals.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function physicalReturnSources(DatabaseInterface $db): string
     {
@@ -218,7 +218,7 @@ final class OpenLineClaims
      *
      * @return string A parenthesised boolean expression.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function openOrderSql(DatabaseInterface $db, string $orderAlias, string $statusAlias): string
     {
@@ -242,7 +242,7 @@ final class OpenLineClaims
      *
      * @return string A parenthesised integer expression (1 or 0).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function placedTrackedSql(DatabaseInterface $db, string $lineAlias): string
     {

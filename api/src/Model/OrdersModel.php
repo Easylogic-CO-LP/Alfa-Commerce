@@ -29,7 +29,7 @@ use Alfa\Component\Alfa\Site\Service\Pricing\PublishedDecimal;
  * exact sums of the stored rows, the payment facts the Money they were derived
  * from, the two percentages their two-place text.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 class OrdersModel extends AdminOrdersModel
 {
@@ -40,7 +40,7 @@ class OrdersModel extends AdminOrdersModel
      *
      * @var array<string, string>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const TOTALS = [
         'order_total' => 'grand_total_tax_incl',
@@ -59,7 +59,7 @@ class OrdersModel extends AdminOrdersModel
      *
      * @var array<string, string>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const FACTS = [
         'total_paid_real' => 'paid_real',
@@ -74,7 +74,7 @@ class OrdersModel extends AdminOrdersModel
      *
      * @return mixed An array of rows, or false on failure.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function getItems()
     {

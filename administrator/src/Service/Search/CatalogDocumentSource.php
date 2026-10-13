@@ -29,7 +29,7 @@ use Joomla\Database\ParameterType;
  * The moment this class starts assembling documents itself, there are two
  * definitions of a document and they will drift.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class CatalogDocumentSource implements DocumentSourceInterface
 {
@@ -38,17 +38,17 @@ final class CatalogDocumentSource implements DocumentSourceInterface
      * this bounds a SELECT, that bounds a payload.
      *
      * @var int
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private const PAGE_SIZE = 500;
 
     /**
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private readonly DatabaseInterface $db;
 
     /**
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private readonly SearchDocumentBuilder $builder;
 
@@ -56,7 +56,7 @@ final class CatalogDocumentSource implements DocumentSourceInterface
      * @param SearchDocumentBuilder|null $builder Builds one document; defaults to a new builder.
      * @param DatabaseInterface|null $db Injected for testing; defaults to the container driver.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function __construct(?SearchDocumentBuilder $builder = null, ?DatabaseInterface $db = null)
     {
@@ -71,7 +71,7 @@ final class CatalogDocumentSource implements DocumentSourceInterface
      *
      * @return LanguageTag[]
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function languages(): array
     {
@@ -79,7 +79,7 @@ final class CatalogDocumentSource implements DocumentSourceInterface
     }
 
     /**
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function countRecords(): int
     {
@@ -103,7 +103,7 @@ final class CatalogDocumentSource implements DocumentSourceInterface
      *
      * @return iterable<int, SearchDocument[]>
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     /**
      * Re-read a named set of items, for reconciliation before activation.
@@ -116,7 +116,7 @@ final class CatalogDocumentSource implements DocumentSourceInterface
      *
      * @return iterable<int, SearchDocument[]>
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function documentsFor(array $recordIds): iterable
     {
@@ -143,7 +143,7 @@ final class CatalogDocumentSource implements DocumentSourceInterface
      *
      * @return SearchDocument[] Empty when the item must not be indexed at all.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function buildFor(int $id, array $languages): array
     {

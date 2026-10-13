@@ -30,7 +30,7 @@ use UnexpectedValueException;
  * finer than the column's eight places, or with more whole digits than it
  * holds, is therefore never rounded or cut by the column.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 class DecimalRule extends FormRule
 {
@@ -45,7 +45,7 @@ class DecimalRule extends FormRule
      *
      * @throws UnexpectedValueException With the operator's words, naming the figure.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function test(SimpleXMLElement $element, $value, $group = null, ?Registry $input = null, ?Form $form = null)
     {

@@ -17,7 +17,7 @@ defined('_JEXEC') or die;
  * Runtime provenance for presentation only: it says how a unit may be shown,
  * and no amount is ever computed from it.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 enum UnitOrigin: string
 {

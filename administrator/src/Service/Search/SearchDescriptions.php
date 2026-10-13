@@ -38,7 +38,7 @@ defined('_JEXEC') or die;
  * an untranslated description is simply absent, and borrowing another language's
  * prose would put foreign-language text into a language-scoped document.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class SearchDescriptions
 {
@@ -47,7 +47,7 @@ final class SearchDescriptions
      * @param string $full The long description, plain text, capped at build time.
      * @param string $meta Meta title and meta description, plain text.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly string $short = '',
@@ -60,7 +60,7 @@ final class SearchDescriptions
      * Whether there is any prose at all.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function isEmpty(): bool
     {

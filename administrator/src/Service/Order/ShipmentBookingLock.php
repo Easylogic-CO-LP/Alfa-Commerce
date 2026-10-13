@@ -27,7 +27,7 @@ use RuntimeException;
  *
  * A named database lock, taken without waiting ({@see NamedLock}).
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class ShipmentBookingLock
 {
@@ -46,7 +46,7 @@ final class ShipmentBookingLock
      *
      * @throws RuntimeException When the lock cannot be taken.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function run(int $shipmentId, callable $work): bool
     {
@@ -70,7 +70,7 @@ final class ShipmentBookingLock
      *
      * @return string 40 characters for a 10-digit shipment id; the server allows 64.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function name(DatabaseInterface $db, int $shipmentId): string
     {

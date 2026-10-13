@@ -30,7 +30,7 @@ use Alfa\Component\Alfa\Administrator\Event\Lists\HasColumns;
  * A plugin may still point at another plugin's layout by calling setPluginType()/setPluginName()
  * on the descriptor: the stamp is a default, not a lock.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 final class AdminColumns
 {
@@ -40,13 +40,13 @@ final class AdminColumns
 
     /**
      * @var string The plugin group currently contributing.
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private string $ownerGroup = '';
 
     /**
      * @var string The plugin element currently contributing.
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private string $ownerElement = '';
 
@@ -72,7 +72,7 @@ final class AdminColumns
      *
      * @return ColumnBuilder For chaining.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function column(string $key): ColumnBuilder
     {
@@ -91,7 +91,7 @@ final class AdminColumns
      * @param string $element The contributing plugin's element.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function setOwner(string $group, string $element): void
     {

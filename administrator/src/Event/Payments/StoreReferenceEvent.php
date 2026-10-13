@@ -20,7 +20,7 @@
  * Input:  getOrder(), getPayment() (the completed payment row)
  * Output: setReference(array) (opaque, JSON-serialized by the caller).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\Payments;
@@ -35,7 +35,7 @@ class StoreReferenceEvent extends AbstractImmutableEvent
     /**
      * The order the customer just paid.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getOrder(): Order
     {
@@ -45,7 +45,7 @@ class StoreReferenceEvent extends AbstractImmutableEvent
     /**
      * The completed `#__alfa_order_payments` row.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getPayment(): object
     {
@@ -65,7 +65,7 @@ class StoreReferenceEvent extends AbstractImmutableEvent
      *                               the gateway exposes it; enables expiry
      *                               pre-dunning. Null = unknown/none.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setReference(array $reference, string $label = '', ?string $expiresAt = null): void
     {
@@ -77,7 +77,7 @@ class StoreReferenceEvent extends AbstractImmutableEvent
     /**
      * Customer-facing label the plugin provided ('' when none).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getLabel(): string
     {
@@ -87,7 +87,7 @@ class StoreReferenceEvent extends AbstractImmutableEvent
     /**
      * Credential expiry (UTC SQL datetime) or null.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getExpiresAt(): ?string
     {
@@ -98,7 +98,7 @@ class StoreReferenceEvent extends AbstractImmutableEvent
      * The stored reference, or null when the plugin produced none.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getReference(): ?array
     {
@@ -108,7 +108,7 @@ class StoreReferenceEvent extends AbstractImmutableEvent
     /**
      * Whether the plugin produced a usable reference.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function hasReference(): bool
     {

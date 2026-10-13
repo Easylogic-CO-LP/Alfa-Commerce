@@ -31,7 +31,7 @@ use Joomla\Registry\Registry;
  * Arguments: subject = the item, method = the FIELD DEFINITION row (the
  * field plays the role a payment method plays in the payments group).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class ItemViewEvent extends LayoutEvent
 {
@@ -44,7 +44,7 @@ class ItemViewEvent extends LayoutEvent
      * no enum import: buyForm()->setLayout('item-radio')->setData([...]).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function buyForm(): SurfaceBuilder
     {
@@ -55,7 +55,7 @@ class ItemViewEvent extends LayoutEvent
      * A surface beside the product title, e.g. a badge.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function title(): SurfaceBuilder
     {
@@ -66,7 +66,7 @@ class ItemViewEvent extends LayoutEvent
      * A surface on the product image / gallery: overlay/badge.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function image(): SurfaceBuilder
     {
@@ -77,7 +77,7 @@ class ItemViewEvent extends LayoutEvent
      * A surface in the short description block.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function shortDescription(): SurfaceBuilder
     {
@@ -88,7 +88,7 @@ class ItemViewEvent extends LayoutEvent
      * A surface in the full description block.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function fullDescription(): SurfaceBuilder
     {
@@ -99,7 +99,7 @@ class ItemViewEvent extends LayoutEvent
      * A surface next to the add-to-cart button: extra control/note.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function nearAddToCart(): SurfaceBuilder
     {
@@ -111,7 +111,7 @@ class ItemViewEvent extends LayoutEvent
      * (after the interactive selectors). A passive surface: no selector, no input.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function specifications(): SurfaceBuilder
     {
@@ -123,7 +123,7 @@ class ItemViewEvent extends LayoutEvent
      *
      * @return mixed
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getItem()
     {
@@ -135,7 +135,7 @@ class ItemViewEvent extends LayoutEvent
      * decoded params, as assembled by getFieldsPopupData()).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getField(): object
     {
@@ -148,7 +148,7 @@ class ItemViewEvent extends LayoutEvent
      * plugin reads it here with NO query. Empty Registry when nothing is stored.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getConfig(): Registry
     {
@@ -166,7 +166,7 @@ class ItemViewEvent extends LayoutEvent
      *
      * @return mixed
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getCurrentValue()
     {

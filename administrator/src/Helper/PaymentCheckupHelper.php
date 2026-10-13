@@ -30,7 +30,7 @@ use Throwable;
  * "Check connection" endpoint, which draws it again after the plugin has
  * asked its provider, so both produce the same markup from the same path.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class PaymentCheckupHelper
 {
@@ -43,7 +43,7 @@ final class PaymentCheckupHelper
      *
      * @return string The card's HTML.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function render(int $methodId, string $variant, bool $check, string $domId, string $title): string
     {
@@ -127,7 +127,7 @@ final class PaymentCheckupHelper
      *
      * @return object|null id, type, state, params.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function loadMethod(int $methodId): ?object
     {
@@ -145,7 +145,7 @@ final class PaymentCheckupHelper
      * @param array $data Layout data.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function draw(array $data): string
     {

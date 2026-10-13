@@ -24,7 +24,7 @@ class TaxesModel extends AlfaListModel
 {
     /**
      * @var string The entity a plugin targets with $context->targets('tax').
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'tax';
 
@@ -34,7 +34,7 @@ class TaxesModel extends AlfaListModel
      * would run twice per request.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private ?array $alfaEnriched = null;
 

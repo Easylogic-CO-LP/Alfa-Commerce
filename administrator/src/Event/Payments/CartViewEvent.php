@@ -37,7 +37,7 @@ class CartViewEvent extends PaymentsLayoutEvent
      * @param string $name The event name.
      * @param array $arguments Must carry the MethodViewRequest as 'subject'.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct($name, array $arguments = [])
     {
@@ -54,7 +54,7 @@ class CartViewEvent extends PaymentsLayoutEvent
      * comes to that on.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getRequest(): MethodViewRequest
     {
@@ -70,7 +70,7 @@ class CartViewEvent extends PaymentsLayoutEvent
      * a getter the component has not written yet.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getMethod(): Method
     {
@@ -89,7 +89,7 @@ class CartViewEvent extends PaymentsLayoutEvent
      * Cart cannot mutate the cart and nothing on it recomputes.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getCart(): Cart
     {

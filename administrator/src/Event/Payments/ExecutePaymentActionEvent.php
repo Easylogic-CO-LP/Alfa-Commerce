@@ -253,7 +253,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function addButton(string $label, array $opts = []): static
     {
@@ -273,7 +273,7 @@ class ExecutePaymentActionEvent extends AbstractImmutableEvent
     /**
      * @return array The declared footer buttons.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getButtons(): array
     {

@@ -85,7 +85,7 @@ use Throwable;
  * Comparisons are integer minor units through {@see Money}. No epsilon decides
  * anything here, and the pools this reads were made exact for that reason.
  *
- * @since  1.13.0
+ * @since  2.0.0
  */
 final class ReconciliationFacts
 {
@@ -140,7 +140,7 @@ final class ReconciliationFacts
      *
      * @return string One of the STATE_* constants.
      *
-     * @since  1.13.0
+     * @since  2.0.0
      */
     private static function state(int $capacity, int $consumed): string
     {
@@ -170,7 +170,7 @@ final class ReconciliationFacts
      * @param Currency $currency The order's frozen currency.
      *
      *
-     * @since  1.13.0
+     * @since  2.0.0
      */
     private static function pool(int $capacity, int $consumed, Currency $currency): stdClass
     {
@@ -231,7 +231,7 @@ final class ReconciliationFacts
      *
      * @return int Minor units the source reads as documented.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function documented(int $capacity, int $gross, int $credited): int
     {
@@ -254,7 +254,7 @@ final class ReconciliationFacts
      * @param Currency $currency The order's frozen currency.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function member(string $poolName, int $source, int $capacity, int $documented, string $label, Currency $currency): stdClass
     {
@@ -290,7 +290,7 @@ final class ReconciliationFacts
      * @param bool $goodsInvoiced Every order line fully invoiced.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function discountState(int $capacity, int $documented, bool $goodsInvoiced): string
     {
@@ -327,7 +327,7 @@ final class ReconciliationFacts
      * @param stdClass[] $pools Pool entries.
      *
      *
-     * @since  1.13.0
+     * @since  2.0.0
      */
     private static function rollUp(array $pools): string
     {
@@ -363,7 +363,7 @@ final class ReconciliationFacts
      * @param string[] $states The states to reduce.
      *
      *
-     * @since  1.13.0
+     * @since  2.0.0
      */
     private static function rollUpStates(array $states): string
     {
@@ -416,7 +416,7 @@ final class ReconciliationFacts
      * @param Currency $currency The order's currency at its frozen scale.
      *
      *
-     * @since  1.13.0
+     * @since  2.0.0
      */
     public static function fromRows(array $rows, Currency $currency): stdClass
     {
@@ -1013,7 +1013,7 @@ final class ReconciliationFacts
      *
      * @return stdClass|null A MISMATCH_TAX_RATE entry, or null when consistent.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function chargeRateMismatch(object $item, object $source): ?stdClass
     {
@@ -1045,7 +1045,7 @@ final class ReconciliationFacts
      * @param string $document What the document states.
      *
      *
-     * @since  1.13.0
+     * @since  2.0.0
      */
     private static function mismatch(string $kind, int $documentId, object $item, string $order, string $document): stdClass
     {
@@ -1079,7 +1079,7 @@ final class ReconciliationFacts
      *
      * @return array<int, stdClass> Facts keyed by order id.
      *
-     * @since  1.13.0
+     * @since  2.0.0
      */
     public static function forOrders(array $orderIds): array
     {
@@ -1251,7 +1251,7 @@ final class ReconciliationFacts
      *
      * @throws OrderCurrencyException When the order names no currency.
      *
-     * @since  1.13.0
+     * @since  2.0.0
      */
     public static function forOrder(int $orderId): stdClass
     {

@@ -30,13 +30,13 @@ use Throwable;
  * cart is the shopper's own working document. Reaching into one is a later
  * step with its own permission and its own audit trail.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class HtmlView extends BaseHtmlView
 {
     /**
      * @var string The entity a plugin targets with $context->targets('cart').
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'cart';
 
@@ -52,13 +52,13 @@ class HtmlView extends BaseHtmlView
 
     /**
      * @var array{active: int, abandoned: int, empty: int} The three counts above the list.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected array $summary = ['active' => 0, 'abandoned' => 0, 'empty' => 0];
 
     /**
      * @var int Hours of silence after which a cart with lines reads as abandoned.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected int $abandonedAfterHours = 24;
 
@@ -66,7 +66,7 @@ class HtmlView extends BaseHtmlView
      * @var string The instant THIS request measures abandonment from: the same
      *             one the tiles were counted with and the list was filtered by,
      *             so a row's badge cannot disagree with either.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected string $abandonedCutoff = '';
 
@@ -77,11 +77,11 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     /**
      * @var bool May this operator start a cart on a customer's behalf?
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected bool $canBuild = false;
 
@@ -90,7 +90,7 @@ class HtmlView extends BaseHtmlView
      * deletes carts.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected bool $canPurge = false;
 
@@ -99,13 +99,13 @@ class HtmlView extends BaseHtmlView
      *
      * @var array{empty: int, lines: int, floor: int}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected array $retentionWindows = ['empty' => 0, 'lines' => 0, 'floor' => 0];
 
     /**
      * @var \Joomla\CMS\Form\Form|null The customer picker that starts one.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected $newCartForm = null;
 
@@ -153,7 +153,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return \Joomla\CMS\Form\Form|null
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function newCartForm()
     {
@@ -173,7 +173,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function addToolbar()
     {

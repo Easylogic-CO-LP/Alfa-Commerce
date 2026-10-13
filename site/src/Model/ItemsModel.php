@@ -106,7 +106,7 @@ class ItemsModel extends UrlListModel
      * as "no more results" rather than as rows they were never allowed.
      *
      * @var int
-     * @since  1.9.1
+     * @since  2.0.0
      */
     private const TYPEAHEAD_CANDIDATE_LIMIT = 200;
 
@@ -121,7 +121,7 @@ class ItemsModel extends UrlListModel
      * passes, so no valid configuration can reach the guard by being large.
      *
      * @var int
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private const SHOWON_PASS_MARGIN = 2;
 
@@ -130,7 +130,7 @@ class ItemsModel extends UrlListModel
      * {@see self::resolveFacetShowon()} has run.
      *
      * @var int[]|null
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private ?array $facetShowonHidden = null;
 
@@ -140,14 +140,14 @@ class ItemsModel extends UrlListModel
      * browser, so the client cannot reach a different conclusion than the server did.
      *
      * @var int[]
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private array $facetShowonInactive = [];
 
     /**
      * Re-entrancy latch for the resolution loop; see resolveFacetShowon().
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private bool $facetShowonResolving = false;
 
@@ -175,7 +175,7 @@ class ItemsModel extends UrlListModel
      *
      * @var int[]
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     protected array $relevanceIds = [];
 
@@ -190,7 +190,7 @@ class ItemsModel extends UrlListModel
      * rather than a zero.
      *
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     protected int|string|null $searchEventId = null;
 
@@ -203,7 +203,7 @@ class ItemsModel extends UrlListModel
      * @return int|string|null Engine-issued handle, or null when this result set is not
      *                         attributable.
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     public function getSearchEventId(): int|string|null
     {
@@ -215,7 +215,7 @@ class ItemsModel extends UrlListModel
      * has not touched them). Used to bind the seeded values into the panel.
      *
      * @var string[]
-     * @since 1.5.0
+     * @since 2.0.0
      */
     protected array $appliedPresets = [];
 
@@ -223,7 +223,7 @@ class ItemsModel extends UrlListModel
      * Per-request memo of decoded #__alfa_categories.list_options, by category id.
      *
      * @var array<int, array<string, string>>
-     * @since 1.9.0
+     * @since 2.0.0
      */
     private static array $categoryListOptions = [];
 
@@ -320,7 +320,7 @@ class ItemsModel extends UrlListModel
      * @param array $defaults The `list` defaults parsed from filter_items.xml
      *
      * @return array The defaults to use, same shape
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function contextListDefaults(array $defaults): array
     {
@@ -363,7 +363,7 @@ class ItemsModel extends UrlListModel
      * @param mixed ...$candidates Tier values, most specific first
      *
      * @return mixed|null The winning value, or null when every tier is empty
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function firstConfigured(...$candidates)
     {
@@ -383,7 +383,7 @@ class ItemsModel extends UrlListModel
      *
      * @param mixed $value A tier's stored value
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function wholeNumberOrNull($value): ?string
     {
@@ -408,7 +408,7 @@ class ItemsModel extends UrlListModel
      * @param array $list List input from URL
      * @param array $defaults Defaults from XML (already chain-resolved)
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function populateListState(array $list, array $defaults): void
     {
@@ -439,7 +439,7 @@ class ItemsModel extends UrlListModel
      *
      * @return array<string, string> Decoded list_options; empty when the
      *                               listing has no category context
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function getCategoryListOptions(): array
     {
@@ -472,7 +472,7 @@ class ItemsModel extends UrlListModel
      * configured anywhere, and the storefront dropdown keeps its stock sizes.
      *
      * @return int[] Clean ascending sizes, 0 meaning "All"
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function getListLimits(): array
     {
@@ -513,7 +513,7 @@ class ItemsModel extends UrlListModel
      * exists it owns the category axis, so a stored categories preset is
      * ignored.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function applyMenuPresets(): void
     {
@@ -538,7 +538,7 @@ class ItemsModel extends UrlListModel
      * @param \Joomla\CMS\Menu\MenuItem|null $item Menu item (default: the active one's params via getParams)
      *
      * @return array<string, mixed> filter name => preset value
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function getMenuPresets($item = null): array
     {
@@ -581,7 +581,7 @@ class ItemsModel extends UrlListModel
      * their ROUTE already); requests without filter params never redirect.
      *
      * @return string|null Route to redirect to, or null when already canonical
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function getCanonicalMenuUrl(): ?string
     {
@@ -669,7 +669,7 @@ class ItemsModel extends UrlListModel
      * @param bool $loadData True to load the form's own data
      *
      * @return \Joomla\CMS\Form\Form|null The filter form
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function getFilterForm($data = [], $loadData = true)
     {
@@ -854,7 +854,7 @@ class ItemsModel extends UrlListModel
      * @param int $categoryId The category id (0 = no context: a mixed listing).
      *
      * @return $this
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function setCategoryContext(int $categoryId): self
     {
@@ -1370,7 +1370,7 @@ class ItemsModel extends UrlListModel
      * @param int[] $valueIds The accepted value ids (OR within the field).
      *
      * @return string A boolean SQL expression for QueryInterface::where().
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function itemHasFieldValueSql(int $fieldId, array $valueIds): string
     {
@@ -1619,7 +1619,7 @@ class ItemsModel extends UrlListModel
      * @param array $selection fieldId => valueId (empty = default variant).
      * @param int[] $optionValueIds The chosen option value ids (empty = none).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function finishItemCard(object $item, PriceContext $context, array $selection, array $optionValueIds = [], array $payloads = []): void
     {
@@ -1674,7 +1674,7 @@ class ItemsModel extends UrlListModel
      * @param bool $xhtml Escape ampersands (Route::_'s second argument).
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function buildRoute(string $url, bool $xhtml = true): string
     {
@@ -1693,7 +1693,7 @@ class ItemsModel extends UrlListModel
      *
      * @param object $item The variant item being decorated.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function buildVariantUrls(object $item): void
     {
@@ -1727,7 +1727,7 @@ class ItemsModel extends UrlListModel
      *
      * @param object $item The item being decorated.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function setDefaultCart(object $item): void
     {
@@ -1752,7 +1752,7 @@ class ItemsModel extends UrlListModel
      *
      * @return int[] The fields that drew a buy-form selector.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function drawCard(object $item, array $selection): array
     {
@@ -1773,7 +1773,7 @@ class ItemsModel extends UrlListModel
      *
      * @return int[] Field ids, in listing order ([] = none).
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function readOnlyDimensions(object $item, array $drawnFieldIds): array
     {
@@ -1805,7 +1805,7 @@ class ItemsModel extends UrlListModel
      *
      * @return string The URL ('' when the application builds no links).
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function buildOptionsLink(object $item, array $selection): string
     {
@@ -1864,7 +1864,7 @@ class ItemsModel extends UrlListModel
      * @param int[] $drawnFieldIds The fields that drew a buy-form selector.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function chooseOptionsCart(object $item, array $drawnFieldIds): void
     {
@@ -1930,7 +1930,7 @@ class ItemsModel extends UrlListModel
      * @param int $id The item id.
      *
      * @return object|null The decorated card item, or null when not found/unpublished.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getItem(int $id): ?object
     {
@@ -2048,7 +2048,7 @@ class ItemsModel extends UrlListModel
      * @param object[] $items The hydrated page of items.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function dispatchItemsListPrepare(array $items): void
     {
@@ -2107,7 +2107,7 @@ class ItemsModel extends UrlListModel
      *
      * @return int[] The fields that drew a buy-form selector (sel[] / opt[]).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function dispatchItemListPrepare(object $item): array
     {
@@ -2264,7 +2264,7 @@ class ItemsModel extends UrlListModel
      *
      * @return array{in: int, out: int}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getAvailableStockCounts(): array
     {
@@ -2294,7 +2294,7 @@ class ItemsModel extends UrlListModel
      * @param mixed $state The `filter.stock` state.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function stockChoice(mixed $state): string
     {
@@ -2380,7 +2380,7 @@ class ItemsModel extends UrlListModel
      * memo keys on that text, so N candidates cost N executions.
      *
      * @return array<int, array{id: int, label: string, type: string, render_as: string, values: array<int, array{id: int, name: string, count: int, params: array}>}>
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getAvailableItemFieldValues(): array
     {
@@ -2413,7 +2413,7 @@ class ItemsModel extends UrlListModel
      * what may be hidden, and calling the public method there would recurse.
      *
      * @return array<int, array{id: int, name: string, label: string, type: string, render_as: string, showon: array|null, showon_effect: string, values: array<int, array{id: int, name: string, count: int, params: array}>}>
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function buildFacetValues(): array
     {
@@ -2744,7 +2744,7 @@ class ItemsModel extends UrlListModel
      * @return array<int, int[]> Field id => ordered value ids. A field with no values at
      *                           all still gets an entry, so callers can index safely.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function fieldValueOrder(array $fieldIds): array
     {
@@ -2786,7 +2786,7 @@ class ItemsModel extends UrlListModel
      *
      * @return array The active filters, with ShowOn-hidden facet selections removed.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getActiveFilters(): array
     {
@@ -2817,7 +2817,7 @@ class ItemsModel extends UrlListModel
      *
      * @return array{groups: array<int, array>, valueLayouts: array<int, array>, groupingDefault: bool}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function fieldValueGroups(object $field, array $values): array
     {
@@ -2897,7 +2897,7 @@ class ItemsModel extends UrlListModel
      *
      * @return array<string, array> Group descriptors keyed by token.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function fieldGroupMap(int $fieldId): array
     {
@@ -2966,7 +2966,7 @@ class ItemsModel extends UrlListModel
      *
      * @return array<string, int> Group token => distinct item count.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getFacetGroupCounts(int $fieldId): array
     {
@@ -3075,7 +3075,7 @@ class ItemsModel extends UrlListModel
      * results, counts and rendered markup cannot see the hidden selection.
      *
      * @return int[] Field ids hidden by a rule (sorted, so the result is deterministic).
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function resolveFacetShowon(): array
     {
@@ -3188,7 +3188,7 @@ class ItemsModel extends UrlListModel
      * @param array $facets Candidate facets from {@see self::buildFacetValues()}, in render order.
      *
      * @return array{hidden: int[], inactive: int[]} Sorted field ids.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function facetShowonVerdict(array $facets): array
     {
@@ -3241,7 +3241,7 @@ class ItemsModel extends UrlListModel
      * @param StateBag $bag The state built so far, in render order.
      *
      * @return bool False when the rule must be treated as inactive.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function ruleOperandsRendered(array $rule, StateBag $bag): bool
     {
@@ -3266,7 +3266,7 @@ class ItemsModel extends UrlListModel
      * @param array $rule The decoded rule.
      *
      * @return string[]
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function ruleOperandAddresses(array $rule): array
     {
@@ -3310,7 +3310,7 @@ class ItemsModel extends UrlListModel
      * Order-insensitive within a field, so a pass that only reshuffles is correctly read
      * as "no change".
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function effectiveFilterKey(): string
     {
@@ -3348,7 +3348,7 @@ class ItemsModel extends UrlListModel
      * @param mixed $raw The raw `params.showon` value.
      *
      * @return array|null The decoded rule, or null when there is nothing to evaluate.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function decodeShowonRule(mixed $raw): ?array
     {
@@ -3379,7 +3379,7 @@ class ItemsModel extends UrlListModel
      * @param \Joomla\Database\QueryInterface $query The built statement.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function statementKey($query): string
     {

@@ -24,7 +24,7 @@ defined('_JEXEC') or die;
  * against the carrier that was just settled. Both columns written in one act
  * stamp the same instant.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class MethodReconciliation
 {
@@ -34,7 +34,7 @@ final class MethodReconciliation
      * @param Closure $state (): HydratedCart - the cart as currently loaded.
      * @param CartRowWriter $rows Writes the settled choices.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         private readonly CartRepository $repository,
@@ -47,7 +47,7 @@ final class MethodReconciliation
     /**
      * @return array<string, string[]> The notices, keyed 'shipment' / 'payment'.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function reconcile(): array
     {

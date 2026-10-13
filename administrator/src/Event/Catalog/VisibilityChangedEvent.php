@@ -44,7 +44,7 @@ use Joomla\CMS\Event\AbstractEvent;
  * or ignore is the listener's decision, and building a queue for a consumer that
  * does not exist yet would be inventing requirements.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 class VisibilityChangedEvent extends AbstractEvent
 {
@@ -52,7 +52,7 @@ class VisibilityChangedEvent extends AbstractEvent
      * A record's allowed users / user groups were rewritten.
      *
      * @var string
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public const AUDIENCE_CHANGED = 'audience_changed';
 
@@ -66,7 +66,7 @@ class VisibilityChangedEvent extends AbstractEvent
      *
      * @return string e.g. "audience_changed".
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function changeType(): string
     {
@@ -78,7 +78,7 @@ class VisibilityChangedEvent extends AbstractEvent
      *
      * @return int[]
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function itemIds(): array
     {
@@ -90,7 +90,7 @@ class VisibilityChangedEvent extends AbstractEvent
      *
      * @return int[]
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function categoryIds(): array
     {
@@ -108,7 +108,7 @@ class VisibilityChangedEvent extends AbstractEvent
      *
      * @return int[]
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function affectedItemIds(): array
     {

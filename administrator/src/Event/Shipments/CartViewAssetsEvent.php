@@ -29,7 +29,7 @@ use Joomla\CMS\WebAsset\WebAssetManager;
  * onCartView, which also runs inside JSON answers where nothing can be
  * declared; that is why the two are separate hooks.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class CartViewAssetsEvent extends ShipmentsEvent
 {
@@ -37,7 +37,7 @@ class CartViewAssetsEvent extends ShipmentsEvent
      * What this plugin is being asked to declare for.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getRequest(): CartAssetsRequest
     {
@@ -48,7 +48,7 @@ class CartViewAssetsEvent extends ShipmentsEvent
      * 'shipment': the kind of method this plugin answers for.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getKind(): string
     {
@@ -62,7 +62,7 @@ class CartViewAssetsEvent extends ShipmentsEvent
      *
      * @return Method[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getMethods(): array
     {
@@ -73,7 +73,7 @@ class CartViewAssetsEvent extends ShipmentsEvent
      * The page being built, for addScriptOptions() and Text::script().
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getDocument(): HtmlDocument
     {
@@ -84,7 +84,7 @@ class CartViewAssetsEvent extends ShipmentsEvent
      * Where to declare the script and the stylesheet.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getWebAssetManager(): WebAssetManager
     {

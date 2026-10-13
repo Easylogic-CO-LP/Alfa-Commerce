@@ -31,7 +31,7 @@ defined('_JEXEC') or die;
  * later without breaking every implementor, and every engine on the roster has a
  * bulk endpoint precisely because per-document round trips do not scale.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 interface SearchIndexerInterface
 {
@@ -43,7 +43,7 @@ interface SearchIndexerInterface
      * atomic.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function createGeneration(): IndexGeneration;
 
@@ -65,7 +65,7 @@ interface SearchIndexerInterface
      *
      * @return IndexGeneration[] Never empty on a healthy engine; the active generation at minimum.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function writeTargets(): array;
 
@@ -82,7 +82,7 @@ interface SearchIndexerInterface
      *
      * @return IndexWriteResult Per-document outcome, so the caller retries precisely.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function write(IndexGeneration $generation, array $documents): IndexWriteResult;
 
@@ -97,7 +97,7 @@ interface SearchIndexerInterface
      * @param DocumentId[] $ids Documents to remove.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function delete(IndexGeneration $generation, array $ids): IndexWriteResult;
 
@@ -107,7 +107,7 @@ interface SearchIndexerInterface
      * @param IndexGeneration $generation The generation to promote.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function activateGeneration(IndexGeneration $generation): void;
 
@@ -117,7 +117,7 @@ interface SearchIndexerInterface
      * @param IndexGeneration $generation The generation to remove.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function dropGeneration(IndexGeneration $generation): void;
 
@@ -154,7 +154,7 @@ interface SearchIndexerInterface
      *                          unknown is not the same as clean, and must never be
      *                          reported as success.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function await(IndexGeneration $generation, float $timeoutSeconds = 30.0): IndexWriteResult;
 
@@ -164,7 +164,7 @@ interface SearchIndexerInterface
      * The engine knows its own payload limits; core should not guess them.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function preferredBatchSize(): int;
 }

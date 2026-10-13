@@ -63,7 +63,7 @@ use RuntimeException;
  * through DocumentDraft), and so does OrderChargeLines::itemShare(), which
  * divides by the same balance.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class OrderItemLines
 {
@@ -74,7 +74,7 @@ final class OrderItemLines
      * there is no money epsilon.
      *
      * @var float
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private const QUANTITY_EPSILON = 0.000001;
 
@@ -89,7 +89,7 @@ final class OrderItemLines
      *
      * @throws OrderCurrencyException When the order names no currency.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function orderCurrency(int $orderId): Currency
     {
@@ -106,7 +106,7 @@ final class OrderItemLines
      * @return array<int, object> Keyed by order line id: one {@see self::balance()} each, whose `row` is the
      *                            #__alfa_order_items row.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function remaining(int $orderId, string $docType): array
     {
@@ -204,7 +204,7 @@ final class OrderItemLines
      *                            taken_saving_excl and remaining_saving_excl (Money) beside it. `row` is the corrected
      *                            document's first row for the line; every Money is at the corrected document's own currency.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function remainingForCredit(int $correctsId): array
     {
@@ -331,7 +331,7 @@ final class OrderItemLines
      * @throws RuntimeException When the documents already issued for the line leave this part a net or a VAT
      *                          below zero; the message names the line and the way out.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function claim(float $quantity, object $balance, Currency $currency): array
     {
@@ -397,7 +397,7 @@ final class OrderItemLines
      *
      * @return array{total_tax_excl: string, total_tax_incl: string}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function stated(Money $gross, Money $net): array
     {
@@ -426,7 +426,7 @@ final class OrderItemLines
      *
      * @throws RuntimeException When the part cannot be stated.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function refuseImpossiblePart(int $lineId, Money $gross, Money $net, object $balance): void
     {
@@ -455,7 +455,7 @@ final class OrderItemLines
      * @param object $balance One entry of remaining() or remainingForCredit().
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function isOverClaim(float $quantity, object $balance): bool
     {
@@ -471,7 +471,7 @@ final class OrderItemLines
      * @param object $balance One entry of remaining() or remainingForCredit().
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function isFinalPartial(float $quantity, object $balance): bool
     {
@@ -494,7 +494,7 @@ final class OrderItemLines
      *
      * @return Money At the corrected document's currency.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function claimSaving(float $quantity, object $balance): Money
     {
@@ -542,7 +542,7 @@ final class OrderItemLines
      * @throws RuntimeException When the type is a credit type: a credit is drafted from the document it corrects
      *                          ({@see self::buildCreditLines()}).
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function buildSalesLines(int $orderId, string $docType, ?array $picks, string $language): array
     {
@@ -632,7 +632,7 @@ final class OrderItemLines
      *
      * @throws RuntimeException When a picked line is not on the corrected document.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function buildCreditLines(int $correctsId, array $picks): array
     {
@@ -707,7 +707,7 @@ final class OrderItemLines
      *                taken_incl: Money, taken_excl: Money, remaining_qty: float, remaining_incl: Money,
      *                remaining_excl: Money}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function balance(
         object $row,
@@ -769,7 +769,7 @@ final class OrderItemLines
      * @param Currency $currency The order currency.
      *
      *
-     * @since  1.12.0
+     * @since  2.0.0
      */
     private static function printedDiscount(object $row, float $quantity, Currency $currency): Money
     {
@@ -817,7 +817,7 @@ final class OrderItemLines
      *
      * @return array Every money and unit figure as its exact decimal text.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function draftLine(
         int $orderItemId,

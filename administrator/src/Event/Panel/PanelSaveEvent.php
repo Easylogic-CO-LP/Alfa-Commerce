@@ -21,7 +21,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Panel;
  * invalid input `addMessage($err, 'error')` per error and `setRedirect($editUrl)` back to
  * the form. The record primary key travels as the plain `id`.
  *
- * @since  1.7.0
+ * @since  2.0.0
  */
 class PanelSaveEvent extends PanelResultEvent
 {
@@ -31,7 +31,7 @@ class PanelSaveEvent extends PanelResultEvent
      * never touches user state.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function keepInput(): static
     {
@@ -44,7 +44,7 @@ class PanelSaveEvent extends PanelResultEvent
      * Whether the framework should re-show the submitted input on the edit screen.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function shouldKeepInput(): bool
     {

@@ -135,7 +135,7 @@ class PriceIndexSyncService
     /**
      * The scheduler routine that prepares requested sets (plg_task_alfapricesets).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const PREPARE_TASK = 'alfapricesets.prepare';
 
@@ -155,7 +155,7 @@ class PriceIndexSyncService
      * The groups a price row, a discount or a tax names, as read for this process.
      *
      * @var int[]|null
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static ?array $pricingGroups = null;
 
@@ -341,7 +341,7 @@ class PriceIndexSyncService
      *
      * @return int Number of sets requested; 0 when every set was already known.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function syncGroupSets(): int
     {
@@ -440,7 +440,7 @@ class PriceIndexSyncService
      *                                                                                                                                                    Sets marked prepared, index rows written, sets still waiting, whether another preparer held the lock, the
      *                                                                                                                                                    sets whose chunk failed otherwise, and the products left out of a set in this run.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function prepareGroupSets(float $seconds = 20.0, int $wait = 10): array
     {
@@ -519,7 +519,7 @@ class PriceIndexSyncService
      *
      * @return array The data com_scheduler's Task model saves.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function preparationTaskData(): array
     {
@@ -554,7 +554,7 @@ class PriceIndexSyncService
      *
      * @throws RuntimeException When the task could not be saved.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function ensurePreparationTask(): ?int
     {
@@ -594,7 +594,7 @@ class PriceIndexSyncService
      *                                                                                                                                                                                 the products that could not be priced for a set when it was prepared; the last run of the task, if any;
      *                                                                                                                                                                                 how many enabled tasks of it run on a schedule (not only by hand).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function preparationState(): array
     {
@@ -719,7 +719,7 @@ class PriceIndexSyncService
      *
      * @return int[] Ascending.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function pricingGroups(): array
     {
@@ -753,7 +753,7 @@ class PriceIndexSyncService
      *
      * @return string The key the set is found by (groupSetKey()).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function slotKey(PriceContext $context): string
     {
@@ -774,7 +774,7 @@ class PriceIndexSyncService
      *
      * @return string An INNER JOIN clause, to follow the index table in the reader's FROM.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function slotSetJoin(PriceContext $context, string $alias): string
     {
@@ -802,7 +802,7 @@ class PriceIndexSyncService
      *
      * @return string An ORDER BY list, without the keyword.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function slotRanking(string $alias): string
     {
@@ -816,7 +816,7 @@ class PriceIndexSyncService
      *
      * @return string The set's key (groupSetKey()).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function accountGroupSet(int $userId): string
     {
@@ -832,7 +832,7 @@ class PriceIndexSyncService
      * @param string $groupSet The set's key (groupSetKey()).
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function holdsGroupSet(string $groupSet): bool
     {
@@ -916,7 +916,7 @@ class PriceIndexSyncService
      *
      * @return int|null Rows written; null when a calculation failed (logged): the caller rolls the chunk back.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function writeChunk(array $chunk, array $combinations, array $globalEdges): ?int
     {
@@ -1112,7 +1112,7 @@ class PriceIndexSyncService
      * @param int[] $itemIds
      * @param int[] $groupSetIds The sets whose rows of those items go.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function deleteIndexRows(array $itemIds, array $groupSetIds): void
     {
@@ -1186,7 +1186,7 @@ class PriceIndexSyncService
      *
      * @return array item_id => [datetime, ...]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function getItemBoundaries(array $itemIds): array
     {
@@ -1223,7 +1223,7 @@ class PriceIndexSyncService
      *
      * @return string[] Sorted datetime strings.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function getGlobalBoundaries(): array
     {
@@ -1318,7 +1318,7 @@ class PriceIndexSyncService
      *
      * @return string '' for no group.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function groupSetList(array $groupIds): string
     {
@@ -1339,7 +1339,7 @@ class PriceIndexSyncService
      *
      * @return string 40 hex digits.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function groupSetKey(array $groupIds): string
     {
@@ -1353,7 +1353,7 @@ class PriceIndexSyncService
      *
      * @return int[]
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function groupsOfList(string $list): array
     {
@@ -1367,7 +1367,7 @@ class PriceIndexSyncService
      *
      * @return array<string, int[]> Key (groupSetKey()) => its groups.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function groupSetsInUse(): array
     {
@@ -1415,7 +1415,7 @@ class PriceIndexSyncService
      *
      * @return string[] Distinct sets, each as its list of ids (ascending, comma-separated).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function accountGroupLists(?int $userId = null): array
     {
@@ -1456,7 +1456,7 @@ class PriceIndexSyncService
      *
      * @return array<int, object> Each with id, group_list, digest, prepared_at, prepared_through.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function knownGroupSets(): array
     {
@@ -1472,7 +1472,7 @@ class PriceIndexSyncService
      *
      * @return int[]
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function indexedGroupSetIds(): array
     {
@@ -1495,7 +1495,7 @@ class PriceIndexSyncService
      *                                                                                               every set the index now knows, by id, with its groups, while it waits the last product its preparation
      *                                                                                               passed, and the products its preparation left out.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function alignGroupSets(): array
     {
@@ -1549,7 +1549,7 @@ class PriceIndexSyncService
      *
      * @return int The sets recorded (a set another request recorded meanwhile is not counted).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function requestGroupSets(array $groupSets): int
     {
@@ -1581,7 +1581,7 @@ class PriceIndexSyncService
      * @param int[] $setIds The sets; none, no statement.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function dropGroupSets(array $setIds): void
     {
@@ -1614,7 +1614,7 @@ class PriceIndexSyncService
      *
      * @return object[] Each with id, group_list, prepared_through.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function waitingGroupSets(): array
     {
@@ -1633,7 +1633,7 @@ class PriceIndexSyncService
      * @param int $setId The set.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function groupSetWaits(int $setId): bool
     {
@@ -1666,7 +1666,7 @@ class PriceIndexSyncService
      *
      * @return int|null Rows written; null when nothing was committed (the chunk failed otherwise, or the set is gone).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function prepareChunk(int $setId, array $chunk, array $combinations, array $globalEdges, array &$leftOut): ?int
     {
@@ -1753,7 +1753,7 @@ class PriceIndexSyncService
      *
      * @return int 1 when the set was marked; 0 when it was gone or already marked.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function markPrepared(int $setId): int
     {
@@ -1774,7 +1774,7 @@ class PriceIndexSyncService
      *
      * @return int[] Ascending; at most one chunk.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function publishedItemIdsAfter(int $after): array
     {
@@ -1795,7 +1795,7 @@ class PriceIndexSyncService
      * name carries this shop's database and table prefix.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function preparerLock(): string
     {

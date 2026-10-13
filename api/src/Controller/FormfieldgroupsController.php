@@ -44,7 +44,7 @@ class FormfieldgroupsController extends ApiController
      * managed from the Form Fields screen, and an undeclared section can never be granted.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function aclSection(): string
     {
@@ -56,7 +56,7 @@ class FormfieldgroupsController extends ApiController
      *
      * @return static A BaseController object to support chaining.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function displayList()
     {

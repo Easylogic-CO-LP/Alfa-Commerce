@@ -44,7 +44,7 @@ class AppliedDiscount
      * outside {0, 1} is Sequential, which is the reading the engine has always
      * given an unrecognised value.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public int $behavior;
 

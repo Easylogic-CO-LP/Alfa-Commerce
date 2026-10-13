@@ -114,19 +114,19 @@ use Throwable;
  * make deliberately and to write down, not one to inherit by omission. The test is
  * simply: can two visitors get different values here?
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class CatalogAccessPolicy
 {
     /**
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private readonly DatabaseInterface $db;
 
     /**
      * Current user id; 0 for a guest.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private readonly int $userId;
 
@@ -134,7 +134,7 @@ final class CatalogAccessPolicy
      * Authorised usergroup ids, already sanitised.
      *
      * @var int[]
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private readonly array $groups;
 
@@ -145,7 +145,7 @@ final class CatalogAccessPolicy
      * @param int[]|null $groups Explicit usergroup ids; null resolves them from the user.
      * @param DatabaseInterface|null $db Injected for testing; defaults to the container driver.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function __construct(
         ?int $userId = null,
@@ -187,7 +187,7 @@ final class CatalogAccessPolicy
      * @param string $alias The alias `#__alfa_items` is joined under.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function applyToItems(QueryInterface $query, string $alias = 'a'): void
     {
@@ -236,7 +236,7 @@ final class CatalogAccessPolicy
      * @param int[] $permitted Principals the visitor holds on this dimension.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function dimension(
         string $ownKey,
@@ -269,7 +269,7 @@ final class CatalogAccessPolicy
      * @param int[] $permitted Principals the visitor holds; empty means none.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function allowlist(string $table, string $fk, string $key, string $column, array $permitted): string
     {
@@ -295,7 +295,7 @@ final class CatalogAccessPolicy
      * @param string $alias The alias `#__alfa_categories` is joined under.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function applyToCategories(QueryInterface $query, string $alias = 'a'): void
     {
@@ -314,7 +314,7 @@ final class CatalogAccessPolicy
      * @param int $itemId The item id.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function canSeeItem(int $itemId): bool
     {
@@ -343,7 +343,7 @@ final class CatalogAccessPolicy
      * @param int $categoryId The category id.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function canSeeCategory(int $categoryId): bool
     {
@@ -382,7 +382,7 @@ final class CatalogAccessPolicy
      *
      * @return int[] Distinct item ids, ascending.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function itemsAffectedBy(array $itemIds = [], array $categoryIds = []): array
     {
@@ -425,7 +425,7 @@ final class CatalogAccessPolicy
      *
      * @return array{users: int[], groups: int[]}
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function audienceOfCategory(int $categoryId): array
     {
@@ -450,7 +450,7 @@ final class CatalogAccessPolicy
      *
      * @return array{users: int[], groups: int[]}
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function audienceOf(int $id, string $usersTable, string $groupsTable, string $foreignKey): array
     {
@@ -485,7 +485,7 @@ final class CatalogAccessPolicy
      * catalogue results per request do not serve one visitor's set to another.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function cacheKey(): string
     {
@@ -516,7 +516,7 @@ final class CatalogAccessPolicy
      * @param DatabaseInterface $db The database driver.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private static function perUserAllowlistsInUse(DatabaseInterface $db): bool
     {
@@ -555,7 +555,7 @@ final class CatalogAccessPolicy
      *
      * @return array{userId: int, groups: int[]}
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function principals(): array
     {
@@ -571,7 +571,7 @@ final class CatalogAccessPolicy
      * @param string $foreignKey Column in both pivots pointing back at the record.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function predicate(string $key, string $usersTable, string $groupsTable, string $foreignKey): string
     {

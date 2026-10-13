@@ -40,7 +40,7 @@ use Throwable;
  * failure. Order placement wraps it resiliently (the sale must not abort over
  * a snapshot); an admin re-edit lets it surface to the operator.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class ItemFieldsSnapshot
 {
@@ -48,7 +48,7 @@ class ItemFieldsSnapshot
      * The frozen snapshot table.
      *
      * @var string
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected const TABLE = '#__alfa_order_item_fields';
 
@@ -73,7 +73,7 @@ class ItemFieldsSnapshot
      *
      *
      * @throws Exception On a snapshot write failure; policy is the caller's.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function freezeSelection(
         int $orderItemId,
@@ -219,7 +219,7 @@ class ItemFieldsSnapshot
      * @param int|null $combinationId The resolved combination, or null.
      *
      * @return array<string, string> Normalised lang tag => effective name.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function freezeItemName(int $itemId, ?int $combinationId): array
     {
@@ -268,7 +268,7 @@ class ItemFieldsSnapshot
      * @param object $item The configured item (fields + combinations) to split variant vs option.
      *
      * @return array{selection: array, optionValueIds: array, payloads: array}
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function lineSelection(int $orderItemId, object $item): array
     {
@@ -317,7 +317,7 @@ class ItemFieldsSnapshot
      * @param object $item The item (fields + combinations).
      *
      * @return array<int, bool> field id => true.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function variantFieldIds(object $item): array
     {

@@ -28,7 +28,7 @@
  *
  * Path: plugins/alfa-payments/standard/tmpl/action_refund_partial.php
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 
 defined('_JEXEC') or die;

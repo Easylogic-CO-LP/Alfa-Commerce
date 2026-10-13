@@ -30,7 +30,7 @@ use BadMethodCallException;
  * (item view, cart view, order placement), and putting it on GeneralEvent
  * would make every one of them answer a question it has no business answering.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 trait HasMethodArgumentTrait
 {
@@ -41,7 +41,7 @@ trait HasMethodArgumentTrait
      *
      * @throws BadMethodCallException When 'method' was not provided
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function requireMethodArgument(string $name): void
     {
@@ -58,7 +58,7 @@ trait HasMethodArgumentTrait
      * @param string $value Plugin element
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function onSetMethod(string $value): string
     {
@@ -69,7 +69,7 @@ trait HasMethodArgumentTrait
      * The plugin element this event was addressed to.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getMethod(): string
     {

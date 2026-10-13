@@ -17,7 +17,7 @@ use Joomla\CMS\MVC\Controller\FormController;
 /**
  * Item field form controller class.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class ItemfieldController extends FormController
 {

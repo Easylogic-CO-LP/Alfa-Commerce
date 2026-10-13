@@ -35,7 +35,7 @@ use Throwable;
  * follow fulfilment semantics (status stock_operation now, document
  * stock effects through the same commitment entry).
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 class InventoryBridge
 {
@@ -49,7 +49,7 @@ class InventoryBridge
      * @return array|null The reserve summary, or null when the policy
      *                    holds the commitment for a later moment.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public static function reserveOrder(int $orderId, ?InventoryContext $context = null): ?array
     {
@@ -111,7 +111,7 @@ class InventoryBridge
      *
      * @return array The commitment summary.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public static function commitOrder(int $orderId, ?InventoryContext $context = null): array
     {
@@ -230,7 +230,7 @@ class InventoryBridge
      *
      * @return array{restored_quantity: float, lines: int} What came back, and on how many lines.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function convergeDocumentLines(int $orderId, array $lineIds, ?InventoryContext $context = null): array
     {
@@ -345,7 +345,7 @@ class InventoryBridge
      *
      * @return array{restored_quantity: float, released_quantity: float}
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public static function restoreOrder(int $orderId, ?InventoryContext $context = null): array
     {
@@ -434,7 +434,7 @@ class InventoryBridge
      * @param InventoryContext|null $context Audit context.
      *
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public static function syncOrderLines(int $orderId, ?InventoryContext $context = null): void
     {
@@ -885,7 +885,7 @@ class InventoryBridge
      *
      * @return float The quantity released.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function releaseBeyondShares(
         InventoryService $service,
@@ -995,7 +995,7 @@ class InventoryBridge
      *
      * @return float The share, zero or more.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function ownShare(float $quantity, array $othersOn, float $givenBack): float
     {
@@ -1024,7 +1024,7 @@ class InventoryBridge
      *
      * @return float Zero or negative.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function givenBack(array $othersOn, array $ownUnits, ?string $sells): float
     {
@@ -1055,7 +1055,7 @@ class InventoryBridge
      *
      * @return float Zero or more.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function stillOutOn(array $othersOn, array $ownUnits, string $unit): float
     {
@@ -1087,7 +1087,7 @@ class InventoryBridge
      *
      * @throws InvalidArgumentException When a line is not a line of the order.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function recordPlacement(int $orderId, array $lineIds, ?InventoryContext $context = null): int
     {
@@ -1159,7 +1159,7 @@ class InventoryBridge
      *
      * @return string|null The operator's refusal, or null when the claim may be saved.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function claimRefusal(int $lineId, int $itemId, ?int $combinationId, bool $keepsPlacement, bool $beforeCommit): ?string
     {
@@ -1221,7 +1221,7 @@ class InventoryBridge
      *
      * @return string|null The operator's refusal, naming the identity the line acts on, or null.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function placementRefusal(InventoryService $service, int $lineId, int $itemId, int $combinationId): ?string
     {
@@ -1293,7 +1293,7 @@ class InventoryBridge
      *                     the quantity a reservation would have to cover, or null
      *                     when the order may enter the state.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function unheldClaimRefusal(int $orderId, string $claim, bool $lock): ?string
     {
@@ -1404,7 +1404,7 @@ class InventoryBridge
      *
      * @return string|null The operator's refusal, or null when the order may be restored.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function untrashRefusal(int $orderId): ?string
     {
@@ -1428,7 +1428,7 @@ class InventoryBridge
      * refusal then shows its key.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function loadAdministratorStrings(): void
     {
@@ -1454,7 +1454,7 @@ class InventoryBridge
      *
      * @return array<int, array{item_id: int, combination_id: int|null, quantity: float, line_id: int}>
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public static function orderLines(int $orderId): array
     {
@@ -1487,7 +1487,7 @@ class InventoryBridge
      * @param int $orderId The order.
      *
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private static function orderRow(int $orderId): ?object
     {
@@ -1505,7 +1505,7 @@ class InventoryBridge
      * Ambient audit context: acting user id.
      *
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private static function context(): InventoryContext
     {

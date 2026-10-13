@@ -182,7 +182,7 @@ class OrderItemsField extends ListField
      * @param bool $showSku Append the SKU
      *
      * @return array Options for the select field
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function getShipmentOptions(
         array $options,

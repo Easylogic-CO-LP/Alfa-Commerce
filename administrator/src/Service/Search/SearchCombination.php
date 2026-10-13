@@ -29,7 +29,7 @@ defined('_JEXEC') or die;
  * Named SearchCombination rather than Combination so the projection is never
  * mistaken for the catalog entity at a call site.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class SearchCombination
 {
@@ -40,7 +40,7 @@ final class SearchCombination
      * @param string $gtin Variant GTIN; '' when it inherits the item's.
      * @param string $mpn Variant MPN; '' when it inherits the item's.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly int $id,

@@ -29,7 +29,7 @@ use Joomla\Registry\Registry;
  * Rendering and validation both come through here, so the name a field draws and the key it
  * reads back can never disagree.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 trait HasMultilingualNamesTrait
 {
@@ -41,7 +41,7 @@ trait HasMultilingualNamesTrait
      * @param string $langCode Raw tag as LanguageHelper returns it.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function formatLangCode(string $langCode): string
     {
@@ -56,7 +56,7 @@ trait HasMultilingualNamesTrait
      *
      * @return string Empty only when no language is installed at all.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function defaultLangCode(): string
     {
@@ -73,7 +73,7 @@ trait HasMultilingualNamesTrait
      * @return string e.g. 'jform[short_desc_en_gb]', or 'jform[combinations][5][short_desc_en_gb]'
      *                inside a nested control.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function buildLanguageInputName(string $formattedLangCode): string
     {
@@ -93,7 +93,7 @@ trait HasMultilingualNamesTrait
      * multilingual field showed no message while its plain neighbours did.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function getLabel(): string
     {
@@ -128,7 +128,7 @@ trait HasMultilingualNamesTrait
      *
      * @return string Empty when the form carried nothing for that language.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function submittedLanguageValue(
         string $formattedLangCode,
@@ -156,7 +156,7 @@ trait HasMultilingualNamesTrait
      * @param string $group The group path, empty at form root.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function keyWithGroup(string $key, string $group): string
     {

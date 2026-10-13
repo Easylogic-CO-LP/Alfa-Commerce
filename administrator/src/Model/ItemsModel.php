@@ -34,7 +34,7 @@ class ItemsModel extends AlfaListModel
      * The admin-contract entity this list serves.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'item';
 
@@ -44,7 +44,7 @@ class ItemsModel extends AlfaListModel
      * would run twice per request.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private ?array $alfaEnriched = null;
 
@@ -178,7 +178,7 @@ class ItemsModel extends AlfaListModel
      *
      * @return array<int, array{label: string, retired: bool, values: array<int, array{name: string, count: int}>}>
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getAvailableItemFieldValues(): array
     {
@@ -297,7 +297,7 @@ class ItemsModel extends AlfaListModel
      * @param string $stock `in`, `low` or `out`.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function applyStockFilter(QueryInterface $query, string $stock): void
     {

@@ -29,7 +29,7 @@ use Alfa\Component\Alfa\Administrator\Service\Catalog\CatalogAccessPolicy;
  * catalogue query filters with the same policy, so applying it twice would only add
  * a way for the two to disagree.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class SearchQuery
 {
@@ -42,7 +42,7 @@ final class SearchQuery
      * @param int[] $groups Asking user's authorised usergroup ids.
      * @param SearchIntent $intent WHY this search is running; see below.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly string $keyword,
@@ -72,7 +72,7 @@ final class SearchQuery
          * meant. A provider that cannot serve the declared entity answers an EMPTY
          * result echoing it ({@see SearchResult::$entity}), never another entity's ids.
          *
-         * @since 1.9.0
+         * @since 2.0.0
          */
         public readonly SearchEntity $entity = SearchEntity::ITEM,
     ) {
@@ -91,7 +91,7 @@ final class SearchQuery
      * @param SearchEntity $entity Whose rows to ask for; defaults to {@see SearchEntity::ITEM}.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function forCurrentVisitor(
         string $keyword,

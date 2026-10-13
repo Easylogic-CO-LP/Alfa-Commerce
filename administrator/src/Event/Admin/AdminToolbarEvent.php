@@ -38,13 +38,13 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  * them. The core buttons are the component's; a plugin adds, it does not remove: taking away
  * Save or Delete leaves the screen with no way to do its job.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 final class AdminToolbarEvent extends AlfaAdminEvent
 {
     /**
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const NAME = 'onAlfaAdminToolbar';
 }

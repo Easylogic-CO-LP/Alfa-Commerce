@@ -42,7 +42,7 @@ defined('_JEXEC') or die;
  * a shopper, so the moved lines are reported and whoever holds the cart applies
  * the quantity policy to them.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class GuestCartAdoption
 {
@@ -50,7 +50,7 @@ final class GuestCartAdoption
      * @param CartRepository $repository The only path to the cart tables.
      * @param AdoptionMemory $memory Whether this session already tried.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         private CartRepository $repository,
@@ -68,7 +68,7 @@ final class GuestCartAdoption
      *
      * @throws CartPersistenceException When the database refuses a statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function adopt(int $memberId, string $recognizeKey): AdoptionOutcome
     {

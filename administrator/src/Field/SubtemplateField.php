@@ -40,7 +40,7 @@ use SimpleXMLElement;
  *   - slot          (required) sub-template slot name
  *   - inheritlabel  language key for the empty option (default COM_ALFA_LAYOUT_USE_DEFAULT)
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 class SubtemplateField extends GroupedlistField
 {
@@ -55,7 +55,7 @@ class SubtemplateField extends GroupedlistField
      * @param string $group The field group control name
      *
      * @return bool True on success
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function setup(SimpleXMLElement $element, $value, $group = null)
     {
@@ -76,7 +76,7 @@ class SubtemplateField extends GroupedlistField
      * Build the option groups: inherit, component slot files, per-template variants.
      *
      * @return array[] Option objects keyed by translated group label
-     * @since  1.5.0
+     * @since  2.0.0
      */
     protected function getGroups()
     {
@@ -159,7 +159,7 @@ class SubtemplateField extends GroupedlistField
      * @param string $name Variant part of the basename
      *
      * @return string Prettified label
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private static function pretty(string $name): string
     {
@@ -173,7 +173,7 @@ class SubtemplateField extends GroupedlistField
      * @param string $fallback Label when no sidecar/title is available
      *
      * @return string Translated label
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function labelFromSidecar(string $xmlFile, string $fallback): string
     {

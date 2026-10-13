@@ -39,7 +39,7 @@ namespace Alfa\Component\Alfa\Administrator\Model\Traits;
  * Lives in a trait because the two list bases that need it (AlfaListModel and the
  * plugin-panel PanelModel) do not share one.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 trait HasFormDerivedFiltersTrait
 {
@@ -51,7 +51,7 @@ trait HasFormDerivedFiltersTrait
      *
      * @return array Active filters, keyed by filter name.
      *
-     * @since   1.10.0
+     * @since   2.0.0
      */
     public function getActiveFilters()
     {

@@ -34,7 +34,7 @@ use Joomla\CMS\Event\AbstractEvent;
  * This is a SIGNAL, not a job: synchronous, no retry, no ordering guarantee; whether
  * to act immediately, queue, or ignore is the listener's decision.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 class CatalogEntityChangedEvent extends AbstractEvent
 {
@@ -48,7 +48,7 @@ class CatalogEntityChangedEvent extends AbstractEvent
      *
      * @return string e.g. "category".
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function entity(): string
     {
@@ -60,7 +60,7 @@ class CatalogEntityChangedEvent extends AbstractEvent
      *
      * @return int[]
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function ids(): array
     {
@@ -76,7 +76,7 @@ class CatalogEntityChangedEvent extends AbstractEvent
      * distinction.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function removed(): bool
     {

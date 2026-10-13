@@ -43,31 +43,31 @@ use Throwable;
  * is the first person through the door deciding what everyone else may see. It is
  * also per what that viewer may see, so a permission change shows at once.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CardRegistry
 {
     /**
      * @var string Its own cache group, cleared without touching anything else.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const CACHE_GROUP = 'com_alfa.cards';
 
     /**
      * @var string The store's home screen.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const SCREEN_DASHBOARD = 'dashboard';
 
     /**
      * @var string[] Entities whose save/delete can make a card's figures wrong.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const WATCHED_ENTITIES = ['order', 'item', 'combination', 'payment', 'orderstatus'];
 
     /**
      * @var int Minutes a resolved surface stays cached.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private const TTL_MINUTES = 5;
 
@@ -82,7 +82,7 @@ final class CardRegistry
      *
      * @return array<string, array[]> Surface value => cards, each already ordered.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function forScreen(string $screen, bool $fresh = false, string $scope = ''): array
     {
@@ -169,7 +169,7 @@ final class CardRegistry
      *
      * @return array[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function forSurface(string $screen, DashboardSurface|string $surface, string $scope = ''): array
     {
@@ -185,7 +185,7 @@ final class CardRegistry
      *
      * @return array<string, array[]>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function resolve(string $screen): array
     {
@@ -234,7 +234,7 @@ final class CardRegistry
      *
      * @return AdminCard[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function collect(string $screen): array
     {
@@ -312,7 +312,7 @@ final class CardRegistry
      * @param array<string, array<int, array<string, mixed>>> $cards Cards keyed by surface.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function loadOwnerLanguages(array $cards): void
     {
@@ -361,7 +361,7 @@ final class CardRegistry
      *
      * @return string Base path whose layout file exists, core's as the fallback.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function layoutBase(AdminCard $card): string
     {
@@ -386,7 +386,7 @@ final class CardRegistry
      * @param string $scope Extra cache dimension, see forScreen().
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function render(string $screen, DashboardSurface|string $surface, string $scope = ''): string
     {
@@ -412,7 +412,7 @@ final class CardRegistry
      * Drop the cached screens (all viewers).
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function invalidate(): void
     {
@@ -435,7 +435,7 @@ final class CardRegistry
      * @param string $entity Entity name the model reports.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function invalidateFor(string $entity): void
     {

@@ -20,7 +20,7 @@
  *
  * Path: administrator/components/com_alfa/tmpl/documents/void_return.php
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 
 defined('_JEXEC') or die;
@@ -89,7 +89,7 @@ $message = Text::_('COM_ALFA_MODAL_RETURN_DONE');
         /**
          * Send the outcome to the parent, which closes the modal and reloads
          * the page behind it.
-         * @since  1.3.0
+         * @since  2.0.0
          */
         function notifyParent() {
             if (window.parent && window.parent !== window) {

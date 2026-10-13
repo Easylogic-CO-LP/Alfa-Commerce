@@ -23,7 +23,7 @@ defined('_JEXEC') or die;
  * `#00F`, `#0000FF` and `#0000ff` are one identity. Keeping that here is what lets a future
  * field type join the same filter with entirely different semantics and no core changes.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class ChoiceColors
 {
@@ -35,7 +35,7 @@ final class ChoiceColors
      * in the title attribute.
      *
      * @var int
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const MAX_BANDS = 6;
 
@@ -50,7 +50,7 @@ final class ChoiceColors
      *
      * @return string|null Canonical `#rrggbb`, or null when this is not a colour.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function canonical(string $raw): ?string
     {
@@ -82,7 +82,7 @@ final class ChoiceColors
      *
      * @return array<string, string> Canonical code => the label configured beside it ('' when none).
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function codes(array $params): array
     {
@@ -121,7 +121,7 @@ final class ChoiceColors
      *
      * @return array{style: string, overflow: int}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function style(array $codes): array
     {

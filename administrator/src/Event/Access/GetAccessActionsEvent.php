@@ -28,7 +28,7 @@ use Joomla\CMS\Event\AbstractEvent;
  * way, $user->authorise($name, 'com_alfa'), wherever the plugin (or the shared Panel MVC)
  * checks it.
  *
- * @since  1.7.0
+ * @since  2.0.0
  */
 class GetAccessActionsEvent extends AbstractEvent
 {
@@ -36,7 +36,7 @@ class GetAccessActionsEvent extends AbstractEvent
      * Actions contributed so far.
      *
      * @var object[]
-     * @since  1.7.0
+     * @since  2.0.0
      */
     protected array $actions = [];
 
@@ -48,7 +48,7 @@ class GetAccessActionsEvent extends AbstractEvent
      * @param string $description A language key for the tooltip; defaults to the title.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function action(string $name, string $title, string $description = ''): static
     {
@@ -66,7 +66,7 @@ class GetAccessActionsEvent extends AbstractEvent
      *
      * @return object[]
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function all(): array
     {

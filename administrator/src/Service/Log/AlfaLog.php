@@ -53,7 +53,7 @@ use Joomla\CMS\Log\Log;
  * `com_alfa.shipments.standard`), which are not knowable statically. It keeps
  * sole ownership of those.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class AlfaLog
 {
@@ -138,7 +138,7 @@ final class AlfaLog
      * from JPATH_ADMINISTRATOR for site and admin alike.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function register(): void
     {
@@ -168,7 +168,7 @@ final class AlfaLog
      *
      * @return array<string, string>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function categories(): array
     {

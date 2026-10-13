@@ -28,7 +28,7 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
  * overridable template system, so a template override cannot hide or fake a finding; the
  * template only echoes the rendered string.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 class HtmlView extends BaseHtmlView
 {
@@ -61,7 +61,7 @@ class HtmlView extends BaseHtmlView
      *
      * @var array<string, string>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const ROW_ACTIONS = [
         'ledger_missing' => 'reconcile',
@@ -84,7 +84,7 @@ class HtmlView extends BaseHtmlView
      *
      * @var array{findings: array<string, array>, classifications: array<string, array>, scanned: array{units: int, rows: int}}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public array $report = [];
 
@@ -92,7 +92,7 @@ class HtmlView extends BaseHtmlView
      * The report, rendered from the fixed-path partial in {@see self::display()}.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public string $reportHtml = '';
 
@@ -104,7 +104,7 @@ class HtmlView extends BaseHtmlView
      *
      * @throws NotAllowed When the user is not a Super User.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function display($tpl = null): void
     {
@@ -130,7 +130,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return string reconcile | writeoff | tracking_hint | resolve | classify | correct | prioritise | ''
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function rowAction(string $category): string
     {
@@ -149,7 +149,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return string resolve | classify | correct | ''
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function lineAction(array $finding): string
     {
@@ -185,7 +185,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return array{combinations: list<array{id: int, label: string}>, parent: bool}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function resolveTargets(array $finding): array
     {
@@ -214,7 +214,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return list<array{order_id: int, line_id: int, ordered: float, outstanding: float}>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function openLines(array $finding): array
     {
@@ -231,7 +231,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return list<int> Order ids.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function waitingOrders(array $finding): array
     {
@@ -250,7 +250,7 @@ class HtmlView extends BaseHtmlView
      * Build the toolbar.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected function addToolbar(): void
     {

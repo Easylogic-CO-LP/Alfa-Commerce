@@ -30,7 +30,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Search;
  * implement it and no rebuild button appears for it. Adding these to the main contract would break
  * every third-party engine that already satisfies it.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 interface RebuildableEngine
 {
@@ -42,7 +42,7 @@ interface RebuildableEngine
      *
      * @return string A language key.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function rebuildLabel(): string;
 
@@ -55,7 +55,7 @@ interface RebuildableEngine
      * panel.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function isRebuildOwed(): bool;
 }

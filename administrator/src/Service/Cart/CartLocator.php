@@ -30,7 +30,7 @@ defined('_JEXEC') or die;
  * deletes. A recognition cookie is set on path "/", so an operator who also
  * shops brings one to every screen.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartLocator
 {
@@ -38,7 +38,7 @@ final class CartLocator
      * @param GuestCartAdoption $adoption Gives this browser's guest cart to the
      *                                    member who just signed in.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(private GuestCartAdoption $adoption)
     {
@@ -57,7 +57,7 @@ final class CartLocator
      *
      * @throws CartPersistenceException When the database refuses a statement.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function resolve(
         CartSubject $subject,

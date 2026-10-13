@@ -44,7 +44,7 @@ class PaymentResponseEvent extends PaymentsRedirectEvent
      *
      * @throws BadMethodCallException If 'subject' or 'method' is missing
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct($name, array $arguments = [])
     {

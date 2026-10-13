@@ -16,7 +16,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Inventory;
  * named arguments (see the dispatching command in InventoryService),
  * result summary via getResult().
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 class InventoryCommittedEvent extends InventoryAfterEvent
 {

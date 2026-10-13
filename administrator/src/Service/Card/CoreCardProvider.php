@@ -53,37 +53,37 @@ use Joomla\Database\ParameterType;
  * that also sold in another currency is told so instead of being handed a number
  * that means nothing.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CoreCardProvider
 {
     /**
      * @var string Ownership stamp for cards declared here.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const OWNER_GROUP = 'core';
 
     /**
      * @var string Ownership stamp for cards declared here.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const OWNER_NAME = 'com_alfa';
 
     /**
      * @var int How many rows the latest-orders card lists.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private const LATEST_ROWS = 5;
 
     /**
      * @var DashboardStatsService|null Built once per request, shared by every chart card.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private ?DashboardStatsService $stats = null;
 
     /**
      * @var StatsCards|null The card shapes over that same window.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private ?StatsCards $cards = null;
 
@@ -93,7 +93,7 @@ final class CoreCardProvider
      * @param CollectCardsEvent $event The broadcast.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function onAlfaCollectCards(CollectCardsEvent $event): void
     {
@@ -199,7 +199,7 @@ final class CoreCardProvider
      * every card on the screen resolves the same window rather than each its own.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function stats(): DashboardStatsService
     {
@@ -210,7 +210,7 @@ final class CoreCardProvider
      * The same readings, shaped for `card.chart`.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function cards(): StatsCards
     {
@@ -230,7 +230,7 @@ final class CoreCardProvider
      * dashboard nobody reads.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function attentionCard(): array
     {
@@ -387,7 +387,7 @@ final class CoreCardProvider
     }
 
     /**
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function db(): DatabaseInterface
     {
@@ -399,7 +399,7 @@ final class CoreCardProvider
      * "today" is the one on their wall, not UTC's.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function ordersToday(): int
     {
@@ -421,7 +421,7 @@ final class CoreCardProvider
      * Orders still sitting in the initial status: the queue a human works from.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function ordersAwaiting(): int
     {
@@ -451,7 +451,7 @@ final class CoreCardProvider
      *
      * @return string Formatted money, with a note when other currencies also sold.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function takingsToday(): string
     {
@@ -495,7 +495,7 @@ final class CoreCardProvider
      * and a product whose combinations are all archived is a simple product.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function lowStockUnits(): int
     {
@@ -545,7 +545,7 @@ final class CoreCardProvider
      * The last few orders, already shaped for the layout that lists them.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function latestOrders(): array
     {

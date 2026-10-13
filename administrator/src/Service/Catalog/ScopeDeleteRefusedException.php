@@ -21,7 +21,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Catalog;
  * The message is the merchant's sentence naming the rules; the rules travel
  * with it so a screen or an API can state them its own way.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class ScopeDeleteRefusedException extends DeleteRefusedException
 {
@@ -32,7 +32,7 @@ final class ScopeDeleteRefusedException extends DeleteRefusedException
      * @param string $message The translated refusal, safe to print as HTML.
      * @param string $plain The same refusal as text, for the REST answer.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public function __construct(public readonly string $axis, public readonly array $rules, string $message, string $plain)
     {

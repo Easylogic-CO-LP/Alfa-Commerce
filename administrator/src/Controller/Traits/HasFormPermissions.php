@@ -24,7 +24,7 @@ use Joomla\CMS\Language\Text;
  * decides, so add, edit, save, apply, save2new, save2copy, reload and the version history all
  * follow `alfa.<section>.create` / `alfa.<section>.edit`.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 trait HasFormPermissions
 {
@@ -35,7 +35,7 @@ trait HasFormPermissions
      *
      * @return bool
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function allowAdd($data = [])
     {
@@ -50,7 +50,7 @@ trait HasFormPermissions
      *
      * @return bool
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function allowEdit($data = [], $key = 'id')
     {
@@ -70,7 +70,7 @@ trait HasFormPermissions
      *
      * @throws NotAllowed Always.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function batch($model = null)
     {

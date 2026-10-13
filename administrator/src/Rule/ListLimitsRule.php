@@ -28,7 +28,7 @@ use SimpleXMLElement;
  * seam that guards all three tiers. ListLimitsHelper::parse() stays defensive
  * on read regardless, since the DB can be written without a form.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 class ListLimitsRule extends FormRule
 {
@@ -40,7 +40,7 @@ class ListLimitsRule extends FormRule
      * @param Form $form The form
      *
      * @return bool True when every comma-separated entry is a whole number
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function test(SimpleXMLElement $element, $value, $group = null, ?Registry $input = null, ?Form $form = null)
     {

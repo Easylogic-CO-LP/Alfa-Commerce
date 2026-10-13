@@ -29,7 +29,7 @@ use Throwable;
  * so this carries no edit, publish or delete of a chosen row. What it does
  * carry is the one thing the merchant does TO the list: retention.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class CartsController extends BaseController
 {
@@ -43,7 +43,7 @@ class CartsController extends BaseController
      *
      * @var int
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const PURGE_LIMIT = 200;
 
@@ -58,7 +58,7 @@ class CartsController extends BaseController
      * somebody allowed to delete carts.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function purge(): void
     {

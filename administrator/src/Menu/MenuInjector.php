@@ -27,7 +27,7 @@ use Throwable;
  * not show anyway: non-admin, another component, an edit screen (`hidemainmenu`, which
  * hides the whole sidebar), or a non-HTML document, so it costs nothing there.
  *
- * @since  1.7.0
+ * @since  2.0.0
  */
 final class MenuInjector
 {
@@ -37,7 +37,7 @@ final class MenuInjector
      * @param Event $event The onAfterDispatch event (unused).
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public static function onAfterDispatch(Event $event): void
     {

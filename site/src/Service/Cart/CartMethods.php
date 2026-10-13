@@ -42,35 +42,35 @@ use Joomla\CMS\Log\Log;
 // phpcs:enable PSR1.Files.SideEffects
 
 /**
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartMethods
 {
     /**
      * The offered payment methods, or null before the first ask.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private ?array $payments = null;
 
     /**
      * The offered shipment methods, or null before the first ask.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private ?array $shipments = null;
 
     /**
      * Candidate lists per kind, before the place and shipping narrowing.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private array $candidates = [];
 
     /**
      * What to tell the shopper about a method that is no longer theirs.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private array $notices = ['shipment' => [], 'payment' => []];
 
@@ -89,7 +89,7 @@ final class CartMethods
      * @param Closure $lineScopes (string $kind): array - per-line category/manufacturer scopes.
      * @param Closure $onForget (): void - told when the offered sets are dropped.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         private Closure $customer,
@@ -106,7 +106,7 @@ final class CartMethods
      * The payment methods this cart may actually be paid with.
      *
      * @return array Keyed by method id.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function payments(): array
     {
@@ -142,7 +142,7 @@ final class CartMethods
      * question each time the shipment changes.
      *
      * @return array Keyed by method id.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function paymentsIgnoringShipping(): array
     {
@@ -167,7 +167,7 @@ final class CartMethods
      * The shipment methods this cart may actually be shipped with.
      *
      * @return array Keyed by method id.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function shipments(): array
     {
@@ -196,7 +196,7 @@ final class CartMethods
 
     /**
      * @return bool Whether anything could pay for this cart at all.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function hasPaymentCandidates(): bool
     {
@@ -205,7 +205,7 @@ final class CartMethods
 
     /**
      * @return bool Whether anything could ship it.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function hasShipmentCandidates(): bool
     {
@@ -225,7 +225,7 @@ final class CartMethods
      * the checkout showed, narrowed by destination and line scope) decides
      * whether anything can serve it. No second engine is asked.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function shipmentRequirement(): MethodRequirement
     {
@@ -252,7 +252,7 @@ final class CartMethods
      * Everything narrower than that (no gateway for the chosen carrier, none
      * an operator may use) is UNAVAILABLE, and unavailable is a refusal.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function paymentRequirement(): MethodRequirement
     {
@@ -290,7 +290,7 @@ final class CartMethods
      *
      * @return string The shopper-facing message, '' when there is nothing to say.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function destinationNotice(string $kind): string
     {
@@ -332,7 +332,7 @@ final class CartMethods
      * @param string $kind 'shipment' or 'payment'.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function restrictsByPlace(string $kind): bool
     {
@@ -359,7 +359,7 @@ final class CartMethods
      * @param string $kind 'payment' or 'shipment'.
      *
      * @return array Keyed by method id.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function published(string $kind): array
     {
@@ -374,7 +374,7 @@ final class CartMethods
      * @param string $kind 'payment' or 'shipment'.
      *
      * @return array Keyed by method id.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function candidates(string $kind): array
     {
@@ -401,7 +401,7 @@ final class CartMethods
      * @param string $kind 'payment' or 'shipment'.
      * @param int $id The method id.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function name(string $kind, int $id): string
     {
@@ -414,7 +414,7 @@ final class CartMethods
      * @param string $kind 'payment' or 'shipment'.
      *
      * @return string[]
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function notices(string $kind): array
     {
@@ -424,7 +424,7 @@ final class CartMethods
     /**
      * Both buckets, in the order they have always been returned.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function allNotices(): array
     {
@@ -437,7 +437,7 @@ final class CartMethods
      * Called at the top of every reconcile, which is what stops notices
      * accumulating across two passes in one request.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function clearNotices(): void
     {
@@ -453,7 +453,7 @@ final class CartMethods
      * @param string $kind 'payment' or 'shipment'.
      * @param string $message The already-translated sentence.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function addNotice(string $kind, string $message): void
     {
@@ -467,7 +467,7 @@ final class CartMethods
      * question the place and the carrier do not change, and a name still has to
      * be readable for a method that has just stopped being offered.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function forget(): void
     {

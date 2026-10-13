@@ -37,7 +37,7 @@ use Throwable;
  * blocks the others, and a sync failure never blocks the admin save (mirrors
  * the original non-fatal price-sync behaviour).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class ProjectionManager
 {
@@ -48,7 +48,7 @@ class ProjectionManager
      * @param ProjectionInterface[]|null $projections Injected for testing; defaults
      *                                                to the standard catalog set.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct(?array $projections = null)
     {
@@ -76,7 +76,7 @@ class ProjectionManager
      *
      * @return ProjectionInterface[]
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private static function collectExtensionProjections(): array
     {
@@ -113,7 +113,7 @@ class ProjectionManager
      *
      * @param int $itemId The item primary key.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function syncItem(int $itemId): void
     {
@@ -131,7 +131,7 @@ class ProjectionManager
      *
      * @param int[] $itemIds The item primary keys.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function syncItems(array $itemIds): void
     {
@@ -157,7 +157,7 @@ class ProjectionManager
      *
      * @param int[] $itemIds The item primary keys.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function deleteForItems(array $itemIds): void
     {
@@ -198,7 +198,7 @@ class ProjectionManager
      *
      * @return bool True when `deleteForItems(array $itemIds)` is callable as declared.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private static function acceptsItemIdBatch(ProjectionInterface $projection): bool
     {
@@ -225,7 +225,7 @@ class ProjectionManager
      * @param ProjectionInterface $projection The projection to drive.
      * @param int[] $itemIds The item primary keys.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function deleteOneByOne(ProjectionInterface $projection, array $itemIds): void
     {
@@ -246,7 +246,7 @@ class ProjectionManager
      *
      * @param int $itemId The item primary key.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function deleteForItem(int $itemId): void
     {
@@ -263,7 +263,7 @@ class ProjectionManager
      *
      * @return int[] The normalized ids, re-indexed from zero.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private static function positiveIds(array $itemIds): array
     {
@@ -284,7 +284,7 @@ class ProjectionManager
      * @param string $operation Human-readable operation label.
      * @param Throwable $e The caught exception.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function logFailure(ProjectionInterface $projection, string $operation, Throwable $e): void
     {

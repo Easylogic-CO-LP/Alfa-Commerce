@@ -48,7 +48,7 @@ class ItemViewEvent extends PaymentsLayoutEvent
      * no enum import: paymentMethods()->setLayout('x')->setData([...]).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function paymentMethods(): SurfaceBuilder
     {
@@ -59,7 +59,7 @@ class ItemViewEvent extends PaymentsLayoutEvent
      * A surface beside the product title, e.g. a finance badge.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function title(): SurfaceBuilder
     {
@@ -70,7 +70,7 @@ class ItemViewEvent extends PaymentsLayoutEvent
      * A surface next to the add-to-cart button.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function nearAddToCart(): SurfaceBuilder
     {

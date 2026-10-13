@@ -25,7 +25,7 @@ defined('_JEXEC') or die;
  * They are carried together because placement judges by the second and the
  * back office must state the same verdict rather than a nearby one.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartOffersView
 {
@@ -45,7 +45,7 @@ final class CartOffersView
      *                            keyed by method id.
      * @param array $shipmentViews The same for carriers.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly bool $hasPayments,
@@ -75,7 +75,7 @@ final class CartOffersView
      *
      * @return MethodViewContribution|null Nothing when the method said nothing.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function viewFor(string $kind, int $methodId): ?MethodViewContribution
     {
@@ -89,7 +89,7 @@ final class CartOffersView
      *
      * @return string[] What to tell the shopper about that kind.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function notices(string $kind): array
     {

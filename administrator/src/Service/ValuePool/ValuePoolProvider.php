@@ -22,7 +22,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\ValuePool;
  * interface backs a lazy HTTP endpoint later, if operand/pool size ever demands it,
  * without the builder changing.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 interface ValuePoolProvider
 {
@@ -33,7 +33,7 @@ interface ValuePoolProvider
      * @param array $context Optional resolution hints (e.g. ['field' => $fieldRow]).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function get(string $operand, array $context = []): ValuePool;
 }

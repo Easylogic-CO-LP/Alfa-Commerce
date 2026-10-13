@@ -76,7 +76,7 @@ class FieldsHelper
      *
      * @return string|null The column name, or null when the field is gone or unpublished.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function columnForField(int $fieldId): ?string
     {
@@ -167,7 +167,7 @@ class FieldsHelper
      * @param object|null $row A #__alfa_user_info row, or null to leave the bucket empty.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function prefillBucket(Form $form, string $bucket, ?object $row): void
     {
@@ -601,7 +601,7 @@ class FieldsHelper
      * a value" on purpose: a merchant who has not chosen a field and a shopper
      * who has not typed one are different problems with different fixes.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const DESTINATION_CONFIGURED = 'configured';
     public const DESTINATION_INFERRED = 'inferred';
@@ -632,7 +632,7 @@ class FieldsHelper
      * neighbours, and never tax, which keeps its own address policy and is not
      * routed through here.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const METHOD_DESTINATION_PARAM = 'delivery_place_field';
 
@@ -652,7 +652,7 @@ class FieldsHelper
      *
      * @return string The alpha-2 code, or '' when the shop has not said.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function shopRegionCode(): string
     {
@@ -696,7 +696,7 @@ class FieldsHelper
      *
      * @return int The field id, or 0 when the method follows the shop.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function methodDestinationFieldId(?object $method): int
     {
@@ -718,7 +718,7 @@ class FieldsHelper
      *
      * @return object[] The eligible field rows, in form order.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function deliveryPlaceCandidates(?int $userId = null): array
     {
@@ -755,7 +755,7 @@ class FieldsHelper
      *
      * @return object|null The field, or null when none is mapped.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function deliveryPlaceField(?int $userId = null): ?object
     {
@@ -771,7 +771,7 @@ class FieldsHelper
      *
      * @return string One of the DESTINATION_* constants.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function deliveryPlaceFieldState(?int $userId = null): string
     {
@@ -783,7 +783,7 @@ class FieldsHelper
      *
      * @return array{0: object|null, 1: string} The field and the reason.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function resolveDeliveryPlaceField(?int $userId): array
     {
@@ -851,7 +851,7 @@ class FieldsHelper
      *
      * @return int LEVEL_HIDDEN | LEVEL_OPTIONAL | LEVEL_REQUIRED.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function visibilityLevel(object $field, string $context): int
     {
@@ -883,7 +883,7 @@ class FieldsHelper
      * @param string $context The FieldsHelper context.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function fieldRequired(object $field, string $context): bool
     {

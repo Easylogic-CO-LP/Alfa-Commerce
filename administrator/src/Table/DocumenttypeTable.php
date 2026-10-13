@@ -21,7 +21,7 @@ use Joomla\Database\DatabaseDriver;
  * package providers, never by merchants. The admin form edits only the
  * presentation columns; the model strips everything else before save.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class DocumenttypeTable extends Table
 {
@@ -37,7 +37,7 @@ class DocumenttypeTable extends Table
      *
      * @param DatabaseDriver $db Database connector.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct(DatabaseDriver $db)
     {

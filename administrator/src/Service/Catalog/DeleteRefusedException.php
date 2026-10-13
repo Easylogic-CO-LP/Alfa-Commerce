@@ -20,7 +20,7 @@ use RuntimeException;
  * delete answers 409 with the plain sentence instead of a bare 500 or a 204
  * for a row that is still there.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 class DeleteRefusedException extends RuntimeException
 {
@@ -28,7 +28,7 @@ class DeleteRefusedException extends RuntimeException
      * The sentence as text, without the HTML escaping the message carries for
      * the back office, which prints messages as HTML.
      *
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public readonly string $plain;
 
@@ -36,7 +36,7 @@ class DeleteRefusedException extends RuntimeException
      * @param string $message The sentence, safe to print as HTML.
      * @param string|null $plain The same sentence as text; null when the message holds no markup to escape.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public function __construct(string $message, ?string $plain = null)
     {

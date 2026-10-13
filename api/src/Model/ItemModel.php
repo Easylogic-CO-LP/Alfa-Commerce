@@ -21,7 +21,7 @@ use Alfa\Component\Alfa\Site\Helper\ItemFieldsHelper;
  * Admin getItem() leaves translatable fields to the form layer (per-language
  * keys); an API item response needs them resolved in the request language.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 class ItemModel extends AdminItemModel
 {
@@ -32,7 +32,7 @@ class ItemModel extends AdminItemModel
      *
      * @return mixed Object on success, false on failure.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function getItem($pk = null)
     {
@@ -79,7 +79,7 @@ class ItemModel extends AdminItemModel
      * @param object $item The item to enrich, modified in place.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function attachFieldGraph(object $item): void
     {

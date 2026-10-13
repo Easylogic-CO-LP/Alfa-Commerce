@@ -20,7 +20,7 @@ use Alfa\Component\Alfa\Administrator\Model\PaymentsModel as AdminPaymentsModel;
  * ApiMVCFactory only falls back to an Administrator model of the SAME name.
  * Without this the list route would find no model at all and answer 500.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class PaymentmethodsModel extends AdminPaymentsModel
 {

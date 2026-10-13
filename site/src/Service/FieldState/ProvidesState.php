@@ -31,7 +31,7 @@ defined('_JEXEC') or die;
  * The slice is keyed WITHOUT the field prefix; the bag namespaces it under the
  * field's machine name (so a rule addresses `size.value`, `configurator.ready`).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 interface ProvidesState
 {
@@ -40,7 +40,7 @@ interface ProvidesState
      *
      * @return array<string, scalar|array> Facet name => primitive value (or array of primitives).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getState(): array;
 }

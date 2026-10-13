@@ -34,7 +34,7 @@ use Joomla\Event\SubscriberInterface;
  * A product whose pricing throws is left out of the combination (logged here
  * with its error); it does not stop the preparation.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 class Alfapricesets extends CMSPlugin implements SubscriberInterface
 {
@@ -45,7 +45,7 @@ class Alfapricesets extends CMSPlugin implements SubscriberInterface
      *
      * @var array
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected const TASKS_MAP = [
         PriceIndexSyncService::PREPARE_TASK => [
@@ -60,7 +60,7 @@ class Alfapricesets extends CMSPlugin implements SubscriberInterface
      *
      * @var bool
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected $autoloadLanguage = true;
 
@@ -69,7 +69,7 @@ class Alfapricesets extends CMSPlugin implements SubscriberInterface
      *
      * @return array<string, string>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function getSubscribedEvents(): array
     {
@@ -87,7 +87,7 @@ class Alfapricesets extends CMSPlugin implements SubscriberInterface
      *
      * @return int The tasks removed.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function removeTasks(): int
     {
@@ -117,7 +117,7 @@ class Alfapricesets extends CMSPlugin implements SubscriberInterface
      *             not count as a failure), WILL_RESUME when sets still wait after the time given, KNOCKOUT when a chunk
      *             failed for another reason.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected function prepare(ExecuteTaskEvent $event): int
     {

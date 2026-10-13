@@ -27,7 +27,7 @@ defined('_JEXEC') or die;
  * unconditionally before activating a generation. One gate, taken by every engine,
  * rather than a flag the runner has to remember to read.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class IndexWriteResult
 {
@@ -37,7 +37,7 @@ final class IndexWriteResult
      *                                        {@see DocumentId::key()}, so a caller can retry exactly
      *                                        the documents that failed and nothing else.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly int $written = 0,

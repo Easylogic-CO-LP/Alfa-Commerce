@@ -27,7 +27,7 @@ defined('_JEXEC') or die;
  * ability returns the serving generation instead, and the rebuild runner degrades to
  * writing in place.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class IndexGeneration
 {
@@ -35,7 +35,7 @@ final class IndexGeneration
      * @param string $handle Engine-issued token. Opaque to core; never parsed.
      * @param bool $active Whether this generation is the one currently serving reads.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly string $handle,
@@ -46,7 +46,7 @@ final class IndexGeneration
     /**
      * @return string The opaque handle.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function __toString(): string
     {

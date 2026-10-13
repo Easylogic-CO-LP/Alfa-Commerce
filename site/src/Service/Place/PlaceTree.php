@@ -29,7 +29,7 @@ defined('_JEXEC') or die;
  * destination it had just been filtered by. Ownership lives here so that the
  * cost is paid once and the plugin API never has to mention it.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class PlaceTree
 {
@@ -38,7 +38,7 @@ final class PlaceTree
      *
      * @var array<int, int>|null
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static ?array $parents = null;
 
@@ -49,7 +49,7 @@ final class PlaceTree
      *
      * @return int[] The place and its parents; empty for a zero or unknown id.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function placesFor(int $placeId): array
     {
@@ -77,7 +77,7 @@ final class PlaceTree
      *
      * @return array<int, int>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function parents(): array
     {

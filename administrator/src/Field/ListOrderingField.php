@@ -34,7 +34,7 @@ use SimpleXMLElement;
  *   - globalparam   see {@see InheritsGlobalParam}
  *   - inheritlabel  see {@see InheritsGlobalParam}
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 class ListOrderingField extends ListField
 {
@@ -47,7 +47,7 @@ class ListOrderingField extends ListField
      * tiers that have one.
      *
      * @return object[] The field option objects
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function getOptions()
     {
@@ -71,7 +71,7 @@ class ListOrderingField extends ListField
      * The `fullordering` options declared by the view's storefront filter form.
      *
      * @return SimpleXMLElement[] Option nodes, empty when the form has none
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function sourceOptions(): array
     {

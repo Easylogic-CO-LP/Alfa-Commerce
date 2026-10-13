@@ -35,7 +35,7 @@ use UnexpectedValueException;
  * takes: sign="positive" (a payment: more than zero) or sign="nonnegative"
  * (a parcel's cost: zero or more).
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 class OrderMoneyRule extends FormRule
 {
@@ -51,7 +51,7 @@ class OrderMoneyRule extends FormRule
      * @throws UnexpectedValueException With the operator's words, naming the field and the figure: finer than
      *                                  the order's money, not an amount, or of a sign the record does not take.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function test(SimpleXMLElement $element, $value, $group = null, ?Registry $input = null, ?Form $form = null)
     {

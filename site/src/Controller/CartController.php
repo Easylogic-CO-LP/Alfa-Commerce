@@ -57,7 +57,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      *
      * @return bool
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function allowAdd($data = [])
     {
@@ -72,7 +72,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      *
      * @return bool
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function allowEdit($data = [], $key = 'id')
     {
@@ -88,7 +88,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      *
      * @throws NotAllowed Always.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function batch($model = null)
     {
@@ -281,7 +281,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      * otherwise, and addtocart.js says application/json. Anything that does not explicitly accept
      * HTML keeps the JSON contract, so an API client is never redirected.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function wantsHtml(): bool
     {
@@ -295,7 +295,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      * BaseController::checkToken(). Any tmpl is stripped: a form rendered during a filter
      * module's partial refresh would otherwise send the shopper to a chrome-less page.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function safeReturnUrl(): string
     {
@@ -318,7 +318,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      *
      * @return array enabled (the success card is shown), placement, offsetY, offsetX (CSS lengths), effect, timeout (seconds, fractions allowed).
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function addedCardOptions(): array
     {
@@ -350,7 +350,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      *
      * @return void
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function applyCoupon()
     {
@@ -375,7 +375,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      *
      * @return void
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function removeCoupon()
     {
@@ -493,7 +493,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      * overlays the customer fields. loadFormData binds on render.
      *
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function pickUserinfo(): void
     {
@@ -554,7 +554,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      *
      * @return array The (possibly overlaid) form data.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function applyUserInfoPick(array $data, string $picked, string $bucket, string $stateKey): array
     {
@@ -588,7 +588,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      * form-state.js): typed values survive refreshes and closed tabs.
      *
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function saveFormState(): void
     {
@@ -883,7 +883,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      *
      * @return int|null The bound delivery place, or null when the form has none.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function deliveryPlace(): ?int
     {
@@ -934,7 +934,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      * taken off the queue so they are said once.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function messagesFragment(): string
     {
@@ -950,7 +950,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      *
      * @return string[] Asset names; empty when not debugging or unreadable.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function declaredAssets(): array
     {
@@ -983,7 +983,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      * @param string[] $before The assets active before the fragments rendered.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function warnLateAssets(array $before): void
     {
@@ -1110,7 +1110,7 @@ class CartController extends FormController implements UserFactoryAwareInterface
      * @param mixed $displayData Data exposed to the layout as $displayData
      *
      * @return string Rendered HTML
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function cartPartial(array $file, mixed $displayData = []): string
     {

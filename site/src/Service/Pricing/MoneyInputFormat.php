@@ -23,7 +23,7 @@ defined('_JEXEC') or die;
  * scale and no rounding mode: there is no way to express one here, so no
  * caller can smuggle one past the Currency.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class MoneyInputFormat
 {
@@ -31,7 +31,7 @@ final class MoneyInputFormat
      * @param string $decimalSeparator The one character that introduces the fraction.
      * @param string $thousandSeparator The one character that groups the integer part, or '' for a syntax that does not group.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function __construct(
         private readonly string $decimalSeparator,
@@ -49,7 +49,7 @@ final class MoneyInputFormat
      *
      * @throws InvalidArgumentException When the two characters cannot describe a syntax.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function of(string $decimalSeparator, string $thousandSeparator = ''): self
     {
@@ -84,7 +84,7 @@ final class MoneyInputFormat
      *
      * @throws InvalidArgumentException When this currency's separators cannot describe one.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function fromCurrency(Currency $currency): self
     {
@@ -107,7 +107,7 @@ final class MoneyInputFormat
      *
      * @return string The decimal separator.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getDecimalSeparator(): string
     {
@@ -119,7 +119,7 @@ final class MoneyInputFormat
      *
      * @return string The grouping separator.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getThousandSeparator(): string
     {
@@ -135,7 +135,7 @@ final class MoneyInputFormat
      *
      * @throws InvalidArgumentException When it cannot serve as a separator.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function assertSeparator(string $character, string $role): void
     {

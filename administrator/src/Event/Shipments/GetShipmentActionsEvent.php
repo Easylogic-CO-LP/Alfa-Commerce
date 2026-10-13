@@ -69,7 +69,7 @@ class GetShipmentActionsEvent extends AbstractImmutableEvent
      * the reader, so nothing is decoded twice.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getOrderShipment(): Shipment
     {

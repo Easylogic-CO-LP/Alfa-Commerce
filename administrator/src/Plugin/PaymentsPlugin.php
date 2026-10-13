@@ -100,14 +100,14 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     /**
      * @var string A provider fact undoing a refund or a chargeback; see recordReversal().
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const TYPE_REVERSAL = PaymentLedger::TYPE_REVERSAL;
 
     /**
      * @var string Money the customer's bank took back; see recordChargeback().
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const TYPE_CHARGEBACK = PaymentLedger::TYPE_CHARGEBACK;
 
@@ -127,7 +127,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * @var string The refund reference is already on a refund row of this
      *             payment: the provider retrying one refund; nothing written.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const OUTCOME_DUPLICATE = PaymentLedger::OUTCOME_DUPLICATE;
     public const OUTCOME_NOT_REFUNDABLE = PaymentLedger::OUTCOME_NOT_REFUNDABLE;
@@ -142,14 +142,14 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     /**
      * @var string The fact is written.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const OUTCOME_RECORDED = PaymentLedger::OUTCOME_RECORDED;
 
     /**
      * @var string Nothing written: not a fact the ledger can take. A retry cannot help.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const OUTCOME_REFUSED = PaymentLedger::OUTCOME_REFUSED;
 
@@ -164,7 +164,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @var array<string, object|null>
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     private array $resolvedMethods = [];
 
@@ -173,14 +173,14 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * and a fresh instance would throw that cache away on every call.
      *
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     private ?object $paymentMethodModel = null;
 
     /**
      * This family answers on the payment.* controller.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function transportTask(): string
     {
@@ -330,7 +330,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @return float Amount still to collect, never negative.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function amountToCollect(object $order): float
     {
@@ -355,7 +355,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @return float Refundable amount, never negative.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function refundableNow(object $order): Money
     {
@@ -384,7 +384,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @return float Remaining refundable amount, 0.0 when nothing is left.
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     protected function refundableRemainder(int $paymentId): Money
     {
@@ -475,7 +475,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @return int self::WRITE_OK, self::WRITE_RACED or self::WRITE_FAILED.
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     protected function settleAttempt(PaymentLedger $write, int $orderId, string $reference = ''): int
     {
@@ -533,7 +533,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @return int self::WRITE_OK, self::WRITE_RACED or self::WRITE_FAILED.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function supersedeAttempt(int $paymentId, string $reason = ''): int
     {
@@ -592,7 +592,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @return array ['outcome' => self::OUTCOME_*, 'refund_id' => int, 'reason' => string]
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function refundPayment(int $paymentId, ?Money $amount = null, array $options = []): array
     {
@@ -619,7 +619,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @return array ['outcome', 'row_id', 'reason', 'amount', 'reopened']
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected function recordReversal(int $rowId, ?Money $amount = null, array $options = []): array
     {
@@ -638,7 +638,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @return array ['outcome', 'row_id', 'reason', 'amount', 'reopened']
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected function recordChargeback(int $paymentId, Money $amount, array $options = []): array
     {
@@ -657,7 +657,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @return object|null id, amount, transaction_status, transaction_id; or null.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected function findLinkedRow(int $paymentId, string $type, string $reference): ?object
     {
@@ -733,7 +733,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * renews on its own is renewalsAllowed(): this AND the method's own
      * setting (methodAllowsRenewals()).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function supportsRecurring(): bool
     {
@@ -758,7 +758,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * request state, and books nothing at a provider merely by being invoked.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function supportsOperatorPlacement(): bool
     {
@@ -774,7 +774,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @var string
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const PAYLOAD_ENVIRONMENT = 'environment';
 
@@ -790,7 +790,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * @param int $methodId #__alfa_payments.id.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     final public function renewalsAllowed(int $methodId): bool
     {
@@ -818,7 +818,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * @param array $params The method's saved params.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected function methodAllowsRenewals(array $params): bool
     {
@@ -837,7 +837,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @throws InvalidArgumentException When the recorded value is not sandbox or live.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected function paymentEnvironment(object $payment): ?string
     {
@@ -869,7 +869,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @param int $orderId Order PK.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function orderTransition(int $orderId): Transition
     {
@@ -936,7 +936,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @return object|null NULL when this gateway has no method to answer with.
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     protected function getPaymentMethod(int $orderId = 0, int $methodId = 0): ?object
     {
@@ -955,7 +955,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * @param int $orderId Order PK (0 = fallback only).
      * @param int $methodId #__alfa_payments.id a payment row named, if any.
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     private function resolvePaymentMethod(int $orderId, int $methodId): ?object
     {
@@ -1027,7 +1027,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * @return object|null NULL when the id names nothing, or names a method of
      *                     another type.
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     private function loadPaymentMethod(int $methodId): ?object
     {
@@ -1069,7 +1069,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @return array Rows, newest first ([] when none).
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function gatewayPayments(int $orderId, int|array $methodId = 0): array
     {
@@ -1129,7 +1129,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @return object|null The pending attempt, or NULL when there is none.
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     /**
      * The order a browser-return link names, IF it proves it may see it.
@@ -1154,7 +1154,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @return Order|null The order, or NULL when the link proves nothing.
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     protected function orderFromReturnLink(): ?Order
     {
@@ -1226,7 +1226,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @return object|null NULL when nothing matches; settle nothing on a guess.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function gatewayPaymentByReference(array $references, int $orderId = 0, int|array $methodId = 0): ?object
     {
@@ -1285,7 +1285,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *
      * @return object The query, ready for further narrowing.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function gatewayPaymentQuery(object $db, int $orderId, int|array $methodId): object
     {

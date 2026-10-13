@@ -34,7 +34,7 @@ defined('_JEXEC') or die;
  * It decides nothing about money and writes nothing: the memos are the only
  * state, and a write elsewhere tells it what to forget.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartComputation
 {
@@ -43,18 +43,18 @@ final class CartComputation
     private ?CartMethods $methods = null;
     private ?array $contributions = null;
 
-    /** @var object|null The rules result the contributions were folded over. @since 1.14.0 */
+    /** @var object|null The rules result the contributions were folded over. @since 2.0.0 */
     private ?object $contributionsBasis = null;
     private ?int $deliveryPlaceId = null;
     private ?int $assumedShipmentId = null;
 
-    /** @var array<int, int[]> Per-override-field destination chains. @since 1.10.0 */
+    /** @var array<int, int[]> Per-override-field destination chains. @since 2.0.0 */
     private array $methodPlaces = [];
 
-    /** @var ShippingQuote|null The chosen carrier's last answer. @since 1.10.0 */
+    /** @var ShippingQuote|null The chosen carrier's last answer. @since 2.0.0 */
     private ?ShippingQuote $shipmentQuote = null;
 
-    /** @var int|null Which carrier that answer was asked of. @since 1.10.0 */
+    /** @var int|null Which carrier that answer was asked of. @since 2.0.0 */
     private ?int $shipmentQuoteFor = null;
 
     /**
@@ -63,7 +63,7 @@ final class CartComputation
      * @param Closure $state (): HydratedCart - the cart as currently loaded.
      * @param Closure $touch (): void - stamp the cart's activity.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         private readonly CartRepository $repository,
@@ -73,7 +73,7 @@ final class CartComputation
     ) {
     }
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function rules(): CartRules
     {
         return $this->rules ??= new CartRules(
@@ -95,7 +95,7 @@ final class CartComputation
      * exists before the totals do. The totals sum the payable lines: a line
      * flagged unavailable is shown and adds no money.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function totals(): CartTotals
     {
@@ -108,7 +108,7 @@ final class CartComputation
         );
     }
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function methods(): CartMethods
     {
         return $this->methods ??= new CartMethods(
@@ -144,7 +144,7 @@ final class CartComputation
      * or removed, or a carriage that changed, yields a new result and the
      * charges are folded again.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function contributions(): array
     {
@@ -212,7 +212,7 @@ final class CartComputation
      * Where this request says the order is going. The same place again is no
      * change; a different one drops what was offered for the old one.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function bindDeliveryPlace(?int $placeId): void
     {
@@ -235,7 +235,7 @@ final class CartComputation
      * The delivery place: the one bound for this request, else the one the
      * cart's delivery address records in its place field.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function deliveryPlaceId(): ?int
     {
@@ -274,7 +274,7 @@ final class CartComputation
      *
      * @return int[] Nearest first; empty when the destination is unknown.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function deliveryPlaces(): array
     {
@@ -305,7 +305,7 @@ final class CartComputation
      *
      * @return int[] The destination and everything containing it, nearest first.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function placesForMethod(?object $method): array
     {
@@ -338,7 +338,7 @@ final class CartComputation
      * from answering the same question differently.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function deliveryAddress(): AddressView
     {
@@ -352,7 +352,7 @@ final class CartComputation
      * lists and the carriage they priced so that what is read next is computed
      * against it.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function assumeShipment(int $shipmentMethodId): void
     {
@@ -372,7 +372,7 @@ final class CartComputation
      * A write changed what is offered: drop the method lists, and through them
      * the carriage.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function forgetMethods(): void
     {
@@ -417,7 +417,7 @@ final class CartComputation
      * ASKS NOTHING OF THE OFFERED LIST, which is what keeps quoting and
      * filtering from calling each other.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function shipmentQuote(): ShippingQuote
     {

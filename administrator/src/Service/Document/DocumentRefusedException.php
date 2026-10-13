@@ -24,7 +24,7 @@ use Throwable;
  * shows it. That screen escapes it, as it escapes every refusal: the values
  * are catalogue data.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class DocumentRefusedException extends RuntimeException
 {
@@ -34,7 +34,7 @@ final class DocumentRefusedException extends RuntimeException
      * @param array $values Its values, in placeholder order.
      * @param Throwable|null $previous The cause, if any.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public function __construct(
         string $message,
@@ -54,7 +54,7 @@ final class DocumentRefusedException extends RuntimeException
      * @param Throwable $e What was thrown.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function in(Throwable $e): ?self
     {
@@ -71,7 +71,7 @@ final class DocumentRefusedException extends RuntimeException
      * The operator's sentence, translated. Not escaped: the screen showing it does.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public function operatorText(): string
     {
@@ -82,7 +82,7 @@ final class DocumentRefusedException extends RuntimeException
      * The operator sentence's language key, untranslated.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public function key(): string
     {
@@ -93,7 +93,7 @@ final class DocumentRefusedException extends RuntimeException
      * The sentence's values, in placeholder order.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public function values(): array
     {

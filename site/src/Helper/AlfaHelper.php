@@ -28,7 +28,7 @@ class AlfaHelper
      * The published, plugin-enabled methods of one kind, read once per request.
      *
      * @var array<string, array>
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static array $loaded = [];
 
@@ -173,7 +173,7 @@ class AlfaHelper
      *
      * @return array The methods keyed by id, in administration order.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function getPublishedMethods(string $baseTable): array
     {
@@ -186,7 +186,7 @@ class AlfaHelper
      * @param string $baseTable 'payment' or 'shipment'.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function loadedMethods(string $baseTable): array
     {

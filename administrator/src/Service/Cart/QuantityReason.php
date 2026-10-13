@@ -21,7 +21,7 @@ defined('_JEXEC') or die;
  * decision, not this enum's. Nothing here names a language key or a message
  * type: the policy reports what it decided, the adapter decides what to say.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 enum QuantityReason: string
 {

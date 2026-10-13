@@ -38,7 +38,7 @@ use Throwable;
  * The item passed in MUST already carry ->fields and ->combinations (from the
  * shared ItemFieldsHelper cache, loaded once per request).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class VariantHelper
 {
@@ -94,7 +94,7 @@ final class VariantHelper
      *                                             card and a product page pass null, always.
      * @param int[]|null $shownFieldIds The fields a listing card draws (null = every field; see resolve()).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function resolveAndPrice(object $item, array $selection, ?PriceContext $context, PriceCalculator $calculator, int $quantity = 1, array $optionValueIds = [], array $payloads = [], ?ExplicitPriceInstruction $price = null, ?array $shownFieldIds = null): void
     {
@@ -141,7 +141,7 @@ final class VariantHelper
      * @param int[]|null $shownFieldIds The fields a listing card draws (null = every field: product page, cart).
      *
      * @return VariantSelection|null The pricing selection, or null (nothing selected -> base price).
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function resolve(object $item, array $selection, array $optionValueIds = [], array $payloads = [], ?PriceContext $context = null, ?array $shownFieldIds = null): ?VariantSelection
     {
@@ -231,7 +231,7 @@ final class VariantHelper
      *
      * @return object {salable: bool, showNotify: bool, required: object}
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private static function buildCartState(object $item, ?string $status): object
     {
@@ -269,7 +269,7 @@ final class VariantHelper
      *
      * @return float|null The ceiling, or null for none.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function ceilingFor(object $item): ?float
     {
@@ -308,7 +308,7 @@ final class VariantHelper
      * @param int|null $combinationId The line's combination, or null for the item itself.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function unitSellable(object $item, ?int $combinationId): bool
     {
@@ -326,7 +326,7 @@ final class VariantHelper
      * @return object|null The facts, or null when no unit is displayed or the
      *                     displayed pair is not a unit.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function activeUnitStock(object $item): ?object
     {
@@ -350,7 +350,7 @@ final class VariantHelper
      * @param object $item The resolved item.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function selectionIncomplete(object $item): bool
     {
@@ -370,7 +370,7 @@ final class VariantHelper
      *
      * @return string One of the InventoryAvailabilityService STATUS_* constants.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function unitStatus(object $unit): string
     {
@@ -395,7 +395,7 @@ final class VariantHelper
      *
      * @return string STATUS_IN_STOCK, STATUS_BACKORDER or STATUS_OUT_OF_STOCK.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function publicStatus(object $unit): string
     {
@@ -417,7 +417,7 @@ final class VariantHelper
      * @param object|null $unit The displayed unit's facts, or null.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function applyPublicFigures(object $item, ?object $unit): void
     {
@@ -460,7 +460,7 @@ final class VariantHelper
      * @param array $selections Sibling selections ['sel' => fieldId=>valueId, 'opt' => valueIds] (HasSelections).
      *
      * @return PriceContribution[] The collected lines, ordered by sortOrder.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function collectContributions(object $item, array $payloads, ?PriceContext $context = null, array $selections = []): array
     {
@@ -537,7 +537,7 @@ final class VariantHelper
      * reload (ItemsModel) parse them identically and the views stay thin.
      *
      * @return array{selection: array, optionValueIds: int[], payloads: array}
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function requestSelection(): array
     {
@@ -581,7 +581,7 @@ final class VariantHelper
      *
      * @return array{selection: array<int, int>, optionValueIds: array<int, int>, payloads: array}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function offeredSelection(object $item, array $request): array
     {
@@ -641,7 +641,7 @@ final class VariantHelper
      *
      * @return array<int, true>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function payloadFields(object $item): array
     {
@@ -656,11 +656,11 @@ final class VariantHelper
      * they are class-level so {@see self::warmOverlay()} can fill them for a whole
      * page in one query each.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static array $overlayTranslations = [];
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     private static array $overlayMedia = [];
 
     /**
@@ -683,7 +683,7 @@ final class VariantHelper
      * @param int[] $combinationIds The active combinations about to be overlaid.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function warmOverlay(array $combinationIds): void
     {
@@ -745,7 +745,7 @@ final class VariantHelper
     /**
      * The visitor's language as the per-language table suffix.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function overlayLangSuffix(): string
     {
@@ -767,7 +767,7 @@ final class VariantHelper
      * @param object $item The item being assembled.
      * @param object|null $active The resolved combination, or null.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function overlay(object $item, ?object $active): void
     {

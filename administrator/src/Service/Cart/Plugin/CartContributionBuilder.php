@@ -30,44 +30,44 @@ defined('_JEXEC') or die;
  * harvest, throws naming the code when a required part is missing, so a
  * half-written charge fails loudly instead of silently dropping money.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class CartContributionBuilder
 {
     /**
      * @var string The totals label.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private string $label = '';
 
     /**
      * @var string|null '+' | '%', chosen by amount()/percent(), exactly once.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private ?string $operation = null;
 
     /**
      * @var float The magnitude (net currency for '+', percent for '%').
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private float $amount = 0.0;
 
     /**
      * @var float The contribution's own tax rate (percent).
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private float $taxRate = 0.0;
 
     /**
      * @var int Fold/display order.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private int $sortOrder = 0;
 
     /**
      * @param string $code Stable id for the line, e.g. 'signup_fee'.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct(private readonly string $code)
     {
@@ -83,7 +83,7 @@ final class CartContributionBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function label(string $label): static
     {
@@ -99,7 +99,7 @@ final class CartContributionBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function amount(float $amount): static
     {
@@ -123,7 +123,7 @@ final class CartContributionBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function percent(float $percent): static
     {
@@ -145,7 +145,7 @@ final class CartContributionBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function taxRate(float $rate): static
     {
@@ -165,7 +165,7 @@ final class CartContributionBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function sortOrder(int $sortOrder): static
     {
@@ -179,7 +179,7 @@ final class CartContributionBuilder
      * this; a missing required part throws, naming the contribution.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function build(): CartContribution
     {
@@ -207,7 +207,7 @@ final class CartContributionBuilder
      * @param string $operation '+' or '%'.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function operation(string $operation): void
     {
@@ -222,7 +222,7 @@ final class CartContributionBuilder
      * The builder's identity for error messages.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function who(): string
     {

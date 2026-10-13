@@ -20,7 +20,7 @@ use RuntimeException;
  * The figures are repaired only through the audited inventory repair; nothing is
  * written when this is thrown.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class InventoryProjectionMismatchException extends RuntimeException
 {
@@ -29,7 +29,7 @@ final class InventoryProjectionMismatchException extends RuntimeException
      * @param array $rows One entry per disagreeing figure row: table, id, stock,
      *                    stock_target, available, available_target.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly int $itemId,
@@ -62,7 +62,7 @@ final class InventoryProjectionMismatchException extends RuntimeException
      * @param mixed $value The figure.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function figure(mixed $value): string
     {

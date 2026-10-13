@@ -17,7 +17,7 @@ defined('_JEXEC') or die;
  * presentation under the line name. New slots (e.g. an actions area) become new
  * cases only when the cart template grows them.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 enum CartSurface: string
 {

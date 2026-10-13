@@ -27,7 +27,7 @@ use Joomla\CMS\Factory;
  * therefore degrades silently to the baseline slot, mirroring core layout
  * behaviour.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class SlotResolver
 {
@@ -41,7 +41,7 @@ final class SlotResolver
      *                       by an alternative layout ("fancy_item-compact.php")
      *
      * @return string loadTemplate() argument: the variant when valid, else the baseline slot
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function resolve(string $value, string $view, string $slot, string $layout = 'default'): string
     {
@@ -74,7 +74,7 @@ final class SlotResolver
      * @param string $slot Baseline slot name
      *
      * @return array{0: string, 1: string} [layout basename without extension, base path]
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function resolveFile(string $value, string $view, string $slot): array
     {
@@ -96,7 +96,7 @@ final class SlotResolver
      * @param string $file Layout basename without extension (e.g. default_cart_empty)
      *
      * @return array{0: string, 1: string} [layout basename, base path]
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function findFile(string $view, string $file): array
     {
@@ -116,7 +116,7 @@ final class SlotResolver
      * @param string $view Site view name
      *
      * @return string[] Existing candidate directories
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private static function searchDirs(string $view): array
     {

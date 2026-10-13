@@ -123,7 +123,7 @@ class PrepareDomEvent extends FieldsEvent
      * did not say; a field then behaves as in an unknown context).
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getContext(): string
     {
@@ -134,7 +134,7 @@ class PrepareDomEvent extends FieldsEvent
      * The customer the form is built for (0 = guest / unknown).
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getUserId(): int
     {

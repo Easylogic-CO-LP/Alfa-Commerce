@@ -17,7 +17,7 @@ use Joomla\Database\DatabaseDriver;
 /**
  * Cart rule table.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class CartruleTable extends Table
 {
@@ -27,7 +27,7 @@ class CartruleTable extends Table
      * would collide on the unique key and break the coupon semantics).
      *
      * @var bool
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected $_supportNullValue = true;
 
@@ -36,7 +36,7 @@ class CartruleTable extends Table
      *
      * @param DatabaseDriver $db A database connector object.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct(DatabaseDriver $db)
     {
@@ -57,7 +57,7 @@ class CartruleTable extends Table
      *
      * @return bool True when the row may be stored.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function check()
     {
@@ -79,7 +79,7 @@ class CartruleTable extends Table
      *
      * @return bool True on success.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function store($updateNulls = true)
     {

@@ -32,7 +32,7 @@ use Alfa\Component\Alfa\Administrator\Model\AlfaListModel;
  * Adds nothing to the output on its own: with no plugin subscribed, every phase this base
  * introduces short-circuits before it builds anything.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 abstract class AlfaHtmlView extends HtmlView
 {
@@ -41,7 +41,7 @@ abstract class AlfaHtmlView extends HtmlView
     /**
      * Whether this grid is being rendered inside a modal.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public bool $isModal = false;
 
@@ -57,7 +57,7 @@ abstract class AlfaHtmlView extends HtmlView
      *
      * @return void
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function display($tpl = null)
     {

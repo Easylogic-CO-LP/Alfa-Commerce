@@ -31,7 +31,7 @@ defined('_JEXEC') or die;
  * cannot be recovered from rounded amounts (8.06 net of 10.00 reads as
  * 24.069%), so it travels with them and is frozen with them.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class ShippingCharge
 {
@@ -47,7 +47,7 @@ final class ShippingCharge
      *
      * @throws InvalidArgumentException When the three amounts are not one canonical charge.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function __construct(
         public readonly Money $taxExcl,
@@ -102,7 +102,7 @@ final class ShippingCharge
      *
      * @throws InvalidArgumentException When the price is negative or the chain cannot carry it.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function fromEntered(Money $entered, ShippingPriceEntryMode $mode, array $chain, float $rate): self
     {
@@ -144,7 +144,7 @@ final class ShippingCharge
      *
      * @throws InvalidArgumentException When the amounts are not one canonical charge.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function explicit(Money $taxExcl, Money $tax, Money $taxIncl, float $taxRate): self
     {

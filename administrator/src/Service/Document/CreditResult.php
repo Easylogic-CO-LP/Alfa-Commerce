@@ -20,7 +20,7 @@ use Joomla\CMS\Language\Text;
  * carries; it computes none of them. The operator text is not
  * escaped here: every screen escapes it.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class CreditResult
 {
@@ -39,7 +39,7 @@ final class CreditResult
      * @param array $exclusions The record entries the one list of charges left out names.
      * @param string $fingerprint The availability fingerprint; '' unless the outcome is issuable.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public function __construct(
         public readonly CreditOutcome $outcome,
@@ -63,7 +63,7 @@ final class CreditResult
      *
      * @return bool False whenever this result has no fingerprint.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public function matches(string $fingerprint): bool
     {
@@ -74,7 +74,7 @@ final class CreditResult
      * The operator's sentence, translated; the technical detail when there is no key. Not escaped.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public function operatorText(): string
     {

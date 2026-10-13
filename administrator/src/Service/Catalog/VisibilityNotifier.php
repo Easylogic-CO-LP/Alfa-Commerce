@@ -77,7 +77,7 @@ use Throwable;
  * `onInventoryTransferred`, `onInventoryAdjusted`). The catalogue is simply behind
  * it. Follow that shape rather than inventing a second one.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class VisibilityNotifier
 {
@@ -89,7 +89,7 @@ final class VisibilityNotifier
      * @param string $changeType What kind of change; see the event's constants.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function changed(
         array $itemIds = [],
