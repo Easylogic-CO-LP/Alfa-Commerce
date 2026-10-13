@@ -23,13 +23,13 @@ defined('_JEXEC') or die;
  * The orchestrator (model / cart hydrator) reads getSurfaces() onto $field->surfaces
  * (plain descriptors, which the dumb template renders by slot).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 trait HasSurfaces
 {
     /**
      * @var SurfaceBuilder[] region value => builder.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected array $surfaceBuilders = [];
 
@@ -40,7 +40,7 @@ trait HasSurfaces
      * @param string $region The region key (a *Surface enum case value).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function surfaceFor(string $region): SurfaceBuilder
     {
@@ -54,7 +54,7 @@ trait HasSurfaces
      *
      * @return array<string, array> region => descriptor.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getSurfaces(): array
     {

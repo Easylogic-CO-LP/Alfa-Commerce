@@ -38,7 +38,7 @@ class MediaController extends BaseController
      * @param CMSApplicationInterface|null $app The Application for the dispatcher.
      * @param Input|null $input The Input object for the request.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct($config = [], ?MVCFactoryInterface $factory = null, ?CMSApplicationInterface $app = null, ?Input $input = null)
     {
@@ -251,7 +251,7 @@ class MediaController extends BaseController
      * markup only; nothing is stored until that form itself is saved under its own permission.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function mayUseMediaZone(): bool
     {
@@ -279,7 +279,7 @@ class MediaController extends BaseController
      *
      * @return bool True only when every resolved address is public.
      *
-     * @since  1.3.1
+     * @since  2.0.0
      */
     private function isPublicHost(string $host): bool
     {

@@ -18,7 +18,7 @@ use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
 /**
  * Methods supporting the list of product item-field definitions.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class ItemfieldsModel extends AlfaListModel
 {
@@ -26,7 +26,7 @@ class ItemfieldsModel extends AlfaListModel
      * The admin-contract entity this list serves.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'itemfield';
 
@@ -36,7 +36,7 @@ class ItemfieldsModel extends AlfaListModel
      * @param array $config An optional associative array of configuration settings.
      * @param MVCFactoryInterface|null $factory The MVC factory.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct($config = [], ?MVCFactoryInterface $factory = null)
     {
@@ -63,7 +63,7 @@ class ItemfieldsModel extends AlfaListModel
      *
      * @return string A store id.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function getStoreId($id = '')
     {
@@ -95,7 +95,7 @@ class ItemfieldsModel extends AlfaListModel
      *
      * @return \Joomla\Database\DatabaseQuery
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function getListQuery()
     {
@@ -162,7 +162,7 @@ class ItemfieldsModel extends AlfaListModel
         $orderDirn = $this->state->get('list.direction', 'ASC');
 
         if ($orderCol && $orderDirn) {
-            $query->order($db->escape($orderCol . ' ' . $orderDirn));
+            $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDirn) === 'DESC' ? 'DESC' : 'ASC'));
         }
 
         return $query;

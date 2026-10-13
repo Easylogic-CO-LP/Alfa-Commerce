@@ -39,14 +39,14 @@ use Joomla\CMS\Language\Text;
  * The steps come from the gateway (onPaymentCheckup, see PaymentCheckupEvent);
  * this field only finds the saved method and draws the card.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class PaymentcheckupField extends FormField
 {
     /**
      * @var string
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected $type = 'Paymentcheckup';
 
@@ -55,14 +55,14 @@ final class PaymentcheckupField extends FormField
      *
      * @var bool
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected $hiddenLabel = true;
 
     /**
      * @return string The checkup card.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function getInput(): string
     {
@@ -84,7 +84,7 @@ final class PaymentcheckupField extends FormField
     /**
      * @return string Nothing: the title sits inside the card.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function getLabel(): string
     {

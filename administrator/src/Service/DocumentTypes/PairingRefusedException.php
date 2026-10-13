@@ -20,17 +20,17 @@ use RuntimeException;
  * reports it. The reason and the named types let a screen say the same in
  * the merchant's words.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class PairingRefusedException extends RuntimeException
 {
-    /** @var string The type is not a credit type, so it corrects nothing. @since 1.14.0 */
+    /** @var string The type is not a credit type, so it corrects nothing. @since 2.0.0 */
     public const NOT_CREDIT = 'not_credit';
 
-    /** @var string A named type is not a registered sales type. @since 1.14.0 */
+    /** @var string A named type is not a registered sales type. @since 2.0.0 */
     public const NOT_SALES = 'not_sales';
 
-    /** @var string The pairing does not fit its column. @since 1.14.0 */
+    /** @var string The pairing does not fit its column. @since 2.0.0 */
     public const TOO_LONG = 'too_long';
 
     /**
@@ -38,7 +38,7 @@ final class PairingRefusedException extends RuntimeException
      * @param string[] $named The values the refusal is about (the not-sales ones).
      * @param string $message The package author's message.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public function __construct(public readonly string $reason, public readonly array $named, string $message)
     {

@@ -21,14 +21,14 @@ use Joomla\CMS\Form\Form;
  * is the one that post refills, and Save there creates the copy. Only the landing changes: the
  * original stays as core leaves it, and a refused permission or check-in keeps core's redirect.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 trait HasFailedCopyRedirect
 {
     /**
      * Whether this Save as Copy passed the original's check-in and the create permission.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private bool $copyReachedValidation = false;
 
@@ -40,7 +40,7 @@ trait HasFailedCopyRedirect
      *
      * @return bool True when saved.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function save($key = null, $urlVar = null)
     {
@@ -66,7 +66,7 @@ trait HasFailedCopyRedirect
      * @param array $data The request data.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected function normalizeRequestData(Form $form, array $data): array
     {

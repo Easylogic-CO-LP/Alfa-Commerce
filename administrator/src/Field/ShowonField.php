@@ -179,7 +179,7 @@ class ShowonField extends FormField
      * @param int $itemId The owning item id.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function resolveItemOperands(int $itemId): void
     {
@@ -408,7 +408,7 @@ class ShowonField extends FormField
      *
      * @return object Operand => {id: name}; empty (and no query) when every stored id is offered.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function unofferedValueNames(array $root): object
     {

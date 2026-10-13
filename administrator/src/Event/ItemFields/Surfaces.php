@@ -26,7 +26,7 @@ defined('_JEXEC') or die;
  *  - OWNER DEFAULT: a surface's plugin group/element defaults to the contributor's
  *    own plugin (set explicitly only to render another plugin's layout).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class Surfaces
 {
@@ -49,7 +49,7 @@ final class Surfaces
      * @param string $pluginName The contributing plugin element (for the message).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function assertSelectorRole(array $surfaces, bool $isVariantField, int $fieldId, string $pluginName): void
     {
@@ -95,7 +95,7 @@ final class Surfaces
      *
      * @return array<string, array> slot => render descriptor.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function collect(object $event, string $ownerGroup, string $ownerName, string $defaultSlot): array
     {
@@ -137,7 +137,7 @@ final class Surfaces
      * @param object|null $field The item field that contributed (null = not an item field).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function appendTo(array &$target, object $event, string $ownerGroup, string $ownerName, string $defaultSlot, string $showon = '', ?object $field = null): void
     {
@@ -157,7 +157,7 @@ final class Surfaces
      * @param array $descriptor One harvested surface descriptor.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function declaresSelector(array $descriptor): bool
     {
@@ -175,7 +175,7 @@ final class Surfaces
      *
      * @return string The data-showon-* attribute string (always at least name/type).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function showonAttr(object $field): string
     {

@@ -21,7 +21,7 @@ use Throwable;
 /**
  * Cart rule form controller.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class CartruleController extends FormController
 {
@@ -29,7 +29,7 @@ class CartruleController extends FormController
 
     /**
      * @var string The URL view list variable.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected $view_list = 'cartrules';
 
@@ -42,7 +42,7 @@ class CartruleController extends FormController
      *
      * @var int
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private const LOOKUP_LIMIT = 50;
 
@@ -58,7 +58,7 @@ class CartruleController extends FormController
      * remote-search consumes verbatim.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function conditionValues(): void
     {

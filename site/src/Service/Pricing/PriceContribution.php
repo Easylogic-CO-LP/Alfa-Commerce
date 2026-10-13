@@ -25,7 +25,7 @@ defined('_JEXEC') or die;
  * net-relative effect is expressed declaratively as a percent operation, which
  * the engine then applies to the net.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class PriceContribution
 {
@@ -38,7 +38,7 @@ final class PriceContribution
      * @param int $sortOrder Fold order; lower folds first.
      * @param string $source Owning plugin element (the collector fills it when empty).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly string $code,

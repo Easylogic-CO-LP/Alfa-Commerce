@@ -22,7 +22,7 @@ defined('_JEXEC') or die;
  * The column is a varchar rather than an enum, so a later source (a renewal, a
  * marketplace) is a new case here and no schema change at all.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 enum CartSource: string
 {
@@ -39,7 +39,7 @@ enum CartSource: string
      * @param string|null $value The column value.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function fromStored(?string $value): self
     {
@@ -50,7 +50,7 @@ enum CartSource: string
      * Whether an operator also needs Carts: Edit to change or place it.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function requiresTakeover(): bool
     {

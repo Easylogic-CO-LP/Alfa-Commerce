@@ -46,17 +46,17 @@ use LogicException;
  * a scope or a condition waits for it (or the delete waits for the editor and
  * then judges what the editor committed).
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class RuleScopeGuard
 {
-    /** @var string Categories: #__alfa_discount_categories, #__alfa_tax_categories, cart-rule category conditions. @since 1.14.0 */
+    /** @var string Categories: #__alfa_discount_categories, #__alfa_tax_categories, cart-rule category conditions. @since 2.0.0 */
     public const AXIS_CATEGORY = 'category';
 
-    /** @var string Places: #__alfa_discount_places, #__alfa_tax_places. @since 1.14.0 */
+    /** @var string Places: #__alfa_discount_places, #__alfa_tax_places. @since 2.0.0 */
     public const AXIS_PLACE = 'place';
 
-    /** @var string Manufacturers: #__alfa_discount_manufacturers, #__alfa_tax_manufacturers, cart-rule manufacturer conditions. @since 1.14.0 */
+    /** @var string Manufacturers: #__alfa_discount_manufacturers, #__alfa_tax_manufacturers, cart-rule manufacturer conditions. @since 2.0.0 */
     public const AXIS_MANUFACTURER = 'manufacturer';
 
     /**
@@ -65,7 +65,7 @@ final class RuleScopeGuard
      * condition type that names the axis (null: no condition names it).
      *
      * @var array<string, array{table: string, column: string, refusal: string, excludes: ?string, pivots: array<string, array{0: string, 1: string}>, conditionType: ?string}>
-     * @since 1.14.0
+     * @since 2.0.0
      */
     private const AXES = [
         self::AXIS_CATEGORY => [
@@ -107,7 +107,7 @@ final class RuleScopeGuard
      * The rule tables, their translation key column and their label keys.
      *
      * @var array<string, array{table: string, langColumn: string, named: string, unnamed: string}>
-     * @since 1.14.0
+     * @since 2.0.0
      */
     private const KINDS = [
         'discount' => [
@@ -148,7 +148,7 @@ final class RuleScopeGuard
      *
      * @throws LogicException When no transaction is open or the axis is unknown.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function lockExisting(DatabaseDriver $db, string $axis, array $ids): array
     {
@@ -192,7 +192,7 @@ final class RuleScopeGuard
      * @throws ScopeDeleteRefusedException When a rule would be widened; nothing has been written.
      * @throws LogicException When no transaction is open or the axis is unknown.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function assertScopesSurvive(DatabaseDriver $db, string $axis, array $ids): void
     {
@@ -312,7 +312,7 @@ final class RuleScopeGuard
      *
      * @return int[] The existing ones, ascending.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function existing(DatabaseDriver $db, string $kind, array $ids): array
     {
@@ -333,7 +333,7 @@ final class RuleScopeGuard
      *
      * @return array<int, array{kind: string, id: int, name: string, label: string, plainLabel: string}>
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function describe(DatabaseDriver $db, array $refused): array
     {

@@ -33,7 +33,7 @@ defined('_JEXEC') or die;
  * Pure. It knows the offer and the choice, and nothing about carts, requests or
  * databases, which is what makes the rule testable without any of them.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class MethodChoice
 {
@@ -42,7 +42,7 @@ final class MethodChoice
      * @param int|null $chooseInstead The only remaining offer, when there is
      *                                exactly one and nothing is chosen.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function __construct(
         public readonly bool $dropCurrent,
@@ -57,7 +57,7 @@ final class MethodChoice
      * @param int $chosen The method the cart currently carries, or 0.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function reconcile(array $offered, int $chosen): self
     {
@@ -73,7 +73,7 @@ final class MethodChoice
     /**
      * @return bool True when nothing needs writing at all.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function isSettled(): bool
     {

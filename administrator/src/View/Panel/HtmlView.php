@@ -38,21 +38,21 @@ use RuntimeException;
  * layout from its OWN directory on {@see PanelViewEvent}, fed the model's paginated items or
  * the record being edited. Two screens share this one view: 'list' and 'edit'.
  *
- * @since  1.7.0
+ * @since  2.0.0
  */
 class HtmlView extends BaseHtmlView
 {
     /**
      * The plugin-rendered body of the current screen.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public string $body = '';
 
     /**
      * The current screen: 'list' or 'edit'.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public string $screen = 'list';
 
@@ -60,7 +60,7 @@ class HtmlView extends BaseHtmlView
      * The form the framework loaded for this screen (when the plugin named one), bound to
      * the record, available to a plugin's own edit layout as $form.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public ?Form $form = null;
 
@@ -68,7 +68,7 @@ class HtmlView extends BaseHtmlView
      * The list filter form, read by the native searchtools chrome the plugin's list layout
      * renders (it takes $view => this). Null when the panel ships no filter form.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public ?Form $filterForm = null;
 
@@ -76,14 +76,14 @@ class HtmlView extends BaseHtmlView
      * Active filters, for the searchtools chrome.
      *
      * @var array<string, mixed>
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public array $activeFilters = [];
 
     /**
      * Total rows, so the searchtools chrome can show its "no results" hint.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public int $total = 0;
 
@@ -93,7 +93,7 @@ class HtmlView extends BaseHtmlView
      *
      * @throws RuntimeException 404 unknown panel, 403 not permitted.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function display($tpl = null): void
     {
@@ -176,7 +176,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return array<string, mixed>
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     private function screenData(PanelIdentity $identity): array
     {
@@ -231,7 +231,7 @@ class HtmlView extends BaseHtmlView
      * @param object|null $state The list state (list screens only).
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     private function addToolbar(PanelIdentity $identity, array $menu, ?object $state = null): void
     {
@@ -309,7 +309,7 @@ class HtmlView extends BaseHtmlView
      * @param array<int, array{label:string, items:array}> $menu The built menu.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     private function activeTitle(array $menu): string
     {

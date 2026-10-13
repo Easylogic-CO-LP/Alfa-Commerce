@@ -20,7 +20,7 @@ use RuntimeException;
  * a refusal PROPAGATES: the reservation fails loudly and the default
  * location is NEVER a silent substitute for a business rule.
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 class AllocationRefusedException extends RuntimeException
 {

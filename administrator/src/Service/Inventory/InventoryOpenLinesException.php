@@ -26,7 +26,7 @@ use RuntimeException;
  * getMessage() is the English text for logs; operatorMessage() is the translated
  * sentence for a screen.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class InventoryOpenLinesException extends RuntimeException
 {
@@ -35,7 +35,7 @@ final class InventoryOpenLinesException extends RuntimeException
      * @param int $combinationId The combination, 0 for the product itself.
      * @param array $lines One entry per relying line: order_id, line_id, ordered, outstanding.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly int $itemId,
@@ -67,7 +67,7 @@ final class InventoryOpenLinesException extends RuntimeException
      * line that still relies on it with the quantity it has left to deduct.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function operatorMessage(): string
     {

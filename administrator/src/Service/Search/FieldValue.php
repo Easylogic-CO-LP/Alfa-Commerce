@@ -29,7 +29,7 @@ defined('_JEXEC') or die;
  * another one. Transliteration rules are per-locale and belong to whoever owns the
  * locale; core must ship none.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class FieldValue
 {
@@ -40,7 +40,7 @@ final class FieldValue
      * @param string $valueName Per-language value name (e.g. "M"); '' when untranslated.
      * @param string $valueAlias Transliterated value form; '' when none.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly int $fieldId,

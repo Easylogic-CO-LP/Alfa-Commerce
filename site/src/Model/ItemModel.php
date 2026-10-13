@@ -299,7 +299,7 @@ class ItemModel extends BaseItemModel
      *
      * @param object $item The loaded item (carries ->fields).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function dispatchFieldSurfaces(object $item): void
     {
@@ -417,7 +417,7 @@ class ItemModel extends BaseItemModel
      *
      * @param object $data The item.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function buildBuyUrls(object $data): void
     {

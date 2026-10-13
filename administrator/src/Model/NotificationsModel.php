@@ -39,7 +39,7 @@ class NotificationsModel extends AlfaListModel
      * The admin-contract entity this list serves.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'notification';
 
@@ -183,7 +183,7 @@ class NotificationsModel extends AlfaListModel
         $orderDir = $this->state->get('list.direction', 'DESC');
 
         if ($orderCol !== '') {
-            $query->order($db->escape($orderCol) . ' ' . $db->escape($orderDir));
+            $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDir) === 'DESC' ? 'DESC' : 'ASC'));
         } else {
             $query->order("FIELD(a.severity, 'danger', 'warning', 'info', 'success') ASC, a.created DESC");
         }

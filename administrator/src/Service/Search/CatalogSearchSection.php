@@ -21,7 +21,7 @@ use InvalidArgumentException;
  * surprise. The duplication (entity on the section AND on each hit) is deliberate:
  * hits travel alone into surfaces that never see their section.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 final class CatalogSearchSection
 {
@@ -32,7 +32,7 @@ final class CatalogSearchSection
      * @throws InvalidArgumentException When a hit is not a CatalogSearchHit or carries
      *                                  a different entity.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly SearchEntity $entity,
@@ -57,7 +57,7 @@ final class CatalogSearchSection
      * Whether the section holds any hits.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function isEmpty(): bool
     {

@@ -50,7 +50,7 @@ class UserController extends FormController
      * into an owned unfrozen row, anything else inserts.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     /**
      * Add credit to the profile's linked Joomla account (manual entry).
@@ -59,7 +59,7 @@ class UserController extends FormController
      * formaction; the token rides along, jform is ignored.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function addCredit(): void
     {
@@ -71,7 +71,7 @@ class UserController extends FormController
      * can never go negative.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function deductCredit(): void
     {
@@ -97,7 +97,7 @@ class UserController extends FormController
      * @param string $direction 'credit' | 'debit'.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function applyCreditAction(string $direction): void
     {
@@ -256,7 +256,7 @@ class UserController extends FormController
      *
      * @return array The filtered field values; empty when validation failed.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function validateUserinfo(array &$errors): array
     {
@@ -293,7 +293,7 @@ class UserController extends FormController
      * the parent.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function saveUserinfoForm(): void
     {
@@ -342,7 +342,7 @@ class UserController extends FormController
      * AJAX: delete a saved-info row, refused while any order references it.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function deleteUserinfo(): void
     {

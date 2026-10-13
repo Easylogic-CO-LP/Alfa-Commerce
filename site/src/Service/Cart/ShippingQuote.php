@@ -54,7 +54,7 @@ defined('_JEXEC') or die;
  * quote that read the list, would not terminate. Deciding the OFFERED list is
  * the eligibility hook's, and the eligibility hook prices nothing.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class ShippingQuote
 {
@@ -68,7 +68,7 @@ final class ShippingQuote
      *                       nothing, which is a defect in the plugin and not a verdict
      *                       on the cart.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function __construct(
         public readonly bool $available,
@@ -84,7 +84,7 @@ final class ShippingQuote
      * @param ShippingCharge $charge The canonical charge.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function of(ShippingCharge $charge): self
     {
@@ -98,7 +98,7 @@ final class ShippingQuote
      * which of the two zeros is meant.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function free(): self
     {
@@ -113,7 +113,7 @@ final class ShippingQuote
      *                          refusal, both of which a Greek shopper reads.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function unavailable(string $reasonKey = ''): self
     {
@@ -131,7 +131,7 @@ final class ShippingQuote
      * to the plugin rather than to a zone table that is not at fault.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function unanswered(): self
     {

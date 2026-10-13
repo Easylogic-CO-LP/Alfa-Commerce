@@ -22,7 +22,7 @@ namespace Alfa\Component\Alfa\Administrator\Card;
  * Five is deliberate. Fewer and everything competes for one row; more and nobody
  * can say what belongs where.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 enum DashboardSurface: string
 {
@@ -46,7 +46,7 @@ enum DashboardSurface: string
      * without knowing every card in it.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function cssClass(): string
     {

@@ -75,7 +75,7 @@ class PriceDataLoader
      * The rows loadBatch() loaded in this process, by product set and pricing context.
      *
      * @var array<string, array{0: array, 1: array, 2: array}>
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static array $loaded = [];
 
@@ -150,7 +150,7 @@ class PriceDataLoader
      * the same process loaded before they were changed.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function forgetLoaded(): void
     {
@@ -262,7 +262,7 @@ class PriceDataLoader
      *
      * @return object[] The matching combination price rows (may be empty).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function loadCombinationPriceRows(int $itemId, int $combinationId, PriceContext $context): array
     {
@@ -318,7 +318,7 @@ class PriceDataLoader
      *
      * @return array Combination price rows grouped by item id (itemId => object[]).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function loadCombinationPriceRowsBatch(array $itemToCombination, PriceContext $context): array
     {
@@ -363,7 +363,7 @@ class PriceDataLoader
      *
      * @return object[] The option delta rows (may be empty).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function loadOptionDeltas(int $itemId, array $valueIds): array
     {

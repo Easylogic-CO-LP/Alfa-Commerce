@@ -35,7 +35,7 @@ use Throwable;
  * command moved: a command never completes partially while silently skipping a
  * line.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class InventoryLineUnresolvedException extends RuntimeException
 {
@@ -52,7 +52,7 @@ final class InventoryLineUnresolvedException extends RuntimeException
      *                     constant; identity_gone when absent).
      * @param Throwable $previous The identity failure detected under lock, if any.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly string $command,
@@ -88,7 +88,7 @@ final class InventoryLineUnresolvedException extends RuntimeException
      *
      * @return string A REASON_* constant.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function lineReason(array $line): string
     {
@@ -102,7 +102,7 @@ final class InventoryLineUnresolvedException extends RuntimeException
      *
      * @return int[]
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function lineIds(): array
     {

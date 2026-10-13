@@ -33,7 +33,7 @@ use Throwable;
  * The engine keeps the hash guard, so unchanged documents (and the value/field
  * rename fan-out) still cost no writes.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class ItemSearchProjection implements ProjectionInterface
 {
@@ -52,7 +52,7 @@ class ItemSearchProjection implements ProjectionInterface
      * @param SearchDocumentBuilder|null $builder Injected for testing; defaults to a new builder.
      * @param SearchWriteCoordinator|null $coordinator Injected for testing; fans writes across generations.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct(
         ?DatabaseInterface $db = null,
@@ -66,7 +66,7 @@ class ItemSearchProjection implements ProjectionInterface
 
     /**
      * @inheritDoc
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function syncItem(int $itemId): void
     {
@@ -107,7 +107,7 @@ class ItemSearchProjection implements ProjectionInterface
 
     /**
      * @inheritDoc
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function syncItems(array $itemIds): void
     {
@@ -124,7 +124,7 @@ class ItemSearchProjection implements ProjectionInterface
 
     /**
      * @inheritDoc
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function deleteForItem(int $itemId): void
     {
@@ -156,7 +156,7 @@ class ItemSearchProjection implements ProjectionInterface
      * @param int[] $itemIds The item primary keys.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function deleteForItems(array $itemIds): void
     {
@@ -202,7 +202,7 @@ class ItemSearchProjection implements ProjectionInterface
      *
      * @return LanguageTag[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function languages(): array
     {
@@ -217,7 +217,7 @@ class ItemSearchProjection implements ProjectionInterface
      * @param string $operation Human-readable operation label.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function report(IndexWriteResult $result, string $operation): void
     {
@@ -231,7 +231,7 @@ class ItemSearchProjection implements ProjectionInterface
      *
      * @param string $message The message to log.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function logWarning(string $message): void
     {

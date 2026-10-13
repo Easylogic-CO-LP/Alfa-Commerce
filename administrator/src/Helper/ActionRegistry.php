@@ -50,7 +50,7 @@ class ActionRegistry
      *
      * @var string
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const LEDGER_LAYOUT_OWNER = 'ledger';
 
@@ -59,7 +59,7 @@ class ActionRegistry
      *
      * @var string
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const ONCE_TABLE = '#__alfa_action_once';
 
@@ -68,7 +68,7 @@ class ActionRegistry
      *
      * @var int
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const ONCE_KEEP_DAYS = 30;
 
@@ -77,7 +77,7 @@ class ActionRegistry
      *
      * @var int
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const ONCE_PRUNE_BATCH = 100;
 
@@ -88,7 +88,7 @@ class ActionRegistry
      *
      * @return array<int, string>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function offeredIds(array $offered): array
     {
@@ -141,7 +141,7 @@ class ActionRegistry
      *
      * @return string|null Refusal reason, or null when the action may run.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function refuseUnofferedAction(array $offered, string $actionId): ?string
     {
@@ -185,7 +185,7 @@ class ActionRegistry
      * @param string $actionId The requested action id.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function actionMutates(array $offered, string $actionId): bool
     {
@@ -224,7 +224,7 @@ class ActionRegistry
      *
      * @return string|null Refusal reason, or null when the request may run.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function refuseUnsafeRequest(bool $mutating, Input $input): ?string
     {
@@ -277,7 +277,7 @@ class ActionRegistry
      * @throws ExecutionFailureException When the database refuses for any other reason.
      * @throws RuntimeException When the database gives no answer about the clean-up lock.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function consumeOnceKey(DatabaseInterface $db, int $userId, string $key): bool
     {
@@ -324,7 +324,7 @@ class ActionRegistry
      * @throws ExecutionFailureException When the delete fails.
      * @throws RuntimeException When the database gives no answer about the lock.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function pruneOnceKeys(DatabaseInterface $db): void
     {
@@ -364,7 +364,7 @@ class ActionRegistry
      *
      * @return string 32 characters.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function onceKeyPruneLock(DatabaseInterface $db): string
     {
@@ -386,7 +386,7 @@ class ActionRegistry
      *
      * @throws RuntimeException
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function resolveActionPage(Input $input): array
     {
@@ -604,7 +604,7 @@ class ActionRegistry
      *
      * @return array{group: string, type: string, event: object}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function refusedPage(
         string $group,
@@ -635,7 +635,7 @@ class ActionRegistry
      *
      * @return array<int, array{section: string, action: string}>|null Null for a group no action page serves.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function actionPagePermissions(Input $input): ?array
     {
@@ -671,7 +671,7 @@ class ActionRegistry
      *
      * @return PluginAction[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function creditActions(object $payment): array
     {
@@ -736,7 +736,7 @@ class ActionRegistry
      *
      * @return ExecutePaymentActionEvent The event the action page renders.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function executeCreditAction(
         object $payment,
@@ -831,7 +831,7 @@ class ActionRegistry
      *
      * @return Money|string The amount, or a translated refusal for the operator.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function partialRefundAmount(Input $input, Money $remainder): Money|string
     {
@@ -892,7 +892,7 @@ class ActionRegistry
      *
      * @return string Plugin element, or '' when it cannot be resolved
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function methodType(object $row, string $column): string
     {
@@ -919,7 +919,7 @@ class ActionRegistry
      * action page. Created with ignore_request so it reads only what we pass.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function orderModel(): object
     {
@@ -979,7 +979,7 @@ class ActionRegistry
      *
      * @return PluginAction[]
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function ledgerActions(object $payment): array
     {
@@ -1046,7 +1046,7 @@ class ActionRegistry
      *
      * @return ExecutePaymentActionEvent The event the action page renders.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function executeLedgerAction(object $payment, object $order, string $action, Input $input): ExecutePaymentActionEvent
     {
@@ -1137,7 +1137,7 @@ class ActionRegistry
      * @param string $refusal Why the submission was refused, plain text; '' for a fresh form.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function ledgerForm(
         ExecutePaymentActionEvent $event,
@@ -1178,7 +1178,7 @@ class ActionRegistry
      *
      * @return string The typed value; '' when absent or not a single value.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function typedValue(Input $input, string $name): string
     {
@@ -1201,7 +1201,7 @@ class ActionRegistry
      * @return Money|string The amount, or a translated refusal for the operator,
      *                      plain text: the page that shows it escapes it once.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function ledgerAmount(Input $input, Currency $currency): Money|string
     {
@@ -1263,7 +1263,7 @@ class ActionRegistry
      *
      * @return array Array of PluginAction objects
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function getItemFieldActions(
         object $field,

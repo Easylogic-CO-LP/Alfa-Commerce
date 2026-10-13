@@ -38,7 +38,7 @@ final class Text extends FormFieldsPlugin
      * @param PrepareDomEvent $event The prepare-DOM event.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function prepareDom(PrepareDomEvent $event): ?DOMElement
     {

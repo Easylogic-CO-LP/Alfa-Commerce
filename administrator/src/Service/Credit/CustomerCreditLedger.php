@@ -43,7 +43,7 @@ use Throwable;
  * No entry is ever updated or deleted. A mistake is corrected by a
  * counter-entry, exactly like the payments and inventory ledgers.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 final class CustomerCreditLedger
 {
@@ -66,7 +66,7 @@ final class CustomerCreditLedger
      * yet against what its order can still give back.
      *
      * @var string
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const CREDIT_NOTE_DESTINATION = 'customer_credit';
 
@@ -79,7 +79,7 @@ final class CustomerCreditLedger
      * and a sentence about a numbered note leaves it out.
      *
      * @var string
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const GOODWILL_HINT = 'For goodwill unrelated to a refund, add manual credit from the customer profile.';
 
@@ -89,7 +89,7 @@ final class CustomerCreditLedger
      * check needs no dependency on the documents helper.
      *
      * @var int
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private const DOCUMENT_STATUS_VOIDED = 2;
 
@@ -113,7 +113,7 @@ final class CustomerCreditLedger
      *
      * @throws RuntimeException On invalid input or write failure.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function credit(
         int $userId,
@@ -159,7 +159,7 @@ final class CustomerCreditLedger
      * @throws CreditNoteRefusedException When the balance is insufficient: the
      *                                    ledger's refusal, with a plain reason().
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function debit(
         int $userId,
@@ -190,7 +190,7 @@ final class CustomerCreditLedger
      * @param int $userId The Joomla user id.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function balance(int $userId): float
     {
@@ -204,7 +204,7 @@ final class CustomerCreditLedger
      * @param int $userId The Joomla user id.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function balanceMoney(int $userId): Money
     {
@@ -227,7 +227,7 @@ final class CustomerCreditLedger
      * @param int $limit 0 = all.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function transactions(int $userId, int $limit = 0): array
     {
@@ -285,7 +285,7 @@ final class CustomerCreditLedger
      *
      * @throws RuntimeException When the shop's currency cannot be read.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function isForeignCurrency(int $currencyId): bool
     {
@@ -359,7 +359,7 @@ final class CustomerCreditLedger
      *                                  its operator text says so in plain words,
      *                                  and its message is the technical one.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function creditNoteRefusal(int $userId, int $orderId, int $currencyId, string $currencyCode, float $amount): ?string
     {
@@ -430,7 +430,7 @@ final class CustomerCreditLedger
      * @throws CreditNoteRefusedException When the note's currency is its order's
      *                                    and the order names none.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function accountRefusal(int $userId, int $orderId, int $currencyId, string $currencyCode, string|float $amount, ?object $header): ?string
     {
@@ -518,7 +518,7 @@ final class CustomerCreditLedger
      * @throws CreditNoteRefusedException When the note's currency is its order's
      *                                    and the order names none.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function creditNoteCurrencyId(int $orderId, int $currencyId, ?object $header): int
     {
@@ -559,7 +559,7 @@ final class CustomerCreditLedger
      *                                         their numbers. Its hint is carried apart from the
      *                                         reason.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function ceilingRefusal(\Alfa\Component\Alfa\Site\Service\Pricing\Money $refundable, string|float $amount, int $orderId, int $noteId): ?CreditNoteRefusedException
     {
@@ -645,7 +645,7 @@ final class CustomerCreditLedger
      *                                                 hold together, and their numbers in the order they were
      *                                                 issued.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function waitingCreditNotes(int $orderId, \Alfa\Component\Alfa\Site\Service\Pricing\Currency $currency, int $exceptNoteId): object
     {
@@ -708,7 +708,7 @@ final class CustomerCreditLedger
      *
      * @throws \Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrencyException When the note's order names no currency.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function creditNoteOwed(int $documentId): \Alfa\Component\Alfa\Site\Service\Pricing\Money
     {
@@ -752,7 +752,7 @@ final class CustomerCreditLedger
      *
      * @return array<int, \Alfa\Component\Alfa\Site\Service\Pricing\Money> What each note is still owed, by document id.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function owedOnCreditNotes(array $totals, \Alfa\Component\Alfa\Site\Service\Pricing\Currency $currency): array
     {
@@ -830,7 +830,7 @@ final class CustomerCreditLedger
      *                          one names only the failure, and the log
      *                          keeps the reason.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function applyCreditNote(object $document, int $userId, ?int $actorId = null): object
     {
@@ -1080,7 +1080,7 @@ final class CustomerCreditLedger
      *                                    name, and it is not wrapped again.
      * @throws RuntimeException When the entry cannot be written.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function write(
         int $userId,
@@ -1295,7 +1295,7 @@ final class CustomerCreditLedger
      * @param object $entry The row write() returned (carries balance_after).
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function logCommitted(object $entry): void
     {
@@ -1362,7 +1362,7 @@ final class CustomerCreditLedger
      * @throws RuntimeException When the spend itself fails: the order is
      *                          gone, or a row could not be written.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function spendOnOrder(object $order, Money|string|int|float $amount, ?int $actorId = null, float $grandTotalHint = 0.0): object
     {
@@ -1682,7 +1682,7 @@ final class CustomerCreditLedger
      * @return array<int, array<int, \Alfa\Component\Alfa\Site\Service\Pricing\Money>>
      *                                                                                 [orderId => [userId => money still held]], positive amounts only.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function heldByOrders(array $orderIds): array
     {
@@ -1729,7 +1729,7 @@ final class CustomerCreditLedger
      *
      * @return array Ledger rows, oldest first.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function forOrder(int $orderId): array
     {
@@ -1757,7 +1757,7 @@ final class CustomerCreditLedger
      * Register the ledger's file logger once per request; without this,
      * Joomla silently DROPS every entry for an unregistered category.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function ensureLogger(): void
     {
@@ -1782,7 +1782,7 @@ final class CustomerCreditLedger
      *
      * @return float The amount, expressible in the wallet currency.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function toWalletScale(Money|string|int|float $amount): float
     {
@@ -1813,7 +1813,7 @@ final class CustomerCreditLedger
      *
      * @throws RuntimeException When a Money in another currency, or one finer than the wallet's money, is handed in.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function walletMoney(Money|string|int|float $amount): \Alfa\Component\Alfa\Site\Service\Pricing\Money
     {
@@ -1845,7 +1845,7 @@ final class CustomerCreditLedger
      *
      * @return float
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     /**
      * The wallet leg of a credit note, as money in the wallet's own currency.
@@ -1858,7 +1858,7 @@ final class CustomerCreditLedger
      * @param int $documentId Credit document id.
      *
      *
-     * @since  1.13.0
+     * @since  2.0.0
      */
     public static function creditNoteNetMoney(int $documentId): \Alfa\Component\Alfa\Site\Service\Pricing\Money
     {
@@ -1881,7 +1881,7 @@ final class CustomerCreditLedger
      * @param int $documentId Credit document id.
      *
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public static function creditNoteNet(int $documentId): float
     {
@@ -1904,7 +1904,7 @@ final class CustomerCreditLedger
      *                          customer already spent the credit; the void
      *                          must be blocked until an operator resolves it.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function reverseCreditNote(
         int $documentId,
@@ -1928,7 +1928,7 @@ final class CustomerCreditLedger
     /**
      * Current identity id (0 in CLI contexts).
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function currentUserId(): int
     {

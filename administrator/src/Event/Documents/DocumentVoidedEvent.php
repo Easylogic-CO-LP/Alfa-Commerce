@@ -23,7 +23,7 @@ use Joomla\CMS\Event\AbstractImmutableEvent;
  * Consumers: tax-authority transmission plugins (a void must be transmitted as a
  * cancellation referencing the original MARK), notifications.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class DocumentVoidedEvent extends AbstractImmutableEvent
 {
@@ -32,7 +32,7 @@ final class DocumentVoidedEvent extends AbstractImmutableEvent
      *
      * @return object The `#__alfa_documents` row.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getDocument(): object
     {
@@ -43,7 +43,7 @@ final class DocumentVoidedEvent extends AbstractImmutableEvent
      * The recorded void reason.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getReason(): string
     {
@@ -54,7 +54,7 @@ final class DocumentVoidedEvent extends AbstractImmutableEvent
      * The acting admin user id.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getActorId(): int
     {

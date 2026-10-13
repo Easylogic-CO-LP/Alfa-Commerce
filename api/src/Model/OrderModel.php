@@ -29,7 +29,7 @@ use Alfa\Component\Alfa\Site\Service\Pricing\PublishedDecimal;
  * the JSON:API serializer cannot render; this model flattens them so a single
  * order reads exactly like a list row, plus item-only detail.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 class OrderModel extends AdminOrderModel
 {
@@ -43,7 +43,7 @@ class OrderModel extends AdminOrderModel
      * to forms/order.xml.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function newOrderSource(): string
     {
@@ -62,7 +62,7 @@ class OrderModel extends AdminOrderModel
      *                                with {@see self::getItemWithoutCurrency()};
      *                                every write is refused.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function getItem($pk = null)
     {
@@ -123,7 +123,7 @@ class OrderModel extends AdminOrderModel
      *
      * @return object|false The order, or false when there is no such order.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function getItemWithoutCurrency(int $orderId): object|false
     {
@@ -161,7 +161,7 @@ class OrderModel extends AdminOrderModel
      * @param object|null $facts The order's payment facts; null when it names no currency.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function project(object $item, ?Currency $currency, array $figures, ?object $facts): object
     {
@@ -223,7 +223,7 @@ class OrderModel extends AdminOrderModel
      * @param Currency|null $currency The order's currency; null when it names none.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function projectOrderDetail(object $item, callable $amount, ?Currency $currency): void
     {

@@ -20,7 +20,7 @@ use Alfa\Component\Alfa\Administrator\Model\PaymentModel as AdminPaymentModel;
  * Admin getItem() already resolves the translated name; the API item
  * response additionally carries every language for round-trippable PATCH.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 class PaymentmethodModel extends AdminPaymentModel
 {
@@ -31,7 +31,7 @@ class PaymentmethodModel extends AdminPaymentModel
      *
      * @return mixed Object on success, false on failure.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function getItem($pk = null)
     {

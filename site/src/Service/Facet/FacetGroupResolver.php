@@ -32,7 +32,7 @@ defined('_JEXEC') or die;
  * it returns comes back in the caller's key order, which is the merchant's configured
  * ordering, because rearranging the merchant's values is not this class's decision.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class FacetGroupResolver
 {
@@ -46,7 +46,7 @@ final class FacetGroupResolver
      * this prefix plus hex, so it is never numeric and never carries a reserved character.
      *
      * @var string
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private const TOKEN_PREFIX = 'g';
 
@@ -61,7 +61,7 @@ final class FacetGroupResolver
      * @param string $id The group identity.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function token(string $type, string $id): string
     {
@@ -79,7 +79,7 @@ final class FacetGroupResolver
      *     ungrouped: int[]
      * }
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function resolve(array $groupsByValue): array
     {

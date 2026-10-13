@@ -56,7 +56,7 @@ class OrdersController extends ApiController
      *
      * @return static A BaseController object to support chaining.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function displayList()
     {
@@ -119,7 +119,7 @@ class OrdersController extends ApiController
      *
      * @return mixed
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function edit($id = null)
     {
@@ -161,7 +161,7 @@ class OrdersController extends ApiController
      *
      * @return void
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     public function delete($id = null)
     {
@@ -199,7 +199,7 @@ class OrdersController extends ApiController
      *
      * @throws OrderCurrencyException When the order exists and names no currency.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function refuseOrderWithoutCurrency(int $orderId): void
     {
@@ -222,7 +222,7 @@ class OrdersController extends ApiController
      *
      * @throws Save When the order holds a document.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function refuseDocumentedOrder(object $model, int $orderId, ?Throwable $previous = null): void
     {
@@ -241,7 +241,7 @@ class OrdersController extends ApiController
      * Did the caller say anything about the invoice address?
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function billingMentioned(): bool
     {
@@ -257,7 +257,7 @@ class OrdersController extends ApiController
      * @param int $orderId Order id.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function invoiceAddressId(int $orderId): ?int
     {
@@ -286,7 +286,7 @@ class OrdersController extends ApiController
      * @param int $addressId The invoice address it pointed at before.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function restoreInvoiceAddress(int $orderId, int $addressId): void
     {

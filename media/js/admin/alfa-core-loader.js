@@ -65,7 +65,7 @@
  *   changes; hard-reload (Cmd+Shift+R) while developing.
  *
  * @package  Alfa Commerce
- * @since  1.10.0
+ * @since  2.0.0
  */
 (function () {
     'use strict';
@@ -184,7 +184,7 @@
     /**
      * The Alfa loading indicator.
      *
-     * @since 1.10.0
+     * @since 2.0.0
      */
     class AlfaCoreLoader extends HTMLElement {
         /**

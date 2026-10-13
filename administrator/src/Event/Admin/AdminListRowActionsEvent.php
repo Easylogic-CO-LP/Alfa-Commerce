@@ -43,13 +43,13 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  * carries, the same write boundary as every native list action. Never use url() to change
  * state: a link is a GET, and a GET that writes is a bug a crawler will find for you.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 final class AdminListRowActionsEvent extends AlfaAdminEvent
 {
     /**
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const NAME = 'onAlfaAdminListRowActions';
 }

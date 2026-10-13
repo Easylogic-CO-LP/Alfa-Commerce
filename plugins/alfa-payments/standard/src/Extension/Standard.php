@@ -247,7 +247,7 @@
  *   - the merchant may change the map after your row exists; the read
  *     happens at transition time, so the current setting wins
  *
- * 4. Two guards you cannot override
+ * 4. Four guards you cannot override
  *
  * CREATE never automates. Only a status CHANGE does, so opening a pending
  * attempt does not move the order.
@@ -262,6 +262,12 @@
  * AUTOMATION NEVER LEAVES THE CANCELLED FAMILY. Transition refuses that
  * without force(), which only a conscious admin act passes. Reinstating a
  * cancelled order is a human decision.
+ *
+ * ONLY MONEY TAKEN IN SPEAKS FOR THE ORDER. A refund, reversal or chargeback
+ * row records money going back, so its status change never grants files,
+ * retries a document or moves the order. A write that changes what the row
+ * is (a payment saved as a refund, or the reverse) corrects the record and
+ * does not act for the order either (PaymentLedger::takesMoneyIn()).
  *
  * WHERE THIS LIVES IN CORE (read it if you are debugging)
  *
@@ -634,7 +640,7 @@ final class Standard extends PaymentsPlugin
      * nothing that would exist anywhere else if one is not.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function supportsOperatorPlacement(): bool
     {
@@ -1252,12 +1258,14 @@ final class Standard extends PaymentsPlugin
         $event->add('view_details', Text::_('COM_ALFA_VIEW_DETAILS'))
             ->icon('eye')->css('btn-outline-secondary')
             ->modal('action_view_details', Text::_('COM_ALFA_PAYMENT_DETAILS') . ' #' . $payment->id)
+            ->readOnly()
             ->priority(10);
 
         // View Logs: opens a modal with this payment's plugin log history
         $event->add('view_logs', Text::_('COM_ALFA_VIEW_LOGS'))
             ->icon('list')->css('btn-outline-info')
             ->modal('default_order_logs_view', Text::_('COM_ALFA_PAYMENT_LOGS') . ' #' . $payment->id, 'lg')
+            ->readOnly()
             ->priority(5);
 
         // Pending state
@@ -1724,7 +1732,7 @@ final class Standard extends PaymentsPlugin
      * browser's tooltip and the server-side message would be unreachable.
      *
      * @param object $event ExecutePaymentActionEvent
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function handleRefundPartialForm($event): void
     {
@@ -1771,7 +1779,7 @@ final class Standard extends PaymentsPlugin
      * message ours rather than a silent false from ->save().
      *
      * @param object $event ExecutePaymentActionEvent
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function handleRefundPartial($event): void
     {
@@ -1905,7 +1913,7 @@ final class Standard extends PaymentsPlugin
      *
      * @return Money|string The amount, or a translated refusal for the operator.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function partialRefundAmount(Input $input, Money $remainder): Money|string
     {
@@ -2025,7 +2033,7 @@ final class Standard extends PaymentsPlugin
      *
      * @var array<string, string>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const CHECKUP_STATUS_FIELDS = [
         'status_on_completed' => 'COM_ALFA_PAYMENT_SETTINGS_STATUS_ON_COMPLETED_LABEL',
@@ -2049,7 +2057,7 @@ final class Standard extends PaymentsPlugin
      * @param PaymentCheckupEvent $event The checkup being drawn.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function onPaymentCheckup(PaymentCheckupEvent $event): void
     {
@@ -2132,7 +2140,7 @@ final class Standard extends PaymentsPlugin
      *
      * @return object|null id, id_order and moment (when the money moved), or null.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function firstLedgerRow(int $methodId, array $predicates): ?object
     {

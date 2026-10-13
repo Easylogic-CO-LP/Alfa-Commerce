@@ -16,7 +16,7 @@
  *
  * Path: administrator/components/com_alfa/tmpl/order/edit_correction.php
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 
 defined('_JEXEC') or die;

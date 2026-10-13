@@ -31,7 +31,7 @@ use Throwable;
  * exposes only a single-item delete, and a mass trash must not cost one DELETE
  * per item, so the set-shaped statement lives here.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class PriceProjection implements ProjectionInterface
 {
@@ -49,7 +49,7 @@ class PriceProjection implements ProjectionInterface
      * @param PriceIndexSyncService|null $service Injected for testing; defaults to a new instance.
      * @param DatabaseInterface|null $db Injected for testing; defaults to the container driver.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct(?PriceIndexSyncService $service = null, ?DatabaseInterface $db = null)
     {
@@ -59,7 +59,7 @@ class PriceProjection implements ProjectionInterface
 
     /**
      * @inheritDoc
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function syncItem(int $itemId): void
     {
@@ -68,7 +68,7 @@ class PriceProjection implements ProjectionInterface
 
     /**
      * @inheritDoc
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function syncItems(array $itemIds): void
     {
@@ -77,7 +77,7 @@ class PriceProjection implements ProjectionInterface
 
     /**
      * @inheritDoc
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function deleteForItem(int $itemId): void
     {
@@ -93,7 +93,7 @@ class PriceProjection implements ProjectionInterface
      *
      * @param int[] $itemIds The item primary keys.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function deleteForItems(array $itemIds): void
     {

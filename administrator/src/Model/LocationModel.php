@@ -32,7 +32,7 @@ use Joomla\CMS\Log\Log;
  * reservations, or ledger history) can be disabled but never deleted: the
  * audit trail outlives the place it happened at.
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 class LocationModel extends AlfaAdminModel
 {
@@ -40,7 +40,7 @@ class LocationModel extends AlfaAdminModel
      * The admin-contract entity of this screen.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'location';
 
@@ -59,12 +59,12 @@ class LocationModel extends AlfaAdminModel
      *   onAlfaAdminAfterDelete fires before that cleanup. A location holding any
      *   stock record is never deleted (canDelete()).
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
 
     /**
      * @var string Message prefix for translations.
-     * @since  1.4.0
+     * @since  2.0.0
      */
     protected $text_prefix = 'COM_ALFA_LOCATION';
 
@@ -73,7 +73,7 @@ class LocationModel extends AlfaAdminModel
      * and service-maintained columns: never form-writable.
      *
      * @var string[]
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private const PROTECTED_COLUMNS = ['owner_type', 'owner_id'];
 
@@ -85,7 +85,7 @@ class LocationModel extends AlfaAdminModel
      *
      * @return \Joomla\CMS\Form\Form|false
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function getForm($data = [], $loadData = true)
     {
@@ -102,7 +102,7 @@ class LocationModel extends AlfaAdminModel
      *
      * @return mixed
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     protected function loadFormData()
     {
@@ -133,7 +133,7 @@ class LocationModel extends AlfaAdminModel
      *
      * @return bool
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function save($data)
     {
@@ -220,7 +220,7 @@ class LocationModel extends AlfaAdminModel
      *
      * @return bool
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     protected function canDelete($record)
     {
@@ -253,7 +253,7 @@ class LocationModel extends AlfaAdminModel
      *
      * @return bool
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function delete(&$pks)
     {
@@ -282,7 +282,7 @@ class LocationModel extends AlfaAdminModel
      *
      * @return bool
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function publish(&$pks, $value = 1)
     {
@@ -333,7 +333,7 @@ class LocationModel extends AlfaAdminModel
      * @param int $id Location id.
      *
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function isDefault(int $id): bool
     {
@@ -352,7 +352,7 @@ class LocationModel extends AlfaAdminModel
      * @param int $locationId Location id.
      *
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function footprintOf(int $locationId): string
     {
@@ -402,7 +402,7 @@ class LocationModel extends AlfaAdminModel
      *
      * @return object|false
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function getItem($pk = null)
     {

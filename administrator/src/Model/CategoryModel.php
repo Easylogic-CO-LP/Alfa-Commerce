@@ -46,7 +46,7 @@ class CategoryModel extends AlfaAdminModel
      * The admin-contract entity this model serves.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'category';
 
@@ -86,7 +86,7 @@ class CategoryModel extends AlfaAdminModel
      * core's AdminModel::batch() dispatches on `!empty($commands[$identifier])`
      * and would drop the command silently.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private const BATCH_PARENT_ROOT = 'root';
 
@@ -97,7 +97,7 @@ class CategoryModel extends AlfaAdminModel
      *
      * @var bool
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     protected $batch_copymove = false;
 
@@ -106,7 +106,7 @@ class CategoryModel extends AlfaAdminModel
      *
      * @var array<string, string>
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     protected $batch_commands = [
         'parent_id' => 'batchParent',
@@ -341,7 +341,7 @@ class CategoryModel extends AlfaAdminModel
      * @param int ...$categoryIds The saved, renamed or state-changed category ids.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function resyncAssignedItems(int ...$categoryIds): void
     {
@@ -386,7 +386,7 @@ class CategoryModel extends AlfaAdminModel
      * @param int $categoryId The renamed category id.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function applyRenameSideEffects(int $categoryId): void
     {
@@ -425,7 +425,7 @@ class CategoryModel extends AlfaAdminModel
      *
      * @return bool False only when nothing could be attempted at all.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     protected function batchParent($value, $pks, $contexts)
     {
@@ -545,7 +545,7 @@ class CategoryModel extends AlfaAdminModel
      *
      * @return array<int, array{parent_id: int, state: int, checked_out: int}>
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function loadCategoryNodes(): array
     {
@@ -584,7 +584,7 @@ class CategoryModel extends AlfaAdminModel
      *
      * @return list<int> The refused ids.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function cycleFormingIds(int $targetId, array $candidates, array $nodes): array
     {
@@ -624,7 +624,7 @@ class CategoryModel extends AlfaAdminModel
      *
      * @return list<int> The clashing ids.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function aliasClashesUnderParent(int $targetId, array $candidates): array
     {
@@ -709,7 +709,7 @@ class CategoryModel extends AlfaAdminModel
      * @param int $userId The acting user, stamped as modified_by.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function applyParentChange(int $targetId, array $ids, int $userId): void
     {
@@ -1076,7 +1076,7 @@ class CategoryModel extends AlfaAdminModel
      *
      * @return bool True on success.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function saveorder($pks = [], $order = null)
     {

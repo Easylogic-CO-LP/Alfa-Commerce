@@ -81,7 +81,7 @@ class OrderController extends FormController
      * to correct, and is not kept.
      *
      * @var int
-     * @since 1.14.0
+     * @since 2.0.0
      */
     private const ISSUE_DRAFT_TEXT_MAX = 1024;
 
@@ -91,7 +91,7 @@ class OrderController extends FormController
      * dropped valid input on an unrelated refusal.
      *
      * @var int
-     * @since 1.14.0
+     * @since 2.0.0
      */
     private const ISSUE_DRAFT_NOTE_MAX_BYTES = 65535;
 
@@ -99,7 +99,7 @@ class OrderController extends FormController
      * The most characters a kept charge amount holds.
      *
      * @var int
-     * @since 1.14.0
+     * @since 2.0.0
      */
     private const ISSUE_DRAFT_AMOUNT_MAX = 32;
 
@@ -107,7 +107,7 @@ class OrderController extends FormController
      * The movement purposes the issue form offers (forms/document.xml).
      *
      * @var string[]
-     * @since 1.14.0
+     * @since 2.0.0
      */
     private const ISSUE_MOVEMENT_PURPOSES = ['', '1', '5', '6'];
 
@@ -116,7 +116,7 @@ class OrderController extends FormController
      * under the order lock before a credit that keeps changing is refused.
      *
      * @var int
-     * @since 1.14.0
+     * @since 2.0.0
      */
     private const CREDIT_ROUNDS = 3;
 
@@ -130,7 +130,7 @@ class OrderController extends FormController
      *
      *
      * @throws RuntimeException 403 when the user lacks the right.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function assertCanEdit(string $action = 'edit'): void
     {
@@ -149,7 +149,7 @@ class OrderController extends FormController
      *
      *
      * @throws RuntimeException 403 when either right is missing.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function assertCanIssueDocument(): void
     {
@@ -196,7 +196,7 @@ class OrderController extends FormController
      * Whether the redirect back to the order that this request builds leads
      * to the redisplay that reads the kept post back.
      *
-     * @since 1.14.0
+     * @since 2.0.0
      */
     private bool $redisplaysKeptPost = false;
 
@@ -209,7 +209,7 @@ class OrderController extends FormController
      *
      * @return void
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function reload($key = null, $urlVar = null)
     {
@@ -228,7 +228,7 @@ class OrderController extends FormController
      *
      * @return bool True when the order was saved.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function save($key = null, $urlVar = null)
     {
@@ -256,7 +256,7 @@ class OrderController extends FormController
      *
      * @return string
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected function getRedirectToItemAppend($recordId = null, $urlVar = 'id')
     {
@@ -846,7 +846,7 @@ class OrderController extends FormController
      *
      * @throws Exception When a date cannot be read in the operator's format.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private function modalWriteData(\Joomla\CMS\Form\Form|false $form, array $data): ?array
     {
@@ -891,7 +891,7 @@ class OrderController extends FormController
      * @param array $posted The posted jform.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private function keptModalDraft(\Joomla\CMS\Form\Form|false|null $form, array $posted): array
     {
@@ -999,7 +999,7 @@ class OrderController extends FormController
      * arithmetic of its own. Nothing is written.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function previewOrderItem(): void
     {
@@ -1050,7 +1050,7 @@ class OrderController extends FormController
      * @param array $response The preview answer.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     protected function emitOrderItemPreview(array $response): void
     {
@@ -1100,7 +1100,7 @@ class OrderController extends FormController
      *
      * @throws RuntimeException When the price command or the discount is malformed.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function postedOrderItemWrite(int $orderId): array
     {
@@ -1224,7 +1224,7 @@ class OrderController extends FormController
      *
      * @return array|null requestSelection() shape plus fullPayloads, files, payloadBaselines and filesChosen.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function postedConfiguration(): ?array
     {
@@ -1261,7 +1261,7 @@ class OrderController extends FormController
      * @param bool $isNew Whether the post was for a line that does not exist yet.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function keptOrderItemDraft(bool $isNew): array
     {
@@ -1524,7 +1524,7 @@ class OrderController extends FormController
      * than that money holds is refused by name, never rounded.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function payFromCredit(): void
     {
@@ -1626,7 +1626,7 @@ class OrderController extends FormController
      * name or a typed amount.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function issueDocument(): void
     {
@@ -1889,7 +1889,7 @@ class OrderController extends FormController
      * @param CreditResult $result The calculation the note was issued from.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private function creditIssued(object $document, CreditResult $result): void
     {
@@ -1946,7 +1946,7 @@ class OrderController extends FormController
      * @param object $document The committed credit note.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private function creditToAccount(object $document): void
     {
@@ -2028,7 +2028,7 @@ class OrderController extends FormController
      * @param int $documentId The credit note.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function creditNoteWaits(int $documentId): ?bool
     {
@@ -2065,7 +2065,7 @@ class OrderController extends FormController
      * spend it.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public function payInCreditNote(): void
     {
@@ -2116,7 +2116,7 @@ class OrderController extends FormController
      *
      * @throws DocumentRefusedException When the account cannot take the note.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function assertAccountTakesCredit(int $orderId, int $userId, int $currencyId, string $currencyCode, float $amount): void
     {
@@ -2153,7 +2153,7 @@ class OrderController extends FormController
      * @throws DocumentRefusedException When the account cannot take the replacement.
      * @throws RuntimeException When the order is gone.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function assertAccountTakesReplacement(object $source, object $preview): void
     {
@@ -2186,7 +2186,7 @@ class OrderController extends FormController
      *
      * @return int[]|null
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private function orderDocumentIds(int $orderId): ?array
     {
@@ -2215,7 +2215,7 @@ class OrderController extends FormController
      * @param int[]|null $before Its document ids before the attempt.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private function documentLanded(int $orderId, ?array $before): bool
     {
@@ -2254,7 +2254,7 @@ class OrderController extends FormController
      *
      * @return array The draft in the issue form's field names; [] when nothing can be kept.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private function postedIssueDraft(int $orderId): array
     {
@@ -2368,7 +2368,7 @@ class OrderController extends FormController
      *
      * @return array{shipping: int[], fees: int[], rules: int[], amounts: array{shipping: array<int, string>, fees: array<int, string>}}
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private function postedIssueCharges(int $orderId, bool $isCredit, int $correctsId): array
     {
@@ -2442,7 +2442,7 @@ class OrderController extends FormController
      * @param bool $inBytes Measure in bytes, as a TEXT column holds them.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private function keepPostedText(array &$draft, string $field, int $max, bool $inBytes = false): void
     {
@@ -2464,7 +2464,7 @@ class OrderController extends FormController
      *
      * @return int[]
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private function orderLineIds(int $orderId): array
     {
@@ -2483,7 +2483,7 @@ class OrderController extends FormController
      * @param int $orderId The order.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private function orderHasCustomer(int $orderId): bool
     {
@@ -2522,7 +2522,7 @@ class OrderController extends FormController
      * through the order's own workflow and never as a side effect of this.
      *
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     public function issueCorrection(): void
     {
@@ -2628,7 +2628,7 @@ class OrderController extends FormController
      * replacement's amount alone.
      *
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     public function replaceDocument(): void
     {
@@ -2728,7 +2728,7 @@ class OrderController extends FormController
      * An external issuer and a source of another order keep nothing.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public function previewReplacement(): void
     {
@@ -2800,7 +2800,7 @@ class OrderController extends FormController
      *
      * @return array<string, string>
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private function postedReplacementBuyer(int $sourceId): array
     {
@@ -2848,7 +2848,7 @@ class OrderController extends FormController
      * @param int $sourceId The posted source document.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private function replacementSourceElsewhere(int $orderId, int $sourceId): bool
     {
@@ -2863,7 +2863,7 @@ class OrderController extends FormController
      * Also forgets the buyer edits and reason a preview kept for this source.
      *
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     public function cancelReplacement(): void
     {
@@ -2886,7 +2886,7 @@ class OrderController extends FormController
      * Close the correction modal without issuing anything.
      *
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     public function cancelCorrection(): void
     {
@@ -2910,7 +2910,7 @@ class OrderController extends FormController
      * reason to re-render. Also forgets a draft a refusal kept for this order.
      *
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     public function cancelDocument(): void
     {

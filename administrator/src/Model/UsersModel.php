@@ -28,7 +28,7 @@ class UsersModel extends AlfaListModel
      * The admin-contract entity this list serves.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'user';
 
@@ -161,7 +161,7 @@ class UsersModel extends AlfaListModel
 
         $orderCol = $this->getState('list.ordering', 'a.id');
         $orderDirn = $this->getState('list.direction', 'ASC');
-        $query->order($db->escape($orderCol . ' ' . $orderDirn));
+        $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDirn) === 'DESC' ? 'DESC' : 'ASC'));
 
         return $query;
     }

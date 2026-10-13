@@ -31,7 +31,7 @@ use stdClass;
  * Revocation keeps the row (state 0): audit stays intact and consumers
  * discover the credential is gone through findActive() returning null.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class PaymentReferenceVault
 {
@@ -48,7 +48,7 @@ class PaymentReferenceVault
      *
      * @return int New vault row id.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function store(
         int $userId,
@@ -88,7 +88,7 @@ class PaymentReferenceVault
      * @param string|null $gateway When given, the row must belong to this
      *                             gateway (guards against method retyping).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function findActive(int $id, ?string $gateway = null): ?object
     {
@@ -134,7 +134,7 @@ class PaymentReferenceVault
      *
      * @return object[] Rows with decoded ->reference, newest first.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function findForUser(int $userId): array
     {
@@ -169,7 +169,7 @@ class PaymentReferenceVault
      *
      * @return bool True when a row was revoked.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function revoke(int $id): bool
     {
@@ -193,7 +193,7 @@ class PaymentReferenceVault
      *
      * @param int $id Vault row id.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function markUsed(int $id): void
     {

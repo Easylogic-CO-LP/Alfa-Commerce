@@ -31,11 +31,11 @@ defined('_JEXEC') or die;
  * with what the row now says, so a reader never serves a column the write
  * just changed.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartRowWriter
 {
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function __construct(
         private readonly CartRepository $repository,
         private readonly CartHydrator $hydrator,
@@ -48,7 +48,7 @@ final class CartRowWriter
     /**
      * Stamp the cart's activity; a cart nobody has is not stamped.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function touch(): bool
     {
@@ -88,7 +88,7 @@ final class CartRowWriter
      * country. Re-reading is what makes the next question answer about the
      * address the shopper just chose.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function pointAtDetails(int $deliveryId, ?int $invoiceId = null): void
     {
@@ -113,7 +113,7 @@ final class CartRowWriter
         $this->touch();
     }
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function chooseShipment(int $shipmentId): bool
     {
         return $this->applyShipment($shipmentId, $this->repository->now());
@@ -123,7 +123,7 @@ final class CartRowWriter
      * Write the carrier. A carrier decides which payment methods remain
      * offered and what the carriage costs, so writing one forgets both.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function applyShipment(int $id, string $at): bool
     {
@@ -147,7 +147,7 @@ final class CartRowWriter
         return $result;
     }
 
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function choosePayment(int $paymentId): bool
     {
         return $this->applyPayment($paymentId, $this->repository->now());
@@ -157,7 +157,7 @@ final class CartRowWriter
      * Write the payment method. Nothing offered depends on it, so nothing is
      * forgotten.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function applyPayment(int $id, string $at): bool
     {
@@ -183,7 +183,7 @@ final class CartRowWriter
     /**
      * Take everything out and keep the cart.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function clear(): bool
     {
@@ -206,7 +206,7 @@ final class CartRowWriter
      * The cart ceases to exist: the lines first, then the row. What is left
      * reads as no cart at all.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function discard(): bool
     {
@@ -239,7 +239,7 @@ final class CartRowWriter
      * Give a guest without a recognition key one, so the cart written next can
      * be found again.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function mintKeyIfEmpty(): void
     {
@@ -259,7 +259,7 @@ final class CartRowWriter
      * caller said a change was coming. A guest gets a recognition key on the
      * way, since a cart nobody can find again is a cart nobody has.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function create(): bool
     {

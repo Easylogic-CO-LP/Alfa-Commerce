@@ -32,7 +32,7 @@ use RuntimeException;
  * that a caller can persist between HTTP requests, so a rebuild survives timeouts
  * without restarting and without writing into the live generation.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class RebuildRunner
 {
@@ -40,7 +40,7 @@ final class RebuildRunner
      * @param DocumentSourceInterface $source Supplies records and documents.
      * @param SearchIndexerInterface $indexer Accepts writes.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function __construct(
         private readonly DocumentSourceInterface $source,
@@ -53,7 +53,7 @@ final class RebuildRunner
      * and the serving index is untouched.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function start(): RebuildProgress
     {
@@ -98,7 +98,7 @@ final class RebuildRunner
      * @param RebuildProgress $progress The checkpoint to advance.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function step(RebuildProgress $progress): RebuildProgress
     {
@@ -187,7 +187,7 @@ final class RebuildRunner
      * @throws RuntimeException When the rebuild is incomplete, reconciliation failed, or
      *                          the engine never settled.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function finish(RebuildProgress $progress, float $timeoutSeconds = 30.0, array $reconcile = []): RebuildProgress
     {
@@ -288,7 +288,7 @@ final class RebuildRunner
      * @param RebuildProgress $progress The checkpoint whose generation is being abandoned.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function discard(RebuildProgress $progress): void
     {

@@ -47,7 +47,7 @@ use Alfa\Component\Alfa\Administrator\Event\General\LayoutEvent;
  * Redirects ({@see LayoutEvent} inherits them) are NOT honoured at this call site; a
  * filter form being decorated is no place to navigate a shopper away from.
  *
- * @since  1.7.0
+ * @since  2.0.0
  */
 class SearchInputLayoutEvent extends LayoutEvent
 {
@@ -56,7 +56,7 @@ class SearchInputLayoutEvent extends LayoutEvent
      *
      * @return mixed The list view object (exposes filterForm, searchEventId, the document)
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getView()
     {
@@ -70,7 +70,7 @@ class SearchInputLayoutEvent extends LayoutEvent
      * `$event->getEngineKey()` instead of wondering what a "method" is here.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getEngineKey(): string
     {
@@ -87,7 +87,7 @@ class SearchInputLayoutEvent extends LayoutEvent
      *
      * @return string The context; '' when the dispatching layout did not say.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getContext(): string
     {

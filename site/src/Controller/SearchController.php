@@ -52,7 +52,7 @@ use Throwable;
  * {@see CatalogSearchService::MAX_KEYWORD_LENGTH}, the clamped limits below, and the
  * engine's own per-request lookup budget.
  *
- * @since  1.6.0
+ * @since  2.0.0
  */
 class SearchController extends BaseController
 {
@@ -67,7 +67,7 @@ class SearchController extends BaseController
      *
      * @var int
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     private const MAX_LIMIT = 50;
 
@@ -80,7 +80,7 @@ class SearchController extends BaseController
      * request built product rows it then discarded.
      *
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     public function suggest(): void
     {
@@ -117,7 +117,7 @@ class SearchController extends BaseController
      * Search the catalogue and return the semantic result.
      *
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     public function search(): void
     {
@@ -188,7 +188,7 @@ class SearchController extends BaseController
      *
      * @return string[] Subset of {image, price}.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function fields(): array
     {
@@ -217,7 +217,7 @@ class SearchController extends BaseController
      *
      * @return string The cleaned keyword; '' when there is nothing to search for.
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     private function keyword(): string
     {
@@ -234,7 +234,7 @@ class SearchController extends BaseController
      *
      * @return int Between 1 and {@see MAX_LIMIT}.
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     private function limit(string $name, int $default): int
     {
@@ -256,7 +256,7 @@ class SearchController extends BaseController
      * @param callable():array $handler Produces the response payload.
      *
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     private function respond(callable $handler): void
     {

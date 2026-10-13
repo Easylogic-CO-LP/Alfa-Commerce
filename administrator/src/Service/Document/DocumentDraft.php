@@ -33,7 +33,7 @@ use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
  * fact (whether the draft finishes the sales pool), which decides how the
  * charge builder allocates the remainder.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class DocumentDraft
 {
@@ -58,7 +58,7 @@ final class DocumentDraft
      *
      * @return array The merged line rows, ready for DocumentIssuer.
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     public static function lines(
         int $orderId,
@@ -108,7 +108,7 @@ final class DocumentDraft
      * @param array $picks The item picks this draft carries.
      *
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     private static function finishesItemPool(int $orderId, string $docType, array $picks): bool
     {

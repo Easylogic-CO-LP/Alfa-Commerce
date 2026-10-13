@@ -17,7 +17,7 @@
  * `.shepherd-target` and `.shepherd-footer`.
  *
  * @package  Alfa Commerce
- * @since  1.10.0
+ * @since  2.0.0
  */
 (function () {
     'use strict';

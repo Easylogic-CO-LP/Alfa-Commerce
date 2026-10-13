@@ -28,7 +28,7 @@ defined('_JEXEC') or die;
  *            emptied row was deleted; movedLines names what has to be
  *            re-judged against the pool the two now share.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class AdoptionOutcome
 {
@@ -39,7 +39,7 @@ final class AdoptionOutcome
      * @param object[] $movedLines Lines that changed cart and must be
      *                             re-judged against their new neighbours.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function __construct(
         public readonly bool $adopted,
@@ -52,7 +52,7 @@ final class AdoptionOutcome
     /**
      * @return self Adoption did not run, or found nothing to run on.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function nothing(): self
     {
@@ -63,7 +63,7 @@ final class AdoptionOutcome
      * @param int $cartId The guest cart the member now owns, unchanged in place.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function claimed(int $cartId): self
     {
@@ -76,7 +76,7 @@ final class AdoptionOutcome
      * @param object[] $movedLines The lines that moved across.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function merged(int $survivingId, int $deletedId, array $movedLines): self
     {
@@ -86,7 +86,7 @@ final class AdoptionOutcome
     /**
      * @return bool Whether a row was destroyed.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function deletedACart(): bool
     {
@@ -96,7 +96,7 @@ final class AdoptionOutcome
     /**
      * @return bool Whether anything needs re-judging against the shared pool.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function needsReclamp(): bool
     {

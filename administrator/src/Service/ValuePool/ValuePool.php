@@ -20,7 +20,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\ValuePool;
  * Domains: 'enum' (a value pool: select/multi), 'bool' (0/1: a computed facet),
  * 'number' / 'text' (no candidate list: a free input).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class ValuePool
 {
@@ -29,7 +29,7 @@ final class ValuePool
      * @param array<int, array{id: int|string, label: string}> $items Candidate values (empty for number/text).
      * @param string $domain enum | bool | number | text.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct(
         public string $operand,
@@ -43,7 +43,7 @@ final class ValuePool
      *
      * @return array{operand: string, domain: string, items: array}
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function toArray(): array
     {

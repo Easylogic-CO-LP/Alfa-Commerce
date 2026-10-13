@@ -29,7 +29,7 @@ use Joomla\CMS\Language\Text;
  *   - a series with issued documents can never be deleted; retire it by
  *     unpublishing (state 0) instead.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class SeriesModel extends AlfaAdminModel
 {
@@ -37,7 +37,7 @@ class SeriesModel extends AlfaAdminModel
      * The admin-contract entity of this screen.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'series';
 
@@ -55,7 +55,7 @@ class SeriesModel extends AlfaAdminModel
 
     /**
      * @var string Message prefix for translations.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected $text_prefix = 'COM_ALFA_SERIES';
 
@@ -67,7 +67,7 @@ class SeriesModel extends AlfaAdminModel
      *
      * @return \Joomla\CMS\Form\Form|false
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getForm($data = [], $loadData = true)
     {
@@ -104,7 +104,7 @@ class SeriesModel extends AlfaAdminModel
      *
      * @return mixed
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function loadFormData()
     {
@@ -128,7 +128,7 @@ class SeriesModel extends AlfaAdminModel
      *
      * @return bool
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function save($data)
     {
@@ -215,7 +215,7 @@ class SeriesModel extends AlfaAdminModel
      * @param array $data Form payload (modified by reference).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function bundlePositionsIntoJson(array &$data): void
     {
@@ -288,7 +288,7 @@ class SeriesModel extends AlfaAdminModel
      *
      * @return bool
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function canDelete($record)
     {
@@ -309,7 +309,7 @@ class SeriesModel extends AlfaAdminModel
      * @param int $seriesId The series id.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function hasIssuedDocuments(int $seriesId): bool
     {

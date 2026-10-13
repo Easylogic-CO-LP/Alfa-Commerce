@@ -191,7 +191,7 @@ class CategoriesField extends ListField
      *
      * @return array<int, true>
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private static function visibleCategoryIds(): array
     {

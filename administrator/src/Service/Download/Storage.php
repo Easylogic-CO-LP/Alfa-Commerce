@@ -51,7 +51,7 @@ use RuntimeException;
  * still references the key. One rule, no exceptions: a referenced object
  * can never disappear and an orphaned one can always be reclaimed.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class Storage
 {
@@ -98,7 +98,7 @@ class Storage
      *
      * @throws RuntimeException When the source is unreadable or the store is not writable.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function put(string $sourcePath, bool $isUpload = true): object
     {
@@ -154,7 +154,7 @@ class Storage
      *              caller may still respond). On success the method streams
      *              and CLOSES the application; it never returns.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function serve(object $file): bool
     {
@@ -233,7 +233,7 @@ class Storage
      * @param string $disk Storage driver key.
      * @param string $key 64-hex object id.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function exists(string $disk, string $key): bool
     {
@@ -250,7 +250,7 @@ class Storage
      * @param string $disk Storage driver key.
      * @param string $key 64-hex object id.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function size(string $disk, string $key): ?int
     {
@@ -277,7 +277,7 @@ class Storage
      * @return bool True when the object was deleted, false when kept (still
      *              referenced, already gone, or invalid key).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function deleteIfOrphaned(string $disk, string $key): bool
     {
@@ -310,7 +310,7 @@ class Storage
      *
      * @param string $key 64-hex object id.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function isReferenced(string $key): bool
     {
@@ -353,7 +353,7 @@ class Storage
      * @throws RuntimeException When no root is recorded, or it cannot be
      *                          created or written.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function root(): string
     {
@@ -511,7 +511,7 @@ class Storage
      * @throws RuntimeException On invalid keys: malformed input must never
      *                          be able to shape a filesystem path.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected static function pathFor(string $key, bool $provision = false): string
     {
@@ -534,7 +534,7 @@ class Storage
      *
      * @param string $key Candidate key.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected static function isValidKey(string $key): bool
     {
@@ -549,7 +549,7 @@ class Storage
      *
      * @param string $root Absolute store root.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected static function provisionProtection(string $root): void
     {
@@ -573,7 +573,7 @@ class Storage
      *
      * @param string $path Absolute file path.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected static function detectMime(string $path): string
     {

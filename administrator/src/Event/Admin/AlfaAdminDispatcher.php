@@ -58,7 +58,7 @@ use Throwable;
  * absorbs again: the record is already written or gone, so throwing there would report failure
  * for work that succeeded; it is logged instead.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 final class AlfaAdminDispatcher
 {
@@ -67,7 +67,7 @@ final class AlfaAdminDispatcher
      * absorbed and logged.
      *
      * @var string[]
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private const ABORTABLE_PHASES = [
         AlfaAdminContext::PHASE_VALIDATE,
@@ -79,32 +79,32 @@ final class AlfaAdminDispatcher
      * The one plugin group that may extend the admin: the platform extension point.
      *
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const GROUP = 'alfa';
 
     /**
      * @var object[]|null The enabled platform plugin descriptors ({folder, element}), once per request.
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private static ?array $descriptors = null;
 
     /**
      * @var array<string, PluginInterface|null> Booted plugin instances by 'folder/element' (null =
      *                                          it could not be booted, so we stop trying).
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private static array $booted = [];
 
     /**
      * @var array<string, bool> Whether any booted plugin implements an event, by event name.
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private static array $subscribed = [];
 
     /**
      * @var array<string, bool> Plugins whose language files have been loaded, by 'folder/element'.
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private static array $languages = [];
 
@@ -118,7 +118,7 @@ final class AlfaAdminDispatcher
      * @param string $event The event name (an AlfaAdminEvent::NAME).
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public static function hasSubscribers(string $event): bool
     {
@@ -151,7 +151,7 @@ final class AlfaAdminDispatcher
      * @throws Throwable When a handler throws during an abortable phase (validate, before-save,
      *                   before-delete); the caller turns that into a refused operation.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public static function dispatch(AlfaAdminEvent $event): AlfaAdminEvent
     {
@@ -199,7 +199,7 @@ final class AlfaAdminDispatcher
      * plugin mid-request and then dispatches again.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public static function reset(): void
     {
@@ -222,7 +222,7 @@ final class AlfaAdminDispatcher
      *
      * @return object[] Rows of {folder, element}.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private static function descriptors(): array
     {
@@ -256,7 +256,7 @@ final class AlfaAdminDispatcher
      *
      * @return PluginInterface|null The booted plugin, or null when it could not be booted.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private static function boot(string $folder, string $element): ?PluginInterface
     {
@@ -284,7 +284,7 @@ final class AlfaAdminDispatcher
      * @param string $element The plugin element.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private static function loadLanguage(string $folder, string $element): void
     {
@@ -307,7 +307,7 @@ final class AlfaAdminDispatcher
      * @param string $message The warning to record.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private static function log(string $message): void
     {

@@ -71,7 +71,7 @@ class OrderTotalHelper
      * Display is a different question: panels SHOW cancelled parcels; only
      * the money formula excludes them.
      *
-     * @since 1.10.0
+     * @since 2.0.0
      */
     public const INACTIVE_SHIPMENT_STATUSES = ['cancelled', 'returned'];
 
@@ -81,7 +81,7 @@ class OrderTotalHelper
      * @param \Joomla\Database\DatabaseDriver $db Driver (for quoting).
      * @param string $prefix Optional table alias.
      *
-     * @since 1.10.0
+     * @since 2.0.0
      */
     public static function activeShipmentsWhere(\Joomla\Database\DatabaseDriver $db, string $prefix = ''): string
     {
@@ -98,7 +98,7 @@ class OrderTotalHelper
      *
      * @return object[] The rows that count toward totals.
      *
-     * @since 1.10.0
+     * @since 2.0.0
      */
     public static function activeShipments(array $shipments): array
     {
@@ -176,7 +176,7 @@ class OrderTotalHelper
      *
      * @return object The same ten properties as computeFromArrays(), each a plain decimal text.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function exactFromArrays(array $items, array $shipments, array $discounts, array $contributions = []): object
     {
@@ -331,7 +331,7 @@ class OrderTotalHelper
      *
      * @return object The ten totals, each a plain decimal text.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function getExactBreakdown(int $orderId, ?object $order = null): object
     {
@@ -350,7 +350,7 @@ class OrderTotalHelper
      *
      * @return array{0: array, 1: array, 2: array, 3: array} [items, shipments, cart rules, contributions]
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function loadRows(int $orderId, ?object $order): array
     {
@@ -528,7 +528,7 @@ class OrderTotalHelper
      * @param mixed $value A decimal text, a Money, an integer, a float, or null for nothing.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function exact(mixed $value): ExactAmount
     {
@@ -545,7 +545,7 @@ class OrderTotalHelper
      * @param ExactAmount $amount The amount.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function atLeastZero(ExactAmount $amount): ExactAmount
     {

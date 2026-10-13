@@ -55,7 +55,7 @@ use Joomla\Database\DatabaseQuery;
  * values in one query; the column phase that follows is then pure lookup. That ordering is the
  * whole reason a grid with five plugin columns costs five queries and not five-times-twenty.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 abstract class AlfaListModel extends ListModel
 {
@@ -67,7 +67,7 @@ abstract class AlfaListModel extends ListModel
      * Whether this request is a grid rendered inside a modal.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function isModalRequest(): bool
     {
@@ -89,7 +89,7 @@ abstract class AlfaListModel extends ListModel
      *
      * @return void
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function populateState($ordering = null, $direction = null)
     {
@@ -103,20 +103,20 @@ abstract class AlfaListModel extends ListModel
     /**
      * @var array[]|null Harvested plugin column descriptors ({@see AdminColumns}); null until the
      *                   list phases have run for the current state.
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private ?array $alfaColumns = null;
 
     /**
      * @var array<int, array<string, mixed>> Plugin row data for the current page, [id => [key => value]].
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private array $alfaRowData = [];
 
     /**
      * @var string|null The store id the list phases last ran for, so a second getPluginColumns()
      *                  call in the same render does not re-dispatch.
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private ?string $alfaListStoreId = null;
 
@@ -125,7 +125,7 @@ abstract class AlfaListModel extends ListModel
      *                  whenever the state changes and hands back the same instance otherwise, so
      *                  comparing instances fires the event exactly once per build without
      *                  duplicating (or depending on) the parent's caching rule.
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private ?object $alfaDispatchedQuery = null;
 
@@ -134,7 +134,7 @@ abstract class AlfaListModel extends ListModel
      *
      * @return \Joomla\Database\QueryInterface|string
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected function _getListQuery()
     {
@@ -177,7 +177,7 @@ abstract class AlfaListModel extends ListModel
      *
      * @return array[] Column descriptors, insertion order.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function getPluginColumns(): array
     {
@@ -192,7 +192,7 @@ abstract class AlfaListModel extends ListModel
      *
      * @return array<int, array<string, mixed>>
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function getPluginRowData(): array
     {
@@ -213,7 +213,7 @@ abstract class AlfaListModel extends ListModel
      *
      * @return void
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected function preprocessForm(Form $form, $data, $group = 'content')
     {
@@ -243,7 +243,7 @@ abstract class AlfaListModel extends ListModel
      * line up with the rows the template will actually print.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private function alfaRunListPhases(): void
     {

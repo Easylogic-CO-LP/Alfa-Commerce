@@ -34,7 +34,7 @@ use Throwable;
  * inherited value is not this product's to edit, and offering a control here would
  * imply it could be changed from the wrong place.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 class InheritedAudienceField extends FormField
 {
@@ -49,7 +49,7 @@ class InheritedAudienceField extends FormField
      * Render the inherited audience.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     protected function getInput(): string
     {
@@ -110,7 +110,7 @@ class InheritedAudienceField extends FormField
      * @param string $category Default category name, '' when there is none.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function dimensionRow(string $label, array $own, array $inherited, string $category): string
     {
@@ -137,7 +137,7 @@ class InheritedAudienceField extends FormField
      *
      * @return string[]
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function userNames(array $ids): array
     {
@@ -149,7 +149,7 @@ class InheritedAudienceField extends FormField
      *
      * @return string[]
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function groupNames(array $ids): array
     {
@@ -164,7 +164,7 @@ class InheritedAudienceField extends FormField
      *
      * @return string[]
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function names(array $ids, string $table, string $key, string $column): array
     {
@@ -186,7 +186,7 @@ class InheritedAudienceField extends FormField
      * @param int $categoryId The category id.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function categoryName(int $categoryId): string
     {
@@ -207,7 +207,7 @@ class InheritedAudienceField extends FormField
     }
 
     /**
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function getLanguageTag(): string
     {
@@ -221,7 +221,7 @@ class InheritedAudienceField extends FormField
      * @param string $level Bootstrap contextual class suffix.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function note(string $html, string $level): string
     {
@@ -234,7 +234,7 @@ class InheritedAudienceField extends FormField
      * @param string $value Raw value.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function escape(string $value): string
     {

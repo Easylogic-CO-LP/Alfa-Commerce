@@ -48,7 +48,7 @@ use Throwable;
  * merchant redirect channel. The service is the assembly point: the only place the
  * engine's answer, the models' hydrated rows and the catalogue's own vocabulary meet.
  *
- * @since  1.6.0
+ * @since  2.0.0
  */
 final class CatalogSearchService
 {
@@ -63,7 +63,7 @@ final class CatalogSearchService
      *
      * @var int
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     public const MAX_KEYWORD_LENGTH = 100;
 
@@ -79,7 +79,7 @@ final class CatalogSearchService
      *
      * @var int
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private const AUX_CANDIDATE_LIMIT = 50;
 
@@ -88,7 +88,7 @@ final class CatalogSearchService
      *
      * @var string
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     private const LOG_CATEGORY = 'com_alfa';
 
@@ -103,7 +103,7 @@ final class CatalogSearchService
      * budget.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private SearchEngineInterface|false|null $activeEngine = null;
 
@@ -111,14 +111,14 @@ final class CatalogSearchService
      * The catalogue provider, built once per service instance for the same reason.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private ?SearchProviderInterface $catalogProvider = null;
 
     /**
      * @param MVCFactoryInterface $mvcFactory Factory the entity models are created from.
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     public function __construct(private readonly MVCFactoryInterface $mvcFactory)
     {
@@ -128,7 +128,7 @@ final class CatalogSearchService
      * The active, ready engine (or null), memoised either way.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function activeEngine(): ?SearchEngineInterface
     {
@@ -143,7 +143,7 @@ final class CatalogSearchService
      * The memoised catalogue provider.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function catalogProvider(): SearchProviderInterface
     {
@@ -159,7 +159,7 @@ final class CatalogSearchService
      *
      * @throws InvalidArgumentException When com_alfa cannot be booted.
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     public static function create(): self
     {
@@ -188,7 +188,7 @@ final class CatalogSearchService
      *
      * @return string The cleaned keyword; '' when nothing usable remains.
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     public static function sanitize(string $keyword): string
     {
@@ -215,7 +215,7 @@ final class CatalogSearchService
      *
      * @throws InvalidArgumentException When the keyword exceeds {@see MAX_KEYWORD_LENGTH}.
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     public function search(CatalogSearchRequest $request): CatalogSearchResults
     {
@@ -317,7 +317,7 @@ final class CatalogSearchService
      *                            the catalogue declares one; [] when the active engine
      *                            keeps no dictionary.
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     public function suggest(string $keyword, string $lang, int $limit = 8): array
     {
@@ -346,7 +346,7 @@ final class CatalogSearchService
      *
      * @return CatalogSearchSection[]
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function orderByIntent(array $sections, string $keyword, string $lang): array
     {
@@ -394,7 +394,7 @@ final class CatalogSearchService
      * @param SearchEntity $entity Whose rows these are.
      * @param object[] $rows Hydrated model rows, in rank order.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function appendSection(array &$sections, SearchEntity $entity, array $rows): void
     {
@@ -429,7 +429,7 @@ final class CatalogSearchService
      *
      * @return array{rows: object[], eventId: int|string|null}
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function itemRows(string $keyword, int $limit, bool $withLayouts, bool $withImage, bool $withPrice, SearchIntent $intent): array
     {
@@ -501,7 +501,7 @@ final class CatalogSearchService
      *
      * @return object[] Hydrated rows in engine rank order; [] when nothing matched.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function auxiliaryRows(SearchEntity $entity, string $keyword, string $lang, int $limit, SearchIntent $intent): array
     {
@@ -572,7 +572,7 @@ final class CatalogSearchService
      *
      * @return int[]|null Ranked ids, [] for no match, null for "use the fallback".
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function engineEntityIds(SearchEntity $entity, string $keyword, string $lang, SearchIntent $intent): ?array
     {
@@ -636,7 +636,7 @@ final class CatalogSearchService
      *
      * @return object[] Matched rows; [] when the model is unavailable or threw.
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     private function rows(string $entity, string $keyword, int $limit): array
     {
@@ -685,7 +685,7 @@ final class CatalogSearchService
      *
      * @return SearchSuggestion[] Suggestions, most relevant first.
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     private function suggestions(string $keyword, string $lang, int $limit): array
     {
@@ -733,7 +733,7 @@ final class CatalogSearchService
      *
      * @return SearchSuggestion[] The same suggestions, labelled where declared.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function labelByDeclaredName(array $suggestions, string $lang): array
     {
@@ -813,7 +813,7 @@ final class CatalogSearchService
      *
      * @return int Character count.
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     private static function length(string $keyword): int
     {
@@ -826,7 +826,7 @@ final class CatalogSearchService
      * @param string $message Short description.
      * @param array<string, mixed> $context Extra detail, JSON-encoded onto the line.
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     private function log(string $message, array $context = []): void
     {

@@ -31,7 +31,7 @@ defined('_JEXEC') or die;
  * product context fills it from the item's fields plus the resolver's variant facts.
  * Same class, different content.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class StateBag
 {
@@ -50,7 +50,7 @@ final class StateBag
      * @param array $slice Facet => primitive, as returned by {@see ProvidesState::getState()}.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function put(string $field, array $slice): void
     {
@@ -66,7 +66,7 @@ final class StateBag
      * @param ProvidesState $producer The state producer.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function putFrom(string $field, ProvidesState $producer): void
     {
@@ -82,7 +82,7 @@ final class StateBag
      *
      * @return mixed The stored primitive (or array), or $default.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function get(string $address, mixed $default = null): mixed
     {
@@ -95,7 +95,7 @@ final class StateBag
      * @param string $address A dot-address.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function has(string $address): bool
     {
@@ -109,7 +109,7 @@ final class StateBag
      *
      * @return array<string, scalar|array>
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function all(): array
     {

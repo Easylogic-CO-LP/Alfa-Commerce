@@ -28,7 +28,7 @@ defined('_JEXEC') or die;
  * recovered: this output is for matching, never for display. The rendering path
  * reads the original column and is untouched by anything here.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class PlainText
 {
@@ -41,7 +41,7 @@ final class PlainText
      *
      * @var string[]
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private const VOID_CONTENT_TAGS = ['script', 'style', 'noscript', 'iframe', 'template'];
 
@@ -55,7 +55,7 @@ final class PlainText
      *
      * @return string Whitespace-collapsed, trimmed plain text; '' when nothing readable remains.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function fromHtml(string $html, int $maxChars = 0): string
     {
@@ -105,7 +105,7 @@ final class PlainText
      * @param string $text Subject.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function collapse(string $text): string
     {
@@ -122,7 +122,7 @@ final class PlainText
      * @param string $text Subject.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function lower(string $text): string
     {
@@ -134,7 +134,7 @@ final class PlainText
      *
      * @return int Character count, falling back to byte count without mbstring.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private static function length(string $text): int
     {
@@ -146,7 +146,7 @@ final class PlainText
      * @param int $length Characters to keep.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private static function cut(string $text, int $length): string
     {

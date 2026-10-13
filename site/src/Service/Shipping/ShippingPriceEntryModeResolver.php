@@ -22,14 +22,14 @@ defined('_JEXEC') or die;
  * later (shop default, then a seller's own mode, then a method's) by a change
  * here alone. Today the shop default is the only scope.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class ShippingPriceEntryModeResolver
 {
     /**
      * The component option holding the shop default.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const SHOP_DEFAULT = 'shipping_price_entry_mode';
 
@@ -42,7 +42,7 @@ final class ShippingPriceEntryModeResolver
      *
      * @param ShipmentPricingContext $context The shipment being priced.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function resolve(ShipmentPricingContext $context): ShippingPriceEntryMode
     {

@@ -38,26 +38,26 @@ use Throwable;
  * There is deliberately no `if ($engine->key() === ...)` anywhere in this path. The
  * day one appears, engines have stopped being interchangeable.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class SearchWriteCoordinator
 {
     /**
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private readonly SearchEngineRegistry $registry;
 
     /**
      * Resolved indexer for this request, or false before first resolution.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private SearchIndexerInterface|null|false $indexer = false;
 
     /**
      * @param SearchEngineRegistry|null $registry Injected for testing.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function __construct(?SearchEngineRegistry $registry = null)
     {
@@ -71,7 +71,7 @@ final class SearchWriteCoordinator
      *
      * @return IndexWriteResult Aggregate across all targets.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function write(array $documents): IndexWriteResult
     {
@@ -108,7 +108,7 @@ final class SearchWriteCoordinator
      * @param SearchDocument[] $documents Documents just written.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function noteForReconciliation(array $documents): void
     {
@@ -125,7 +125,7 @@ final class SearchWriteCoordinator
      * @param int[] $itemIds Items written or deleted.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function noteIds(array $itemIds): void
     {
@@ -152,7 +152,7 @@ final class SearchWriteCoordinator
      * @param DocumentId[] $ids Documents to remove.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function delete(array $ids): IndexWriteResult
     {
@@ -185,7 +185,7 @@ final class SearchWriteCoordinator
      * @param callable(SearchIndexerInterface, IndexGeneration): IndexWriteResult $operation What to do per generation.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function fanOut(callable $operation): IndexWriteResult
     {
@@ -236,7 +236,7 @@ final class SearchWriteCoordinator
      *
      * @return SearchIndexerInterface|null Null when no engine is installed or ready.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function indexer(): ?SearchIndexerInterface
     {

@@ -23,7 +23,7 @@ defined('_JEXEC') or die;
  * the request adapter; every writer beneath takes the command and never reads
  * a superglobal.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class AddToCartCommand
 {
@@ -46,7 +46,7 @@ final class AddToCartCommand
      *                        Ownership is checked by the caller; never
      *                        trusted from here.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly int $itemId,
@@ -72,7 +72,7 @@ final class AddToCartCommand
      * @param int $quantity How many.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function of(int $itemId, int $quantity): self
     {
@@ -86,7 +86,7 @@ final class AddToCartCommand
      * @param int $lineId The line to replace.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function editingLine(int $lineId): self
     {

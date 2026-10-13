@@ -63,7 +63,7 @@ use Joomla\Database\ParameterType;
  *  - VOID (section 13): withdraw the document from active coverage, keeping it
  *    numbered, immutable and auditable. The correction of last resort.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class CorrectionStrategies
 {
@@ -71,7 +71,7 @@ final class CorrectionStrategies
      * Keep the source document, issue only the difference.
      *
      * @var string
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public const INCREMENTAL = 'incremental';
 
@@ -79,7 +79,7 @@ final class CorrectionStrategies
      * Void the source and issue a replacement, as one coordinated workflow.
      *
      * @var string
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public const VOID_AND_REPLACE = 'void_and_replace';
 
@@ -87,7 +87,7 @@ final class CorrectionStrategies
      * Withdraw the document from active coverage, keeping its history.
      *
      * @var string
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public const VOID = 'void';
 
@@ -95,31 +95,31 @@ final class CorrectionStrategies
      * The capability Void & Replace answers to, and nothing else does.
      *
      * @var string
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public const CAPABILITY_REPLACE = 'replace';
 
     // Reasons. Each names ONE condition, so a refusal is never a shrug.
 
-    /** @var string @since 1.3.0 */
+    /** @var string @since 2.0.0 */
     public const REASON_ALREADY_VOIDED = 'already_voided';
 
-    /** @var string @since 1.3.0 */
+    /** @var string @since 2.0.0 */
     public const REASON_ACTIVE_CORRECTIVES = 'active_correctives';
 
-    /** @var string @since 1.3.0 */
+    /** @var string @since 2.0.0 */
     public const REASON_NO_PERMISSION = 'no_permission';
 
-    /** @var string @since 1.3.0 */
+    /** @var string @since 2.0.0 */
     public const REASON_NOTHING_TO_CORRECT = 'nothing_to_correct';
 
-    /** @var string @since 1.3.0 */
+    /** @var string @since 2.0.0 */
     public const REASON_STOCK_MOVING = 'stock_moving';
 
-    /** @var string @since 1.3.0 */
+    /** @var string @since 2.0.0 */
     public const REASON_SURVIVING_CLAIMS = 'surviving_claims';
 
-    /** @var string @since 1.3.0 */
+    /** @var string @since 2.0.0 */
     public const REASON_NOT_A_SOURCE = 'not_a_source';
 
     /**
@@ -128,7 +128,7 @@ final class CorrectionStrategies
      * extend it, so the strategy is not offered.
      *
      * @var string
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public const REASON_CORRUPT_CHAIN = 'corrupt_chain';
 
@@ -141,7 +141,7 @@ final class CorrectionStrategies
      * REASON_REPLACEMENT_UNAVAILABLE). The detail names the notes.
      *
      * @var string
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public const REASON_CREDIT_UNAVAILABLE = 'credit_unavailable';
 
@@ -152,7 +152,7 @@ final class CorrectionStrategies
      * unaccounted for as the order stands. The detail names the notes.
      *
      * @var string
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public const REASON_CREDIT_STILL_ACCOUNTS = 'credit_still_accounts';
 
@@ -164,7 +164,7 @@ final class CorrectionStrategies
      * names the notes.
      *
      * @var string
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public const REASON_REPLACEMENT_UNAVAILABLE = 'replacement_unavailable';
 
@@ -175,7 +175,7 @@ final class CorrectionStrategies
      * on such an order shows.
      *
      * @var string
-     * @since 1.14.0
+     * @since 2.0.0
      */
     public const REASON_ORDER_CURRENCY_MISSING = 'order_currency_missing';
 
@@ -183,7 +183,7 @@ final class CorrectionStrategies
      * The anomalies of the replacement chains read in this request, by document id.
      *
      * @var array<int, string>
-     * @since 1.14.0
+     * @since 2.0.0
      */
     private static array $chainAnomalies = [];
 
@@ -191,7 +191,7 @@ final class CorrectionStrategies
      * Whether each order asked about in this request names no currency, by order id.
      *
      * @var array<int, bool>
-     * @since 1.14.0
+     * @since 2.0.0
      */
     private static array $ordersWithoutCurrency = [];
 
@@ -207,7 +207,7 @@ final class CorrectionStrategies
      *
      * @return array<string, object> Keyed by strategy: {available: bool, reason: string, detail: string}.
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     public static function forDocument(int $documentId, ?User $user = null): array
     {
@@ -337,7 +337,7 @@ final class CorrectionStrategies
      *                strategy reason and its detail, the operator sentence's key and values, and the
      *                technical message.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function replacementUnavailable(object $note, array $notes): object
     {
@@ -371,7 +371,7 @@ final class CorrectionStrategies
      *
      * @return object  {available: false, reason: string, detail: string}
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function refusedReplacement(object $note, array $notes): object
     {
@@ -392,7 +392,7 @@ final class CorrectionStrategies
      * @param int $orderId The document's order.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function orderNamesNoCurrency(int $orderId): bool
     {
@@ -419,7 +419,7 @@ final class CorrectionStrategies
      * @param int $documentId The source document.
      *
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     private static function activeCorrectiveCount(int $documentId): int
     {
@@ -452,7 +452,7 @@ final class CorrectionStrategies
      * never reads the memo: it re-reads the chain under the lock.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function clearCache(): void
     {
@@ -469,7 +469,7 @@ final class CorrectionStrategies
      *
      * @return string "cycle at #12, fork at #9", or ''.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     private static function chainAnomalies(int $documentId): string
     {
@@ -482,7 +482,7 @@ final class CorrectionStrategies
     /**
      * @return object {available: true, reason: '', detail: ''}
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function available(): object
     {
@@ -495,7 +495,7 @@ final class CorrectionStrategies
      *
      * @return object {available: false, reason: string, detail: string}
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     private static function refused(string $reason, string $detail): object
     {

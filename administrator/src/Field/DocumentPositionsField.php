@@ -53,7 +53,7 @@ use SimpleXMLElement;
  * `_show_<slug>` flag); restyling or replacing markup remains a layout
  * override concern (dompdf-safe rules: layouts/documents/partials/style.php header).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class DocumentPositionsField extends EditorField
 {
@@ -94,7 +94,7 @@ class DocumentPositionsField extends EditorField
      * @param string|null $group Field group.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setup(SimpleXMLElement $element, $value, $group = null): bool
     {
@@ -177,7 +177,7 @@ class DocumentPositionsField extends EditorField
      * panel per language + the variables palette.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function getInput(): string
     {
@@ -246,7 +246,7 @@ class DocumentPositionsField extends EditorField
      * @param array<string, object> $languages
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function renderTabs(array $languages): string
     {
@@ -288,7 +288,7 @@ class DocumentPositionsField extends EditorField
      * @param array<string, object> $languages Installed content languages.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function emitDefaults(string $layoutId, array $languages): void
     {
@@ -320,7 +320,7 @@ class DocumentPositionsField extends EditorField
      * @param array<string, bool> $structState Per-section visibility.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function renderPanel(
         \Joomla\CMS\Editor\Editor $editor,
@@ -374,7 +374,7 @@ class DocumentPositionsField extends EditorField
      * @param string $value Current HTML value.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function renderEditorSlot(
         \Joomla\CMS\Editor\Editor $editor,
@@ -406,7 +406,7 @@ class DocumentPositionsField extends EditorField
      *
      * @return array<string, bool>
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function collectStructState(array $sequence, array $values): array
     {
@@ -440,7 +440,7 @@ class DocumentPositionsField extends EditorField
      * @param array<string, bool> $structState
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function renderSectionFlags(array $structState): string
     {
@@ -479,7 +479,7 @@ class DocumentPositionsField extends EditorField
      * @param bool $enabled Whether the block is currently shown.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function renderStruct(string $layoutId, bool $enabled = true): string
     {
@@ -526,7 +526,7 @@ class DocumentPositionsField extends EditorField
      * @param array<string, string> $values
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function renderStale(\Joomla\CMS\Editor\Editor $editor, string $suffix, array $livePositions, array $values): string
     {
@@ -569,7 +569,7 @@ class DocumentPositionsField extends EditorField
      * DocumentRenderer resolves at render time.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function renderVarsPalette(): string
     {
@@ -615,7 +615,7 @@ class DocumentPositionsField extends EditorField
      * Tab chip markup: flag image + native name.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function langChip(object $language): string
     {
@@ -639,7 +639,7 @@ class DocumentPositionsField extends EditorField
      * @param string $position Position name.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function buildInputName(string $suffix, string $position): string
     {
@@ -658,7 +658,7 @@ class DocumentPositionsField extends EditorField
      * @param string $layoutId e.g. 'documents.partials.lines'.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function humaniseLayoutId(string $layoutId): string
     {
@@ -679,7 +679,7 @@ class DocumentPositionsField extends EditorField
      * Mirrors DocumentRenderer's render-time slug so flags round-trip.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function structSlug(string $layoutId): string
     {
@@ -694,7 +694,7 @@ class DocumentPositionsField extends EditorField
      * @param array<string, array<string, string>> $values
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function structEnabled(array $values, string $slug): bool
     {
@@ -713,7 +713,7 @@ class DocumentPositionsField extends EditorField
      * sensibly without a language string.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function positionLabel(string $position): string
     {
@@ -732,7 +732,7 @@ class DocumentPositionsField extends EditorField
      * selection, else the doc_type default.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function resolveSelectedLayout(): string
     {
@@ -754,7 +754,7 @@ class DocumentPositionsField extends EditorField
      * AlfaHelper::cleanContent; media-only values count as content.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function hasContent(string $html): bool
     {
@@ -774,7 +774,7 @@ class DocumentPositionsField extends EditorField
      *
      * @return array<string, object>
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function getLanguages(): array
     {
@@ -789,7 +789,7 @@ class DocumentPositionsField extends EditorField
      * 'en-GB' -> 'en_gb' (form-key suffix).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function snakeLang(string $langCode): string
     {
@@ -801,7 +801,7 @@ class DocumentPositionsField extends EditorField
      * markup contract is identical).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function ensureAssetsLoaded(): void
     {

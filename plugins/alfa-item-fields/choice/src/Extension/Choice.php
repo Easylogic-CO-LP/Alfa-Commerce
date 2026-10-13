@@ -53,7 +53,7 @@ final class Choice extends ItemFieldsPlugin implements SubscriberInterface
      *
      * @var string
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private const DEFAULT_UNAVAILABLE_DISPLAY = 'disabled';
 
@@ -64,7 +64,7 @@ final class Choice extends ItemFieldsPlugin implements SubscriberInterface
      *
      * @var string
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private const DEFAULT_RENDER_AS = 'select';
 
@@ -82,7 +82,7 @@ final class Choice extends ItemFieldsPlugin implements SubscriberInterface
      * @param ItemViewEvent $event Item view event.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function onItemView($event): void
     {
@@ -103,7 +103,7 @@ final class Choice extends ItemFieldsPlugin implements SubscriberInterface
      * @param ItemListPrepareEvent $event Item list-prepare event.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function onItemListPrepare($event): void
     {
@@ -131,7 +131,7 @@ final class Choice extends ItemFieldsPlugin implements SubscriberInterface
      * @param ValueFacetGroupsEvent $event The membership request.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function onItemFieldValueFacetGroups($event): void
     {
@@ -204,7 +204,7 @@ final class Choice extends ItemFieldsPlugin implements SubscriberInterface
      *                                                  specifications()).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function renderSelector($event): void
     {
@@ -322,7 +322,7 @@ final class Choice extends ItemFieldsPlugin implements SubscriberInterface
      *
      * @throws LogicException Under JDEBUG, when render_as stores 'text'.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function renderMode(object $field, bool $onCard): string
     {
@@ -368,7 +368,7 @@ final class Choice extends ItemFieldsPlugin implements SubscriberInterface
      * @param object[] $values The value objects to list.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function renderText($event, object $field, array $values): void
     {
@@ -392,7 +392,7 @@ final class Choice extends ItemFieldsPlugin implements SubscriberInterface
      * @param object $field The field (carries ->params_decoded).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function unavailableMode(object $field): string
     {
@@ -411,7 +411,7 @@ final class Choice extends ItemFieldsPlugin implements SubscriberInterface
      *
      * @return object[] The option value objects (may be empty).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function optionValuesFor(object $item, object $field): array
     {
@@ -446,7 +446,7 @@ final class Choice extends ItemFieldsPlugin implements SubscriberInterface
      *
      * @return object[] The informational value objects (may be empty).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function informationalValuesFor(object $item, object $field): array
     {

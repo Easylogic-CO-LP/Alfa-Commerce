@@ -31,7 +31,7 @@ use Joomla\CMS\Language\LanguageHelper;
  * back-office client legitimately wants English messages while editing Greek
  * products.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 final class Dispatcher extends ComponentDispatcher
 {
@@ -40,7 +40,7 @@ final class Dispatcher extends ComponentDispatcher
      *
      * @return void
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function loadLanguage()
     {
@@ -62,7 +62,7 @@ final class Dispatcher extends ComponentDispatcher
      *
      * @return void
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function dispatch()
     {
@@ -93,7 +93,7 @@ final class Dispatcher extends ComponentDispatcher
      * client which representation it actually received.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function applyRequestLanguage(): void
     {
@@ -121,7 +121,7 @@ final class Dispatcher extends ComponentDispatcher
      *
      * @return string|null Canonical lang_code, or null when unmatched.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function resolveContentLanguage(string $requested): ?string
     {

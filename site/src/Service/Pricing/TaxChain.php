@@ -38,7 +38,7 @@ defined('_JEXEC') or die;
  * half away from zero. No float product is rounded, so a tie is a tie on
  * every PHP version: 17.5% on 6.60 is 1.155 and charges 1.16.
  *
- * @since  1.12.0
+ * @since  2.0.0
  */
 final class TaxChain
 {
@@ -55,7 +55,7 @@ final class TaxChain
      *
      * @return array{0: Money, 1: Money, 2: array} [gross, taxTotal, taxes carrying their money]
      *
-     * @since  1.12.0
+     * @since  2.0.0
      */
     public static function chargeForward(Money $net, array $appliedTaxes): array
     {
@@ -115,7 +115,7 @@ final class TaxChain
      *
      * @throws InvalidArgumentException When a rate is not a number.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function netOf(Money $gross, array $rates): Money
     {

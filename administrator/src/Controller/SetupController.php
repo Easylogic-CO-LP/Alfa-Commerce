@@ -27,7 +27,7 @@ use Joomla\CMS\Session\Session;
  * Alfa, which the dispatcher already enforces (each row links to a screen that guards
  * itself); provisioning writes site configuration and is kept for administrators.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class SetupController extends BaseController
 {
@@ -37,7 +37,7 @@ class SetupController extends BaseController
      * evaluation, reconciles the `alfa.setup` notification).
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function card(): void
     {
@@ -59,7 +59,7 @@ class SetupController extends BaseController
      * Persist the current user's card presentation state ('open' | 'collapsed').
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function state(): void
     {
@@ -81,7 +81,7 @@ class SetupController extends BaseController
      * page keeps its current card.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function provision(): void
     {
@@ -123,7 +123,7 @@ class SetupController extends BaseController
      * administrators rather than any section permission.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function assertAdministrator(): void
     {

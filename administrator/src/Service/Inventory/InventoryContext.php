@@ -21,7 +21,7 @@ use Throwable;
  * grouping, valuation date ...) can arrive later without touching a
  * single signature.
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 final class InventoryContext
 {
@@ -34,7 +34,7 @@ final class InventoryContext
      * @param array $metadata Caller extras for event subscribers
      *                        (never read by the kernel itself).
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly int $userId = 0,
@@ -50,7 +50,7 @@ final class InventoryContext
      * run, a scheduled task, a webhook.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function ambient(): self
     {

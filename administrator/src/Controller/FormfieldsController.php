@@ -34,7 +34,7 @@ class FormfieldsController extends AdminController
      * section one step: hidden -> optional -> required -> hidden.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function setVisibility(): void
     {

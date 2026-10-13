@@ -18,7 +18,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Document;
  * calculator takes both from the corrected document,
  * so no entrance can state either.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class CreditInput
 {
@@ -32,7 +32,7 @@ final class CreditInput
      * @param int $actorId The draft's created_by; 0 = the system.
      * @param string|null $printNote The printed remark, or null.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public function __construct(
         public readonly int $orderId,

@@ -21,7 +21,7 @@ defined('_JEXEC') or die;
  * silently price against a destination nobody supplied, so they are kept apart:
  * `exists()` says whether the field is there, `value()` says what is in it.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class FieldValue
 {
@@ -30,7 +30,7 @@ final class FieldValue
      * @param string|null $raw What it holds; null when nothing does.
      * @param string $column The `#__alfa_user_info` column, '' when unresolved.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function __construct(
         private readonly bool $exists,
@@ -46,7 +46,7 @@ final class FieldValue
      * @param string $column The column it was read from.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function of(?string $raw, string $column): self
     {
@@ -57,7 +57,7 @@ final class FieldValue
      * No field backs this: never mapped, or mapped to one that is gone.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function missing(): self
     {
@@ -72,7 +72,7 @@ final class FieldValue
      * rather than behave as though the shopper left it blank.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function exists(): bool
     {
@@ -83,7 +83,7 @@ final class FieldValue
      * The value, trimmed; null when there is no field or nothing in it.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function value(): ?string
     {
@@ -96,7 +96,7 @@ final class FieldValue
      * The value as an integer (a place id, a quantity) or null.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function int(): ?int
     {
@@ -109,7 +109,7 @@ final class FieldValue
      * The `#__alfa_user_info` column this came from, for logging and diagnosis.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function column(): string
     {

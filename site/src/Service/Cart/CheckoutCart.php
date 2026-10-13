@@ -27,11 +27,11 @@ defined('_JEXEC') or die;
  * chosen method the cart can no longer offer is reconciled away, and the
  * corrected selection is written to the cart row before the reading is taken.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CheckoutCart
 {
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function __construct(
         private readonly OpenedCart $cart,
         private readonly CartSnapshotFactory $snapshots,
@@ -42,7 +42,7 @@ final class CheckoutCart
      * Whether there is anything to check out. Costs nothing beyond the cart
      * already loaded: no totals, no contributions, no method plugins.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function isEmpty(): bool
     {
@@ -66,7 +66,7 @@ final class CheckoutCart
      *
      * @param int|null $placeId Where the checkout form says it is going.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function settle(?int $placeId): CartSnapshot
     {
@@ -109,7 +109,7 @@ final class CheckoutCart
      * @param HtmlDocument $document The page being built.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function declareAssets(HtmlDocument $document): void
     {

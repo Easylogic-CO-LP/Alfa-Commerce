@@ -66,7 +66,7 @@ class OrdersModel extends AlfaListModel
      * on this screen targets 'order'.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'order';
 
@@ -76,7 +76,7 @@ class OrdersModel extends AlfaListModel
      * batch loaders and the Money formatting would run twice per request.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private ?array $alfaEnriched = null;
 
@@ -144,7 +144,7 @@ class OrdersModel extends AlfaListModel
      *
      * @return int[] Matching order ids.
      *
-     * @since  1.13.0
+     * @since  2.0.0
      */
     private function factFilteredIds(bool $needsReconciliation, bool $overpaid): array
     {
@@ -246,7 +246,7 @@ class OrdersModel extends AlfaListModel
      * @param string $localEnd Shop-local window end ('' = open).
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function applyNeeds(QueryInterface $query, string $payment, string $fulfilment, string $waiting, string $localStart, string $localEnd): void
     {
@@ -335,7 +335,7 @@ class OrdersModel extends AlfaListModel
      *
      * @return string|null Product name, or null when no product filter is active.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getFilteredItemName(): ?string
     {
@@ -397,7 +397,7 @@ class OrdersModel extends AlfaListModel
      *
      * @return string|null The waiting option's label, or null when the filters can match.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getUnsatisfiableWaitingLabel(): ?string
     {
@@ -625,7 +625,7 @@ class OrdersModel extends AlfaListModel
         $orderCol = $this->state->get('list.ordering', 'a.id');
         $orderDirn = $this->state->get('list.direction', 'DESC');
         if ($orderCol && $orderDirn) {
-            $query->order($db->escape($orderCol . ' ' . $orderDirn));
+            $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDirn) === 'DESC' ? 'DESC' : 'ASC'));
         }
 
         return $query;
@@ -1091,7 +1091,7 @@ class OrdersModel extends AlfaListModel
      * @param int[] $orderIds Order PKs from the current page
      *
      * @return array<int, float> [ orderItemId => credited units ]
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function batchLoadCreditedUnits(array $orderIds): array
     {
@@ -1139,7 +1139,7 @@ class OrdersModel extends AlfaListModel
      * @param int[] $orderIds Order PKs from the current page
      *
      * @return array<int, float> [ orderItemId => returned units ]
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function batchLoadReturnedUnits(array $orderIds): array
     {
@@ -1185,7 +1185,7 @@ class OrdersModel extends AlfaListModel
      * @param int[] $orderIds Order PKs from the current page
      *
      * @return array [ orderId => [line objects...] ]
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function batchLoadShipmentLines(array $orderIds): array
     {
@@ -1281,7 +1281,7 @@ class OrdersModel extends AlfaListModel
      * @param int[] $orderIds Order PKs
      *
      * @return array [ orderId => [contribution objects...] ]
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function batchLoadContributions(array $orderIds): array
     {

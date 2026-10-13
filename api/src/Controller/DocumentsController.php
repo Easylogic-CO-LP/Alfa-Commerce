@@ -27,7 +27,7 @@ use Throwable;
 /**
  * The Documents controller
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 class DocumentsController extends ApiController
 {
@@ -54,7 +54,7 @@ class DocumentsController extends ApiController
      *
      * @return static A BaseController object to support chaining.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function displayList()
     {
@@ -105,7 +105,7 @@ class DocumentsController extends ApiController
      *
      * @return static
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     public function void()
     {
@@ -145,7 +145,7 @@ class DocumentsController extends ApiController
      * GET v1/alfa/documents/:id/html
      *
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     public function html(): void
     {
@@ -175,7 +175,7 @@ class DocumentsController extends ApiController
      * GET v1/alfa/documents/:id/pdf
      *
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     public function pdf(): void
     {
@@ -212,7 +212,7 @@ class DocumentsController extends ApiController
      * otherwise fail deep inside on a missing id.
      *
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     private function requireDocument(): object
     {
@@ -242,7 +242,7 @@ class DocumentsController extends ApiController
      * The JSON request body, raw body first so a query string cannot shadow it.
      *
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     private function body(): array
     {
@@ -261,7 +261,7 @@ class DocumentsController extends ApiController
      * @param string $name Route variable name.
      *
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     private function routeInt(string $name): int
     {

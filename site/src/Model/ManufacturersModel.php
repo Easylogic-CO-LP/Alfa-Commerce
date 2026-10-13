@@ -141,7 +141,7 @@ class ManufacturersModel extends UrlListModel
         $orderDirn = $this->state->get('list.direction', 'ASC');
 
         if ($orderCol && $orderDirn) {
-            $query->order($db->escape($orderCol . ' ' . $orderDirn));
+            $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDirn) === 'DESC' ? 'DESC' : 'ASC'));
         }
 
         return $query;

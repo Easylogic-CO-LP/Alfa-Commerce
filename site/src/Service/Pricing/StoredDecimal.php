@@ -29,35 +29,35 @@ use InvalidArgumentException;
  * delta, the REST verbs). Rounding belongs to the figure's Money boundary,
  * before it is written.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class StoredDecimal
 {
     /**
      * The digits of the money and unit columns, DECIMAL(24,8).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const PRECISION = 24;
 
     /**
      * The places of the money and unit columns, DECIMAL(24,8).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const SCALE = 8;
 
     /**
      * {@see self::refusal()}: the figure has more places than the column.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const FINER = 'finer';
 
     /**
      * {@see self::refusal()}: the figure has more whole digits than the column.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const LARGER = 'larger';
 
@@ -73,7 +73,7 @@ final class StoredDecimal
      *
      * @return string|null self::FINER, self::LARGER, or null when it holds the figure.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function refusal(ExactAmount $value, int $precision = self::PRECISION, int $scale = self::SCALE): ?string
     {
@@ -97,7 +97,7 @@ final class StoredDecimal
      *
      * @throws InvalidArgumentException When the figure is finer than the column's scale or larger than it holds.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function of(Money|ExactAmount|null $value, int $precision = self::PRECISION, int $scale = self::SCALE): ?string
     {

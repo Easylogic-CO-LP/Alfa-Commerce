@@ -21,38 +21,38 @@ defined('_JEXEC') or die;
  * (toDescriptor) which the dumb template renders via Layout::render. Plugin
  * type/name default to the field's own plugin upstream, so they are rarely set.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class SurfaceBuilder
 {
     /**
      * @var string The layout fragment to render in this slot.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private string $layout = '';
 
     /**
      * @var array|object The display data for the layout (item passed when empty).
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private array|object $data = [];
 
     /**
      * @var string The plugin group owning the layout ('' = orchestrator defaults it).
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private string $pluginType = '';
 
     /**
      * @var string The plugin element owning the layout ('' = orchestrator defaults it).
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private string $pluginName = '';
 
     /**
      * @var SelectorDescriptor|null The buyer-input wiring when this surface renders
      *                              an interactive selector (null = a passive slot).
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private ?SelectorDescriptor $selector = null;
 
@@ -63,7 +63,7 @@ final class SurfaceBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setLayout(string $layout): static
     {
@@ -80,7 +80,7 @@ final class SurfaceBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setData(array|object $data): static
     {
@@ -97,7 +97,7 @@ final class SurfaceBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setPluginType(string $type): static
     {
@@ -114,7 +114,7 @@ final class SurfaceBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setPluginName(string $name): static
     {
@@ -132,7 +132,7 @@ final class SurfaceBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function variantSelector(int $fieldId): static
     {
@@ -150,7 +150,7 @@ final class SurfaceBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function optionSelector(int $fieldId): static
     {
@@ -163,7 +163,7 @@ final class SurfaceBuilder
      * Whether a (non-empty) layout was set for this slot.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function hasLayout(): bool
     {
@@ -175,7 +175,7 @@ final class SurfaceBuilder
      *
      * @return array{layout: string, layoutData: array|object, layoutPluginType: string, layoutPluginName: string}
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function toDescriptor(): array
     {

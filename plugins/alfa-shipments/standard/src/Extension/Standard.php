@@ -480,7 +480,7 @@ final class Standard extends ShipmentsPlugin
      *
      * @return float|null The price, or null when this cart cannot be carried.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function carriageFor(Method $method, Cart $cart): ?float
     {
@@ -1181,7 +1181,7 @@ final class Standard extends ShipmentsPlugin
      * @param object $shipment Shipment record (with ->params from the method)
      *
      * @return string The tracking URL, or '' when there is nothing to link to
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function resolveTrackingUrl(object $shipment): string
     {

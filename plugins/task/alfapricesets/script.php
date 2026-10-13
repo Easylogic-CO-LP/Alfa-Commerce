@@ -22,14 +22,14 @@ use Joomla\CMS\Installer\InstallerScriptInterface;
  * orphan. The component's own uninstall removes this plugin through the
  * installer, which runs this script.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 return new class () implements InstallerScriptInterface {
     /**
      * @param InstallerAdapter $adapter The installer adapter.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function install(InstallerAdapter $adapter): bool
     {
@@ -40,7 +40,7 @@ return new class () implements InstallerScriptInterface {
      * @param InstallerAdapter $adapter The installer adapter.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function update(InstallerAdapter $adapter): bool
     {
@@ -54,7 +54,7 @@ return new class () implements InstallerScriptInterface {
      *
      * @return bool Always true: a task that could not be removed is reported, and the uninstall goes on.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function uninstall(InstallerAdapter $adapter): bool
     {
@@ -73,7 +73,7 @@ return new class () implements InstallerScriptInterface {
      * @param InstallerAdapter $adapter The installer adapter.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function preflight(string $type, InstallerAdapter $adapter): bool
     {
@@ -85,7 +85,7 @@ return new class () implements InstallerScriptInterface {
      * @param InstallerAdapter $adapter The installer adapter.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function postflight(string $type, InstallerAdapter $adapter): bool
     {

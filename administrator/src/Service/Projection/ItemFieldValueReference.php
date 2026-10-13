@@ -18,7 +18,7 @@ defined('_JEXEC') or die;
  * array: callers get IDE completion, type safety, and a single shape that the
  * filter-index projection inserts verbatim.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class ItemFieldValueReference
 {
@@ -26,7 +26,7 @@ final class ItemFieldValueReference
      * @param int $fieldId The owning field id (`#__alfa_item_fields.id`).
      * @param int $valueId The pool value id (`#__alfa_item_field_values.id`).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly int $fieldId,

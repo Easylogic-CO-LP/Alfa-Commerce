@@ -6,6 +6,9 @@ includes:
 
 parameters:
     level: 5
+    # Analyse for the oldest PHP Alfa supports, whatever PHP runs the analysis (CI's runner is older),
+    # so a local run and CI report the same findings against the same baseline.
+    phpVersion: 80300
     paths:
         - administrator/src
         - site/src

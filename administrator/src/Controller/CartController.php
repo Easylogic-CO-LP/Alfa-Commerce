@@ -70,7 +70,7 @@ defined('_JEXEC') or die;
  * cart be priced or placed as another's. The single exception is
  * {@see self::createBuilderCart()}, where no cart exists yet to read it from.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class CartController extends BaseController
 {
@@ -86,7 +86,7 @@ class CartController extends BaseController
      * words inside.
      *
      * @var array<string, string>
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const OPERATOR_WORDING = [
         'COM_ALFA_ORDER_PLACE_LINE_UNAVAILABLE' => 'COM_ALFA_CART_CHECKOUT_LINE_UNAVAILABLE',
@@ -102,7 +102,7 @@ class CartController extends BaseController
     /**
      * @var CartSource|null The source of the cart the request names, once a guard
      *                      has read it; null when there is no such cart.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private ?CartSource $cartSource = null;
 
@@ -110,7 +110,7 @@ class CartController extends BaseController
      * Place the named cart as its customer, on their behalf.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function checkout(): void
     {
@@ -262,7 +262,7 @@ class CartController extends BaseController
      * subject's owner and never written here.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function createBuilderCart(): void
     {
@@ -301,7 +301,7 @@ class CartController extends BaseController
      * name, after which the screen offers its controls.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function takeOver(): void
     {
@@ -345,7 +345,7 @@ class CartController extends BaseController
      * storefront would show them.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function searchProducts(): void
     {
@@ -378,7 +378,7 @@ class CartController extends BaseController
      * builds no line and prices nothing.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function addLine(): void
     {
@@ -418,7 +418,7 @@ class CartController extends BaseController
      * Set how many of one line the cart holds.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function setQuantity(): void
     {
@@ -454,7 +454,7 @@ class CartController extends BaseController
      * and write no row at all.
      *
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public function setLinePrice(): void
     {
@@ -522,7 +522,7 @@ class CartController extends BaseController
      * Take one line out of the cart.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function removeLine(): void
     {
@@ -559,7 +559,7 @@ class CartController extends BaseController
      * computes nothing itself, writes nothing and adds nothing.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function priceLineConfig(): void
     {
@@ -599,7 +599,7 @@ class CartController extends BaseController
      *
      * @return array{shipment: int, payment: int}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function cartSelection(int $cartId, User $actor, User $customer): array
     {
@@ -627,7 +627,7 @@ class CartController extends BaseController
      * would only get two places to drift apart.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function speakStorefront(): void
     {
@@ -643,7 +643,7 @@ class CartController extends BaseController
      * leaves the page exactly as it was.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function cancelLine(): void
     {
@@ -660,7 +660,7 @@ class CartController extends BaseController
      * Enter a coupon code on the builder cart.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function applyCoupon(): void
     {
@@ -691,7 +691,7 @@ class CartController extends BaseController
      * Take an entered coupon back off.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function removeCoupon(): void
     {
@@ -732,7 +732,7 @@ class CartController extends BaseController
      * left to a stale pointer. Both must be the customer's own saved rows.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function pointAddress(): void
     {
@@ -791,7 +791,7 @@ class CartController extends BaseController
      * Choose the carrier for the builder cart.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function chooseShipment(): void
     {
@@ -831,7 +831,7 @@ class CartController extends BaseController
      * Choose how to pay for the builder cart.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function choosePayment(): void
     {
@@ -865,7 +865,7 @@ class CartController extends BaseController
      * The cart as it stands: a read, for a screen that re-renders.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function snapshot(): void
     {
@@ -904,7 +904,7 @@ class CartController extends BaseController
      * Protected: every public controller method is an addressable task.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function getRedirect(): string
     {
@@ -922,7 +922,7 @@ class CartController extends BaseController
      *                          missing permission, or a shopper's cart this
      *                          operator may not take over.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function guardMutation(): User
     {
@@ -950,7 +950,7 @@ class CartController extends BaseController
      *
      * @throws RuntimeException 403 for a bad token or a missing permission.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function guardRead(): User
     {
@@ -970,7 +970,7 @@ class CartController extends BaseController
      *
      * @throws RuntimeException 403 when the permission is absent.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function authorisedActor(): User
     {
@@ -997,7 +997,7 @@ class CartController extends BaseController
      * @throws RuntimeException 403 when the cart is a shopper's and Carts: Edit
      *                          (with Carts: View under it) is absent.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function guardTakeover(int $cartId, User $actor): void
     {
@@ -1027,7 +1027,7 @@ class CartController extends BaseController
      * @param array $facts Scalar details of what was done.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function recordTakeover(User $actor, string $operation, array $facts = []): void
     {
@@ -1063,7 +1063,7 @@ class CartController extends BaseController
      * @return NamedCartEditor|null The bound editor, or null once the refusal
      *                              has been emitted.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function editorForOrFail(User $actor): ?NamedCartEditor
     {
@@ -1084,7 +1084,7 @@ class CartController extends BaseController
      * address decide.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function postedPlace(): ?int
     {
@@ -1105,7 +1105,7 @@ class CartController extends BaseController
      *                                   when it took one; null settles here.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function emitCart(
         NamedCartEditor $editor,
@@ -1152,7 +1152,7 @@ class CartController extends BaseController
      * @param Throwable $e The failure.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function emitThrowable(Throwable $e): void
     {
@@ -1172,7 +1172,7 @@ class CartController extends BaseController
      * @param bool $error Whether this reports a failure.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function emit(array $data, string $message = '', bool $error = false): void
     {
@@ -1211,7 +1211,7 @@ class CartController extends BaseController
      * @param bool $error Whether this reports a failure.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function emitToBrowser(string $form, array $data, string $message, bool $error): void
     {
@@ -1273,7 +1273,7 @@ class CartController extends BaseController
      * @param int $status The HTTP status to answer with.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function emitError(string $messageKey, int $status = 400): void
     {
@@ -1292,7 +1292,7 @@ class CartController extends BaseController
      * @param CartSnapshot $snapshot The settled reading.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function projectSnapshot(CartSnapshot $snapshot): array
     {
@@ -1342,7 +1342,7 @@ class CartController extends BaseController
      * @param object $line A hydrated cart line.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function projectLine(object $line): array
     {
@@ -1374,7 +1374,7 @@ class CartController extends BaseController
      * @param array $offered Method objects keyed by id.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function projectMethods(array $offered): array
     {
@@ -1402,7 +1402,7 @@ class CartController extends BaseController
      * @param array $results Item objects as OrderHelper priced them.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function projectSearch(array $results): array
     {
@@ -1441,7 +1441,7 @@ class CartController extends BaseController
      *
      * @throws RuntimeException When the cart does not exist or names no currency.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function cartPriceContext(int $cartId): PriceContext
     {
@@ -1481,7 +1481,7 @@ class CartController extends BaseController
      * @param int $customerId The cart's customer, 0 for a guest.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function addressBelongsTo(int $addressId, int $customerId): bool
     {
@@ -1508,7 +1508,7 @@ class CartController extends BaseController
      * @param int $userId The candidate customer.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function customerExists(int $userId): bool
     {
@@ -1541,7 +1541,7 @@ class CartController extends BaseController
      * @param array $failures The structured reasons.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function refuse(int $cartId, array $failures): void
     {
@@ -1593,7 +1593,7 @@ class CartController extends BaseController
      *
      * @return string The sentence, or '' when the reason names no key.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function operatorReason(array $reason): string
     {
@@ -1646,7 +1646,7 @@ class CartController extends BaseController
      * @param int $cartId The cart.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function customerOf(int $cartId): ?int
     {
@@ -1674,7 +1674,7 @@ class CartController extends BaseController
      *
      * @return string|null A language tag, or null to let placement decide.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function languageFor(int $customerId): ?string
     {

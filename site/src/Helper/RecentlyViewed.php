@@ -22,19 +22,19 @@ defined('_JEXEC') or die;
  * list hands the ids to the listing model, which applies the catalogue's access,
  * publish and stock rules as for any other listing.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class RecentlyViewed
 {
     /**
      * @var string Session key holding the id list.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const SESSION_KEY = 'alfa.recently_viewed';
 
     /**
      * @var int How many ids the list keeps; the oldest drop off.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const MAX = 24;
 
@@ -44,7 +44,7 @@ final class RecentlyViewed
      * @param int $itemId The viewed item's id.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function record(int $itemId): void
     {
@@ -63,7 +63,7 @@ final class RecentlyViewed
      *
      * @return int[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function ids(): array
     {

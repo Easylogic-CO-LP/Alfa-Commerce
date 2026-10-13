@@ -21,7 +21,7 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
  * Document type edit view: presentation fields editable, semantics
  * rendered read-only by the template.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class HtmlView extends BaseHtmlView
 {
@@ -29,7 +29,7 @@ class HtmlView extends BaseHtmlView
      * The admin-contract entity this form serves.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'documenttype';
 
@@ -44,7 +44,7 @@ class HtmlView extends BaseHtmlView
      * wrapper base (not FormView), so the screen identity is declared here.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected function alfaScreen(): string
     {
@@ -58,7 +58,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function display($tpl = null)
     {
@@ -78,7 +78,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function addToolbar()
     {

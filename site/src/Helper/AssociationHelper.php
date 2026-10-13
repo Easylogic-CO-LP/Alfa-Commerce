@@ -46,7 +46,7 @@ class AssociationHelper
      *
      * @var string[]
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     private const LANGUAGE_BOUND_FILTERS = ['search'];
 
@@ -165,7 +165,7 @@ class AssociationHelper
      *
      * @return string '' when there is no state, otherwise '&filter[x]=y&list[z]=w'.
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     private static function carriedState(string $view): string
     {

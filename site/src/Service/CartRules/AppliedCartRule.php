@@ -28,7 +28,7 @@ use InvalidArgumentException;
  * Frozen to `#__alfa_order_cart_rule` at placement; displayed one row per
  * rule on the cart totals.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class AppliedCartRule
 {
@@ -43,7 +43,7 @@ final class AppliedCartRule
      * @param bool $freeShipping Whether this rule zeroes the shipping.
      * @param int[] $lineIds Cart line ids claimed (product class).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly int $id,
@@ -66,7 +66,7 @@ final class AppliedCartRule
      *
      * @throws InvalidArgumentException When the cart's currency is not the discount's.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function discountTaxInclMoney(Currency $currency): Money
     {

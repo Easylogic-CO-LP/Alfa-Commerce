@@ -147,7 +147,7 @@ class NotificationsController extends BaseController
      *
      * @throws NotAllowed When alfa.notifications.view is not granted.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function assertCanView(): void
     {
@@ -166,7 +166,7 @@ class NotificationsController extends BaseController
      *
      * @throws NotAllowed When the permission is missing or the row is hidden from the user.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function assertCanChange(?object $row): void
     {

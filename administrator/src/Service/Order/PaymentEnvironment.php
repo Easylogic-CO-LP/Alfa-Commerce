@@ -26,20 +26,20 @@ use Joomla\Registry\Registry;
  * This is the only reader of the switch and of the prefixed keys: gateway code
  * reads them through its MethodProfile, which reads them here.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class PaymentEnvironment
 {
-    /** The test set. @since 1.14.0 */
+    /** The test set. @since 2.0.0 */
     public const SANDBOX = 'sandbox';
 
-    /** The set that moves real money. @since 1.14.0 */
+    /** The set that moves real money. @since 2.0.0 */
     public const LIVE = 'live';
 
-    /** The params key of the Production switch. @since 1.14.0 */
+    /** The params key of the Production switch. @since 2.0.0 */
     public const SWITCH = 'is_production';
 
-    /** The query parameter every notification address carries to name its set. @since 1.14.0 */
+    /** The query parameter every notification address carries to name its set. @since 2.0.0 */
     public const ADDRESS_PARAM = 'environment';
 
     /**
@@ -52,7 +52,7 @@ final class PaymentEnvironment
      *
      * @return string self::SANDBOX or self::LIVE.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function active(array|object|string|null $params): string
     {
@@ -67,7 +67,7 @@ final class PaymentEnvironment
      * @param array|object|string|null $params The method's params.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function isProduction(array|object|string|null $params): bool
     {
@@ -83,7 +83,7 @@ final class PaymentEnvironment
      *
      * @throws InvalidArgumentException On an unknown environment or an empty key.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function key(string $environment, string $key): string
     {
@@ -109,7 +109,7 @@ final class PaymentEnvironment
      *
      * @throws InvalidArgumentException On an unknown environment or an empty key.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function credentials(array|object|string|null $params, string $environment, array $keys): array
     {
@@ -133,7 +133,7 @@ final class PaymentEnvironment
      *
      * @throws InvalidArgumentException When it is not self::SANDBOX or self::LIVE.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function assert(string $environment): string
     {
@@ -155,7 +155,7 @@ final class PaymentEnvironment
      *
      * @return string|null self::SANDBOX, self::LIVE, or null.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function fromAddress(Input $input): ?string
     {
@@ -170,7 +170,7 @@ final class PaymentEnvironment
      * @param array|object|string|null $params The method's params.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function read(array|object|string|null $params): array
     {

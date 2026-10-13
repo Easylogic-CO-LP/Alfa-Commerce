@@ -28,7 +28,7 @@ use Throwable;
  * in onAlfaPanelSave. Rendering is the framework's job; validating and persisting stay the
  * plugin's, through its own service.
  *
- * @since  1.7.0
+ * @since  2.0.0
  */
 final class PanelForm
 {
@@ -46,7 +46,7 @@ final class PanelForm
      * @param array<string, mixed> $data Record data to bind (plain field-name keys).
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public static function load(PanelIdentity $identity, string $name, array $data = []): ?Form
     {

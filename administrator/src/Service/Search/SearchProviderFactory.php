@@ -37,7 +37,7 @@ use Joomla\Database\DatabaseInterface;
  * what the index covers. An engine that is missing, still building, or unreachable
  * therefore costs speed and nothing else.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class SearchProviderFactory
 {
@@ -45,7 +45,7 @@ class SearchProviderFactory
     private $db;
 
     /**
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private readonly SearchEngineRegistry $registry;
 
@@ -53,7 +53,7 @@ class SearchProviderFactory
      * @param DatabaseInterface|null $db Injected for testing; defaults to the container driver.
      * @param SearchEngineRegistry|null $registry Injected for testing.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct(?DatabaseInterface $db = null, ?SearchEngineRegistry $registry = null)
     {
@@ -64,7 +64,7 @@ class SearchProviderFactory
     /**
      * The provider the catalog search should use right now.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getCatalogProvider(): SearchProviderInterface
     {

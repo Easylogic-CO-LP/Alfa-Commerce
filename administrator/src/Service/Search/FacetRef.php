@@ -27,7 +27,7 @@ defined('_JEXEC') or die;
  * the ancestor closure: closure is a query-time concern, and baking it into the
  * document makes one category move invalidate every descendant's document.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class FacetRef
 {
@@ -38,7 +38,7 @@ final class FacetRef
      *                      of the name. Searchable when the merchant's scope says
      *                      aliases are; may be '' when untranslated.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly int $id,

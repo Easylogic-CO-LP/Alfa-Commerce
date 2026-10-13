@@ -28,7 +28,7 @@ use Joomla\Database\DatabaseInterface;
  * filtering beyond `state = 1` on the value itself; which values an item
  * matches is enforced once, by the catalog query's EXISTS, never here.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class ItemFieldValueCollector
 {
@@ -38,7 +38,7 @@ class ItemFieldValueCollector
     /**
      * @param DatabaseInterface|null $db Injected for testing; defaults to the container driver.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct(?DatabaseInterface $db = null)
     {
@@ -56,7 +56,7 @@ class ItemFieldValueCollector
      * @param int $itemId The item primary key.
      *
      * @return ItemFieldValueReference[]
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function collect(int $itemId): array
     {

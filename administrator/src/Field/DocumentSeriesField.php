@@ -34,7 +34,7 @@ use Joomla\CMS\Language\Text;
  * have their own status toggle). Used in the order-status auto-issuance
  * rule rows; AutoIssuePolicy::resolveRules consumes the value.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class DocumentSeriesField extends ListField
 {
@@ -51,7 +51,7 @@ class DocumentSeriesField extends ListField
      *
      * @return object[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function getOptions(): array
     {

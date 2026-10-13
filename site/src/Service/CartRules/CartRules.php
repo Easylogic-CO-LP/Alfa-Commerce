@@ -42,14 +42,14 @@ use Throwable;
 // phpcs:enable PSR1.Files.SideEffects
 
 /**
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartRules
 {
     /**
      * The evaluated result for this request, or null before the first ask.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private ?object $result = null;
 
@@ -57,7 +57,7 @@ final class CartRules
      * The codes this cart holds, read once per request.
      *
      * @var string[]|null
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private ?array $codes = null;
 
@@ -71,7 +71,7 @@ final class CartRules
      * @param Closure $shippingGrossExcl (): float - carrier price, tax excl.
      * @param Closure $touch (): void - stamp the cart.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         private CartRepository $repository,
@@ -90,7 +90,7 @@ final class CartRules
      *
      * @return object The engine's result object.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function result(): object
     {
@@ -153,7 +153,7 @@ final class CartRules
      * The rules that actually applied.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function applied(): array
     {
@@ -164,7 +164,7 @@ final class CartRules
      * Every rule's progress, satisfied or not.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function progress(): array
     {
@@ -175,7 +175,7 @@ final class CartRules
      * The progress rows worth showing a shopper.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function displayableProgress(): array
     {
@@ -189,7 +189,7 @@ final class CartRules
      * What the applied rules take off the cart, tax included.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function total(): Money
     {
@@ -213,7 +213,7 @@ final class CartRules
      * The same, tax excluded.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function totalExcl(): Money
     {
@@ -236,7 +236,7 @@ final class CartRules
      *
      * @return string[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function codes(): array
     {
@@ -273,7 +273,7 @@ final class CartRules
      *
      * @return string A CouponOutcome constant.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function apply(string $code): string
     {
@@ -358,7 +358,7 @@ final class CartRules
      * @param string $code The code as typed.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function remove(string $code): void
     {
@@ -395,7 +395,7 @@ final class CartRules
      * from them describes a cart that no longer exists.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function forget(): void
     {

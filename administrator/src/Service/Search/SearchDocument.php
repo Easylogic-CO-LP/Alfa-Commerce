@@ -45,7 +45,7 @@ defined('_JEXEC') or die;
  * structurally impossible for a document's language to disagree with its own
  * identity. Read it through {@see self::language()}.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 final class SearchDocument
 {
@@ -57,7 +57,7 @@ final class SearchDocument
      *
      * @var int
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public const PAYLOAD_VERSION = 1;
 
@@ -90,7 +90,7 @@ final class SearchDocument
      *                                         Unlike title and alias, carries NO default-language fallback:
      *                                         an untranslated description is absent, not borrowed.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly DocumentId $id,
@@ -113,7 +113,7 @@ final class SearchDocument
      * disagree.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function language(): LanguageTag
     {
@@ -124,7 +124,7 @@ final class SearchDocument
      * The source item this document describes.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function itemId(): int
     {

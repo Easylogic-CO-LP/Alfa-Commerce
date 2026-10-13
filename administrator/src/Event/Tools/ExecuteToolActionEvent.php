@@ -29,7 +29,7 @@ use Joomla\CMS\Event\AbstractEvent;
  * client contract identical for a one-shot cleanup and a hundred-thousand-row
  * reindex.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 class ExecuteToolActionEvent extends AbstractEvent
 {
@@ -43,7 +43,7 @@ class ExecuteToolActionEvent extends AbstractEvent
      * plugin may declare several.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function getAction(): string
     {
@@ -54,7 +54,7 @@ class ExecuteToolActionEvent extends AbstractEvent
      * How many units this call has already processed, 0 on the first call.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function getOffset(): int
     {
@@ -65,7 +65,7 @@ class ExecuteToolActionEvent extends AbstractEvent
      * Whether this call is the planning pass that reports the size of the work.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function isPlanning(): bool
     {
@@ -80,7 +80,7 @@ class ExecuteToolActionEvent extends AbstractEvent
      *
      * @return array<string, mixed>
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function getData(): array
     {
@@ -95,7 +95,7 @@ class ExecuteToolActionEvent extends AbstractEvent
      * @param int $total Units of work; 0 means there is nothing to do.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function setTotal(int $total): static
     {
@@ -107,7 +107,7 @@ class ExecuteToolActionEvent extends AbstractEvent
     /**
      * @return int|null Null when the action never declared a total.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function getTotal(): ?int
     {
@@ -124,7 +124,7 @@ class ExecuteToolActionEvent extends AbstractEvent
      * @param int $offset New cursor.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function setNextOffset(int $offset): static
     {
@@ -134,7 +134,7 @@ class ExecuteToolActionEvent extends AbstractEvent
     }
 
     /**
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function getNextOffset(): ?int
     {
@@ -147,7 +147,7 @@ class ExecuteToolActionEvent extends AbstractEvent
      * @param string $message Already-translated text.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function setMessage(string $message): static
     {
@@ -157,7 +157,7 @@ class ExecuteToolActionEvent extends AbstractEvent
     }
 
     /**
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function getMessage(): string
     {
@@ -170,7 +170,7 @@ class ExecuteToolActionEvent extends AbstractEvent
      * @param bool $refresh Whether to reload.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function setRefresh(bool $refresh = true): static
     {
@@ -180,7 +180,7 @@ class ExecuteToolActionEvent extends AbstractEvent
     }
 
     /**
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function getRefresh(): bool
     {
@@ -196,7 +196,7 @@ class ExecuteToolActionEvent extends AbstractEvent
      * @param string $error Already-translated text.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function setError(string $error): static
     {
@@ -208,7 +208,7 @@ class ExecuteToolActionEvent extends AbstractEvent
     /**
      * @return string '' when the action succeeded.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function getError(): string
     {

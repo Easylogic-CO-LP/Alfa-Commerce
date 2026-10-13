@@ -37,103 +37,103 @@ use Throwable;
  * data cannot be produced simply does not render. One broken contributor must
  * never cost the merchant the rest of the screen.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class AdminCard
 {
     /**
      * @var int Narrowest a card may ask to be, as a percentage of the row.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const WIDTH_MIN = 5;
 
     /**
      * @var int A quarter row: what a figure tile wants.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const WIDTH_DEFAULT = 25;
 
     /**
      * @var int Where a card lands when it does not say: after everything that did.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const ORDERING_DEFAULT = 500;
 
     /**
      * @var string Stable id, dot-notation. Unique PER OWNER, not globally.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public string $id;
 
     /**
      * @var string Language key for the heading.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public string $title;
 
     /**
      * @var string Which admin screen hosts it.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public string $screen = '';
 
     /**
      * @var string Which surface (slot) of that screen: a {@see DashboardSurface} value.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public string $surface = '';
 
     /**
      * @var int Ascending within the position.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public int $ordering = self::ORDERING_DEFAULT;
 
     /**
      * @var string Layout that draws this card.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public string $layout = '';
 
     /**
      * @var string Language key for the line under the heading.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public string $subtitle = '';
 
     /**
      * @var string Icon name the shared layouts know how to draw.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public string $icon = '';
 
     /**
      * @var string Where the card links, if it links anywhere.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public string $url = '';
 
     /**
      * @var int Percentage of the row this card asks for.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public int $width = self::WIDTH_DEFAULT;
 
     /**
      * @var array Free-form, including the owner_group/owner_name the event stamps.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public array $metadata = [];
 
     /**
      * @var callable|null Returns the array the layout renders from.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private $dataProvider = null;
 
     /**
      * @var callable|null Decides whether this viewer sees the card at all.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private $visibility = null;
 
@@ -141,7 +141,7 @@ final class AdminCard
      * @param string $id Stable id, unique within the owner.
      * @param string $title Language key for the heading.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(string $id, string $title)
     {
@@ -156,7 +156,7 @@ final class AdminCard
      * @param string $screen Screen id (`dashboard`).
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function screen(string $screen): static
     {
@@ -173,7 +173,7 @@ final class AdminCard
      * @param DashboardSurface|string $surface The surface.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function surface(DashboardSurface|string $surface): static
     {
@@ -189,7 +189,7 @@ final class AdminCard
      * @param int $ordering Lower renders first.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function ordering(int $ordering): static
     {
@@ -210,7 +210,7 @@ final class AdminCard
      * @param string $layout Dotted layout name.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function setLayout(string $layout): static
     {
@@ -223,7 +223,7 @@ final class AdminCard
      * @param string $key Language key for the line under the heading.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function subtitle(string $key): static
     {
@@ -236,7 +236,7 @@ final class AdminCard
      * @param string $icon Icon name the shared layouts know.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function icon(string $icon): static
     {
@@ -249,7 +249,7 @@ final class AdminCard
      * @param string $url Where the card links.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function url(string $url): static
     {
@@ -268,7 +268,7 @@ final class AdminCard
      * @param int $percent 5-100.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function width(int $percent): static
     {
@@ -286,7 +286,7 @@ final class AdminCard
      * @param array|callable $data Array, or a callable returning one.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function setLayoutData(array|callable $data): static
     {
@@ -299,7 +299,7 @@ final class AdminCard
      * @param callable $visibility Returns false to hide the card from this viewer.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function when(callable $visibility): static
     {
@@ -313,7 +313,7 @@ final class AdminCard
      * @param mixed $value Metadata value.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function meta(string $key, mixed $value): static
     {
@@ -326,7 +326,7 @@ final class AdminCard
      * A card needs an identity, a place to be, and something that draws it.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function isValid(): bool
     {
@@ -342,7 +342,7 @@ final class AdminCard
      * decoration, and decoration never argues with the page.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function isVisible(): bool
     {
@@ -361,7 +361,7 @@ final class AdminCard
      * Resolve what the layout will render from, or null when it cannot be produced.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function resolve(): ?array
     {

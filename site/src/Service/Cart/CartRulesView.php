@@ -16,7 +16,7 @@ defined('_JEXEC') or die;
 /**
  * What the cart rules concluded, as of one observation.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartRulesView
 {
@@ -26,7 +26,7 @@ final class CartRulesView
      * @param array $progress Rules the shopper is close to earning.
      * @param Money $total What the rules came to.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly array $applied,

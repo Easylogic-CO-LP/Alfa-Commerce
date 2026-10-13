@@ -30,7 +30,7 @@ use Joomla\CMS\Event\AbstractEvent;
  * "billing schedule configured" row, a marketplace plugin a "vendor policy" row;
  * none of them is a "setup plugin".
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class CollectSetupChecksEvent extends AbstractEvent
 {
@@ -38,7 +38,7 @@ class CollectSetupChecksEvent extends AbstractEvent
      * The event name every collector dispatches and every contributor implements.
      *
      * @var string
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const NAME = 'onAlfaCollectSetupChecks';
 
@@ -46,7 +46,7 @@ class CollectSetupChecksEvent extends AbstractEvent
      * Checks registered so far, in registration order.
      *
      * @var SetupCheck[]
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private array $checks = [];
 
@@ -57,7 +57,7 @@ class CollectSetupChecksEvent extends AbstractEvent
      * @param string $label Language key for the checklist row label.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function add(string $id, string $label): SetupCheck
     {
@@ -73,7 +73,7 @@ class CollectSetupChecksEvent extends AbstractEvent
      *
      * @return SetupCheck[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getChecks(): array
     {
@@ -93,7 +93,7 @@ class CollectSetupChecksEvent extends AbstractEvent
      * @param string $name Contributor's element name.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function attributeTo(string $group, string $name): void
     {

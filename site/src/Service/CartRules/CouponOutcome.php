@@ -24,7 +24,7 @@ defined('_JEXEC') or die;
  * real and the customer's entry was legitimate, so the progress surface can
  * explain what is still missing. Everything else is refused outright.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 final class CouponOutcome
 {
@@ -70,7 +70,7 @@ final class CouponOutcome
      *
      * @var string[]
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private const STORED = [self::APPLIED, self::CONDITIONS_NOT_MET];
 
@@ -80,7 +80,7 @@ final class CouponOutcome
      * @param string $outcome One of the constants above.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function isStored(string $outcome): bool
     {
@@ -97,7 +97,7 @@ final class CouponOutcome
      * @param string $outcome One of the constants above.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function languageKey(string $outcome): string
     {
@@ -115,7 +115,7 @@ final class CouponOutcome
      *
      * @return string 'message' | 'notice' | 'warning'
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function messageType(string $outcome): string
     {

@@ -117,7 +117,7 @@ class MultilingualHelper
      * null = follow the application's UI language (site/admin behaviour).
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static ?string $contentLanguageOverride = null;
 
@@ -154,7 +154,7 @@ class MultilingualHelper
      * @param Form $form The edit form to complete.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function declareStorageFields(Form $form): void
     {
@@ -234,7 +234,7 @@ class MultilingualHelper
      *
      * @return array The merged data safe to pass to the table.
      *
-     * @since  1.3.1
+     * @since  2.0.0
      */
     public static function mergeValidatedFormData(array $validated, array $raw, ?Form $form = null): array
     {
@@ -1168,7 +1168,7 @@ class MultilingualHelper
      * @param string|null $tag Content language (lang_code or snake), or null.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function setContentLanguage(?string $tag): void
     {
@@ -1181,7 +1181,7 @@ class MultilingualHelper
      * The pinned content language, or null when following the UI language.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function getContentLanguageOverride(): ?string
     {
@@ -1449,7 +1449,7 @@ class MultilingualHelper
      * @param mixed $map JSON string / array / object of normalised tag => text.
      * @param string $lang Target language (lang_code or snake); '' = current request language.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function resolveLangMap($map, string $lang = ''): string
     {
@@ -1566,7 +1566,7 @@ class MultilingualHelper
      * @return array<int, array{tag:string,label:string,value:string}>
      *                                                                 One entry per content language, in installed order.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function getFieldTranslations(
         int $id,
@@ -1605,7 +1605,7 @@ class MultilingualHelper
      * @param string $tag Language tag (e.g. "en-GB").
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function buildLangFieldKey(string $field, string $tag): string
     {
@@ -1620,7 +1620,7 @@ class MultilingualHelper
      *
      * @return string[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function getLanguageTags(): array
     {
@@ -1688,7 +1688,7 @@ class MultilingualHelper
      * @throws InvalidArgumentException On a bad PK identifier.
      * @throws RuntimeException On any unrecoverable database error.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function ensureLangSchemaForData(string $tableName, string $primaryColumnName, array $data): void
     {
@@ -2428,7 +2428,7 @@ class MultilingualHelper
      *
      * @throws RuntimeException When a transaction is open.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function refuseInsideTransaction($db, string $langTableName, string $lacks): void
     {
@@ -2599,7 +2599,7 @@ class MultilingualHelper
      * empty list, so the caller treats every field as absent and emits placeholders
      * rather than throwing.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private static function fetchColumnList($db, string $table): array
     {

@@ -23,7 +23,7 @@ use Joomla\CMS\HTML\HTMLHelper;
  * the immutable aliases, labels resolve via DocumentHelper::typeLabel().
  * Static XML options can precede these (e.g. an "- any -" filter entry).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class DocumentTypeField extends ListField
 {
@@ -39,7 +39,7 @@ class DocumentTypeField extends ListField
      *
      * @return object[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function getOptions(): array
     {

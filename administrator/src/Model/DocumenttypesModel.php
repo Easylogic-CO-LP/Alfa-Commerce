@@ -17,7 +17,7 @@ use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
  * Document types list model: registry rows with the translated name
  * resolved in the active administrator language.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class DocumenttypesModel extends AlfaListModel
 {
@@ -25,7 +25,7 @@ class DocumenttypesModel extends AlfaListModel
      * The admin-contract entity this list serves.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'documenttype';
 
@@ -34,7 +34,7 @@ class DocumenttypesModel extends AlfaListModel
      *
      * @param array $config Configuration array.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct($config = [])
     {
@@ -56,7 +56,7 @@ class DocumenttypesModel extends AlfaListModel
      * @param string $ordering Default ordering column.
      * @param string $direction Default direction.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function populateState($ordering = 'a.ordering', $direction = 'ASC')
     {
@@ -68,7 +68,7 @@ class DocumenttypesModel extends AlfaListModel
      *
      * @return \Joomla\Database\QueryInterface
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function getListQuery()
     {

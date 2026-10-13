@@ -40,7 +40,7 @@ use Joomla\CMS\Event\AbstractEvent;
  * itself becomes second-class and rots: the admin column builder says it serves
  * "ANY admin list screen" and is used by exactly one.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 class GetToolActionsEvent extends AbstractEvent
 {
@@ -57,7 +57,7 @@ class GetToolActionsEvent extends AbstractEvent
      *
      * @return void
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     /**
      * Every valid action, INCLUDING disabled ones.
@@ -71,7 +71,7 @@ class GetToolActionsEvent extends AbstractEvent
      *
      * @return \Alfa\Component\Alfa\Administrator\Plugin\PluginAction[]
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function getActions(): array
     {

@@ -29,14 +29,14 @@ use InvalidArgumentException;
  * states, its runtime provenance included. Nothing here computes money, and no
  * text is read back.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class PriceUnits
 {
     /**
      * The per-unit figures of a price block, in the order it shows them.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const FIGURES = ['base', 'discount', 'subtotal', 'tax', 'base_with_tax', 'final'];
 
@@ -53,7 +53,7 @@ final class PriceUnits
      * @param bool $includeSymbol Whether to include the currency symbol.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function line(PriceResult $price, bool $withTax, bool $includeSymbol = true): string
     {
@@ -79,7 +79,7 @@ final class PriceUnits
      *
      * @return array{amount: string, formatted: string, minor_units: int|null}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function publishedLine(PriceResult $price, bool $withTax): array
     {
@@ -113,7 +113,7 @@ final class PriceUnits
      *
      * @return array{0: Money|null, 1: Money, 2: string|null} [per piece (null beside a rate), line, the agreed rate or null]
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function lineSource(PriceResult $price, bool $withTax): array
     {
@@ -152,7 +152,7 @@ final class PriceUnits
      *
      * @return array<string, string> The text of each figure asked for, by name.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function page(PriceResult $price, ?array $figures = null, bool $includeSymbol = true, ?bool $auto = null): array
     {
@@ -182,7 +182,7 @@ final class PriceUnits
      * @param string $figure One of FIGURES.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function exact(PriceResult $price, string $figure): string
     {
@@ -228,7 +228,7 @@ final class PriceUnits
      *
      * @return array{amount: string, formatted: string, minor_units: int|null}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function published(PriceResult $price, string $figure, string $text): array
     {
@@ -252,7 +252,7 @@ final class PriceUnits
      *
      * @throws InvalidArgumentException When the figure is not one of FIGURES.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function source(PriceResult $price, string $figure): array
     {
@@ -308,7 +308,7 @@ final class PriceUnits
      *
      * @return string|null The exact decimal text of the stored value.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function statedValue(PriceResult $price, string $figure): ?string
     {
@@ -345,7 +345,7 @@ final class PriceUnits
      * @param string $figure One of FIGURES.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function payable(PriceResult $price, string $figure): bool
     {
@@ -372,7 +372,7 @@ final class PriceUnits
      * @param string $figure One of FIGURES.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function discounted(PriceResult $price, string $figure): ?string
     {
@@ -394,7 +394,7 @@ final class PriceUnits
      * @param bool|null $auto Null: the shop's setting. True: the Auto form.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function stated(Currency $currency, string $unit, Money $line, int $quantity, bool $includeSymbol, ?bool $auto): string
     {
@@ -412,7 +412,7 @@ final class PriceUnits
      * @param bool|null $auto Null: the shop's setting. True: the Auto form.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function derived(Currency $currency, Money $unit, Money $line, int $quantity, bool $includeSymbol, ?bool $auto): string
     {

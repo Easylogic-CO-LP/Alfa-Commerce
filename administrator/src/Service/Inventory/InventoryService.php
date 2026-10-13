@@ -202,7 +202,7 @@ use Throwable;
  * what it asks for while asking for what it holds can therefore still wait for
  * each other: the database then ends one, which fails whole and leaves nothing.
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 final class InventoryService
 {
@@ -218,7 +218,7 @@ final class InventoryService
      * cancellation and returns act on it, nothing new is claimed on it); or none
      * (the identity is gone and the line has no recorded resolution).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const ROLE_CURRENT = 'current';
     public const ROLE_HISTORICAL = 'historical';
@@ -227,7 +227,7 @@ final class InventoryService
     /**
      * Actions of a recorded order-line resolution ({@see self::resolveLine()}).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const RESOLVE_HISTORICAL_PARENT = 'historical_parent';
     public const RESOLVE_BIND_UNIT = 'bind_unit';
@@ -243,7 +243,7 @@ final class InventoryService
      * cancellation) is not physical-return evidence at all (those units
      * never left the building) and takes no part in this.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public const SOURCE_RETURN = 'return';
     public const SOURCE_DOCUMENT = 'document';
@@ -303,12 +303,12 @@ final class InventoryService
      * Static because every call site constructs its own service instance.
      *
      * @var array<string, bool>
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private static array $noticeAbsent = [];
 
     /**
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function __construct()
     {
@@ -398,7 +398,7 @@ final class InventoryService
      * @throws InventoryIntegrityException When a unit's figures claim stock its records do not hold.
      * @throws InventoryUnitException When a unit stopped being tracked while waiting for its lock.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function reserve(
         array $lines,
@@ -627,7 +627,7 @@ final class InventoryService
      *
      * @return array{key: int|string, line_id: ?int, allocation: array<int, float>}|null
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function firstReservation(
         array $unit,
@@ -688,7 +688,7 @@ final class InventoryService
      *
      * @return array{released_quantity: float, reservations: int, operation_id: string}
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function release(
         string $sourceType,
@@ -800,7 +800,7 @@ final class InventoryService
      *
      * @throws Throwable The failure of a row, when it ended the transaction the sweep was called in.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function expireDueReservations(int $limit = 200, ?InventoryContext $context = null): array
     {
@@ -916,7 +916,7 @@ final class InventoryService
      *
      * @return array{released_quantity: float, operation_id: string}
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function releaseLine(
         string $sourceType,
@@ -1064,7 +1064,7 @@ final class InventoryService
      *
      * @throws RuntimeException Without an operator, a reason or an active reservation to serve first.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function prioritiseReservations(string $sourceType, int $sourceId, ?int $lineId, string $reason, InventoryContext $context): array
     {
@@ -1219,7 +1219,7 @@ final class InventoryService
      * @return array<int, array{item_id: int, combination_id: int, reserved_remainder: float, deducted_net: float, foreign_deducted_net: float}>
      *                                                                                                                                           Keyed by line id.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     /**
      * What ANOTHER source physically has out on these lines, per inventory unit.
@@ -1242,7 +1242,7 @@ final class InventoryService
      *
      * @return array<int, array<string, float>> [lineId]['item:combination'] => net out.
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public function foreignUnitNets(string $sourceType, int $sourceId, array $lineIds = [], bool $current = false): array
     {
@@ -1298,7 +1298,7 @@ final class InventoryService
      *                                                                                                                             line id => "item:combination" => the unit, what it still has out,
      *                                                                                                                             and what it still holds
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function lineUnitNets(string $sourceType, int $sourceId, array $lineIds = [], bool $current = false): array
     {
@@ -1387,7 +1387,7 @@ final class InventoryService
      *
      * @return array<int, array{item_id: int, combination_id: int, reserved_remainder: float, deducted_net: float}>
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function sourceLineState(
         string $sourceType,
@@ -1557,7 +1557,7 @@ final class InventoryService
      *
      * @return string[] Human-readable problems; empty = would apply.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function validateCommitment(CommitmentRequest $request): array
     {
@@ -1608,7 +1608,7 @@ final class InventoryService
      * @return list<array{line_id: ?int, code: string, text: string, refusal?: InventoryReservedFloorException}>
      *                                                                                                           Empty = would apply.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function commitmentProblems(CommitmentRequest $request): array
     {
@@ -1878,7 +1878,7 @@ final class InventoryService
      *
      * @return string[] One problem per location whose record would go below zero.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function reservedFloorProblems(?int $lineId, array $unit, float $effective): array
     {
@@ -2016,7 +2016,7 @@ final class InventoryService
      * @throws InventoryIntegrityException A unit's figures claim stock its records do not hold.
      * @throws InventoryUnitException A unit stopped tracking stock while waiting for its lock.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function commitReservation(CommitmentRequest $request, ?InventoryContext $context = null): array
     {
@@ -2507,7 +2507,7 @@ final class InventoryService
      *                                         below what open reservations hold there.
      * @throws InventoryLineUnresolvedException When a line's identity is gone with no recorded resolution.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function restore(
         string $sourceType,
@@ -2987,7 +2987,7 @@ final class InventoryService
      * @throws InventoryIntegrityException When a unit's figures claim stock its records do not hold.
      * @throws InventoryReservedFloorException When a record would go below its reservations.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function reverseRestores(
         string $sourceType,
@@ -3175,7 +3175,7 @@ final class InventoryService
      *
      * @return float Never negative.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function claimedOnLine(string $sourceType, ?int $lineId, array $unit, bool $current = false): float
     {
@@ -3220,7 +3220,7 @@ final class InventoryService
      *
      * @return float The part of $requested the document already brought back.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function documentRestored(?int $lineId, array $unit, int $sourceId, float $requested, array &$covered, bool $current): float
     {
@@ -3275,7 +3275,7 @@ final class InventoryService
      * @return array{available: float, location: int} The free receipts (never negative), and the
      *                                                location the earliest of them shelved stock at (the default location when none did).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function receiptsUnmatched(?int $lineId, array $unit, bool $current): array
     {
@@ -3383,7 +3383,7 @@ final class InventoryService
      *
      * @return float How much was actually superseded; the caller logs it once its operation commits.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private function supersedeClaims(
         array $unit,
@@ -3484,7 +3484,7 @@ final class InventoryService
      * @throws InventoryIntegrityException When the unit's figures claim stock its records do not hold.
      * @throws RuntimeException When the location cannot take stock.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function receive(
         int $itemId,
@@ -3534,7 +3534,7 @@ final class InventoryService
      * @throws RuntimeException For a zero delta, a location that cannot take
      *                          stock, or a breach of the physical floor.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function adjust(
         int $itemId,
@@ -3589,7 +3589,7 @@ final class InventoryService
      * @throws InventoryReservedFloorException When a reduction would leave on-hand below the record's reservations.
      * @throws RuntimeException For a location that cannot take stock or a breach of the floor.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function adjustTo(
         int $itemId,
@@ -3703,7 +3703,7 @@ final class InventoryService
      * @throws InventoryIntegrityException When the unit's figures claim stock its records do not hold.
      * @throws InventoryReservedFloorException When the source would go below its reservations.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function transfer(
         int $itemId,
@@ -3873,7 +3873,7 @@ final class InventoryService
      * @return bool True when no transaction is left on the connection: called
      *              inside a caller's transaction, the command has ended it.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function rollBackCommand(Throwable $failure): bool
     {
@@ -3895,7 +3895,7 @@ final class InventoryService
      *
      * @return bool True when the failure must be rethrown.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function endsCommand(Throwable $failure): bool
     {
@@ -3919,7 +3919,7 @@ final class InventoryService
      *
      * @throws InventoryUnitException When the unit is not a tracked stock unit.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function singleDelta(
         int $itemId,
@@ -4020,7 +4020,7 @@ final class InventoryService
      * @throws InventoryReservedFloorException When a reduction would leave on-hand below the record's reservations.
      * @throws RuntimeException When the location cannot take stock or the floor is breached.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function applyUnitDelta(
         array $unit,
@@ -4084,7 +4084,7 @@ final class InventoryService
      *
      * @return array{item: int, combination: int}|null
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function resolveUnit(int $itemId, mixed $combinationId): ?array
     {
@@ -4134,7 +4134,7 @@ final class InventoryService
      *
      * @return string A boolean EXISTS expression.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function currentCombinationsExist(string $itemColumn): string
     {
@@ -4180,7 +4180,7 @@ final class InventoryService
      *
      * @return string One of the ROLE_* constants.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function identityRole(array $unit, bool $lock): string
     {
@@ -4267,7 +4267,7 @@ final class InventoryService
      * @param int $combinationId The combination, 0 for the item unit.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function isCurrentIdentity(int $itemId, int $combinationId): bool
     {
@@ -4281,7 +4281,7 @@ final class InventoryService
      *
      * @return array{item: int, combination: int}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function frozenUnit(array $line): array
     {
@@ -4306,7 +4306,7 @@ final class InventoryService
      * @return array<int, object> order line id => id, revision, supersedes_id, original and resolved
      *                            identity, operation_id.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function resolutionsOf(array $lineIds, bool $lock): array
     {
@@ -4341,7 +4341,7 @@ final class InventoryService
      *
      * @return array<int, object> order line id => its effective row.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function effectiveOf(array $rows): array
     {
@@ -4381,7 +4381,7 @@ final class InventoryService
      *
      * @return string A boolean NOT EXISTS expression.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function effectiveResolutionSql(\Joomla\Database\DatabaseInterface $db, string $alias): string
     {
@@ -4406,7 +4406,7 @@ final class InventoryService
      *
      * @return string A parenthesised boolean expression.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function resolutionConsumedSql(\Joomla\Database\DatabaseInterface $db, string $resolutionAlias): string
     {
@@ -4437,7 +4437,7 @@ final class InventoryService
      *
      * @return array{item: int, combination: int, frozen: array{item: int, combination: int}, resolution_id: ?int, role: string}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function lineIdentity(array $line, ?object $resolution, bool $lockIdentity): array
     {
@@ -4483,7 +4483,7 @@ final class InventoryService
      *
      * @return array<int|string, array{item: int, combination: int, frozen: array, resolution_id: ?int, role: string}>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function actingIdentities(array $lines, bool $lock, bool $lockIdentity): array
     {
@@ -4530,7 +4530,7 @@ final class InventoryService
      * @return array<int, array{item_id: int, combination_id: int, role: string, resolution_id: ?int, placed_tracked: bool, reservable: bool}>
      *                                                                                                                                         Keyed by order line id; lines without an id are not reported.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function lineIdentities(array $lines, bool $current): array
     {
@@ -4593,7 +4593,7 @@ final class InventoryService
      *
      * @return string One of the ROLE_* constants.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function lineRole(int $lineId, int $itemId, int $combinationId, bool $current, bool $lockIdentity): string
     {
@@ -4625,7 +4625,7 @@ final class InventoryService
      * @return array<int|string, array{tracked: bool, placed: bool}> Keyed like the lines: tracked = a stock
      *                                                               claim; placed = decided by the line's placement (it names an order line).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function lineTracking(array $lines, array $identities): array
     {
@@ -4694,7 +4694,7 @@ final class InventoryService
      * @param int $combinationId The combination named, 0 for the item unit.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function unresolvedReason(int $itemId, int $combinationId): string
     {
@@ -4725,7 +4725,7 @@ final class InventoryService
      * @param int $itemId The item.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function itemExists(int $itemId): bool
     {
@@ -4748,7 +4748,7 @@ final class InventoryService
      * @param int $itemId The item.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function itemArchived(int $itemId): bool
     {
@@ -4767,7 +4767,7 @@ final class InventoryService
      * @param int $itemId The item.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function itemHasCurrentCombinations(int $itemId): bool
     {
@@ -4811,7 +4811,7 @@ final class InventoryService
      *
      * @throws InventoryLineUnresolvedException Naming every such line with the identity it was sold as.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function preflightLines(string $command, array $lines, callable $plan, bool $historical): array
     {
@@ -4868,7 +4868,7 @@ final class InventoryService
      *
      * @return RuntimeException The exception to throw.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function lineFailure(string $command, array $line, float $quantity, InventoryUnitException $failure): RuntimeException
     {
@@ -4908,7 +4908,7 @@ final class InventoryService
      * @param array{item: int, combination: int} $unit The identity it was sold as.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function unresolvedProblem(?int $lineId, array $unit): string
     {
@@ -4954,7 +4954,7 @@ final class InventoryService
      *
      * @return array{effective: float, beyond: float, strict: bool}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function planCommitLine(CommitmentRequest $request, array $line, array $unit, float $pending): array
     {
@@ -5031,7 +5031,7 @@ final class InventoryService
      * @param array<string, array> $receipts The free receipts not yet counted, per order line and identity.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function planRestoreLine(
         string $sourceType,
@@ -5103,7 +5103,7 @@ final class InventoryService
      * @return array<string, array<int, int>> Per unit ("item:combination"), the locations reached, in the
      *                                        order the command reaches them, each with the order line that reaches it first.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function restoreReach(string $sourceType, int $sourceId, array $lines, array $identities): array
     {
@@ -5242,7 +5242,7 @@ final class InventoryService
      * @param float $value The quantity.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function asStored(float $value): float
     {
@@ -5264,7 +5264,7 @@ final class InventoryService
      *
      * @return list<array{source: int, location: int, net: float}>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function restoreClaims(int $lineId, array $unit, string $source, array $written = [], bool $current = false): array
     {
@@ -5311,7 +5311,7 @@ final class InventoryService
      *
      * @return string[] Human-readable problems; empty = would apply.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function validateRestore(string $sourceType, array $lines): array
     {
@@ -5349,7 +5349,7 @@ final class InventoryService
      *
      * @return array<int, float> locationId => quantity
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function allocate(array $unit, float $quantity): array
     {
@@ -5450,7 +5450,7 @@ final class InventoryService
      *
      * @return object[] Stock rows: location_id, quantity, reserved_quantity.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function stockBearingEnabledLocations(array $unit, bool $lock, array $figures): array
     {
@@ -5536,7 +5536,7 @@ final class InventoryService
      *
      * @return array<int, float> locationId => quantity
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function defaultAllocation(array $unit, float $quantity): array
     {
@@ -5577,7 +5577,7 @@ final class InventoryService
      *
      * @return array<int, array{provider: object, element: string, priority: int}>
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function allocationProviders(): array
     {
@@ -5635,7 +5635,7 @@ final class InventoryService
      * @param AbstractEvent $event The event to dispatch.
      *
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function dispatch(AbstractEvent $event): void
     {
@@ -5665,7 +5665,7 @@ final class InventoryService
      * @param AbstractEvent $event The AFTER event.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function announce(string $label, AbstractEvent $event): void
     {
@@ -5682,7 +5682,7 @@ final class InventoryService
      * @param int $priority Its priority.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function logOnceStands(string $label, string $entry, int $priority): void
     {
@@ -5743,7 +5743,7 @@ final class InventoryService
      * @throws InventoryIntegrityException When refused on such a unit, or on a held unit.
      * @throws InventoryUnitException When the identity is gone, or not current where a current unit is needed.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function lockStockRow(
         int $itemId,
@@ -5834,7 +5834,7 @@ final class InventoryService
      *
      * @throws RuntimeException When the record can be neither created nor locked.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function insertStockRecord(int $itemId, int $combinationId, int $locationId): object
     {
@@ -5903,7 +5903,7 @@ final class InventoryService
      *
      * @throws InventoryUnitException When the identity is gone, or not current where a current unit is needed.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function assertUnitIdentity(int $itemId, int $combinationId, bool $historical): bool
     {
@@ -6008,7 +6008,7 @@ final class InventoryService
      *
      * @return object|null The locked record, or null when there is none.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function lockExistingStockRow(int $itemId, int $combinationId, int $locationId): ?object
     {
@@ -6039,7 +6039,7 @@ final class InventoryService
      * @param float $quantity The remainder released.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function releaseReservedOn(?object $stock, object $reservation, float $quantity): void
     {
@@ -6084,7 +6084,7 @@ final class InventoryService
      * @param float $reservedDelta Reserved delta (negative = release).
      *
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function applyStockDelta(int $stockId, float $quantityDelta, float $reservedDelta): void
     {
@@ -6155,7 +6155,7 @@ final class InventoryService
      *                archived, tracked, itemBearsCombinations (current combinations),
      *                countsInParentPhysical, countsForParent.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function stockRowFacts(int $stockId): object
     {
@@ -6270,7 +6270,7 @@ final class InventoryService
      * @param object|null $facts stockRowFacts() of the record, when already read.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function propagateToReadModels(
         int $stockId,
@@ -6320,7 +6320,7 @@ final class InventoryService
      * @param float $value The quantity.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function sqlNumber(float $value): string
     {
@@ -6330,7 +6330,7 @@ final class InventoryService
     /**
      * Append one ledger movement: the ONLY writer of the movements table.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function appendMovement(
         array $unit,
@@ -6382,7 +6382,7 @@ final class InventoryService
      * @param int $combinationId The combination unit, or 0 for the item unit.
      *
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function evaluateUnitNotices(int $itemId, int $combinationId): void
     {
@@ -6419,7 +6419,7 @@ final class InventoryService
      * @param float $salable The unit's fresh salable projection.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function evaluateLowStock(int $itemId, int $combinationId, float $salable): void
     {
@@ -6524,7 +6524,7 @@ final class InventoryService
      * @param int $combinationId The combination unit, or 0 for the item unit.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function lowStockKey(int $itemId, int $combinationId): string
     {
@@ -6542,7 +6542,7 @@ final class InventoryService
      * @param int $combinationId The combination unit, or 0 for the item unit.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function clearUnitNotices(int $itemId, int $combinationId): void
     {
@@ -6585,7 +6585,7 @@ final class InventoryService
      * @param string $dedupKey The key to retire.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private static function clearNotice(string $dedupKey): void
     {
@@ -6603,7 +6603,7 @@ final class InventoryService
      *
      * @return bool True when no notification carries the key.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private static function noticeAbsent(string $dedupKey): bool
     {
@@ -6629,7 +6629,7 @@ final class InventoryService
      * @param string|null $sku The combination SKU, or null for the item unit.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function unitLabel(int $itemId, ?string $sku = null): string
     {
@@ -6649,7 +6649,7 @@ final class InventoryService
      * @param float $value The quantity.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private static function trimQty(float $value): string
     {
@@ -6668,7 +6668,7 @@ final class InventoryService
      *
      * @return int[] The record ids, ascending.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function lockItemStock(int $itemId): array
     {
@@ -6696,7 +6696,7 @@ final class InventoryService
      *
      * @return array{item: ?object, combinations: array<int, object>, rows: object[], enabled: array<int, bool>}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function itemLedger(int $itemId, bool $lock, array $extraLocationIds = []): array
     {
@@ -6752,7 +6752,7 @@ final class InventoryService
      *
      * @return array<int, bool>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function locationsEnabled(array $locationIds, bool $lock): array
     {
@@ -6798,7 +6798,7 @@ final class InventoryService
      *
      * @return array<int, array{table: string, id: int, stock: ?float, stock_target: float, available: ?float, available_target: float}>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function projectionCorrections(int $itemId, bool $lock): array
     {
@@ -6812,7 +6812,7 @@ final class InventoryService
      *
      * @return array<int, array{table: string, id: int, stock: ?float, stock_target: float, available: ?float, available_target: float}>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function correctionsFrom(array $ledger): array
     {
@@ -6898,7 +6898,7 @@ final class InventoryService
      *
      * @throws InventoryProjectionMismatchException When any figure disagrees.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function assertProjectionsAgree(int $itemId): void
     {
@@ -6936,7 +6936,7 @@ final class InventoryService
      *
      * @throws InventoryUnitException When the item does not exist.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function reconcile(int $itemId, string $sourceType, int $sourceId, InventoryContext $context): array
     {
@@ -7025,7 +7025,7 @@ final class InventoryService
      * @param float $dAvail Salable correction.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function applyProjectionCorrection(string $table, int $rowId, float $dStock, float $dAvail): void
     {
@@ -7058,7 +7058,7 @@ final class InventoryService
      *
      * @return mixed What $write returned.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function changeLocationState(array $locationIds, callable $write, InventoryContext $context): mixed
     {
@@ -7177,7 +7177,7 @@ final class InventoryService
      *                                is archived, or the item is gone.
      * @throws RuntimeException For a state other than 0 or 1.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function changeCombinationState(int $itemId, array $states, InventoryContext $context): ?string
     {
@@ -7376,7 +7376,7 @@ final class InventoryService
      * @throws InventoryTrackingException For the reserved, open_lines, variants_inherit, opening_required
      *                                    and target refusals.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function changeTracking(int $itemId, ?int $combinationId, ?int $value, ?array $openingTargets, InventoryContext $context): array
     {
@@ -7768,7 +7768,7 @@ final class InventoryService
      *         item_id?: int, combination_id?: int, on_hand?: float, reserved?: float, requested?: float,
      *         minimum?: float}>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function validateTargets(int $itemId, ?int $combinationId, array $targets, bool $assumeTracked): array
     {
@@ -7899,7 +7899,7 @@ final class InventoryService
      * @param bool $lock Count under a shared lock (inside a transaction).
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function countActiveReservations(int $itemId, array $combinationIds, bool $lock): int
     {
@@ -7940,7 +7940,7 @@ final class InventoryService
      *
      * @return array{lines: int, orders: int} The relying lines, and the distinct orders they belong to.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function relyingOpenLines(int $itemId, array $combinationIds, bool $lock): array
     {
@@ -7985,7 +7985,7 @@ final class InventoryService
      *                                  it is not a current unit any more (gone, archived, or the product itself beside
      *                                  current combinations).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function lockedUnitTracking(array $units): array
     {
@@ -8044,7 +8044,7 @@ final class InventoryService
      *
      * @return array<int, array{combination_id: int, rows_not_zero: int, on_hand: float, reserved: float, active_reservations: int, pending_effects: int, rows: array, open_lines: array}>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function retirementBlockers(int $itemId, ?array $combinationIds): array
     {
@@ -8062,7 +8062,7 @@ final class InventoryService
      *
      * @throws InventoryUnitRetirementException When any of them still holds stock.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function assertUnitsClear(int $itemId, array $combinationIds): void
     {
@@ -8094,7 +8094,7 @@ final class InventoryService
      *
      * @throws InventoryUnitRetirementException When any of them still holds stock.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function retireUnits(int $itemId, ?array $combinationIds, string $sourceType, int $sourceId, InventoryContext $context): array
     {
@@ -8198,7 +8198,7 @@ final class InventoryService
      * @throws InventoryUnitException When a combination is gone, belongs to another item or is already
      *                                archived, or the item is gone.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function archiveUnits(int $itemId, array $combinationIds, string $sourceType, int $sourceId, InventoryContext $context): array
     {
@@ -8340,7 +8340,7 @@ final class InventoryService
      * @throws InventoryUnitRetirementException When the product's own records still hold stock or claims while it
      *                                          would stop being its own unit.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function reactivateUnits(int $itemId, array $combinationIds, InventoryContext $context): ?string
     {
@@ -8505,7 +8505,7 @@ final class InventoryService
      * @throws InventoryUnitException When a product is gone.
      * @throws RuntimeException When the write did not set the state.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function changeItemArchive(array $itemIds, bool $archive, callable $write, InventoryContext $context): array
     {
@@ -8638,7 +8638,7 @@ final class InventoryService
      * @throws InventoryProjectionMismatchException When its figures disagree with its records.
      * @throws InventoryIntegrityException When an identity of it is held (held: true).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function assertRestorable(int $itemId): void
     {
@@ -8683,7 +8683,7 @@ final class InventoryService
      * @return array{id: int, combination: int, stock: ?float, available: ?float}|null The hold and the
      *                                                                                 figures its unit showed when it began, or null when no identity of the item is held.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function openHoldOfItem(int $itemId): ?array
     {
@@ -8717,7 +8717,7 @@ final class InventoryService
      *
      * @return array<int, object> combination id => id, state, manage_stock; rows of other items are absent.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function lockCombinationRows(int $itemId, string $in): array
     {
@@ -8746,7 +8746,7 @@ final class InventoryService
      *
      * @throws InventoryUnitException When the item is gone.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function lockItemRow(int $itemId): int
     {
@@ -8786,7 +8786,7 @@ final class InventoryService
      *                                                               combination_id, rows_not_zero, on_hand, reserved, active_reservations,
      *                                                               pending_effects, rows and open_lines (order_id, line_id, ordered, outstanding).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function unitClaims(int $itemId, ?array $combinationIds, bool $lock): array
     {
@@ -8975,7 +8975,7 @@ final class InventoryService
      * @throws InventoryUnitRetirementException While the stock is reserved or claimed.
      * @throws InventoryOpenLinesException While open order lines still rely on the identity.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function writeOffStock(int $itemId, int $combinationId, string $reason, InventoryContext $context): array
     {
@@ -9099,7 +9099,7 @@ final class InventoryService
      *
      * @throws InventoryUnitException When the identity is gone, belongs to another item or its item is gone.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function lockedIdentityRole(array $unit): string
     {
@@ -9192,7 +9192,7 @@ final class InventoryService
      * @throws InventoryUnitException When a restored unit no longer exists.
      * @throws InventoryReservedFloorException When a record would go below its reservations.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function scrapRestored(string $restoreOperationId, string $sourceType, int $sourceId, InventoryContext $context): array
     {
@@ -9399,7 +9399,7 @@ final class InventoryService
      *
      * @return float The quantity written off, never below zero.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function scrappedForRestore(
         string $restoreOperationId,
@@ -9488,7 +9488,7 @@ final class InventoryService
      *
      * @throws InventoryLineResolutionException When refused; nothing is written.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function resolveLine(int $orderItemId, string $action, int $resolvedCombinationId, string $reason, ?int $supersedes, InventoryContext $context): array
     {
@@ -9717,7 +9717,7 @@ final class InventoryService
      * @param object $resolution The resolution: order_item_id, resolved_item_id, resolved_combination_id, operation_id.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function resolutionConsumed(object $resolution): bool
     {
@@ -9761,7 +9761,7 @@ final class InventoryService
      * @param array{item: int, combination: int} $unit The identity.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function historyOnIdentity(int $lineId, array $unit): bool
     {
@@ -9820,7 +9820,7 @@ final class InventoryService
      *
      * @throws RuntimeException When a named order line does not exist; nothing is written.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function recordPlacement(array $lineIds, InventoryContext $context): int
     {
@@ -9958,7 +9958,7 @@ final class InventoryService
      *
      * @throws RuntimeException When no product is named; nothing is written.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function recordSaleRules(int $itemId, InventoryContext $context): string
     {
@@ -10013,7 +10013,7 @@ final class InventoryService
      * @param float $shortfall How far beyond, in units.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function notifyBackorder(int $itemId, int $combinationId, float $shortfall): void
     {
@@ -10066,7 +10066,7 @@ final class InventoryService
      * @param int $combinationId The combination unit, or 0 for the item unit.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private static function backorderKey(int $itemId, int $combinationId): string
     {
@@ -10100,7 +10100,7 @@ final class InventoryService
      * @param float $salable The unit's salable quantity, summed across its locations.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function evaluateBackorderNotice(int $itemId, int $combinationId, float $salable): void
     {
@@ -10166,7 +10166,7 @@ final class InventoryService
      * @throws RuntimeException When the policy denies.
      * @throws InventoryIntegrityException When the unit's figures claim stock its records do not hold.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function guardUnitBackorder(array $unit, float $requested): void
     {
@@ -10254,7 +10254,7 @@ final class InventoryService
      *
      * @throws InventoryReservedFloorException When the deduction would leave on-hand below the reservations.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function guardReservedFloor(object $stock, float $deduction, array $unit, string $command): void
     {
@@ -10304,7 +10304,7 @@ final class InventoryService
      *
      * @return float The quantity to take from the record, never above $remaining.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function unreservedTake(float $onHand, float $reserved, float $remaining): float
     {
@@ -10332,7 +10332,7 @@ final class InventoryService
      *                                                                                   line that kept stock back, and the remainder the line still wanted when it reached it.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function remainderFloorRefusal(array $unit, array $kept): InventoryReservedFloorException
     {
@@ -10358,7 +10358,7 @@ final class InventoryService
      *
      * @throws RuntimeException When the deduction would breach the floor.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function guardPhysical(object $stock, float $deduction): void
     {
@@ -10391,7 +10391,7 @@ final class InventoryService
      *
      * @throws RuntimeException When a row would end below zero.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function guardFinalPhysical(array $stockIds): void
     {
@@ -10449,7 +10449,7 @@ final class InventoryService
      *
      * @throws InventoryReservedFloorException When a row would end below what its reservations hold.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function guardFinalReservedFloor(array $movedRows): void
     {
@@ -10515,7 +10515,7 @@ final class InventoryService
      *
      * @return float|null Max units addable now, or null for unlimited.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function purchasableCeiling(int $itemId, ?int $combinationId = null): ?float
     {
@@ -10564,7 +10564,7 @@ final class InventoryService
      *
      * @return array{rows: int, salable: float}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function unitLedger(array $unit, bool $lock): array
     {
@@ -10624,7 +10624,7 @@ final class InventoryService
      *                  reserved_quantity, free (quantity minus reserved_quantity, as the database
      *                  computes it) and enabled (1 when the record's location is enabled, 0 otherwise).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function lockUnitRecords(array $unit): array
     {
@@ -10650,7 +10650,7 @@ final class InventoryService
      *
      * @return array<int, int> Location id => 1 when the location is enabled, 0 otherwise; in location order.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function unitRecordNames(array $unit): array
     {
@@ -10684,7 +10684,7 @@ final class InventoryService
      *
      * @return object|null id, location_id, quantity, reserved_quantity and free; null when there is no record.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function lockUnitRecord(array $unit, int $locationId): ?object
     {
@@ -10749,7 +10749,7 @@ final class InventoryService
      * @param string $command The command, for the log.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function takeUnitRecords(
         array $unit,
@@ -10828,7 +10828,7 @@ final class InventoryService
      *
      * @throws RuntimeException When such a record was never reached.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function assertCreatedReached(array $created, string $command): void
     {
@@ -10859,7 +10859,7 @@ final class InventoryService
      *
      * @return array{quantity: float, reserved: float}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function recordFigures(array $unit, int $locationId): array
     {
@@ -10886,7 +10886,7 @@ final class InventoryService
      *
      * @return array{stock: ?float, available: ?float}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function unitProjection(array $unit): array
     {
@@ -10933,7 +10933,7 @@ final class InventoryService
      * @return array{stock: ?float, available: ?float, held: bool}|null The figures it shows (for a
      *                                                                  held unit: those it showed when the hold began) when in that state.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function ledgerDefect(array $unit): ?array
     {
@@ -10981,7 +10981,7 @@ final class InventoryService
      * @param array{item: int, combination: int} $unit The identity.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function ownFiguresTracked(array $unit): bool
     {
@@ -11024,7 +11024,7 @@ final class InventoryService
      *
      * @throws InventoryIntegrityException When the unit is in that state.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function assertLedgerBacked(array $unit, string $command, ?int $lineId): void
     {
@@ -11062,7 +11062,7 @@ final class InventoryService
      * @param float|null $available The stored available figure.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function logMissingLedger(array $unit, string $command, ?int $lineId, ?float $stock, ?float $available): void
     {
@@ -11103,7 +11103,7 @@ final class InventoryService
      * @return array{id: int, stock: ?float, available: ?float}|null The hold and the figures the unit showed
      *                                                               when it began, or null when the unit is not held.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function openIntegrityHold(array $unit, bool $lock, int $except = 0): ?array
     {
@@ -11140,7 +11140,7 @@ final class InventoryService
      * @param bool $lock Current read under a shared lock.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function integrityHeld(array $unit, bool $lock): bool
     {
@@ -11171,7 +11171,7 @@ final class InventoryService
      *
      * @throws InventoryIntegrityException When the unit is held (held: true).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function assertNotHeld(array $unit, int $stockId, string $command, ?int $lineId): void
     {
@@ -11207,7 +11207,7 @@ final class InventoryService
      * @param int $stockId The stock record.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function inSnapshot(int $stockId): bool
     {
@@ -11244,7 +11244,7 @@ final class InventoryService
      * @param InventoryContext $context The acting user.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function beginIntegrityHold(array $unit, array $figures, string $operationId, ?int $lineId, InventoryContext $context): void
     {
@@ -11307,7 +11307,7 @@ final class InventoryService
      *
      * @return int The number of holds ended.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function releaseIntegrityHolds(int $itemId, string $operationId, InventoryContext $context): int
     {
@@ -11333,7 +11333,7 @@ final class InventoryService
      * @param bool $refused Whether the command was refused.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function logHeld(array $unit, string $command, ?int $lineId, bool $refused): void
     {
@@ -11385,7 +11385,7 @@ final class InventoryService
      *
      * @return array{backorder: string, min_qty: float}
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function unitPolicy(int $itemId, int $combinationId = 0): array
     {
@@ -11432,7 +11432,7 @@ final class InventoryService
     }
 
     /**
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function overShipmentPolicy(): string
     {
@@ -11440,7 +11440,7 @@ final class InventoryService
     }
 
     /**
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function allowNegativePhysical(): bool
     {
@@ -11452,7 +11452,7 @@ final class InventoryService
     /**
      * The unfulfilled, unreleased remainder of a reservation row.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function remainderOf(object $reservation): float
     {
@@ -11464,7 +11464,7 @@ final class InventoryService
      * whose remainder reaches zero through fulfilment; release states are
      * explicit. PARTIAL is derived by readers, never stored.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function transitionReservation(
         object $reservation,
@@ -11506,7 +11506,7 @@ final class InventoryService
      *
      * @return array<int, array{item: int, combination: int}>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function reservedUnitsOf(string $sourceType, int $sourceId, ?int $lineId): array
     {
@@ -11531,7 +11531,7 @@ final class InventoryService
      *
      * @return object[]
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function lockActiveReservations(string $sourceType, int $sourceId): array
     {
@@ -11552,7 +11552,7 @@ final class InventoryService
      *
      * @return object[]
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function lockActiveReservationsForLine(?int $lineId, array $unit): array
     {
@@ -11585,7 +11585,7 @@ final class InventoryService
      *
      * @return object[] Reservation rows.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function activeReservationsForLine(?int $lineId, array $unit): array
     {
@@ -11617,7 +11617,7 @@ final class InventoryService
      *
      * @return object[] Reservation rows (every column), the one served first first.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function claimQueue(array $unit, int $locationId, bool $lock): array
     {
@@ -11650,7 +11650,7 @@ final class InventoryService
      * @param float $take The quantity converted.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function noteConversion(
         array &$conversions,
@@ -11710,7 +11710,7 @@ final class InventoryService
      *                                                                             refusal, with the order line whose conversion is the last in the order of claims there;
      *                                                                             null when every record keeps the order of claims.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function claimOrderRefusal(array $conversions, bool $applied): ?array
     {
@@ -11809,7 +11809,7 @@ final class InventoryService
     /**
      * Whether the source already reserved this line (idempotent reserve).
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function reservationExists(string $sourceType, int $sourceId, ?int $lineId, int $itemId, int $combinationId): bool
     {
@@ -11847,7 +11847,7 @@ final class InventoryService
      * @param bool $current Read the latest committed state.
      *
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function lineLedger(?int $lineId, array $unit, string $movementType, bool $current = false): float
     {
@@ -11872,7 +11872,7 @@ final class InventoryService
      * Net quantity out for a line (deducts - restores), optionally
      * scoped to one writing source: the retry-detection anchor.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function lineNet(?int $lineId, array $unit, ?string $sourceType = null, ?int $sourceId = null): float
     {
@@ -11908,7 +11908,7 @@ final class InventoryService
      *
      * @param array<int, array<string, mixed>> $lines The request's lines.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function lockOrdersOfLines(array $lines): void
     {
@@ -11991,7 +11991,7 @@ final class InventoryService
      *
      * @return int[]
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function lineLocations(?int $lineId, array $unit, array $figures): array
     {
@@ -12059,7 +12059,7 @@ final class InventoryService
      *
      * @return array<int, float> locationId => net deducted
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function lineDeductionsByLocation(?int $lineId, array $unit, array $written = [], bool $current = false): array
     {
@@ -12099,7 +12099,7 @@ final class InventoryService
      * The default location id, self-healing: exactly one default
      * location always exists, creating it when a bare database misses it.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function defaultLocationId(): int
     {
@@ -12133,7 +12133,7 @@ final class InventoryService
     }
 
     /**
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function newOperationId(): string
     {
@@ -12147,7 +12147,7 @@ final class InventoryService
      * connectors dedup business events against this table instead of
      * searching the movement ledger.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private function recordOperation(
         string $operationId,

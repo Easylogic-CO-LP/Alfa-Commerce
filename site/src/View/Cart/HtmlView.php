@@ -43,7 +43,7 @@ class HtmlView extends BaseHtmlView
      *                        read. Taken after the methods are reconciled and
      *                        the cart-view events have run, so what it holds is
      *                        what the page is about to show.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected ?CartSnapshot $snapshot = null;
 

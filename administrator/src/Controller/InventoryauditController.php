@@ -56,7 +56,7 @@ use UnexpectedValueException;
  * repair, write-off, line-resolution and serve-first commands; nothing repairs, writes stock
  * off, maps an order line or serves an order out of turn on its own.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 class InventoryauditController extends BaseController
 {
@@ -65,7 +65,7 @@ class InventoryauditController extends BaseController
      *
      * @var string
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const AUDIT_PAGE = 'index.php?option=com_alfa&view=inventoryaudit';
 
@@ -74,7 +74,7 @@ class InventoryauditController extends BaseController
      *
      * @var string
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const REPAIR_SOURCE = 'inventory_repair';
 
@@ -88,7 +88,7 @@ class InventoryauditController extends BaseController
      *
      * @throws NotAllowed Without a POST, the form token or Super User rights.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function reconcile(): void
     {
@@ -145,7 +145,7 @@ class InventoryauditController extends BaseController
      *
      * @throws NotAllowed Without a POST, the form token or Super User rights.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function writeOff(): void
     {
@@ -227,7 +227,7 @@ class InventoryauditController extends BaseController
      * @param int $combinationId The combination posted, 0 for the product itself.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function writeOffRefusal(RuntimeException $e, int $itemId, int $combinationId): string
     {
@@ -285,7 +285,7 @@ class InventoryauditController extends BaseController
      *
      * @throws NotAllowed Without a POST, the form token or Super User rights.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function resolveLine(): void
     {
@@ -425,7 +425,7 @@ class InventoryauditController extends BaseController
      *
      * @throws NotAllowed Without a POST, the form token or Super User rights.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function prioritise(): void
     {
@@ -559,7 +559,7 @@ class InventoryauditController extends BaseController
      *                     the historical parent identity by its action (a first resolution).
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function resolvedLabel(string $action, int $resolutionId, bool $asUnit): string
     {
@@ -605,7 +605,7 @@ class InventoryauditController extends BaseController
      * @param int $combinationId The combination, 0 for the product itself.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function unitLabel(int $itemId, int $combinationId): string
     {
@@ -627,7 +627,7 @@ class InventoryauditController extends BaseController
      * @param Throwable $e The failure.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function databaseBusy(Throwable $e): bool
     {
@@ -645,7 +645,7 @@ class InventoryauditController extends BaseController
      * @param RuntimeException $e The refusal.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function refusal(RuntimeException $e): string
     {
@@ -667,7 +667,7 @@ class InventoryauditController extends BaseController
      *
      * @throws NotAllowed 405 for any other method, 403 for a missing token or permission.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function operator(): User
     {

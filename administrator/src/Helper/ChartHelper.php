@@ -44,13 +44,13 @@ use Throwable;
  *    merges correctly, and the reason no caller should ever call addScriptOptions()
  *    for charts itself.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class ChartHelper
 {
     /**
      * @var string The script options bag every chart is published into.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const OPTIONS_KEY = 'com_alfa.charts';
 
@@ -64,7 +64,7 @@ final class ChartHelper
      *              (no HTML document, assets locked, no key); the caller renders
      *              its figures either way and skips the container.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function attach(array $chart): bool
     {
@@ -109,7 +109,7 @@ final class ChartHelper
      * chart says it needs the sheet AND the renderer.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function attachStyles(): void
     {
@@ -133,7 +133,7 @@ final class ChartHelper
      * @return string[] The keys that were actually attached, so a layout can decide
      *                  per chart whether to draw a container.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function attachAll(array $charts): array
     {
@@ -162,7 +162,7 @@ final class ChartHelper
      * @return array{valueFormat: string, valueDecimals: int} DTO fragment: merge into
      *                                                        the chart that shows money.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function moneyFormat(?Currency $currency = null): array
     {

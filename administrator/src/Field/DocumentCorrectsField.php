@@ -44,7 +44,7 @@ use Joomla\CMS\Language\Text;
  *    can be sized: nothing is offered, and the one reason printed beside the
  *    picker names those notes, in the words a credit is refused with.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class DocumentCorrectsField extends FormField
 {
@@ -52,7 +52,7 @@ class DocumentCorrectsField extends FormField
      * The field type.
      *
      * @var string
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected $type = 'DocumentCorrects';
 
@@ -61,7 +61,7 @@ class DocumentCorrectsField extends FormField
      *
      * @return string The field HTML.
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     protected function getInput(): string
     {

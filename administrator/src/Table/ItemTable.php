@@ -29,7 +29,7 @@ class ItemTable extends Table
      * records and is their only writer, so a row write never carries them.
      *
      * @var string[]
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const PROJECTION_COLUMNS = ['stock', 'available_quantity'];
 
@@ -40,7 +40,7 @@ class ItemTable extends Table
      * setting.
      *
      * @var string
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const TRACKING_COLUMN = 'manage_stock';
 
@@ -51,7 +51,7 @@ class ItemTable extends Table
      * (see writeCurrentState()). An insert stores the new item's state.
      *
      * @var string
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const STATE_COLUMN = 'state';
 
@@ -168,7 +168,7 @@ class ItemTable extends Table
      * @param int $state The state the row write carried.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function writeCurrentState(int $state): void
     {

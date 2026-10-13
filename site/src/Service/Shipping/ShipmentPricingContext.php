@@ -23,7 +23,7 @@ defined('_JEXEC') or die;
  * branch in the resolvers; nothing that consumes the resulting charge learns
  * that it exists. It is core's own object and is never handed to a carrier.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class ShipmentPricingContext
 {
@@ -34,7 +34,7 @@ final class ShipmentPricingContext
      * @param PriceContext $audience The customer's groups, user and reference date.
      * @param Currency $currency The money the charge is stated in.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly int $methodId,

@@ -43,7 +43,7 @@ use Alfa\Component\Alfa\Site\Service\Pricing\Money;
  * construction rather than by convention, and it is also why nothing here can
  * re-enter the totals: HydratedCart is the settled state, never CartComputation.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class MethodViewRequest
 {
@@ -51,7 +51,7 @@ final class MethodViewRequest
      * @param Method $method The method being rendered, entire.
      * @param Cart $cart The cart being offered, entire.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly Method $method,

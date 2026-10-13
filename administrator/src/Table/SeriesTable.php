@@ -22,7 +22,7 @@ use Joomla\Database\DatabaseDriver;
  * the form layer only seeds next_number while a series has no issued
  * documents yet (SeriesModel enforces).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class SeriesTable extends Table
 {
@@ -30,7 +30,7 @@ class SeriesTable extends Table
      * Columns fully support NULL values in the database.
      *
      * @var bool
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected $_supportNullValue = true;
 
@@ -39,7 +39,7 @@ class SeriesTable extends Table
      *
      * @param DatabaseDriver $db A database connector object.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct(DatabaseDriver $db)
     {

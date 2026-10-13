@@ -17,7 +17,7 @@ defined('_JEXEC') or die;
  * Collapses whitespace and lowercases (matching
  * how the document is stored); the search column's collation does accent folding.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class QueryNormalizer
 {
@@ -30,7 +30,7 @@ class QueryNormalizer
      *
      * @var int
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public const MIN_LENGTH = 2;
 
@@ -38,7 +38,7 @@ class QueryNormalizer
      * @param string $keyword The raw user keyword.
      *
      * @return string The normalised keyword, or '' when it is not worth querying.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function normalize(string $keyword): string
     {
@@ -62,7 +62,7 @@ class QueryNormalizer
      *
      * @return string[] Terms in the order typed; empty when there is nothing to match.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function tokens(string $keyword): array
     {

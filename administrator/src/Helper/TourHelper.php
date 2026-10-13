@@ -30,7 +30,7 @@ use Throwable;
  * does the launching). Screens without a mapped tour, or sites where the tour
  * rows are missing, get nothing: the button never promises what it cannot start.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class TourHelper
 {
@@ -39,7 +39,7 @@ final class TourHelper
      * simply has no Help button yet.
      *
      * @var array<string, string>
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const VIEW_TOURS = [
         'dashboard' => 'com_alfa.welcome',
@@ -78,7 +78,7 @@ final class TourHelper
      * @param string $view The view name (usually `$this->getName()`).
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function toolbarHelp(Toolbar $toolbar, string $view): void
     {
@@ -110,7 +110,7 @@ final class TourHelper
      * @param Document $document The page document; non-HTML documents get nothing.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function attachGrammar(Document $document): void
     {
@@ -150,7 +150,7 @@ final class TourHelper
      * reason, and idempotent, so the repeat costs nothing.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function loadContributorLanguages(): void
     {
@@ -175,7 +175,7 @@ final class TourHelper
      *
      * @return int[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function ownTourIds(): array
     {

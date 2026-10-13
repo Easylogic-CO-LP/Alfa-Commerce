@@ -50,7 +50,7 @@ defined('_JEXEC') or die;
  * requests are built here from the loaded cart and nothing else; no plugin is
  * ever handed the cart.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartPluginDispatch
 {
@@ -59,7 +59,7 @@ final class CartPluginDispatch
      * said nothing. Carried so the cart a plugin reads names the same
      * destination the offer filter was run against.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private ?int $boundPlaceId = null;
 
@@ -68,7 +68,7 @@ final class CartPluginDispatch
      * @param ShippingPriceEntryModeResolver $entryModes What an entered shipping price means.
      * @param ShippingTaxResolver $shippingTaxes Which tax a shipping charge carries.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         private readonly CMSApplication $app,
@@ -98,7 +98,7 @@ final class CartPluginDispatch
      *
      * @return ShippingQuote The carrier's answer: a charge, or a refusal.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function shippingCost(
         int $shipmentId,
@@ -219,7 +219,7 @@ final class CartPluginDispatch
      * @param HydratedCart $cart The cart.
      * @param Closure $destination (object $method): int[] - where it is going.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function chargeFor(CalculateShippingCostEvent $event, Method $method, HydratedCart $cart, Closure $destination): ShippingCharge
     {
@@ -256,7 +256,7 @@ final class CartPluginDispatch
      * [plugin name, CartContribution] pairs, in dispatch order. Folding them
      * into money is the computation's business, and the pricing engine's.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function contributions(HydratedCart $cart, User $customer, Money $subtotal): array
     {
@@ -305,7 +305,7 @@ final class CartPluginDispatch
      *
      * @return MethodViewContribution[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function methodViews(
         string $kind,
@@ -401,7 +401,7 @@ final class CartPluginDispatch
      * @param HtmlDocument $document The page being built.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function methodAssets(string $kind, array $published, HtmlDocument $document): void
     {
@@ -462,7 +462,7 @@ final class CartPluginDispatch
      * @param Throwable $e What it threw.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function quoteFailed(string $type, Throwable $e): void
     {
@@ -501,7 +501,7 @@ final class CartPluginDispatch
      * @param Throwable $e What it threw.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function pluginFailed(string $what, Throwable $e): void
     {
@@ -519,7 +519,7 @@ final class CartPluginDispatch
     /**
      * The carrier's record, whatever its state; null for no carrier.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function shipmentRecord(int $shipmentId): ?object
     {
@@ -547,7 +547,7 @@ final class CartPluginDispatch
      * the cart row records where a previous submission was going and quoting
      * against that charged the wrong zone.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     /**
      * The cart as a plugin reads it, carrying what the checkout currently holds.
@@ -563,7 +563,7 @@ final class CartPluginDispatch
      * @param Money|null $subtotal The settled cart-item amount the caller already has.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function reader(HydratedCart $cart, ?Money $subtotal = null, ?Money $payable = null): Cart
     {
@@ -600,7 +600,7 @@ final class CartPluginDispatch
      *
      * @return array The same, with this request's destination in it.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function withBoundDestination(array $delivery): array
     {
@@ -632,7 +632,7 @@ final class CartPluginDispatch
      * @param int|null $placeId The bound place, or null when none was submitted.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function bindDeliveryPlace(?int $placeId): void
     {
@@ -652,7 +652,7 @@ final class CartPluginDispatch
      * @param HydratedCart $cart The settled cart.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function deliveryAddress(HydratedCart $cart): AddressView
     {

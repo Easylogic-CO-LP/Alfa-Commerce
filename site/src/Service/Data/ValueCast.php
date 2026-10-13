@@ -38,14 +38,14 @@ defined('_JEXEC') or die;
  * deliberately cleared field. It does not answer a malformed value either; that
  * is a fault, and a default would hide it forever.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class ValueCast
 {
     /**
      * The filters {@see PluginPayload::get()} and AddressView::get() accept.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const FILTERS = ['int', 'string', 'bool', 'array'];
 
@@ -60,7 +60,7 @@ final class ValueCast
      *
      * @throws ValueException On an unknown filter, or a value that will not convert.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function apply(mixed $value, ?string $filter, mixed $default, string $where): mixed
     {
@@ -102,7 +102,7 @@ final class ValueCast
      *
      * @throws ValueException When a present value will not convert.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function toString(mixed $value, mixed $default = null, string $where = 'value'): ?string
     {
@@ -141,7 +141,7 @@ final class ValueCast
      *
      * @throws ValueException When a present value is not a whole number.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function toInt(mixed $value, mixed $default = null, string $where = 'value'): ?int
     {
@@ -187,7 +187,7 @@ final class ValueCast
      *
      * @throws ValueException When a present value is not one of the spellings.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function toBool(mixed $value, mixed $default = null, string $where = 'value'): ?bool
     {
@@ -231,7 +231,7 @@ final class ValueCast
      *
      * @throws ValueException When a present value is not an array.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function toArray(mixed $value, mixed $default = null, string $where = 'value'): ?array
     {
@@ -258,7 +258,7 @@ final class ValueCast
      * @param mixed $value What is actually stored.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function refuse(string $where, string $wanted, mixed $value): ValueException
     {

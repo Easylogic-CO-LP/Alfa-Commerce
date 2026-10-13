@@ -30,14 +30,14 @@ use Joomla\CMS\Language\Text;
  * Calls point plugin -> core: the plugin asks this for a card and names a layout core
  * ships. Nothing here knows the plugin exists.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class StatsCards
 {
     /**
      * @param DashboardStatsService $stats The window every card reads from.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(private readonly DashboardStatsService $stats)
     {
@@ -47,7 +47,7 @@ final class StatsCards
      * The window these cards cover, for a caller that draws its own frame around them.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function stats(): DashboardStatsService
     {
@@ -61,7 +61,7 @@ final class StatsCards
      * @param float $amount The amount.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function money(float $amount): string
     {
@@ -81,7 +81,7 @@ final class StatsCards
      * @param float|int|string $amount The amount.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function moneyFigure(float|int|string $amount): string
     {
@@ -113,7 +113,7 @@ final class StatsCards
      *                    number is data and never follows a display choice).
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function unit(
         float|int|string $unit,
@@ -151,7 +151,7 @@ final class StatsCards
      * than last month; the chart is there for the one who wants to know WHICH days.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function trend(): array
     {

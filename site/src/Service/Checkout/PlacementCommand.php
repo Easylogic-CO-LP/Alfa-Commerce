@@ -38,35 +38,35 @@ defined('_JEXEC') or die;
  * carries. What it does guarantee is SHAPE: ids are integers, buckets are
  * arrays, and the credit flag is a boolean rather than whatever a request had.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class PlacementCommand
 {
     /**
      * A shopper checking out.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const SOURCE_STOREFRONT = 'storefront';
 
     /**
      * Someone placing the order for them: over the phone, at a counter.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const SOURCE_ADMIN = 'admin';
 
     /**
      * A subscription coming round again.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const SOURCE_RENEWAL = 'renewal';
 
     /**
      * A machine.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const SOURCE_API = 'api';
 
@@ -105,7 +105,7 @@ final class PlacementCommand
      *                             to the initial status and refuses one that
      *                             requires payment a new order cannot have.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly array $delivery,

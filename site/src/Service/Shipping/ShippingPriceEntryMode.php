@@ -18,7 +18,7 @@ defined('_JEXEC') or die;
  * applies is the destination's question ({@see ShippingTaxResolver}). The same
  * entered price therefore means the same thing in every jurisdiction.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 enum ShippingPriceEntryMode: string
 {

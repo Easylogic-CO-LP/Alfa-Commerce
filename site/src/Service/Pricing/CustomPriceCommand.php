@@ -36,7 +36,7 @@ use InvalidArgumentException;
  * {@see ExplicitPriceInstruction::canonicalRate()}. The line charges the rate
  * times the quantity, rounded once.
  *
- * @since  1.11.0
+ * @since  2.0.0
  */
 final class CustomPriceCommand
 {
@@ -80,7 +80,7 @@ final class CustomPriceCommand
      *
      * @throws InvalidArgumentException When the value is present but is not a usable amount.
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public static function fromPayload(array $payload, string $key = self::FIELD): self
     {
@@ -137,7 +137,7 @@ final class CustomPriceCommand
      *
      * @throws InvalidArgumentException When the action is unknown, or Set carries no usable amount.
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public static function fromAdminPost(
         array $post,
@@ -164,7 +164,7 @@ final class CustomPriceCommand
      * No pricing mutation. Requires no pricing authority.
      *
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public static function leave(): self
     {
@@ -185,7 +185,7 @@ final class CustomPriceCommand
      * @throws InvalidArgumentException When the amount is not a finite, non-negative plain decimal within
      *                                  Alfa's unit-rate precision.
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public static function set(float|int|string $amount): self
     {
@@ -196,7 +196,7 @@ final class CustomPriceCommand
      * Return the line to canonical catalogue/customer repricing.
      *
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public static function clear(): self
     {
@@ -212,7 +212,7 @@ final class CustomPriceCommand
      * for exactly the acts that need it.
      *
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public function mutates(): bool
     {

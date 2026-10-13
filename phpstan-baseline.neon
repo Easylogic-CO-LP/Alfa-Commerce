@@ -1,16 +1,148 @@
 parameters:
 	ignoreErrors:
 		-
+			message: '#^Cannot call method priceLineConfig\(\) on bool\|Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: administrator/src/Controller/CartController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id_payment" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: administrator/src/Controller/CartController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id_shipment" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: administrator/src/Controller/CartController.php
+
+		-
+			message: '#^Parameter \#2 \$value of method Joomla\\Application\\WebApplicationInterface\:\:setHeader\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 3
+			path: administrator/src/Controller/CartruleController.php
+
+		-
+			message: '#^Property Joomla\\CMS\\MVC\\Controller\\FormController\:\:\$app \(Joomla\\CMS\\Application\\CMSWebApplicationInterface\) on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.property
+			count: 1
+			path: administrator/src/Controller/CartruleController.php
+
+		-
+			message: '#^Method Joomla\\CMS\\Application\\CMSApplicationInterface\:\:getMessageQueue\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: administrator/src/Controller/CategoryController.php
+
+		-
+			message: '#^Offset ''\#__alfa_categories'' on array\{''\#__alfa_categories''\: array\{''parent_id''\}, ''\#__alfa_item_field_values''\: array\{''item_field_id''\}\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: administrator/src/Controller/CategoryController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: administrator/src/Controller/CategoryController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: administrator/src/Controller/CurrencyController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: administrator/src/Controller/DiscountController.php
+
+		-
+			message: '#^Method Joomla\\CMS\\Application\\CMSApplicationInterface\:\:getMessageQueue\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: administrator/src/Controller/ItemController.php
+
+		-
+			message: '#^Offset ''\#__alfa_items'' on array\{''\#__alfa_categories''\: array\{''parent_id''\}, ''\#__alfa_item_field_values''\: array\{''item_field_id''\}\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: administrator/src/Controller/ItemController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 3
+			path: administrator/src/Controller/ItemController.php
+
+		-
+			message: '#^Method Joomla\\CMS\\Application\\CMSApplicationInterface\:\:getMessageQueue\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: administrator/src/Controller/ManufacturerController.php
+
+		-
+			message: '#^Offset ''\#__alfa…'' on array\{''\#__alfa_categories''\: array\{''parent_id''\}, ''\#__alfa_item_field_values''\: array\{''item_field_id''\}\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: administrator/src/Controller/ManufacturerController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: administrator/src/Controller/ManufacturerController.php
+
+		-
+			message: '#^Access to protected property Joomla\\CMS\\Form\\FormField\:\:\$fieldname\.$#'
+			identifier: property.protected
+			count: 2
+			path: administrator/src/Controller/OrderController.php
+
+		-
+			message: '#^Access to protected property Joomla\\CMS\\Form\\FormField\:\:\$readonly\.$#'
+			identifier: property.protected
+			count: 2
+			path: administrator/src/Controller/OrderController.php
+
+		-
+			message: '#^Access to protected property Joomla\\CMS\\Form\\FormField\:\:\$type\.$#'
+			identifier: property.protected
+			count: 2
+			path: administrator/src/Controller/OrderController.php
+
+		-
+			message: '#^Comparison operation "\>\=" between 1 and 3 is always false\.$#'
+			identifier: greaterOrEqual.alwaysFalse
+			count: 1
+			path: administrator/src/Controller/OrderController.php
+
+		-
 			message: '#^Method Joomla\\CMS\\Application\\CMSApplicationInterface\:\:getMessageQueue\(\) invoked with 1 parameter, 0 required\.$#'
 			identifier: arguments.count
 			count: 1
 			path: administrator/src/Controller/OrderController.php
 
 		-
-			message: '#^PHPDoc tag @throws with type Alfa\\Component\\Alfa\\Administrator\\Controller\\Exception is not subtype of Throwable$#'
-			identifier: throws.notThrowable
+			message: '#^Result of \|\| is always true\.$#'
+			identifier: booleanOr.alwaysTrue
 			count: 1
-			path: administrator/src/Controller/OrdersController.php
+			path: administrator/src/Controller/OrderController.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between null and null will always evaluate to true\.$#'
+			identifier: identical.alwaysTrue
+			count: 1
+			path: administrator/src/Controller/OrderController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: administrator/src/Controller/OrderController.php
 
 		-
 			message: '#^Property Joomla\\CMS\\User\\User\:\:\$email \(string\) on left side of \?\? is not nullable\.$#'
@@ -19,16 +151,28 @@ parameters:
 			path: administrator/src/Controller/OrderstatusController.php
 
 		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Controller\\PluginController\:\:trigger\(\) should return bool\|Joomla\\CMS\\MVC\\Controller\\BaseController but return statement is missing\.$#'
-			identifier: return.missing
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
 			count: 1
-			path: administrator/src/Controller/PluginController.php
+			path: administrator/src/Controller/OrderstatusController.php
 
 		-
-			message: '#^Variable \$response might not be defined\.$#'
-			identifier: variable.undefined
+			message: '#^Result of method Alfa\\Component\\Alfa\\Administrator\\Controller\\PanelController\:\:pluginTask\(\) \(void\) is used\.$#'
+			identifier: method.void
 			count: 1
-			path: administrator/src/Controller/PluginController.php
+			path: administrator/src/Controller/PanelController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: administrator/src/Controller/PaymentController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: administrator/src/Controller/PlaceController.php
 
 		-
 			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Controller\\SeoController\:\:calculateScore\(\) should return int but returns float\.$#'
@@ -49,10 +193,40 @@ parameters:
 			path: administrator/src/Controller/SeoController.php
 
 		-
-			message: '#^PHPDoc tag @var above a method has no effect\.$#'
-			identifier: varTag.misplaced
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
 			count: 1
-			path: administrator/src/Event/Fields/FieldsEvent.php
+			path: administrator/src/Controller/ShipmentController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: administrator/src/Controller/TaxController.php
+
+		-
+			message: '#^Negated boolean expression is always true\.$#'
+			identifier: booleanNot.alwaysTrue
+			count: 1
+			path: administrator/src/Controller/Traits/HasFailedCopyRedirect.php
+
+		-
+			message: '#^Result of \|\| is always true\.$#'
+			identifier: booleanOr.alwaysTrue
+			count: 1
+			path: administrator/src/Controller/Traits/HasFailedCopyRedirect.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: administrator/src/Controller/UserController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: administrator/src/Controller/UsergroupController.php
 
 		-
 			message: '#^PHPDoc tag @var above a method has no effect\.$#'
@@ -61,58 +235,76 @@ parameters:
 			path: administrator/src/Event/Fields/PrepareDomEvent.php
 
 		-
-			message: '#^PHPDoc tag @return with type mixed is not subtype of native type static\(Joomla\\CMS\\Event\\CustomFields\\AfterPrepareFieldEvent\)\.$#'
+			message: '#^PHPDoc tag @return with type void is incompatible with native type int\.$#'
 			identifier: return.phpDocType
 			count: 1
-			path: administrator/src/Event/Fields/_AfterPrepareFieldEvent.php
+			path: administrator/src/Event/General/RedirectEvent.php
 
 		-
-			message: '#^PHPDoc tag @var above a method has no effect\.$#'
-			identifier: varTag.misplaced
+			message: '#^Right side of && is always false\.$#'
+			identifier: booleanAnd.rightAlwaysFalse
 			count: 1
-			path: administrator/src/Event/General/LayoutEvent.php
+			path: administrator/src/Event/ItemFields/Surfaces.php
 
 		-
-			message: '#^Call to an undefined method Alfa\\Component\\Alfa\\Administrator\\Event\\Shipments\\AdminOrderAfterSaveEvent\:\:getSubject\(\)\.$#'
-			identifier: method.notFound
+			message: '#^PHPDoc tag @return with type object is not subtype of native type Alfa\\Component\\Alfa\\Site\\Service\\Order\\Order\.$#'
+			identifier: return.phpDocType
 			count: 1
-			path: administrator/src/Event/Shipments/AdminOrderAfterSaveEvent.php
+			path: administrator/src/Event/Orders/OrderPlacedEvent.php
 
 		-
-			message: '#^Call to an undefined method Alfa\\Component\\Alfa\\Administrator\\Event\\Shipments\\AdminOrderBeforeSaveEvent\:\:getSubject\(\)\.$#'
-			identifier: method.notFound
+			message: '#^PHPDoc tag @return with type mixed is not subtype of native type Alfa\\Component\\Alfa\\Site\\Service\\Order\\Order\.$#'
+			identifier: return.phpDocType
 			count: 1
-			path: administrator/src/Event/Shipments/AdminOrderBeforeSaveEvent.php
+			path: administrator/src/Event/Payments/AdminOrderDeleteEvent.php
 
 		-
-			message: '#^Call to an undefined method Alfa\\Component\\Alfa\\Administrator\\Event\\Shipments\\AdminOrderDeleteEvent\:\:getSubject\(\)\.$#'
-			identifier: method.notFound
+			message: '#^PHPDoc tag @return with type object is not subtype of native type Alfa\\Component\\Alfa\\Site\\Service\\Order\\Order\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: administrator/src/Event/Payments/OrderAfterPlaceEvent.php
+
+		-
+			message: '#^PHPDoc tag @return with type mixed is not subtype of native type Alfa\\Component\\Alfa\\Site\\Service\\Order\\Order\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: administrator/src/Event/Payments/OrderCompleteViewEvent.php
+
+		-
+			message: '#^PHPDoc tag @return with type mixed is not subtype of native type Alfa\\Component\\Alfa\\Site\\Service\\Order\\Order\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: administrator/src/Event/Payments/OrderProcessViewEvent.php
+
+		-
+			message: '#^PHPDoc tag @return with type mixed is not subtype of native type Alfa\\Component\\Alfa\\Site\\Service\\Order\\Order\.$#'
+			identifier: return.phpDocType
 			count: 1
 			path: administrator/src/Event/Shipments/AdminOrderDeleteEvent.php
 
 		-
-			message: '#^Call to an undefined method Alfa\\Component\\Alfa\\Administrator\\Event\\Shipments\\CalculateShippingCostEvent\:\:getSubject\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: administrator/src/Event/Shipments/CalculateShippingCostEvent.php
-
-		-
-			message: '#^Call to an undefined method Alfa\\Component\\Alfa\\Administrator\\Event\\Shipments\\OrderAfterPlaceEvent\:\:getSubject\(\)\.$#'
-			identifier: method.notFound
+			message: '#^PHPDoc tag @return with type object is not subtype of native type Alfa\\Component\\Alfa\\Site\\Service\\Order\\Order\.$#'
+			identifier: return.phpDocType
 			count: 1
 			path: administrator/src/Event/Shipments/OrderAfterPlaceEvent.php
 
 		-
-			message: '#^Call to an undefined method Alfa\\Component\\Alfa\\Administrator\\Event\\Shipments\\OrderPlaceEvent\:\:getSubject\(\)\.$#'
-			identifier: method.notFound
+			message: '#^Parameter \#4 \$height of method Joomla\\CMS\\Editor\\Editor\:\:display\(\) expects string, int given\.$#'
+			identifier: argument.type
 			count: 1
-			path: administrator/src/Event/Shipments/OrderPlaceEvent.php
+			path: administrator/src/Field/DocumentPositionsField.php
 
 		-
 			message: '#^Parameter \#4 \$height of method Joomla\\CMS\\Editor\\Editor\:\:display\(\) expects string, int given\.$#'
 			identifier: argument.type
 			count: 1
 			path: administrator/src/Field/EmailPositionsField.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Field\\InheritedAudienceField\:\:note\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: administrator/src/Field/InheritedAudienceField.php
 
 		-
 			message: '#^Property Joomla\\CMS\\Form\\Field\\EditorField\:\:\$height \(string\) on left side of \?\? is not nullable\.$#'
@@ -127,10 +319,34 @@ parameters:
 			path: administrator/src/Field/MultilingualEditorField.php
 
 		-
+			message: '#^Property Joomla\\CMS\\Form\\FormField\:\:\$group \(string\) on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.property
+			count: 1
+			path: administrator/src/Field/Traits/HasMultilingualNamesTrait.php
+
+		-
+			message: '#^Caught class libphonenumber\\NumberParseException not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Filter/TelephoneFilter.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Filter\\TelephoneFilter\:\:storeFormat\(\) has invalid return type libphonenumber\\PhoneNumberFormat\.$#'
+			identifier: class.notFound
+			count: 2
+			path: administrator/src/Filter/TelephoneFilter.php
+
+		-
 			message: '#^Right side of && is always false\.$#'
 			identifier: booleanAnd.rightAlwaysFalse
 			count: 1
 			path: administrator/src/Helper/ActionRegistry.php
+
+		-
+			message: '#^Call to function is_array\(\) with list\<mixed\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: administrator/src/Helper/AlfaHelper.php
 
 		-
 			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Helper\\AlfaHelper\:\:setAssocsToDb\(\) with return type void returns false but should not return anything\.$#'
@@ -141,8 +357,14 @@ parameters:
 		-
 			message: '#^Variable \$currentPath might not be defined\.$#'
 			identifier: variable.undefined
-			count: 2
+			count: 1
 			path: administrator/src/Helper/AlfaHelper.php
+
+		-
+			message: '#^Unsafe usage of new static\(\)\.$#'
+			identifier: new.static
+			count: 2
+			path: administrator/src/Helper/FieldParams.php
 
 		-
 			message: '#^Negated boolean expression is always false\.$#'
@@ -187,82 +409,70 @@ parameters:
 			path: administrator/src/Helper/MediaHelper.php
 
 		-
-			message: '#^Cannot call method getItems\(\) on object\|false\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: administrator/src/Helper/NotificationHelper.php
-
-		-
-			message: '#^Cannot call method getState\(\) on object\|false\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: administrator/src/Helper/NotificationHelper.php
-
-		-
-			message: '#^Cannot call method setState\(\) on object\|false\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: administrator/src/Helper/NotificationHelper.php
-
-		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Helper\\OrderEmailHelper\:\:discoverSequence\(\) should return array\<int, array\{type\: string, name\?\: string\}\> but returns array\<string\>\.$#'
-			identifier: return.type
-			count: 1
-			path: administrator/src/Helper/OrderEmailHelper.php
-
-		-
-			message: '#^Parameter \#3 \$basePath of static method Joomla\\CMS\\Layout\\LayoutHelper\:\:render\(\) expects string, null given\.$#'
-			identifier: argument.type
-			count: 3
-			path: administrator/src/Helper/OrderEmailHelper.php
-
-		-
-			message: '#^Argument of an invalid type stdClass supplied for foreach, only iterables are supported\.$#'
-			identifier: foreach.nonIterable
-			count: 1
-			path: administrator/src/Helper/OrderHelper.php
-
-		-
-			message: '#^PHPDoc tag @return with type array is incompatible with native type Alfa\\Component\\Alfa\\Site\\Service\\Pricing\\PriceContext\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: administrator/src/Helper/OrderHelper.php
-
-		-
-			message: '#^Comparison operation "\>" between int\<1, max\> and 0 is always true\.$#'
-			identifier: greater.alwaysTrue
-			count: 1
-			path: administrator/src/Helper/OrderPaymentHelper.php
-
-		-
-			message: '#^Unsafe usage of new static\(\)\.$#'
-			identifier: new.static
-			count: 2
-			path: administrator/src/Helper/OrderPaymentHelper.php
-
-		-
-			message: '#^Comparison operation "\>" between int\<1, max\> and 0 is always true\.$#'
-			identifier: greater.alwaysTrue
-			count: 1
-			path: administrator/src/Helper/OrderShipmentHelper.php
-
-		-
-			message: '#^Unsafe usage of new static\(\)\.$#'
-			identifier: new.static
-			count: 2
-			path: administrator/src/Helper/OrderShipmentHelper.php
-
-		-
-			message: '#^Call to function in_array\(\) with arguments string, array\{\} and true will always evaluate to false\.$#'
-			identifier: function.impossibleType
-			count: 1
-			path: administrator/src/Helper/PackageHelper.php
-
-		-
 			message: '#^Right side of && is always false\.$#'
 			identifier: booleanAnd.rightAlwaysFalse
 			count: 1
 			path: administrator/src/Helper/PluginLayoutHelper.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 3
+			path: administrator/src/Helper/SetupHelper.php
+
+		-
+			message: '#^Offset ''\#__alfa_item_field…'' on array\{''\#__alfa_categories''\: array\{''alias''\}, ''\#__alfa_items''\: array\{''alias''\}, ''\#__alfa_manufacturers''\: array\{''alias''\}, ''\#__alfa_item_field_values''\: array\{''alias''\}\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: administrator/src/Helper/SyncHelper.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>mutates" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: administrator/src/Helper/ToolRegistry.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>lookups" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: administrator/src/Menu/MenuBuilder.php
+
+		-
+			message: '#^Parameter \#2 \$options of method Joomla\\CMS\\Document\\HtmlDocument\:\:setBuffer\(\) expects array, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: administrator/src/Menu/MenuInjector.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between null and null will always evaluate to false\.$#'
+			identifier: notIdentical.alwaysFalse
+			count: 1
+			path: administrator/src/Model/AlfaAdminModel.php
+
+		-
+			message: '#^Access to protected property Joomla\\CMS\\Form\\FormField\:\:\$fieldname\.$#'
+			identifier: property.protected
+			count: 1
+			path: administrator/src/Model/AlfaListModel.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 1
+			path: administrator/src/Model/CartruleModel.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: administrator/src/Model/CartruleModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CartrulesModel\:\:getListQuery\(\) should return Joomla\\Database\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/CartrulesModel.php
 
 		-
 			message: '#^PHPDoc tag @throws with type Alfa\\Component\\Alfa\\Administrator\\Model\\Exception is not subtype of Throwable$#'
@@ -271,20 +481,62 @@ parameters:
 			path: administrator/src/Model/CategoriesModel.php
 
 		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CategoryModel\:\:getForm\(\) has invalid return type JForm\.$#'
-			identifier: class.notFound
+			message: '#^If condition is always true\.$#'
+			identifier: if.alwaysTrue
 			count: 1
 			path: administrator/src/Model/CategoryModel.php
 
 		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CategoryModel\:\:getForm\(\) should return bool\|JForm but returns Joomla\\CMS\\Form\\Form\.$#'
-			identifier: return.type
-			count: 1
-			path: administrator/src/Model/CategoryModel.php
-
-		-
-			message: '#^Offset ''\#__alfa_categories'' on array\{''\#__alfa_categories''\: array\{''parent_id''\}\} on left side of \?\? always exists and is not nullable\.$#'
+			message: '#^Offset ''\#__alfa_categories'' on array\{''\#__alfa_categories''\: array\{''parent_id''\}, ''\#__alfa_item_field_values''\: array\{''item_field_id''\}\} on left side of \?\? always exists and is not nullable\.$#'
 			identifier: nullCoalesce.offset
+			count: 1
+			path: administrator/src/Model/CategoryModel.php
+
+		-
+			message: '#^PHPDoc type bool of property Alfa\\Component\\Alfa\\Administrator\\Model\\CategoryModel\:\:\$batch_copymove is not covariant with PHPDoc type string of overridden property Joomla\\CMS\\MVC\\Model\\AdminModel\:\:\$batch_copymove\.$#'
+			identifier: property.phpDocType
+			count: 1
+			path: administrator/src/Model/CategoryModel.php
+
+		-
+			message: '#^Parameter \#2 \$order \(array\|null\) of method Alfa\\Component\\Alfa\\Administrator\\Model\\CategoryModel\:\:saveorder\(\) should be compatible with parameter \$order \(int\) of method Joomla\\CMS\\MVC\\Model\\AdminModel\:\:saveorder\(\)$#'
+			identifier: method.childParameterType
+			count: 1
+			path: administrator/src/Model/CategoryModel.php
+
+		-
+			message: '#^Parameter \#2 \$order of method Joomla\\CMS\\MVC\\Model\\AdminModel\:\:saveorder\(\) expects int\|null, array\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: administrator/src/Model/CategoryModel.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:commitLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 1
+			path: administrator/src/Model/CategoryModel.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:isOpen\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 1
+			path: administrator/src/Model/CategoryModel.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 3
+			path: administrator/src/Model/CategoryModel.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Service\\Catalog\\RuleScopeGuard\:\:assertScopesSurvive\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 1
+			path: administrator/src/Model/CategoryModel.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Service\\Catalog\\RuleScopeGuard\:\:lockExisting\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
 			count: 1
 			path: administrator/src/Model/CategoryModel.php
 
@@ -293,42 +545,6 @@ parameters:
 			identifier: assign.propertyType
 			count: 1
 			path: administrator/src/Model/CategoryModel.php
-
-		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CouponModel\:\:getForm\(\) has invalid return type JForm\.$#'
-			identifier: class.notFound
-			count: 1
-			path: administrator/src/Model/CouponModel.php
-
-		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CouponModel\:\:getForm\(\) should return bool\|JForm but returns Joomla\\CMS\\Form\\Form\.$#'
-			identifier: return.type
-			count: 1
-			path: administrator/src/Model/CouponModel.php
-
-		-
-			message: '#^PHPDoc tag @throws with type Alfa\\Component\\Alfa\\Administrator\\Model\\Exception is not subtype of Throwable$#'
-			identifier: throws.notThrowable
-			count: 1
-			path: administrator/src/Model/CouponModel.php
-
-		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CouponsModel\:\:getListQuery\(\) has invalid return type Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery\.$#'
-			identifier: class.notFound
-			count: 1
-			path: administrator/src/Model/CouponsModel.php
-
-		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CouponsModel\:\:getListQuery\(\) should return Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
-			identifier: return.type
-			count: 1
-			path: administrator/src/Model/CouponsModel.php
-
-		-
-			message: '#^PHPDoc tag @throws with type Alfa\\Component\\Alfa\\Administrator\\Model\\Exception is not subtype of Throwable$#'
-			identifier: throws.notThrowable
-			count: 1
-			path: administrator/src/Model/CouponsModel.php
 
 		-
 			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CurrenciesModel\:\:getListQuery\(\) has invalid return type Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery\.$#'
@@ -349,18 +565,6 @@ parameters:
 			path: administrator/src/Model/CurrenciesModel.php
 
 		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CurrencyModel\:\:getForm\(\) has invalid return type JForm\.$#'
-			identifier: class.notFound
-			count: 1
-			path: administrator/src/Model/CurrencyModel.php
-
-		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CurrencyModel\:\:getForm\(\) should return bool\|JForm but returns Joomla\\CMS\\Form\\Form\.$#'
-			identifier: return.type
-			count: 1
-			path: administrator/src/Model/CurrencyModel.php
-
-		-
 			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CurrencyModel\:\:prepareTable\(\) with return type void returns null but should not return anything\.$#'
 			identifier: return.void
 			count: 1
@@ -373,50 +577,14 @@ parameters:
 			path: administrator/src/Model/CurrencyModel.php
 
 		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CustomModel\:\:getForm\(\) has invalid return type JForm\.$#'
-			identifier: class.notFound
-			count: 1
-			path: administrator/src/Model/CustomModel.php
-
-		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CustomModel\:\:getForm\(\) should return bool\|JForm but returns Joomla\\CMS\\Form\\Form\.$#'
-			identifier: return.type
-			count: 1
-			path: administrator/src/Model/CustomModel.php
-
-		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CustomsModel\:\:getListQuery\(\) has invalid return type Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery\.$#'
-			identifier: class.notFound
-			count: 1
-			path: administrator/src/Model/CustomsModel.php
-
-		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\CustomsModel\:\:getListQuery\(\) should return Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
-			identifier: return.type
-			count: 1
-			path: administrator/src/Model/CustomsModel.php
-
-		-
-			message: '#^PHPDoc tag @throws with type Alfa\\Component\\Alfa\\Administrator\\Model\\Exception is not subtype of Throwable$#'
-			identifier: throws.notThrowable
-			count: 1
-			path: administrator/src/Model/CustomsModel.php
-
-		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\DiscountModel\:\:getForm\(\) has invalid return type JForm\.$#'
-			identifier: class.notFound
-			count: 1
-			path: administrator/src/Model/DiscountModel.php
-
-		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\DiscountModel\:\:getForm\(\) should return bool\|JForm but returns Joomla\\CMS\\Form\\Form\.$#'
-			identifier: return.type
-			count: 1
-			path: administrator/src/Model/DiscountModel.php
-
-		-
 			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\DiscountModel\:\:prepareTable\(\) with return type void returns null but should not return anything\.$#'
 			identifier: return.void
+			count: 1
+			path: administrator/src/Model/DiscountModel.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
 			count: 1
 			path: administrator/src/Model/DiscountModel.php
 
@@ -445,7 +613,19 @@ parameters:
 			path: administrator/src/Model/DiscountsModel.php
 
 		-
-			message: '#^Cannot access property \$fieldsparams on bool\|object\.$#'
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\DocumentsModel\:\:getListQuery\(\) should return Joomla\\Database\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/DocumentsModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\DocumentseriesModel\:\:getListQuery\(\) should return Joomla\\Database\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Model/DocumentseriesModel.php
+
+		-
+			message: '#^Cannot access property \$formfieldsparams on bool\|object\.$#'
 			identifier: property.nonObject
 			count: 1
 			path: administrator/src/Model/FormfieldModel.php
@@ -457,14 +637,26 @@ parameters:
 			path: administrator/src/Model/FormfieldModel.php
 
 		-
+			message: '#^Cannot access property \$role on bool\|object\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: administrator/src/Model/FormfieldModel.php
+
+		-
 			message: '#^Cannot access property \$showon on bool\|object\.$#'
 			identifier: property.nonObject
 			count: 1
 			path: administrator/src/Model/FormfieldModel.php
 
 		-
-			message: '#^Expression on left side of \?\? is not nullable\.$#'
-			identifier: nullCoalesce.expr
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\FormfieldModel\:\:delete\(\) with return type void returns false but should not return anything\.$#'
+			identifier: return.void
+			count: 3
+			path: administrator/src/Model/FormfieldModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\FormfieldModel\:\:delete\(\) with return type void returns true but should not return anything\.$#'
+			identifier: return.void
 			count: 1
 			path: administrator/src/Model/FormfieldModel.php
 
@@ -487,19 +679,19 @@ parameters:
 			path: administrator/src/Model/FormfieldModel.php
 
 		-
-			message: '#^Return type \(void\) of method Alfa\\Component\\Alfa\\Administrator\\Model\\FormfieldModel\:\:delete\(\) should be compatible with return type \(bool\) of method Joomla\\CMS\\MVC\\Model\\AdminModel\:\:delete\(\)$#'
+			message: '#^Return type \(void\) of method Alfa\\Component\\Alfa\\Administrator\\Model\\FormfieldModel\:\:delete\(\) should be compatible with return type \(bool\) of method Alfa\\Component\\Alfa\\Administrator\\Model\\AlfaAdminModel\:\:delete\(\)$#'
 			identifier: method.childReturnType
 			count: 1
 			path: administrator/src/Model/FormfieldModel.php
 
 		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\FormFieldsModel\:\:getListQuery\(\) has invalid return type Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery\.$#'
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\FormfieldsModel\:\:getListQuery\(\) has invalid return type Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery\.$#'
 			identifier: class.notFound
 			count: 1
 			path: administrator/src/Model/FormfieldsModel.php
 
 		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\FormFieldsModel\:\:getListQuery\(\) should return Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\FormfieldsModel\:\:getListQuery\(\) should return Alfa\\Component\\Alfa\\Administrator\\Model\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
 			identifier: return.type
 			count: 1
 			path: administrator/src/Model/FormfieldsModel.php
@@ -511,21 +703,27 @@ parameters:
 			path: administrator/src/Model/FormfieldsModel.php
 
 		-
-			message: '#^Call to an undefined static method Alfa\\Component\\Alfa\\Administrator\\Helper\\AlfaHelper\:\:setAllowedUserGroups\(\)\.$#'
-			identifier: staticMethod.notFound
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
 			count: 1
-			path: administrator/src/Model/ItemModel.php
-
-		-
-			message: '#^Call to an undefined static method Alfa\\Component\\Alfa\\Administrator\\Helper\\AlfaHelper\:\:setAllowedUsers\(\)\.$#'
-			identifier: staticMethod.notFound
-			count: 1
-			path: administrator/src/Model/ItemModel.php
+			path: administrator/src/Model/InventoryauditModel.php
 
 		-
 			message: '#^Parameter \#1 \$text of method Joomla\\Database\\DatabaseInterface\:\:quote\(\) expects array\|string, int\<1, max\> given\.$#'
 			identifier: argument.type
 			count: 1
+			path: administrator/src/Model/ItemModel.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:commitLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 3
+			path: administrator/src/Model/ItemModel.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 8
 			path: administrator/src/Model/ItemModel.php
 
 		-
@@ -535,20 +733,86 @@ parameters:
 			path: administrator/src/Model/ItemModel.php
 
 		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\ManufacturerModel\:\:getForm\(\) has invalid return type JForm\.$#'
-			identifier: class.notFound
+			message: '#^Variable \$result might not be defined\.$#'
+			identifier: variable.undefined
 			count: 1
-			path: administrator/src/Model/ManufacturerModel.php
+			path: administrator/src/Model/ItemModel.php
 
 		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\ManufacturerModel\:\:getForm\(\) should return bool\|JForm but returns Joomla\\CMS\\Form\\Form\.$#'
+			message: '#^Cannot access property \$itemfieldsparams on bool\|object\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: administrator/src/Model/ItemfieldModel.php
+
+		-
+			message: '#^Cannot access property \$params on bool\|object\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: administrator/src/Model/ItemfieldModel.php
+
+		-
+			message: '#^Cannot access property \$showon on bool\|object\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: administrator/src/Model/ItemfieldModel.php
+
+		-
+			message: '#^Cannot access property \$showon_effect on bool\|object\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: administrator/src/Model/ItemfieldModel.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:isOpen\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 1
+			path: administrator/src/Model/ItemfieldModel.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 1
+			path: administrator/src/Model/ItemfieldModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\ItemfieldsModel\:\:getListQuery\(\) should return Joomla\\Database\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
 			identifier: return.type
 			count: 1
-			path: administrator/src/Model/ManufacturerModel.php
+			path: administrator/src/Model/ItemfieldsModel.php
 
 		-
 			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\ManufacturerModel\:\:prepareTable\(\) with return type void returns null but should not return anything\.$#'
 			identifier: return.void
+			count: 1
+			path: administrator/src/Model/ManufacturerModel.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:commitLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 1
+			path: administrator/src/Model/ManufacturerModel.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:isOpen\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 1
+			path: administrator/src/Model/ManufacturerModel.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 3
+			path: administrator/src/Model/ManufacturerModel.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Service\\Catalog\\RuleScopeGuard\:\:assertScopesSurvive\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 1
+			path: administrator/src/Model/ManufacturerModel.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Service\\Catalog\\RuleScopeGuard\:\:lockExisting\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
 			count: 1
 			path: administrator/src/Model/ManufacturerModel.php
 
@@ -577,9 +841,27 @@ parameters:
 			path: administrator/src/Model/ManufacturersModel.php
 
 		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\OrderModel\:\:getItem\(\) should return stdClass\|false but returns null\.$#'
-			identifier: return.type
+			message: '#^PHPDoc tag @return with type void is incompatible with native type bool\.$#'
+			identifier: return.phpDocType
 			count: 1
+			path: administrator/src/Model/OrderModel.php
+
+		-
+			message: '#^Parameter \#1 \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:commitLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 5
+			path: administrator/src/Model/OrderModel.php
+
+		-
+			message: '#^Parameter \#1 \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:isOpen\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 4
+			path: administrator/src/Model/OrderModel.php
+
+		-
+			message: '#^Parameter \#1 \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 4
 			path: administrator/src/Model/OrderModel.php
 
 		-
@@ -589,28 +871,40 @@ parameters:
 			path: administrator/src/Model/OrderModel.php
 
 		-
-			message: '#^Variable \$oldItemSnapshot might not be defined\.$#'
-			identifier: variable.undefined
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 5
+			path: administrator/src/Model/OrderModel.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
 			count: 1
 			path: administrator/src/Model/OrderModel.php
 
 		-
-			message: '#^Variable \$orders might not be defined\.$#'
-			identifier: variable.undefined
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
 			count: 1
 			path: administrator/src/Model/OrderModel.php
-
-		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\OrdersModel\:\:getListQuery\(\) should return Joomla\\Database\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
-			identifier: return.type
-			count: 1
-			path: administrator/src/Model/OrdersModel.php
 
 		-
 			message: '#^Strict comparison using \=\=\= between mixed and null will always evaluate to false\.$#'
 			identifier: identical.alwaysFalse
 			count: 1
 			path: administrator/src/Model/OrderstatusModel.php
+
+		-
+			message: '#^Access to protected property Joomla\\CMS\\Form\\FormField\:\:\$fieldname\.$#'
+			identifier: property.protected
+			count: 1
+			path: administrator/src/Model/PanelModel.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\PanelModel\:\:getListQuery\(\) should return Joomla\\Database\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
+			identifier: return.type
+			count: 2
+			path: administrator/src/Model/PanelModel.php
 
 		-
 			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\PaymentModel\:\:getForm\(\) has invalid return type Alfa\\Component\\Alfa\\Administrator\\Model\\Form\.$#'
@@ -625,14 +919,14 @@ parameters:
 			path: administrator/src/Model/PaymentModel.php
 
 		-
-			message: '#^Property Alfa\\Component\\Alfa\\Administrator\\Model\\PaymentModel\:\:\$item \(null\) does not accept stdClass\|false\.$#'
-			identifier: assign.propertyType
+			message: '#^Parameter \#3 \$form of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\MultilingualHelper\:\:mergeValidatedFormData\(\) expects Joomla\\CMS\\Form\\Form\|null, Alfa\\Component\\Alfa\\Administrator\\Model\\Form\|bool given\.$#'
+			identifier: argument.type
 			count: 1
 			path: administrator/src/Model/PaymentModel.php
 
 		-
-			message: '#^Property Alfa\\Component\\Alfa\\Administrator\\Model\\PaymentModel\:\:\$item \(null\) on left side of \?\? is always null\.$#'
-			identifier: nullCoalesce.property
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
 			count: 1
 			path: administrator/src/Model/PaymentModel.php
 
@@ -655,14 +949,32 @@ parameters:
 			path: administrator/src/Model/PaymentsModel.php
 
 		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\PlaceModel\:\:getForm\(\) has invalid return type JForm\.$#'
-			identifier: class.notFound
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:commitLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
 			count: 1
 			path: administrator/src/Model/PlaceModel.php
 
 		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\PlaceModel\:\:getForm\(\) should return bool\|JForm but returns Joomla\\CMS\\Form\\Form\.$#'
-			identifier: return.type
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:isOpen\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 1
+			path: administrator/src/Model/PlaceModel.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 3
+			path: administrator/src/Model/PlaceModel.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Service\\Catalog\\RuleScopeGuard\:\:assertScopesSurvive\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 1
+			path: administrator/src/Model/PlaceModel.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Service\\Catalog\\RuleScopeGuard\:\:lockExisting\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
 			count: 1
 			path: administrator/src/Model/PlaceModel.php
 
@@ -685,14 +997,8 @@ parameters:
 			path: administrator/src/Model/PlacesModel.php
 
 		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\ShipmentModel\:\:getForm\(\) has invalid return type JForm\.$#'
-			identifier: class.notFound
-			count: 1
-			path: administrator/src/Model/ShipmentModel.php
-
-		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\ShipmentModel\:\:getForm\(\) should return bool\|JForm but returns Joomla\\CMS\\Form\\Form\.$#'
-			identifier: return.type
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
 			count: 1
 			path: administrator/src/Model/ShipmentModel.php
 
@@ -715,14 +1021,8 @@ parameters:
 			path: administrator/src/Model/ShipmentsModel.php
 
 		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\TaxModel\:\:getForm\(\) has invalid return type JForm\.$#'
-			identifier: class.notFound
-			count: 1
-			path: administrator/src/Model/TaxModel.php
-
-		-
-			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\TaxModel\:\:getForm\(\) should return bool\|JForm but returns Joomla\\CMS\\Form\\Form\.$#'
-			identifier: return.type
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
 			count: 1
 			path: administrator/src/Model/TaxModel.php
 
@@ -745,6 +1045,12 @@ parameters:
 			path: administrator/src/Model/TaxesModel.php
 
 		-
+			message: '#^Access to protected property Joomla\\CMS\\Form\\FormField\:\:\$fieldname\.$#'
+			identifier: property.protected
+			count: 1
+			path: administrator/src/Model/ToolsmediaModel.php
+
+		-
 			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\ToolsmediaModel\:\:getListQuery\(\) should return Joomla\\Database\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
 			identifier: return.type
 			count: 1
@@ -757,10 +1063,454 @@ parameters:
 			path: administrator/src/Model/UsergroupModel.php
 
 		-
+			message: '#^Offset ''prices'' on array\{prices\: array\{''base_price_show'', ''base_price_show…'', ''base_price_with…'', ''base_price_with…'', ''discount_amount_show'', ''discount_amount…'', ''tax_amount_show'', ''tax_amount_show…'', \.\.\.\}\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: administrator/src/Model/UsergroupModel.php
+
+		-
 			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Model\\UsersModel\:\:getListQuery\(\) should return Joomla\\Database\\DatabaseQuery but returns Joomla\\Database\\QueryInterface\.$#'
 			identifier: return.type
 			count: 1
 			path: administrator/src/Model/UsersModel.php
+
+		-
+			message: '#^PHPDoc tag @return with type float is incompatible with native type Alfa\\Component\\Alfa\\Site\\Service\\Pricing\\Money\.$#'
+			identifier: return.phpDocType
+			count: 2
+			path: administrator/src/Plugin/PaymentsPlugin.php
+
+		-
+			message: '#^Caught class libphonenumber\\NumberParseException not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Rule/TelephoneRule.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 7
+			path: administrator/src/Service/Cart/CartRepository.php
+
+		-
+			message: '#^Property Alfa\\Component\\Alfa\\Administrator\\Service\\Cart\\CartSubject\:\:\$actor on left side of \?\? is not nullable nor uninitialized\.$#'
+			identifier: nullCoalesce.initializedProperty
+			count: 1
+			path: administrator/src/Service/Cart/CartSubject.php
+
+		-
+			message: '#^Property Alfa\\Component\\Alfa\\Administrator\\Service\\Cart\\CartSubject\:\:\$customer on left side of \?\? is not nullable nor uninitialized\.$#'
+			identifier: nullCoalesce.initializedProperty
+			count: 1
+			path: administrator/src/Service/Cart/CartSubject.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>added" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: administrator/src/Service/Cart/CartTakeover.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id_customer" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: administrator/src/Service/Cart/CartTakeover.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: administrator/src/Service/Catalog/CatalogAccessPolicy.php
+
+		-
+			message: '#^Static method Alfa\\Component\\Alfa\\Administrator\\Service\\Credit\\CustomerCreditLedger\:\:toWalletScale\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: administrator/src/Service/Credit/CustomerCreditLedger.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: administrator/src/Service/Credit/CustomerCreditLedger.php
+
+		-
+			message: '#^Cannot access property \$id on null\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: administrator/src/Service/Document/DocumentIssuer.php
+
+		-
+			message: '#^Static method Alfa\\Component\\Alfa\\Administrator\\Service\\Document\\DocumentIssuer\:\:currentUserName\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: administrator/src/Service/Document/DocumentIssuer.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: administrator/src/Service/Document/DocumentIssuer.php
+
+		-
+			message: '#^Parameter \#3 \$basePath of static method Joomla\\CMS\\Layout\\LayoutHelper\:\:render\(\) expects string, null given\.$#'
+			identifier: argument.type
+			count: 3
+			path: administrator/src/Service/Document/DocumentRenderer.php
+
+		-
+			message: '#^Offset ''grants'' does not exist on array\{shipping\: array\<int, float\>, fees\: array\<int, float\>, rules\: array\<int, float\>\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: administrator/src/Service/Document/IncrementalCorrection.php
+
+		-
+			message: '#^Offset ''reversals'' does not exist on array\{shipping\: array\<int, float\>, fees\: array\<int, float\>\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: administrator/src/Service/Document/IncrementalCorrection.php
+
+		-
+			message: '#^Empty array passed to foreach\.$#'
+			identifier: foreach.emptyArray
+			count: 2
+			path: administrator/src/Service/Document/OrderChargeLines.php
+
+		-
+			message: '#^Offset ''line_type'' on array\{line_type\: ''fee'', id_order_item\: null, id_source\: mixed, name\: mixed, quantity\: 1, unit_price_tax_excl\: mixed, unit_price_tax_incl\: mixed, tax_rate\: mixed, \.\.\.\}\|array\{line_type\: ''shipping'', id_order_item\: null, id_source\: mixed, name\: mixed, quantity\: 1, unit_price_tax_excl\: mixed, unit_price_tax_incl\: mixed, tax_rate\: mixed, \.\.\.\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 2
+			path: administrator/src/Service/Document/OrderChargeLines.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>granted_incl" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: administrator/src/Service/Document/OrderChargeLines.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>reversed_incl" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: administrator/src/Service/Document/OrderChargeLines.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>sales_incl" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: administrator/src/Service/Document/OrderChargeLines.php
+
+		-
+			message: '#^Call to method loadHtml\(\) on an unknown class Dompdf\\Dompdf\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Service/Document/PdfRenderer.php
+
+		-
+			message: '#^Call to method output\(\) on an unknown class Dompdf\\Dompdf\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Service/Document/PdfRenderer.php
+
+		-
+			message: '#^Call to method render\(\) on an unknown class Dompdf\\Dompdf\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Service/Document/PdfRenderer.php
+
+		-
+			message: '#^Call to method setChroot\(\) on an unknown class Dompdf\\Options\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Service/Document/PdfRenderer.php
+
+		-
+			message: '#^Call to method setDefaultFont\(\) on an unknown class Dompdf\\Options\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Service/Document/PdfRenderer.php
+
+		-
+			message: '#^Call to method setFontCache\(\) on an unknown class Dompdf\\Options\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Service/Document/PdfRenderer.php
+
+		-
+			message: '#^Call to method setIsRemoteEnabled\(\) on an unknown class Dompdf\\Options\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Service/Document/PdfRenderer.php
+
+		-
+			message: '#^Call to method setPaper\(\) on an unknown class Dompdf\\Dompdf\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Service/Document/PdfRenderer.php
+
+		-
+			message: '#^Call to method setTempDir\(\) on an unknown class Dompdf\\Options\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Service/Document/PdfRenderer.php
+
+		-
+			message: '#^Instantiated class Dompdf\\Dompdf not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Service/Document/PdfRenderer.php
+
+		-
+			message: '#^Instantiated class Dompdf\\Options not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: administrator/src/Service/Document/PdfRenderer.php
+
+		-
+			message: '#^Variable \$unit on left side of \?\?\= always exists and is not nullable\.$#'
+			identifier: nullCoalesce.variable
+			count: 1
+			path: administrator/src/Service/Inventory/InventoryAvailabilityService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>backorder" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: administrator/src/Service/Inventory/InventoryIntegrityReader.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\PostCommit\:\:defer\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 3
+			path: administrator/src/Service/Inventory/InventoryService.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:commitLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 27
+			path: administrator/src/Service/Inventory/InventoryService.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:isOpen\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 2
+			path: administrator/src/Service/Inventory/InventoryService.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 1
+			path: administrator/src/Service/Inventory/InventoryService.php
+
+		-
+			message: '#^Variable \$requested on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.variable
+			count: 1
+			path: administrator/src/Service/Inventory/InventoryService.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between non\-empty\-string and '''' will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: administrator/src/Service/ItemFields/ItemFieldDisplayResolver.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Service\\Order\\EmailService\:\:discoverSequence\(\) should return array\<int, array\{type\: string, name\?\: string\}\> but returns array\<string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Service/Order/EmailService.php
+
+		-
+			message: '#^Parameter \#3 \$basePath of static method Joomla\\CMS\\Layout\\LayoutHelper\:\:render\(\) expects string, null given\.$#'
+			identifier: argument.type
+			count: 3
+			path: administrator/src/Service/Order/EmailService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: administrator/src/Service/Order/OrderCreator.php
+
+		-
+			message: '#^Dead catch \- TypeError is never thrown in the try block\.$#'
+			identifier: catch.neverThrown
+			count: 1
+			path: administrator/src/Service/Order/PaymentLedger.php
+
+		-
+			message: '#^Offset ''amount'' on non\-empty\-array on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: administrator/src/Service/Order/PaymentLedger.php
+
+		-
+			message: '#^PHPDoc tag @return with type float is incompatible with native type Alfa\\Component\\Alfa\\Site\\Service\\Pricing\\Money\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: administrator/src/Service/Order/PaymentLedger.php
+
+		-
+			message: '#^PHPDoc tag @var for property Alfa\\Component\\Alfa\\Administrator\\Service\\Order\\PaymentLedger\:\:\$order with type object\|null is not subtype of native type Alfa\\Component\\Alfa\\Site\\Service\\Order\\Order\|null\.$#'
+			identifier: property.phpDocType
+			count: 1
+			path: administrator/src/Service/Order/PaymentLedger.php
+
+		-
+			message: '#^Unsafe access to private constant Alfa\\Component\\Alfa\\Administrator\\Service\\Order\\PaymentLedger\:\:PK through static\:\:\.$#'
+			identifier: staticClassAccess.privateConstant
+			count: 1
+			path: administrator/src/Service/Order/PaymentLedger.php
+
+		-
+			message: '#^Unsafe access to private constant Alfa\\Component\\Alfa\\Administrator\\Service\\Order\\PaymentLedger\:\:TABLE through static\:\:\.$#'
+			identifier: staticClassAccess.privateConstant
+			count: 2
+			path: administrator/src/Service/Order/PaymentLedger.php
+
+		-
+			message: '#^Unsafe usage of new static\(\)\.$#'
+			identifier: new.static
+			count: 2
+			path: administrator/src/Service/Order/PaymentLedger.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id_order" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: administrator/src/Service/Order/PaymentLedger.php
+
+		-
+			message: '#^Static method Alfa\\Component\\Alfa\\Administrator\\Service\\Order\\ReconciliationFacts\:\:notApplicable\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: administrator/src/Service/Order/ReconciliationFacts.php
+
+		-
+			message: '#^Comparison operation "\>" between int\<1, max\> and 0 is always true\.$#'
+			identifier: greater.alwaysTrue
+			count: 1
+			path: administrator/src/Service/Order/ShipmentLedger.php
+
+		-
+			message: '#^Dead catch \- TypeError is never thrown in the try block\.$#'
+			identifier: catch.neverThrown
+			count: 1
+			path: administrator/src/Service/Order/ShipmentLedger.php
+
+		-
+			message: '#^Empty array passed to foreach\.$#'
+			identifier: foreach.emptyArray
+			count: 1
+			path: administrator/src/Service/Order/ShipmentLedger.php
+
+		-
+			message: '#^PHPDoc tag @var for property Alfa\\Component\\Alfa\\Administrator\\Service\\Order\\ShipmentLedger\:\:\$order with type object\|null is not subtype of native type Alfa\\Component\\Alfa\\Site\\Service\\Order\\Order\|null\.$#'
+			identifier: property.phpDocType
+			count: 1
+			path: administrator/src/Service/Order/ShipmentLedger.php
+
+		-
+			message: '#^Unsafe access to private constant Alfa\\Component\\Alfa\\Administrator\\Service\\Order\\ShipmentLedger\:\:PK through static\:\:\.$#'
+			identifier: staticClassAccess.privateConstant
+			count: 1
+			path: administrator/src/Service/Order/ShipmentLedger.php
+
+		-
+			message: '#^Unsafe access to private constant Alfa\\Component\\Alfa\\Administrator\\Service\\Order\\ShipmentLedger\:\:TABLE through static\:\:\.$#'
+			identifier: staticClassAccess.privateConstant
+			count: 2
+			path: administrator/src/Service/Order/ShipmentLedger.php
+
+		-
+			message: '#^Unsafe usage of new static\(\)\.$#'
+			identifier: new.static
+			count: 2
+			path: administrator/src/Service/Order/ShipmentLedger.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: administrator/src/Service/Order/Transition.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:isOpen\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 1
+			path: administrator/src/Service/PriceIndexSyncService.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 4
+			path: administrator/src/Service/PriceIndexSyncService.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:endedBy\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 2
+			path: administrator/src/Service/Projection/ItemFieldValueProjection.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:isOpen\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 4
+			path: administrator/src/Service/Projection/ItemFieldValueProjection.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 2
+			path: administrator/src/Service/Projection/ItemFieldValueProjection.php
+
+		-
+			message: '#^Call to an undefined method Alfa\\Component\\Alfa\\Administrator\\Service\\Projection\\ProjectionInterface\:\:deleteForItems\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: administrator/src/Service/Projection/ProjectionManager.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Service\\Search\\CatalogSearchPayload\:\:enrichers\(\) should return array\<string, callable\(Alfa\\Component\\Alfa\\Administrator\\Service\\Search\\CatalogSearchHit\)\: array\<string, string\|null\>\> but returns array\{image\?\: Closure\(Alfa\\Component\\Alfa\\Administrator\\Service\\Search\\CatalogSearchHit\)\: array\{image\: mixed\}, price\?\: Closure\(Alfa\\Component\\Alfa\\Administrator\\Service\\Search\\CatalogSearchHit\)\: array\{price\: non\-empty\-array\|null, price_base\: non\-empty\-array\|null, price_discount_percent\: string\|null\}\}\.$#'
+			identifier: return.type
+			count: 1
+			path: administrator/src/Service/Search/CatalogSearchPayload.php
+
+		-
+			message: '#^Call to an undefined method Joomla\\CMS\\MVC\\Model\\ModelInterface\:\:getItems\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: administrator/src/Service/Search/CatalogSearchService.php
+
+		-
+			message: '#^Call to an undefined method Joomla\\CMS\\MVC\\Model\\ModelInterface\:\:getState\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: administrator/src/Service/Search/CatalogSearchService.php
+
+		-
+			message: '#^Call to an undefined method Joomla\\CMS\\MVC\\Model\\ModelInterface\:\:setState\(\)\.$#'
+			identifier: method.notFound
+			count: 15
+			path: administrator/src/Service/Search/CatalogSearchService.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Service\\Stats\\DashboardStatsService\:\:excludeCompleted\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: administrator/src/Service/Stats/DashboardStatsService.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\Service\\Stats\\DashboardStatsService\:\:offsetSeconds\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: administrator/src/Service/Stats/DashboardStatsService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: administrator/src/Setup/TourSeeder.php
 
 		-
 			message: '#^PHPDoc tag @param for parameter \$db with type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase is not subtype of native type Joomla\\Database\\DatabaseDriver\.$#'
@@ -778,18 +1528,6 @@ parameters:
 			message: '#^PHPDoc tag @param for parameter \$db with type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase is not subtype of native type Joomla\\Database\\DatabaseDriver\.$#'
 			identifier: parameter.phpDocType
 			count: 1
-			path: administrator/src/Table/CouponTable.php
-
-		-
-			message: '#^Parameter \$db of method Alfa\\Component\\Alfa\\Administrator\\Table\\CouponTable\:\:__construct\(\) has invalid type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase\.$#'
-			identifier: class.notFound
-			count: 1
-			path: administrator/src/Table/CouponTable.php
-
-		-
-			message: '#^PHPDoc tag @param for parameter \$db with type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase is not subtype of native type Joomla\\Database\\DatabaseDriver\.$#'
-			identifier: parameter.phpDocType
-			count: 1
 			path: administrator/src/Table/CurrencyTable.php
 
 		-
@@ -797,18 +1535,6 @@ parameters:
 			identifier: class.notFound
 			count: 1
 			path: administrator/src/Table/CurrencyTable.php
-
-		-
-			message: '#^PHPDoc tag @param for parameter \$db with type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase is not subtype of native type Joomla\\Database\\DatabaseDriver\.$#'
-			identifier: parameter.phpDocType
-			count: 1
-			path: administrator/src/Table/CustomTable.php
-
-		-
-			message: '#^Parameter \$db of method Alfa\\Component\\Alfa\\Administrator\\Table\\CustomTable\:\:__construct\(\) has invalid type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase\.$#'
-			identifier: class.notFound
-			count: 1
-			path: administrator/src/Table/CustomTable.php
 
 		-
 			message: '#^PHPDoc tag @param for parameter \$db with type Alfa\\Component\\Alfa\\Administrator\\Table\\JDatabase is not subtype of native type Joomla\\Database\\DatabaseDriver\.$#'
@@ -955,10 +1681,34 @@ parameters:
 			path: administrator/src/Table/UsergroupTable.php
 
 		-
-			message: '#^PHPDoc tag @throws with type Alfa\\Component\\Alfa\\Administrator\\View\\Coupon\\Exception is not subtype of Throwable$#'
-			identifier: throws.notThrowable
+			message: '#^Call to an undefined method Joomla\\CMS\\Toolbar\\ToolbarButton\:\:url\(\)\.$#'
+			identifier: method.notFound
 			count: 1
-			path: administrator/src/View/Coupon/HtmlView.php
+			path: administrator/src/Toolbar/PanelToolbar.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Administrator\\View\\AlfaHtmlView\:\:display\(\) with return type void returns null but should not return anything\.$#'
+			identifier: return.void
+			count: 1
+			path: administrator/src/View/AlfaHtmlView.php
+
+		-
+			message: '#^Result of method Alfa\\Component\\Alfa\\Administrator\\View\\HtmlView\:\:display\(\) \(void\) is used\.$#'
+			identifier: staticMethod.void
+			count: 1
+			path: administrator/src/View/AlfaHtmlView.php
+
+		-
+			message: '#^Access to undefined constant Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\:\:ABANDONED_AFTER_HOURS\.$#'
+			identifier: classConstant.notFound
+			count: 1
+			path: administrator/src/View/Carts/HtmlView.php
+
+		-
+			message: '#^Property Alfa\\Component\\Alfa\\Administrator\\View\\Inventoryaudit\\HtmlView\:\:\$report \(array\{findings\: array\<string, array\>, classifications\: array\<string, array\>, scanned\: array\{units\: int, rows\: int\}\}\) does not accept default value of type array\{\}\.$#'
+			identifier: property.defaultValue
+			count: 1
+			path: administrator/src/View/Inventoryaudit/HtmlView.php
 
 		-
 			message: '#^Offset ''checkedAt'' does not exist on array\{status\: string\}\.$#'
@@ -985,10 +1735,472 @@ parameters:
 			path: administrator/src/View/Tools/_integrity.php
 
 		-
+			message: '#^Cannot call method getItem\(\) on Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\|true\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: api/src/Controller/CartrulesController.php
+
+		-
+			message: '#^Method Joomla\\Session\\SessionInterface\:\:clear\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 2
+			path: api/src/Controller/CartrulesController.php
+
+		-
+			message: '#^Parameter \#2 \$value of method Joomla\\Application\\WebApplicationInterface\:\:setHeader\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 3
+			path: api/src/Controller/CartrulesController.php
+
+		-
+			message: '#^Cannot call method getItem\(\) on Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\|true\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: api/src/Controller/CatalogitemsController.php
+
+		-
+			message: '#^Method Joomla\\Session\\SessionInterface\:\:clear\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 2
+			path: api/src/Controller/CatalogitemsController.php
+
+		-
+			message: '#^Parameter \#2 \$value of method Joomla\\Application\\WebApplicationInterface\:\:setHeader\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 3
+			path: api/src/Controller/CatalogitemsController.php
+
+		-
+			message: '#^Cannot call method getItem\(\) on Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\|true\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: api/src/Controller/CategoriesController.php
+
+		-
+			message: '#^Method Joomla\\Session\\SessionInterface\:\:clear\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 2
+			path: api/src/Controller/CategoriesController.php
+
+		-
+			message: '#^Parameter \#2 \$value of method Joomla\\Application\\WebApplicationInterface\:\:setHeader\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 3
+			path: api/src/Controller/CategoriesController.php
+
+		-
+			message: '#^Cannot call method getItem\(\) on Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\|true\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: api/src/Controller/CurrenciesController.php
+
+		-
+			message: '#^Method Joomla\\Session\\SessionInterface\:\:clear\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 2
+			path: api/src/Controller/CurrenciesController.php
+
+		-
+			message: '#^Parameter \#2 \$value of method Joomla\\Application\\WebApplicationInterface\:\:setHeader\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 3
+			path: api/src/Controller/CurrenciesController.php
+
+		-
+			message: '#^Cannot call method getItem\(\) on Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\|true\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: api/src/Controller/DiscountsController.php
+
+		-
+			message: '#^Method Joomla\\Session\\SessionInterface\:\:clear\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 2
+			path: api/src/Controller/DiscountsController.php
+
+		-
+			message: '#^Parameter \#2 \$value of method Joomla\\Application\\WebApplicationInterface\:\:setHeader\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 3
+			path: api/src/Controller/DiscountsController.php
+
+		-
+			message: '#^Cannot call method getItem\(\) on Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\|true\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: api/src/Controller/DocumentsController.php
+
+		-
+			message: '#^Method Joomla\\Session\\SessionInterface\:\:clear\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 2
+			path: api/src/Controller/DocumentsController.php
+
+		-
+			message: '#^Parameter \#2 \$value of method Joomla\\Application\\WebApplicationInterface\:\:setHeader\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 3
+			path: api/src/Controller/DocumentsController.php
+
+		-
+			message: '#^Cannot call method getItem\(\) on Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\|true\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: api/src/Controller/DocumenttypesController.php
+
+		-
+			message: '#^Method Joomla\\Session\\SessionInterface\:\:clear\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 2
+			path: api/src/Controller/DocumenttypesController.php
+
+		-
+			message: '#^Parameter \#2 \$value of method Joomla\\Application\\WebApplicationInterface\:\:setHeader\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 3
+			path: api/src/Controller/DocumenttypesController.php
+
+		-
+			message: '#^Cannot call method getItem\(\) on Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\|true\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: api/src/Controller/FormfieldgroupsController.php
+
+		-
+			message: '#^Method Joomla\\Session\\SessionInterface\:\:clear\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 2
+			path: api/src/Controller/FormfieldgroupsController.php
+
+		-
+			message: '#^Parameter \#2 \$value of method Joomla\\Application\\WebApplicationInterface\:\:setHeader\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 3
+			path: api/src/Controller/FormfieldgroupsController.php
+
+		-
+			message: '#^Cannot call method getItem\(\) on Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\|true\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: api/src/Controller/FormfieldsController.php
+
+		-
+			message: '#^Method Joomla\\Session\\SessionInterface\:\:clear\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 2
+			path: api/src/Controller/FormfieldsController.php
+
+		-
+			message: '#^Parameter \#2 \$value of method Joomla\\Application\\WebApplicationInterface\:\:setHeader\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 3
+			path: api/src/Controller/FormfieldsController.php
+
+		-
+			message: '#^Cannot call method getItem\(\) on Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\|true\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: api/src/Controller/InventorymovementsController.php
+
+		-
+			message: '#^Method Joomla\\Session\\SessionInterface\:\:clear\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 2
+			path: api/src/Controller/InventorymovementsController.php
+
+		-
+			message: '#^Parameter \#2 \$value of method Joomla\\Application\\WebApplicationInterface\:\:setHeader\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 3
+			path: api/src/Controller/InventorymovementsController.php
+
+		-
+			message: '#^Cannot call method getItem\(\) on Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\|true\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: api/src/Controller/ItemfieldsController.php
+
+		-
+			message: '#^Method Joomla\\Session\\SessionInterface\:\:clear\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 2
+			path: api/src/Controller/ItemfieldsController.php
+
+		-
+			message: '#^Parameter \#2 \$value of method Joomla\\Application\\WebApplicationInterface\:\:setHeader\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 3
+			path: api/src/Controller/ItemfieldsController.php
+
+		-
+			message: '#^Cannot call method getItem\(\) on Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\|true\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: api/src/Controller/ItemsController.php
+
+		-
+			message: '#^Method Joomla\\Session\\SessionInterface\:\:clear\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 2
+			path: api/src/Controller/ItemsController.php
+
+		-
+			message: '#^Parameter \#2 \$value of method Joomla\\Application\\WebApplicationInterface\:\:setHeader\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 3
+			path: api/src/Controller/ItemsController.php
+
+		-
+			message: '#^Cannot call method getItem\(\) on Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\|true\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: api/src/Controller/LocationsController.php
+
+		-
+			message: '#^Method Joomla\\Session\\SessionInterface\:\:clear\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 2
+			path: api/src/Controller/LocationsController.php
+
+		-
+			message: '#^Parameter \#2 \$value of method Joomla\\Application\\WebApplicationInterface\:\:setHeader\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 3
+			path: api/src/Controller/LocationsController.php
+
+		-
+			message: '#^Cannot call method getItem\(\) on Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\|true\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: api/src/Controller/ManufacturersController.php
+
+		-
+			message: '#^Method Joomla\\Session\\SessionInterface\:\:clear\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 2
+			path: api/src/Controller/ManufacturersController.php
+
+		-
+			message: '#^Parameter \#2 \$value of method Joomla\\Application\\WebApplicationInterface\:\:setHeader\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 3
+			path: api/src/Controller/ManufacturersController.php
+
+		-
+			message: '#^Call to an undefined method Joomla\\CMS\\MVC\\Model\\AdminModel\:\:deleteOrderItem\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: api/src/Controller/OrderopsController.php
+
+		-
+			message: '#^Method Alfa\\Component\\Alfa\\Api\\Controller\\OrderopsController\:\:orderModel\(\) should return Joomla\\CMS\\MVC\\Model\\AdminModel but returns Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\|true\.$#'
+			identifier: return.type
+			count: 1
+			path: api/src/Controller/OrderopsController.php
+
+		-
+			message: '#^Cannot call method getItem\(\) on Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\|true\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: api/src/Controller/OrdersController.php
+
+		-
+			message: '#^Method Joomla\\CMS\\MVC\\Controller\\ApiController\:\:edit\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: api/src/Controller/OrdersController.php
+
+		-
+			message: '#^Method Joomla\\Session\\SessionInterface\:\:clear\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 2
+			path: api/src/Controller/OrdersController.php
+
+		-
+			message: '#^Parameter \#2 \$value of method Joomla\\Application\\WebApplicationInterface\:\:setHeader\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 3
+			path: api/src/Controller/OrdersController.php
+
+		-
+			message: '#^Cannot call method getItem\(\) on Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\|true\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: api/src/Controller/OrderstatusesController.php
+
+		-
+			message: '#^Method Joomla\\Session\\SessionInterface\:\:clear\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 2
+			path: api/src/Controller/OrderstatusesController.php
+
+		-
+			message: '#^Parameter \#2 \$value of method Joomla\\Application\\WebApplicationInterface\:\:setHeader\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 3
+			path: api/src/Controller/OrderstatusesController.php
+
+		-
+			message: '#^Cannot call method getItem\(\) on Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\|true\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: api/src/Controller/PaymentmethodsController.php
+
+		-
+			message: '#^Method Joomla\\Session\\SessionInterface\:\:clear\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 2
+			path: api/src/Controller/PaymentmethodsController.php
+
+		-
+			message: '#^Parameter \#2 \$value of method Joomla\\Application\\WebApplicationInterface\:\:setHeader\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 3
+			path: api/src/Controller/PaymentmethodsController.php
+
+		-
+			message: '#^Cannot call method getItem\(\) on Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\|true\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: api/src/Controller/PlacesController.php
+
+		-
+			message: '#^Method Joomla\\Session\\SessionInterface\:\:clear\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 2
+			path: api/src/Controller/PlacesController.php
+
+		-
+			message: '#^Parameter \#2 \$value of method Joomla\\Application\\WebApplicationInterface\:\:setHeader\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 3
+			path: api/src/Controller/PlacesController.php
+
+		-
+			message: '#^Cannot call method getItem\(\) on Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\|true\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: api/src/Controller/ShipmentmethodsController.php
+
+		-
+			message: '#^Method Joomla\\Session\\SessionInterface\:\:clear\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 2
+			path: api/src/Controller/ShipmentmethodsController.php
+
+		-
+			message: '#^Parameter \#2 \$value of method Joomla\\Application\\WebApplicationInterface\:\:setHeader\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 3
+			path: api/src/Controller/ShipmentmethodsController.php
+
+		-
+			message: '#^Cannot call method getItem\(\) on Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\|true\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: api/src/Controller/TaxesController.php
+
+		-
+			message: '#^Method Joomla\\Session\\SessionInterface\:\:clear\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 2
+			path: api/src/Controller/TaxesController.php
+
+		-
+			message: '#^Parameter \#2 \$value of method Joomla\\Application\\WebApplicationInterface\:\:setHeader\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 3
+			path: api/src/Controller/TaxesController.php
+
+		-
+			message: '#^Cannot call method getItem\(\) on Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\|true\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: api/src/Controller/UsergroupsController.php
+
+		-
+			message: '#^Method Joomla\\Session\\SessionInterface\:\:clear\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 2
+			path: api/src/Controller/UsergroupsController.php
+
+		-
+			message: '#^Parameter \#2 \$value of method Joomla\\Application\\WebApplicationInterface\:\:setHeader\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 3
+			path: api/src/Controller/UsergroupsController.php
+
+		-
+			message: '#^Cannot call method getItem\(\) on Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\|true\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: api/src/Controller/UsersController.php
+
+		-
+			message: '#^Method Joomla\\Session\\SessionInterface\:\:clear\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 2
+			path: api/src/Controller/UsersController.php
+
+		-
+			message: '#^Parameter \#2 \$value of method Joomla\\Application\\WebApplicationInterface\:\:setHeader\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 3
+			path: api/src/Controller/UsersController.php
+
+		-
+			message: '#^Method Joomla\\CMS\\Application\\CMSApplicationInterface\:\:getMessageQueue\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: modules/mod_alfa_cart/src/Helper/AlfaCartHelper.php
+
+		-
+			message: '#^Method Alfa\\Module\\AlfaItems\\Site\\Helper\\AlfaItemsHelper\:\:tabRows\(\) should return array\<int, array\{label\: string, source\: string, categories\: array\<int\>, limit\: int, ordering\: string, link\: bool, look\: array\<string, int\|string\>\}\> but returns list\<array\{label\: string, source\: string, categories\: list\<int\<min, \-1\>\|int\<1, max\>\>, limit\: int, ordering\: ''a\.id ASC''\|''a\.id DESC''\|''a\.ordering ASC''\|''a\.ordering DESC''\|''name ASC''\|''name DESC''\|''pf\.discount_amount…''\|''pf\.discount_percent…''\|''pf\.final_price ASC''\|''pf\.final_price DESC'', link\: bool, look\: array\{base\: array, bp\: array\}\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: modules/mod_alfa_items/src/Helper/AlfaItemsHelper.php
+
+		-
+			message: '#^PHPDoc tag @var for constant Alfa\\Module\\AlfaItems\\Site\\Helper\\CardLook\:\:DEFAULTS with type array\<string, int\|string\|null\> is not subtype of value array\{display\: ''grid'', columns\: 4, gap\: 16, perView\: 3, spacing\: 16, autoplay\: 0, loop\: false, arrows\: true, \.\.\.\}\.$#'
+			identifier: classConstant.phpDocType
+			count: 1
+			path: modules/mod_alfa_items/src/Helper/CardLook.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>hits" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: modules/mod_alfa_search/src/Helper/AlfaSearchHelper.php
+
+		-
+			message: '#^Parameter \#1 \$id of static method Joomla\\Component\\Content\\Site\\Helper\\RouteHelper\:\:getArticleRoute\(\) expects int, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: modules/mod_easy_articles/src/Helper/EasyArticlesHelper.php
+
+		-
 			message: '#^Caught class libphonenumber\\NumberParseException not found\.$#'
 			identifier: class.notFound
 			count: 1
-			path: plugins/alfa-fields/tel/src/Rule/AlfatelRule.php
+			path: plugins/alfa-form-fields/tel/src/Rule/AlfatelRule.php
+
+		-
+			message: '#^Right side of && is always false\.$#'
+			identifier: booleanAnd.rightAlwaysFalse
+			count: 1
+			path: plugins/alfa-item-fields/choice/src/Extension/Choice.php
+
+		-
+			message: '#^Parameter \$db of static method Alfa\\Component\\Alfa\\Administrator\\Helper\\TransactionState\:\:rollBackLevel\(\) expects Joomla\\Database\\DatabaseDriver, Joomla\\Database\\DatabaseInterface given\.$#'
+			identifier: argument.type
+			count: 1
+			path: plugins/console/alfainventory/src/Console/InventoryAuditCommand.php
+
+		-
+			message: '#^Call to function is_array\(\) with array\<mixed\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: plugins/system/alfasync/src/Extension/Alfasync.php
 
 		-
 			message: '#^Property Joomla\\CMS\\Menu\\MenuItem\:\:\$link \(string\) on left side of \?\? is not nullable\.$#'
@@ -1003,21 +2215,33 @@ parameters:
 			path: plugins/system/alfasync/src/Extension/Alfasync.php
 
 		-
+			message: '#^Call to an undefined method Joomla\\CMS\\Application\\CMSWebApplicationInterface\:\:getParams\(\)\.$#'
+			identifier: method.notFound
+			count: 4
+			path: site/src/Controller/CartController.php
+
+		-
 			message: '#^If condition is always true\.$#'
 			identifier: if.alwaysTrue
 			count: 1
 			path: site/src/Controller/CartController.php
 
 		-
-			message: '#^Method Alfa\\Component\\Alfa\\Site\\Controller\\CartController\:\:recalculate\(\) should return Joomla\\CMS\\MVC\\Controller\\BaseController but return statement is missing\.$#'
-			identifier: return.missing
+			message: '#^Method Joomla\\CMS\\Application\\CMSApplicationInterface\:\:getMessageQueue\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
 			count: 1
 			path: site/src/Controller/CartController.php
 
 		-
-			message: '#^Parameter \#1 \$displayData of method Joomla\\CMS\\Layout\\FileLayout\:\:render\(\) expects array, Alfa\\Component\\Alfa\\Site\\Helper\\CartHelper given\.$#'
-			identifier: argument.type
-			count: 3
+			message: '#^Negated boolean expression is always true\.$#'
+			identifier: booleanNot.alwaysTrue
+			count: 2
+			path: site/src/Controller/CartController.php
+
+		-
+			message: '#^Result of \|\| is always true\.$#'
+			identifier: booleanOr.alwaysTrue
+			count: 2
 			path: site/src/Controller/CartController.php
 
 		-
@@ -1029,56 +2253,26 @@ parameters:
 		-
 			message: '#^Unreachable statement \- code above always terminates\.$#'
 			identifier: deadCode.unreachable
+			count: 3
+			path: site/src/Controller/CartController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>itemCount" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
 			count: 1
 			path: site/src/Controller/CartController.php
 
 		-
-			message: '#^Variable \$result might not be defined\.$#'
-			identifier: variable.undefined
-			count: 2
+			message: '#^Using nullsafe property access "\?\-\>lineId" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
 			path: site/src/Controller/CartController.php
 
 		-
-			message: '#^Cannot call method checkin\(\) on bool\|Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: site/src/Controller/CategoryController.php
-
-		-
-			message: '#^Cannot call method checkout\(\) on bool\|Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: site/src/Controller/CategoryController.php
-
-		-
-			message: '#^Cannot call method delete\(\) on bool\|Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: site/src/Controller/CategoryController.php
-
-		-
-			message: '#^Cannot call method getItem\(\) on bool\|Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: site/src/Controller/CategoryController.php
-
-		-
-			message: '#^Cannot call method publish\(\) on bool\|Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: site/src/Controller/CategoryController.php
-
-		-
-			message: '#^PHPDoc tag @throws with type Alfa\\Component\\Alfa\\Site\\Controller\\Exception is not subtype of Throwable$#'
-			identifier: throws.notThrowable
-			count: 3
-			path: site/src/Controller/CategoryController.php
-
-		-
-			message: '#^Parameter \#1 \$message of class Exception constructor expects string, int given\.$#'
-			identifier: argument.type
+			message: '#^Using nullsafe property access "\?\-\>quantity" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
 			count: 2
-			path: site/src/Controller/CategoryController.php
+			path: site/src/Controller/CartController.php
 
 		-
 			message: '#^Parameter \#2 \$urlparams \(bool\) of method Alfa\\Component\\Alfa\\Site\\Controller\\DisplayController\:\:display\(\) should be compatible with parameter \$urlparams \(array\) of method Joomla\\CMS\\MVC\\Controller\\BaseController\:\:display\(\)$#'
@@ -1117,46 +2311,16 @@ parameters:
 			path: site/src/Controller/DisplayController.php
 
 		-
-			message: '#^Cannot call method checkin\(\) on bool\|Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: site/src/Controller/ManufacturerController.php
-
-		-
-			message: '#^Cannot call method checkout\(\) on bool\|Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\.$#'
+			message: '#^Cannot call method getForm\(\) on bool\|Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\.$#'
 			identifier: method.nonObject
 			count: 1
-			path: site/src/Controller/ManufacturerController.php
+			path: site/src/Controller/UserinfoController.php
 
 		-
-			message: '#^Cannot call method delete\(\) on bool\|Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\.$#'
+			message: '#^Cannot call method validate\(\) on bool\|Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\.$#'
 			identifier: method.nonObject
 			count: 1
-			path: site/src/Controller/ManufacturerController.php
-
-		-
-			message: '#^Cannot call method getItem\(\) on bool\|Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: site/src/Controller/ManufacturerController.php
-
-		-
-			message: '#^Cannot call method publish\(\) on bool\|Joomla\\CMS\\MVC\\Model\\BaseDatabaseModel\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: site/src/Controller/ManufacturerController.php
-
-		-
-			message: '#^PHPDoc tag @throws with type Alfa\\Component\\Alfa\\Site\\Controller\\Exception is not subtype of Throwable$#'
-			identifier: throws.notThrowable
-			count: 3
-			path: site/src/Controller/ManufacturerController.php
-
-		-
-			message: '#^Parameter \#1 \$message of class Exception constructor expects string, int given\.$#'
-			identifier: argument.type
-			count: 2
-			path: site/src/Controller/ManufacturerController.php
+			path: site/src/Controller/UserinfoController.php
 
 		-
 			message: '#^Variable \$html on left side of \?\? always exists and is not nullable\.$#'
@@ -1165,21 +2329,39 @@ parameters:
 			path: site/src/Helper/AlfaHelper.php
 
 		-
-			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
-			identifier: notIdentical.alwaysTrue
-			count: 1
-			path: site/src/Helper/OrderPlaceHelper.php
-
-		-
 			message: '#^If condition is always false\.$#'
 			identifier: if.alwaysFalse
 			count: 1
-			path: site/src/Helper/PluginLayoutHelper.php
+			path: site/src/Helper/Layout.php
+
+		-
+			message: '#^Right side of && is always false\.$#'
+			identifier: booleanAnd.rightAlwaysFalse
+			count: 1
+			path: site/src/Helper/VariantHelper.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>variantFieldIds" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: site/src/Model/ItemModel.php
+
+		-
+			message: '#^Call to an undefined method Joomla\\CMS\\Application\\CMSApplication\:\:getParams\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: site/src/Model/ItemsModel.php
 
 		-
 			message: '#^Parameter \#1 \$ids of method Alfa\\Component\\Alfa\\Site\\Model\\ItemsModel\:\:getRecordsByIds\(\) expects array\<int\>, array\<string\> given\.$#'
 			identifier: argument.type
 			count: 2
+			path: site/src/Model/ItemsModel.php
+
+		-
+			message: '#^Parameter \#2 \$value of method Joomla\\Uri\\Uri\:\:setVar\(\) expects string, array\<int\> given\.$#'
+			identifier: argument.type
+			count: 1
 			path: site/src/Model/ItemsModel.php
 
 		-
@@ -1192,6 +2374,12 @@ parameters:
 			message: '#^Strict comparison using \!\=\= between float\|int\|numeric\-string and null will always evaluate to true\.$#'
 			identifier: notIdentical.alwaysTrue
 			count: 2
+			path: site/src/Model/ItemsModel.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>variantFieldIds" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 3
 			path: site/src/Model/ItemsModel.php
 
 		-
@@ -1219,10 +2407,184 @@ parameters:
 			path: site/src/Model/UrlListModel.php
 
 		-
-			message: '#^Strict comparison using \!\=\= between int and false will always evaluate to true\.$#'
+			message: '#^Call to an undefined method Joomla\\CMS\\MVC\\Model\\ModelInterface\:\:getItems\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: site/src/Service/Cart/CartHydrator.php
+
+		-
+			message: '#^Call to an undefined method Joomla\\CMS\\MVC\\Model\\ModelInterface\:\:setPricingIntent\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: site/src/Service/Cart/CartHydrator.php
+
+		-
+			message: '#^Call to an undefined method Joomla\\CMS\\MVC\\Model\\ModelInterface\:\:setState\(\)\.$#'
+			identifier: method.notFound
+			count: 5
+			path: site/src/Service/Cart/CartHydrator.php
+
+		-
+			message: '#^Cannot call method touch\(\) on null\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: site/src/Service/Cart/CartOpener.php
+
+		-
+			message: '#^Parameter \#1 \$app of class Alfa\\Component\\Alfa\\Site\\Service\\Cart\\CartLinePresenter constructor expects Joomla\\CMS\\Application\\CMSApplication, Joomla\\CMS\\Application\\CMSApplicationInterface given\.$#'
+			identifier: argument.type
+			count: 1
+			path: site/src/Service/Cart/CartOpener.php
+
+		-
+			message: '#^Parameter \#1 \$app of class Alfa\\Component\\Alfa\\Site\\Service\\Cart\\CartPluginDispatch constructor expects Joomla\\CMS\\Application\\CMSApplication, Joomla\\CMS\\Application\\CMSApplicationInterface given\.$#'
+			identifier: argument.type
+			count: 1
+			path: site/src/Service/Cart/CartOpener.php
+
+		-
+			message: '#^Call to function is_object\(\) with Joomla\\CMS\\Extension\\PluginInterface will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: site/src/Service/Cart/CartPluginDispatch.php
+
+		-
+			message: '#^Right side of && is always false\.$#'
+			identifier: booleanAnd.rightAlwaysFalse
+			count: 2
+			path: site/src/Service/Cart/CartPluginDispatch.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>chain" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: site/src/Service/Cart/CartTotals.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>taxExcl" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: site/src/Service/Cart/CartTotals.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>taxIncl" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: site/src/Service/Cart/CartTotals.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>taxRate" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: site/src/Service/Cart/CartTotals.php
+
+		-
+			message: '#^Parameter &\$productDiscountByLine by\-ref type of method Alfa\\Component\\Alfa\\Site\\Service\\CartRules\\CartRulesEngine\:\:applyClass\(\) expects array\<Alfa\\Component\\Alfa\\Site\\Service\\Pricing\\Money\>, array given\.$#'
+			identifier: parameterByRef.type
+			count: 1
+			path: site/src/Service/CartRules/CartRulesEngine.php
+
+		-
+			message: '#^Property Alfa\\Component\\Alfa\\Site\\Service\\Checkout\\OrderPlacement\:\:\$completedTotals \(array\<string, Alfa\\Component\\Alfa\\Site\\Service\\Pricing\\Money\>\|null\) does not accept array\<string, Alfa\\Component\\Alfa\\Site\\Service\\Pricing\\Money\|array\<string\>\|float\|string\|null\>\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: site/src/Service/Checkout/OrderPlacement.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
 			identifier: notIdentical.alwaysTrue
 			count: 1
+			path: site/src/Service/Checkout/OrderPlacement.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>initialStatusId" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: site/src/Service/Checkout/OrderPlacement.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>ipAddress" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: site/src/Service/Checkout/OrderPlacement.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>languageTag" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: site/src/Service/Checkout/OrderPlacement.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>shipmentMethodId" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: site/src/Service/Checkout/OrderPlacement.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>source" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: site/src/Service/Checkout/OrderPlacement.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>useCredit" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: site/src/Service/Checkout/OrderPlacement.php
+
+		-
+			message: '#^Call to function is_int\(\) with int will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: site/src/Service/Pricing/ExactAmount.php
+
+		-
+			message: '#^Offset 3 on array\{non\-falsy\-string, string, numeric\-string, ''''\|numeric\-string, non\-empty\-string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: site/src/Service/Pricing/ExplicitPriceInstruction.php
+
+		-
+			message: '#^Call to function is_int\(\) with int will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 5
 			path: site/src/Service/Pricing/Money.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: site/src/Service/Pricing/PriceCalculator.php
+
+		-
+			message: '#^Call to function is_int\(\) with int will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: site/src/Service/Pricing/PriceComputationEngine.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 2
+			path: site/src/Service/Pricing/PriceComputationEngine.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>computed" in empty\(\) is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: site/src/Service/Pricing/PriceComputationEngine.php
+
+		-
+			message: '#^Property Joomla\\CMS\\User\\User\:\:\$id \(int\) on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.property
+			count: 1
+			path: site/src/Service/Pricing/PriceContext.php
+
+		-
+			message: '#^Match expression does not handle remaining value\: string$#'
+			identifier: match.unhandled
+			count: 1
+			path: site/src/Service/Pricing/StoredDecimal.php
 
 		-
 			message: '#^Static property Alfa\\Component\\Alfa\\Site\\Service\\Router\:\:\$categoryPathCache is never read, only written\.$#'
@@ -1241,3 +2603,9 @@ parameters:
 			identifier: notIdentical.alwaysTrue
 			count: 1
 			path: site/src/Service/Router.php
+
+		-
+			message: '#^Parameter \#1 \$document of method Alfa\\Component\\Alfa\\Site\\Service\\Cart\\CheckoutCart\:\:declareAssets\(\) expects Joomla\\CMS\\Document\\HtmlDocument, Joomla\\CMS\\Document\\Document given\.$#'
+			identifier: argument.type
+			count: 1
+			path: site/src/View/Cart/HtmlView.php

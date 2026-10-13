@@ -28,7 +28,7 @@ use Throwable;
  * can never reach code that is not a live platform plugin. {@see self::boot()} then loads that plugin's namespace
  * and language when a screen is actually served.
  *
- * @since  1.7.0
+ * @since  2.0.0
  */
 final class PanelResolver
 {
@@ -39,7 +39,7 @@ final class PanelResolver
      * @param Input $input Request input.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public static function fromInput(Input $input): ?PanelIdentity
     {
@@ -74,7 +74,7 @@ final class PanelResolver
      *
      * @return object The booted plugin instance.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public static function boot(PanelIdentity $identity): object
     {
@@ -97,7 +97,7 @@ final class PanelResolver
      * @param string $element Plugin element.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     private static function isLivePlugin(string $group, string $element): bool
     {

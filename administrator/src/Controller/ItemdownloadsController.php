@@ -35,7 +35,7 @@ use Joomla\CMS\Session\Session;
  * Storage objects are NEVER touched directly; every byte goes through
  * Storage (GC invariant lives there).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class ItemdownloadsController extends BaseController
 {
@@ -44,7 +44,7 @@ class ItemdownloadsController extends BaseController
      *
      * @return void Emits a JsonResponse with the created row.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function upload(): void
     {
@@ -108,7 +108,7 @@ class ItemdownloadsController extends BaseController
      *
      * @return void Emits a JsonResponse with the updated row.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function replace(): void
     {
@@ -168,7 +168,7 @@ class ItemdownloadsController extends BaseController
      *
      * @return void Emits a JsonResponse.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function delete(): void
     {
@@ -214,7 +214,7 @@ class ItemdownloadsController extends BaseController
      *
      * @return bool True when the request may proceed.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function authorised(): bool
     {
@@ -236,7 +236,7 @@ class ItemdownloadsController extends BaseController
      *
      * @param int $id Row PK.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function loadRow(int $id): ?object
     {
@@ -262,7 +262,7 @@ class ItemdownloadsController extends BaseController
      *
      * @param int $itemId Item PK.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function nextOrdering(int $itemId): int
     {

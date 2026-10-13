@@ -135,7 +135,7 @@ class JsonApiView extends BaseApiView
      *
      * @return string
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function displayItem($item = null)
     {

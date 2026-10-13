@@ -39,13 +39,13 @@ namespace Alfa\Component\Alfa\Administrator\Service\DocumentTypes;
  * provider's register() the final register() call needs no arguments: the registry
  * already knows which package it is talking to and stamps provider + version itself.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 final class DocumentTypeBuilder
 {
     /**
      * @var array<string, mixed> The definition being built.
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private array $definition;
 
@@ -55,7 +55,7 @@ final class DocumentTypeBuilder
      * @param DocumentTypeRegistry $registry The owning registry.
      * @param string $alias The namespaced machine key (vendor.type).
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function __construct(private readonly DocumentTypeRegistry $registry, string $alias)
     {
@@ -69,7 +69,7 @@ final class DocumentTypeBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function family(string $family): static
     {
@@ -85,7 +85,7 @@ final class DocumentTypeBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function pool(string $pool): static
     {
@@ -101,7 +101,7 @@ final class DocumentTypeBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function showsPrices(bool $show = true): static
     {
@@ -117,7 +117,7 @@ final class DocumentTypeBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function movement(string $mode): static
     {
@@ -133,7 +133,7 @@ final class DocumentTypeBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function requiresOriginal(string $strictness = 'required'): static
     {
@@ -152,7 +152,7 @@ final class DocumentTypeBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function corrects(string ...$salesTypes): static
     {
@@ -168,7 +168,7 @@ final class DocumentTypeBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function requiresBuyerTaxId(bool $required = true): static
     {
@@ -184,7 +184,7 @@ final class DocumentTypeBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function stockEffect(string $effect): static
     {
@@ -200,7 +200,7 @@ final class DocumentTypeBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function layout(string $layoutId): static
     {
@@ -216,7 +216,7 @@ final class DocumentTypeBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function icon(string $icon): static
     {
@@ -232,7 +232,7 @@ final class DocumentTypeBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function color(string $color): static
     {
@@ -248,7 +248,7 @@ final class DocumentTypeBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function ordering(int $ordering): static
     {
@@ -266,7 +266,7 @@ final class DocumentTypeBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function name(string $language, string $text): static
     {
@@ -284,7 +284,7 @@ final class DocumentTypeBuilder
      *
      * @return static For chaining.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function param(string $key, mixed $value): static
     {
@@ -305,7 +305,7 @@ final class DocumentTypeBuilder
      *
      * @return object The registered type row.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function register(string $provider = '', string $providerVersion = ''): object
     {

@@ -42,7 +42,7 @@ use Joomla\CMS\Uri\Uri;
  *      clicks can never overshoot; the increment is final by design
  * Only then do bytes flow, chunked, with the customer-facing filename.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class DownloadController extends BaseController
 {
@@ -52,7 +52,7 @@ class DownloadController extends BaseController
      * @return void Streams the file and closes the application, or redirects
      *              with a message on any refused gate.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function serve()
     {
@@ -193,7 +193,7 @@ class DownloadController extends BaseController
      *
      * @return object {storage_disk, storage_key, mime_type, display_filename}
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function resolveFile(object $entitlement): ?object
     {
@@ -244,7 +244,7 @@ class DownloadController extends BaseController
      *
      * @param int $orderId Order PK.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function loadOrder(int $orderId): ?object
     {
@@ -274,7 +274,7 @@ class DownloadController extends BaseController
      *
      * @param string $message Translated, customer-facing reason.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function deny(string $message): void
     {

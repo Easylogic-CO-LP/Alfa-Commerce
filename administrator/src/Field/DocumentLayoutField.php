@@ -41,7 +41,7 @@ use Joomla\Database\ParameterType;
  *
  * `_`-prefixed files and the shared partials folder are skipped.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class DocumentLayoutField extends FormField
 {
@@ -58,7 +58,7 @@ class DocumentLayoutField extends FormField
      * templates, de-duplicated and sorted.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function getInput(): string
     {
@@ -123,7 +123,7 @@ class DocumentLayoutField extends FormField
      *
      * @return string[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function scanFolder(string $dir): array
     {
@@ -150,7 +150,7 @@ class DocumentLayoutField extends FormField
      * @param string $name Layout basename (e.g. 'default').
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function layoutLabel(string $name): string
     {
@@ -169,7 +169,7 @@ class DocumentLayoutField extends FormField
      *
      * @return string[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function getEnabledAdminTemplates(): array
     {

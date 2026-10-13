@@ -37,7 +37,7 @@ defined('_JEXEC') or die;
  * the old saved value back. So a pending value is authoritative whenever the
  * field was submitted at all, including when it was submitted empty.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class AddressView
 {
@@ -45,7 +45,7 @@ final class AddressView
      * @param object|null $row The `#__alfa_user_info` record, or null when the cart names none.
      * @param array $pending What the checkout form currently holds, by column name.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         private readonly ?object $row,
@@ -57,7 +57,7 @@ final class AddressView
      * Whether the cart points at a saved address at all.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function exists(): bool
     {
@@ -68,7 +68,7 @@ final class AddressView
      * The saved record's id, 0 when there is none.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function id(): int
     {
@@ -86,7 +86,7 @@ final class AddressView
      * @param int $fieldId The saved `#__alfa_form_fields.id`; 0 = not configured.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function field(int $fieldId): FieldValue
     {
@@ -124,7 +124,7 @@ final class AddressView
      *
      * @throws ValueException On a field id that is not a number, or a value that will not convert.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function get(int|string $fieldId, mixed $default = null, ?string $filter = null): mixed
     {
@@ -144,7 +144,7 @@ final class AddressView
      *
      * @throws ValueException When the answer is not a whole number.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getInt(int|string $fieldId, ?int $default = null): ?int
     {
@@ -165,7 +165,7 @@ final class AddressView
      * @param string|null $default Returned when the field is unanswered.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getString(int|string $fieldId, ?string $default = null): ?string
     {
@@ -186,7 +186,7 @@ final class AddressView
      * @param bool|null $default Returned when the field is unanswered.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getBool(int|string $fieldId, ?bool $default = null): ?bool
     {
@@ -209,7 +209,7 @@ final class AddressView
      *
      * @throws ValueException When it is not a field id.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function fieldId(int|string $fieldId): int
     {
@@ -236,7 +236,7 @@ final class AddressView
      * @param int $fieldId The field.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function describe(int $fieldId): string
     {
@@ -255,7 +255,7 @@ final class AddressView
      *
      * @return array<int, FieldValue>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function fields(array $fieldIds): array
     {
@@ -283,7 +283,7 @@ final class AddressView
      *
      * @return FieldValue The first with a value; the first that exists otherwise; else missing.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function firstFilled(array $fieldIds): FieldValue
     {
@@ -337,7 +337,7 @@ final class AddressView
      *
      * @return string Trimmed; '' when the address carries none.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getName(): string
     {
@@ -349,7 +349,7 @@ final class AddressView
      *
      * @return string Trimmed; '' when the address carries none.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getEmail(): string
     {
@@ -367,7 +367,7 @@ final class AddressView
      * @param string $role A RoleRegistry role.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function role(string $role): FieldValue
     {
@@ -427,7 +427,7 @@ final class AddressView
      *
      * @return int[] Nearest first; empty when the destination is unknown.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function places(int|string|null $fieldId = null): array
     {
@@ -450,7 +450,7 @@ final class AddressView
      * @param string $column The `#__alfa_user_info` column.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function column(string $column): FieldValue
     {

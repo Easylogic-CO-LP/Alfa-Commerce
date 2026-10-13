@@ -22,13 +22,13 @@ use Joomla\CMS\Toolbar\ToolbarHelper;
  * Stock reservations view, read-only: reservation lifecycle belongs to
  * the order flow and the service commands, never to grid edits.
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 class HtmlView extends BaseHtmlView
 {
     /**
      * @var string The entity a plugin targets with $context->targets('reservation').
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'reservation';
 
@@ -49,7 +49,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public function display($tpl = null)
     {
@@ -75,7 +75,7 @@ class HtmlView extends BaseHtmlView
      *
      * @return void
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     protected function addToolbar()
     {

@@ -35,7 +35,7 @@ use Joomla\Database\ParameterType;
  * Probes are existence reads (LIMIT 1 on indexed columns) or params reads: cheap
  * enough that the cache in {@see SetupHelper} exists for politeness, not survival.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CoreSetupProvider
 {
@@ -44,7 +44,7 @@ final class CoreSetupProvider
      * routing treat core and plugins uniformly.
      *
      * @var string
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const OWNER_GROUP = 'core';
     public const OWNER_NAME = 'com_alfa';
@@ -56,7 +56,7 @@ final class CoreSetupProvider
      * @param CollectSetupChecksEvent $event The collecting event.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function onAlfaCollectSetupChecks(CollectSetupChecksEvent $event): void
     {
@@ -274,7 +274,7 @@ final class CoreSetupProvider
      * @param array<string, mixed> $where Column => value equality conditions.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function exists(string $table, array $where): bool
     {
@@ -315,7 +315,7 @@ final class CoreSetupProvider
      * (shown in the delivery or invoice section) beyond the seeded identity rows.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function hasMerchantCheckoutFields(): bool
     {
@@ -347,7 +347,7 @@ final class CoreSetupProvider
      * @param string $folder The plugin group the method's `type` boots into.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function methodBackedByPlugin(string $table, string $folder): bool
     {
@@ -377,7 +377,7 @@ final class CoreSetupProvider
      * item covers each of them).
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function storefrontReachable(): bool
     {
@@ -407,7 +407,7 @@ final class CoreSetupProvider
      *
      * @var array<string, string>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private const MENU_TOURS = [
         'items' => 'com_alfa.menu-shop',
@@ -426,7 +426,7 @@ final class CoreSetupProvider
      *
      * @return string A guided-tour uid.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function menuTourFor(array $views): string
     {
@@ -452,7 +452,7 @@ final class CoreSetupProvider
      *
      * @return string[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function customerViews(): array
     {
@@ -463,7 +463,7 @@ final class CoreSetupProvider
      * The component database driver.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function db(): DatabaseInterface
     {

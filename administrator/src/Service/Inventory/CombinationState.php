@@ -29,7 +29,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Inventory;
  * identity of it, only as the identity of its order history; currentSql() and
  * isCurrent() answer for a product's state column in the same way.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 final class CombinationState
 {
@@ -49,7 +49,7 @@ final class CombinationState
      *
      * @return string A parenthesised boolean expression.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function currentSql(string $column): string
     {
@@ -62,7 +62,7 @@ final class CombinationState
      * @param mixed $state The stored state.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function isCurrent(mixed $state): bool
     {

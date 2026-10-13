@@ -60,13 +60,13 @@ use Throwable;
  * model boot per row for a screen nobody buys from. What a cart is worth is a
  * question the ORDER answers, once the shopper has decided.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class CartModel extends ItemModel
 {
     /**
      * @var string The entity a plugin targets with $context->targets('cart').
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'cart';
 
@@ -78,7 +78,7 @@ class CartModel extends ItemModel
      *
      * @return void
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function populateState($ordering = null, $direction = null)
     {
@@ -95,7 +95,7 @@ class CartModel extends ItemModel
      *
      * @return object|null The cart, or null when there is no such cart.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getItem($pk = null)
     {
@@ -133,7 +133,7 @@ class CartModel extends ItemModel
      *
      * @return object[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function lines(int $cartId): array
     {
@@ -215,7 +215,7 @@ class CartModel extends ItemModel
      *
      * @return object name, email and whether they are a member.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function owner(object $cart): object
     {
@@ -271,7 +271,7 @@ class CartModel extends ItemModel
      *
      * @return string[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function codes(int $cartId): array
     {
@@ -302,7 +302,7 @@ class CartModel extends ItemModel
      *
      * @return object|null The configured, priced item, or null when it is gone.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getBuilderItemConfig(int $itemId, int $cartId): ?object
     {
@@ -340,7 +340,7 @@ class CartModel extends ItemModel
      *
      * @return object|null ->line and ->item, or null when the line is not this cart's.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getBuilderLineConfig(int $lineId, int $cartId): ?object
     {
@@ -423,7 +423,7 @@ class CartModel extends ItemModel
      *
      * @return PriceResult|null The priced line, or null when there is no such item or line.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function priceLineConfig(int $itemId, int $cartId, int $lineId, int $quantity): ?PriceResult
     {
@@ -473,7 +473,7 @@ class CartModel extends ItemModel
      *
      * @return object|null Customer identity, saved addresses and the current pointers.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getBuilderCustomer(int $cartId, User $actor): ?object
     {
@@ -547,7 +547,7 @@ class CartModel extends ItemModel
      *
      * @return object[] Published, placeable statuses in the merchant's order.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getPlacementStatuses(): array
     {
@@ -611,7 +611,7 @@ class CartModel extends ItemModel
      *
      * @return Form|null A form carrying 'user_details' and 'user_details_billing'.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getCheckoutForm(int $cartId, User $actor): ?Form
     {
@@ -679,7 +679,7 @@ class CartModel extends ItemModel
      *
      * @return object[] The saved addresses, each with ->label and ->frozen.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function savedAddressesFor(int $customerId): array
     {
@@ -724,7 +724,7 @@ class CartModel extends ItemModel
      *
      * @return object|null The hydrated item with its surfaces, or null.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function seededItemConfig(int $itemId, ?callable $seedFor = null): ?object
     {
@@ -747,7 +747,7 @@ class CartModel extends ItemModel
      *
      * @return array{selection: array, optionValueIds: array, payloads: array}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function lineSeed(int $lineId, object $configured): array
     {
@@ -810,7 +810,7 @@ class CartModel extends ItemModel
      *
      * @return object|null A CartSnapshot, or null when there is no such cart.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getBuilderSnapshot(int $cartId, User $actor, ?HtmlDocument $page, bool $settle): ?object
     {
@@ -839,7 +839,7 @@ class CartModel extends ItemModel
      * @param int $cartId The cart.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function cartCustomerId(int $cartId): ?int
     {
@@ -869,7 +869,7 @@ class CartModel extends ItemModel
      *
      * @throws RuntimeException When the cart does not exist or names no currency.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function cartPriceContext(int $cartId): PriceContext
     {

@@ -19,11 +19,11 @@ defined('_JEXEC') or die;
  * checkout reading. It is never passed on, never handed to a layout, a plugin
  * or a factory; each of those receives the part it needs.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class OpenedCart
 {
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function __construct(
         public readonly CartHydrator $hydrator,
         public readonly CartComputation $computation,

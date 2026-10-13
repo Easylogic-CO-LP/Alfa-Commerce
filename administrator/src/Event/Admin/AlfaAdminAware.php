@@ -24,7 +24,7 @@ use Throwable;
  * Shared by the base list model, the base edit model and the base views, so an entity's name and
  * the opt-in rule are declared once instead of three times.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 trait AlfaAdminAware
 {
@@ -41,7 +41,7 @@ trait AlfaAdminAware
      * List and edit screens of one entity share the SINGULAR name; the screen is what tells them
      * apart, not the entity.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = '';
 
@@ -57,7 +57,7 @@ trait AlfaAdminAware
      * @param string $event The event name (an AlfaAdminEvent::NAME).
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected function alfaDispatches(string $event): bool
     {
@@ -70,7 +70,7 @@ trait AlfaAdminAware
      * plugin sees the same string whichever side raised the event.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected function alfaView(): string
     {
@@ -81,7 +81,7 @@ trait AlfaAdminAware
      * The acting user, for the context's actor band.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected function alfaUser(): User
     {
@@ -94,7 +94,7 @@ trait AlfaAdminAware
      *
      * @return string The token name, or '' when there is no session (CLI, install).
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected function alfaToken(): string
     {

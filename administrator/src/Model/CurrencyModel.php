@@ -35,7 +35,7 @@ class CurrencyModel extends AlfaAdminModel
 {
     /**
      * @var string The entity a plugin targets with $context->targets('currency').
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'currency';
     /**
@@ -71,7 +71,7 @@ class CurrencyModel extends AlfaAdminModel
      * @param array $pks The ids to delete.
      *
      * @return bool
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function delete(&$pks)
     {
@@ -144,7 +144,7 @@ class CurrencyModel extends AlfaAdminModel
      * @param int[] $ids The currency ids that were deleted.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function repointCartsToDefaultCurrency(array $ids): void
     {
@@ -188,7 +188,7 @@ class CurrencyModel extends AlfaAdminModel
      *
      * @return bool
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function publish(&$pks, $value = 1)
     {
@@ -223,7 +223,7 @@ class CurrencyModel extends AlfaAdminModel
      *
      * @return bool Whether any ids remain to operate on.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function guardProtectedCurrencies(array &$pks): bool
     {
@@ -289,7 +289,7 @@ class CurrencyModel extends AlfaAdminModel
      *
      * @param int $id The currency id.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function currencyInUse(int $id): bool
     {

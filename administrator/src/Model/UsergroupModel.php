@@ -25,7 +25,7 @@ class UsergroupModel extends AlfaAdminModel
 {
     /**
      * @var string The entity a plugin targets with $context->targets('usergroup').
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'usergroup';
 
@@ -76,7 +76,7 @@ class UsergroupModel extends AlfaAdminModel
      * form, so it can never be stored per group.
      *
      * @var array<string, string[]>
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const OVERRIDABLE_FIELDS = [
         'prices' => PriceSettings::FIELDS,

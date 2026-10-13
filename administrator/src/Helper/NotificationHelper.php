@@ -70,7 +70,7 @@ class NotificationHelper
      * The permission that shows the bell, its panel and the history screen.
      *
      * @var string
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const VIEW_ACTION = 'alfa.notifications.view';
 
@@ -79,7 +79,7 @@ class NotificationHelper
      * row for every administrator, not only for the one who clicks.
      *
      * @var string
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const STATE_ACTION = 'alfa.notifications.edit.state';
 
@@ -269,7 +269,7 @@ class NotificationHelper
      *
      * @return bool True when a row carries the key.
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public static function exists(string $dedupKey): bool
     {
@@ -286,7 +286,7 @@ class NotificationHelper
      * @param string $dedupKey The producer's key.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function isOpen(string $dedupKey): bool
     {
@@ -314,7 +314,7 @@ class NotificationHelper
      *
      * @return string[] The matching dedup keys.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function keys(string $prefix): array
     {
@@ -425,7 +425,7 @@ class NotificationHelper
      * @param mixed $user A user object, or null for the current identity.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function canView($user = null): bool
     {
@@ -439,7 +439,7 @@ class NotificationHelper
      * @param mixed $user A user object, or null for the current identity.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function canChangeState($user = null): bool
     {
@@ -454,7 +454,7 @@ class NotificationHelper
      * @param int $id The notification id.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function find(int $id): ?object
     {

@@ -39,7 +39,7 @@
  *                    use (the "In use" badge), false for the other set, null for a
  *                    card without a set (no badge).
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 
 defined('_JEXEC') or die;

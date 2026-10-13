@@ -18,7 +18,7 @@
  * $event->getForm()->load()/setField()); everything else is read-only.
  * With no listeners the form renders exactly as today (core stands alone).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\Items;
@@ -33,7 +33,7 @@ class ItemPrepareFormEvent extends AbstractImmutableEvent
     /**
      * The item form under construction: mutate through the Form API.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getForm(): Form
     {
@@ -45,7 +45,7 @@ class ItemPrepareFormEvent extends AbstractImmutableEvent
      *
      * @return array|object
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getData()
     {
@@ -55,7 +55,7 @@ class ItemPrepareFormEvent extends AbstractImmutableEvent
     /**
      * The item id being edited (0 = new item).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getItemId(): int
     {

@@ -35,7 +35,7 @@ defined('_JEXEC') or die;
  * is enforced by construction rather than by a nullable fallback that could
  * drift.
  *
- * @since  1.11.0
+ * @since  2.0.0
  */
 final class PriceReference
 {
@@ -60,7 +60,7 @@ final class PriceReference
      * Whole-line NET the ordinary pricing reached.
      *
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public function getSubtotal(): Money
     {
@@ -71,7 +71,7 @@ final class PriceReference
      * The tax the ordinary pricing charged.
      *
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public function getTaxTotal(): Money
     {
@@ -82,7 +82,7 @@ final class PriceReference
      * Whole-line GROSS the ordinary pricing would have charged.
      *
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public function getTotal(): Money
     {
@@ -99,7 +99,7 @@ final class PriceReference
      * reached its price without reconstructing it from final totals.
      *
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public function getDiscounts(): DiscountSummary
     {
@@ -110,7 +110,7 @@ final class PriceReference
      * The ordinary pricing's narrative.
      *
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public function getBreakdown(): PriceBreakdown
     {

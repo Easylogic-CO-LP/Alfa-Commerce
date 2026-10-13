@@ -28,7 +28,7 @@ use Throwable;
  * and platform plugins answer `onAlfaCollectSetupChecks`, with ownership attributed by
  * the collector, never self-declared.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class SetupCheck
 {
@@ -37,7 +37,7 @@ final class SetupCheck
      * practice the merchant should not skip silently; `optional` is polish.
      *
      * @var string
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const TIER_REQUIRED = 'required';
     public const TIER_RECOMMENDED = 'recommended';
@@ -48,7 +48,7 @@ final class SetupCheck
      * (or a soft condition); it never counts as complete.
      *
      * @var string
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const STATE_PASS = 'pass';
     public const STATE_FAIL = 'fail';
@@ -57,69 +57,69 @@ final class SetupCheck
     /**
      * @var string Stable identity, e.g. `payments.active`. Shared vocabulary like tool
      *             action ids: identity is owner + id, never id alone.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public string $id;
 
     /**
      * @var string Language key for the checklist row label.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public string $label;
 
     /**
      * @var string One of the TIER_* constants.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public string $tier = self::TIER_REQUIRED;
 
     /**
      * @var string Language key explaining WHY the check is incomplete and what to do.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public string $reason = '';
 
     /**
      * @var string Admin deep link where the task is done: raw (un-routed), the
      *             renderer routes it. '' = no link.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public string $cta = '';
 
     /**
      * @var string Guided-tour uid (`com_alfa.*`) teaching this task; '' = none.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public string $tour = '';
 
     /**
      * @var int Display order, higher first. Core encodes the natural DOING order.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public int $priority = 0;
 
     /**
      * @var array<string, mixed> Collector-stamped metadata (`owner_group`/`owner_name`).
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public array $metadata = [];
 
     /**
      * @var callable|null The detector: fn(): bool|string (a STATE_* string passes through).
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private $probe = null;
 
     /**
      * @var callable|null One-click auto-fix (cascade provisioning). Wired by the wizard
      *                    surface; the engine only carries it.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private $provision = null;
 
     /**
      * @var array<int, array{name: string, label: string, options: callable}> Questions the auto-fix asks first.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private array $choices = [];
 
@@ -127,7 +127,7 @@ final class SetupCheck
      * @param string $id Stable check id.
      * @param string $label Language key for the row label.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(string $id, string $label)
     {
@@ -140,7 +140,7 @@ final class SetupCheck
      *                     failing toward visibility rather than silence).
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function tier(string $tier): static
     {
@@ -155,7 +155,7 @@ final class SetupCheck
      * @param string $key Language key for the incomplete-state explanation.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function reason(string $key): static
     {
@@ -168,7 +168,7 @@ final class SetupCheck
      * @param string $url Raw admin URL where the task is done.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function cta(string $url): static
     {
@@ -181,7 +181,7 @@ final class SetupCheck
      * @param string $uid Guided-tour uid (`com_alfa.*`).
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function tour(string $uid): static
     {
@@ -194,7 +194,7 @@ final class SetupCheck
      * @param int $priority Display order, higher first.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function priority(int $priority): static
     {
@@ -207,7 +207,7 @@ final class SetupCheck
      * @param callable $probe The detector: fn(): bool|string.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function probe(callable $probe): static
     {
@@ -220,7 +220,7 @@ final class SetupCheck
      * @param callable $provision One-click auto-fix.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function provision(callable $provision): static
     {
@@ -242,7 +242,7 @@ final class SetupCheck
      * @param callable $options fn(): array<string, string> value => label (already translated).
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function choice(string $name, string $label, callable $options): static
     {
@@ -256,7 +256,7 @@ final class SetupCheck
      *
      * @return array<int, array{name: string, label: string, options: array<string, string>}>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function choices(): array
     {
@@ -278,7 +278,7 @@ final class SetupCheck
      * @param mixed $value Metadata value.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function meta(string $key, mixed $value): static
     {
@@ -291,7 +291,7 @@ final class SetupCheck
      * A check without an id, a label, or a probe cannot render or answer; drop it.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function isValid(): bool
     {
@@ -304,7 +304,7 @@ final class SetupCheck
      *
      * @return string One of the STATE_* constants.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function run(): string
     {
@@ -324,7 +324,7 @@ final class SetupCheck
     /**
      * @return bool Whether a one-click auto-fix is available.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function canProvision(): bool
     {
@@ -339,7 +339,7 @@ final class SetupCheck
      *
      * @throws Throwable Whatever the provisioner throws; a failed fix must surface.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function runProvision(array $answers = []): void
     {

@@ -62,7 +62,7 @@ use Throwable;
  * failure never leaves the status change half-applied, matching the
  * behaviour the admin save always had.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class Transition
 {
@@ -118,7 +118,7 @@ class Transition
      * Why the inventory service refused the last save()'s stock effect, as the
      * operator reads it; null when it was not refused.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private ?string $stockRefusal = null;
 
@@ -127,7 +127,7 @@ class Transition
      * resolving: the stock it needs is reserved for other claims. The text as the
      * operator reads it; null when the effect does not wait for that.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private ?string $stockReservedFloor = null;
 
@@ -135,14 +135,14 @@ class Transition
      * What the last save()'s stock effect failed with when the movement stays
      * owed and a later attempt can apply it; null when it did not fail so.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private ?string $stockFailure = null;
 
     /**
      * TRUE while save() runs its window a second time after a deadlock.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private bool $retried = false;
 
@@ -159,7 +159,7 @@ class Transition
      *
      * @param int $orderId Order PK.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function for(int $orderId): self
     {
@@ -171,7 +171,7 @@ class Transition
      *
      * @param int $statusId `#__alfa_orders_statuses` PK.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function to(int $statusId): self
     {
@@ -186,7 +186,7 @@ class Transition
      *
      * @param int $statusId Previous status id.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function from(int $statusId): self
     {
@@ -200,7 +200,7 @@ class Transition
      *
      * @param int $userId Joomla user id.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function byUser(int $userId): self
     {
@@ -214,7 +214,7 @@ class Transition
      *
      * @param string $pluginName Plugin element, e.g. 'vivawallet'.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function byPlugin(string $pluginName): self
     {
@@ -226,7 +226,7 @@ class Transition
     /**
      * Skip the status email (both customer and admin recipients).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function silent(): self
     {
@@ -239,7 +239,7 @@ class Transition
      * Permit leaving the is_cancelled family. Automation must never pass
      * this: reinstating a cancelled order is an admin decision.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function force(): self
     {
@@ -253,7 +253,7 @@ class Transition
      *
      * @param string $note Human-readable note.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function note(string $note): self
     {
@@ -273,7 +273,7 @@ class Transition
      *                    {@see self::getStockFailure()} what any other owed
      *                    effect failed with).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getStockResult(): ?array
     {
@@ -293,7 +293,7 @@ class Transition
      * @return string|null The refusal as the operator reads it (one sentence per
      *                     unresolved order line), or null when it was not refused.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function getStockRefusal(): ?string
     {
@@ -318,7 +318,7 @@ class Transition
      *                     movement would leave), or null when the effect does not
      *                     wait for reserved stock.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function getStockReservedFloor(): ?string
     {
@@ -340,7 +340,7 @@ class Transition
      * @return string|null What the movement failed with, or null when the effect
      *                     did not fail in a way a later attempt can mend.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function getStockFailure(): ?string
     {
@@ -357,7 +357,7 @@ class Transition
      * @param int $statusId Candidate `#__alfa_orders_statuses` PK.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function isValidTarget(int $statusId): bool
     {
@@ -370,7 +370,7 @@ class Transition
      * @param int $statusId Status PK.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function loadTarget(int $statusId): ?object
     {
@@ -418,7 +418,7 @@ class Transition
      *                          one value, the notice.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function reportStockDeferred(int $oldStatusId, string $reason, bool $refused, string $notice, string $noticeKey): void
     {
@@ -482,7 +482,7 @@ class Transition
      *
      * @return string|null Human-readable reason, or null when admissible.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function refusalReason(int $orderId, int $toStatusId): ?string
     {
@@ -509,7 +509,7 @@ class Transition
      *
      * @return array{reason: string|null, unpaid_exception: bool, facts: object|null}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function inspectTarget(int $orderId, int $toStatusId, ?int $lockedFromStatusId): array
     {
@@ -585,7 +585,7 @@ class Transition
      *              (unknown order, no target, same status, cancelled-family
      *              exit without force()).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function save(): bool
     {
@@ -1092,7 +1092,7 @@ class Transition
      *
      * @return bool|null What save() answers; null when the failure is rethrown.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function busy(Throwable $failure, bool $outermost, ?int $fromStatusId): ?bool
     {
@@ -1144,7 +1144,7 @@ class Transition
     /**
      * Acting user id: explicit byUser() or the current identity.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function resolveUserId(): int
     {

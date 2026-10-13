@@ -109,7 +109,7 @@ class ItemModel extends AlfaAdminModel
      *   pair dispatches a second time during a save request; handlers must be idempotent.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'item';
 
@@ -120,7 +120,7 @@ class ItemModel extends AlfaAdminModel
      *
      * @var int
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const ARCHIVE_ATTEMPTS = 3;
 
@@ -131,7 +131,7 @@ class ItemModel extends AlfaAdminModel
      *
      * @var string[]
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const QUANTITY_RULES = ['quantity_min', 'quantity_step', 'quantity_max'];
 
@@ -382,7 +382,7 @@ class ItemModel extends AlfaAdminModel
      * @param Form $form The item form to adjust in place.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function applyLowStockVisibility(Form $form): void
     {
@@ -417,7 +417,7 @@ class ItemModel extends AlfaAdminModel
      * @param Form $form The item form to adjust in place.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     private function applyStockActionGlobalLabel(Form $form): void
     {
@@ -455,7 +455,7 @@ class ItemModel extends AlfaAdminModel
      * @param Form $form The item form, with its data bound.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function showQuantityRulesExactly(Form $form): void
     {
@@ -1279,7 +1279,7 @@ class ItemModel extends AlfaAdminModel
      *
      * @return bool True when no product was refused.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function restoreArchived(array &$pks): bool
     {
@@ -1424,7 +1424,7 @@ class ItemModel extends AlfaAdminModel
      *
      * @return int[] The crossing products, ascending.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function archiveCrossing(array $ids, int $value): array
     {
@@ -1461,7 +1461,7 @@ class ItemModel extends AlfaAdminModel
      *
      * @return int|null The posted state, or null.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function postedArchiveMove(int $pk, array $data): ?int
     {
@@ -1516,7 +1516,7 @@ class ItemModel extends AlfaAdminModel
      *
      * @return list<string> The refusals; empty when the rules may be saved.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function quantityRuleRefusals(int $pk, array &$data, ?Form $form): array
     {
@@ -1669,7 +1669,7 @@ class ItemModel extends AlfaAdminModel
      *
      * @return string|null The translated reason, or null.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function quantityRuleReason(string $min, string $step, ?string $max): ?string
     {
@@ -1709,7 +1709,7 @@ class ItemModel extends AlfaAdminModel
      *
      * @return array<string, mixed>|null Null when the product does not exist.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function saleRuleFacts(int $itemId): ?array
     {
@@ -1768,7 +1768,7 @@ class ItemModel extends AlfaAdminModel
      *
      * @throws RuntimeException When a changed figure cannot be applied.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function applyStockAdapter(
         int $itemId,
@@ -1886,7 +1886,7 @@ class ItemModel extends AlfaAdminModel
      *
      * @return array{refusals: list<string>, flagChange: bool, transition: ?string, flag: ?int, openings: ?array<int, float>, baseline: array<int, string>}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function stockSavePlan(
         int $pk,
@@ -2165,7 +2165,7 @@ class ItemModel extends AlfaAdminModel
      *                                                                                The changed plain figure, the changed per-location figures, and the
      *                                                                                posted figures that have nothing to be compared with.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function changedStockFigures(
         ?array $locationStock,
@@ -2226,7 +2226,7 @@ class ItemModel extends AlfaAdminModel
      *
      * @return array<int, string> Formatted figures keyed by location id (0 = the plain figure).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function implicitStockBaseline(int $itemId, ?array $locationStock, ?float $storedStock): array
     {
@@ -2267,7 +2267,7 @@ class ItemModel extends AlfaAdminModel
      *
      * @return array<int, float>|null The openings keyed by location id; null when incomplete.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function openingTargets(int $itemId, ?float $stockRequested, ?array $locationStock): ?array
     {
@@ -2327,7 +2327,7 @@ class ItemModel extends AlfaAdminModel
      *
      * @return list<string>
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function targetRefusals(array $problems): array
     {
@@ -2414,7 +2414,7 @@ class ItemModel extends AlfaAdminModel
      * @param Throwable|null $error What it threw, or null.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function reportTrackingChange(int $itemId, ?array $result, ?Throwable $error): void
     {
@@ -2463,7 +2463,7 @@ class ItemModel extends AlfaAdminModel
      * @param Throwable $error What the inventory service threw.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function inventoryRefusalMessage(Throwable $error): string
     {
@@ -2510,7 +2510,7 @@ class ItemModel extends AlfaAdminModel
      * @param int $itemId The product.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function projectionsAgree(int $itemId): bool
     {
@@ -2534,7 +2534,7 @@ class ItemModel extends AlfaAdminModel
      *
      * @return bool Always false.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function refuseSave(array $messages): bool
     {
@@ -2550,7 +2550,7 @@ class ItemModel extends AlfaAdminModel
      *
      * @return float|null Null when the product has no figure (or does not exist).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function storedStockFigure(int $itemId): ?float
     {
@@ -2572,7 +2572,7 @@ class ItemModel extends AlfaAdminModel
      *
      * @return string The reason as a clause for COM_ALFA_ITEM_SAVED_STOCK_REFUSED.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function unappliedStockReason(int $itemId): string
     {
@@ -2623,7 +2623,7 @@ class ItemModel extends AlfaAdminModel
      *                        one entry per blocked stock unit.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function stockHeldMessage(string $key, int $itemId, array $blockers): string
     {
@@ -2675,7 +2675,7 @@ class ItemModel extends AlfaAdminModel
      *                   naming the product can be added until the transaction ends.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private function orderHistoryLineCount(int $itemId, bool $lock): int
     {

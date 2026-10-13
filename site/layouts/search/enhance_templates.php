@@ -44,7 +44,7 @@ use Joomla\CMS\Language\Text;
  * A listbox may hold options only, so every wrapper and heading between the panel and
  * its options is `role="presentation"`. An override that adds one must do the same.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 ?>
 <template data-alfa-search-template="panel">

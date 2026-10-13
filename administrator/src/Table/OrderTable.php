@@ -91,7 +91,7 @@ class OrderTable extends Table
      *
      * @throws RuntimeException When an existing order's currency or scale is changed or cleared.
      *
-     * @since  1.13.0
+     * @since  2.0.0
      */
     private function guardMonetaryIdentity(): void
     {

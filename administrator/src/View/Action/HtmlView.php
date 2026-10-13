@@ -41,7 +41,7 @@ use RuntimeException;
  * group is validated inside resolveActionPage, the layout is the plugin's to choose
  * (never the URL's).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class HtmlView extends BaseHtmlView
 {
@@ -50,7 +50,7 @@ class HtmlView extends BaseHtmlView
      *
      * @var object
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected $actionEvent;
 
@@ -59,7 +59,7 @@ class HtmlView extends BaseHtmlView
      *
      * @var string
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected $group = '';
 
@@ -68,7 +68,7 @@ class HtmlView extends BaseHtmlView
      *
      * @var string
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected $type = '';
 
@@ -81,7 +81,7 @@ class HtmlView extends BaseHtmlView
      *
      * @throws Exception
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function display($tpl = null)
     {

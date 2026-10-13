@@ -34,7 +34,7 @@ use stdClass;
  *   fromRows()  takes a total and rows a caller already has (the list view
  *               batches them, so unifying the derivation costs no queries).
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class OrderFacts
 {
@@ -60,7 +60,7 @@ final class OrderFacts
      *                                payment state cannot be derived, and no
      *                                other currency stands in for it.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function forOrder(int $orderId, Money|float|null $grandTotal = null): stdClass
     {
@@ -78,7 +78,7 @@ final class OrderFacts
      *
      * @throws OrderCurrencyException When the order names no currency.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function balanceOf(int $orderId, Money|float|null $grandTotal = null): Money
     {
@@ -93,7 +93,7 @@ final class OrderFacts
      *
      * @return array{0: stdClass, 1: Money}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function read(int $orderId, Money|float|null $grandTotal): array
     {
@@ -190,7 +190,7 @@ final class OrderFacts
      *                           without one.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function fromRows(Money|float $grandTotal, array $rows, Currency $currency): stdClass
     {
@@ -206,7 +206,7 @@ final class OrderFacts
      *
      * @return array{0: stdClass, 1: Money}
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function derive(Money|float $grandTotal, array $rows, Currency $currency): array
     {
@@ -389,7 +389,7 @@ final class OrderFacts
      * @param Money $balance Signed due at the order's scale.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function status(Money $paid, Money $refunded, Money $heldBeforeChargebacks, Money $balance): string
     {
@@ -423,7 +423,7 @@ final class OrderFacts
      * @param Currency $currency Order currency.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function amount($raw, Currency $currency): Money
     {

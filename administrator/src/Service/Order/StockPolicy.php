@@ -40,7 +40,7 @@ class StockPolicy
      * The claim an order holds on stock. Physical and reserved are separate
      * axes: a claim is one of these three, never a combination.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const CLAIM_NONE = 'none';
 
@@ -144,7 +144,7 @@ class StockPolicy
      *
      * @return string One of the CLAIM_* constants.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function claimFor(int $statusId): string
     {
@@ -262,7 +262,7 @@ class StockPolicy
      *
      * @return array{action: string, count: int, status: int, claim: string}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function reconcileOrderClaim(int $orderId): array
     {
@@ -350,7 +350,7 @@ class StockPolicy
      *
      * @return array{action: string, count: int, detail: array}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function applyClaim(int $orderId, string $claim): array
     {

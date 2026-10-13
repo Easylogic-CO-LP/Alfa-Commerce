@@ -27,7 +27,7 @@ use RuntimeException;
  * library (lib_dompdf, libraries/dompdf). The only disk usage is dompdf's
  * own font cache under Joomla's tmp directory.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class PdfRenderer
 {
@@ -42,7 +42,7 @@ final class PdfRenderer
      * @throws RuntimeException When the document is missing, lib_dompdf is
      *                          not installed, or rendering fails.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function pdfBytes(int $documentId): string
     {
@@ -81,7 +81,7 @@ final class PdfRenderer
      *
      * @return string e.g. 'invoice-000123.pdf'.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function filename(object $document): string
     {
@@ -97,7 +97,7 @@ final class PdfRenderer
      *
      * @return string Absolute directory path.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function tmpDir(): string
     {
@@ -117,7 +117,7 @@ final class PdfRenderer
      * The library's own autoload.inc.php registers Dompdf plus every
      * bundled dependency namespace: no namespace-map entry needed.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private static function loadDompdf(): void
     {

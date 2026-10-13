@@ -463,7 +463,7 @@ class ShipmentLedger
      * order has to say which.
      *
      * @param string $name Carrier name, e.g. 'Carrier A'
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function carrier(string $name): static
     {
@@ -550,7 +550,7 @@ class ShipmentLedger
      *
      * @return int WRITE_OK | WRITE_RACED | WRITE_FAILED
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function saveVerdict(string $expectedStatus): int
     {
@@ -886,7 +886,7 @@ class ShipmentLedger
      *
      * @return string|null Why the charge cannot be stored, as the operator reads it; null when it can.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function readCharge(array &$data, ?object $stored): ?string
     {
@@ -937,7 +937,7 @@ class ShipmentLedger
      * @param object|null $stored The row being updated.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function chargeChanges(array $data, ?object $stored): bool
     {
@@ -971,7 +971,7 @@ class ShipmentLedger
      *
      * @return string|null The refusal as the operator reads it; null when the charge may be stored.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function chargeRefusal(array $data, int $orderId): ?string
     {
@@ -1018,7 +1018,7 @@ class ShipmentLedger
      *
      * @return string|null The refusal as the operator reads it, naming the figures the input makes; null when exact.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function enteredChargeRefusal(array $data, ShippingPriceEntryMode $mode, array $chain, int $orderId): ?string
     {
@@ -1066,7 +1066,7 @@ class ShipmentLedger
      *
      * @return string[]|null
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function carrierChain(array $data): ?array
     {
@@ -1099,7 +1099,7 @@ class ShipmentLedger
      *
      * @return string[] Exact decimal rate texts, in the order they apply; empty when no shipping tax applies.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function resolvedChain(int $methodId, int $orderId): array
     {
@@ -1155,7 +1155,7 @@ class ShipmentLedger
      *
      * @return string|null The refusal as the operator reads it.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function frozenRateRefusal(int $id, array $data, object $stored, array $chain): ?string
     {
@@ -1188,7 +1188,7 @@ class ShipmentLedger
      *
      * @return string|null The refusal as the operator reads it, naming the tax that applies.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function resolvedRateRefusal(array $data, array $chain): ?string
     {
@@ -1213,7 +1213,7 @@ class ShipmentLedger
      *
      * @return string[]|null Null when it is not one.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function chainOf(mixed $value): ?array
     {
@@ -1238,7 +1238,7 @@ class ShipmentLedger
      * @param string[] $chain Exact decimal rate texts, in order.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function chainText(array $chain): string
     {
@@ -1252,7 +1252,7 @@ class ShipmentLedger
      *
      * @return AppliedTax[]
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function applied(array $chain): array
     {
@@ -1266,7 +1266,7 @@ class ShipmentLedger
      * @param string[] $chain Exact decimal rate texts, in order.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function chainRateText(array $chain): string
     {
@@ -1279,7 +1279,7 @@ class ShipmentLedger
      * @param string[] $chain Exact decimal rate texts, in order.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function chainShown(array $chain): string
     {
@@ -1298,7 +1298,7 @@ class ShipmentLedger
      * @param array $data The write.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function chainRefusal(array $data): string
     {
@@ -1314,7 +1314,7 @@ class ShipmentLedger
      * @param int $orderId Its order.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function entryMode(int $methodId, int $orderId): ShippingPriceEntryMode
     {
@@ -1336,7 +1336,7 @@ class ShipmentLedger
      * @param array $data The carrier's write.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function carrierBasis(array $data): ?ShippingChargeBasis
     {
@@ -1351,7 +1351,7 @@ class ShipmentLedger
      * @param array $data The write.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function basisRefusal(array $data): string
     {
@@ -1365,7 +1365,7 @@ class ShipmentLedger
      * @param Money $money The amount.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function shown(Money $money): string
     {
@@ -1380,7 +1380,7 @@ class ShipmentLedger
      * @return string|null The rate at three places ('24.000'); null when it is not a
      *                     percentage of zero or more with at most three decimal places.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function rateText(mixed $value): ?string
     {
@@ -1467,7 +1467,7 @@ class ShipmentLedger
      *
      * @return array|null What afterUpdate() reports on, or null when nothing was written.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function writeUpdate(int $id, int $orderId, array $data, bool $entered = false): ?array
     {
@@ -1579,7 +1579,7 @@ class ShipmentLedger
      * @param array $written What writeUpdate() answered.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function afterUpdate(int $orderId, array $written): void
     {
@@ -1668,7 +1668,7 @@ class ShipmentLedger
      * @param string $oldStatus Previous status.
      * @param string $newStatus New status.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function applyStatusAutomation(
         int $orderId,
@@ -1747,7 +1747,7 @@ class ShipmentLedger
      * @param string $cause What asked for it.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function reportMoveNotMade(int $orderId, int $targetStatusId, string $cause): void
     {
@@ -1794,7 +1794,7 @@ class ShipmentLedger
      *
      * @throws OrderCurrencyException When the order names no currency: nothing is written.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function updateIfStatus(int $id, array $data, string $expectedStatus): int
     {
@@ -2086,7 +2086,7 @@ class ShipmentLedger
      *
      * @return array [ orderItemId => quantity ]
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function getItemQuantities(int $shipmentId): array
     {
@@ -2174,7 +2174,7 @@ class ShipmentLedger
      *
      * @return array [ orderItemId => unitsLeft ], omitting fully-shipped lines
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public static function remainingQuantities(int $orderId, int $exceptShipmentId = 0): array
     {
@@ -2258,7 +2258,7 @@ class ShipmentLedger
      *
      * @return array [ orderItemId => quantity ]
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function normaliseItemMap(array $items): array
     {
@@ -2319,7 +2319,7 @@ class ShipmentLedger
      *
      * @return bool True when some parcel already charges for shipping
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     private static function orderAlreadyChargesShipping(int $orderId): bool
     {

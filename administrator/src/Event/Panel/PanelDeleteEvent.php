@@ -19,7 +19,7 @@ namespace Alfa\Component\Alfa\Administrator\Event\Panel;
  * The plugin removes the given ids through its own service and declares the outcome on the
  * inherited fluent API (message + redirect).
  *
- * @since  1.7.0
+ * @since  2.0.0
  */
 class PanelDeleteEvent extends PanelResultEvent
 {
@@ -28,7 +28,7 @@ class PanelDeleteEvent extends PanelResultEvent
      *
      * @return int[]
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getIds(): array
     {

@@ -20,7 +20,7 @@
  *   $this->currencyRefusal  the sentence to state
  *   $this->statusName       the name of the order's status
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 
 defined('_JEXEC') or die;

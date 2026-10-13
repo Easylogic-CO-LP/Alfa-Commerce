@@ -37,13 +37,13 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  * Contribute side effects only; never echo, redirect or exit. Throwing does not bring the
  * records back either.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 final class AdminAfterDeleteEvent extends AlfaAdminEvent
 {
     /**
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const NAME = 'onAlfaAdminAfterDelete';
 }

@@ -37,7 +37,7 @@ defined('_JEXEC') or die;
  * Actions Log under the operator's account. The merchant can then answer which
  * cart, who, what and when, including for a cart since placed or purged.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartTakeover
 {
@@ -73,7 +73,7 @@ final class CartTakeover
      *
      * @throws CartPersistenceException When the database refuses the read.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function sourceOf(int $cartId): ?CartSource
     {
@@ -93,7 +93,7 @@ final class CartTakeover
      * @param CartSource $source The cart's source.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function authorized(User $actor, CartSource $source): bool
     {
@@ -126,7 +126,7 @@ final class CartTakeover
      * @param CartSource $source The cart's source.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function mayOperate(User $actor, int $cartId, CartSource $source): bool
     {
@@ -151,7 +151,7 @@ final class CartTakeover
      *
      * @return object{isShopperCart: bool, canTakeOver: bool, takenOver: bool, canOperate: bool}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function screen(User $actor, int $cartId, CartSource $source): object
     {
@@ -204,7 +204,7 @@ final class CartTakeover
      * @return string The token, or '' when there is no readable cart, which
      *                nothing can have confirmed.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function token(int $cartId): string
     {
@@ -223,7 +223,7 @@ final class CartTakeover
      * @param int $cartId The cart.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function confirm(int $cartId): void
     {
@@ -246,7 +246,7 @@ final class CartTakeover
      * @param int $cartId The cart.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function confirmed(int $cartId): bool
     {
@@ -280,7 +280,7 @@ final class CartTakeover
      *
      * @return bool True when a builder cart needed no record, or the row is written.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function record(CartSource $source, int $cartId, User $actor, string $operation, array $facts = []): bool
     {
@@ -304,7 +304,7 @@ final class CartTakeover
      * @param CartSource $source The cart's source.
      *
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public static function mayPriceCustom(User $actor, int $cartId, CartSource $source): bool
     {
@@ -347,7 +347,7 @@ final class CartTakeover
      * @param array $facts Scalar details for the sentence.
      *
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public static function recordAlways(int $cartId, User $actor, string $operation, array $facts = []): bool
     {
@@ -363,7 +363,7 @@ final class CartTakeover
      * @param array $facts Scalar details for the sentence.
      *
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     private static function write(int $cartId, User $actor, string $operation, array $facts): bool
     {
@@ -425,7 +425,7 @@ final class CartTakeover
      *
      * @throws RuntimeException When the record cannot be written.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function recordOrFail(CartSource $source, int $cartId, User $actor, string $operation, array $facts = []): void
     {
@@ -439,7 +439,7 @@ final class CartTakeover
      * Alfa row never records more than the merchant asked core to record.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function ip(): string
     {

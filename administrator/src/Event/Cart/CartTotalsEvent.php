@@ -38,7 +38,7 @@ defined('_JEXEC') or die;
  * `#__alfa_order_contributions`. With no listeners the cart costs exactly
  * what it costs today.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class CartTotalsEvent extends AbstractImmutableEvent
 {
@@ -51,7 +51,7 @@ class CartTotalsEvent extends AbstractImmutableEvent
      *
      * @var array<CartContribution|CartContributionBuilder>
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected array $contributions = [];
 
@@ -63,7 +63,7 @@ class CartTotalsEvent extends AbstractImmutableEvent
      * could read that total would be reading a number it is about to change.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getRequest(): ContributionRequest
     {
@@ -74,7 +74,7 @@ class CartTotalsEvent extends AbstractImmutableEvent
      * The cart's lines, as values.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getLines(): array
     {
@@ -95,7 +95,7 @@ class CartTotalsEvent extends AbstractImmutableEvent
      * was shaped to prevent, and handing over HydratedCart does not open it.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getCart(): Cart
     {
@@ -108,7 +108,7 @@ class CartTotalsEvent extends AbstractImmutableEvent
      * @param string $code Stable id for the line, e.g. 'signup_fee'.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function contribution(string $code): CartContributionBuilder
     {
@@ -121,7 +121,7 @@ class CartTotalsEvent extends AbstractImmutableEvent
      * @param CartContribution $contribution The declarative charge.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function add(CartContribution $contribution): void
     {
@@ -135,7 +135,7 @@ class CartTotalsEvent extends AbstractImmutableEvent
      *
      * @return CartContribution[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getContributions(): array
     {

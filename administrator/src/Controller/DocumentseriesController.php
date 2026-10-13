@@ -18,7 +18,7 @@ use Joomla\CMS\MVC\Controller\AdminController;
  *
  * Deletion of series with issued documents is refused by SeriesModel.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class DocumentseriesController extends AdminController
 {
@@ -31,7 +31,7 @@ class DocumentseriesController extends AdminController
      *
      * @return \Joomla\CMS\MVC\Model\BaseDatabaseModel
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getModel($name = 'Series', $prefix = 'Administrator', $config = ['ignore_request' => true])
     {

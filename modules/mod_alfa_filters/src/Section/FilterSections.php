@@ -43,7 +43,7 @@ defined('_JEXEC') or die;
  * GROUPING IS NOT HERE. Whether a field's values collapse into groups is decided once, in
  * that field's own type settings, and is deliberately not repeated per module.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class FilterSections
 {
@@ -51,7 +51,7 @@ final class FilterSections
      * Built-in sections that precede the item fields, in their natural order.
      *
      * @var string[]
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const FIXED_BEFORE = ['category', 'manufacturer'];
 
@@ -59,7 +59,7 @@ final class FilterSections
      * Built-in sections that follow the item fields, in their natural order.
      *
      * @var string[]
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const FIXED_AFTER = [
         'stock',
@@ -75,7 +75,7 @@ final class FilterSections
      * Key prefix marking a section as one item field's facet.
      *
      * @var string
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const FIELD_PREFIX = 'field:';
 
@@ -84,7 +84,7 @@ final class FilterSections
      * render with, so the composer names a section exactly as the storefront does.
      *
      * @var array<string, string>
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private const FIXED_LABELS = [
         'category' => 'MOD_ALFAFILTERS_FILTER_CATEGORY',
@@ -104,7 +104,7 @@ final class FilterSections
      * @param int $fieldId The item field id.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function fieldKey(int $fieldId): string
     {
@@ -122,7 +122,7 @@ final class FilterSections
      *
      * @return string[] Section keys in natural order.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function natural(array $fieldIds): array
     {
@@ -145,7 +145,7 @@ final class FilterSections
      *
      * @return array{order: string[], hidden: string[]}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function decode($raw): array
     {
@@ -200,7 +200,7 @@ final class FilterSections
      *
      * @return string[] Section keys to render, in order, hidden ones already removed.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function resolve(array $natural, $saved): array
     {
@@ -224,7 +224,7 @@ final class FilterSections
      *
      * @return string[] Every live section key, in resolved order.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function order(array $natural, $saved): array
     {
@@ -283,7 +283,7 @@ final class FilterSections
      * @param array<int, string> $fields fieldId => label, for the item-field sections.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function label(string $key, array $fields = []): string
     {
@@ -314,7 +314,7 @@ final class FilterSections
      *
      * @return array<int, string> fieldId => label, ordered.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function filterableFields(?DatabaseInterface $db = null, string $tag = ''): array
     {

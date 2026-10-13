@@ -35,7 +35,7 @@ defined('_JEXEC') or die;
  * engine-side field arrives when merchant redirect rules exist, travelling out of
  * the model through the same passback the eventId uses).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class SearchResult
 {
@@ -51,7 +51,7 @@ final class SearchResult
      *                           catalogue silently capped at 1000 is visible instead
      *                           of merely wrong.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly SearchEntity $entity = SearchEntity::ITEM,
@@ -88,7 +88,7 @@ final class SearchResult
      * The matched ids, in relevance order, in the result entity's domain.
      *
      * @return int[]
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function ids(): array
     {

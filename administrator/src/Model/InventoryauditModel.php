@@ -32,7 +32,7 @@ use UnexpectedValueException;
  * lines that keep held stock from being written off, and lists the stock movements an order
  * still owes once it has been served first.
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 class InventoryauditModel extends BaseDatabaseModel
 {
@@ -45,7 +45,7 @@ class InventoryauditModel extends BaseDatabaseModel
      * @return array{findings: array<string, array>, classifications: array<string, array>, scanned: array{units: int, rows: int}}
      *                                                                                                                             The integrity reader's report, inconsistencies and classifications grouped by category.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function getReport(): array
     {
@@ -73,7 +73,7 @@ class InventoryauditModel extends BaseDatabaseModel
      *
      * @throws UnexpectedValueException When no such resolution is recorded.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function getResolvedUnit(int $resolutionId): array
     {
@@ -106,7 +106,7 @@ class InventoryauditModel extends BaseDatabaseModel
      *
      * @return bool False as well when the product or the combination does not exist.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function isCurrentUnit(int $itemId, int $combinationId): bool
     {
@@ -149,7 +149,7 @@ class InventoryauditModel extends BaseDatabaseModel
      *
      * @return list<array{source_type: string, source_id: int}> In the order they were queued.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function owedMovements(int $orderId): array
     {
@@ -176,7 +176,7 @@ class InventoryauditModel extends BaseDatabaseModel
      *                     reports them on held stock.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function openLinesText(array $lines): string
     {

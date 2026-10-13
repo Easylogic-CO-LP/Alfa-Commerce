@@ -33,17 +33,17 @@ defined('_JEXEC') or die;
  * shoppers. Opting in is a statement that somebody thought about it.
  *
  * The shape follows PaymentsPlugin::supportsRecurring(), which has answered a
- * question of exactly this kind since 1.3.0 and is consumed the same way. No
+ * question of exactly this kind since 2.0.0 and is consumed the same way. No
  * method is named here and none ever should be: a policy that lists plugins by
  * name is a policy that is wrong as soon as somebody writes a new one.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class OperatorPaymentPolicy
 {
     /**
      * @var array<string, bool> Answers already reached this request.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static array $answers = [];
 
@@ -58,7 +58,7 @@ final class OperatorPaymentPolicy
      * @param string $type The payment method's plugin element (#__alfa_payments.type).
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function allows(string $type): bool
     {
@@ -102,7 +102,7 @@ final class OperatorPaymentPolicy
      * @param string $type The plugin element.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function isEnabled(string $type): bool
     {
@@ -132,7 +132,7 @@ final class OperatorPaymentPolicy
      *
      * @return array The same shape, minus what staff may not use.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function filter(array $methods): array
     {
@@ -147,7 +147,7 @@ final class OperatorPaymentPolicy
      * one process.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function forget(): void
     {

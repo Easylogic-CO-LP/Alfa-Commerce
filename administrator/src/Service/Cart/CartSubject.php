@@ -48,7 +48,7 @@ defined('_JEXEC') or die;
  * derived its subject from the ORDER's customer rather than the request. This
  * class is those two positions, applied to the cart.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartSubject
 {
@@ -58,7 +58,7 @@ final class CartSubject
      * @param int|null $currencyId Money context; null = whatever the request says.
      * @param int|null $placeId Place context; null = whatever the request says.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function __construct(
         private User $customer,
@@ -78,7 +78,7 @@ final class CartSubject
      * becomes a guest rather than a fatal.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function ambient(): self
     {
@@ -93,7 +93,7 @@ final class CartSubject
      * @param User $who The shopper.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function shopper(User $who): self
     {
@@ -107,7 +107,7 @@ final class CartSubject
      * @param User $actor Who is performing the operation.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function of(User $customer, User $actor): self
     {
@@ -134,7 +134,7 @@ final class CartSubject
      * @param User $actor The member of staff placing it.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function operator(User $customer, User $actor): self
     {
@@ -154,7 +154,7 @@ final class CartSubject
      * @param int|null $placeId The place, or null to keep the request's.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function withMoneyContext(?int $currencyId, ?int $placeId): self
     {
@@ -165,7 +165,7 @@ final class CartSubject
      * Is this an authorized operator placing an order for somebody else?
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function isOperatorPlacement(): bool
     {
@@ -177,7 +177,7 @@ final class CartSubject
      *
      * @return array{currency: int|null, place: int|null}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function moneyContext(): array
     {
@@ -194,7 +194,7 @@ final class CartSubject
      * such a claim, and gets verified.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function isAmbient(): bool
     {
@@ -205,7 +205,7 @@ final class CartSubject
      * Whose cart this is.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function customer(): User
     {
@@ -216,7 +216,7 @@ final class CartSubject
      * Who is operating on it.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function actor(): User
     {
@@ -227,7 +227,7 @@ final class CartSubject
      * The customer's account id, or 0 for a guest.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function customerId(): int
     {
@@ -238,7 +238,7 @@ final class CartSubject
      * The actor's account id, or 0 when nobody is signed in.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function actorId(): int
     {
@@ -249,7 +249,7 @@ final class CartSubject
      * Is this somebody operating their own cart?
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function isSelfService(): bool
     {
@@ -267,7 +267,7 @@ final class CartSubject
      * @param string $recognizeKey The recognition key the browser presented.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function owner(string $recognizeKey): CartOwner
     {
@@ -295,7 +295,7 @@ final class CartSubject
      * fromSession() returns on its own.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function priceContext(): PriceContext
     {

@@ -40,7 +40,7 @@ use Throwable;
  * A plugin that throws is logged and skipped, never allowed to empty the menu or break a
  * screen.
  *
- * @since  1.7.0
+ * @since  2.0.0
  */
 final class PanelDispatcher
 {
@@ -51,7 +51,7 @@ final class PanelDispatcher
      * plugin of their own.
      *
      * @var string
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public const PLATFORM_GROUP = 'alfa';
 
@@ -71,7 +71,7 @@ final class PanelDispatcher
      *
      * @throws Throwable When $silent is false and the owner's handler throws.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public static function toOwner(PanelIdentity $identity, AbstractEvent $event, string $method, bool $silent = true): AbstractEvent
     {
@@ -100,7 +100,7 @@ final class PanelDispatcher
      *
      * @return AbstractEvent The same event, after all plugins have (maybe) mutated it.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public static function broadcast(AbstractEvent $event, string $method): AbstractEvent
     {
@@ -138,7 +138,7 @@ final class PanelDispatcher
      *
      * @return object[] Rows of {folder, element}.
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     private static function plugins(): array
     {
@@ -161,7 +161,7 @@ final class PanelDispatcher
      * @param string $message The warning to record.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     private static function log(string $message): void
     {

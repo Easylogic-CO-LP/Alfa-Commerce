@@ -25,7 +25,7 @@
  * Display data:
  *   messages  array  the queued messages [{message, type}]; each message is HTML as the queue holds it
  *
- * @since  1.14.0
+ * @since  2.0.0
  */
 
 $messages = (array) ($displayData['messages'] ?? []);

@@ -165,7 +165,7 @@ final class Choice extends FormFieldsPlugin
      * @param mixed $value The param value: a string, or an uncollapsed {lang: text} map.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function inCurrentLanguage(mixed $value): string
     {

@@ -48,7 +48,7 @@ class PaymentmethodsController extends ApiController
      * Gate this resource on the 'payments' section access.xml already declares.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function aclSection(): string
     {
@@ -60,7 +60,7 @@ class PaymentmethodsController extends ApiController
      *
      * @return string[]
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function preserveOnPatch(): array
     {
@@ -78,7 +78,7 @@ class PaymentmethodsController extends ApiController
      *
      * @return static A BaseController object to support chaining.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function displayList()
     {

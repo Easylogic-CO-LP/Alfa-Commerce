@@ -54,7 +54,7 @@ use Throwable;
  * InventoryService::restore() now answers it for either caller. Translating
  * a document type into a kernel command is all this class does.
  *
- * @since  1.4.0
+ * @since  2.0.0
  */
 class StockBridge
 {
@@ -62,7 +62,7 @@ class StockBridge
      * How the inventory service opens a log sentence of its own. A refusal that
      * lists several problems says it once, before the first.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const SERVICE_PREFIX = 'Inventory: ';
 
@@ -70,7 +70,7 @@ class StockBridge
      * How the inventory service closes the log sentence of a command it refused.
      * As a clause of a list, the problem ends before it.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const SERVICE_CLOSING = '. Nothing was changed.';
 
@@ -108,7 +108,7 @@ class StockBridge
      * @throws RuntimeException When the effect would be rejected for
      *                          anything else.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public static function validateForIssue(string $docType, int $orderId, array $lines, bool $isCombined = false): void
     {
@@ -178,7 +178,7 @@ class StockBridge
      *
      * @return string The problem without the service's prefix and closing sentence.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function clause(string $text): string
     {
@@ -207,7 +207,7 @@ class StockBridge
      * @return array|null The command summary, or null when the type has
      *                    no stock effect / no anchorable lines.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     public static function applyForDocument(int $documentId, string $docType, int $orderId): ?array
     {
@@ -303,7 +303,7 @@ class StockBridge
      *
      * @return array|null The command summary, or null when no line anchors.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function applyFenced(object $db, int $documentId, string $effect): ?array
     {
@@ -370,7 +370,7 @@ class StockBridge
      *
      * @return array The CommitmentRequest / restore line arrays.
      *
-     * @since  1.4.0
+     * @since  2.0.0
      */
     private static function requestLines(array $lines): array
     {

@@ -47,7 +47,7 @@ use SimpleXMLElement;
  * @see \Alfa\Component\Alfa\Administrator\Rule\TelephoneRule for what is
  *      accepted, the region rules, and the messages a person reads.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class TelephoneField extends TextField
 {
@@ -55,7 +55,7 @@ class TelephoneField extends TextField
      * Field type id: must match the XML `type` and this file's name.
      *
      * @var string
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected $type = 'telephone';
 
@@ -66,7 +66,7 @@ class TelephoneField extends TextField
      *
      * @return bool
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function setup(SimpleXMLElement $element, $value, $group = null)
     {
@@ -107,7 +107,7 @@ class TelephoneField extends TextField
      *
      * @return string
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function getInput()
     {

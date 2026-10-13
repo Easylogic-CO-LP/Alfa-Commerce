@@ -44,7 +44,7 @@ class DiscountsController extends ApiController
      *
      * @return string[]
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function preserveOnPatch(): array
     {
@@ -62,7 +62,7 @@ class DiscountsController extends ApiController
      *
      * @return static A BaseController object to support chaining.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function displayList()
     {

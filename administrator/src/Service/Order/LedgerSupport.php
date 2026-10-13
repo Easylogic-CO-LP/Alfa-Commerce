@@ -78,7 +78,7 @@ trait LedgerSupport
      * Keys staged for writing, in the order they were staged.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected array $pluginDataSet = [];
 
@@ -87,7 +87,7 @@ trait LedgerSupport
      *
      * @var string[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected array $pluginDataRemove = [];
 
@@ -127,7 +127,7 @@ trait LedgerSupport
      *
      * @throws ValueException When a value cannot be stored.
      *
-     * @since  1.9.1
+     * @since  2.0.0
      */
     public function pluginData(array $data): static
     {
@@ -162,7 +162,7 @@ trait LedgerSupport
      * @param string[] $keys Keys to drop.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function removePluginData(array $keys): static
     {
@@ -192,7 +192,7 @@ trait LedgerSupport
      * a save whose ONLY change is a payload key is still a save.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function hasStagedPluginData(): bool
     {
@@ -206,7 +206,7 @@ trait LedgerSupport
      * the payload.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function stagePluginDataForCreate(): void
     {
@@ -238,7 +238,7 @@ trait LedgerSupport
      *
      * @return int|false Whatever the write returned.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function writeWithPluginData(int $id, Closure $write): int|false
     {
@@ -279,7 +279,7 @@ trait LedgerSupport
      *
      * @throws ValueException When what is stored cannot be read.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function mergeStagedPluginData(int $id): void
     {
@@ -321,7 +321,7 @@ trait LedgerSupport
      *
      * @throws ValueException When a key or value cannot be stored.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function assertStorable(array $data): void
     {
@@ -348,7 +348,7 @@ trait LedgerSupport
      *
      * @throws ValueException When the value cannot be stored.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function assertStorableValue(string $key, mixed $value, int $depth = 0): void
     {
@@ -406,7 +406,7 @@ trait LedgerSupport
      *
      * @throws ValueException When encoding fails after all.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function encodePayload(array $payload): string
     {
@@ -706,7 +706,7 @@ trait LedgerSupport
      *
      * @return string Plugin element, or '' if the method is gone
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function resolveMethodType(string $modelName, int $methodId): string
     {
@@ -781,7 +781,7 @@ trait LedgerSupport
      *
      * @throws OrderCurrencyException When the order names no currency.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function moneyForStorage(mixed $value, int $orderId, string $field): string|false
     {
@@ -840,7 +840,7 @@ trait LedgerSupport
      *
      * @return Money|null The same figure at the order's scale; null when finer.
      *
-     * @since 1.14.0
+     * @since 2.0.0
      */
     private static function frozenScaleMoney(Money $value, Currency $currency): ?Money
     {

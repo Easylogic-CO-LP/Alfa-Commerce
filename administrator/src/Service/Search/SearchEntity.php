@@ -41,28 +41,28 @@ defined('_JEXEC') or die;
  * two are orthogonal: a merchant may index brand names into products while no
  * manufacturer entity search exists at all.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 enum SearchEntity: string
 {
     /**
      * A product: a #__alfa_items row.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     case ITEM = 'item';
 
     /**
      * A category: a #__alfa_categories row.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     case CATEGORY = 'category';
 
     /**
      * A manufacturer: a #__alfa_manufacturers row.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     case MANUFACTURER = 'manufacturer';
 
@@ -74,7 +74,7 @@ enum SearchEntity: string
      *
      * @return string `products` | `categories` | `manufacturers`.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function sectionKey(): string
     {
@@ -97,7 +97,7 @@ enum SearchEntity: string
      *
      * @return bool True only for {@see self::ITEM}.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function recordsSearchAnalytics(): bool
     {
@@ -115,7 +115,7 @@ enum SearchEntity: string
      *
      * @return bool True only for {@see self::ITEM}.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function participatesInCommercialRanking(): bool
     {

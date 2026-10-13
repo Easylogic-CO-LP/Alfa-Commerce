@@ -22,7 +22,7 @@ use Joomla\Database\DatabaseDriver;
  * name/alias live in #__alfa_item_field_values_<langtag>; presentational
  * metadata (swatch color, images, ...) lives in the plugin-owned params JSON.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class ItemfieldvalueTable extends Table
 {
@@ -30,7 +30,7 @@ class ItemfieldvalueTable extends Table
      * Indicates that columns fully support the NULL value in the database
      *
      * @var bool
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected $_supportNullValue = true;
 
@@ -39,7 +39,7 @@ class ItemfieldvalueTable extends Table
      *
      * @param DatabaseDriver $db A database connector object
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct(DatabaseDriver $db)
     {

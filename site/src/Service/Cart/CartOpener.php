@@ -32,14 +32,14 @@ defined('_JEXEC') or die;
  * cart. It computes no total, writes no line and speaks to
  * no shopper of its own accord.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartOpener
 {
     /**
      * @param CartRepository|null $repository The store, or one the caller supplies.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(private readonly ?CartRepository $repository = null)
     {
@@ -50,7 +50,7 @@ final class CartOpener
      * @param CartSubject|null $subject Whose cart; the visitor's own when omitted.
      * @param CartResolution|null $mode What the operation may do; Mutable when omitted.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function open(int $cartId = 0, ?CartSubject $subject = null, ?CartResolution $mode = null): OpenedCart
     {

@@ -33,7 +33,7 @@ use BadMethodCallException;
  * browser return is untrusted input, and a dispatcher naming the order from it
  * would be choosing, on the carrier's behalf, which parcel a message is about.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class ShipmentResponseEvent extends ShipmentsRedirectEvent
 {
@@ -47,7 +47,7 @@ class ShipmentResponseEvent extends ShipmentsRedirectEvent
      *
      * @throws BadMethodCallException If 'subject' or 'method' is missing
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct($name, array $arguments = [])
     {
@@ -62,7 +62,7 @@ class ShipmentResponseEvent extends ShipmentsRedirectEvent
      *
      * @return Order|null The order, or null when unresolved
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getOrder(): ?Order
     {

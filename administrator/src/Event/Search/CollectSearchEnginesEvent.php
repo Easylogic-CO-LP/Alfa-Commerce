@@ -32,7 +32,7 @@ use Joomla\CMS\Event\AbstractEvent;
  * The typed signature IS the developer contract: a wrong type fails loudly at the
  * plugin rather than silently at selection time.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 class CollectSearchEnginesEvent extends AbstractEvent
 {
@@ -44,7 +44,7 @@ class CollectSearchEnginesEvent extends AbstractEvent
      * @param string $version The package version.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function addEngine(SearchEngineInterface $engine, string $element, string $version = ''): void
     {
@@ -64,7 +64,7 @@ class CollectSearchEnginesEvent extends AbstractEvent
      *
      * @return array<int, array{engine: SearchEngineInterface, element: string, version: string}>
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function getEngines(): array
     {

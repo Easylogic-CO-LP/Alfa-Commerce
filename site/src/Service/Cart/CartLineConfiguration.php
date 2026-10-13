@@ -29,11 +29,11 @@ defined('_JEXEC') or die;
  * already carries it. Framework-free: what the shopper is told about a
  * refusal is returned, not spoken.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartLineConfiguration
 {
-    /** @since 1.10.0 */
+    /** @since 2.0.0 */
     public function __construct(private readonly CartRepository $repository)
     {
     }
@@ -43,7 +43,7 @@ final class CartLineConfiguration
      *
      * @return array<int, array{value_id: ?int, payload: ?string}>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function rows(int $lineId): array
     {
@@ -64,7 +64,7 @@ final class CartLineConfiguration
      *
      * @return array{0: array, 1: array, 2: array, 3: array} [selection, optionValueIds, payloads, summary]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function of(object $item, int $lineId): array
     {
@@ -109,7 +109,7 @@ final class CartLineConfiguration
     /**
      * Whether a line belongs to a cart. A cart or line nobody has is nobody's.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function owned(int $cartId, int $lineId): bool
     {
@@ -124,7 +124,7 @@ final class CartLineConfiguration
      * A stored line's configuration, for re-opening it on the product page;
      * null when the line is not this cart's.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function edit(int $cartId, object $item, int $lineId): ?array
     {
@@ -145,7 +145,7 @@ final class CartLineConfiguration
      * The per-line tax breakdown the order freezes, priced under the given
      * context.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function breakdown(object $item, int $lineId, int $quantity, PriceContext $context): array
     {
@@ -160,7 +160,7 @@ final class CartLineConfiguration
      * Whether a request may become a line: the refusal to tell the shopper,
      * or null when it may.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function validate(object $item, ?int $combinationId, array $request, float $quantity): ?string
     {
@@ -186,7 +186,7 @@ final class CartLineConfiguration
      * @param array $files The uploads as posted, by field id.
      *
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function compositionRefusal(object $item, array $request, array $fullPayloads, array $files): ?string
     {
@@ -205,7 +205,7 @@ final class CartLineConfiguration
      * shopper.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function prepare(object $item, array $request, array $fullPayloads, array $files): array|string
     {
@@ -220,7 +220,7 @@ final class CartLineConfiguration
     /**
      * The selection rows a request stores as.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function rowsFor(object $item, array $request): array
     {
@@ -231,7 +231,7 @@ final class CartLineConfiguration
      * What makes two lines the same line: the same variant with the same
      * configuration.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function signature(?int $combinationId, array $rows): string
     {
@@ -249,7 +249,7 @@ final class CartLineConfiguration
     /**
      * The line of this cart that already carries a signature, or 0.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function find(int $cartId, int $itemId, string $signature): int
     {

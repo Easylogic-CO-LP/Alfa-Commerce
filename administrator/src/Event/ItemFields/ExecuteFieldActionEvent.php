@@ -24,7 +24,7 @@
  *       }
  *   }
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\ItemFields;
@@ -41,7 +41,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
     /**
      * The action id requested (e.g. 'configure', 'configure_save').
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getAction(): string
     {
@@ -51,7 +51,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
     /**
      * The surface: 'item' | 'combination' | 'option' | 'order'.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getScope(): string
     {
@@ -61,7 +61,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
     /**
      * The scope row id.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getScopeId(): int
     {
@@ -71,7 +71,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
     /**
      * The owning item id.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getItemId(): int
     {
@@ -81,7 +81,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
     /**
      * The field definition row.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getField(): object
     {
@@ -91,7 +91,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
     /**
      * Additional data sent from JS (e.g. a configure popup's form values).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getData(): array
     {
@@ -103,7 +103,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
     /**
      * @param bool $success Whether the action succeeded.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setSuccess(bool $success): static
     {
@@ -113,7 +113,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
     }
 
     /**
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function isSuccess(): bool
     {
@@ -123,7 +123,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
     /**
      * @param string $message Message for the admin.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setMessage(string $message): static
     {
@@ -133,7 +133,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
     }
 
     /**
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getMessage(): string
     {
@@ -143,7 +143,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
     /**
      * @param string $message Error message (marks the action failed).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setError(string $message): static
     {
@@ -156,7 +156,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
     /**
      * @param bool $refresh Reload the page after the action.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setRefresh(bool $refresh): static
     {
@@ -166,7 +166,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
     }
 
     /**
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getRefresh(): bool
     {
@@ -176,7 +176,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
     /**
      * @param string $url Redirect URL (overrides refresh).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setRedirectUrl(string $url): static
     {
@@ -186,7 +186,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
     }
 
     /**
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getRedirectUrl(): ?string
     {
@@ -201,7 +201,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setLayout(string $layout): static
     {
@@ -211,7 +211,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
     }
 
     /**
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getLayout(): string
     {
@@ -223,7 +223,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setLayoutData(array $data): static
     {
@@ -233,7 +233,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
     }
 
     /**
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getLayoutData(): array
     {
@@ -255,7 +255,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function addButton(string $label, array $opts = []): static
     {
@@ -275,7 +275,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
     /**
      * @return array The declared footer buttons.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getButtons(): array
     {
@@ -287,7 +287,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
      *
      * @return static For chaining.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setModalTitle(string $title): static
     {
@@ -297,7 +297,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
     }
 
     /**
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getModalTitle(): ?string
     {
@@ -309,7 +309,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
      *
      * @param string $html The rendered layout.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setHtml(string $html): static
     {
@@ -319,7 +319,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
     }
 
     /**
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getHtml(): ?string
     {
@@ -332,7 +332,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
      *
      * @param array $payload The result data.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function setPayload(array $payload): static
     {
@@ -342,7 +342,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
     }
 
     /**
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getPayload(): ?array
     {
@@ -352,7 +352,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
     /**
      * Serialize the OUTPUT fields to the JSON response array.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function toResponseArray(): array
     {
@@ -374,7 +374,7 @@ class ExecuteFieldActionEvent extends AbstractImmutableEvent implements ScopedFi
     }
 
     /**
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function toResponseJson(): string
     {

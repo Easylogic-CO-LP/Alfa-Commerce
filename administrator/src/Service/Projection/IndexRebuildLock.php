@@ -28,7 +28,7 @@ use Throwable;
  * Acquisition is non-blocking (timeout 0): a skipped rebuild is harmless
  * because the winning rebuild already wrote the current state.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 class IndexRebuildLock
 {
@@ -44,7 +44,7 @@ class IndexRebuildLock
     /**
      * @param DatabaseInterface|null $db Injected for testing; defaults to the container driver.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function __construct(?DatabaseInterface $db = null)
     {
@@ -58,7 +58,7 @@ class IndexRebuildLock
      *
      * @return bool True if the lock is now held (caller may proceed); false if
      *              another connection holds it (caller should skip).
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function acquire(int $itemId): bool
     {
@@ -88,7 +88,7 @@ class IndexRebuildLock
      *
      * @param int $itemId The item primary key.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function release(int $itemId): void
     {

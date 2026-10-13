@@ -26,7 +26,7 @@ defined('_JEXEC') or die;
  * placement puts nothing, so those went ungated. The command that placed
  * the order knows the method it was placed with, and the context carries it.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class PlacementEventContext
 {
@@ -36,7 +36,7 @@ final class PlacementEventContext
      * @param int $customerId The customer the order is for; 0 for a guest.
      * @param int $shipmentMethodId The shipment method the placement chose; 0 for none.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function __construct(
         public readonly int $cartId,

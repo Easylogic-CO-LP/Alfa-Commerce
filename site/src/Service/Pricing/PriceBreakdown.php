@@ -53,7 +53,7 @@ class PriceBreakdown
      * @param Money $amount The money that step now carries.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function restate(int $index, Money $amount): void
     {
@@ -71,7 +71,7 @@ class PriceBreakdown
      * How many steps the narrative holds: the index the next one will take.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function stepCount(): int
     {

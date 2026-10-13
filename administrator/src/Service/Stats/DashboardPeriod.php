@@ -32,31 +32,31 @@ use Throwable;
  * be a cache key with unbounded cardinality and a chart with no sensible label; three
  * named periods cover the week, the month and the quarter a shop is actually run by.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class DashboardPeriod
 {
     /**
      * @var string Where the choice is remembered.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const STATE_KEY = 'com_alfa.dashboard.days';
 
     /**
      * @var string The request variable the switcher's links carry.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const REQUEST_KEY = 'days';
 
     /**
      * @var int What a merchant sees before they have ever chosen.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const DEFAULT_DAYS = 30;
 
     /**
      * @var array<int, string> The windows offered, and the key that names each.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const OPTIONS = [
         7 => 'COM_ALFA_DASHBOARD_PERIOD_7',
@@ -73,7 +73,7 @@ final class DashboardPeriod
      *
      * @return int One of {@see self::OPTIONS}' keys.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function days(): int
     {
@@ -98,7 +98,7 @@ final class DashboardPeriod
      * for another.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function scope(): string
     {

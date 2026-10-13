@@ -25,7 +25,7 @@ use Joomla\Database\DatabaseQuery;
  * `$query->select(...)->from(...)->where(...)->order(...)`, and the shared model runs it
  * through native pagination. Read filter values from the state as `filter.<name>`.
  *
- * @since  1.7.0
+ * @since  2.0.0
  */
 class PanelListQueryEvent extends AbstractImmutableEvent
 {
@@ -33,7 +33,7 @@ class PanelListQueryEvent extends AbstractImmutableEvent
      * The (initially empty) query to build against the plugin's own table.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getQuery(): DatabaseQuery
     {
@@ -44,7 +44,7 @@ class PanelListQueryEvent extends AbstractImmutableEvent
      * The model state: read filter values as state 'filter.<name>'.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getState(): object
     {
@@ -55,7 +55,7 @@ class PanelListQueryEvent extends AbstractImmutableEvent
      * Who this request is for.
      *
      *
-     * @since  1.7.0
+     * @since  2.0.0
      */
     public function getIdentity(): PanelIdentity
     {

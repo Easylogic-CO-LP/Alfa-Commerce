@@ -24,7 +24,7 @@
  * Consumers: subscriptions plugin (activate/cancel on family entry), sales
  * documents plugin, vendor ledger accrual.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 
 namespace Alfa\Component\Alfa\Administrator\Event\Orders;
@@ -41,7 +41,7 @@ class OrderStatusChangeEvent extends AbstractImmutableEvent
      *
      * Row-level data only; listeners needing lines/payments query on demand.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getOrder(): Order
     {
@@ -51,7 +51,7 @@ class OrderStatusChangeEvent extends AbstractImmutableEvent
     /**
      * Status id the order left.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getPreviousStatusId(): int
     {
@@ -61,7 +61,7 @@ class OrderStatusChangeEvent extends AbstractImmutableEvent
     /**
      * Status id the order entered.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getNewStatusId(): int
     {
@@ -71,7 +71,7 @@ class OrderStatusChangeEvent extends AbstractImmutableEvent
     /**
      * The order just ENTERED the is_completed family (was not in it before).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function enteredCompleted(): bool
     {
@@ -81,7 +81,7 @@ class OrderStatusChangeEvent extends AbstractImmutableEvent
     /**
      * The order just ENTERED the is_cancelled family.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function enteredCancelled(): bool
     {
@@ -91,7 +91,7 @@ class OrderStatusChangeEvent extends AbstractImmutableEvent
     /**
      * The order just LEFT the is_completed family.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function leftCompleted(): bool
     {
@@ -101,7 +101,7 @@ class OrderStatusChangeEvent extends AbstractImmutableEvent
     /**
      * The order just LEFT the is_cancelled family (forced admin act).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function leftCancelled(): bool
     {
@@ -111,7 +111,7 @@ class OrderStatusChangeEvent extends AbstractImmutableEvent
     /**
      * Who drove the transition: "user:<id>" or "plugin:<element>".
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getActor(): string
     {
@@ -121,7 +121,7 @@ class OrderStatusChangeEvent extends AbstractImmutableEvent
     /**
      * Free-text transition note (may be '').
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getNote(): string
     {
@@ -131,7 +131,7 @@ class OrderStatusChangeEvent extends AbstractImmutableEvent
     /**
      * UTC SQL datetime the transition ran.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getTransitionTime(): string
     {

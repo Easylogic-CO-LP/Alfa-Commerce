@@ -162,8 +162,13 @@ class AlfaHelper
         $db->execute();
 
         // A single-value control posts a scalar and an "all" choice posts ''
-        // - both must reach the same rows as a multiselect would.
-        $data = array_values(array_filter((array) $data, static fn ($value): bool => $value !== '' && $value !== null));
+        // - both must reach the same rows as a multiselect would. Each id is
+        // written once: the link tables key on the pair, so a repeated id
+        // (e.g. [3, 3] through the API) would be refused by the database.
+        $data = array_values(array_unique(array_map(
+            'intval',
+            array_filter((array) $data, static fn ($value): bool => $value !== '' && $value !== null),
+        )));
 
         if ($data === [] && $assignZeroIdIfDataEmpty) {
             $data = [0];
@@ -508,7 +513,7 @@ class AlfaHelper
      *
      * @return bool True when a file was found and parsed.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function loadPluginLanguage(string $group, string $element): bool
     {
@@ -539,7 +544,7 @@ class AlfaHelper
      * "orders today" window covering another.
      *
      *
-     * @since   1.3.0
+     * @since   2.0.0
      */
     public static function shopTimezone(): DateTimeZone
     {
@@ -573,7 +578,7 @@ class AlfaHelper
      * @param bool $convertToUtc Whether the column stores UTC.
      *
      *
-     * @since   1.10.0
+     * @since   2.0.0
      */
     public static function applyDateRange(
         QueryInterface $query,
@@ -631,7 +636,7 @@ class AlfaHelper
      *
      * @var string[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const DATE_RANGE_PRESETS = [
         'today',
@@ -663,7 +668,7 @@ class AlfaHelper
      *
      * @return array{dStart: Date, dEnd: Date}|null Null for an unknown/empty preset.
      *
-     * @since   1.10.0
+     * @since   2.0.0
      */
     public static function buildDateRange(string $range): ?array
     {
@@ -731,7 +736,7 @@ class AlfaHelper
      *
      * @var array<string, string>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const PERMISSION_SECTIONS = [
         'item' => 'items',
@@ -796,7 +801,7 @@ class AlfaHelper
      *
      * @return string The section, e.g. 'items'.
      *
-     * @since   1.10.0
+     * @since   2.0.0
      */
     public static function permissionSection(string $name): string
     {
@@ -824,7 +829,7 @@ class AlfaHelper
      * @param \Joomla\CMS\User\User|null $user The user, or null for the current identity.
      *
      *
-     * @since   1.10.0
+     * @since   2.0.0
      */
     public static function can(string $section, string $action, ?\Joomla\CMS\User\User $user = null): bool
     {
@@ -846,7 +851,7 @@ class AlfaHelper
      *
      * @var string[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const LIST_SCREENS = [
         'items', 'categories', 'manufacturers', 'itemfields',
@@ -865,7 +870,7 @@ class AlfaHelper
      *
      * @var string[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const FORM_SCREENS = [
         'item', 'category', 'manufacturer', 'itemfield',
@@ -885,7 +890,7 @@ class AlfaHelper
      *
      * @var string[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const SELF_GUARDED_SCREENS = ['tools', 'toolsmedia', 'notifications', 'panel', 'action', 'inventoryaudit'];
 
@@ -895,7 +900,7 @@ class AlfaHelper
      *
      * @var array<string, string>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const TASK_ACTIONS = [
         'add' => 'create',
@@ -937,7 +942,7 @@ class AlfaHelper
      *
      * @var array<string, array{0: string, 1: string}>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const TASK_PERMISSIONS = [
         'carts.purge' => ['carts', 'delete'],
@@ -972,7 +977,7 @@ class AlfaHelper
      *
      * @var array<class-string, array<string, string>>
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const TASK_ALIASES = [
         \Joomla\CMS\MVC\Controller\AdminController::class => [
@@ -1000,7 +1005,7 @@ class AlfaHelper
      *
      * @var array<string, array{0: string, 1: string}> view => [request key, input filter]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const RECORD_KEYS = ['order' => ['id_order', 'string']];
 
@@ -1014,7 +1019,7 @@ class AlfaHelper
      *
      * @return int The record id, 0 for none.
      *
-     * @since   1.10.0
+     * @since   2.0.0
      */
     public static function recordId(string $view, \Joomla\Input\Input $input): int
     {
@@ -1042,7 +1047,7 @@ class AlfaHelper
      *
      * @return bool|null Null when Alfa has no such controller.
      *
-     * @since   1.10.0
+     * @since   2.0.0
      */
     public static function controllerRuns(string $controller, string $task): ?bool
     {
@@ -1084,7 +1089,7 @@ class AlfaHelper
      *
      * @return array{section: string, action: string}|null
      *
-     * @since   1.10.0
+     * @since   2.0.0
      */
     public static function screenPermission(string $view, string $layout = '', int $id = 0): ?array
     {
@@ -1110,7 +1115,7 @@ class AlfaHelper
      *
      * @return string The layout file's name, lower-cased; 'edit' for none.
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function recordLayout(string $layout): string
     {
@@ -1132,7 +1137,7 @@ class AlfaHelper
      * @param string $layout The requested layout.
      *
      *
-     * @since   1.14.0
+     * @since   2.0.0
      */
     public static function isRecordForm(string $view, string $layout): bool
     {
@@ -1155,7 +1160,7 @@ class AlfaHelper
      * @param \Joomla\CMS\User\User|null $user The user, or null for the current identity.
      *
      *
-     * @since   1.10.0
+     * @since   2.0.0
      */
     public static function mayOpenScreen(string $view, string $layout = '', int $id = 0, ?\Joomla\CMS\User\User $user = null): bool
     {
@@ -1190,7 +1195,7 @@ class AlfaHelper
      *
      * @return array{section: string, action: string}|null
      *
-     * @since   1.10.0
+     * @since   2.0.0
      */
     public static function taskPermission(string $task): ?array
     {
@@ -1231,7 +1236,7 @@ class AlfaHelper
      *
      * @return string The value with no trailing zeros, "0" for zero.
      *
-     * @since   1.10.0
+     * @since   2.0.0
      */
     public static function decimalDisplay(string|float|int|null $value): string
     {

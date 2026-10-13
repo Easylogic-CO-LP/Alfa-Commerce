@@ -41,7 +41,7 @@ use Throwable;
  * returned DocumentTypeProviderInterface. Idempotent: safe to run on
  * install scripts and from the Types-screen toolbar.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 final class DocumentTypeRegistry
 {
@@ -53,14 +53,14 @@ final class DocumentTypeRegistry
      * Registration is where a package finds out it is too long; the alternative is
      * a driver error at series creation or at issuance, which names no package.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public const ALIAS_MAX_LENGTH = 60;
 
     /**
      * The width of the stored pairing, in characters: `corrects` is varchar(1000).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public const CORRECTS_MAX_LENGTH = 1000;
 
@@ -96,13 +96,13 @@ final class DocumentTypeRegistry
 
     /**
      * @var string The provider element currently being synced; stamps implicit register() calls.
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private string $activeProvider = '';
 
     /**
      * @var string The synced provider's announced version.
-     * @since  1.8.0
+     * @since  2.0.0
      */
     private string $activeVersion = '';
 
@@ -114,7 +114,7 @@ final class DocumentTypeRegistry
      * @param string $alias The namespaced machine key (vendor.type).
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function type(string $alias): DocumentTypeBuilder
     {
@@ -140,7 +140,7 @@ final class DocumentTypeRegistry
      * @throws RuntimeException On any contract violation; atomic, never
      *                          half-writes.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function register(array $definition, string $provider = '', string $providerVersion = ''): object
     {
@@ -300,7 +300,7 @@ final class DocumentTypeRegistry
      *
      * @throws PairingRefusedException When the pairing breaks a rule; nothing is written.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function pairing(string $alias, string $family, array $corrects): string
     {
@@ -380,7 +380,7 @@ final class DocumentTypeRegistry
      *
      * @return int Number of rows disabled.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function disableByProvider(string $provider): int
     {
@@ -417,7 +417,7 @@ final class DocumentTypeRegistry
      *
      * @return string[] The provider elements that would change something, alphabetically.
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public function pendingProviders(): array
     {
@@ -497,7 +497,7 @@ final class DocumentTypeRegistry
      *
      * @return array{registered: string[], errors: array<string, string>}
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function syncProviders(): array
     {
@@ -574,7 +574,7 @@ final class DocumentTypeRegistry
      *
      * @return string[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function aliasesOf(string $provider): array
     {
@@ -596,7 +596,7 @@ final class DocumentTypeRegistry
      * @param int $typeId The registry row id.
      * @param array $names {langTag: text}.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function saveTranslations(int $typeId, array $names): void
     {
@@ -636,7 +636,7 @@ final class DocumentTypeRegistry
      * @param string $alias The type alias.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function loadRow(string $alias): ?object
     {
@@ -658,7 +658,7 @@ final class DocumentTypeRegistry
      * @param string $alias The type alias.
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function hasDocuments(string $alias): bool
     {
@@ -686,7 +686,7 @@ final class DocumentTypeRegistry
      *
      * @throws RuntimeException On an unknown value.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     private function enumValue(mixed $value, array $allowed, string $key, string $alias): string
     {

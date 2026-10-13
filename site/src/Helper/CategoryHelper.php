@@ -69,7 +69,7 @@ class CategoryHelper
      * after it (the version then reads the same), and a stock figure changed
      * outside the inventory service.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const COUNT_TREE_MAX_AGE = 300;
 
@@ -549,7 +549,7 @@ class CategoryHelper
      *
      * @return array The tree.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function cachedCountTree(CallbackController $cache, string $id, int $version, int $parentId, int $buildDepth): array
     {

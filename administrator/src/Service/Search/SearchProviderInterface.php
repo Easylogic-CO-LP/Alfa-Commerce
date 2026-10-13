@@ -20,7 +20,7 @@ defined('_JEXEC') or die;
  * Visibility / usergroup / price stay with the catalog query that filters these
  * candidates.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 interface SearchProviderInterface
 {
@@ -28,7 +28,7 @@ interface SearchProviderInterface
      * @param SearchQuery $query The normalised search request.
      *
      * @return SearchResult Candidate hits.
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function search(SearchQuery $query): SearchResult;
 }

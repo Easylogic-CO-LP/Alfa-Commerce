@@ -24,7 +24,7 @@ use Throwable;
  * combinations, media, categories and manufacturers, the same assembly the
  * product page renders from.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 class CatalogitemModel extends SiteItemModel
 {
@@ -41,7 +41,7 @@ class CatalogitemModel extends SiteItemModel
      *                          outside its publish window or not visible to
      *                          this identity.
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function getItem($pk = null): mixed
     {
@@ -91,7 +91,7 @@ class CatalogitemModel extends SiteItemModel
      * @param object $data The item being assembled.
      *
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     protected function buildBuyUrls(object $data): void
     {

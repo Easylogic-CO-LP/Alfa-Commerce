@@ -23,19 +23,19 @@ use Joomla\CMS\Table\Table;
  * form has no submit), so it takes {@see AlfaAdminModel}'s hooks (which is what
  * fires onAlfaAdminForm for entity 'cart') and adds nothing but the form load.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 class CartBuilderModel extends AlfaAdminModel
 {
     /**
      * @var string The language string prefix.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected $text_prefix = 'COM_ALFA';
 
     /**
      * @var string The entity a plugin targets with $context->targets('cart').
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'cart';
 
@@ -48,7 +48,7 @@ class CartBuilderModel extends AlfaAdminModel
      *
      * @return \Joomla\CMS\Form\Form|false
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getForm($data = [], $loadData = true)
     {
@@ -65,7 +65,7 @@ class CartBuilderModel extends AlfaAdminModel
      * @param array $options Configuration.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getTable($name = 'Cart', $prefix = 'Administrator', $options = []): Table
     {

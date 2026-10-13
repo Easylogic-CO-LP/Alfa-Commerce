@@ -32,7 +32,7 @@ defined('_JEXEC') or die;
  * reconciliation path states which of these it is and inherits the right
  * answer, instead of the reader growing a special case per caller.
  *
- * @since  1.11.0
+ * @since  2.0.0
  */
 enum ReconciliationIntent: string
 {
@@ -61,7 +61,7 @@ enum ReconciliationIntent: string
      * belong to this reconciliation.
      *
      *
-     * @since  1.11.0
+     * @since  2.0.0
      */
     public function ownsForeignLineMovements(): bool
     {

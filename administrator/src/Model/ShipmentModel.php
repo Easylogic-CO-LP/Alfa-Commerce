@@ -31,7 +31,7 @@ class ShipmentModel extends AlfaAdminModel
 {
     /**
      * @var string The entity a plugin targets with $context->targets('shipment').
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'shipment';
 

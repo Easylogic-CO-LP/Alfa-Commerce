@@ -29,7 +29,7 @@ use Joomla\CMS\Language\Text;
  * merchant could not select the engine they are in the middle of setting up, and
  * would have no way to see why the one they chose is not being used.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 class SearchEngineField extends ListField
 {
@@ -45,7 +45,7 @@ class SearchEngineField extends ListField
      *
      * @return object[]
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     protected function getOptions(): array
     {

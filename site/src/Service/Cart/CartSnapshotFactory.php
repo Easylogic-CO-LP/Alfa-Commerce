@@ -24,7 +24,7 @@ defined('_JEXEC') or die;
  * method-discovery callback: those are re-entrant. A snapshot is taken at a
  * settled boundary, after the cart is done being calculated.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartSnapshotFactory
 {
@@ -34,7 +34,7 @@ final class CartSnapshotFactory
      * @param array $paymentViews What each payment method asked to show, keyed by id.
      * @param array $shipmentViews The same for carriers.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function from(HydratedCart $state, CartComputation $computation, array $paymentViews = [], array $shipmentViews = []): CartSnapshot
     {

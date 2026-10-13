@@ -20,7 +20,7 @@ use Alfa\Component\Alfa\Site\Model\ItemsModel as SiteItemsModel;
  * window and allowed by CatalogAccessPolicy) with per-row pricing and the
  * resolved default combination.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 class CatalogitemsModel extends SiteItemsModel
 {
@@ -31,7 +31,7 @@ class CatalogitemsModel extends SiteItemsModel
      *
      * @return array
      *
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function getItems()
     {

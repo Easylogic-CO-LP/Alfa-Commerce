@@ -57,7 +57,7 @@ class Money
      * How a float is printed at a currency's scale, by scale. A float whose
      * print at the scale reads back as exactly it IS that decimal.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const PRINT_AT_SCALE = ['%.0F', '%.1F', '%.2F', '%.3F', '%.4F', '%.5F', '%.6F', '%.7F', '%.8F'];
 
@@ -69,7 +69,7 @@ class Money
      * a rounding, so an amount a little under a tie (256542587804.1246) would
      * be rounded to the tie first (.125) and past it second (.13).
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const FIFTEEN_REACH = [1.0E+13, 1.0E+12, 1.0E+11, 1.0E+10, 1.0E+9, 1.0E+8, 1.0E+7, 1.0E+6, 1.0E+5];
 
@@ -77,7 +77,7 @@ class Money
      * The largest denominator the integer scaling divides by: twice it still
      * fits an integer. A larger one is divided on its digits.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private const HALF_MAX = PHP_INT_MAX >> 1;
 
@@ -241,7 +241,7 @@ class Money
      * @throws InvalidArgumentException When the rate is not a plain decimal, the quantity is negative, or one
      *                                  unit or the line total does not fit in minor units.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function ofRateTimesQuantity(string $rate, int $quantity, Currency $currency): self
     {
@@ -316,7 +316,7 @@ class Money
      *
      * @return float The amount, expressible in that currency.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function roundToCurrency(string|int|float $amount, Currency $currency): float
     {
@@ -483,7 +483,7 @@ class Money
      * // A shop running EUR at four decimal places, order due 10.55:
      * Money::of(10.55, $eur4)->getMinorUnits(); // 105500 - internal, never a wire amount
      * Money::of(10.55, $eur4)->toScale(2);      // 1055   - what a cents gateway must receive
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function toScale(int $scale): int
     {
@@ -526,7 +526,7 @@ class Money
      *
      * @throws InvalidArgumentException When the quantity is not positive, or the amount does not fit at scale 8.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function perUnitAtMaxScale(int $quantity): float
     {
@@ -719,7 +719,7 @@ class Money
      * @example
      * $net   = $gross->timesRatio(numerator: 25, denominator: 31); // a gross at 24%, back to its net
      * $share = $saving->timesRatio(numerator: $quantity, denominator: $lineQuantity);
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function timesRatio(string|int|float $numerator, string|int|float $denominator): self
     {
@@ -764,7 +764,7 @@ class Money
      * @example
      * // The net of a discount on two lines, a quarter of the first already taken:
      * $net = $discount->timesRatioSum(terms: [[1000, 930, 1240], [806, 999, 999]], divisor: 1929);
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public function timesRatioSum(array $terms, int $divisor): self
     {
@@ -818,7 +818,7 @@ class Money
      *
      * @throws DivisionByZeroError When the denominator is zero.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function scaleCount(int $count, int $numerator, int $denominator): ?int
     {
@@ -930,7 +930,7 @@ class Money
      *
      * @example
      * $percent = Money::percentOf(part: $saving->getMinorUnits(), whole: $base->getMinorUnits());
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function percentOf(int|string $part, int|string $whole): float
     {
@@ -1637,7 +1637,7 @@ class Money
      *
      * @param string $text The text to trim.
      * @return string The text without leading or trailing blanks, including the non-breaking ones.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function trimBlanks(string $text): string
     {
@@ -1656,7 +1656,7 @@ class Money
      * @param Currency $currency The currency, for the message.
      * @return int The magnitude in minor units.
      * @throws InvalidArgumentException When it does not fit.
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private static function minorUnitsFromDigits(string $digits, string $original, Currency $currency): int
     {
@@ -1697,7 +1697,7 @@ class Money
      *
      * @throws InvalidArgumentException When the amount is more than minor units can hold.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function minorUnitsOf(bool $negative, string $integer, string $fraction, string $original, Currency $currency): int
     {
@@ -1740,7 +1740,7 @@ class Money
      *
      * @throws InvalidArgumentException When the value is not finite: an infinity and a not-a-number have no digits.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     public static function floatDigits(float $value, bool $shortest): array
     {
@@ -1786,7 +1786,7 @@ class Money
      *
      * @throws InvalidArgumentException When the operand is not a finite number.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function decimal(string|int|float $value): array
     {
@@ -1829,7 +1829,7 @@ class Money
      *
      * @throws InvalidArgumentException When the denominator is zero, or an operand is not a finite number.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function scaleByDecimals(int $count, string|int|float $numerator, string|int|float $denominator, int $shift): ?int
     {
@@ -1886,7 +1886,7 @@ class Money
      *
      * @return int|null The scaled count; null when it is more than an integer holds.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function scaleBySum(int $count, array $terms, int $divisor): ?int
     {
@@ -1956,7 +1956,7 @@ class Money
      *
      * @return int|null The scaled count; null when it is more than an integer holds.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function sumOnDigits(int $count, array $terms, int $divisor): ?int
     {
@@ -2010,7 +2010,7 @@ class Money
      *
      * @return int|null The scaled count; null when it is more than an integer holds.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function scaleOnDigits(bool $negative, string $count, string $numerator, string $denominator): ?int
     {
@@ -2062,7 +2062,7 @@ class Money
      *
      * @return string The digits of the product, with no leading zeros; '' is zero.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function digitsProduct(string $a, string $b): string
     {
@@ -2097,7 +2097,7 @@ class Money
      *
      * @return int Below zero, zero or above it, as the first is smaller, equal or larger.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function digitsCompare(string $a, string $b): int
     {
@@ -2112,7 +2112,7 @@ class Money
      *
      * @return string The digits of the sum, with no leading zeros; '' is zero.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function digitsPlus(string $a, string $b): string
     {
@@ -2139,7 +2139,7 @@ class Money
      *
      * @return string The digits of the difference, with no leading zeros; '' is zero.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function digitsMinus(string $a, string $b): string
     {
@@ -2165,7 +2165,7 @@ class Money
      *
      * @throws InvalidArgumentException When a ratio is not a finite number, or is larger than a weight can be.
      *
-     * @since  1.14.0
+     * @since  2.0.0
      */
     private static function wholeWeights(array $ratios): array
     {

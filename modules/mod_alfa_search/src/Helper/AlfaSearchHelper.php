@@ -104,7 +104,7 @@ class AlfaSearchHelper
      * @param Registry $params Module parameters.
      *
      *
-     * @since  1.6.0
+     * @since  2.0.0
      */
     private static function request(string $keyword, string $lang, Registry $params): CatalogSearchRequest
     {

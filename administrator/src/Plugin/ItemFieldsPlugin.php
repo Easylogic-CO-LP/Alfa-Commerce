@@ -61,7 +61,7 @@ use Joomla\Registry\Registry;
  *   $this->editItemConfig($itemId, $fieldId)->set('model', 'pencil')->save();
  *   $this->editVariantConfig('combination', $comboId, $fieldId, $itemId)->merge($x)->save();
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 abstract class ItemFieldsPlugin extends Plugin
 {
@@ -75,7 +75,7 @@ abstract class ItemFieldsPlugin extends Plugin
      * (only onItemView is shared across the three groups).
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public static function getSubscribedEvents(): array
     {
@@ -99,7 +99,7 @@ abstract class ItemFieldsPlugin extends Plugin
      * @param object $event ItemViewEvent (type-guard before acting)
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function onItemView($event): void
     {
@@ -117,7 +117,7 @@ abstract class ItemFieldsPlugin extends Plugin
      * @param object $event ItemListPrepareEvent (type-guard before acting)
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function onItemListPrepare($event): void
     {
@@ -131,7 +131,7 @@ abstract class ItemFieldsPlugin extends Plugin
      * @param object $event ItemsListPrepareEvent (type-guard before acting)
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function onItemsListPrepare($event): void
     {
@@ -143,7 +143,7 @@ abstract class ItemFieldsPlugin extends Plugin
      * @param object $event CartItemViewEvent (type-guard before acting)
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function onCartItemView($event): void
     {
@@ -158,7 +158,7 @@ abstract class ItemFieldsPlugin extends Plugin
      * @param object $event Cart view event (unused by item fields)
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function onCartView($event): void
     {
@@ -177,7 +177,7 @@ abstract class ItemFieldsPlugin extends Plugin
      * @param object $event GetFieldActionsEvent (type-guard before acting)
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function onGetFieldActions($event): void
     {
@@ -219,7 +219,7 @@ abstract class ItemFieldsPlugin extends Plugin
      * @param object $event ExecuteFieldActionEvent (type-guard before acting)
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function onExecuteFieldAction($event): void
     {
@@ -236,7 +236,7 @@ abstract class ItemFieldsPlugin extends Plugin
      * @param object $event CalculateItemPriceEvent
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function onCalculateItemPrice($event): void
     {
@@ -249,7 +249,7 @@ abstract class ItemFieldsPlugin extends Plugin
      * @param object $event ValidateCartAddEvent (type-guard before acting)
      *
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function onValidateCartAdd($event): void
     {
@@ -267,7 +267,7 @@ abstract class ItemFieldsPlugin extends Plugin
      *
      * @return FieldParams Builder: chain set()/merge(), finish with save().
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function editItemConfig(int $itemId, int $fieldId): FieldParams
     {
@@ -286,7 +286,7 @@ abstract class ItemFieldsPlugin extends Plugin
      *
      * @return FieldParams Builder: chain set()/merge(), finish with save().
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function editVariantConfig(string $scope, int $scopeId, int $fieldId, int $itemId): FieldParams
     {
@@ -301,7 +301,7 @@ abstract class ItemFieldsPlugin extends Plugin
      *
      * @return Registry Empty Registry when nothing is stored.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function getItemConfig(int $itemId, int $fieldId): Registry
     {
@@ -321,7 +321,7 @@ abstract class ItemFieldsPlugin extends Plugin
      *
      * @return Registry The merged effective config.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function getEffectiveConfig(string $scope, int $scopeId, int $fieldId, int $itemId): Registry
     {
@@ -340,7 +340,7 @@ abstract class ItemFieldsPlugin extends Plugin
      *
      * @return Registry Empty Registry when nothing is stored.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function getConfig(ScopedFieldEvent $event): Registry
     {
@@ -370,7 +370,7 @@ abstract class ItemFieldsPlugin extends Plugin
      *
      * @return bool True on success.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function saveConfig(ScopedFieldEvent $event, array $config): bool
     {
@@ -395,7 +395,7 @@ abstract class ItemFieldsPlugin extends Plugin
      *
      * @return string Absolute path of the layout file to include.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function getLayoutPath(string $layout = 'default'): string
     {
@@ -410,7 +410,7 @@ abstract class ItemFieldsPlugin extends Plugin
      *
      * @return int[] The field-definition ids (empty when none exist yet).
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     protected function fieldIds(): array
     {

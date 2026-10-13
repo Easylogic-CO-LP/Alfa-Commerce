@@ -37,7 +37,7 @@ use Joomla\CMS\MVC\View\FormView;
  * Adds nothing to the output on its own: with no plugin subscribed, every phase this base
  * introduces short-circuits before it builds anything.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 abstract class AlfaFormView extends FormView
 {
@@ -47,7 +47,7 @@ abstract class AlfaFormView extends FormView
      * This base is only ever an edit screen.
      *
      *
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected function alfaScreen(): string
     {

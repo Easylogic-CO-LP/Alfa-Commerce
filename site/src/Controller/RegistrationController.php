@@ -41,7 +41,7 @@ class RegistrationController extends FormController
      *
      * @return bool
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function allowAdd($data = [])
     {
@@ -56,7 +56,7 @@ class RegistrationController extends FormController
      *
      * @return bool
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     protected function allowEdit($data = [], $key = 'id')
     {
@@ -72,7 +72,7 @@ class RegistrationController extends FormController
      *
      * @throws NotAllowed Always.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function batch($model = null)
     {

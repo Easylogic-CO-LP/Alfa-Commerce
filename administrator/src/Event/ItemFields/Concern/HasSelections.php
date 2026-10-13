@@ -22,7 +22,7 @@ defined('_JEXEC') or die;
  * exactly requestSelection()'s parse. Both empty when nothing is chosen yet
  * (catalog price, first render).
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 trait HasSelections
 {
@@ -31,7 +31,7 @@ trait HasSelections
      *
      * @return array{sel: array<int, int>, opt: int[]}
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getSelections(): array
     {
@@ -49,7 +49,7 @@ trait HasSelections
      *
      * @return int[]
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function getSelectedValueIds(): array
     {

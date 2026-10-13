@@ -29,7 +29,7 @@ use SimpleXMLElement;
  * the inherit placeholder, the same wording the chain's select fields use.
  * Guarded at save by `validate="listLimit"` on every tier.
  *
- * @since  1.9.0
+ * @since  2.0.0
  */
 class ListLimitField extends NumberField
 {
@@ -47,7 +47,7 @@ class ListLimitField extends NumberField
      * @param string $group The field group control name
      *
      * @return bool True on success
-     * @since  1.9.0
+     * @since  2.0.0
      */
     public function setup(SimpleXMLElement $element, $value, $group = null)
     {

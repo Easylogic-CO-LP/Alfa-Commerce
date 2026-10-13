@@ -25,7 +25,7 @@ class PlacesModel extends AlfaListModel
 {
     /**
      * @var string The entity a plugin targets with $context->targets('place').
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'place';
     /**
@@ -164,7 +164,7 @@ class PlacesModel extends AlfaListModel
         $query->order('a.parent_id ASC');
 
         if ($orderCol && $orderDirn) {
-            $query->order($db->escape($orderCol . ' ' . $orderDirn));
+            $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDirn) === 'DESC' ? 'DESC' : 'ASC'));
         }
 
         return $query;

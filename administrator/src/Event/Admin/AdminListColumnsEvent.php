@@ -43,13 +43,13 @@ namespace Alfa\Component\Alfa\Administrator\Event\Admin;
  * rectangular no matter which rows have a value. after() names one of the screen's core column
  * keys; an unknown or omitted anchor puts the column after the last core one.
  *
- * @since  1.8.0
+ * @since  2.0.0
  */
 final class AdminListColumnsEvent extends AlfaAdminEvent
 {
     /**
      * @var string
-     * @since  1.8.0
+     * @since  2.0.0
      */
     public const NAME = 'onAlfaAdminListColumns';
 }

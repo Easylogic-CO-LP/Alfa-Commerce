@@ -26,7 +26,7 @@ class HtmlView extends BaseHtmlView
 {
     /**
      * @var string The entity a plugin targets with $context->targets('user').
-     * @since  1.8.0
+     * @since  2.0.0
      */
     protected string $alfaEntity = 'user';
 

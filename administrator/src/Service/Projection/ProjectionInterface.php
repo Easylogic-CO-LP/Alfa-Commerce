@@ -45,7 +45,7 @@ defined('_JEXEC') or die;
  * same commit, including projections contributed by installed extensions.
  * Declare it on your projection and it will be used automatically.
  *
- * @since  1.3.0
+ * @since  2.0.0
  */
 interface ProjectionInterface
 {
@@ -57,7 +57,7 @@ interface ProjectionInterface
      *
      * @param int $itemId The item primary key.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function syncItem(int $itemId): void;
 
@@ -70,7 +70,7 @@ interface ProjectionInterface
      *
      * @param int[] $itemIds The item primary keys.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function syncItems(array $itemIds): void;
 
@@ -86,7 +86,7 @@ interface ProjectionInterface
      *
      * @param int $itemId The item primary key.
      *
-     * @since  1.3.0
+     * @since  2.0.0
      */
     public function deleteForItem(int $itemId): void;
 }

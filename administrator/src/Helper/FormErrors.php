@@ -37,14 +37,14 @@ defined('_JEXEC') or die;
  * construction, not something Joomla built as a validation message. Nothing here
  * reads the text of an exception to decide what it is.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class FormErrors
 {
     /**
      * The exception classes Joomla itself constructs for a rejected field.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private const VALIDATION_CLASSES = [RuntimeException::class, UnexpectedValueException::class];
 
@@ -55,7 +55,7 @@ final class FormErrors
      *
      * @return array{messages: string[], failures: Throwable[]}
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function partition(array $errors): array
     {
@@ -87,7 +87,7 @@ final class FormErrors
      * @param Throwable[] $failures From partition().
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function detail(array $failures): string
     {

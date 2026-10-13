@@ -57,7 +57,7 @@ defined('_JEXEC') or die;
  * precisely so "the carrier told us nothing this time" and "there is no such
  * fact any more" stay distinguishable.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class PluginPayload
 {
@@ -65,7 +65,7 @@ final class PluginPayload
      * @param array $data The decoded payload.
      * @param string $source Where it came from, for error messages.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function __construct(
         private readonly array $data,
@@ -89,7 +89,7 @@ final class PluginPayload
      *
      * @throws ValueException When the column holds something that is not a payload.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function of(?string $json, string $source = ''): self
     {
@@ -131,7 +131,7 @@ final class PluginPayload
      * @param string $source What this is, for error messages.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function fromArray(array $data, string $source = ''): self
     {
@@ -144,7 +144,7 @@ final class PluginPayload
      * @param string $key The key.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function has(string $key): bool
     {
@@ -170,7 +170,7 @@ final class PluginPayload
      *
      * @throws ValueException When a present value will not convert.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function get(string $key, mixed $default = null, ?string $filter = null): mixed
     {
@@ -188,7 +188,7 @@ final class PluginPayload
      *
      * @throws ValueException When a present value is not a whole number.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getInt(string $key, ?int $default = null): ?int
     {
@@ -206,7 +206,7 @@ final class PluginPayload
      *
      * @throws ValueException When a present value will not convert.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getString(string $key, ?string $default = null): ?string
     {
@@ -224,7 +224,7 @@ final class PluginPayload
      *
      * @throws ValueException When a present value is not one of the spellings.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function getBool(string $key, ?bool $default = null): ?bool
     {
@@ -239,7 +239,7 @@ final class PluginPayload
      * @return mixed Null for a key that is absent AND for one stored as null;
      *               {@see self::has()} is what tells those apart.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function raw(string $key): mixed
     {
@@ -252,7 +252,7 @@ final class PluginPayload
      * @param string $key The key.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function describe(string $key): string
     {
@@ -264,7 +264,7 @@ final class PluginPayload
      *
      * @return string[]
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function keys(): array
     {
@@ -275,7 +275,7 @@ final class PluginPayload
      * Whether anything has been written here at all.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function isEmpty(): bool
     {
@@ -290,7 +290,7 @@ final class PluginPayload
      * operator. Reading one value is what {@see self::get()} is for.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function toArray(): array
     {

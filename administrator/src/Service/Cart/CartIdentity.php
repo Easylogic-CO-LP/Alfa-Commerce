@@ -24,7 +24,7 @@ defined('_JEXEC') or die;
  * no application state; those belong to whatever hydrates this, not to the
  * question of which row it is.
  *
- * @since  1.10.0
+ * @since  2.0.0
  */
 final class CartIdentity
 {
@@ -42,7 +42,7 @@ final class CartIdentity
      *                                  this identity came to mean this row,
      *                                  and it names the row it destroyed.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     private function __construct(
         public readonly int $cartId,
@@ -61,7 +61,7 @@ final class CartIdentity
      * @param AdoptionOutcome|null $adoption What adoption did, if it ran.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public static function of(
         int $cartId,
@@ -88,7 +88,7 @@ final class CartIdentity
      * @param int $cartId The row it now means.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function at(int $cartId): self
     {
@@ -99,7 +99,7 @@ final class CartIdentity
      * @param string $key The key this browser now carries.
      *
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function withRecognizeKey(string $key): self
     {
@@ -109,7 +109,7 @@ final class CartIdentity
     /**
      * @return bool Whether a cart was found or made.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function exists(): bool
     {
@@ -119,7 +119,7 @@ final class CartIdentity
     /**
      * @return bool Whether the caller named this exact cart and got it.
      *
-     * @since  1.10.0
+     * @since  2.0.0
      */
     public function isNamed(): bool
     {

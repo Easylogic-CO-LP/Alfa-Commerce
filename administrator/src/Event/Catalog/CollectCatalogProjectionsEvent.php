@@ -39,7 +39,7 @@ use Joomla\CMS\Event\AbstractEvent;
  * {@see VisibilityChangedEvent}, since nothing else will tell it that an allowlist
  * moved underneath the rows it stores.
  *
- * @since  1.5.0
+ * @since  2.0.0
  */
 class CollectCatalogProjectionsEvent extends AbstractEvent
 {
@@ -51,7 +51,7 @@ class CollectCatalogProjectionsEvent extends AbstractEvent
      * @param string $version The package version.
      *
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function addProjection(ProjectionInterface $projection, string $element, string $version = ''): void
     {
@@ -71,7 +71,7 @@ class CollectCatalogProjectionsEvent extends AbstractEvent
      *
      * @return array<int, array{projection: ProjectionInterface, element: string, version: string}>
      *
-     * @since  1.5.0
+     * @since  2.0.0
      */
     public function getProjections(): array
     {
