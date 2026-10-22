@@ -15,9 +15,12 @@ use Alfa\Component\Alfa\Administrator\Service\Catalog\CatalogAccessPolicy;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Field\ListField;
+use Throwable;
 
 class CategoriesField extends ListField
 {
+    use FailClosedOptionsTrait;
+
     protected $type = 'categories';
     protected $options = [];
 
@@ -40,12 +43,13 @@ class CategoriesField extends ListField
         // ... assigning categories) it is false, so NOTHING is disabled: those
         // forms don't pick a parent, so there is no node to exclude, and the
         // edited record's id isn't even from this tree.
-        $disableDescendants = $this->element['disableDescendants'] == 'true' ? true : false;
-        $showPath = $this->element['showPath'] == 'true' ? true : false;
-        $orderBy = $this->element['orderBy'] ?? 'name';
-        $orderDir = $this->element['orderDir'] ?? 'ASC';
-        $currentCategoryIdField = $this->element['currentIdField'] ?? 'id';
-        $modelName = $this->element['model'] ?? 'categories';
+        //
+        // Every attribute is read as a string. Joomla gives it as a SimpleXMLElement,
+        // which the list model's quoteName() of list.ordering turns into an array: the
+        // query failed and the picker listed nothing.
+        $disableDescendants = (string) ($this->element['disableDescendants'] ?? '') === 'true';
+        $showPath = (string) ($this->element['showPath'] ?? '') === 'true';
+        $currentCategoryIdField = (string) ($this->element['currentIdField'] ?? 'id');
 
         $this->options = parent::getOptions();
 
@@ -54,26 +58,14 @@ class CategoriesField extends ListField
         // Resolved once: a per-option membership test would be one query per category.
         $siteVisible = $app->isClient('site') ? self::visibleCategoryIds() : null;
         $parentOf = [];
-        $component = $app->bootComponent('com_alfa');
-        $factory = $component->getMVCFactory();
-        $model = $factory->createModel($modelName, 'Administrator');
+        $categories = $this->loadModelRows();
 
-        if (!$model) {
+        if ($categories === null) {
+            $this->reportOptionsNotLoaded();
+
             return $this->options;
         }
 
-        $model->getState('list.ordering');
-        $model->setState('filter.state', '*');
-        $model->setState('filter.search', '');
-        $model->setState('list.limit', '0');
-        // Without this the model inherits the REQUEST's limitstart (e.g. a
-        // paginated listing's ?start=4) and core getStart() divides by the 0
-        // limit above: a 500 on any deep listing page with the filter panel.
-        $model->setState('list.start', 0);
-        $model->setState('list.ordering', $orderBy);
-        $model->setState('list.direction', $orderDir);
-
-        $categories = $model->getItems();
         $currentCategoryId = $disableDescendants
             ? $this->form->getData()->get($currentCategoryIdField)
             : null;
@@ -184,6 +176,46 @@ class CategoriesField extends ListField
         }
 
         return $this->options;
+    }
+
+    /**
+     * The rows of the configured model (default 'categories'), in the order the form asks for.
+     *
+     * @return array|null The rows, empty when there are none; null when they could not be loaded.
+     *
+     * @since  2.1.0
+     */
+    protected function loadModelRows(): ?array
+    {
+        $modelName = (string) ($this->element['model'] ?? 'categories');
+        $orderBy = (string) ($this->element['orderBy'] ?? 'name');
+        $orderDir = (string) ($this->element['orderDir'] ?? 'ASC');
+
+        try {
+            $model = Factory::getApplication()->bootComponent('com_alfa')->getMVCFactory()->createModel($modelName, 'Administrator');
+
+            if (!$model) {
+                return null;
+            }
+
+            $model->getState('list.ordering');
+            $model->setState('filter.state', '*');
+            $model->setState('filter.search', '');
+            $model->setState('list.limit', '0');
+            // Without this the model inherits the REQUEST's limitstart (e.g. a
+            // paginated listing's ?start=4) and core getStart() divides by the 0
+            // limit above: a 500 on any deep listing page with the filter panel.
+            $model->setState('list.start', 0);
+            $model->setState('list.ordering', $orderBy);
+            $model->setState('list.direction', $orderDir);
+
+            $rows = $model->getItems();
+        } catch (Throwable) {
+            return null;
+        }
+
+        // A list model answers false when its query failed.
+        return \is_array($rows) ? $rows : null;
     }
 
     /**

@@ -30,6 +30,7 @@ use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryReservedFloorEx
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryService;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryUnitException;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
+use Alfa\Component\Alfa\Site\Service\Pricing\UnsavedItem;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\InputFilter;
 use Joomla\CMS\Language\Text;
@@ -1327,6 +1328,19 @@ class ItemController extends FormController
      * a Currency/Country/Group/User select or quantity tier changes, so the
      * editor never shows a stale context.
      *
+     * A product that has not been saved yet is asked for without an id, with
+     * the default category, categories and manufacturers its item form holds
+     * now (prices.js also asks again when one of them changes): the preview is
+     * the one the same product gives once saved with them. A saved product
+     * whose form holds other memberships than it has stored is asked for with
+     * its id and them, and is previewed the same way, the rest of it as stored;
+     * a request without them is answered from what is stored, as before.
+     * Without a category the form's product is refused with the reason, as a
+     * JSON answer; any other failure of the form's product's preview is answered
+     * with a fixed sentence and its exception logged (com_alfa.prices). A
+     * product not saved yet takes the right to create products, a saved one the
+     * right to edit them. Nothing is written.
+     *
      * @return void Emits JSON and closes the application.
      *
      * @since  2.0.0
@@ -1336,22 +1350,66 @@ class ItemController extends FormController
         $this->checkToken();
 
         $app = Factory::getApplication();
+        $itemId = $this->input->getInt('id', 0);
 
-        if (!AlfaHelper::can(section: 'items', action: 'edit', user: $app->getIdentity())) {
+        // The screen's own permission: a product not saved yet is being created, a saved one edited.
+        if (!AlfaHelper::can(section: 'items', action: $itemId > 0 ? 'edit' : 'create', user: $app->getIdentity())) {
             throw new RuntimeException(Text::_('JLIB_APPLICATION_ERROR_ACCESS_FORBIDDEN'), 403);
         }
 
-        $preview = \Alfa\Component\Alfa\Administrator\Field\AlfapricesField::rowPreview(
-            itemId: $this->input->getInt('id', 0),
-            row: [
-                'currency_id' => $this->input->getInt('currency_id', 0),
-                'country_id' => $this->input->getInt('country_id', 0),
-                'usergroup_id' => $this->input->getInt('usergroup_id', 0),
-                'user_id' => $this->input->getInt('user_id', 0),
-                'quantity_start' => $this->input->getString('quantity_start', ''),
-                'quantity_end' => $this->input->getString('quantity_end', ''),
-            ],
+        // The pricing context of the product as its item form holds it: always for a
+        // product not saved yet, for a saved one when the editor sends it.
+        $formContext = $itemId <= 0
+            || $this->input->exists('id_category_default')
+            || $this->input->exists('categories')
+            || $this->input->exists('manufacturers');
+        $unsaved = !$formContext ? null : UnsavedItem::fromForm(
+            defaultCategory: $this->input->getString('id_category_default', ''),
+            categories: $this->input->get('categories', [], 'array'),
+            manufacturers: $this->input->get('manufacturers', [], 'array'),
+            itemId: max(0, $itemId),
         );
+
+        if ($unsaved !== null && !$unsaved->hasCategory()) {
+            // The form's product with no category yet: the one refusal the editor
+            // shows as such (its with-tax price depends on the category's taxes).
+            $preview = new RuntimeException(Text::_('COM_ALFA_PRICES_FINAL_CATEGORY_FIRST'));
+        } else {
+            try {
+                $preview = \Alfa\Component\Alfa\Administrator\Field\AlfapricesField::rowPreview(
+                    itemId: $itemId,
+                    row: [
+                        'currency_id' => $this->input->getInt('currency_id', 0),
+                        'country_id' => $this->input->getInt('country_id', 0),
+                        'usergroup_id' => $this->input->getInt('usergroup_id', 0),
+                        'user_id' => $this->input->getInt('user_id', 0),
+                        'quantity_start' => $this->input->getString('quantity_start', ''),
+                        'quantity_end' => $this->input->getString('quantity_end', ''),
+                    ],
+                    unsaved: $unsaved,
+                );
+            } catch (RuntimeException $e) {
+                // A stored item's refusal stays the request's error; the form's
+                // product's is answered, and the editor shuts its with-tax box.
+                if ($unsaved === null) {
+                    throw $e;
+                }
+
+                // Answered with a fixed sentence and logged: the failure's own text
+                // (a failed query's SQL and table names among them) never reaches the page.
+                try {
+                    Log::add(
+                        sprintf('Price preview of item #%d (0: a product not saved yet) failed: %s: %s', $itemId, $e::class, $e->getMessage()),
+                        Log::ERROR,
+                        'com_alfa.prices',
+                    );
+                } catch (Throwable) {
+                    // The answer below holds whether or not the log can be written.
+                }
+
+                $preview = new RuntimeException(Text::_('COM_ALFA_PRICES_PREVIEW_FAILED'));
+            }
+        }
 
         $app->setHeader('Content-Type', 'application/json; charset=utf-8', true);
         $app->sendHeaders();

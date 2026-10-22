@@ -486,7 +486,12 @@ class OrdersModel extends AlfaListModel
         // used in the search WHERE clause. Everything else (status
         // names, method names, colors) comes from lookup tables in
         // getItems(); no point JOINing for 3-row reference tables.
-        $query->select($this->getState('list.select', 'DISTINCT a.*'));
+        //
+        // No DISTINCT: the one join is the editor by primary key and every filter is a
+        // WHERE (plugins: EXISTS only), so no order can appear twice. DISTINCT over a.*
+        // made the database build and sort every order before taking the page (66 ms at
+        // 17,000 orders; the page alone is read from the primary key in under 1 ms).
+        $query->select($this->getState('list.select', 'a.*'));
 
         // Last editor name (for checkout lock display)
         $query->select($db->quoteName('uc.name', 'editor'));
@@ -646,7 +651,7 @@ class OrdersModel extends AlfaListModel
      *   Totals:      order_total, order_total_tax_excl, items_total, shipping_total, etc.
      *   Status:      payment_status, fulfillment_status, payment_percentage, etc.
      *   Children:    _items[], _shipments[], _payments[], _discounts[]
-     *   Display:     order_total_money, formatted_date, order_age_days, etc.
+     *   Display:     order_total_money, balance_due_money, formatted_date, order_age_days, etc.
      *
      * @return array Fully enriched order items
      * @since  1.0.0
@@ -954,6 +959,11 @@ class OrdersModel extends AlfaListModel
                 $item->shipping_total_money = Money::of($totals->shipping_tax_incl, $currency);
                 $item->contributions_total_money = Money::of($totals->contributions_tax_incl, $currency);
                 $item->discount_total_money = Money::of($totals->discount_tax_incl, $currency);
+                // What is still due: the facts' own balance, the figure the
+                // order's totals card shows as Balance Due, never a second
+                // subtraction. None when nothing is due; an overpaid order
+                // shows what it showed before (since 2.1.0).
+                $item->balance_due_money = $facts->money->balance->isPositive() ? $facts->money->balance : null;
             }
         }
 

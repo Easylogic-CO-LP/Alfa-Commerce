@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Administrator\Extension;
 
 use Alfa\Component\Alfa\Administrator\Menu\MenuInjector;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
+use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Joomla\CMS\Association\AssociationServiceInterface;
 use Joomla\CMS\Association\AssociationServiceTrait;
 use Joomla\CMS\Component\Router\RouterServiceInterface;
@@ -77,6 +78,13 @@ class AlfaComponent extends MVCComponent implements RouterServiceInterface, Boot
         // Registration is an array write and creates no file until a line
         // actually fires, so this costs nothing on a request that logs nothing.
         AlfaLog::register();
+
+        // Maintenance (Clear everything): no feature plugin is loaded and no menu is placed,
+        // since both read the Alfa tables. The component still boots, so its router and its
+        // Clear everything page work.
+        if (MaintenanceState::active()) {
+            return;
+        }
 
         // Load the `alfa` FEATURE plugin group (subscriptions, bundle,
         // documents, ...) whenever the component boots: feature plugins

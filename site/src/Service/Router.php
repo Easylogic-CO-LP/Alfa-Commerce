@@ -13,6 +13,7 @@ namespace Alfa\Component\Alfa\Site\Service;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Joomla\CMS\Application\SiteApplication;
 use Joomla\CMS\Component\Router\RouterView;
@@ -21,8 +22,10 @@ use Joomla\CMS\Component\Router\Rules\MenuRules;
 use Joomla\CMS\Component\Router\Rules\NomenuRules;
 use Joomla\CMS\Component\Router\Rules\StandardRules;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Menu\AbstractMenu;
 use Joomla\Database\DatabaseInterface;
+use RuntimeException;
 
 /**
  * Alfa Component Router
@@ -115,10 +118,41 @@ class Router extends RouterView
 
         parent::__construct($app, $menu);
 
+        // Maintenance (Clear everything): the rules look items, categories and manufacturers up
+        // in the Alfa tables, so none is attached; links are built as plain query strings and
+        // the dispatcher answers them.
+        if (MaintenanceState::active()) {
+            return;
+        }
+
         // Attach routing rules
         $this->attachRule(new MenuRules($this));
         $this->attachRule(new StandardRules($this));
         $this->attachRule(new NomenuRules($this));
+    }
+
+    /**
+     * Parse the SEF segments of a storefront URL. In maintenance (Clear everything) no rule is
+     * attached, and the segments left over would make Joomla answer "not found" before the dispatcher
+     * could answer: the shop is answered as being maintained here, with the dispatcher's 503.
+     *
+     * @param array<mixed> $segments The URL's segments.
+     *
+     * @return array<string, mixed> The query values.
+     *
+     * @throws RuntimeException 503 while Alfa is in maintenance.
+     *
+     * @since  2.1.0
+     */
+    public function parse(&$segments)
+    {
+        if (MaintenanceState::active()) {
+            Factory::getApplication()->getLanguage()->load('com_alfa', JPATH_SITE);
+
+            throw new RuntimeException(Text::_('COM_ALFA_MAINTENANCE_STOREFRONT'), 503);
+        }
+
+        return parent::parse($segments);
     }
 
     // URL PREPROCESSING - Clean SEO URLs

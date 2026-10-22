@@ -562,6 +562,13 @@ final class CoreToolProvider
      * plain success: the tool is a manual catch-up, and the honest completion
      * message is the only scheduler it has.
      *
+     * THE PLAN MAKES THE MISSING LANGUAGE TABLES FIRST (2.1.0). A content language published
+     * without the language sync (from the Content Languages list, or by a language pack) has no
+     * language tables, and the fill leaves a language without them out: the run would say it
+     * completed and fill nothing in that language. The plan therefore runs the language sync, as
+     * Language tables does, and stops with its errors when a table could not be made; the chunks
+     * are later requests and fill the new tables.
+     *
      * @param ExecuteToolActionEvent $event The execution event.
      *
      *
@@ -570,6 +577,16 @@ final class CoreToolProvider
     private function backfillTranslations(ExecuteToolActionEvent $event): void
     {
         try {
+            if ($event->isPlanning()) {
+                $sync = SyncHelper::syncLanguageSchema();
+
+                if (!empty($sync['errors'])) {
+                    $event->setError(Text::sprintf('COM_ALFA_SYNC_LANGUAGES_ERRORS', implode(', ', array_keys($sync['errors']))));
+
+                    return;
+                }
+            }
+
             $db = Factory::getContainer()->get('DatabaseDriver');
             $schema = SyncHelper::getMultilingualSchema();
             $plan = [];

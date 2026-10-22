@@ -52,5 +52,9 @@ $esc = static fn ($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
                 <?php endforeach; ?>
             </div>
         <?php endforeach; ?>
+        <?php // Last in the body, so it sits right above the footer's Add button: Add writes the options in its
+              // own request (item.addOptions), so they need no product save. A product not saved yet has no id, and Add
+              // adds nothing for it (since 2.1.0; as the generator's line). ?>
+        <p class="tools-hint mb-0"><?php echo Text::_($itemId > 0 ? 'COM_ALFA_COMBI_OPTIONS_SAVED_AT_ONCE' : 'COM_ALFA_COMBI_OPTIONS_SAVE_PRODUCT_FIRST'); ?></p>
     </div>
 </div>

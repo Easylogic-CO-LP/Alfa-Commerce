@@ -17,11 +17,15 @@ use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
 use Alfa\Component\Alfa\Administrator\Service\Download\StoreProtection;
+use Alfa\Component\Alfa\Administrator\Service\Maintenance\FactoryReset;
+use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Dispatcher\ComponentDispatcher;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\BaseController;
 use Joomla\CMS\Plugin\PluginHelper;
+use Joomla\CMS\Router\Route;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -44,6 +48,27 @@ class Dispatcher extends ComponentDispatcher
         // Refused before any housekeeping below runs for a request that will not be served.
         // parent::dispatch() asks again; the answer is the same.
         $this->checkAccess();
+
+        // Maintenance (Clear everything): only the Clear everything page and its own requests are
+        // served, and none of the housekeeping below runs, since it reads the Alfa tables.
+        if (MaintenanceState::active()) {
+            if (!$this->isMaintenanceRequest()) {
+                if (
+                    $this->input->getCmd('format', 'html') === 'html'
+                    && FactoryReset::permitted(user: $this->app->getIdentity())
+                ) {
+                    $this->app->redirect(Route::_('index.php?option=com_alfa&view=cleardata', false));
+
+                    return;
+                }
+
+                throw new RuntimeException(Text::_('COM_ALFA_MAINTENANCE_ADMIN'), 503);
+            }
+
+            parent::dispatch();
+
+            return;
+        }
 
         // Register the item-fields plugins' getSubscribedEvents maps with the
         // GLOBAL dispatcher (bootPlugin() alone never does), so a field type
@@ -188,6 +213,26 @@ class Dispatcher extends ComponentDispatcher
         }
 
         return $controller;
+    }
+
+    /**
+     * Whether the request is one Alfa serves while in maintenance: the Clear everything page, or
+     * one of its requests (run, Try again, Continue anyway, Run again). Read the way
+     * {@see self::checkAccess()} reads the command.
+     *
+     * @since  2.1.0
+     */
+    private function isMaintenanceRequest(): bool
+    {
+        $command = strtolower($this->input->getCmd('task', ''));
+
+        if (str_contains($command, '.')) {
+            return \in_array($command, ['cleardata.run', 'cleardata.retry', 'cleardata.proceed', 'cleardata.resume'], true);
+        }
+
+        return ($command === '' || $command === 'display')
+            && strtolower($this->input->getCmd('view', '')) === 'cleardata'
+            && strtolower($this->input->getCmd('controller', '')) === '';
     }
 
     /**

@@ -90,5 +90,9 @@ foreach ($choiceFields as $choiceField) {
             </div>
         <?php endforeach; ?>
         </div>
+        <?php // Last in the body, so it sits right above the footer's Generate button: Generate writes the
+              // combinations in its own request (item.generateCombinations), so they need no product save. A
+              // product not saved yet has no id, and Generate creates nothing for it. ?>
+        <p class="tools-hint mb-0"><?php echo Text::_($itemId > 0 ? 'COM_ALFA_COMBI_GENERATE_SAVED_AT_ONCE' : 'COM_ALFA_COMBI_GENERATE_SAVE_PRODUCT_FIRST'); ?></p>
     </div>
 </div>

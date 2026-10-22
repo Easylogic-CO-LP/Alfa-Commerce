@@ -56,6 +56,8 @@ use Throwable;
  */
 class CheckoutfieldField extends ListField
 {
+    use FailClosedOptionsTrait;
+
     /**
      * Field type id: must match the XML `type` and this file's name.
      *
@@ -78,24 +80,44 @@ class CheckoutfieldField extends ListField
     /**
      * The shop's published checkout fields, narrowed by the XML attributes.
      *
-     * Degrades to the XML-declared options alone when the catalogue cannot be
-     * read: a picker that fails must cost the merchant this one dropdown, not
-     * the whole shipment-method edit form.
+     * When the catalogue cannot be read, the form still renders, with the
+     * XML-declared options alone and an error that says so, and the field
+     * refuses the save (FailClosedOptionsTrait): saving would clear the stored
+     * choice. A picker that fails costs the merchant this one dropdown, not the
+     * whole shipment-method edit form, and never the setting.
      *
      *
      * @since  1.0.0
      */
     protected function getOptions(): array
     {
-        try {
-            $options = $this->checkoutFields();
-        } catch (Throwable) {
+        $options = $this->loadModelRows();
+
+        if ($options === null) {
+            $this->reportOptionsNotLoaded();
+
             return parent::getOptions();
         }
 
         // XML <option> children (an explicit "- none -" entry, say) come first
         // and survive, exactly as every other house ListField behaves.
         return array_merge(parent::getOptions(), $options);
+    }
+
+    /**
+     * The checkout fields as options, or null when they could not be read.
+     *
+     * @return array|null The options, empty when no field matches.
+     *
+     * @since  2.1.0
+     */
+    protected function loadModelRows(): ?array
+    {
+        try {
+            return $this->checkoutFields();
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     /**

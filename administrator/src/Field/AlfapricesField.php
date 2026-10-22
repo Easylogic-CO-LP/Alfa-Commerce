@@ -12,13 +12,16 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 // No direct access
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceCalculator;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceComputationEngine;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceContext;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceDataLoader;
+use Alfa\Component\Alfa\Site\Service\Pricing\UnsavedItem;
 use Alfa\Component\Alfa\Site\Service\Pricing\VariantSelection;
+use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\FormField;
 use Joomla\CMS\Language\Text;
@@ -73,12 +76,42 @@ class AlfapricesField extends FormField
     protected function getInput()
     {
         $rows = is_array($this->value) ? $this->value : [];
+        $itemId = (int) $this->form->getValue('id');
 
         return self::renderPrices(
             controlBase: $this->name,
             rows: $rows,
-            itemId: (int) $this->form->getValue('id'),
+            itemId: $itemId,
+            storedMemberships: $itemId > 0 ? self::storedMemberships(itemId: $itemId) : null,
         );
+    }
+
+    /**
+     * The categories (the default one among them) and manufacturers a saved
+     * item has stored, as the editor compares them with its form's: ids
+     * ascending, comma-separated. The item form shown again after a refused
+     * save or a reload holds what was posted, not what is stored, so they are
+     * read from the link tables.
+     *
+     * @param int $itemId The saved item.
+     *
+     * @return array{categories: string, manufacturers: string}
+     *
+     * @since  2.1.0
+     */
+    private static function storedMemberships(int $itemId): array
+    {
+        $ids = static function (array $values): string {
+            $ids = array_values(array_unique(array_filter(array_map('intval', $values), static fn (int $id): bool => $id > 0)));
+            sort($ids);
+
+            return implode(',', $ids);
+        };
+
+        return [
+            'categories' => $ids(AlfaHelper::getAssocsFromDb($itemId, '#__alfa_items_categories', 'item_id', 'category_id')),
+            'manufacturers' => $ids(AlfaHelper::getAssocsFromDb($itemId, '#__alfa_items_manufacturers', 'item_id', 'manufacturer_id')),
+        ];
     }
 
     /**
@@ -88,12 +121,16 @@ class AlfapricesField extends FormField
      * @param array $rows Existing price rows (assoc arrays or objects).
      * @param bool $showModify Offer the per-row price/adjust mode (combination context).
      * @param int $itemId Item id; enables the live final-price (tax-inclusive) preview.
+     * @param array{categories: string, manufacturers: string}|null $storedMemberships The item editor of a saved
+     *                                                                                 item: its stored memberships,
+     *                                                                                 which the editor compares
+     *                                                                                 with its form's (2.1.0).
      *
      * @return string HTML
      *
      * @since  2.0.0
      */
-    public static function renderPrices(string $controlBase, array $rows, bool $showModify = false, int $itemId = 0): string
+    public static function renderPrices(string $controlBase, array $rows, bool $showModify = false, int $itemId = 0, ?array $storedMemberships = null): string
     {
         Factory::getApplication()->getDocument()->getWebAssetManager()
             ->useStyle('com_alfa.prices')
@@ -113,6 +150,7 @@ class AlfapricesField extends FormField
             'showModify' => $showModify,
             'options' => self::loadOptions(),
             'itemId' => $itemId,
+            'storedMemberships' => $storedMemberships,
             'preview' => static fn (array $row): array => self::rowPreview(itemId: $itemId, row: $row),
         ]);
     }
@@ -177,14 +215,15 @@ class AlfapricesField extends FormField
      *
      * @param int $itemId The item id.
      * @param array $row The price row values (empty = any context, one unit).
+     * @param PriceDataLoader|null $loader The loader of a product as its item form holds it; null for the stored item.
      *
      * @return array{base_net: float, base_sale: bool, tax_factor: float, lines: array<int, array>}
      *
      * @since  2.0.0
      */
-    private static function baseResolution(int $itemId, array $row): array
+    private static function baseResolution(int $itemId, array $row, ?PriceDataLoader $loader = null): array
     {
-        return (new PriceCalculator())->breakdownVariant(
+        return (new PriceCalculator(loader: $loader))->breakdownVariant(
             itemId: $itemId,
             quantity: self::previewQuantity(row: $row),
             selection: new VariantSelection(),
@@ -278,31 +317,63 @@ class AlfapricesField extends FormField
      * item base an ADJUST row applies its delta to, resolved under the same
      * dimensions (see baseNet()).
      *
-     * @param int $itemId The item id (0 = new item: neutral preview).
+     * A product as its item form holds it is previewed through $unsaved: the
+     * categories and manufacturers the form holds now stand in for the stored
+     * links, and the same loader queries and the same engine run on it
+     * (PriceDataLoader::forUnsavedItem()), so the answer is the one the product
+     * gives once it is saved with them. That is a product not saved yet ($itemId
+     * 0), and a saved product whose form holds other memberships than it has
+     * stored; everything else of a saved product, its price rows among them, is
+     * read as stored. The base of a product not saved yet is the engine's for a
+     * product with no stored price row; the base serves an adjust row only, and
+     * adjust rows belong to combinations, which a product gets once saved.
+     * Without $unsaved a new item gets the neutral preview the editor renders
+     * before it knows the item's categories, and a saved item its stored one.
+     *
+     * @param int $itemId The item id (0 = a product not saved yet).
      * @param array $row The price row values.
+     * @param UnsavedItem|null $unsaved The product as its item form holds it; its id is $itemId (0 when not saved yet).
      *
      * Public so ItemController::pricePreview() can serve LIVE coefficient
      * refreshes when a row's dimension selects change in the editor.
      *
      * For an existing item, a preview that cannot be computed is refused, never
      * answered with substitute figures (a tax factor of 1.0): the editors invert
-     * a typed Final with these figures and store the result.
+     * a typed Final with these figures and store the result. A product not saved
+     * yet, or a form, that has no category is refused for the same reason: no
+     * tax can be matched to it, and the item form cannot be saved without one.
      *
      * @return array{a: float, b: float, taxFactor: float, decimals: int, taxes: array, discounts: array, baseNet: float, baseSale: bool}
      *
-     * @throws RuntimeException When the row's currency, rules or base cannot be resolved.
+     * @throws RuntimeException When the row's currency, rules or base cannot be resolved, or the form's product has no category.
+     * @throws InvalidArgumentException When $unsaved is another product than $itemId.
      *
      * @since  2.0.0
      */
-    public static function rowPreview(int $itemId, array $row): array
+    public static function rowPreview(int $itemId, array $row, ?UnsavedItem $unsaved = null): array
     {
-        if ($itemId <= 0) {
+        $loader = null;
+        $subject = (string) $itemId;
+
+        if ($unsaved !== null) {
+            if ($unsaved->id() !== max(0, $itemId)) {
+                throw new InvalidArgumentException('The form\'s product is not the item previewed.');
+            }
+
+            if (!$unsaved->hasCategory()) {
+                throw new RuntimeException(Text::_('COM_ALFA_PRICES_FINAL_CATEGORY_FIRST'));
+            }
+
+            $itemId = $unsaved->id();
+            $loader = PriceDataLoader::forUnsavedItem(item: $unsaved);
+            $subject = $unsaved->cacheKey();
+        } elseif ($itemId <= 0) {
             return ['a' => 1.0, 'b' => 0.0, 'taxFactor' => 1.0, 'decimals' => 2, 'taxes' => [], 'discounts' => [], 'baseNet' => 0.0, 'baseSale' => false];
         }
 
         $quantity = self::previewQuantity(row: $row);
         $key = implode('-', [
-            $itemId,
+            $subject,
             (int) ($row['currency_id'] ?? 0),
             (int) ($row['country_id'] ?? 0),
             (int) ($row['usergroup_id'] ?? 0),
@@ -316,7 +387,7 @@ class AlfapricesField extends FormField
 
         $context = self::previewContext(row: $row);
 
-        $collection = (new PriceDataLoader())->loadBatch(productIds: [$itemId], context: $context);
+        $collection = ($loader ?? new PriceDataLoader())->loadBatch(productIds: [$itemId], context: $context);
         $discounts = $collection->getDiscountsFor($itemId);
         $taxes = $collection->getTaxesFor($itemId);
         $engine = new PriceComputationEngine();
@@ -371,7 +442,7 @@ class AlfapricesField extends FormField
         // The base an adjust row applies its delta to, under this same context
         // and quantity, and whether it is a sale (then the engine runs no regular
         // discount on the variant).
-        $resolution = self::baseResolution(itemId: $itemId, row: $row);
+        $resolution = self::baseResolution(itemId: $itemId, row: $row, loader: $loader);
         $preview['baseNet'] = (float) $resolution['base_net'];
         $preview['baseSale'] = (bool) $resolution['base_sale'];
 

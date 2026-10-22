@@ -21,6 +21,7 @@ use Alfa\Component\Alfa\Site\Service\Pricing\ExactMoneyRefusal;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Alfa\Component\Alfa\Site\Service\Pricing\StoredDecimal;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use RuntimeException;
 use stdClass;
@@ -300,8 +301,10 @@ final class CustomerCreditLedger
      * before a number is drawn. In order: the order has an account; that
      * account still exists; no administrator has blocked it; the note's
      * currency is the wallet's; the amount is positive at the wallet's scale;
-     * the amount is not above what the order can still give back once its
-     * notes that wait for their credit are set aside.
+     * no provider has reported a refund on the order that the books do not hold
+     * (the refund block, PaymentLedger::refundStartRefusal()); the amount is not
+     * above what the order can still give back once its notes that wait for
+     * their credit are set aside.
      *
      * A note not numbered yet will carry its order's currency, so the order's
      * is the one asked about. An order that names none gives no credit to an
@@ -365,6 +368,7 @@ final class CustomerCreditLedger
     {
         try {
             return self::accountRefusal(userId: $userId, orderId: $orderId, currencyId: $currencyId, currencyCode: $currencyCode, amount: $amount, header: null)
+                ?? \Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger::refundStartRefusal(orderId: $orderId)
                 ?? self::ceilingRefusal(
                     refundable: \Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger::refundableNow(orderId: $orderId),
                     amount:     $amount,
@@ -556,8 +560,10 @@ final class CustomerCreditLedger
      *                                         the order can still give back to it; when a void of
      *                                         the order's other waiting notes would make room for
      *                                         the note, also what the order keeps for them and
-     *                                         their numbers. Its hint is carried apart from the
-     *                                         reason.
+     *                                         their numbers; when the order's pending provider
+     *                                         refunds reserve part of what it collected, also
+     *                                         each reservation (since 2.1.0). Its hint is carried
+     *                                         apart from the reason.
      *
      * @since  2.0.0
      */
@@ -586,6 +592,14 @@ final class CustomerCreditLedger
         // a waiting note in takes the same money.
         $setAside = $refundable->subtract(other: $free);
 
+        // What the order's pending provider refunds reserve is already kept out
+        // of what it can give back (PaymentLedger::refundableNow()): the refusal
+        // names each reservation.
+        $reservations = \Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger::refundReservations(orderId: $orderId);
+        $reserved = $reservations['total']->isPositive()
+            ? ' ' . Text::sprintf('COM_ALFA_CREDIT_NOTE_RESERVED', $reservations['total']->format(), $reservations['list'])
+            : '';
+
         // The other notes are named only when a void of them makes room for
         // this one: the note fits what the order can still give back in all.
         // A note that is, alone, for more than that is refused whatever the
@@ -601,7 +615,7 @@ final class CustomerCreditLedger
                     $free->format(),
                     $setAside->format(),
                     implode(', ', $waiting->numbers),
-                ),
+                ) . $reserved,
                 hint:   self::GOODWILL_HINT,
             );
         }
@@ -615,7 +629,7 @@ final class CustomerCreditLedger
                 . 'money already refunded via payments cannot also become customer credit.',
                 $wanted->format(),
                 $refundable->format(),
-            ),
+            ) . $reserved,
             hint:   self::GOODWILL_HINT,
         );
     }
@@ -1018,6 +1032,15 @@ final class CustomerCreditLedger
                     $noteCeiling->format(),
                     \Alfa\Component\Alfa\Site\Service\Pricing\Money::of($amount, $refundable->getCurrency())->format(),
                 ));
+            }
+
+            // The refund block: a provider has reported a refund on this order
+            // that the books do not hold, and credit paid in now could pay the
+            // same money twice. Asked under the order lock, as the ceiling is.
+            $blocked = \Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger::refundStartRefusal(orderId: (int) $document->id_order);
+
+            if ($blocked !== null) {
+                throw new CreditNoteRefusedException(reason: $blocked);
             }
 
             // The order's ceiling, last

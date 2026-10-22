@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Service\Setup\AlfaVersion;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Version;
@@ -129,7 +130,7 @@ class IntegrityHelper
             return ['status' => 'unreachable', 'reason' => 'no_sodium'];
         }
 
-        $siteVersion = self::manifestVersion();
+        $siteVersion = AlfaVersion::installed()?->toString() ?? '';
 
         // Exact version first; only on a miss fall back to the "latest" pointer.
         $fellBack = false;
@@ -430,30 +431,6 @@ class IntegrityHelper
         } catch (Throwable) {
             return null;
         }
-    }
-
-    /**
-     * Read the current component version from the installed manifest.
-     *
-     * @return string The manifest <version>, or an empty string if unreadable.
-     *
-     * @since  1.0.0
-     */
-    private static function manifestVersion(): string
-    {
-        $manifestPath = JPATH_ADMINISTRATOR . '/components/com_alfa/alfa.xml';
-
-        if (!is_file($manifestPath)) {
-            return '';
-        }
-
-        $xml = @simplexml_load_file($manifestPath);
-
-        if ($xml === false) {
-            return '';
-        }
-
-        return trim((string) $xml->version);
     }
 
     /**

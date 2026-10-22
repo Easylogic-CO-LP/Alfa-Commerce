@@ -1,6 +1,6 @@
 {
     "uid": "com_alfa.sales-documents",
-    "version": 3,
+    "version": 4,
     "title": "COM_ALFA_GUIDEDTOUR_SALES_DOCUMENTS_TITLE",
     "description": "COM_ALFA_GUIDEDTOUR_SALES_DOCUMENTS_DESC",
     "extensions": [
@@ -64,9 +64,10 @@
             "url": "administrator/index.php?option=com_alfa&view=documents"
         },
         {
-            "title": "COM_ALFA_GUIDEDTOUR_SALES_DOCUMENTS_STEP_7_TITLE",
-            "description": "COM_ALFA_GUIDEDTOUR_SALES_DOCUMENTS_STEP_7_DESC",
-            "position": "bottom",
+            "title": "COM_ALFA_GUIDEDTOUR_SALES_DOCUMENTS_END_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_SALES_DOCUMENTS_END_DESC",
+            "position": "center",
+            "target": "",
             "type": 0,
             "url": "administrator/index.php?option=com_alfa&view=documents"
         }

@@ -1,6 +1,6 @@
 {
     "uid": "com_alfa.store-options",
-    "version": 2,
+    "version": 3,
     "ordering": 15,
     "title": "COM_ALFA_GUIDEDTOUR_STORE_OPTIONS_TITLE",
     "description": "COM_ALFA_GUIDEDTOUR_STORE_OPTIONS_DESC",
@@ -59,8 +59,8 @@
             "url": "administrator/index.php?option=com_config&view=component&component=com_alfa"
         },
         {
-            "title": "COM_ALFA_GUIDEDTOUR_STORE_OPTIONS_STEP_7_TITLE",
-            "description": "COM_ALFA_GUIDEDTOUR_STORE_OPTIONS_STEP_7_DESC",
+            "title": "COM_ALFA_GUIDEDTOUR_STORE_OPTIONS_END_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_STORE_OPTIONS_END_DESC",
             "position": "bottom",
             "target": "#toolbar",
             "type": 0,

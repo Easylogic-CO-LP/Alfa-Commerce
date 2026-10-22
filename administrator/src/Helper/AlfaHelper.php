@@ -13,11 +13,14 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 defined('_JEXEC') or die;
 
 //use \Joomla\CMS\Object\CMSObject;
+use Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount;
 use DateTimeZone;
 use Exception;
+use InvalidArgumentException;
 use Joomla\CMS\Date\Date;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\QueryInterface;
@@ -885,14 +888,15 @@ class AlfaHelper
     /**
      * Admin screens whose own display() checks a permission of its own: Tools and its media screen
      * (alfa.tools), Notifications (alfa.notifications.view), a plugin panel (its menu entry's
-     * action), the plugin action popup (the section the action works on) and the inventory audit
-     * (core.admin).
+     * action), the plugin action popup (the section the action works on), the inventory audit
+     * (core.admin), Reset to default (alfa.tools with core.admin), Clear everything
+     * (alfa.data.clear) and Tools > Extensions (alfa.tools; its actions check theirs).
      *
      * @var string[]
      *
      * @since  2.0.0
      */
-    public const SELF_GUARDED_SCREENS = ['tools', 'toolsmedia', 'notifications', 'panel', 'action', 'inventoryaudit'];
+    public const SELF_GUARDED_SCREENS = ['tools', 'toolsmedia', 'notifications', 'panel', 'action', 'inventoryaudit', 'resetdefaults', 'cleardata', 'extensions'];
 
     /**
      * What each standard Joomla list and record task does, as a permission verb. Alfa's own tasks
@@ -1253,5 +1257,32 @@ class AlfaHelper
         $trimmed = rtrim(rtrim($text, '0'), '.');
 
         return $trimmed === '' || $trimmed === '-' ? '0' : $trimmed;
+    }
+
+    /**
+     * A stored percentage as the back office prints it: its exact value, the padding zeros of
+     * its column dropped, a % sign after it ("5.00" is 5%, "2.50" 2.5%, "24.000" 24%,
+     * "13.330" 13.33%). Never rounded: every digit the value holds is shown.
+     *
+     * The decimal separator is the admin language's (Joomla's DECIMALS_SEPARATOR: 2.5% in
+     * English, 2,5% in Greek). Text that is stored, such as an order history line, passes '.'
+     * so it never depends on the language of whoever wrote it.
+     *
+     * Presentation only: a form input keeps the plain number.
+     *
+     * @param ExactAmount|string|int|float $value The percentage: a column's text, a number, or its exact amount.
+     * @param string|null $decimalSeparator The separator to print; null = the admin language's.
+     *
+     * @return string E.g. '5%', '2,5%', '13.33%', '0%'.
+     *
+     * @throws InvalidArgumentException When the value is not a number.
+     *
+     * @since  2.1.0
+     */
+    public static function percentDisplay(ExactAmount|string|int|float $value, ?string $decimalSeparator = null): string
+    {
+        $text = ($value instanceof ExactAmount ? $value : ExactAmount::ofNumber($value))->text();
+
+        return str_replace('.', $decimalSeparator ?? Text::_('DECIMALS_SEPARATOR'), $text) . '%';
     }
 }

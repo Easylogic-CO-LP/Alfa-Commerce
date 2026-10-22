@@ -1,6 +1,6 @@
 {
     "uid": "com_alfa.cart-rules",
-    "version": 4,
+    "version": 5,
     "ordering": 190,
     "title": "COM_ALFA_GUIDEDTOUR_CART_RULES_TITLE",
     "description": "COM_ALFA_GUIDEDTOUR_CART_RULES_DESC",
@@ -164,8 +164,8 @@
             "url": "administrator/index.php?option=com_alfa&view=cartrule&layout=edit"
         },
         {
-            "title": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_20_TITLE",
-            "description": "COM_ALFA_GUIDEDTOUR_CART_RULES_STEP_20_DESC",
+            "title": "COM_ALFA_GUIDEDTOUR_CART_RULES_END_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_CART_RULES_END_DESC",
             "position": "bottom",
             "target": "#toolbar",
             "type": 0,

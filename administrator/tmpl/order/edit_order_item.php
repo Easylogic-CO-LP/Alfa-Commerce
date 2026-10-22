@@ -31,6 +31,7 @@
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\ItemSurface;
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PluginLayoutHelper;
 use Alfa\Component\Alfa\Administrator\Service\Order\ManualDiscountScope;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
@@ -247,10 +248,10 @@ $this->getDocument()->addScriptOptions('com_alfa.orderItem', [
                     <dd class="col-6 text-end mb-1"><?php echo $this->escape($formatUnit($this->orderItem->unit_price_tax_incl_stored, $this->orderItem->total_price_tax_incl ?? null, $storedCustom)); ?>
                         <span class="text-muted">(<?php echo $this->escape($formatUnit($this->orderItem->unit_price_tax_excl_stored, $this->orderItem->total_price_tax_excl ?? null)); ?>)</span></dd>
                     <dt class="col-6"><?php echo Text::_('COM_ALFA_ORDER_ITEM_DISCOUNT'); ?></dt>
-                    <dd class="col-6 text-end mb-1"><?php echo $this->escape(number_format((float) ($this->orderItem->discount_percent ?? 0), 2)); ?>%
+                    <dd class="col-6 text-end mb-1"><?php echo $this->escape(AlfaHelper::percentDisplay(value: $this->orderItem->discount_percent ?? 0)); ?>
                         <span class="text-muted">(<?php echo $this->escape($format($this->orderItem->discount_amount_tax_incl ?? null)); ?>)</span></dd>
                     <dt class="col-6"><?php echo Text::_('COM_ALFA_FORM_LBL_TAX_RATE'); ?></dt>
-                    <dd class="col-6 text-end mb-1"><?php echo $this->escape(number_format((float) ($this->orderItem->tax_rate ?? 0), 3)); ?>%</dd>
+                    <dd class="col-6 text-end mb-1"><?php echo $this->escape(AlfaHelper::percentDisplay(value: $this->orderItem->tax_rate ?? 0)); ?></dd>
                     <dt class="col-6"><?php echo Text::_('COM_ALFA_ORDER_ITEM_LINE_TOTAL'); ?></dt>
                     <dd class="col-6 text-end mb-1"><strong><?php echo $this->escape($format($this->orderItem->total_price_tax_incl ?? null)); ?></strong></dd>
                 </dl>

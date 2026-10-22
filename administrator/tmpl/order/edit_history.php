@@ -12,7 +12,10 @@
  * Single data source: order_activity_log (unified event table)
  * Every event has a status snapshot; no separate status table needed.
  *
- * Data: $this->activityLog (from OrderModel::getOrderActivityLog())
+ * Data: $this->activityLog (from OrderModel::getOrderActivityLog()), newest
+ * first. Each line is read from its stored event and context through
+ * OrderHistoryHelper::line(); the stored summary where the context lacks the
+ * facts.
  *
  * @package    Alfa Commerce
  * @since  1.0.0
@@ -20,6 +23,7 @@
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\OrderHistoryHelper;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentMoney;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\HTML\HTMLHelper;
@@ -132,7 +136,7 @@ $actionColors = [
 										$this->escape((string) ($context['corrected'] ?? '')),
 									); ?>
 								<?php else : ?>
-									<?php echo $this->escape($entry->summary); ?>
+									<?php echo $this->escape(OrderHistoryHelper::line($entry, $this->order)); ?>
 								<?php endif; ?>
                             </div>
 

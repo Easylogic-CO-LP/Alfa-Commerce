@@ -12,6 +12,8 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataExtensions;
+use Alfa\Component\Alfa\Administrator\Service\Setup\AlfaVersion;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\FormField;
@@ -243,68 +245,50 @@ class AboutField extends FormField
     }
 
     /**
-     * Facts read from the installed manifest: the release on disk and the
-     * update server it announces.
+     * Facts read from the installed manifest: the release on disk, through the
+     * one reader of the installed version ({@see AlfaVersion}), and the update
+     * server it announces.
      *
      * @return array{version: string, server: string} Empty strings when the manifest cannot be read
      * @since  2.0.0
      */
     private function manifest(): array
     {
-        $xml = @simplexml_load_file(JPATH_ADMINISTRATOR . '/components/com_alfa/alfa.xml');
+        $xml = @simplexml_load_file(JPATH_ROOT . '/' . AlfaVersion::MANIFEST);
 
         return [
-            'version' => $xml ? trim((string) $xml->version) : '',
+            'version' => AlfaVersion::installed()?->toString() ?? '',
             'server' => $xml && isset($xml->updateservers->server) ? trim((string) $xml->updateservers->server) : '',
         ];
     }
 
     /**
-     * Every installed Alfa extension (the component, the plugins in the
-     * `alfa*` folders, the `mod_alfa*` modules and the `pkg_alfa*` packages)
-     * with the version each registered on install.
+     * Every installed Alfa extension, as {@see ClearDataExtensions::installed()} lists them for Tools >
+     * Extensions too (one listing): the component, the packages, the plugins of the `alfa*` groups or
+     * an `Alfa\` namespace, the modules, with the version each registered on install.
      *
-     * @return object[] Rows with id, kind, type, version, enabled; component first
+     * @return object[] Rows with extension_id, id, kind, type, version, enabled; component first
      * @since  2.0.0
      */
     private function installedExtensions(): array
     {
-        $db = Factory::getContainer()->get(DatabaseInterface::class);
-        $query = $db->getQuery(true)
-            ->select($db->quoteName(['type', 'element', 'folder', 'client_id', 'enabled', 'manifest_cache']))
-            ->from($db->quoteName('#__extensions'))
-            ->where($db->quoteName('state') . ' = 0')
-            ->extendWhere('AND', [
-                '(' . $db->quoteName('type') . ' = ' . $db->quote('component')
-                    . ' AND ' . $db->quoteName('element') . ' = ' . $db->quote('com_alfa') . ')',
-                '(' . $db->quoteName('type') . ' = ' . $db->quote('plugin')
-                    . ' AND ' . $db->quoteName('folder') . ' LIKE ' . $db->quote('alfa%') . ')',
-                '(' . $db->quoteName('type') . ' = ' . $db->quote('module')
-                    . ' AND ' . $db->quoteName('element') . ' LIKE ' . $db->quote($db->escape('mod_alfa', true) . '%') . ')',
-                '(' . $db->quoteName('type') . ' = ' . $db->quote('package')
-                    . ' AND ' . $db->quoteName('element') . ' LIKE ' . $db->quote($db->escape('pkg_alfa', true) . '%') . ')',
-            ], 'OR');
-
-        $rows = $db->setQuery($query)->loadObjectList() ?: [];
-        $rank = ['component' => 0, 'package' => 1, 'plugin' => 2, 'module' => 3];
-
-        foreach ($rows as $row) {
-            $cache = json_decode((string) $row->manifest_cache, true) ?: [];
-            $row->version = trim((string) ($cache['version'] ?? ''));
-            $row->enabled = (int) $row->enabled === 1;
-            $row->id = $row->type === 'plugin' ? $row->folder . '/' . $row->element : $row->element;
-            $row->kind = match ($row->type) {
+        return array_map(static fn (array $row): object => (object) [
+            'extension_id' => $row['extension_id'],
+            'type' => $row['type'],
+            'element' => $row['element'],
+            'folder' => $row['folder'],
+            'client_id' => $row['client_id'],
+            'version' => $row['version'],
+            'enabled' => $row['enabled'],
+            'id' => $row['type'] === 'plugin' ? $row['folder'] . '/' . $row['element'] : $row['element'],
+            'kind' => match ($row['type']) {
                 'component' => 'Component',
                 'package' => 'Package',
                 'plugin' => 'Plugin',
-                'module' => (int) $row->client_id === 1 ? 'Module (administrator)' : 'Module (site)',
-                default => ucfirst($row->type),
-            };
-        }
-
-        usort($rows, static fn ($a, $b) => [$rank[$a->type] ?? 9, $a->id] <=> [$rank[$b->type] ?? 9, $b->id]);
-
-        return $rows;
+                'module' => $row['client_id'] === 1 ? 'Module (administrator)' : 'Module (site)',
+                default => ucfirst($row['type']),
+            },
+        ], ClearDataExtensions::installed());
     }
 
     /**
@@ -349,12 +333,17 @@ class AboutField extends FormField
         $newest = '';
 
         foreach ($db->setQuery($query)->loadColumn() ?: [] as $version) {
-            if ($newest === '' || version_compare($version, $newest, '>')) {
-                $newest = $version;
+            // A row without a version names no release.
+            if (trim((string) $version) === '') {
+                continue;
+            }
+
+            if ($newest === '' || AlfaVersion::of(version: (string) $version)->isNewerThan(other: $newest)) {
+                $newest = (string) $version;
             }
         }
 
-        if ($newest === '' || ($installed !== '' && !version_compare($newest, $installed, '>'))) {
+        if ($newest === '' || ($installed !== '' && !AlfaVersion::of(version: $newest)->isNewerThan(other: $installed))) {
             return '';
         }
 

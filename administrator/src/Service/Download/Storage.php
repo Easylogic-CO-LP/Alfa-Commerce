@@ -345,6 +345,56 @@ class Storage
     }
 
     /**
+     * The files the store root holds for its protection, which no object is ever named like.
+     *
+     * @var string[]
+     *
+     * @since  2.1.0
+     */
+    public const GUARD_FILES = ['.htaccess', 'web.config', 'index.html'];
+
+    /**
+     * The root {@see self::root()} resolves to, without recording or creating anything: the
+     * Options path when one is set, else the recorded root, else null (no store was ever set up).
+     *
+     * For Clear everything, which has to know where the store is before the configuration that
+     * says so is removed.
+     *
+     * @since  2.1.0
+     */
+    public static function currentRoot(): ?string
+    {
+        $configured = rtrim(trim((string) ComponentHelper::getParams('com_alfa')->get('downloads_storage_path', '')), '/\\');
+
+        return $configured !== '' ? $configured : self::recordedRoot();
+    }
+
+    /**
+     * Whether a path relative to the store root is the place of an object: `aa/bb/<key>`, the
+     * two byte-pairs of a 64-hex key and the key. Everything else in a store root (its guard
+     * files, anything a person put there) is not an object of the store.
+     *
+     * @param string $relative A path relative to the store root, with forward slashes.
+     *
+     * @since  2.1.0
+     */
+    public static function isObjectPath(string $relative): bool
+    {
+        return (bool) preg_match('#^([a-f0-9]{2})/([a-f0-9]{2})/\1\2[a-f0-9]{60}$#', $relative);
+    }
+
+    /**
+     * Forget the recorded root this request read, so the next read asks the database again.
+     * Clear everything calls it once it has removed the table that recorded it.
+     *
+     * @since  2.1.0
+     */
+    public static function forgetRecordedRoot(): void
+    {
+        self::$recordedRoot = false;
+    }
+
+    /**
      * Absolute store root, provisioned with protection files on first use.
      *
      * The recorded root ({@see self::META_ROOT}), unless the Options name a

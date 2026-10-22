@@ -12,8 +12,11 @@ namespace Alfa\Component\Alfa\Api\Dispatcher;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Joomla\CMS\Dispatcher\ComponentDispatcher;
+use Joomla\CMS\Document\JsonapiDocument;
 use Joomla\CMS\Language\LanguageHelper;
+use Joomla\CMS\Language\Text;
 
 /**
  * API dispatcher for com_alfa.
@@ -66,6 +69,20 @@ final class Dispatcher extends ComponentDispatcher
      */
     public function dispatch()
     {
+        // Maintenance (Clear everything): every request is answered 503 before anything reads an
+        // Alfa table. Said in the response itself: the API's error renderer answers an exception it
+        // does not know as a 500 without its words.
+        if (MaintenanceState::active()) {
+            $this->app->setHeader('status', 503, true);
+            $document = $this->app->getDocument();
+
+            if ($document instanceof JsonapiDocument) {
+                $document->setErrors([['code' => 503, 'title' => Text::_('COM_ALFA_MAINTENANCE_API')]]);
+            }
+
+            return;
+        }
+
         $this->applyRequestLanguage();
 
         $task = $this->input->getCmd('task', 'display');

@@ -696,7 +696,7 @@ class ShipmentLedger
      * enters is taxed with the shipping taxes the canonical resolver gives for
      * the order (as checkout resolves them); its stated rate must be exactly
      * their combined rate, and an untaxed entry stands only where none applies.
-     * It is read under the shop's entry mode at that moment (tax included: the
+     * It is read under its method's entry mode at that moment (tax included: the
      * gross is the input; tax excluded: the net is), and it must be exactly the
      * charge that input makes through that chain: 10.00 entered with tax
      * included at 24% is 8.06 + 1.94, and 8.07 or 8.05 excluding tax is
@@ -1308,7 +1308,7 @@ class ShipmentLedger
 
     /**
      * The entry mode a charge is entered under when the parcel holds none of
-     * its own: the shop's, for its method, at this moment; frozen with it.
+     * its own: its method's, at this moment; frozen with it.
      *
      * @param int $methodId The parcel's shipping method.
      * @param int $orderId Its order.

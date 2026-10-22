@@ -1,6 +1,6 @@
 {
     "uid": "com_alfa.product",
-    "version": 8,
+    "version": 9,
     "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_TITLE",
     "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_DESC",
     "extensions": [
@@ -94,7 +94,7 @@
             "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_11_TITLE",
             "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_11_DESC",
             "position": "bottom",
-            "target": ".control-group:not(.hidden):has(#jform_stock), #jform_stock",
+            "target": ".control-group:not(.hidden):has(#jform_stock), .control-group:not(.hidden):has(#jform_stock_locations), #jform_stock",
             "type": 0,
             "url": "administrator/index.php?option=com_alfa&view=item&layout=edit"
         },
@@ -142,7 +142,7 @@
             "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_17_TITLE",
             "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_17_DESC",
             "position": "left",
-            "target": "#combinations [data-bs-target=\"#combinationGeneratorModal\"]",
+            "target": "#combinations [data-bs-target=\"#combinationGeneratorModal\"], #combinations [data-variations-panel]",
             "type": 0,
             "url": "administrator/index.php?option=com_alfa&view=item&layout=edit"
         },
@@ -179,8 +179,8 @@
             "url": "administrator/index.php?option=com_alfa&view=item&layout=edit"
         },
         {
-            "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_22_TITLE",
-            "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_STEP_22_DESC",
+            "title": "COM_ALFA_GUIDEDTOUR_PRODUCT_END_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_PRODUCT_END_DESC",
             "position": "bottom",
             "target": "#toolbar",
             "type": 0,

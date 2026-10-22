@@ -261,6 +261,10 @@ class OrderModel extends AlfaAdminModel
             $data = $this->objectToFormData($data);
         }
 
+        // The row the caller hands in (the modal shows it); the save path builds the form with none, only to filter
+        // and validate the post, and reads nothing for it.
+        $shown = \is_array($data) && $data !== [];
+
         if (is_array($data)) {
             if (!isset($data['id'])) {
                 $data['id'] = $id;
@@ -294,14 +298,34 @@ class OrderModel extends AlfaAdminModel
         }
 
         // Inject transaction_status options
-        // Same pattern: injected from PaymentLedger::allStatuses().
+        // Same pattern: injected from PaymentLedger::allStatuses(). A stored row is offered the
+        // statuses it may be written with (PaymentLedger::statusesFrom()): a settled refund is
+        // never offered pending or authorized; the ledger refuses them in any case.
         $txnStatusField = $form->getField('transaction_status');
         if ($txnStatusField) {
-            foreach (PaymentLedger::allStatuses() as $status) {
+            $statuses = \is_array($data) && (int) ($data['id'] ?? 0) > 0
+                ? PaymentLedger::statusesFrom(paymentType: (string) ($data['payment_type'] ?? ''), status: (string) ($data['transaction_status'] ?? ''))
+                : PaymentLedger::allStatuses();
+
+            foreach ($statuses as $status) {
                 $txnStatusField->addOption(
                     Text::_('COM_ALFA_STATUS_' . strtoupper($status)),
                     ['value' => $status],
                 );
+            }
+        }
+
+        // A refund pending at a gateway's provider keeps its amount and its reference while the provider may still
+        // complete it (PaymentLedger::refundIdentityFixed()): both are shown read-only; the ledger refuses the change
+        // in any case (the staff guard, PaymentLedger::staffWriteRefusal()). Its status may still be set failed or
+        // cancelled.
+        if ($shown
+            && (int) ($data['id'] ?? 0) > 0
+            && (string) ($data['payment_type'] ?? '') === PaymentLedger::TYPE_REFUND
+            && \in_array((string) ($data['transaction_status'] ?? ''), PaymentLedger::REFUND_RESERVING_STATUSES, true)
+            && PaymentLedger::refundIdentityFixed(refundId: (int) $data['id'])) {
+            foreach (['amount', 'transaction_id'] as $fixed) {
+                $form->setFieldAttribute($fixed, 'readonly', 'true');
             }
         }
 
@@ -1581,7 +1605,12 @@ class OrderModel extends AlfaAdminModel
                 return false;
             }
 
-            $newId = PaymentLedger::create($saveData);
+            if ($this->refuseTypedRefund(data: $saveData, stored: null)) {
+                return false;
+            }
+
+            // A refund typed by staff is a refund start: create() decides it again under the order's lock.
+            $newId = PaymentLedger::create(data: $saveData, refundStart: true);
 
             if ($newId === false) {
                 return false;
@@ -1595,13 +1624,81 @@ class OrderModel extends AlfaAdminModel
         // Update
         $id = (int) $saveData['id'];
 
-        $success = PaymentLedger::update($id, $saveData);
+        $db = $this->getDatabase();
+        $stored = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName(['id', 'id_order', 'payment_type', 'transaction_status', 'amount', 'id_refunded_payment', 'transaction_id', 'id_payment_method', 'payment_method_type', 'id_credit_transaction']))
+                ->from($db->quoteName('#__alfa_order_payments'))
+                ->where($db->quoteName('id') . ' = ' . $id),
+        )->loadObject();
+
+        if ($stored !== null && $this->refuseTypedRefund(data: $saveData, stored: $stored)) {
+            return false;
+        }
+
+        // The payment form is a staff entry point: its write is held to the staff guard (since 2.1.0).
+        $success = PaymentLedger::update($id, $saveData, staff: true);
 
         if ($success) {
             $data['id'] = $id;
         }
 
         return $success;
+    }
+
+    /**
+     * Refuse a refund typed into the payment form while the refund block holds,
+     * or beyond what the order may still refund once its pending provider
+     * refunds are reserved: the ledger decides
+     * ({@see PaymentLedger::staffRefundRefusal()},
+     * {@see PaymentLedger::staffRefundReservedRefusal()}), this tells the
+     * operator, pointing to Record this refund and the resolutions for the block.
+     * A refund already in the books may still be edited or settled; raising a
+     * pending or authorized one is decided as a start for its increase.
+     *
+     * @param array $data The form's save data.
+     * @param object|null $stored The row as stored (id, id_order, payment_type,
+     *                            transaction_status, amount, id_refunded_payment,
+     *                            transaction_id, id_payment_method,
+     *                            payment_method_type, id_credit_transaction);
+     *                            null for a new row.
+     *
+     * @return bool True when the save is refused; the reason is enqueued for the operator.
+     *
+     * @since  2.1.0
+     */
+    private function refuseTypedRefund(array $data, ?object $stored): bool
+    {
+        $orderId = (int) ($data['id_order'] ?? $stored->id_order ?? 0);
+
+        // The staff guard, asked first so the operator is told before anything is written: a reservation whose money
+        // the provider moved goes through the way out, never through this form; a gateway payment's pending refund
+        // keeps its amount and reference and is settled by its provider only; a gateway payment keeps its method and
+        // its provider transaction id (since 2.1.0).
+        $moved = $stored !== null ? PaymentLedger::staffWriteRefusal(stored: $stored, data: $data) : null;
+
+        if ($moved !== null) {
+            Factory::getApplication()->enqueueMessage(htmlspecialchars($moved, ENT_QUOTES, 'UTF-8'), 'error');
+
+            return true;
+        }
+
+        $refusal = PaymentLedger::staffRefundRefusal(stored: $stored, data: $data, orderId: $orderId);
+        $key = 'COM_ALFA_PAYMENT_REFUND_TYPED_BLOCKED';
+
+        if ($refusal === null) {
+            $refusal = PaymentLedger::staffRefundReservedRefusal(stored: $stored, data: $data, orderId: $orderId);
+            $key = 'COM_ALFA_PAYMENT_REFUND_TYPED_RESERVED';
+        }
+
+        if ($refusal === null) {
+            return false;
+        }
+
+        // Escaped: the reason quotes the provider's refund ids.
+        Factory::getApplication()->enqueueMessage(htmlspecialchars(Text::sprintf($key, $refusal), ENT_QUOTES, 'UTF-8'), 'error');
+
+        return true;
     }
 
     /**
@@ -2877,6 +2974,11 @@ class OrderModel extends AlfaAdminModel
                 rate: $rateColumn !== null ? ($after[$rateColumn] ?? null) : null,
             )
             : '';
+        // A percentage as its column will hold it (two places for the saving and the
+        // manual discount, three for the tax rate), printed by the one percentage rule.
+        $percent = static fn (string $column, int $places): string => AlfaHelper::percentDisplay(
+            value: ExactAmount::ofNumber($after[$column] ?? 0)->roundedAt($places),
+        );
 
         return [
             'changed' => $plan['columns'] !== [],
@@ -2888,10 +2990,10 @@ class OrderModel extends AlfaAdminModel
             'total_price_tax_incl' => $money('total_price_tax_incl'),
             'total_price_tax_excl' => $money('total_price_tax_excl'),
             'discount_amount_tax_incl' => $money('discount_amount_tax_incl'),
-            'discount_percent' => number_format((float) ($after['discount_percent'] ?? 0), 2) . '%',
-            'tax_rate' => number_format((float) ($after['tax_rate'] ?? 0), 3) . '%',
+            'discount_percent' => $percent('discount_percent', 2),
+            'tax_rate' => $percent('tax_rate', 3),
             'custom_unit_price_tax_incl' => $rate('custom_unit_price_tax_incl'),
-            'manual_discount_percent' => number_format((float) ($after['manual_discount_percent'] ?? 0), 2) . '%',
+            'manual_discount_percent' => $percent('manual_discount_percent', 2),
             // Said only while there is a custom price for the tick to govern.
             'manual_discount_scope' => ($after['custom_unit_price_tax_incl'] ?? null) === null ? '' : Text::_(
                 ($after['manual_discount_scope'] ?? '') === ManualDiscountScope::ApplyToCustomPrice->value
@@ -3665,8 +3767,9 @@ class OrderModel extends AlfaAdminModel
         }
 
         if (isset($changes['manual_discount_percent'])) {
-            $parts[] = 'manual discount ' . number_format((float) $changes['manual_discount_percent']['from'], 2)
-                . '%->' . number_format((float) $changes['manual_discount_percent']['to'], 2) . '%';
+            // Stored text: the percentages with a '.' whatever the writer's language.
+            $parts[] = 'manual discount ' . AlfaHelper::percentDisplay(value: $changes['manual_discount_percent']['from'] ?? 0, decimalSeparator: '.')
+                . '->' . AlfaHelper::percentDisplay(value: $changes['manual_discount_percent']['to'] ?? 0, decimalSeparator: '.');
         }
 
         if (isset($changes['manual_discount_scope'])) {
@@ -4797,8 +4900,9 @@ class OrderModel extends AlfaAdminModel
 
     /**
      * Delete the selected orders. An order that holds a sales document is never
-     * deleted: that is answered before any plugin is asked, and decided again
-     * under the order lock. Each order's payment and shipment plugins get the
+     * deleted, and neither is one with a refund that is not settled (a
+     * reservation: PaymentLedger::orderDeleteRefusal()): both are answered
+     * before any plugin is asked, and decided again under the order lock. Each order's payment and shipment plugins get the
      * onAdminOrderDelete event; if any plugin vetoes (returns false) that order
      * is skipped. Under the lock the delete is refused when a payment or
      * shipment changed after its plugins were asked. Surviving orders have
@@ -4852,6 +4956,12 @@ class OrderModel extends AlfaAdminModel
         if ($blocked !== []) {
             $this->refuseDeleteForDocuments(blocked: $blocked, selected: $selected);
 
+            return false;
+        }
+
+        // A refund of the order that is not settled reserves its amount: the order is not deleted (core's
+        // rule for every gateway; the check under the order lock decides).
+        if ($this->refuseDeleteForReservations(pks: $pks)) {
             return false;
         }
 
@@ -4988,10 +5098,14 @@ class OrderModel extends AlfaAdminModel
             )->loadColumn();
 
             $blocked = $this->ordersWithDocuments(pks: $pks);
+            $reserved = $blocked === [] && $this->refuseDeleteForReservations(pks: $pks);
 
-            if ($blocked !== []) {
+            if ($blocked !== [] || $reserved) {
                 TransactionState::rollBackLevel($db);
-                $this->refuseDeleteForDocuments(blocked: $blocked, selected: $selected);
+
+                if ($blocked !== []) {
+                    $this->refuseDeleteForDocuments(blocked: $blocked, selected: $selected);
+                }
 
                 return false;
             }
@@ -5049,6 +5163,33 @@ class OrderModel extends AlfaAdminModel
         foreach ($walletReturns as $entry) {
             CustomerCreditLedger::logCommitted($entry);
         }
+
+        return true;
+    }
+
+    /**
+     * Refuse deleting orders while a refund of one of them is not settled (pending or authorized: it
+     * reserves its amount, {@see PaymentLedger::orderDeleteRefusal()}): the whole selection is refused and
+     * the operator reads why, per order.
+     *
+     * @param array $pks The order ids about to be deleted.
+     *
+     * @return bool True when refused (the error is set); false when none stands in the way.
+     *
+     * @since  2.1.0
+     */
+    private function refuseDeleteForReservations(array $pks): bool
+    {
+        $refusals = array_values(array_filter(array_map(
+            static fn ($pk): ?string => PaymentLedger::orderDeleteRefusal(orderId: (int) $pk),
+            $pks,
+        )));
+
+        if ($refusals === []) {
+            return false;
+        }
+
+        $this->setError(error: implode(' ', $refusals));
 
         return true;
     }
@@ -5371,6 +5512,13 @@ class OrderModel extends AlfaAdminModel
                 'com_alfa.orders',
             );
         }
+
+        // The kept outcomes of the provider refund reports of these orders' payments.
+        $query = $db->getQuery(true)
+            ->delete($db->quoteName('#__alfa_refund_report_outcomes'))
+            ->whereIn('id_order', $pks);
+        $db->setQuery($query);
+        $db->execute();
 
         // Delete payments
         $query = $db->getQuery(true)
@@ -6094,7 +6242,11 @@ class OrderModel extends AlfaAdminModel
     }
 
     /**
-     * Get activity log entries for an order
+     * Get activity log entries for an order, newest first.
+     *
+     * `created` holds whole seconds, so entries of one second are ordered by
+     * their id, the order they were written in (since 2.1.0); before, the
+     * database returned them in any order.
      *
      * @param int $orderId Order ID
      * @param string $eventFilter Filter by event prefix: 'item', 'payment', 'status', '' = all
@@ -6109,7 +6261,7 @@ class OrderModel extends AlfaAdminModel
             ->select('*')
             ->from('#__alfa_order_activity_log')
             ->where('id_order = ' . intval($orderId))
-            ->order('created DESC');
+            ->order(['created DESC', 'id DESC']);
 
         if (!empty($eventFilter)) {
             $query->where('event LIKE ' . $db->quote($eventFilter . '.%'));

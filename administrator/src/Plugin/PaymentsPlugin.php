@@ -29,6 +29,7 @@
  *      $result  = $this->refundPayment($paymentId);                 // full: null is the ONLY way to say "the remainder"
  *      $result  = $this->refundPayment($paymentId, $money);         // partial: a positive Money; zero and negative are refused
  *      $result  = $this->refundPayment($paymentId, null, ['gateway_moved' => true]);
+ *      $refusal = $this->refundStartRefusal($order);                // the refund block: null = a refund may start
  *
  *  BOOKKEEPING WRITE (row-level fact, nothing merchant-visible):
  *      $this->paymentUpdate($id)->cancelled()->bookkeeping()->save();
@@ -135,6 +136,54 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     public const OUTCOME_RACED = PaymentLedger::OUTCOME_RACED;
     public const OUTCOME_FAILED = PaymentLedger::OUTCOME_FAILED;
     public const OUTCOME_UNRECONCILED = PaymentLedger::OUTCOME_UNRECONCILED;
+
+    /**
+     * @var string Nothing written: a provider has reported refunds on the
+     *             payment's order that the books do not hold; see refundStartRefusal().
+     *
+     * @since  2.1.0
+     */
+    public const OUTCOME_BLOCKED = PaymentLedger::OUTCOME_BLOCKED;
+
+    /**
+     * @var string reserveRefund() / holdRefund(): the amount is reserved, nothing is booked.
+     *
+     * @since  2.1.0
+     */
+    public const OUTCOME_RESERVED = PaymentLedger::OUTCOME_RESERVED;
+
+    /**
+     * @var string reserveRefund(): nothing written; a refund row was written on the payment
+     *             after the decision was drawn (the posted mark is out of date).
+     *
+     * @since  2.1.0
+     */
+    public const OUTCOME_STALE = PaymentLedger::OUTCOME_STALE;
+
+    /**
+     * @var string releaseRefund(): what the reservation held is given back; nothing is booked.
+     *
+     * @since  2.1.0
+     */
+    public const OUTCOME_RELEASED = PaymentLedger::OUTCOME_RELEASED;
+
+    /**
+     * @var string The 'status' of an entry of unbookedProviderRefunds(): the provider says
+     *             the refund is complete, or has accepted it but not completed it.
+     *
+     * @since  2.1.0
+     */
+    public const REPORT_STATUS_SETTLED = PaymentLedger::REPORT_STATUS_SETTLED;
+    public const REPORT_STATUS_PENDING = PaymentLedger::REPORT_STATUS_PENDING;
+
+    /**
+     * @var string The prefix of the reference a refund reservation carries while the
+     *             provider has not named its refund ('request:' and the key the core made,
+     *             {@see self::reserveRefund()}). Never the prefix of a listed report.
+     *
+     * @since  2.1.0
+     */
+    public const REPORT_REQUEST_PREFIX = PaymentLedger::REPORT_REQUEST_PREFIX;
 
     // recordReversal() / recordChargeback() outcomes (with DUPLICATE,
     //    NOTHING_LEFT and FAILED above)
@@ -338,18 +387,22 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     }
 
     /**
-     * How much may still be refunded on this order. PREFLIGHT this BEFORE
-     * calling your gateway's refund API, and gate your Refund action on it.
+     * How much may still be refunded on this order: gate your Refund action on
+     * it. A refund form's maximum is refundFormMaximum(), never this alone.
      *
-     * The ledger's over-refund guard runs when the row is WRITTEN, which is
-     * after your gateway has already moved the money: without a preflight a
-     * rejected row leaves a refund that exists at the bank and nowhere in
-     * the books. Store credit already returned for this order's credit notes
-     * is subtracted here, so a refunded-to-wallet order correctly reports
-     * less (or nothing) as refundable by card.
+     * Store credit already returned for this order's credit notes is
+     * subtracted here, so a refunded-to-wallet order correctly reports less
+     * (or nothing) as refundable by card. So is everything reserved, whichever
+     * payment it is on: the order's pending provider refunds (see
+     * unbookedProviderRefunds()) and its refunds in the books that are not
+     * settled (pending or authorized refund rows, every refund reservation
+     * among them; since 2.1.0). It is a read: the decision to start a refund
+     * is taken by reserveRefund(), under the order's lock, before your
+     * provider is asked; never hold the booking of money the provider already
+     * moved to this figure.
      *
      * Usage:
-     *   if ($amount - $this->refundableNow($order) > 0.01) { ...refuse... }
+     *   if (!$this->refundableNow($order)->isPositive()) { ...offer no Refund action... }
      *
      * @param object $order The hydrated order.
      *
@@ -366,15 +419,22 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * What is left to give back on ONE payment row.
      *
      * The order-level {@see self::refundableNow()} answers "how much may this
-     * ORDER still return", which is the right pre-flight before calling a
-     * gateway. This answers "how much is left on THIS row": the figure to
-     * actually send, because a row that already carries a partial refund must
-     * not be refunded gross a second time.
+     * ORDER still return". This answers "how much is left on THIS row", because
+     * a row that already carries a partial refund must not be refunded gross a
+     * second time; the maximum a refund form offers is the smaller of the two,
+     * {@see self::refundFormMaximum()}. What this payment's own pending
+     * provider refunds reserve (see unbookedProviderRefunds()) is not left on it
+     * either, nor what its refund rows in the books that are not settled
+     * (pending or authorized, its refund reservations among them) reserve: that
+     * money is held for them on this payment (since 2.1.0). A new refund is
+     * held to both figures by reserveRefund(). Never hold the booking of money
+     * the provider already moved to it: settleRefund() and refundPayment() with
+     * gateway_moved book against the books alone.
      *
      * Send it to the gateway in minor units through the order's own currency,
      * never `* 100`:
      *
-     *   $left  = $this->refundableRemainder((int) $payment->id);
+     *   $left  = $this->refundFormMaximum((int) $payment->id);
      *   $minor = Money::of($left, $order->currency)->getMinorUnits();
      *
      * Alfa ships currencies with 0, 1, 3 and 4 decimals (JPY, MOP, OMR, ...), so
@@ -392,6 +452,192 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     }
 
     /**
+     * The maximum every refund form of this plugin offers for one payment, a
+     * refund start or a record-only form alike: what is left on the payment
+     * (refundableRemainder()) held to what the order may still refund
+     * (refundableNow()), both counting the settled refunds and every
+     * reservation the core counts ({@see PaymentLedger::refundFormMaximum()}).
+     * The only figure a gateway uses for a form maximum; it keeps no
+     * arithmetic of its own. The refund block is asked apart
+     * (refundStartRefusal()), and reserveRefund() decides the start.
+     *
+     * Usage:
+     *   $max = $this->refundFormMaximum((int) $payment->id);   // the form's maximum
+     *
+     * @param int $paymentId The payment.
+     *
+     * @return Money In the order's currency, never negative.
+     *
+     * @since  2.1.0
+     */
+    protected function refundFormMaximum(int $paymentId): Money
+    {
+        return PaymentLedger::refundFormMaximum(paymentId: $paymentId);
+    }
+
+    /**
+     * Why no new refund may start on this order now, or null when one may: the
+     * refund block, decided once in core for every gateway
+     * ({@see PaymentLedger::refundStartRefusal()}).
+     *
+     * While any payment of the order has a refund its provider reported and the
+     * books do not hold ({@see self::unbookedProviderRefunds()}) that holds the
+     * block (settled, or pending with no exact amount in the order's currency,
+     * or malformed), no new refund starts on any of them. A pending refund
+     * with an exact amount does not refuse here: it reserves that amount
+     * ({@see self::refundableNow()}). A gateway that requires Alfa Commerce
+     * 2.1.0 or later declares its Refund and Partial refund actions with
+     * PluginAction::startsRefund() (the order screen then withholds them and the
+     * action page refuses them before this plugin runs); in its refund handler
+     * reserveRefund() decides the start again under the order's lock, with this
+     * refusal, and reserves it before anything is sent; it keeps no check of its
+     * own. Recording a refund the provider already made is never refused.
+     *
+     * Usage:
+     *   $refusal = $this->refundStartRefusal($event->getOrder());
+     *   if ($refusal !== null) { ...refuse with $refusal, send nothing... }
+     *
+     * @param object $order The hydrated order.
+     *
+     * @return string|null The reason, translated; null when a refund may start.
+     *
+     * @since  2.1.0
+     */
+    protected function refundStartRefusal(object $order): ?string
+    {
+        return PaymentLedger::refundStartRefusal(orderId: Order::of($order)->id());
+    }
+
+    /**
+     * The refunds the provider has reported made, or being made, on this
+     * payment that the books do not hold: this gateway's answer to the refund
+     * block ({@see self::refundStartRefusal()}).
+     *
+     * The contract every gateway keeps (the same signature in every payment
+     * plugin, no default parameters):
+     *   - a list, oldest report first, ONE entry per refund (never one per
+     *     notice, delivery or check that reported it):
+     *     'reportId' => the identity of the reported refund, built by the plugin
+     *                   from the provider's facts only, so that every report of
+     *                   the same refund (a webhook delivered again, a later
+     *                   notice of another type, a later check or reconcile)
+     *                   yields the same reportId and no other refund yields it.
+     *                   The status is not part of the identity: a refund keeps
+     *                   its reportId when it goes from pending to settled (its
+     *                   pending and its settled report carry the same one).
+     *                   The core keeps the report's outcome under it and books
+     *                   one reportId once. It is the first of these the
+     *                   provider's reports of its refunds always carry:
+     *                     1. the provider names the refund:
+     *                        'refund:' . <the provider's refund id, complete>;
+     *                     2. it does not, but names the provider transaction
+     *                        that carries the refund (a refund transaction or
+     *                        operation id): 'txn:' . <that id, complete>;
+     *                     3. neither: 'facts:' . the lowercase hex SHA-256 of the
+     *                        provider's reference of the payment, the refunded
+     *                        amount and currency as the provider stated them,
+     *                        the provider's own time of the refund and, when the
+     *                        provider states one, any further stable reference of
+     *                        that refund (named in the gateway's docblock), joined
+     *                        by a line feed. The time is one the provider states
+     *                        identically in every report of that refund (its
+     *                        creation time, say), never one that changes with its
+     *                        state (an update or a settlement time).
+     *                   ONE rule per provider, never per report: the first rule
+     *                   whose id every report of a refund of that provider
+     *                   carries. A provider whose reports of one refund do not
+     *                   always carry its id (the refund id of rule 1, the
+     *                   transaction id of rule 2) uses rule 3 for every report
+     *                   of it. Never a row id of the plugin's log, a delivery
+     *                   or event id, a time of receipt or any other value of
+     *                   the plugin's own, which a repeat would change. Two
+     *                   reports are the same refund exactly when they are about
+     *                   the same payment of the same gateway and their reportIds
+     *                   are equal byte for byte. Valid UTF-8.
+     *                   A refund REQUEST this site sends is never listed
+     *                   (the former rule 4 is retired since 2.1.0): the core
+     *                   holds it as a reservation in the books, made before
+     *                   the provider is asked (reserveRefund()). A reportId
+     *                   that starts with REPORT_REQUEST_PREFIX is malformed
+     *                   and holds the block,
+     *     'id' => the provider's refund id exactly as the provider stated it, or
+     *             null when the provider gave none (never invented); valid UTF-8,
+     *     'amount' => the provider's figure as Money in the order's currency, or
+     *                 null when no exact amount in that currency can be derived
+     *                 (another currency, a finer figure),
+     *     'providerAmount' => the amount as the provider stated it, decimal text,
+     *                         at most 64 characters,
+     *     'providerCurrency' => the currency as the provider stated it, at most
+     *                           16 characters,
+     *     'reportedOn' => when the plugin first kept that report, in the site's
+     *                     time zone (Y-m-d H:i), at most 64 characters,
+     *     'status' => 'settled' (self::REPORT_STATUS_SETTLED) when the provider
+     *                 says the refund is complete: the money went back; 'pending'
+     *                 (self::REPORT_STATUS_PENDING) while the provider has
+     *                 accepted it but not completed it. A pending report is never
+     *                 booked as a settled refund: Record this refund waits until
+     *                 the plugin reports it settled;
+     *   - what the core makes of each listed report: what may still be
+     *     refunded on the order (refundableNow()) is its refund ceiling, less
+     *     the refunds booked, less what the pending reports reserve. A pending
+     *     report whose amount is known exactly in the order's currency (above
+     *     zero) RESERVES that amount, once per reportId, whichever payment of
+     *     the order it is on: it blocks nothing, and a new refund may start on
+     *     any payment for what is left, on the payment the report is on for no
+     *     more than that payment has left beyond its reservations
+     *     (refundableRemainder()). A settled report not booked yet, a
+     *     pending report with no exact amount, and a malformed entry hold the
+     *     refund block: no new refund starts on the order;
+     *   - ONE entry per refund at any moment. A refund this site started is a
+     *     reservation in the books (a refund row, pending): once holdRefund()
+     *     or settleRefund() has put the provider's refund id on it, every report
+     *     of that refund is the row's own, left out here and counted once, by
+     *     the row; listed before that, it is counted beside the row, which only
+     *     refuses more. Its settle is settleRefund(): one write turns the
+     *     reservation into the booking, so it is counted as reserved or as
+     *     booked, never both and never neither. A refund no reservation covers
+     *     (made in the provider's portal, found by a check or a notification)
+     *     keeps its reportId from pending to settled and is booked once through
+     *     refundPayment() with gateway_moved FIRST, and listed no more only after
+     *     that booking has committed (or both in one database transaction): the
+     *     core's readers take no lock of the plugin's and may read between the
+     *     two steps; booked first, the refund is recognised as booked under its
+     *     provider id while it is still listed, so it is never counted by
+     *     nothing; a plugin that lists it no more before booking it leaves a
+     *     moment in which it is counted by nothing. The core recognises a
+     *     booking only under the provider's refund id, so a refund booked
+     *     without one must be listed no more from that step on: until then it
+     *     is counted twice, which only refuses more. When the provider reports
+     *     that a pending refund failed or was cancelled, the plugin lists it no
+     *     more and releases its reservation when it has one (releaseRefund()):
+     *     nothing is booked. No lock (OrderMoneyLock, a transaction, a row
+     *     lock) is ever held across a call to the provider;
+     *   - a report is listed while the provider says that refund was made or is
+     *     being made, no later report says it failed or was cancelled, and the
+     *     books hold no refund row of this payment under its provider id (a
+     *     failed or cancelled row holds none). The core leaves out, whatever the
+     *     plugin lists, a report already booked under its provider id and one
+     *     whose outcome it keeps (recorded, reconciled, duplicate or invalid);
+     *     a malformed entry holds the block, shown with what is wrong;
+     *   - read only from the plugin's own log and the books: it writes nothing,
+     *     takes no lock and never calls the provider;
+     *   - empty for a payment that is not this plugin's, or that does not exist.
+     *
+     * This default answers empty: a payment method with no provider channel (the
+     * bundled Standard method) can never hold a refund a provider reported.
+     *
+     * @param int $paymentId The payment.
+     *
+     * @return list<array{reportId: string, id: ?string, amount: ?Money, providerAmount: string, providerCurrency: string, reportedOn: string, status: string}>
+     *
+     * @since  2.1.0
+     */
+    public function unbookedProviderRefunds(int $paymentId): array
+    {
+        return [];
+    }
+
+    /**
      * Update an existing payment (returns fluent builder in UPDATE mode).
      *
      * Only fields you explicitly set via setter methods are sent to the
@@ -401,6 +647,10 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *   $this->paymentUpdate($id)->completed()->save();
      *   $this->paymentUpdate($id)->cancelled()->note('Customer request')->save();
      *   $this->paymentUpdate($id)->refunded()->save();
+     *
+     * A plugin's write carries no staff mark, inside a staff user's request or not: the ledger's staff guard (a
+     * gateway payment's provider id, method and pending refunds, for the payment form and the REST API) never refuses
+     * it (since 2.1.0). Arm ->expectStatus() where a webhook and a return can race.
      *
      * @param int $paymentId Existing payment row PK
      *
@@ -419,8 +669,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     //
     //  One call per thing that happened. Prefer these over
     //  hand-driving the state machine with status flips; the
-    //  sequence and its compensation live in the ledger, so every
-    //  gateway gets the same one.
+    //  sequence lives in the ledger, so every gateway gets the
+    //  same one.
 
     /**
      * Settle a verified attempt exactly once, and be loud if the books refuse.
@@ -541,14 +791,15 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
     }
 
     /**
-     * Refund a payment: flip, audit row and compensation as ONE idempotent
-     * operation, so your plugin never re-derives the dance.
+     * Refund a payment: audit row and the payment's refunded state as ONE
+     * idempotent operation, so your plugin never re-derives the dance.
      *
-     * The ledger decides full vs partial (covering the refundable remainder
-     * is full: the original flips to 'refunded' and status_on_refunded fires;
-     * less is partial and the original correctly stays 'completed'), writes
-     * the linked audit row with the right refund_type and the ORIGINAL's
-     * payment method, and unwinds its own flip if that row is refused.
+     * The ledger writes the linked audit row with the right refund_type and
+     * the ORIGINAL's payment method under the order's lock, then decides the
+     * payment's state from the books (refunds covering the payment: the
+     * original flips to 'refunded' and status_on_refunded fires; less is
+     * partial and the original correctly stays 'completed'). A refused row
+     * changes nothing.
      *
      * IDEMPOTENT: a second call on an already-refunded payment reports
      * OUTCOME_ALREADY_REFUNDED and writes nothing; it never flips the row
@@ -562,11 +813,16 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * "already recorded?" query of its own for it. An empty reference is never
      * de-duplicated.
      *
-     * CALL ORDER: refund at the gateway FIRST, then record it here, and
-     * pass 'gateway_moved' => true when you do. The money has already left,
-     * so the ledger must NOT roll the original back if it refuses the audit
-     * row; it logs CRITICAL and answers OUTCOME_UNRECONCILED instead.
-     * Preflight with refundableNow() BEFORE the gateway call.
+     * A REFUND YOUR PLUGIN STARTS never comes here: reserveRefund() FIRST (it
+     * decides and reserves under the order's lock), then the provider with the
+     * reservation's key and no lock held, then settleRefund(), holdRefund() or
+     * releaseRefund() (since 2.1.0). This verb with 'gateway_moved' => true
+     * books money a provider moved that no reservation covers (a refund made
+     * in the provider's portal, found by a check or a notification): the money
+     * has already left, so when the books refuse the audit row the ledger
+     * logs CRITICAL and answers OUTCOME_UNRECONCILED. A reference a reservation of the payment carries settles that
+     * reservation. Without 'gateway_moved' it is a refund with no provider
+     * call (the bundled Standard method), decided and booked in one locked step.
      *
      * Usage:
      *   $result = $this->refundPayment((int) $payment->id, null, [
@@ -587,8 +843,12 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *                       "everything left". Must be in the order's
      *                       currency.
      * @param array $options 'reason', 'transaction_id', 'gateway_response',
-     *                       'document', 'gateway_moved'; see
-     *                       PaymentLedger::refundPayment().
+     *                       'document', 'gateway_moved', 'request_key',
+     *                       'report_id'; see PaymentLedger::refundPayment().
+     *                       'plugin' is set to this plugin: a start on
+     *                       another plugin's payment is refused
+     *                       (OUTCOME_REFUSED); money moved on it is kept for
+     *                       staff (OUTCOME_UNRECONCILED) (since 2.1.0).
      *
      * @return array ['outcome' => self::OUTCOME_*, 'refund_id' => int, 'reason' => string]
      *
@@ -596,7 +856,169 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      */
     protected function refundPayment(int $paymentId, ?Money $amount = null, array $options = []): array
     {
-        return PaymentLedger::refundPayment($paymentId, $amount, $options);
+        return PaymentLedger::refundPayment($paymentId, $amount, ['plugin' => $this->_name] + $options);
+    }
+
+    /**
+     * Decide a refund start and reserve its amount, BEFORE your provider is asked
+     * ({@see PaymentLedger::reserveRefund()}).
+     *
+     * Under the order's short lock: the refund block, the books, what the order
+     * and this payment may still refund once everything reserved is kept apart,
+     * and the double submit (the 'mark' your form was drawn with,
+     * RefundMark::of()). It writes the reservation, a pending refund row, and
+     * commits before it returns: from then on every other start counts it (call
+     * it outside any transaction of yours, or it commits only with yours). Then
+     * call your provider with NO lock held (no OrderMoneyLock, no transaction),
+     * sending exactly 'amount' and the idempotency key 'key' (a resend is
+     * unconditional: the same reservation, sent with the same key; the core has
+     * already decided it: never reserve again for a resend), and report the answer:
+     * settleRefund() when the provider completed it, holdRefund() when it
+     * accepted it as pending, releaseRefund() when it definitely refused it;
+     * nothing when the answer is unknown (timeout, HTTP 0 or 5xx, an unreadable
+     * body): the reservation stays until a check, a notification or staff
+     * resolve it. A reservation never makes the payment refunded.
+     *
+     * Usage:
+     *   $r = $this->reserveRefund((int) $payment->id, $typedOrNull, ['mark' => $postedMark, 'reason' => $why]);
+     *   if ($r['outcome'] !== self::OUTCOME_RESERVED) { ...refuse with $r['reason'], send nothing... }
+     *   $answer = <provider refund of $r['amount'], idempotency key $r['key']>;
+     *
+     * @param int $paymentId The completed payment to refund.
+     * @param Money|null $amount In the order's currency; null = the form's maximum: what may start on
+     *                           the payment net of its own reservations, held to what the order has
+     *                           left (refundFormMaximum()). 'full' in the answer: it takes all the
+     *                           payment's refunds may still cover, net of its own other
+     *                           reservations; informational only: always send 'amount' explicitly,
+     *                           never a provider call for a full refund.
+     * @param array $options 'mark' (int), 'reason' (string), 'document' (int); 'plugin' is set to
+     *                       this plugin (a gateway acts on its own payments only).
+     *
+     * @return array{outcome: string, reservation: int, key: string, amount: ?Money, full: bool, reason: string}
+     *
+     * @since  2.1.0
+     */
+    protected function reserveRefund(int $paymentId, ?Money $amount = null, array $options = []): array
+    {
+        return PaymentLedger::reserveRefund(paymentId: $paymentId, amount: $amount, options: ['plugin' => $this->_name] + $options);
+    }
+
+    /**
+     * The provider completed a reserved refund: book it ({@see PaymentLedger::settleRefund()}).
+     *
+     * Replaces refundPayment() with gateway_moved for a refund your plugin
+     * reserved. The provider's figure is booked as it is (above the reservation
+     * too: never refused for being above, never truncated); never refused for a
+     * reservation. 'final' => true when this is the decision's last (or only)
+     * provider refund. Idempotent per provider refund id; with no provider id it
+     * is the request's one refund (taken whole), so a resent notice finds it
+     * booked. A reservation carries one provider refund: another one under the
+     * same key is booked on its own row beside it. When the books refuse it
+     * (OUTCOME_UNRECONCILED: money moved that the books cannot hold) the core
+     * keeps it on a row of its own (refund_id) and lists its own settled report
+     * of it ('reservation:' and that row id): the order holds the refund block
+     * until staff take each such report through the way out (Record this refund,
+     * reconcile, duplicate or invalid). You need not keep listing that refund's
+     * report when it has a provider id; with no provider id you
+     * must not keep listing it (nothing could tell your report from the core's,
+     * and both would offer Record this refund). You never list a 'reservation:'
+     * reportId. Every provider word is passed on, also one whose report staff
+     * already took through the way out (no check of your own with
+     * reportOutcome()); name the report you list (or listed) it under in
+     * 'report_id'. The core never books it over a staff resolution of any
+     * report (yours or its own), matched by the provider id, else by that
+     * report: it lists it once more for staff (OUTCOME_UNRECONCILED); once
+     * staff resolved it again, the same word at the same figure is only
+     * logged (OUTCOME_DUPLICATE). A report staff recorded answers
+     * OUTCOME_DUPLICATE with its row. With no provider id, one refund request
+     * is one refund: the same figure again is a duplicate, a different one is
+     * kept for staff (OUTCOME_UNRECONCILED).
+     *
+     * @param int $reservationId The reservation (or a pending refund row split off it).
+     * @param Money $amount The provider's figure, in the order's currency.
+     * @param string|null $providerRefundId The provider's refund id as given; null when it gives none.
+     * @param array $options 'final' (bool), 'gateway_response', 'reason', 'processed_at', 'report_id' (the
+     *                       report you list or listed this refund under); 'plugin' is set to this plugin.
+     *
+     * @return array{outcome: string, refund_id: int, reason: string, amount: float}
+     *
+     * @since  2.1.0
+     */
+    protected function settleRefund(int $reservationId, Money $amount, ?string $providerRefundId, array $options = []): array
+    {
+        return PaymentLedger::settleRefund(reservationId: $reservationId, amount: $amount, providerRefundId: $providerRefundId, options: ['plugin' => $this->_name] + $options);
+    }
+
+    /**
+     * The provider accepted a reserved refund but has not completed it: it stays
+     * reserved, under the provider's refund id ({@see PaymentLedger::holdRefund()}).
+     * The provider's figure is held as it is: a larger one grows the reservation
+     * (beyond the ceiling it is kept and every start is refused).
+     *
+     * @param int $reservationId The reservation.
+     * @param string|null $providerRefundId The provider's refund id as given; null when it gives none.
+     * @param Money|null $amount The provider's figure; null = the whole reservation.
+     * @param array $options 'final' (bool), 'gateway_response', 'report_id' (as settleRefund()); 'plugin' is set
+     *                       to this plugin.
+     *
+     * @return array{outcome: string, refund_id: int, reason: string, amount: float}
+     *
+     * @since  2.1.0
+     */
+    protected function holdRefund(int $reservationId, ?string $providerRefundId, ?Money $amount = null, array $options = []): array
+    {
+        return PaymentLedger::holdRefund(reservationId: $reservationId, providerRefundId: $providerRefundId, amount: $amount, options: ['plugin' => $this->_name] + $options);
+    }
+
+    /**
+     * Give back what a reservation still holds: the provider definitively refused
+     * the refund, or the decision closed with this rest unused
+     * ({@see PaymentLedger::releaseRefund()}). Never for an unknown outcome.
+     *
+     * @param int $reservationId The reservation.
+     * @param string $reason Why, plain text.
+     * @param array $options 'status' (self::STATUS_FAILED or self::STATUS_CANCELLED),
+     *                       'provider_refund_id', 'gateway_response'; 'plugin' is set to this plugin.
+     *
+     * @return array{outcome: string, refund_id: int, reason: string, amount: float}
+     *
+     * @since  2.1.0
+     */
+    protected function releaseRefund(int $reservationId, string $reason, array $options = []): array
+    {
+        return PaymentLedger::releaseRefund(reservationId: $reservationId, reason: $reason, options: ['plugin' => $this->_name] + $options);
+    }
+
+    /**
+     * One reservation as the books hold it, with its key while the provider has
+     * not named the refund ({@see PaymentLedger::refundReservation()}). Read only.
+     *
+     * @param int $reservationId The reservation.
+     *
+     * @return array{reservation: int, payment: int, order: int, amount: Money, status: string, key: ?string, providerRefundId: ?string}|null
+     *
+     * @since  2.1.0
+     */
+    protected function refundReservation(int $reservationId): ?array
+    {
+        return PaymentLedger::refundReservation(reservationId: $reservationId);
+    }
+
+    /**
+     * The outcome the core keeps for one of this plugin's provider refund
+     * reports, or null ({@see PaymentLedger::reportOutcome()}). Read only, and it
+     * never asks this plugin, so unbookedProviderRefunds() may call it.
+     *
+     * @param int $paymentId The payment.
+     * @param string $reportId The report's reference.
+     *
+     * @return array{outcome: string, refundRow: ?int, bookedAmount: ?Money, amountTyped: bool, providerRefundId: ?string, created: string}|null
+     *
+     * @since  2.1.0
+     */
+    protected function reportOutcome(int $paymentId, string $reportId): ?array
+    {
+        return PaymentLedger::reportOutcome(paymentId: $paymentId, reportId: $reportId);
     }
 
     /**

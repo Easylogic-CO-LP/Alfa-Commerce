@@ -1505,6 +1505,10 @@ class OrderController extends FormController
                 'price_tax_excl_text' => (string) ($item->price_tax_excl_text ?? ''),
                 'has_discount' => (bool) ($item->has_discount ?? false),
                 'discount_percent' => $priced === null ? null : \Alfa\Component\Alfa\Site\Service\Pricing\PublishedDecimal::percent((float) ($item->discount_percent ?? 0)),
+                // The saving as the back office prints a percentage, never rounded to a whole one.
+                'discount_text' => $priced === null || empty($item->has_discount) ? '' : AlfaHelper::percentDisplay(
+                    value: \Alfa\Component\Alfa\Site\Service\Pricing\PublishedDecimal::percent((float) ($item->discount_percent ?? 0)),
+                ),
                 'tax_rate' => $priced === null ? null : \Alfa\Component\Alfa\Site\Service\Pricing\PublishedDecimal::decimal(value: \Alfa\Component\Alfa\Site\Service\Pricing\ExactAmount::ofNumber((float) ($item->tax_rate ?? 0))),
                 'tax_name' => $item->tax_name ?? '',
             ];

@@ -1,6 +1,6 @@
 {
     "uid": "com_alfa.order-statuses",
-    "version": 10,
+    "version": 11,
     "title": "COM_ALFA_GUIDEDTOUR_ORDER_STATUSES_TITLE",
     "description": "COM_ALFA_GUIDEDTOUR_ORDER_STATUSES_DESC",
     "extensions": [
@@ -31,27 +31,17 @@
             "title": "COM_ALFA_GUIDEDTOUR_ORDER_STATUSES_STEP_3_TITLE",
             "description": "COM_ALFA_GUIDEDTOUR_ORDER_STATUSES_STEP_3_DESC",
             "position": "bottom",
-            "target": ".control-group:not(.hidden):has(#jform_name), #jform_name",
-            "type": 2,
-            "interactive_type": 2,
-            "url": "administrator/index.php?option=com_alfa&view=orderstatus&layout=edit"
-        },
-        {
-            "title": "COM_ALFA_GUIDEDTOUR_ORDER_STATUSES_STEP_4_TITLE",
-            "description": "COM_ALFA_GUIDEDTOUR_ORDER_STATUSES_STEP_4_DESC",
-            "position": "bottom",
-            "target": "#save-group-children-save .button-save, .button-save",
-            "type": 2,
-            "interactive_type": 1,
-            "url": "administrator/index.php?option=com_alfa&view=orderstatus&layout=edit"
-        },
-        {
-            "title": "COM_ALFA_GUIDEDTOUR_ORDER_STATUSES_STEP_5_TITLE",
-            "description": "COM_ALFA_GUIDEDTOUR_ORDER_STATUSES_STEP_5_DESC",
-            "position": "center",
-            "target": "",
+            "target": ".control-group:not(.hidden):has([id^=\"jform_name_\"])",
             "type": 0,
-            "url": "administrator/index.php?option=com_alfa&view=orderstatuses"
+            "url": "administrator/index.php?option=com_alfa&view=orderstatus&layout=edit"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_ORDER_STATUSES_END_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_ORDER_STATUSES_END_DESC",
+            "position": "bottom",
+            "target": "#toolbar",
+            "type": 0,
+            "url": "administrator/index.php?option=com_alfa&view=orderstatus&layout=edit"
         }
     ],
     "ordering": 140

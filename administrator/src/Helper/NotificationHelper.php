@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 
 \defined('_JEXEC') or die;
 
+use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -32,11 +33,19 @@ use Throwable;
  * entirely by timestamps:
  *   - active   : `dismissed IS NULL` - shown in the badge + quick panel.
  *   - history  : `dismissed` set - kept until `expires`, shown in the history view.
- *   - purged   : `expires <= now` - lazily deleted on read (no cron).
+ *   - gone     : `expires <= now` - no list, count or producer probe returns it and no
+ *                push reuses it; the row itself is deleted by {@see self::purge()}, at
+ *                most once an hour, from the bell's background refresh
+ *                ({@see self::purgeThrottled()}).
  *
  * Dismissing/clearing ARCHIVES (sets `dismissed` + an `expires` retention window,
  * default {@see self::DEFAULT_HISTORY_DAYS}) rather than hard-deleting, so a history
  * of what was shown survives. Non-dismissible rows can't be hidden by the user.
+ *
+ * Every page with the bell pays for it, so the bell reads what it shows, through
+ * indexes: the badge and the heading are one aggregate count (idx_active_counts), the
+ * panel loads its first {@see self::PANEL_LIMIT} rows (idx_active_order), and who may
+ * see what is decided once per distinct view rule (idx_view_access), not once per row.
  *
  * @since  1.0.0
  */
@@ -49,6 +58,26 @@ class NotificationHelper
      * @since  1.0.0
      */
     private const TABLE = '#__alfa_notifications';
+
+    /**
+     * How many notifications the bell's panel lists (on the dashboard and every list):
+     * the most urgent and newest first. The badge and the panel heading count all of
+     * them; the rest are one click away in the Notifications view, which pages them (the
+     * panel's "Show all notifications" link).
+     *
+     * @var int
+     * @since  2.1.0
+     */
+    public const PANEL_LIMIT = 10;
+
+    /**
+     * How often, at most, expired rows are deleted ({@see self::purgeThrottled()}).
+     * Reads leave them out whatever their age, so this only bounds the table's size.
+     *
+     * @var int
+     * @since  2.1.0
+     */
+    private const PURGE_MINUTES = 60;
 
     /**
      * Severity ordering (worst last) for sorting and the badge colour.
@@ -105,7 +134,9 @@ class NotificationHelper
             ? $options['severity']
             : 'info';
 
-        $existingId = self::idForKey(dedupKey: $dedupKey);
+        // An expired row under this key is gone: the key raised again is a new notice,
+        // never an update of the dead row (which would keep its old dismissed/expires).
+        $existingId = self::liveIdForKey(dedupKey: $dedupKey);
 
         $data = [
             'id' => $existingId,
@@ -209,6 +240,7 @@ class NotificationHelper
 
         $now = Factory::getDate()->toSql();
         $exp = self::historyExpiry(historyDays: $historyDays);
+        $query->where(self::unexpired(now: $now));
 
         $db->setQuery($query)->execute();
     }
@@ -251,6 +283,7 @@ class NotificationHelper
             ->bind(':now', $now, ParameterType::STRING)
             ->bind(':exp', $exp, ParameterType::STRING)
             ->bind(':key', $dedupKey, ParameterType::STRING);
+        $query->where(self::unexpired(now: $now));
 
         $db->setQuery($query)->execute();
     }
@@ -263,7 +296,7 @@ class NotificationHelper
      * Archived (dismissed) rows count: for a hard clear they are just as much
      * "something to remove", and for a producer that re-raises a fluctuating state they
      * are exactly what must go: {@see self::push()} updates a dismissed row in place
-     * and never un-dismisses it.
+     * and never un-dismisses it. An expired row does not count: it is gone.
      *
      * @param string $dedupKey The key passed to {@see self::push()}.
      *
@@ -273,7 +306,15 @@ class NotificationHelper
      */
     public static function exists(string $dedupKey): bool
     {
-        return self::idForKey(dedupKey: $dedupKey) > 0;
+        $db = self::db();
+        $query = $db->getQuery(true)
+            ->select('1')
+            ->from($db->quoteName(self::TABLE))
+            ->where($db->quoteName('dedup_key') . ' = :key')
+            ->bind(':key', $dedupKey, ParameterType::STRING);
+        $query->where(self::unexpired(now: Factory::getDate()->toSql()));
+
+        return (bool) $db->setQuery($query, 0, 1)->loadResult();
     }
 
     /**
@@ -297,6 +338,7 @@ class NotificationHelper
             ->where($db->quoteName('dedup_key') . ' = :key')
             ->where($db->quoteName('dismissed') . ' IS NULL')
             ->bind(':key', $dedupKey, ParameterType::STRING);
+        $query->where(self::unexpired(now: Factory::getDate()->toSql()));
 
         return (int) $db->setQuery($query)->loadResult() > 0;
     }
@@ -332,13 +374,14 @@ class NotificationHelper
             ->from($db->quoteName(self::TABLE))
             ->where($db->quoteName('dedup_key') . ' LIKE :prefix')
             ->bind(':prefix', $pattern, ParameterType::STRING);
+        $query->where(self::unexpired(now: Factory::getDate()->toSql()));
 
         return $db->setQuery($query)->loadColumn() ?: [];
     }
 
     /**
-     * Badge summary: count of UNREAD, still-active notifications + the highest
-     * severity among them (drives the badge colour). Purges expired history first.
+     * Badge summary: count of UNREAD, still-active notifications the current user may
+     * see + the highest severity among them (drives the badge colour).
      *
      * @return array{count: int, severity: string}
      *
@@ -346,37 +389,139 @@ class NotificationHelper
      */
     public static function summary(): array
     {
-        self::purge();
+        $counts = self::activeCounts(pairs: self::visiblePairs(user: Factory::getApplication()->getIdentity()));
 
+        return ['count' => $counts['unread'], 'severity' => $counts['severity']];
+    }
+
+    /**
+     * The condition that keeps the rows that have not expired. An expired row is gone
+     * whether or not {@see self::purge()} has deleted it yet, so every read applies this.
+     *
+     * @param string $now The current time, SQL format (UTC).
+     * @param string $column The expires column, qualified as the query names it.
+     *
+     *
+     * @since  2.1.0
+     */
+    public static function unexpired(string $now, string $column = 'expires'): string
+    {
+        $db = self::db();
+
+        return '(' . $db->quoteName($column) . ' IS NULL OR ' . $db->quoteName($column) . ' > ' . $db->quote($now) . ')';
+    }
+
+    /**
+     * The view rules a user may see, among those stored: null when the user may see every
+     * one of them (nothing to filter), else the visible ones, possibly none. One read of
+     * the distinct rules (idx_view_access) and one {@see self::canSee()} per rule, so the
+     * cost follows the handful of rules producers declare, not the number of rows.
+     *
+     * Each rule is the stored pair as it is: [view_access, view_access_asset], either
+     * possibly null.
+     *
+     * @param mixed $user A user object, or null for the current identity.
+     *
+     * @return array<int, array{0: string|null, 1: string|null}>|null
+     *
+     * @since  2.1.0
+     */
+    public static function visiblePairs($user = null): ?array
+    {
         $db = self::db();
         $query = $db->getQuery(true)
-            ->select($db->quoteName(['severity', 'view_access', 'view_access_asset']))
-            ->from($db->quoteName(self::TABLE))
-            ->where($db->quoteName('dismissed') . ' IS NULL')
-            ->where($db->quoteName('readed') . ' IS NULL');
+            ->select('DISTINCT ' . $db->quoteName('view_access') . ', ' . $db->quoteName('view_access_asset'))
+            ->from($db->quoteName(self::TABLE));
 
-        $rows = (array) $db->setQuery($query)->loadObjectList();
+        $visible = [];
+        $all = true;
 
-        $count = 0;
-        $rank = -1;
-        $worst = 'info';
-
-        foreach ($rows as $row) {
-            // Only count what the current user is allowed to SEE.
-            if (!self::canSee(notification: $row)) {
-                continue;
-            }
-
-            $count++;
-            $r = self::SEVERITY_RANK[$row->severity] ?? 0;
-
-            if ($r > $rank) {
-                $rank = $r;
-                $worst = $row->severity;
+        foreach ((array) $db->setQuery($query)->loadRowList() as [$action, $asset]) {
+            if (self::canSee(notification: (object) ['view_access' => $action, 'view_access_asset' => $asset], user: $user)) {
+                $visible[] = [$action, $asset];
+            } else {
+                $all = false;
             }
         }
 
-        return ['count' => $count, 'severity' => $worst];
+        return $all ? null : $visible;
+    }
+
+    /**
+     * The SQL condition that keeps the rows whose view rule is one of $pairs (from
+     * {@see self::visiblePairs()}, never empty here): the stored values compared as they
+     * are, a null as IS NULL.
+     *
+     * @param array<int, array{0: string|null, 1: string|null}> $pairs The visible rules.
+     * @param string $alias The table alias the query uses, '' for none.
+     *
+     *
+     * @since  2.1.0
+     */
+    public static function visibilityCondition(array $pairs, string $alias = ''): string
+    {
+        $db = self::db();
+        $prefix = $alias !== '' ? $alias . '.' : '';
+        $same = static fn (string $column, ?string $value): string => $value === null
+            ? $db->quoteName($prefix . $column) . ' IS NULL'
+            : $db->quoteName($prefix . $column) . ' = ' . $db->quote($value);
+        $any = [];
+
+        foreach ($pairs as [$action, $asset]) {
+            $any[] = '(' . $same('view_access', $action) . ' AND ' . $same('view_access_asset', $asset) . ')';
+        }
+
+        return '(' . implode(' OR ', $any) . ')';
+    }
+
+    /**
+     * Counts of the active, unexpired notifications a set of view rules shows, in ONE
+     * aggregate query: all of them (the panel heading), the unread ones (the badge) and
+     * the worst severity among the unread (the badge colour, 'info' when none is unread).
+     *
+     * @param array<int, array{0: string|null, 1: string|null}>|null $pairs The visible rules ({@see self::visiblePairs()}).
+     *
+     * @return array{total: int, unread: int, severity: string}
+     *
+     * @since  2.1.0
+     */
+    private static function activeCounts(?array $pairs): array
+    {
+        if ($pairs === []) {
+            return ['total' => 0, 'unread' => 0, 'severity' => 'info'];
+        }
+
+        $db = self::db();
+        $rank = 'CASE ' . $db->quoteName('severity');
+
+        foreach (self::SEVERITY_RANK as $severity => $value) {
+            $rank .= ' WHEN ' . $db->quote($severity) . ' THEN ' . (int) $value;
+        }
+
+        // An unknown severity ranks like success, as SEVERITY_RANK's lookups default.
+        $rank .= ' ELSE 0 END';
+        $unread = $db->quoteName('readed') . ' IS NULL';
+
+        $query = $db->getQuery(true)
+            ->select('COUNT(*) AS ' . $db->quoteName('total'))
+            ->select('COALESCE(SUM(CASE WHEN ' . $unread . ' THEN 1 ELSE 0 END), 0) AS ' . $db->quoteName('unread'))
+            ->select('MAX(CASE WHEN ' . $unread . ' THEN ' . $rank . ' END) AS ' . $db->quoteName('worst'))
+            ->from($db->quoteName(self::TABLE))
+            ->where($db->quoteName('dismissed') . ' IS NULL');
+        $query->where(self::unexpired(now: Factory::getDate()->toSql()));
+
+        if ($pairs !== null) {
+            $query->where(self::visibilityCondition(pairs: $pairs));
+        }
+
+        $row = $db->setQuery($query)->loadObject();
+        $worst = $row->worst ?? null;
+
+        return [
+            'total' => (int) ($row->total ?? 0),
+            'unread' => (int) ($row->unread ?? 0),
+            'severity' => $worst === null ? 'info' : (string) array_search((int) $worst, self::SEVERITY_RANK, true),
+        ];
     }
 
     /**
@@ -504,40 +649,44 @@ class NotificationHelper
     }
 
     /**
-     * Render the active-notifications panel (the dropdown contents) as HTML. Used by
-     * BOTH the toolbar badge layout (server-rendered on page load; no async needed for
-     * this cheap getItems) and the refresh endpoint, so they render identically.
-     * View-access filtering is applied here.
+     * Render the active-notifications panel (the dropdown contents) as HTML: the first
+     * {@see self::PANEL_LIMIT} notifications the user may see, most urgent and newest
+     * first, under a heading that counts all of them. View access is part of the query,
+     * so the rows loaded are exactly the rows shown.
+     *
+     * @param bool $isOpen Whether the panel renders open.
+     * @param mixed $user The user the panel is for.
+     * @param array<int, array{0: string|null, 1: string|null}>|null $pairs The rules the user may see ({@see self::visiblePairs()}).
+     * @param int $total How many active notifications those rules show.
      *
      * @return string The rendered `notifications.panel` layout.
      *
-     * @since  1.0.0
+     * @since  2.1.0
      */
-    public static function renderActivePanel(bool $isOpen = false): string
+    private static function renderPanel(bool $isOpen, $user, ?array $pairs, int $total): string
     {
-        $app = Factory::getApplication();
-        $model = self::model('Notifications');
+        $items = [];
 
-        // The panel is chrome: without the list model there is nothing to draw,
-        // and a header must never be the reason a page fatals.
-        if (!$model) {
-            return '';
+        if ($total > 0) {
+            $model = self::model('Notifications');
+
+            // The panel is chrome: without the list model there is nothing to draw,
+            // and a header must never be the reason a page fatals.
+            if (!$model) {
+                return '';
+            }
+
+            $model->setState('filter.scope', 'active');
+            $model->setState('filter.view_pairs', $pairs === null ? null : array_map('json_encode', $pairs));
+            $model->setState('list.limit', self::PANEL_LIMIT);
+            $model->setState('list.start', 0);
+            $model->setState('list.first_page', true);
+            $items = $model->getItems() ?: [];
         }
-
-        $model->getState('list.ordering'); // force populateState()
-        $model->setState('filter.scope', 'active');
-        $model->setState('list.limit', 0);
-        $model->setState('list.start', 0);
-
-        $user = $app->getIdentity();
-        $items = array_values(array_filter(
-            $model->getItems() ?: [],
-            static fn ($item): bool => self::canSee(notification: $item, user: $user),
-        ));
 
         return LayoutHelper::render(
             'notifications.panel',
-            ['items' => $items, 'is_open' => $isOpen, 'can_change' => self::canChangeState(user: $user)],
+            ['items' => $items, 'total' => $total, 'is_open' => $isOpen, 'can_change' => self::canChangeState(user: $user)],
             JPATH_ADMINISTRATOR . '/components/com_alfa/layouts',
         );
     }
@@ -547,7 +696,8 @@ class NotificationHelper
      * panel, as one node. This is the SINGLE render path: the toolbar uses it on page
      * load and the panel endpoint uses it on refresh, so the two can never drift. The
      * open state is rendered in (data-open + the panel's `show` class) so a refresh
-     * restores it.
+     * restores it. The badge and the panel share one reading of who sees what and one
+     * count.
      *
      * @param bool $isOpen Whether the panel should render open (preserved across refresh).
      *
@@ -562,9 +712,17 @@ class NotificationHelper
             return '';
         }
 
+        $user = Factory::getApplication()->getIdentity();
+        $pairs = self::visiblePairs(user: $user);
+        $counts = self::activeCounts(pairs: $pairs);
+
         return LayoutHelper::render(
             'notifications.badge',
-            ['summary' => self::summary(), 'is_open' => $isOpen],
+            [
+                'summary' => ['count' => $counts['unread'], 'severity' => $counts['severity']],
+                'is_open' => $isOpen,
+                'panel' => self::renderPanel(isOpen: $isOpen, user: $user, pairs: $pairs, total: $counts['total']),
+            ],
             JPATH_ADMINISTRATOR . '/components/com_alfa/layouts',
         );
     }
@@ -634,7 +792,9 @@ class NotificationHelper
     }
 
     /**
-     * Delete history rows whose `expires` is in the past (lazy cleanup, no cron).
+     * Delete the rows whose `expires` is in the past. Reads already leave them out
+     * ({@see self::unexpired()}); this only keeps the table small. Run through
+     * {@see self::purgeThrottled()}, never on a page render.
      *
      *
      * @since  1.0.0
@@ -670,24 +830,74 @@ class NotificationHelper
     }
 
     /**
-     * Look up an existing notification id by its dedup key.
+     * Delete expired rows at most once every {@see self::PURGE_MINUTES} minutes: the
+     * bell's background refresh calls this, so a busy backend does the delete about
+     * once an hour instead of on every page. The same throttle as the stock-effects
+     * notice ({@see \Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryEffectOutbox::syncNotice()}).
+     *
+     *
+     * @since  2.1.0
+     */
+    public static function purgeThrottled(): void
+    {
+        try {
+            $cache = Factory::getContainer()
+                ->get(CacheControllerFactoryInterface::class)
+                ->createCacheController('callback', [
+                    'defaultgroup' => 'com_alfa.notifications',
+                    'lifetime' => self::PURGE_MINUTES,
+                    'caching' => true,
+                ]);
+
+            $cache->get([self::class, 'purge'], [], 'purge');
+        } catch (Throwable) {
+            // Cache unavailable: just do it; correct, only less throttled.
+            self::purge();
+        }
+    }
+
+    /**
+     * The id of the live (unexpired) notification carrying a dedup key, or 0. An
+     * expired row under the key is deleted here: it is gone, and the UNIQUE key would
+     * otherwise refuse the new row that replaces it.
      *
      * @param string $dedupKey The dedup key.
      *
      * @return int The id, or 0 if none.
      *
-     * @since  1.0.0
+     * @since  2.1.0
      */
-    private static function idForKey(string $dedupKey): int
+    private static function liveIdForKey(string $dedupKey): int
     {
         $db = self::db();
+        $now = Factory::getDate()->toSql();
         $query = $db->getQuery(true)
             ->select($db->quoteName('id'))
+            ->select('(' . $db->quoteName('expires') . ' IS NOT NULL AND ' . $db->quoteName('expires') . ' <= :now) AS ' . $db->quoteName('expired'))
             ->from($db->quoteName(self::TABLE))
             ->where($db->quoteName('dedup_key') . ' = :key')
+            ->bind(':now', $now, ParameterType::STRING)
             ->bind(':key', $dedupKey, ParameterType::STRING);
 
-        return (int) $db->setQuery($query)->loadResult();
+        $row = $db->setQuery($query)->loadObject();
+
+        if (!$row) {
+            return 0;
+        }
+
+        $id = (int) $row->id;
+
+        if ((int) $row->expired === 1) {
+            $delete = $db->getQuery(true)
+                ->delete($db->quoteName(self::TABLE))
+                ->where($db->quoteName('id') . ' = :id')
+                ->bind(':id', $id, ParameterType::INTEGER);
+            $db->setQuery($delete)->execute();
+
+            return 0;
+        }
+
+        return $id;
     }
 
     /**

@@ -1,6 +1,6 @@
 {
     "uid": "com_alfa.stock-movements",
-    "version": 3,
+    "version": 4,
     "title": "COM_ALFA_GUIDEDTOUR_STOCK_MOVEMENTS_TITLE",
     "description": "COM_ALFA_GUIDEDTOUR_STOCK_MOVEMENTS_DESC",
     "extensions": [
@@ -39,8 +39,8 @@
         {
             "title": "COM_ALFA_GUIDEDTOUR_STOCK_MOVEMENTS_STEP_4_TITLE",
             "description": "COM_ALFA_GUIDEDTOUR_STOCK_MOVEMENTS_STEP_4_DESC",
-            "position": "bottom",
-            "target": "#toolbar a[href*=\"view=locations\"]",
+            "position": "right",
+            "target": "#sidebarmenu a[href*=\"option=com_alfa\"][href*=\"view=locations\"]",
             "type": 2,
             "interactive_type": 3,
             "url": "administrator/index.php?option=com_alfa&view=inventorymovements"
@@ -55,9 +55,10 @@
             "url": "administrator/index.php?option=com_alfa&view=inventorymovements"
         },
         {
-            "title": "COM_ALFA_GUIDEDTOUR_STOCK_MOVEMENTS_STEP_6_TITLE",
-            "description": "COM_ALFA_GUIDEDTOUR_STOCK_MOVEMENTS_STEP_6_DESC",
-            "position": "bottom",
+            "title": "COM_ALFA_GUIDEDTOUR_STOCK_MOVEMENTS_END_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_STOCK_MOVEMENTS_END_DESC",
+            "position": "center",
+            "target": "",
             "type": 0,
             "url": "administrator/index.php?option=com_alfa&view=inventorymovements"
         }

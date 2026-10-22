@@ -172,7 +172,7 @@ class ShipmentModel extends AlfaAdminModel
             $item->users = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_shipment_users', 'shipment_id', 'user_id');
             $item->usergroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_shipment_usergroups', 'shipment_id', 'usergroup_id');
 
-            // The tax rules its charge is taxed with; none = the shop's default.
+            // The tax rules its charge is taxed with; none = no shipping tax.
             $item->taxes = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_shipment_taxes', 'shipment_id', 'tax_id');
         }
 
@@ -204,7 +204,18 @@ class ShipmentModel extends AlfaAdminModel
         $rawData = $input->post->get('jform', [], 'raw');
         $data = MultilingualHelper::mergeValidatedFormData($data, $rawData, $this->getForm($data, false));
 
-        $data['params'] = json_encode($data['shipmentsparams']);
+        // The method plugin's settings are written from their group. A REST POST or PATCH that does not send the
+        // group reads nothing: a shipping method being created starts with none, and an existing one keeps the
+        // settings it has; empty settings are never written over stored ones over REST (since 2.1.0). On the
+        // method form the group is absent only when every field of it posted nothing (all cleared): that is
+        // saved as no settings.
+        if (\array_key_exists('shipmentsparams', $data)) {
+            $data['params'] = json_encode($data['shipmentsparams']);
+        } elseif ((int) ($data['id'] ?? 0) > 0 && $app->isClient('api')) {
+            unset($data['params']);
+        } else {
+            $data['params'] = '{}';
+        }
 
         if (!parent::save($data)) {
             return false;
@@ -249,7 +260,7 @@ class ShipmentModel extends AlfaAdminModel
             AlfaHelper::setAssocsToDb($currentId, $data['usergroups'] ?? [], '#__alfa_shipment_usergroups', 'shipment_id', 'usergroup_id', $assignZeroIdIfDataEmpty);
 
             // The method's shipping taxes. NO wildcard row when none is chosen:
-            // no row means "use the shop's default shipping taxes".
+            // no row means no shipping tax (there is no shop default).
             AlfaHelper::setAssocsToDb(
                 $currentId,
                 array_values(array_unique(array_filter(array_map('intval', (array) ($data['taxes'] ?? [])), static fn (int $id): bool => $id > 0))),

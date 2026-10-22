@@ -1,6 +1,6 @@
 {
     "uid": "com_alfa.storefront-menu",
-    "version": 3,
+    "version": 4,
     "ordering": 17,
     "title": "COM_ALFA_GUIDEDTOUR_STOREFRONT_MENU_TITLE",
     "description": "COM_ALFA_GUIDEDTOUR_STOREFRONT_MENU_DESC",
@@ -59,9 +59,9 @@
             "url": "administrator/index.php?option=com_menus&view=items&menutype="
         },
         {
-            "title": "COM_ALFA_GUIDEDTOUR_STOREFRONT_MENU_STEP_7_TITLE",
-            "description": "COM_ALFA_GUIDEDTOUR_STOREFRONT_MENU_STEP_7_DESC",
-            "position": "bottom",
+            "title": "COM_ALFA_GUIDEDTOUR_STOREFRONT_MENU_END_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_STOREFRONT_MENU_END_DESC",
+            "position": "center",
             "target": "",
             "type": 0,
             "url": "administrator/index.php?option=com_menus&view=items&menutype="

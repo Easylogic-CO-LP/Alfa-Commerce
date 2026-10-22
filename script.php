@@ -32,12 +32,15 @@ use Joomla\CMS\Language\Text;
  * plugin (PlgSystemAlfasync) and any frontend registration code; there is no
  * duplicated INSERT/SELECT logic anywhere.
  *
- * The default-params system works as follows:
- *  - Fresh install  -> all keys in {@see self::$defaultParams} are written.
+ * The steps after the install SQL (the schema marker, the Options, the delivery
+ * mapping, the download store, the users, groups and language tables) are the
+ * component's own (Service\Setup\InstallSteps), shared with Clear everything,
+ * which recreates a fresh installation with them. The installed Options are
+ * listed once, in Service\Setup\ComponentOptions::DEFAULTS:
+ *  - Fresh install  -> all of them are written.
  *  - Update         -> only keys absent from the current stored params are added;
  *                     existing admin choices are never touched.
- *  - Multi-select   -> pass a plain PHP array; it is stored as a real JSON array,
- *                     the same shape com_config writes (never a string-encoded copy).
+ * This script says what each step did on the installation page.
  *
  * Library bundling:
  *  - Libraries are declared in com_alfa.xml under <libraries>:
@@ -132,7 +135,7 @@ class com_alfaInstallerScript extends InstallerScript
      *
      * @var string
      */
-    public const SCHEMA_VERSION = '2.0.1';
+    public const SCHEMA_VERSION = '2.1.0';
 
     /**
      * Whether this run completes an install that never finished: preflight ran
@@ -151,6 +154,17 @@ class com_alfaInstallerScript extends InstallerScript
      * @since 2.0.1
      */
     private string $packageVersion = self::CLEAN_INSTALL_FLOOR;
+
+    /**
+     * Whether a Clear everything did not finish on this site (it failed, or its process died), read
+     * in preflight. Core's schema may then be half made: the update route runs no update file over
+     * it, the install route does not judge the kept tables, and postflight leaves the steps that
+     * write Alfa data to Clear everything's Run again ({@see self::postflight()}). A paused Clear
+     * everything left core's schema whole, and the installer behaves normally.
+     *
+     * @since 2.1.0
+     */
+    private bool $resetUnfinished = false;
 
     /**
      * The link tables: two ids per row, each pair meaning one link. Schema 2.0.1
@@ -215,117 +229,6 @@ class com_alfaInstallerScript extends InstallerScript
         '#__alfa_cart_rules_usergroups' => 'idx_rule_group',
     ];
 
-    /**
-     * Default component parameters to seed after install / update.
-     *
-     * Keys must match the `name` attribute of every <field> in config.xml.
-     *
-     * The subset of keys listed in SyncHelper::PRICES_DISPLAY_KEYS is passed
-     * to SyncHelper::buildDefaultPricesDisplay() to build the per-usergroup
-     * prices_display JSON; no hardcoded JSON strings anywhere in this codebase.
-     *
-     * @var array<string, scalar|array<string>>
-     */
-    private array $defaultParams = [
-
-        // General / catalog
-        'include_subcategories'                => 1,
-        'category_filter_subtree'              => 0,
-        'show_items_filters'                   => 0,
-        'show_items_field_facets'              => 1,
-        'show_manufacturers_filters'           => 0,
-
-        // Listings (floor of the category -> menu -> global chain). items_limits
-        // deliberately EMPTY: the storefront keeps its standard page sizes, and
-        // "All" stays unavailable until a merchant adds a 0 entry themselves.
-        'items_limit'                          => 25,
-        'items_limits'                         => '',
-        'items_ordering'                       => 'a.id DESC',
-
-        // Pricing
-        'combination_adjust_target'            => 'final',
-
-        // Stock
-        'stock_action'                         => 0,
-        'stock_low'                            => 5,
-        'backorder'                            => 'deny',
-        'negative_physical'                    => 0,
-        'over_shipment'                        => 'strict',
-        'min_qty'                              => 0,
-
-        // Notifications
-        'notifications_history_days'           => 7,
-
-        // Setup checklist / first-run wizard. Only store_name / store_email have
-        // config.xml fields; the rest is engine state (deliberately no field,
-        // like save_history). Guided tours are seeded from tours/*.json in
-        // postflight (TourSeeder: data rows in core tables, no sql/updates).
-        'store_name'                           => '',
-        'store_email'                          => '',
-        'setup_completed'                      => 0,
-        'setup_version'                        => '',
-
-        // Search indexing
-        'search_index_aliases'                 => 1,
-        'search_index_manufacturers'           => 1,
-        'search_index_categories'              => 0,
-        'search_index_short_desc'              => 0,
-        'search_index_full_desc'               => 0,
-        'search_index_meta_text'               => 0,
-
-        // Documents
-        'documents_issuer'                     => 'com_alfa',
-
-        // Price display
-        // These keys are also read by SyncHelper::PRICES_DISPLAY_KEYS to build
-        // the per-usergroup prices_display JSON.  Keep values consistent.
-        'base_price_show'                      => 0,
-        'base_price_show_label'                => 0,
-        'discount_amount_show'                 => 0,
-        'discount_amount_show_label'           => 0,
-        'base_price_with_discounts_show'       => 0,
-        'base_price_with_discounts_show_label' => 0,
-        'tax_amount_show'                      => 0,
-        'tax_amount_show_label'                => 0,
-        'base_price_with_tax_show'             => 0,
-        'base_price_with_tax_show_label'       => 0,
-        'final_price_show'                     => 1,
-        'final_price_show_label'               => 1,
-        'price_breakdown_show'                 => 0,
-
-        // Currency: the ISO-4217 NUMBER (the `number` column, the Options field's
-        // key_field, and what Pricing\Currency / OrderCreator read). NEVER the row id.
-        'default_currency'                     => 978,  // EUR
-
-        // Media (main-image format/quality/dimensions live in the optimizer plugin)
-        'media_thumbnail_width'                => 200,
-        'media_thumbnail_height'               => 200,
-        'media_save_location'                  => '/images/commerce',
-        'media_placeholder'                    => 'media/com_alfa/images/placeholders/no-image.webp',
-        'media_placeholder_items'              => 1,
-        'media_placeholder_categories'         => 1,
-        'media_placeholder_manufacturers'      => 1,
-        'media_url_thumbnail'                  => 'media/com_alfa/images/placeholders/url.webp',
-        'media_full_deletion'                  => 1,
-        'media_mime'                           => [
-            'image/jpeg',
-            'image/png',
-            'image/gif',
-            'image/bmp',
-            'image/webp',
-            'image/avif',
-        ],
-
-        // History: read by Joomla CORE versioning (VersionableModelTrait /
-        // Versioning), not by com_alfa code; deliberately no config.xml field.
-        'save_history'                         => 0,
-        'history_limit'                        => 5,
-
-        // Cache
-        'enable_cache'                         => 1,
-        'cache_categories'                     => 1,
-    ];
-
     // Installer lifecycle hooks
 
     /**
@@ -346,7 +249,10 @@ class com_alfaInstallerScript extends InstallerScript
      * a site that has since moved to a Joomla, a PHP or an extension set this build
      * does not accept must still be able to remove it.
      *
-     * Six refusals, in order of how early they can be known:
+     * The state of Clear everything refuses nothing: running, paused or unfinished, Alfa Commerce
+     * may be installed, updated or uninstalled (an install over an unfinished run leaves its data
+     * steps and update files to Run again, below). The uninstall route returns at once. On the
+     * other routes, six refusals, in order of how early they can be known:
      *
      *  1. The platform floor ({@see self::$minimumJoomla}).
      *  2. A Joomla this build is not tested on yet ({@see self::$untestedJoomla}).
@@ -380,12 +286,17 @@ class com_alfaInstallerScript extends InstallerScript
      */
     public function preflight($type, $parent): bool
     {
+        $app = Factory::getApplication();
+
+        // Never refused for Clear everything: running, paused or unfinished, Alfa Commerce may be
+        // updated, uninstalled or installed again. Over an unfinished run the data steps wait for
+        // Run again (below).
         if ($type === 'uninstall') {
             return true;
         }
 
-        $app = Factory::getApplication();
         $this->packageVersion = $this->ownVersion();
+        $this->resetUnfinished = \in_array($this->resetPhase(), ['failed', 'running'], true);
 
         if (version_compare($this->platformVersion(), $this->minimumJoomla, 'lt')) {
             $app->enqueueMessage(
@@ -454,7 +365,7 @@ class com_alfaInstallerScript extends InstallerScript
 
         $installed = $this->installedVersion();
 
-        if ($installed !== null && version_compare($installed, self::CLEAN_INSTALL_FLOOR, 'lt')) {
+        if ($installed !== null && !\Alfa\Component\Alfa\Administrator\Service\Setup\AlfaVersion::of(version: $installed)->atLeast(minimum: self::CLEAN_INSTALL_FLOOR)) {
             $app->enqueueMessage(
                 $this->installerText(
                     key:      'COM_ALFA_INSTALL_ERROR_CLEAN_INSTALL_ONLY',
@@ -475,7 +386,9 @@ class com_alfaInstallerScript extends InstallerScript
         // is the install it is: the install route's kept-data check, then the install SQL.
         $unfinished = $type === 'update' && $installed === null;
 
-        if (\in_array($type, ['install', 'discover_install'], true) || $unfinished) {
+        // Over an unfinished Clear everything the kept tables are half made, and Run again makes them
+        // whole from this package's install SQL: they are not judged here.
+        if ((\in_array($type, ['install', 'discover_install'], true) || $unfinished) && !$this->resetUnfinished) {
             $refusal = $this->keptDataRefusal();
 
             if ($refusal !== null) {
@@ -512,9 +425,29 @@ class com_alfaInstallerScript extends InstallerScript
             );
         }
 
+        // Over an unfinished Clear everything Joomla runs no update file: the schema it would change may
+        // be half made, and Run again makes it from this package's install SQL.
+        if ($type === 'update' && !$unfinished && $this->resetUnfinished) {
+            try {
+                $this->skipUpdateFiles(installer: $parent->getParent());
+            } catch (\Throwable $e) {
+                $app->enqueueMessage(
+                    $this->installerText(
+                        key:      'COM_ALFA_INSTALL_ERROR_RESET_SCHEMA',
+                        fallback: 'Alfa Commerce %1$s could not prepare its update over the unfinished Clear everything: %2$s'
+                            . ' No file was replaced and no table was changed.',
+                        values:   [$this->packageVersion, $e->getMessage()],
+                    ),
+                    'error',
+                );
+
+                return false;
+            }
+        }
+
         // An update keys the link tables on their pair of ids (2.0.1.sql), which Joomla runs after this
         // method. A pair written twice before then is reduced to one row first, or the key is refused.
-        if ($type === 'update' && !$unfinished) {
+        if ($type === 'update' && !$unfinished && !$this->resetUnfinished) {
             try {
                 $this->reduceRepeatedLinks();
             } catch (\Throwable $e) {
@@ -544,10 +477,159 @@ class com_alfaInstallerScript extends InstallerScript
      */
     private function ownVersion(): string
     {
-        $file = __DIR__ . '/alfa.xml';
-        $manifest = is_file($file) ? simplexml_load_file($file) : false;
+        self::loadVersionReader();
 
-        return $manifest !== false && (string) $manifest->version !== '' ? (string) $manifest->version : self::CLEAN_INSTALL_FLOOR;
+        return \Alfa\Component\Alfa\Administrator\Service\Setup\AlfaVersion::ofManifest(path: __DIR__ . '/alfa.xml')?->toString()
+            ?? self::CLEAN_INSTALL_FLOOR;
+    }
+
+    /**
+     * Load the version reader this script ships with (Service\Setup\AlfaVersion).
+     *
+     * Preflight runs before Joomla copies this package's files, so an older installed component
+     * has no such class and its autoloader is not asked. The class is taken from beside this
+     * script: from the package while Joomla installs it (administrator/src), from the installed
+     * component when Joomla runs the script there (src). A class this request has already loaded
+     * is used as it is.
+     *
+     * @return  void
+     *
+     * @throws  \RuntimeException  When neither place holds it: the package is incomplete.
+     *
+     * @since   2.1.0
+     */
+    private static function loadVersionReader(): void
+    {
+        self::loadFromPackage(
+            class: \Alfa\Component\Alfa\Administrator\Service\Setup\AlfaVersion::class,
+            file:  'Service/Setup/AlfaVersion.php',
+            what:  'read versions',
+        );
+    }
+
+    /**
+     * Load the installer gate this script ships with (Service\Setup\AlfaInstallerGate), the one every
+     * Alfa extension's installer uses, the same way as the version reader: from beside this script.
+     *
+     * @return  void
+     *
+     * @throws  \RuntimeException  When neither place holds it: the package is incomplete.
+     *
+     * @since   2.1.0
+     */
+    private static function loadInstallerGate(): void
+    {
+        self::loadFromPackage(
+            class: \Alfa\Component\Alfa\Administrator\Service\Setup\AlfaInstallerGate::class,
+            file:  'Service/Setup/AlfaInstallerGate.php',
+            what:  'read the state of Clear everything',
+        );
+    }
+
+    /**
+     * Load one of the plain classes preflight uses from beside this script: from the package while
+     * Joomla installs it (administrator/src), from the installed component when Joomla runs the
+     * script there (src). The installed tree's autoloader is never asked: an older installed
+     * component has no such class. A class this request has already loaded is used as it is.
+     *
+     * @param   string  $class  The class.
+     * @param   string  $file   Its file, relative to the component's src folder.
+     * @param   string  $what   What the installer cannot do without it, for the message.
+     *
+     * @return  void
+     *
+     * @throws  \RuntimeException  When neither place holds it: the package is incomplete.
+     *
+     * @since   2.1.0
+     */
+    private static function loadFromPackage(string $class, string $file, string $what): void
+    {
+        if (class_exists($class, false)) {
+            return;
+        }
+
+        foreach (['/administrator/src/', '/src/'] as $folder) {
+            if (is_file(__DIR__ . $folder . $file)) {
+                require_once __DIR__ . $folder . $file;
+
+                return;
+            }
+        }
+
+        throw new \RuntimeException('The Alfa Commerce installer cannot ' . $what . ': ' . $file . ' is not beside ' . __FILE__ . '.');
+    }
+
+    /**
+     * The phase of a Clear everything that has not finished on this site, or null when none (or when
+     * the state table does not exist yet). Read through the installer gate's plain query.
+     *
+     * @return  string|null  running (at work, or stopped without a word), paused or failed.
+     *
+     * @since   2.1.0
+     */
+    protected function resetPhase(): ?string
+    {
+        self::loadInstallerGate();
+
+        try {
+            return \Alfa\Component\Alfa\Administrator\Service\Setup\AlfaInstallerGate::phase();
+        } catch (\Throwable) {
+            // No state can be read: no Clear everything is known to be unfinished.
+            return null;
+        }
+    }
+
+    /**
+     * Let Joomla's update route run no update file over an unfinished Clear everything: its schema
+     * record of the component is set to this package's newest update file, and Joomla runs only the
+     * files newer than the record (Installer::parseSchemaUpdates()). Run again then makes the whole
+     * schema from this package's install SQL.
+     *
+     * @param   Installer  $installer  The installer running this package.
+     *
+     * @return  void
+     *
+     * @throws  \RuntimeException  When the package holds no update file or the record cannot be written.
+     *
+     * @since   2.1.0
+     */
+    protected function skipUpdateFiles(Installer $installer): void
+    {
+        $versions = array_map(
+            static fn (string $file): string => basename($file, '.sql'),
+            glob(rtrim((string) $installer->getPath('source'), '/\\') . '/administrator/sql/updates/mysql/*.sql') ?: [],
+        );
+
+        if ($versions === []) {
+            throw new \RuntimeException('the package holds no update file');
+        }
+
+        usort($versions, 'version_compare');
+        $newest = (string) end($versions);
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $id = (int) $db->setQuery(
+            $db->createQuery()
+                ->select($db->quoteName('extension_id'))
+                ->from($db->quoteName('#__extensions'))
+                ->where($db->quoteName('type') . ' = ' . $db->quote('component'))
+                ->where($db->quoteName('element') . ' = ' . $db->quote('com_alfa'))
+        )->loadResult();
+
+        if ($id < 1) {
+            throw new \RuntimeException('Joomla has no record of the installed component');
+        }
+
+        $db->setQuery(
+            $db->createQuery()
+                ->delete($db->quoteName('#__schemas'))
+                ->where($db->quoteName('extension_id') . ' = ' . $id)
+        )->execute();
+        $db->setQuery(
+            $db->createQuery()
+                ->insert($db->quoteName('#__schemas'))
+                ->columns($db->quoteName(['extension_id', 'version_id']))
+                ->values($id . ', ' . $db->quote($newest))
+        )->execute();
     }
 
     /**
@@ -640,7 +722,8 @@ class com_alfaInstallerScript extends InstallerScript
      *
      * 2.0.1.sql adds the keys with statements allowed to fail, so that the file can run again
      * after an interruption; this check completes whatever it could not, and names what is still
-     * missing instead of passing over it.
+     * missing instead of passing over it. The repeated pairs are reduced once, before the first
+     * key, in a step of their own (2.1.0).
      *
      * @return  void
      * @since   2.0.1
@@ -651,6 +734,19 @@ class com_alfaInstallerScript extends InstallerScript
         $existing = array_map('strtolower', $db->getTableList());
         $failed = [];
 
+        // Repeated pairs are reduced once, for every table, before any key is added. A failure
+        // there is said on its own, and the keys are still added wherever they can be: a table
+        // that still holds a repeated pair refuses its key and is named with the others below.
+        try {
+            $this->reduceRepeatedLinks();
+        } catch (\Throwable $e) {
+            Factory::getApplication()->enqueueMessage(
+                'Alfa Commerce could not reduce the repeated rows of its link tables: ' . $e->getMessage()
+                . ' The tables it did not reach keep their repeats and are keyed where they can be.',
+                'error'
+            );
+        }
+
         foreach (self::LINK_TABLES as $table => [$owner, $value]) {
             if (!\in_array(strtolower($db->replacePrefix($table)), $existing, true)) {
                 continue;
@@ -658,7 +754,6 @@ class com_alfaInstallerScript extends InstallerScript
 
             try {
                 if (!$this->hasPrimaryKey(table: $table)) {
-                    $this->reduceRepeatedLinks();
                     $db->setQuery(
                         'ALTER TABLE ' . $db->quoteName($table) . ' ADD PRIMARY KEY (' . $db->quoteName($owner) . ', ' . $db->quoteName($value) . ')'
                     )->execute();
@@ -808,28 +903,17 @@ class com_alfaInstallerScript extends InstallerScript
      *
      * Read from the manifest on disk rather than from #__extensions: on the
      * discover_install route the files are present with no database row at all,
-     * and the files are what this build is about to overwrite.
+     * and the files are what this build is about to overwrite. The one reader of
+     * it is Service\Setup\AlfaVersion, taken from this package.
      *
      * @return  string|null
      * @since  2.0.0
      */
     protected function installedVersion(): ?string
     {
-        $manifest = JPATH_ADMINISTRATOR . '/components/com_alfa/alfa.xml';
+        self::loadVersionReader();
 
-        if (!is_file($manifest)) {
-            return null;
-        }
-
-        $xml = @simplexml_load_file($manifest);
-
-        if ($xml === false) {
-            return null;
-        }
-
-        $version = trim((string) $xml->version);
-
-        return $version !== '' ? $version : null;
+        return \Alfa\Component\Alfa\Administrator\Service\Setup\AlfaVersion::installed()?->toString();
     }
 
     /**
@@ -1030,15 +1114,25 @@ class com_alfaInstallerScript extends InstallerScript
     /**
      * Post-flight: runs after install or update is complete.
      *
-     * Execution order:
+     * Execution order (the work of each step is InstallSteps', shared with
+     * Clear everything; this script says what each did):
      *  0. recordSchemaVersion()             - the schema the Alfa tables are at.
+     *     moveShippingOptions()             - the former shipping Options, onto each method.
+     *     repairTemplateLayouts()           - layout choices saved as "html:<name>", onto their template.
      *  1. applyDefaultParams()              - seeds / merges component config.
+     *     seedDeliveryPlaceMapping()        - fresh installs only.
      *     provisionDownloadStore()          - the download store and its Options path.
-     *  2. SyncHelper::bulkSyncUsers()       - batch-inserts missing users.
-     *  3. SyncHelper::bulkSyncUsergroups()  - batch-inserts missing groups.
+     *  2. InstallSteps::syncUsers()         - batch-inserts missing users.
+     *  3. InstallSteps::syncUsergroups()    - batch-inserts missing groups.
+     *  4. InstallSteps::syncLanguageSchema() - the per-language tables.
      *
      * An install that never finished, completed by preflight, runs as an
      * install ({@see self::postflightType()}).
+     *
+     * Over a Clear everything that did not finish ({@see self::$resetUnfinished})
+     * only the shipped records are refreshed (the integrity verdict, the guided
+     * tours); every step that writes Alfa data is left to its Run again, which
+     * makes the whole schema first.
      *
      * @param   string  $type
      * @param   object  $parent
@@ -1076,83 +1170,6 @@ class com_alfaInstallerScript extends InstallerScript
 
         $db  = Factory::getContainer()->get('DatabaseDriver');
         $app = Factory::getApplication();
-
-        // 0. The link tables have their keys (2.0.1), then the Alfa tables are at this
-        //    package's schema: say so among them.
-        $this->completeLinkKeys();
-        $this->recordSchemaVersion();
-
-        // 1. Seed params first: SyncHelper::buildDefaultPricesDisplay() reads
-        //    from $this->defaultParams at install time (not from ComponentHelper)
-        //    so ordering doesn't actually matter here, but it's good practice.
-        $this->applyDefaultParams($type);
-
-        // 1b. Point the shop's delivery destination at the country field the
-        //     install SQL just seeded. Fresh installs only; see the method.
-        $this->seedDeliveryPlaceMapping($type);
-
-        // 1c. The download store: its recorded location, the folder, and the
-        //     Options path that shows it (a reinstall resets the Options).
-        $this->provisionDownloadStore();
-
-        // 2. Bulk-sync users
-        try
-        {
-            $count = \Alfa\Component\Alfa\Administrator\Helper\SyncHelper::bulkSyncUsers($db);
-            $app->enqueueMessage(
-                sprintf('Users synced successfully (%d new records).', $count)
-            );
-        }
-        catch (\Throwable $e)
-        {
-            $app->enqueueMessage('Failed to sync users: ' . $e->getMessage(), 'error');
-        }
-
-        // 3. Bulk-sync usergroups
-        //    Pass $this->defaultParams so buildDefaultPricesDisplay() uses our
-        //    local array (safe even if DB params aren't fully committed yet).
-        try
-        {
-            $count = \Alfa\Component\Alfa\Administrator\Helper\SyncHelper::bulkSyncUsergroups($db, $this->defaultParams);
-            $app->enqueueMessage(
-                sprintf('Usergroups synced successfully (%d new records).', $count)
-            );
-        }
-        catch (\Throwable $e)
-        {
-            $app->enqueueMessage('Failed to sync usergroups: ' . $e->getMessage(), 'error');
-        }
-
-        // 4. Create / update the per-language translation tables, discovered from
-        //    the form XML (every field with a multilingual_table attribute).
-        //    MultilingualHelper is loaded explicitly; the component autoloader
-        //    may not be registered yet at postflight time.
-        $multilingualHelperPath = JPATH_ADMINISTRATOR . '/components/com_alfa/src/Helper/MultilingualHelper.php';
-
-        if (file_exists($multilingualHelperPath))
-        {
-            require_once $multilingualHelperPath;
-
-            try
-            {
-                $result = \Alfa\Component\Alfa\Administrator\Helper\SyncHelper::syncLanguageSchema();
-                $app->enqueueMessage(
-                    sprintf('Language tables synced (%d translatable tables processed).', count($result['tables']))
-                );
-
-                if (!empty($result['errors']))
-                {
-                    $app->enqueueMessage(
-                        'Some language tables failed: ' . implode('; ', array_keys($result['errors'])),
-                        'warning'
-                    );
-                }
-            }
-            catch (\Throwable $e)
-            {
-                $app->enqueueMessage('Failed to sync language tables: ' . $e->getMessage(), 'error');
-            }
-        }
 
         // File integrity is verified online against the signed canonical checksums on the
         // CDN (single source of truth: IntegrityHelper::verifyAgainstOfficial), so there
@@ -1209,7 +1226,8 @@ class com_alfaInstallerScript extends InstallerScript
         // The scheduled task that prepares the list prices of new combinations of customer
         // groups: without it a new combination is never prepared. Created enabled, every
         // five minutes, unless a task of its routine exists (one the shop disabled stays so);
-        // the lazy scheduler runs it with no cron. The task plugin is installed by now.
+        // the lazy scheduler runs it with no cron. The task plugin is installed by now. Joomla's
+        // own record, so it is made over an unfinished Clear everything too.
         try
         {
             $taskId = \Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService::ensurePreparationTask();
@@ -1223,6 +1241,108 @@ class com_alfaInstallerScript extends InstallerScript
         {
             $app->enqueueMessage('The scheduled task that prepares the list prices of customer groups was not created: ' . $e->getMessage()
                 . ' Create one under System > Scheduled Tasks.', 'warning');
+        }
+
+        // A Clear everything that has not finished (failed, stopped, or still at work: the installer is
+        // never refused) may have left core's schema half made: the new files are in place, and Run again
+        // makes the whole schema from this package's install SQL and takes the steps below then.
+        if ($this->resetUnfinished)
+        {
+            $app->enqueueMessage(
+                $this->installerText(
+                    key:      'COM_ALFA_INSTALL_RESET_UNFINISHED',
+                    fallback: 'Alfa Commerce is in maintenance after an unfinished Clear everything: run it again in Tools > Reset and clear.'
+                        . ' The installation steps that write Alfa data were left to it.',
+                    values:   [],
+                ),
+                'warning',
+            );
+
+            return true;
+        }
+
+        // 0. The link tables have their keys (2.0.1), then the Alfa tables are at this
+        //    package's schema: say so among them.
+        $this->completeLinkKeys();
+        $this->recordSchemaVersion();
+
+        // 0b. Each shipping method owns its shipping taxes and the entry mode of its
+        //     prices (2.1.0): the two former Options are moved onto every method once.
+        $this->moveShippingOptions();
+
+        // 0c. A layout picked from a template was saved as "html:<name>" up to 2.1.0:
+        //     each such choice names its template, where exactly one template has it.
+        $this->repairTemplateLayouts();
+
+        // 1. The installed Options (ComponentOptions::DEFAULTS), missing keys only.
+        $this->applyDefaultParams(type: $type);
+
+        // 1b. Point the shop's delivery destination at the country field the
+        //     install SQL just seeded. Fresh installs only; see the method.
+        $this->seedDeliveryPlaceMapping(type: $type);
+
+        // 1c. The download store: its recorded location, the folder, and the
+        //     Options path that shows it (a reinstall resets the Options).
+        $this->provisionDownloadStore();
+
+        $steps = new \Alfa\Component\Alfa\Administrator\Service\Setup\InstallSteps(db: $db);
+
+        // 2. Bulk-sync users
+        try
+        {
+            $count = $steps->syncUsers();
+            $app->enqueueMessage(
+                sprintf('Users synced successfully (%d new records).', $count)
+            );
+        }
+        catch (\Throwable $e)
+        {
+            $app->enqueueMessage('Failed to sync users: ' . $e->getMessage(), 'error');
+        }
+
+        // 3. Bulk-sync usergroups: each new group's price display is built from the
+        //    installed Options (ComponentOptions::DEFAULTS).
+        try
+        {
+            $count = $steps->syncUsergroups();
+            $app->enqueueMessage(
+                sprintf('Usergroups synced successfully (%d new records).', $count)
+            );
+        }
+        catch (\Throwable $e)
+        {
+            $app->enqueueMessage('Failed to sync usergroups: ' . $e->getMessage(), 'error');
+        }
+
+        // 4. Create / update the per-language translation tables, discovered from
+        //    the form XML (every field with a multilingual_table attribute).
+        //    MultilingualHelper is loaded explicitly; the component autoloader
+        //    may not be registered yet at postflight time.
+        $multilingualHelperPath = JPATH_ADMINISTRATOR . '/components/com_alfa/src/Helper/MultilingualHelper.php';
+
+        if (file_exists($multilingualHelperPath))
+        {
+            require_once $multilingualHelperPath;
+
+            try
+            {
+                $result = $steps->syncLanguageSchema();
+                $app->enqueueMessage(
+                    sprintf('Language tables synced (%d translatable tables processed).', count($result['tables']))
+                );
+
+                if (!empty($result['errors']))
+                {
+                    $app->enqueueMessage(
+                        'Some language tables failed: ' . implode('; ', array_keys($result['errors'])),
+                        'warning'
+                    );
+                }
+            }
+            catch (\Throwable $e)
+            {
+                $app->enqueueMessage('Failed to sync language tables: ' . $e->getMessage(), 'error');
+            }
         }
 
         return true;
@@ -1247,12 +1367,8 @@ class com_alfaInstallerScript extends InstallerScript
 
     /**
      * Record {@see self::SCHEMA_VERSION} as the schema the Alfa tables are at,
-     * once an install or update has brought them there.
-     *
-     * The install SQL wrote it already on a fresh install; an update raises it
-     * after Joomla has run the update files. It is never lowered: an older
-     * package installed over newer tables does not make them older, and a
-     * later reinstall must still be told what they are.
+     * once an install or update has brought them there (InstallSteps, which
+     * never lowers a recorded version).
      *
      * A failure is said, never a reason to fail the install: the shop works,
      * and only a later reinstall over the kept data would be refused.
@@ -1262,31 +1378,9 @@ class com_alfaInstallerScript extends InstallerScript
      */
     private function recordSchemaVersion(): void
     {
-        $db = Factory::getContainer()->get('DatabaseDriver');
-
         try {
-            $recorded = $db->setQuery(
-                $db->createQuery()
-                    ->select($db->quoteName('value'))
-                    ->from($db->quoteName('#__alfa_meta'))
-                    ->where($db->quoteName('name') . ' = ' . $db->quote('schema_version'))
-            )->loadResult();
-
-            if ($recorded === null) {
-                $db->setQuery(
-                    $db->createQuery()
-                        ->insert($db->quoteName('#__alfa_meta'))
-                        ->columns($db->quoteName(['name', 'value']))
-                        ->values($db->quote('schema_version') . ', ' . $db->quote(self::SCHEMA_VERSION))
-                )->execute();
-            } elseif (version_compare((string) $recorded, self::SCHEMA_VERSION, '<')) {
-                $db->setQuery(
-                    $db->createQuery()
-                        ->update($db->quoteName('#__alfa_meta'))
-                        ->set($db->quoteName('value') . ' = ' . $db->quote(self::SCHEMA_VERSION))
-                        ->where($db->quoteName('name') . ' = ' . $db->quote('schema_version'))
-                )->execute();
-            }
+            (new \Alfa\Component\Alfa\Administrator\Service\Setup\InstallSteps(db: Factory::getContainer()->get('DatabaseDriver')))
+                ->recordSchemaVersion(version: self::SCHEMA_VERSION);
         } catch (\Throwable $e) {
             Factory::getApplication()->enqueueMessage(
                 'The database schema version of Alfa Commerce was not recorded: ' . $e->getMessage()
@@ -1296,90 +1390,329 @@ class com_alfaInstallerScript extends InstallerScript
         }
     }
 
+    /**
+     * Move the two former shop-level shipping Options, Default shipping taxes and Shipping prices
+     * entered, onto every shipping method
+     * ({@see \Alfa\Component\Alfa\Administrator\Service\Setup\ShippingOptionsMigration}): once, on
+     * the update that finds them stored, and never again. The method column of the entry mode is
+     * added first when the update files did not run (a site already at this schema).
+     *
+     * A failure is said, never a reason to fail the install: both Options stay stored, and the move
+     * runs again when this package is installed again.
+     *
+     * @return  void
+     * @since   2.1.0
+     */
+    private function moveShippingOptions(): void
+    {
+        $migration = new \Alfa\Component\Alfa\Administrator\Service\Setup\ShippingOptionsMigration(
+            db: Factory::getContainer()->get('DatabaseDriver'),
+        );
+
+        try {
+            $migration->completeColumn();
+            $moved = $migration->run();
+        } catch (\Throwable $e) {
+            Factory::getApplication()->enqueueMessage(
+                $this->installerText(
+                    key:      'COM_ALFA_INSTALL_ERROR_SHIPPING_OPTIONS',
+                    fallback: 'Alfa Commerce could not move Default shipping taxes and Shipping prices entered onto the'
+                        . ' shipping methods, and changed none of them: %1$s. Both Options were kept, and the move runs'
+                        . ' again when Alfa Commerce is installed again. Until then, check the Shipping taxes and'
+                        . ' Shipping prices entered of every shipping method before taking orders.',
+                    values:   [$e->getMessage()],
+                ),
+                'error',
+            );
+            $this->noticeShippingMove(failed: true);
+
+            return;
+        }
+
+        $this->noticeShippingMove(failed: false);
+
+        if ($moved === null) {
+            return;
+        }
+
+        Factory::getApplication()->enqueueMessage(
+            $this->installerText(
+                key:      'COM_ALFA_INSTALL_SHIPPING_OPTIONS_MOVED',
+                fallback: 'Alfa Commerce: each shipping method now holds its own Shipping taxes and Shipping prices'
+                    . ' entered. %1$d of the %2$d shipping methods named no tax rules of their own and now hold the'
+                    . ' former Default shipping taxes: %3$s. Every method enters its prices %4$s, as the former'
+                    . ' Options did. Both Options were removed.',
+                values:   [
+                    \count($moved['given']),
+                    $moved['methods'],
+                    $moved['rules'] === [] ? 'none, so they charge no shipping tax' : 'tax rules #' . implode(', #', $moved['rules']),
+                    $moved['mode'] === 'tax_excluded' ? 'tax excluded' : 'tax included',
+                ],
+            ),
+        );
+    }
+
+    /**
+     * A failed move of the shipping Options is a notification for staff until an install completes it.
+     *
+     * While the move has not completed, the Options still hold the shop's former shipping settings, but checkout reads
+     * only each shipping method's own: shipping tax is not applied as the shop configured it. The notification says so
+     * where staff look (the bell and the Notifications list), cannot be dismissed, and goes when an install completes
+     * the move or finds nothing left to move (the Options' two keys gone are the move's done-marker). It is written in
+     * the language of whoever runs the install, from this version's language files. Writing or clearing it never stops
+     * the install.
+     *
+     * @param   bool  $failed  True when the move failed now; false when it completed or had nothing to move.
+     *
+     * @return  void
+     * @since  2.1.0
+     */
+    private function noticeShippingMove(bool $failed): void
+    {
+        $key = 'setup.shipping_options_move';
+        $notifications = \Alfa\Component\Alfa\Administrator\Helper\NotificationHelper::class;
+
+        try
+        {
+            if (!$failed)
+            {
+                if ($notifications::exists(dedupKey: $key))
+                {
+                    $notifications::clear(dedupKey: $key);
+                }
+
+                return;
+            }
+
+            // The installer read this extension's texts before it copied this version's language files: read them
+            // again, so the notice has its own texts in the installing user's language (el-GR included).
+            $language = Factory::getLanguage();
+            $language->load(
+                extension: 'com_alfa.sys',
+                basePath:  JPATH_ADMINISTRATOR,
+                lang:      $language->getTag(),
+                reload:    true,
+            );
+
+            $notifications::push(
+                dedupKey: $key,
+                title:    $this->installerText(
+                    key:      'COM_ALFA_NOTIFY_SHIPPING_MOVE_FAILED_TITLE',
+                    fallback: 'Shipping tax is not applied as configured',
+                    values:   [],
+                ),
+                options:  [
+                    'severity'    => 'danger',
+                    'group'       => 'Shipping',
+                    'message'     => $this->installerText(
+                        key:      'COM_ALFA_NOTIFY_SHIPPING_MOVE_FAILED_MSG',
+                        fallback: 'An update could not move Default shipping taxes and Shipping prices entered onto the'
+                            . ' shipping methods, so both Options were kept. Until the move completes, shipping tax is not'
+                            . ' applied as they configured it: each shipping method uses only its own Shipping taxes and'
+                            . ' Shipping prices entered. The move runs again at the next install or update of Alfa'
+                            . ' Commerce, and this notice goes when it completes. Until then, check the Shipping taxes and'
+                            . ' Shipping prices entered of every shipping method before taking orders.',
+                        values:   [],
+                    ),
+                    'url'         => 'index.php?option=com_alfa&view=shipments',
+                    'dismissible' => false,
+                    'constant'    => true,
+                    'view'        => ['action' => 'alfa.shipments.view', 'asset' => 'com_alfa'],
+                    'link'        => ['action' => 'alfa.shipments.view', 'asset' => 'com_alfa'],
+                ],
+            );
+        }
+        catch (\Throwable)
+        {
+            // The installer's own message (above) already says what failed and what to check.
+        }
+    }
+
+    /**
+     * Give every layout choice that the layout picker of 2.0 saved as "html:<name>" its template
+     * ({@see \Alfa\Component\Alfa\Administrator\Service\Setup\TemplateLayoutMigration}), and say
+     * which choices changed and which were left, so the shop can pick those again.
+     *
+     * A failure is said, never a reason to fail the install: nothing was changed, and the repair
+     * runs again when this package is installed again.
+     *
+     * @return  void
+     * @since   2.1.0
+     */
+    private function repairTemplateLayouts(): void
+    {
+        $app = Factory::getApplication();
+
+        try
+        {
+            $result = (new \Alfa\Component\Alfa\Administrator\Service\Setup\TemplateLayoutMigration(
+                db: Factory::getContainer()->get('DatabaseDriver'),
+            ))->run();
+        }
+        catch (\Throwable $e)
+        {
+            $app->enqueueMessage(
+                $this->installerText(
+                    key:      'COM_ALFA_INSTALL_ERROR_LAYOUTS',
+                    fallback: 'Alfa Commerce could not repair the layout choices saved with the template name html, and'
+                        . ' changed none of them: %1$s. They are repaired when Alfa Commerce is installed again; until'
+                        . ' then their pages show the component\'s own layout.',
+                    values:   [$e->getMessage()],
+                ),
+                'error',
+            );
+
+            return;
+        }
+
+        if ($result['mapped'] === [] && $result['left'] === [])
+        {
+            return;
+        }
+
+        // The installer read this extension's texts before it copied this version's language files: read them
+        // again, so the messages and the layouts' labels have their own texts in the installing user's language.
+        $language = Factory::getLanguage();
+
+        foreach (['com_alfa.sys', 'com_alfa'] as $extension)
+        {
+            $language->load(extension: $extension, basePath: JPATH_ADMINISTRATOR, lang: $language->getTag(), reload: true);
+        }
+
+        if ($result['mapped'] !== [])
+        {
+            $groups = [];
+
+            foreach ($result['mapped'] as $entry)
+            {
+                $groups[$entry['from'] . ' -> ' . $entry['to']][] = $this->layoutPlace(entry: $entry);
+            }
+
+            $app->enqueueMessage(
+                $this->installerText(
+                    key:      'COM_ALFA_INSTALL_LAYOUTS_MAPPED',
+                    fallback: 'Alfa Commerce: %1$d layout choice(s) saved with the template name html now name their'
+                        . ' template, so their pages show that template\'s layout: %2$s.',
+                    values:   [\count($result['mapped']), $this->layoutGroups(groups: $groups)],
+                ),
+            );
+        }
+
+        if ($result['left'] !== [])
+        {
+            $groups = [];
+
+            foreach ($result['left'] as $entry)
+            {
+                $file = 'html/com_alfa/' . $entry['view'] . '/' . substr($entry['value'], \strlen('html:')) . '.php';
+                $reason = match ($entry['reason'])
+                {
+                    'several' => $this->installerText(
+                        key:      'COM_ALFA_INSTALL_LAYOUT_LEFT_SEVERAL',
+                        fallback: 'the templates %1$s all have %2$s',
+                        values:   [implode(', ', $entry['templates']), $file],
+                    ),
+                    'html-folder' => $this->installerText(
+                        key:      'COM_ALFA_INSTALL_LAYOUT_LEFT_HTML_FOLDER',
+                        fallback: 'this site has a template folder named html',
+                        values:   [],
+                    ),
+                    default => $this->installerText(
+                        key:      'COM_ALFA_INSTALL_LAYOUT_LEFT_NONE',
+                        fallback: 'no template has %1$s',
+                        values:   [$file],
+                    ),
+                };
+                $groups[$entry['value'] . ' (' . $reason . ')'][] = $this->layoutPlace(entry: $entry);
+            }
+
+            $app->enqueueMessage(
+                $this->installerText(
+                    key:      'COM_ALFA_INSTALL_LAYOUTS_LEFT',
+                    fallback: 'Alfa Commerce left %1$d layout choice(s) saved with the template name html as they are,'
+                        . ' because it could not tell which template holds the layout: %2$s. Pick each again in its'
+                        . ' form; until then its page shows the component\'s own layout.',
+                    values:   [\count($result['left']), $this->layoutGroups(groups: $groups)],
+                ),
+                'warning',
+            );
+        }
+    }
+
+    /**
+     * Where a repaired or left layout choice is, in the words of its form: "Item Main of product #2531".
+     *
+     * @param   array  $entry  An entry of TemplateLayoutMigration::run() (kind, id, view).
+     *
+     * @return  string
+     * @since   2.1.0
+     */
+    private function layoutPlace(array $entry): string
+    {
+        $labels = [
+            'item'          => ['COM_ALFA_LAYOUT_ITEM_LABEL', 'Item Main'],
+            'items'         => ['COM_ALFA_LAYOUT_ITEMS_LABEL', 'Items List Main'],
+            'manufacturer'  => ['COM_ALFA_LAYOUT_MANUFACTURER_LABEL', 'Manufacturer Main'],
+            'manufacturers' => ['COM_ALFA_LAYOUT_MANUFACTURERS_LABEL', 'Manufacturers List Main'],
+            'registration'  => ['COM_ALFA_LAYOUT_REGISTRATION_LABEL', 'Registration Main'],
+            'userinfo'      => ['COM_ALFA_LAYOUT_USERINFO_LABEL', 'User Info Main'],
+        ];
+        [$labelKey, $labelFallback] = $labels[$entry['view']] ?? ['', $entry['key']];
+        $label = $labelKey === '' ? $labelFallback : $this->installerText(key: $labelKey, fallback: $labelFallback, values: []);
+
+        return match ($entry['kind'])
+        {
+            'item'     => $this->installerText(key: 'COM_ALFA_INSTALL_LAYOUT_AT_ITEM', fallback: '%1$s of product #%2$d', values: [$label, $entry['id']]),
+            'category' => $this->installerText(key: 'COM_ALFA_INSTALL_LAYOUT_AT_CATEGORY', fallback: '%1$s of category #%2$d', values: [$label, $entry['id']]),
+            'menu'     => $this->installerText(key: 'COM_ALFA_INSTALL_LAYOUT_AT_MENU', fallback: '%1$s of menu item #%2$d', values: [$label, $entry['id']]),
+            default    => $this->installerText(key: 'COM_ALFA_INSTALL_LAYOUT_AT_OPTIONS', fallback: '%1$s in the Options', values: [$label]),
+        };
+    }
+
+    /**
+     * The layout choices of one message, grouped by value: "html:blabla -> chameleon:blabla: <place>, <place>; ...".
+     *
+     * @param   array<string, string[]>  $groups  The places, by value.
+     *
+     * @return  string
+     * @since   2.1.0
+     */
+    private function layoutGroups(array $groups): string
+    {
+        $parts = [];
+
+        foreach ($groups as $value => $places)
+        {
+            $parts[] = $value . ': ' . implode(', ', $places);
+        }
+
+        return implode('; ', $parts);
+    }
+
     // Default-params helper
 
     /**
-     * Merges $defaultParams with currently stored params and persists the result.
+     * Add every installed Option the stored Options lack
+     * ({@see \Alfa\Component\Alfa\Administrator\Service\Setup\ComponentOptions::DEFAULTS}):
+     * existing values win and nothing is ever overwritten, on an install and on an update alike.
      *
-     * Strategy: existing DB values win (array_merge puts $currentParams last).
-     * New keys from $defaultParams are inserted; nothing is ever overwritten.
-     *
-     * @param   string  $type
+     * @param   string  $type  The installer's operation.
      *
      * @return  void
      * @since  1.0.0
      */
     private function applyDefaultParams(string $type): void
     {
-        $db    = Factory::getContainer()->get('DatabaseDriver');
-        $query = $db->getQuery(true);
-
-        $query
-            ->select($db->quoteName('params'))
-            ->from($db->quoteName('#__extensions'))
-            ->where($db->quoteName('element') . ' = ' . $db->quote('com_alfa'))
-            ->where($db->quoteName('type')    . ' = ' . $db->quote('component'));
-
-        $db->setQuery($query);
-        $stored = $db->loadResult();
-
-        $currentParams = (!empty($stored)) ? json_decode($stored, true) : [];
-
-        if (!is_array($currentParams))
-        {
-            $currentParams = [];
-        }
-
-        $mergedParams = array_merge($this->defaultParams, $currentParams);
-
-        // Array values nest as REAL JSON arrays via the single json_encode
-        // below, the same shape com_config writes on save. They must NOT be
-        // pre-encoded into strings: Registry->get() would then return the
-        // string, and e.g. MediaHelper::resolveAllowedMimes() casts it to one
-        // bogus one-element list that matches no MIME: every upload rejected
-        // on a fresh install until Options was saved once.
-
-        $query
-            ->clear()
-            ->update($db->quoteName('#__extensions'))
-            ->set($db->quoteName('params') . ' = ' . $db->quote(json_encode($mergedParams)))
-            ->where($db->quoteName('element') . ' = ' . $db->quote('com_alfa'))
-            ->where($db->quoteName('type')    . ' = ' . $db->quote('component'));
-
-        $db->setQuery($query);
-        $db->execute();
+        (new \Alfa\Component\Alfa\Administrator\Service\Setup\InstallSteps(db: Factory::getContainer()->get('DatabaseDriver')))
+            ->applyDefaultOptions(replace: false);
     }
 
     /**
      * Map the shop's delivery destination to the country field the install
-     * SQL seeded, by the id the database actually gave it.
-     *
-     * WHY THIS IS WRITTEN AT ALL, when an unconfigured shop with exactly one
-     * place field already infers the same answer: an explicit mapping is a
-     * decision the merchant can SEE in Options and change, and it stays a
-     * decision when they later add a second place field; inference would go
-     * ambiguous at that moment and stop offering place-restricted methods on a
-     * shop that had been working. Seeding it means adding a field never
-     * silently changes where existing orders are priced to.
-     *
-     * NEVER A HARDCODED ID. The seed's literal `4` is a fresh AUTO_INCREMENT,
-     * not a promise: the same install re-run against a table that already holds
-     * rows, or a merchant who deletes and rebuilds the field, gets a different
-     * one. The row is found by what it IS (a published place field shown in
-     * the delivery section), which is the same question the runtime resolver
-     * asks.
-     *
-     * FRESH INSTALLS ONLY. On an update the mapping is whatever the merchant
-     * has: a value they chose is theirs to keep, and an empty one is a shop
-     * that has been inferring correctly and must go on doing so. Writing here
-     * would silently convert an inferring shop into a mapped one, so that
-     * deleting the field would later report "mapped to a field that is gone"
-     * instead of "no field": a different diagnosis of the same shop.
-     *
-     * A DELETED MAPPING STAYS BROKEN, which is the point. Nothing repairs this
-     * value afterwards; FieldsHelper answers UNMAPPED and the checkout says so,
-     * because quietly re-pointing the destination at another field would price
-     * orders against an address the merchant never chose.
+     * SQL seeded, on a fresh install only: on an update the mapping is
+     * whatever the merchant has
+     * ({@see \Alfa\Component\Alfa\Administrator\Service\Setup\InstallSteps::seedDeliveryPlaceMapping()}
+     * says why, and why never by a hardcoded id).
      *
      * @param   string  $type  The installer's operation: only 'install' seeds.
      *
@@ -1393,73 +1726,14 @@ class com_alfaInstallerScript extends InstallerScript
             return;
         }
 
-        $db = Factory::getContainer()->get('DatabaseDriver');
-
-        $stored = $db->setQuery(
-            $db->getQuery(true)
-                ->select($db->quoteName('params'))
-                ->from($db->quoteName('#__extensions'))
-                ->where($db->quoteName('element') . ' = ' . $db->quote('com_alfa'))
-                ->where($db->quoteName('type') . ' = ' . $db->quote('component'))
-        )->loadResult();
-
-        $params = (!empty($stored)) ? json_decode($stored, true) : [];
-
-        if (!is_array($params))
-        {
-            $params = [];
-        }
-
-        // Already decided, by a merchant, or by a previous run of this.
-        if ((int) ($params['delivery_place_field'] ?? 0) > 0)
-        {
-            return;
-        }
-
-        // The same eligibility the runtime resolver applies: the field type
-        // that carries a place, published, and shown in the delivery section.
-        $candidates = $db->setQuery(
-            $db->getQuery(true)
-                ->select($db->quoteName('id'))
-                ->from($db->quoteName('#__alfa_form_fields'))
-                ->where($db->quoteName('type') . ' = ' . $db->quote('country'))
-                ->where($db->quoteName('state') . ' = 1')
-                ->where($db->quoteName('shipping') . ' > 0')
-                ->order($db->quoteName('ordering') . ' ASC, ' . $db->quoteName('id') . ' ASC')
-        )->loadColumn() ?: [];
-
-        // Exactly one is the only case that can be answered without guessing.
-        // None, or several, is left unmapped on purpose: the resolver reports
-        // MISSING or AMBIGUOUS and the checkout asks the merchant to choose,
-        // which is the whole reason this setting exists.
-        if (\count($candidates) !== 1)
-        {
-            return;
-        }
-
-        $params['delivery_place_field'] = (int) $candidates[0];
-
-        $db->setQuery(
-            $db->getQuery(true)
-                ->update($db->quoteName('#__extensions'))
-                ->set($db->quoteName('params') . ' = ' . $db->quote(json_encode($params)))
-                ->where($db->quoteName('element') . ' = ' . $db->quote('com_alfa'))
-                ->where($db->quoteName('type') . ' = ' . $db->quote('component'))
-        )->execute();
+        (new \Alfa\Component\Alfa\Administrator\Service\Setup\InstallSteps(db: Factory::getContainer()->get('DatabaseDriver')))
+            ->seedDeliveryPlaceMapping();
     }
 
     /**
-     * Settle the download store and show its path in the Options.
-     *
-     * The store lives outside every extension folder and its path is recorded
-     * among the Alfa tables, so an uninstall leaves the purchased files with
-     * the rows that point at them, and a reinstall finds them again
-     * ({@see \Alfa\Component\Alfa\Administrator\Service\Download\Storage::provisionRoot()}).
-     * Joomla resets the Options on a reinstall; the recorded path is written
-     * back into `downloads_storage_path` here, and a path the shop saved
-     * there is recorded. Idempotent: it creates what is missing only. Then
-     * the store's direct-download protection is probed (install and update
-     * are two of the four occasions).
+     * Settle the download store and show its path in the Options
+     * ({@see \Alfa\Component\Alfa\Administrator\Service\Setup\InstallSteps::provisionDownloadStore()}),
+     * then probe its direct-download protection.
      *
      * A failure is said, never a reason to fail the install: the shop works,
      * and only its downloadable files wait for the store.
@@ -1469,45 +1743,11 @@ class com_alfaInstallerScript extends InstallerScript
      */
     private function provisionDownloadStore(): void
     {
-        // An install request does not boot the component, so its log categories are not
-        // registered yet: the messages below point to the downloads log, which must exist.
-        \Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog::register();
-
-        $db = Factory::getContainer()->get('DatabaseDriver');
+        $steps = new \Alfa\Component\Alfa\Administrator\Service\Setup\InstallSteps(db: Factory::getContainer()->get('DatabaseDriver'));
 
         try
         {
-            $stored = $db->setQuery(
-                $db->createQuery()
-                    ->select($db->quoteName('params'))
-                    ->from($db->quoteName('#__extensions'))
-                    ->where($db->quoteName('element') . ' = ' . $db->quote('com_alfa'))
-                    ->where($db->quoteName('type') . ' = ' . $db->quote('component'))
-            )->loadResult();
-
-            $params = (!empty($stored)) ? json_decode($stored, true) : [];
-
-            if (!is_array($params))
-            {
-                $params = [];
-            }
-
-            $configured = (string) ($params['downloads_storage_path'] ?? '');
-            $root       = \Alfa\Component\Alfa\Administrator\Service\Download\Storage::provisionRoot($configured);
-
-            if ($configured !== $root)
-            {
-                $params['downloads_storage_path'] = $root;
-
-                $db->setQuery(
-                    $db->createQuery()
-                        ->update($db->quoteName('#__extensions'))
-                        ->set($db->quoteName('params') . ' = ' . $db->quote(json_encode($params)))
-                        ->where($db->quoteName('element') . ' = ' . $db->quote('com_alfa'))
-                        ->where($db->quoteName('type') . ' = ' . $db->quote('component'))
-                )->execute();
-            }
-
+            $root = $steps->provisionDownloadStore();
         }
         catch (\Throwable $e)
         {
@@ -1523,20 +1763,16 @@ class com_alfaInstallerScript extends InstallerScript
             return;
         }
 
-        // Install and update are two of the four occasions the store's direct-download protection
+        // Install and update are two of the occasions the store's direct-download protection
         // is probed. A result that is not verified, or that could not be saved, is said here and
         // on every Alfa administrator page until a check verifies it.
         try
         {
-            $app = Factory::getApplication();
-            $app->getLanguage()->load('com_alfa', JPATH_ADMINISTRATOR);
-            $protection = new \Alfa\Component\Alfa\Administrator\Service\Download\StoreProtection(knownRoot: $root);
-            $result     = $protection->check();
-            $warning    = $protection->warning($result);
+            $warning = $steps->checkDownloadStore(root: $root);
 
             if ($warning !== null)
             {
-                $app->enqueueMessage($warning, $result->state === $protection::STATE_EXPOSED ? 'error' : 'warning');
+                Factory::getApplication()->enqueueMessage($warning['message'], $warning['type']);
             }
         }
         catch (\Throwable $e)

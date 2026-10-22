@@ -50,6 +50,10 @@
 		<action name="alfa.orders.edit" title="COM_ALFA_ACCESS_ORDERS_EDIT" description="COM_ALFA_ACCESS_ORDERS_EDIT_DESC" />
 		<action name="alfa.orders.edit.state" title="COM_ALFA_ACCESS_ORDERS_EDIT_STATE" description="COM_ALFA_ACCESS_ORDERS_EDIT_STATE_DESC" />
 		<action name="alfa.orders.delete" title="COM_ALFA_ACCESS_ORDERS_DELETE" description="COM_ALFA_ACCESS_ORDERS_DELETE_DESC" />
+		<!-- An amount typed for a refund a payment provider reported and Alfa cannot book as stated,
+		     and a report resolved without a booking (reconciled to an existing refund, or a
+		     duplicate or invalid report). Granted to no group: a Super User decides who else. -->
+		<action name="alfa.orders.refund.resolve" title="COM_ALFA_ACCESS_ORDERS_REFUND_RESOLVE" description="COM_ALFA_ACCESS_ORDERS_REFUND_RESOLVE_DESC" />
 
 		<action name="alfa.documents.view" title="COM_ALFA_ACCESS_DOCUMENTS_VIEW" description="COM_ALFA_ACCESS_DOCUMENTS_VIEW_DESC" />
 		<action name="alfa.documents.create" title="COM_ALFA_ACCESS_DOCUMENTS_CREATE" description="COM_ALFA_ACCESS_DOCUMENTS_CREATE_DESC" />
@@ -149,5 +153,10 @@
 		<action name="alfa.notifications.edit.state" title="COM_ALFA_ACCESS_NOTIFICATIONS_EDIT_STATE" description="COM_ALFA_ACCESS_NOTIFICATIONS_EDIT_STATE_DESC" />
 
 		<action name="alfa.tools" title="COM_ALFA_ACTION_TOOLS" description="COM_ALFA_ACTION_TOOLS_DESC" />
+		<!-- Clear everything removes core's Alfa tables and the purchased files, calls every installed
+		     Alfa plugin's Clear Data, and recreates a fresh installation; Tools > Extensions clears one
+		     extension's data with it. Its own permission, never implied by Tools; granted to no group,
+		     so a Super User decides who else may hold it. -->
+		<action name="alfa.data.clear" title="COM_ALFA_ACCESS_DATA_CLEAR" description="COM_ALFA_ACCESS_DATA_CLEAR_DESC" />
 	</section>
 </access>

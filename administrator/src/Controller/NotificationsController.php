@@ -64,6 +64,10 @@ class NotificationsController extends BaseController
         // off cannot warn about itself, so the bell fetch notices it; no scheduler needed.
         InventoryEffectOutbox::syncNotice();
 
+        // And for expired notifications: deleted here at most once an hour, never on a
+        // page render (every read already leaves them out).
+        NotificationHelper::purgeThrottled();
+
         $this->app->setHeader('Content-Type', 'text/html; charset=utf-8', true);
         $this->app->sendHeaders();
 

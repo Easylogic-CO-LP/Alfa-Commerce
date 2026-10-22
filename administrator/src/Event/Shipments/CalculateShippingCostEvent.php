@@ -8,7 +8,7 @@
  *
  * A plugin answers with ONE of:
  *   - setShippingCost($price): the price as the merchant configured it. What
- *     it means (tax inside or on top) is the shop's shipping price entry mode,
+ *     it means (tax inside or on top) is the method's shipping price entry mode,
  *     and its tax is the method's shipping tax for the destination; core
  *     applies both and states the charge as net, tax and gross;
  *   - setShippingAmounts($net, $tax, $gross, $rate): a carrier that splits
@@ -184,7 +184,7 @@ class CalculateShippingCostEvent extends ShipmentsEvent
     /**
      * Answer with the price as the merchant configured it.
      *
-     * Its meaning is the shop's shipping price entry mode, never the plugin's:
+     * Its meaning is the method's shipping price entry mode, never the plugin's:
      * core reads it as the gross or as the net and taxes it with the method's
      * shipping tax for the destination.
      *

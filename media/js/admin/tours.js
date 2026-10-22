@@ -9,6 +9,10 @@
  *     engine's own listener carries the tour on (page reload or `tour.next()`).
  *   - "Finish without saving" on a Save step: leaves the form through the toolbar
  *     Cancel and lands on the tour's closing step; no record written.
+ *   - The closing step ends the tour when the learner saves or leaves: a toolbar
+ *     Save, Save & Close, Save & New, Save as Copy or Close/Cancel pressed while the
+ *     tour's last step is showing presses the engine's own Complete first, so the
+ *     next page starts clean instead of showing the closing step again.
  *
  * No markup is invented: the buttons are clones of the engine's own footer button,
  * so classes and markup stay the engine's. Deliberate, documented coupling to the
@@ -36,7 +40,10 @@
         target:     '.shepherd-target',                           // the element the step is attached to
         saveLike:   '.button-save, .button-apply, .button-save-new, .button-save-copy',
         cancel:     '#toolbar .button-cancel',
-        cancelIcon: '.shepherd-cancel-icon'
+        cancelIcon: '.shepherd-cancel-icon',
+        // The toolbar buttons that save the form or leave it: each one submits it.
+        leave:      '#toolbar .button-save, #toolbar .button-apply, #toolbar .button-save-new, ' +
+                    '#toolbar .button-save-copy, #toolbar .button-cancel'
     };
 
     /** Marker: the step id this element was already augmented for. */
@@ -308,6 +315,42 @@
         stepObserver.observe(node, { attributes: true, attributeFilter: ['class', 'hidden'] });
         schedule();
     }
+
+    /**
+     * Is this step the tour's last? The engine numbers the steps it builds from the
+     * tour's information step (id "tourinfo", the first of `stepCount`) and then 1..n,
+     * so the last one carries the id `stepCount - 1`.
+     */
+    function isLastStep(stepEl) {
+        var count = Number(sessionStorage.getItem('stepCount'));
+
+        return count > 1 && stepEl.getAttribute('data-shepherd-step-id') === String(count - 1);
+    }
+
+    /**
+     * Saving or leaving the form on the closing step ends the tour.
+     *
+     * The engine resumes a running tour on every page load at the step it was on. On
+     * the closing step that means the step shows again after Save (the same form,
+     * reloaded) or after Save & Close (the list, where its target is gone and it
+     * floats in the middle of the page). The learner has answered the step's question,
+     * so its own Complete is pressed before the toolbar button does its work: the
+     * engine records the tour as completed and clears its storage, and the next page
+     * starts without a tour. A save the form's validation refuses stays on the form,
+     * with the tour already closed and the field free to fix.
+     *
+     * Capture phase: this runs before the toolbar button's own handler submits.
+     */
+    document.addEventListener('click', function (event) {
+        var button = event.target instanceof Element ? event.target.closest(SEL.leave) : null;
+        var stepEl = button ? document.querySelector(SEL.active) : null;
+
+        if (!stepEl || !ownTour() || !isLastStep(stepEl)) { return; }
+
+        var complete = stepEl.querySelector(SEL.footer + ' ' + SEL.primary);
+
+        if (complete) { complete.click(); }
+    }, true);
 
     new MutationObserver(function (records) {
         records.forEach(function (record) {

@@ -18,14 +18,21 @@ use RuntimeException;
 use Throwable;
 
 /**
- * One money operation at a time per order: refund, capture or release.
+ * One capture or release at a time per order.
  *
  * A gateway's call can take seconds, and nothing is booked until the
  * provider answers. A second operation asked in that window, from a second
  * tab, a second admin or a resent form, would pass every check the first one
- * passed. The gateway runs its checks, the provider call and the booking
- * inside run(); a second operation on the same order is refused while the
- * first holds the lock.
+ * passed. For a capture or a release the gateway runs its checks, the
+ * provider call and the booking inside run(); a second operation on the same
+ * order is refused while the first holds the lock.
+ *
+ * NOT for a refund (since 2.1.0). A refund start is decided and reserved in
+ * the books before the provider is asked (PaymentLedger::reserveRefund(),
+ * under the order's short row lock), so every other start counts it at once,
+ * and no lock is held across the provider's call. The core never takes this
+ * lock; a gateway may still hold it around its own log write and booking,
+ * never across a call to the provider.
  *
  * A named database lock, taken without waiting. It belongs to the database
  * connection, so a request that dies frees it. Named locks are server-wide,

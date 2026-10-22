@@ -75,6 +75,13 @@ class PluginAction
     public array $data;
 
     /**
+     * Does running this action start a new refund of the payment?
+     *
+     * @since  2.1.0
+     */
+    public bool $starts_refund;
+
+    /**
      * Constructor.
      *
      * @param array $config All properties as key-value pairs
@@ -99,6 +106,7 @@ class PluginAction
         $this->modal_title = $config['modal_title'] ?? null;
         $this->modal_size = $config['modal_size'] ?? 'md';
         $this->data = $config['data'] ?? [];
+        $this->starts_refund = $config['starts_refund'] ?? false;
     }
 
     //  FLUENT SETTERS - Chain with $event->add() for clean API
@@ -201,6 +209,29 @@ class PluginAction
     public function readOnly(): static
     {
         $this->mutates = false;
+
+        return $this;
+    }
+
+    /**
+     * Declare that running this action starts a new refund of the payment:
+     * money goes back that no provider has moved yet (Refund, Partial refund,
+     * a refund to the customer's credit).
+     *
+     * The core then withholds the action, and refuses it and its `_do` arm
+     * before any plugin runs, while a provider has reported a refund on the
+     * payment's order that the books do not hold
+     * ({@see \Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger::refundStartRefusal()}).
+     * Never declared for an action that records a refund the provider already
+     * made, sends an unanswered refund request again, checks with the provider
+     * or records a provider fact.
+     *
+     *
+     * @since  2.1.0
+     */
+    public function startsRefund(): static
+    {
+        $this->starts_refund = true;
 
         return $this;
     }

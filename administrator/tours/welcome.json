@@ -1,6 +1,6 @@
 {
     "uid": "com_alfa.welcome",
-    "version": 6,
+    "version": 7,
     "title": "COM_ALFA_GUIDEDTOUR_WELCOME_TITLE",
     "description": "COM_ALFA_GUIDEDTOUR_WELCOME_DESC",
     "extensions": [
@@ -51,6 +51,14 @@
             "target": ".header-tours",
             "type": 2,
             "interactive_type": 3,
+            "url": "administrator/index.php?option=com_alfa"
+        },
+        {
+            "title": "COM_ALFA_GUIDEDTOUR_WELCOME_END_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_WELCOME_END_DESC",
+            "position": "center",
+            "target": "",
+            "type": 0,
             "url": "administrator/index.php?option=com_alfa"
         }
     ],

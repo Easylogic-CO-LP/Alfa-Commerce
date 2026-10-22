@@ -12,12 +12,12 @@
  * the assets/script options are registered by NotificationHelper::toolbarBadge() on page
  * load; the JS just refreshes this same layout and swaps the node in place.
  *
- * @var array $displayData  ['summary' => ['count'=>int,'severity'=>string], 'is_open' => bool]
+ * @var array $displayData  ['summary' => ['count'=>int,'severity'=>string], 'is_open' => bool,
+ *                           'panel' => string (the rendered notifications.panel)]
  */
 
 defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Joomla\CMS\Language\Text;
 
 $summary  = $displayData['summary'] ?? ['count' => 0, 'severity' => 'none'];
@@ -32,5 +32,5 @@ $severity = $count > 0 ? ($summary['severity'] ?? 'info') : 'none';
         <span class="alfa-notify-label"><?php echo Text::_('COM_ALFA_NOTIFY_HISTORY_TITLE'); ?></span>
         <span class="alfa-notify-count"<?php echo $count > 0 ? '' : ' style="display:none"'; ?>><?php echo $count > 99 ? '99+' : $count; ?></span>
     </button>
-    <?php echo NotificationHelper::renderActivePanel($isOpen); ?>
+    <?php echo $displayData['panel']; ?>
 </div>

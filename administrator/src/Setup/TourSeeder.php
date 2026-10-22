@@ -85,6 +85,15 @@ final class TourSeeder
     private const WRITE_REVISION = 2;
 
     /**
+     * The stamp {@see self::stamp()} writes, read back: group 1 the file's version, group 2
+     * the site shape of a tour with "when" steps.
+     *
+     * @var string
+     * @since  2.1.0
+     */
+    private const STAMP_PATTERN = '#^alfa:v(\d+)/w\d+(?:\+(monolingual|multilingual))?$#';
+
+    /**
      * Make the DB match the JSON files.
      *
      * @param bool $force True re-seeds even version-matched tours (the Tools action;
@@ -244,19 +253,8 @@ final class TourSeeder
         // the only honest teaching on a multilingual one. The shape rides in the
         // version stamp so that ADDING a second language re-seeds these tours instead
         // of leaving a merchant with steps written for the site they used to have.
-        $shape = SetupHelper::contentLanguages() === [] ? 'monolingual' : 'multilingual';
-        $conditional = false;
-
-        foreach ($tour['steps'] as $step) {
-            if (isset($step['when'])) {
-                $conditional = true;
-                break;
-            }
-        }
-
-        $stamp = 'alfa:v' . (int) ($tour['version'] ?? 1)
-            . '/w' . self::WRITE_REVISION
-            . ($conditional ? '+' . $shape : '');
+        $shape = self::siteShape();
+        $stamp = self::stamp($tour, $shape);
         $now = Factory::getDate()->toSql();
         $user = (int) (Factory::getApplication()->getIdentity()?->id ?? 0);
 
@@ -272,26 +270,15 @@ final class TourSeeder
             return false;
         }
 
-        $row = (object) [
-            'title' => (string) ($tour['title'] ?? $uid),
+        $row = (object) (self::tourContent($tour) + [
             'uid' => $uid,
-            'description' => (string) ($tour['description'] ?? ''),
-            'extensions' => json_encode($tour['extensions'] ?? ['com_alfa']),
-            'url' => (string) ($tour['url'] ?? 'administrator/index.php?option=com_alfa'),
             'published' => 1,
             'language' => '*',
             'note' => $stamp,
             'access' => 1,
-            'autostart' => !empty($tour['autostart']) ? 1 : 0,
-            // The "Take a Tour" list is ordered by this column, and every tour
-            // seeded with the same 0 came out in insertion order, which reads as
-            // random to a merchant. Each file now states where it belongs in the
-            // learning sequence, and an update carries the value too, so changing
-            // the order is a re-seed rather than a database edit.
-            'ordering' => (int) ($tour['ordering'] ?? 0),
             'modified' => $now,
             'modified_by' => $user,
-        ];
+        ]);
 
         if ($existing) {
             $row->id = (int) $existing->id;
@@ -312,35 +299,138 @@ final class TourSeeder
 
         $ordering = 1;
 
-        foreach ($tour['steps'] as $step) {
-            if (isset($step['when']) && (string) $step['when'] !== $shape) {
-                continue;
-            }
-
-            $stepRow = (object) [
+        foreach (self::stepContents($tour, $shape) as $content) {
+            $stepRow = (object) ($content + [
                 'tour_id' => $tourId,
-                'title' => (string) ($step['title'] ?? ''),
                 'published' => 1,
-                'description' => (string) ($step['description'] ?? ''),
                 'ordering' => $ordering++,
-                'position' => (string) ($step['position'] ?? 'bottom'),
-                'target' => (string) ($step['target'] ?? ''),
-                'type' => (int) ($step['type'] ?? 0),
-                'interactive_type' => self::interactiveType($step),
-                'url' => (string) ($step['url'] ?? ''),
                 'created' => $now,
                 'created_by' => $user,
                 'modified' => $now,
                 'modified_by' => $user,
                 'language' => '*',
                 'note' => '',
-                'params' => isset($step['params']) ? json_encode($step['params']) : '',
-            ];
+            ]);
 
             $db->insertObject('#__guidedtour_steps', $stepRow);
         }
 
         return true;
+    }
+
+    /**
+     * The site's shape, for the steps that declare one in "when".
+     *
+     * @return string 'monolingual' or 'multilingual'.
+     *
+     * @since  2.1.0
+     */
+    private static function siteShape(): string
+    {
+        return SetupHelper::contentLanguages() === [] ? 'monolingual' : 'multilingual';
+    }
+
+    /**
+     * The version stamp the seeder writes in a tour row's note: the file's version, the
+     * writer's revision and, for a tour with "when" steps, the site shape its steps were
+     * chosen for. {@see self::STAMP_PATTERN} reads it back.
+     *
+     * @param array $tour The definition from JSON.
+     * @param string $shape The site's shape ({@see self::siteShape()}).
+     *
+     *
+     * @since  2.1.0
+     */
+    private static function stamp(array $tour, string $shape): string
+    {
+        $conditional = false;
+
+        foreach ($tour['steps'] as $step) {
+            if (isset($step['when'])) {
+                $conditional = true;
+                break;
+            }
+        }
+
+        return 'alfa:v' . self::fileVersion($tour)
+            . '/w' . self::WRITE_REVISION
+            . ($conditional ? '+' . $shape : '');
+    }
+
+    /**
+     * The version a tour file states.
+     *
+     * @param array $tour The definition from JSON.
+     *
+     *
+     * @since  2.1.0
+     */
+    private static function fileVersion(array $tour): int
+    {
+        return (int) ($tour['version'] ?? 1);
+    }
+
+    /**
+     * What the seeder writes in a tour row from its file; the uid, the stamp and the
+     * bookkeeping columns are the caller's.
+     *
+     * @param array $tour The definition from JSON.
+     *
+     * @return array<string, mixed>
+     *
+     * @since  2.1.0
+     */
+    private static function tourContent(array $tour): array
+    {
+        return [
+            'title' => (string) ($tour['title'] ?? $tour['uid']),
+            'description' => (string) ($tour['description'] ?? ''),
+            'extensions' => json_encode($tour['extensions'] ?? ['com_alfa']),
+            'url' => (string) ($tour['url'] ?? 'administrator/index.php?option=com_alfa'),
+            'autostart' => !empty($tour['autostart']) ? 1 : 0,
+            // The "Take a Tour" list is ordered by this column, and every tour
+            // seeded with the same 0 came out in insertion order, which reads as
+            // random to a merchant. Each file now states where it belongs in the
+            // learning sequence, and an update carries the value too, so changing
+            // the order is a re-seed rather than a database edit.
+            'ordering' => (int) ($tour['ordering'] ?? 0),
+        ];
+    }
+
+    /**
+     * What the seeder writes in the step rows from a tour file, in order: the steps for a
+     * site of this shape (a step whose "when" names the other shape is left out); the tour
+     * id, the ordering and the bookkeeping columns are the caller's.
+     *
+     * @param array $tour The definition from JSON.
+     * @param string $shape The site's shape ({@see self::siteShape()}).
+     *
+     * @return array<int, array<string, mixed>>
+     *
+     * @since  2.1.0
+     */
+    private static function stepContents(array $tour, string $shape): array
+    {
+        $contents = [];
+
+        foreach ($tour['steps'] as $step) {
+            if (isset($step['when']) && (string) $step['when'] !== $shape) {
+                continue;
+            }
+
+            $contents[] = [
+                'title' => (string) ($step['title'] ?? ''),
+                'description' => (string) ($step['description'] ?? ''),
+                'position' => (string) ($step['position'] ?? 'bottom'),
+                'target' => (string) ($step['target'] ?? ''),
+                'type' => (int) ($step['type'] ?? 0),
+                'interactive_type' => self::interactiveType($step),
+                'url' => (string) ($step['url'] ?? ''),
+                'params' => isset($step['params']) ? json_encode($step['params']) : '',
+            ];
+        }
+
+        return $contents;
     }
 
     /**
@@ -439,9 +529,21 @@ final class TourSeeder
      * DB back into the JSON shape, one file per uid, into {@see self::TOURS_PATH}:
      * author visually in Joomla's Guided Tours UI, export, commit.
      *
+     * seedAll() re-seeds a tour on a site only when its file's version differs from the
+     * one the site was seeded with, so the version is what carries a change to the sites
+     * that already have the tour. A tour still as its file seeded it is not written: its
+     * file already says it, every site skips it, and only the file holds what the
+     * database cannot (the steps for the other site shape). A tour changed since (in
+     * Joomla's Guided Tours screen), or one whose file is gone, is written with a version
+     * above both its stamp and its file: every site re-seeds it on the next update, and a
+     * file whose version was raised by hand is never lowered. Every tour is read before
+     * the first file is written, so a stamp this seeder does not write stops the export
+     * with nothing written.
+     *
      * @return string[] The written uids.
      *
-     * @throws RuntimeException When the tours folder cannot be written.
+     * @throws RuntimeException When the tours folder cannot be written, or a tour's
+     *                          stamp is not one this seeder writes.
      *
      * @since  2.0.0
      */
@@ -453,7 +555,8 @@ final class TourSeeder
             throw new RuntimeException('tours folder is not writable');
         }
 
-        $written = [];
+        $definitions = self::definitions();
+        $payloads = [];
 
         foreach (self::storedTours($db) as $uid => $id) {
             $tourQuery = $db->getQuery(true)
@@ -469,46 +572,29 @@ final class TourSeeder
                 ->order($db->quoteName('ordering') . ' ASC');
             $steps = (array) $db->setQuery($stepsQuery)->loadObjectList();
 
-            $version = (int) (preg_match('/^alfa:v(\d+)$/', (string) $tour->note, $m) ? $m[1] : 1);
+            if (preg_match(self::STAMP_PATTERN, (string) $tour->note, $stamp) !== 1) {
+                throw new RuntimeException(\sprintf(
+                    '%s: the stamp "%s" is not one the seeder writes, so the version is unknown; nothing was exported (reseed the tours, then export)',
+                    $uid,
+                    (string) $tour->note,
+                ));
+            }
 
-            $payload = [
-                'uid' => $uid,
-                'version' => $version,
-                'title' => (string) $tour->title,
-                'description' => (string) $tour->description,
-                'extensions' => json_decode((string) $tour->extensions, true) ?: ['com_alfa'],
-                'url' => (string) $tour->url,
-                'autostart' => (bool) $tour->autostart,
-                'steps' => array_map(static function ($step): array {
-                    $out = [
-                        'title' => (string) $step->title,
-                        'description' => (string) $step->description,
-                        'position' => (string) $step->position,
-                        'target' => (string) $step->target,
-                        'type' => (int) $step->type,
-                    ];
+            $content = self::exportContent($tour, $steps);
+            $definition = $definitions[$uid] ?? null;
 
-                    // Only when it says something: a non-interactive step carries the
-                    // filler, and writing that into every file would be noise the
-                    // reader has to learn to ignore.
-                    if (!\in_array((int) $step->interactive_type, [0, self::INTERACTIVE_TYPE_FILLER], true)) {
-                        $out['interactive_type'] = (int) $step->interactive_type;
-                    }
+            if ($definition !== null && $content === self::seededContent($definition, $stamp[2] ?? null)) {
+                continue;
+            }
 
-                    if ((string) $step->url !== '') {
-                        $out['url'] = (string) $step->url;
-                    }
+            $version = max((int) $stamp[1], $definition === null ? 0 : self::fileVersion($definition)) + 1;
 
-                    $params = json_decode((string) $step->params, true);
+            $payloads[$uid] = ['uid' => $uid, 'version' => $version] + $content;
+        }
 
-                    if (\is_array($params) && $params !== []) {
-                        $out['params'] = $params;
-                    }
+        $written = [];
 
-                    return $out;
-                }, $steps),
-            ];
-
+        foreach ($payloads as $uid => $payload) {
             $file = self::TOURS_PATH . '/' . str_replace(self::UID_PREFIX, '', $uid) . '.json';
 
             file_put_contents($file, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
@@ -517,5 +603,104 @@ final class TourSeeder
         }
 
         return $written;
+    }
+
+    /**
+     * The tour files seedAll() reads, by uid. A file it cannot read seeded nothing and is
+     * left out.
+     *
+     * @return array<string, array> uid => definition.
+     *
+     * @since  2.1.0
+     */
+    private static function definitions(): array
+    {
+        $definitions = [];
+
+        foreach (self::sources() as $file) {
+            try {
+                $tour = self::read($file);
+            } catch (Throwable) {
+                continue;                           // seedAll() reports it as an error
+            }
+
+            $definitions[(string) $tour['uid']] = $tour;
+        }
+
+        return $definitions;
+    }
+
+    /**
+     * A tour file in the export's shape as the seeder writes it into the database: what
+     * the database holds for a tour nobody has changed since it was seeded.
+     *
+     * @param array $definition The tour's file as seedAll() reads it.
+     * @param string|null $shape The site shape of the tour's stamp (a tour with "when" steps).
+     *
+     * @return array<string, mixed>
+     *
+     * @since  2.1.0
+     */
+    private static function seededContent(array $definition, ?string $shape): array
+    {
+        return self::exportContent(
+            (object) self::tourContent($definition),
+            array_map(
+                static fn (array $step): object => (object) $step,
+                self::stepContents($definition, $shape ?? self::siteShape()),
+            ),
+        );
+    }
+
+    /**
+     * A tour in its JSON shape, from its rows, without the uid and the version: what the
+     * export writes and what it compares.
+     *
+     * @param object $tour The tour row.
+     * @param object[] $steps Its step rows, in order.
+     *
+     * @return array<string, mixed>
+     *
+     * @since  2.1.0
+     */
+    private static function exportContent(object $tour, array $steps): array
+    {
+        return [
+            'title' => (string) $tour->title,
+            'description' => (string) $tour->description,
+            'extensions' => json_decode((string) $tour->extensions, true) ?: ['com_alfa'],
+            'url' => (string) $tour->url,
+            'autostart' => (bool) $tour->autostart,
+            'steps' => array_map(static function ($step): array {
+                $out = [
+                    'title' => (string) $step->title,
+                    'description' => (string) $step->description,
+                    'position' => (string) $step->position,
+                    'target' => (string) $step->target,
+                    'type' => (int) $step->type,
+                ];
+
+                // Only when it says something: a non-interactive step carries the
+                // filler, and writing that into every file would be noise the
+                // reader has to learn to ignore.
+                if (!\in_array((int) $step->interactive_type, [0, self::INTERACTIVE_TYPE_FILLER], true)) {
+                    $out['interactive_type'] = (int) $step->interactive_type;
+                }
+
+                if ((string) $step->url !== '') {
+                    $out['url'] = (string) $step->url;
+                }
+
+                $params = json_decode((string) $step->params, true);
+
+                if (\is_array($params) && $params !== []) {
+                    $out['params'] = $params;
+                }
+
+                return $out;
+            }, $steps),
+            // Its place in the "Take a Tour" list: a file without it is seeded at 0.
+            'ordering' => (int) $tour->ordering,
+        ];
     }
 }

@@ -61,9 +61,10 @@ $adjustTarget = in_array($adjustTarget, ['start', 'final'], true) ? $adjustTarge
 $calcA = (float) ($preview['a'] ?? 1.0);
 $calcB = (float) ($preview['b'] ?? 0.0);
 $taxFactor = (float) ($preview['taxFactor'] ?? 1.0);
-// A new item has no tax yet: its taxes follow the categories it is saved with.
-// A price typed with tax cannot be worked back to its base, so the with-tax box
-// stays shut until the first save and the price is entered without tax.
+// A new item has no tax stored: its taxes follow its categories. A price typed
+// with tax cannot be worked back to its base, so the with-tax box is rendered
+// shut; prices.js opens it once item.pricePreview has answered for the
+// categories the item form holds.
 $taxKnown = (int) ($displayData['itemId'] ?? 0) > 0;
 // The item base an ADJUST row applies its delta to, resolved by the storefront
 // engine under this row's own dimensions and quantity tier, like the tax factor.
@@ -268,7 +269,7 @@ $calendarForm->bind([
                 <label><?php echo Text::_('COM_ALFA_PRICES_FINAL'); ?></label>
                 <input type="number" step="<?php echo $stepOf($decimals); ?>" value="<?php echo $esc($finalValue); ?>"
                        class="form-control form-control-sm" data-price-final placeholder="-"
-                       <?php echo $taxKnown ? '' : 'disabled title="' . $esc(Text::_('COM_ALFA_PRICES_FINAL_SAVE_FIRST')) . '"'; ?>>
+                       <?php echo $taxKnown ? '' : 'disabled title="' . $esc(Text::_('COM_ALFA_PRICES_FINAL_CATEGORY_FIRST')) . '"'; ?>>
                 <?php if (!$showModify) : ?>
                     <div class="chip-line" data-price-pipeline><?php echo $pipelineChips; ?></div>
                 <?php endif; ?>

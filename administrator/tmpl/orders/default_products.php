@@ -18,6 +18,7 @@
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\Language\Text;
 
@@ -63,7 +64,7 @@ $item = $this->currentItem;
                         <?php if ($hasDiscount) : ?>
                             <small class="text-muted ms-1">
                                 (−<?php echo ((float) ($oi->discount_percent ?? 0)) > 0
-                                    ? number_format((float) $oi->discount_percent, 0) . '%'
+                                    ? $this->escape(AlfaHelper::percentDisplay(value: $oi->discount_percent))
                                     : $this->escape($oi->reduction_formatted ?? ''); ?>)
                             </small>
                         <?php endif; ?>
