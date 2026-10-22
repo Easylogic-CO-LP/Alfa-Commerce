@@ -55,6 +55,66 @@ class ActionRegistry
     public const LEDGER_LAYOUT_OWNER = 'ledger';
 
     /**
+     * Record this refund: the core-owned action that books a refund the payment
+     * provider reports as made outside Alfa, with the provider's exact figures
+     * ({@see PaymentLedger::recordReportedRefund()}).
+     *
+     * @var string
+     *
+     * @since  2.1.0
+     */
+    public const RECORD_REFUND = 'ledger_record_refund';
+
+    /**
+     * Record this refund with an amount to enter, for a report with no exact
+     * amount in the order's currency: a form; its _do arm books
+     * ({@see PaymentLedger::recordReportedRefundTyped()}).
+     *
+     * @var string
+     *
+     * @since  2.1.0
+     */
+    public const RECORD_REFUND_TYPED = 'ledger_record_refund_typed';
+
+    /**
+     * Reconcile a report to a refund already in the order's books: a form; its
+     * _do arm resolves ({@see PaymentLedger::reconcileReportedRefund()}).
+     *
+     * @var string
+     *
+     * @since  2.1.0
+     */
+    public const RECONCILE_REPORT = 'ledger_reconcile_report';
+
+    /**
+     * Resolve a report as a duplicate or invalid report: a form; its _do arm
+     * resolves ({@see PaymentLedger::dismissReportedRefund()}).
+     *
+     * @var string
+     *
+     * @since  2.1.0
+     */
+    public const DISMISS_REPORT = 'ledger_dismiss_report';
+
+    /**
+     * The field every report action posts: the report's reference, exactly as the gateway lists it.
+     *
+     * @var string
+     *
+     * @since  2.1.0
+     */
+    public const REPORT_FIELD = 'report';
+
+    /**
+     * The report actions that open a form, and need the right to resolve reports.
+     *
+     * @var list<string>
+     *
+     * @since  2.1.0
+     */
+    private const REPORT_FORMS = [self::RECORD_REFUND_TYPED, self::RECONCILE_REPORT, self::DISMISS_REPORT];
+
+    /**
      * Where used one-time keys are kept.
      *
      * @var string
@@ -473,7 +533,8 @@ class ActionRegistry
                 // authority on WHETHER this action may run at all and on
                 // whether it changes state, and asking twice would boot the
                 // plugin and rebuild the list twice per request.
-                $offered = self::getPaymentActions($payment, $orderForAction);
+                $offer = self::paymentOffer(payment: $payment, order: $orderForAction);
+                $offered = $offer['actions'];
 
                 // Built before the guards: a refusal answers on it as a notice,
                 // and an admitted gateway action is dispatched with it.
@@ -484,17 +545,34 @@ class ActionRegistry
                     'data' => [],
                 ]);
 
+                // THE REFUND BLOCK. An action that starts a refund, and the arm
+                // its form submits to, is refused with its reason while a
+                // provider has reported a refund on this order that the books do
+                // not hold: before the one-time key is used and before any
+                // plugin runs.
+                $formOf = str_ends_with($actionId, '_do') ? substr($actionId, 0, -3) : '';
+
+                if ($offer['refusal'] !== null && array_intersect([$actionId, $formOf], $offer['withheld']) !== []) {
+                    return self::refusedPage(group: $group, type: $type, event: $event, messageKey: 'COM_ALFA_ACTION_REFUSED_REFUND_BLOCKED', reason: 'refund block', shown: $offer['refusal']);
+                }
+
                 // Admissibility first, and deliberately before the one-time
                 // key is consumed: a click refused because the world moved
                 // should not also burn the key, or a legitimate retry after
                 // reloading would be refused for a second, wrong reason.
-                $refusal = self::refuseUnofferedAction($offered, $actionId);
+                // The report actions answer for themselves: the ledger asks the
+                // gateway again and says whether the report is already settled,
+                // still reported, or without an exact amount. Their forms only
+                // ask; every arm that writes is submitted with a one-time key.
+                $reportAction = self::isReportAction(actionId: $actionId);
+                $refusal = $reportAction ? null : self::refuseUnofferedAction(offered: $offered, actionId: $actionId);
 
                 if ($refusal !== null) {
                     return self::refusedPage(group: $group, type: $type, event: $event, messageKey: 'COM_ALFA_ACTION_REFUSED_STALE', reason: $refusal);
                 }
 
-                $refusal = self::refuseUnsafeRequest(self::actionMutates($offered, $actionId), $input);
+                $mutating = $reportAction ? !\in_array($actionId, self::REPORT_FORMS, true) : self::actionMutates(offered: $offered, actionId: $actionId);
+                $refusal = self::refuseUnsafeRequest(mutating: $mutating, input: $input);
 
                 if ($refusal !== null) {
                     return self::refusedPage(group: $group, type: $type, event: $event, messageKey: 'COM_ALFA_ACTION_REFUSED_REPEATED', reason: $refusal);
@@ -601,6 +679,8 @@ class ActionRegistry
      * @param ExecutePaymentActionEvent|ExecuteShipmentActionEvent|ExecuteFieldActionEvent $event The event the page renders.
      * @param string $messageKey What the operator is told.
      * @param string $reason Why it was refused, for debugging.
+     * @param string $shown The reason in the operator's words, put into the
+     *                      message; '' when the message says it all.
      *
      * @return array{group: string, type: string, event: object}
      *
@@ -612,10 +692,11 @@ class ActionRegistry
         ExecutePaymentActionEvent|ExecuteShipmentActionEvent|ExecuteFieldActionEvent $event,
         string $messageKey,
         string $reason,
+        string $shown = '',
     ): array {
         self::trace('Action refused: ' . $reason);
 
-        $event->setError(Text::_($messageKey));
+        $event->setError($shown === '' ? Text::_($messageKey) : Text::sprintf($messageKey, $shown));
         $event->setRefresh(true);
 
         return ['group' => $group, 'type' => $type, 'event' => $event];
@@ -639,8 +720,16 @@ class ActionRegistry
      */
     public static function actionPagePermissions(Input $input): ?array
     {
+        $action = $input->getCmd('action', '');
+        $formOf = str_ends_with($action, '_do') ? substr($action, 0, -3) : $action;
+
         return match ($input->getCmd('group', 'alfa-item-fields')) {
-            'alfa-payments', 'alfa-shipments' => [['section' => 'orders', 'action' => 'edit']],
+            // An amount typed for a provider's refund, and a report resolved
+            // without a booking, need their own right as well (granted to no group).
+            'alfa-payments' => \in_array($formOf, self::REPORT_FORMS, true)
+                ? [['section' => 'orders', 'action' => 'edit'], ['section' => 'orders', 'action' => 'refund.resolve']]
+                : [['section' => 'orders', 'action' => 'edit']],
+            'alfa-shipments' => [['section' => 'orders', 'action' => 'edit']],
             'alfa-item-fields' => $input->getCmd('scope', 'item') === 'order'
                 ? [['section' => 'items', 'action' => 'edit'], ['section' => 'orders', 'action' => 'edit']]
                 : [['section' => 'items', 'action' => 'edit']],
@@ -702,6 +791,7 @@ class ActionRegistry
                 'priority' => 150,
                 // Returns money: submitted, never opened as a URL.
                 'mutates' => true,
+                'starts_refund' => true,
             ]),
             new PluginAction([
                 'id' => 'credit_refund_partial',
@@ -716,6 +806,7 @@ class ActionRegistry
                 // the money is credit_refund_partial_do, which is not offered
                 // in this list and therefore falls to the fail-closed default.
                 'mutates' => false,
+                'starts_refund' => true,
             ]),
         ];
     }
@@ -941,17 +1032,41 @@ class ActionRegistry
      */
     public static function getPaymentActions(object $payment, object $order): array
     {
+        return self::paymentOffer(payment: $payment, order: $order)['actions'];
+    }
+
+    /**
+     * What a payment row offers now: the plugin's actions, Record this refund
+     * for each refund its gateway reports and the books do not hold, and the
+     * ledger's, less every action that starts a refund while the refund block holds.
+     *
+     * An action declared with PluginAction::startsRefund() is withheld while a
+     * provider has reported a refund on the payment's order that the books do
+     * not hold ({@see PaymentLedger::refundStartRefusal()}, asked only when such
+     * an action is on offer). The action page refuses a withheld action, and the
+     * arm its form submits to, with that reason. Answers the actions offered,
+     * the ids withheld, and why.
+     *
+     * @param object $payment Payment record.
+     * @param object $order Order record.
+     *
+     * @return array{actions: array, withheld: list<string>, refusal: string|null}
+     *
+     * @since  2.1.0
+     */
+    private static function paymentOffer(object $payment, object $order): array
+    {
         $ledger = self::ledgerActions($payment);
 
         // A reversal or a chargeback is the ledger's own record: no plugin is
         // asked about it.
         if (\in_array((string) ($payment->payment_type ?? ''), PaymentLedger::FACT_TYPES, true)) {
-            return $ledger;
+            return ['actions' => $ledger, 'withheld' => [], 'refusal' => null];
         }
 
         // Merged outside resolveActions(), so a plugin that offers nothing
         // (disabled, missing, throwing) still leaves the ledger's actions.
-        return array_merge(
+        $actions = array_merge(
             self::resolveActions(
                 'alfa-payments',
                 $payment,
@@ -959,8 +1074,23 @@ class ActionRegistry
                 GetPaymentActionsEvent::class,
                 'Payment',
             ),
+            self::reportActions(payment: $payment),
             $ledger,
         );
+
+        $startsRefund = static fn ($action): bool => (bool) (\is_array($action) ? ($action['starts_refund'] ?? false) : ($action->starts_refund ?? false));
+        $starters = self::offeredIds(offered: array_values(array_filter($actions, $startsRefund)));
+        $refusal = $starters === [] ? null : PaymentLedger::refundStartRefusal(orderId: (int) ($payment->id_order ?? 0));
+
+        if ($refusal === null) {
+            return ['actions' => $actions, 'withheld' => [], 'refusal' => null];
+        }
+
+        return [
+            'actions' => array_values(array_filter($actions, static fn ($action): bool => !$startsRefund($action))),
+            'withheld' => $starters,
+            'refusal' => $refusal,
+        ];
     }
 
     /**
@@ -1033,16 +1163,143 @@ class ActionRegistry
     }
 
     /**
+     * The report actions of a payment row, for each refund its gateway reports
+     * and the books do not hold: the way out of the refund block.
+     *
+     * Offered on a gateway's payment row only (the customer's credit and a
+     * method with no provider channel report nothing), per report, those that
+     * hold the refund block first, then those that reserve their amount, each
+     * in the gateway's order: Record this refund for a settled report with an
+     * exact amount (orders: edit); for an operator who may resolve reports,
+     * Record this refund with an amount to enter for a settled report with none,
+     * and Reconcile to an existing refund and Duplicate or invalid report for
+     * every report but a refund request this site sent, which its gateway alone
+     * ends. A report the provider has not settled yet offers no booking. Each
+     * posts the report's reference and nothing else; the ledger reads the
+     * report again when it acts. A label never carries a provider's value: the
+     * button prints labels as they are.
+     *
+     * @param object $payment Payment row.
+     *
+     * @return PluginAction[]
+     *
+     * @since  2.1.0
+     */
+    private static function reportActions(object $payment): array
+    {
+        $paymentId = (int) ($payment->id ?? 0);
+        $class = self::methodType(row: $payment, column: 'payment_method_type');
+
+        if ($paymentId <= 0
+            || $class === ''
+            || \in_array($class, PaymentLedger::NON_GATEWAY_TYPES, true)
+            || (int) ($payment->id_credit_transaction ?? 0) > 0
+            || (string) ($payment->payment_type ?? '') !== PaymentLedger::TYPE_PAYMENT) {
+            return [];
+        }
+
+        $answer = PaymentLedger::unbookedProviderRefundsOfPayment(paymentId: $paymentId);
+        $refunds = array_merge($answer['refunds'], $answer['reserved']);
+
+        if ($refunds === []) {
+            return [];
+        }
+
+        $mayResolve = AlfaHelper::can(section: 'orders', action: 'refund.resolve');
+        $actions = [];
+
+        foreach ($refunds as $refund) {
+            $reference = $refund['id'] ?? Text::sprintf('COM_ALFA_REPORT_NO_ID', $refund['reportId']);
+            $posts = [self::REPORT_FIELD => $refund['reportId']];
+            $tooltip = Text::sprintf('COM_ALFA_RECORD_REFUND_TIP', $reference, $refund['providerAmount'] . ' ' . $refund['providerCurrency'], $refund['reportedOn']);
+
+            $settled = $refund['status'] === PaymentLedger::REPORT_STATUS_SETTLED;
+
+            if ($settled && $refund['amount'] !== null) {
+                $amount = $refund['amount']->format();
+                $actions[] = new PluginAction([
+                    'id' => self::RECORD_REFUND,
+                    'label' => Text::sprintf('COM_ALFA_RECORD_REFUND', $amount),
+                    'tooltip' => $tooltip,
+                    'icon' => 'checkmark',
+                    'class' => 'btn-warning',
+                    'requires_confirmation' => true,
+                    'confirmation_message' => Text::sprintf('COM_ALFA_RECORD_REFUND_CONFIRM', $reference, $amount, $paymentId, $refund['reportedOn']),
+                    'data' => $posts,
+                    'priority' => 160,
+                    // Books money: submitted, never opened as a URL.
+                    'mutates' => true,
+                ]);
+            } elseif ($settled && $mayResolve) {
+                $actions[] = self::reportForm(id: self::RECORD_REFUND_TYPED, labelKey: 'COM_ALFA_RECORD_REFUND_TYPED', class: 'btn-warning', tooltip: $tooltip, posts: $posts);
+            }
+
+            // A refund request this site sent is ended by its gateway alone, never resolved here.
+            if ($mayResolve && !str_starts_with($refund['reportId'], PaymentLedger::REPORT_REQUEST_PREFIX)) {
+                $actions[] = self::reportForm(id: self::RECONCILE_REPORT, labelKey: 'COM_ALFA_RECONCILE_REPORT', class: 'btn-outline-secondary', tooltip: $tooltip, posts: $posts);
+                $actions[] = self::reportForm(id: self::DISMISS_REPORT, labelKey: 'COM_ALFA_DISMISS_REPORT', class: 'btn-outline-secondary', tooltip: $tooltip, posts: $posts);
+            }
+        }
+
+        return $actions;
+    }
+
+    /**
+     * One report action that opens its form (read only; its _do arm writes).
+     *
+     * @param string $id The action id.
+     * @param string $labelKey Its label.
+     * @param string $class The button's class.
+     * @param string $tooltip The report's facts.
+     * @param array<string, string> $posts The report's reference.
+     *
+     * @since  2.1.0
+     */
+    private static function reportForm(string $id, string $labelKey, string $class, string $tooltip, array $posts): PluginAction
+    {
+        return new PluginAction([
+            'id' => $id,
+            'label' => Text::_($labelKey),
+            'tooltip' => $tooltip,
+            'icon' => 'pencil',
+            'class' => $class,
+            'response_layout' => 'action_refund_report',
+            'modal_title' => Text::_($labelKey),
+            'modal_size' => 'md',
+            'data' => $posts,
+            'priority' => 150,
+            'mutates' => false,
+        ]);
+    }
+
+    /**
+     * Whether an action id is one of the report actions (or the arm a form submits to).
+     *
+     * @param string $actionId The requested action.
+     *
+     * @since  2.1.0
+     */
+    private static function isReportAction(string $actionId): bool
+    {
+        $formOf = str_ends_with($actionId, '_do') ? substr($actionId, 0, -3) : '';
+
+        return $actionId === self::RECORD_REFUND
+            || \in_array($actionId, self::REPORT_FORMS, true)
+            || \in_array($formOf, self::REPORT_FORMS, true);
+    }
+
+    /**
      * Execute a core-owned ledger action. Never boots a plugin.
      *
      * The form arms render the Record form; the _do arms read the typed amount,
      * reference and reason and call the ledger's verb, which decides. A refused
-     * submission brings the form back holding what the operator typed.
+     * submission brings the form back holding what the operator typed. The
+     * report actions are answered by executeReportAction().
      *
      * @param object $payment The refund, chargeback or payment row.
      * @param object $order Its order.
-     * @param string $action ledger_reversal, ledger_chargeback, or either with _do.
-     * @param Input $input Request input (amount, reference, reason).
+     * @param string $action ledger_reversal, ledger_chargeback, either with _do, or a report action.
+     * @param Input $input Request input (amount, reference, reason; a report's reference).
      *
      * @return ExecutePaymentActionEvent The event the action page renders.
      *
@@ -1059,6 +1316,10 @@ class ActionRegistry
 
         $rowId = (int) ($payment->id ?? 0);
         $isRefund = (string) ($payment->payment_type ?? '') === PaymentLedger::TYPE_REFUND;
+
+        if (self::isReportAction(actionId: $action)) {
+            return self::executeReportAction(event: $event, payment: $payment, order: $order, action: $action, input: $input);
+        }
 
         // The order's currency at its frozen scale: the one the ledger's verbs
         // compare against.
@@ -1163,6 +1424,167 @@ class ActionRegistry
             'cap' => $formAction === 'ledger_reversal' ? PaymentLedger::unreversedRemainder(rowId: (int) ($payment->id ?? 0)) : null,
             'currency' => $currency,
             'submit' => $formAction . '_do',
+            'typed' => $typed,
+            'refusal' => $message,
+        ]);
+
+        return $event;
+    }
+
+    /**
+     * Answer a report action: Record this refund, its typed amount, Reconcile to
+     * an existing refund, Duplicate or invalid report. Never boots a plugin.
+     *
+     * A form arm shows the report's facts as the gateway lists it now, unchanged,
+     * and asks what its _do arm needs; a report already settled or no longer
+     * listed answers with why instead. The _do arms and Record this refund call
+     * the ledger's verb, which decides. A refused form submission brings the
+     * form back holding what was typed; every other answer reloads the screen.
+     *
+     * @param ExecutePaymentActionEvent $event The event the action page renders.
+     * @param object $payment The payment the report is about.
+     * @param object $order Its order.
+     * @param string $action The report action, or a form's _do arm.
+     * @param Input $input The request: the report's reference; amount, refund and reason as typed.
+     *
+     * @return ExecutePaymentActionEvent The event, answered.
+     *
+     * @since  2.1.0
+     */
+    private static function executeReportAction(ExecutePaymentActionEvent $event, object $payment, object $order, string $action, Input $input): ExecutePaymentActionEvent
+    {
+        $paymentId = (int) ($payment->id ?? 0);
+        $reportId = self::typedValue(input: $input, name: self::REPORT_FIELD);
+        $currency = PaymentLedger::paidTotal(orderId: (int) ($payment->id_order ?? 0))->getCurrency();
+        $formOf = str_ends_with($action, '_do') ? substr($action, 0, -3) : '';
+
+        if (\in_array($action, self::REPORT_FORMS, true)) {
+            return self::reportPage(event: $event, payment: $payment, order: $order, form: $action, reportId: $reportId, currency: $currency);
+        }
+
+        $typed = [
+            'amount' => self::typedValue(input: $input, name: 'amount'),
+            'refund' => self::typedValue(input: $input, name: 'refund'),
+            'reason' => self::typedValue(input: $input, name: 'reason'),
+        ];
+        $back = static fn (string $why): ExecutePaymentActionEvent => self::reportPage(event: $event, payment: $payment, order: $order, form: $formOf, reportId: $reportId, currency: $currency, typed: $typed, refusal: $why);
+
+        if ($action === self::RECORD_REFUND) {
+            $result = PaymentLedger::recordReportedRefund(paymentId: $paymentId, reportId: $reportId);
+        } elseif ($formOf === self::RECORD_REFUND_TYPED) {
+            $amount = self::ledgerAmount(input: $input, currency: $currency);
+
+            if (\is_string($amount)) {
+                return $back($amount);
+            }
+
+            $result = PaymentLedger::recordReportedRefundTyped(paymentId: $paymentId, reportId: $reportId, amount: $amount, reason: $typed['reason']);
+        } elseif ($formOf === self::RECONCILE_REPORT) {
+            $result = PaymentLedger::reconcileReportedRefund(paymentId: $paymentId, reportId: $reportId, refundId: (int) $typed['refund'], reason: $typed['reason']);
+        } else {
+            $result = PaymentLedger::dismissReportedRefund(paymentId: $paymentId, reportId: $reportId, reason: $typed['reason']);
+        }
+
+        $reference = (string) ($result['reference'] ?? $reportId);
+        $event->setRefresh(true);
+
+        if ($result['outcome'] === PaymentLedger::OUTCOME_OK) {
+            $event->setSuccess(true);
+            $event->setMessage(Text::sprintf('COM_ALFA_RECORD_REFUND_DONE', $reference, $currency->format((float) $result['amount']), $paymentId));
+
+            return $event;
+        }
+
+        if ($result['outcome'] === PaymentLedger::OUTCOME_RECORDED) {
+            $event->setSuccess(true);
+            $event->setMessage($formOf === self::RECONCILE_REPORT
+                ? Text::sprintf('COM_ALFA_REPORT_RECONCILED_DONE', $reference, $paymentId, (int) $result['refund_id'])
+                : Text::sprintf('COM_ALFA_REPORT_DISMISSED_DONE', $reference, $paymentId));
+
+            return $event;
+        }
+
+        // Already settled in the books: what the operator wanted holds; nothing was written again.
+        if ($result['outcome'] === PaymentLedger::OUTCOME_DUPLICATE) {
+            $event->setSuccess(true);
+            $event->setMessage((string) $result['reason']);
+
+            return $event;
+        }
+
+        if ($action === self::RECORD_REFUND) {
+            $event->setError(Text::sprintf('COM_ALFA_RECORD_REFUND_FAILED', $reference, (string) $result['reason']));
+
+            return $event;
+        }
+
+        return $back((string) $result['reason']);
+    }
+
+    /**
+     * The form of a report action, fresh or refused: the report's facts as the
+     * gateway lists them, unchanged, and the fields the action asks for.
+     *
+     * A report already settled, or no longer listed, answers with why instead
+     * of a form, and the screen reloads.
+     *
+     * @param ExecutePaymentActionEvent $event The event the action page renders.
+     * @param object $payment The payment.
+     * @param object $order Its order.
+     * @param string $form RECORD_REFUND_TYPED, RECONCILE_REPORT or DISMISS_REPORT.
+     * @param string $reportId The report's reference.
+     * @param Currency $currency The order's currency at its frozen scale.
+     * @param array $typed What was typed (amount, refund, reason) on a refused submission.
+     * @param string $refusal Why it was refused, plain text; '' for a fresh form.
+     *
+     * @since  2.1.0
+     */
+    private static function reportPage(
+        ExecutePaymentActionEvent $event,
+        object $payment,
+        object $order,
+        string $form,
+        string $reportId,
+        Currency $currency,
+        array $typed = [],
+        string $refusal = '',
+    ): ExecutePaymentActionEvent {
+        $report = PaymentLedger::reportedRefund(paymentId: (int) ($payment->id ?? 0), reportId: $reportId);
+
+        // Already settled (another click, another operator): said as done; gone or unreadable: said as refused.
+        if ($report['entry'] === null) {
+            if ($report['settled']) {
+                $event->setSuccess(true);
+                $event->setMessage((string) $report['reason']);
+            } else {
+                $event->setError((string) $report['reason']);
+            }
+
+            $event->setRefresh(true);
+
+            return $event;
+        }
+
+        $message = $refusal === '' ? '' : Text::sprintf('COM_ALFA_REPORT_RESOLVE_FAILED', $refusal);
+
+        if ($message !== '') {
+            $event->setError($message);
+        }
+
+        $event->setLayout('action_refund_report');
+        $event->setLayoutData([
+            'kind' => match ($form) {
+                self::RECORD_REFUND_TYPED => 'typed',
+                self::RECONCILE_REPORT => 'reconcile',
+                default => 'dismiss',
+            },
+            'payment' => $payment,
+            'order' => $order,
+            'report' => $report['entry'],
+            'reference' => $report['entry']['id'] ?? Text::sprintf('COM_ALFA_REPORT_NO_ID', $report['entry']['reportId']),
+            'currency' => $currency,
+            'candidates' => $form === self::RECONCILE_REPORT ? PaymentLedger::reconcilableRefunds(orderId: (int) ($payment->id_order ?? 0)) : [],
+            'submit' => $form . '_do',
             'typed' => $typed,
             'refusal' => $message,
         ]);

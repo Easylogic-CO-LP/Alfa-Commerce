@@ -279,7 +279,7 @@
  * Shipment plugins work identically through ShipmentLedger, with the
  * phases status_on_shipped / _delivered / _returned / _cancelled.
  *
- *  REFUND STRATEGY: full is ONE VERB, partial is one row
+ *  REFUND STRATEGY: full and partial are ONE VERB
  *
  * FULL REFUND: call the ledger's verb. Do NOT hand-roll it.
  *
@@ -292,10 +292,11 @@
  *         null = the refundable REMAINDER, recomputed inside the ledger's
  *         own lock; after a partial refund that is not the gross.
  *
- *         The verb does both halves: it flips the original to 'refunded'
- *         through a COMPARE-AND-SET, writes the linked audit row
- *         (payment_type = 'refund', never counted in total_paid_real), and
- *         unwinds its own flip if that row is refused.
+ *         The verb does both halves: it writes the linked audit row
+ *         (payment_type = 'refund', never counted in total_paid_real) under
+ *         the order's lock, then flips the original to 'refunded' through a
+ *         COMPARE-AND-SET once its settled refunds cover it. A refused row
+ *         changes nothing.
  *
  *         THIS USED TO BE DOCUMENTED AS TWO HAND-WRITTEN STEPS, and that is
  *         why the note is here. A hand-rolled step 1 has no expected status,
@@ -308,42 +309,21 @@
  *         contract, and every gateway plugin should reach it through
  *         PaymentsPlugin::refundPayment().
  *
- *         GATEWAY PLUGINS: refund at the gateway FIRST, then pass
- *         'gateway_moved' => true so a refused row is logged CRITICAL as
- *         OUTCOME_UNRECONCILED instead of being rolled back: the money has
- *         already left. Preflight with refundableNow() before the API call.
+ *         GATEWAY PLUGINS (a provider moves the money): never this
+ *         verb to start a refund. Reserve first with reserveRefund() (the
+ *         core decides it under the order's lock and keeps the amount
+ *         reserved), call the provider with no lock held, then report its
+ *         answer: settleRefund(), holdRefund() or releaseRefund().
  *
- * PARTIAL REFUND: step 2 ONLY. Never do step 1.
- *
- *         total_paid_real sums only the rows that are still
- *         transaction_status = 'completed' AND payment_type = 'payment'.
- *         Step 1 would therefore drop the WHOLE original amount out of
- *         the paid total over a refund of a few euros, and flip the
- *         order from "paid" to "unpaid". It also fires the method's
- *         status_on_refunded automation across the ENTIRE order (stock
- *         release, entitlement revocation).
- *
- *         So leave the original row alone and write only the audit row:
- *
- *             $this->payment($order)->refund()->amount($partial)->refunded()
- *                 ->refundedPayment($originalId)->partialRefund()
- *                 ->refundReason('...')
- *                 ->method((int) $payment->id_payment_method)
- *                 ->save();
- *
- *         KNOWN LIMIT: refund rows are payment_type = 'refund', so they
- *         are never netted out of total_paid_real either; the order
- *         keeps reporting the gross as paid. If your books need the net
- *         figure, also lower the original row:
- *
- *             $this->paymentUpdate($originalId)->amount($gross - $partial)->save();
- *
- *         and the refund row stays as the audit trail for the difference.
- *
- * For gateway plugins (card or wallet gateways), the refund also includes:
- *   ->transactionId($refundTxnId)        - gateway refund reference
- *   ->gatewayResponse(json_encode($resp)) - raw API response for debugging
- *   ->partialRefund()                     - if only part of the amount
+ * PARTIAL REFUND (this method moves no provider money): the same verb
+ *         with the amount, refundPayment($id, $partial, [...]). It keeps the
+ *         original 'completed' while the refunds do not cover it (so
+ *         total_paid_real does not drop the whole payment over a refund of
+ *         a few euros and status_on_refunded does not fire across the
+ *         order), and decides the start under the order's lock with every
+ *         reservation counted. The payment builder
+ *         ($this->payment($order)->refund()->...->save()) is a booking door
+ *         only: never use it to start a refund.
  *
  * The LIVE implementation is handleRefundPartialForm() / handleRefundPartial(),
  * right after handleRefund(); the PARTIAL REFUND block there keeps the
@@ -1300,9 +1280,12 @@ final class Standard extends PaymentsPlugin
             && ($payment->payment_type ?? '') === self::TYPE_PAYMENT
             && $this->refundableNow($event->getOrder())->isPositive()
             && PaymentLedger::refundableRemainder(paymentId: (int) $payment->id)->isPositive()) {
-            // Refund: transitions to refunded + creates refund record
+            // Refund: transitions to refunded + creates refund record. Both refund
+            // actions start a refund: the core withholds them while a provider has
+            // reported a refund on this order that the books do not hold.
             $event->add('refund', Text::_('PLG_ALFA_PAYMENTS_STANDARD_REFUND'))
                 ->mutating()
+                ->startsRefund()
                 ->icon('undo-2')->css('btn-warning')
                 ->confirm(Text::_('PLG_ALFA_PAYMENTS_STANDARD_CONFIRM_REFUND'))
                 ->priority(150);
@@ -1312,6 +1295,7 @@ final class Standard extends PaymentsPlugin
             // block after handleRefund() for why that matters).
             $event->add('refund_partial', Text::_('PLG_ALFA_PAYMENTS_STANDARD_REFUND_PARTIAL'))
                 ->mutating()
+                ->startsRefund()
                 ->icon('undo-2')->css('btn-outline-warning')
                 ->modal('action_refund_partial', Text::_('PLG_ALFA_PAYMENTS_STANDARD_REFUND_PARTIAL'), 'sm')
                 ->priority(140);
@@ -1522,10 +1506,11 @@ final class Standard extends PaymentsPlugin
      *
      * ONE CALL: $this->refundPayment($id, null, ['reason' => ...]).
      *
-     * The verb flips the original to 'refunded' through a COMPARE-AND-SET,
-     * writes the linked audit row (payment_type = 'refund', FK
-     * id_refunded_payment, refund_type = 'full'), and rolls its own flip back
-     * if that row is refused. It answers with an OUTCOME_* verdict, so this
+     * The verb writes the linked audit row (payment_type = 'refund', FK
+     * id_refunded_payment, refund_type = 'full') under the order's lock, then
+     * flips the original to 'refunded' through a COMPARE-AND-SET once its
+     * settled refunds cover it; a refused row changes nothing. It answers
+     * with an OUTCOME_* verdict, so this
      * handler never has to re-derive what the ledger did to the rows. After a
      * chargeback the rest is booked 'partial' with no flip (refunds alone make
      * a refund full), and the message and log row say so.
@@ -1548,26 +1533,20 @@ final class Standard extends PaymentsPlugin
      * AMOUNT: the refundable REMAINDER, never the gross. After a partial
      * refund the original deliberately stays 'completed', so this action
      * stays registered; a gross-sized refund would then always exceed the
-     * ledger's per-payment cap AFTER step 1 had already fired the refunded
-     * automation, and the rollback would bounce the order publicly back
-     * through status_on_completed. Exhausted remainder aborts BEFORE
-     * step 1.
+     * ledger's per-payment cap. Exhausted remainder aborts before the verb
+     * is called.
      *
-     * FOR GATEWAY PLUGINS (card gateways, wallets):
-     *   Refund at the gateway FIRST, then hand the result to the same verb:
+     * FOR GATEWAY PLUGINS (card gateways, wallets): reserve first, then ask
+     *   the provider with no lock held, then report its answer:
      *
-     *     $refund = $gateway->refunds->create([...]);
+     *     $r = $this->reserveRefund((int) $payment->id, $amount, ['mark' => $postedMark]);
+     *     if ($r['outcome'] !== self::OUTCOME_RESERVED) { ...refuse, send nothing... }
+     *     $refund = $gateway->refunds->create([... $r['amount'], idempotency key $r['key'] ...]);
+     *     $this->settleRefund($r['reservation'], $providerFigure, $refund->id, ['final' => true]);
      *
-     *     $result = $this->refundPayment((int) $payment->id, $amount, [
-     *         'gateway_moved'    => true,   // the money has already left
-     *         'transaction_id'   => $refund->id,
-     *         'gateway_response' => json_encode($refund),
-     *     ]);
-     *
-     *   'gateway_moved' is not optional there: it tells the ledger NOT to
-     *   roll the flip back if it refuses the row, and to log CRITICAL with
-     *   OUTCOME_UNRECONCILED instead. Preflight with refundableNow() BEFORE
-     *   the API call.
+     *   holdRefund() when the provider accepted it as pending, releaseRefund()
+     *   when it refused it, nothing when the answer is unknown. The form's
+     *   maximum is refundFormMaximum().
      *
      * @param object $event ExecutePaymentActionEvent
      * @since  1.0.0
@@ -1579,9 +1558,9 @@ final class Standard extends PaymentsPlugin
         $now = Factory::getDate('now', 'UTC')->toSql();
 
         // The REMAINDER, not the gross (see AMOUNT above): the same figure
-        // the ledger's linked over-refund cap enforces, so step 2 cannot be
-        // rejected over refunds that already happened. Checked BEFORE step 1
-        // so nothing fires when nothing is refundable. Money, so "nothing
+        // the ledger's linked over-refund cap enforces, so the audit row cannot
+        // be rejected over refunds that already happened. Checked before the
+        // verb so nothing is asked when nothing is refundable. Money, so "nothing
         // left" is a question about the currency's own smallest unit.
         $amount = PaymentLedger::refundableRemainder((int) $payment->id);
 
@@ -1616,8 +1595,9 @@ final class Standard extends PaymentsPlugin
         //
         // The ledger contract makes PaymentLedger the single writer of money movements and
         // its transitions compare-and-set. refundPayment() is that contract:
-        // it flips the original through the CAS, writes the linked audit row,
-        // and unwinds its own flip if the row is refused.
+        // it writes the linked audit row under the order's lock, then flips
+        // the original through the CAS once its settled refunds cover it; a
+        // refused row changes nothing.
         //
         // This handler used to do those two steps by hand, and step 1 was a
         // plain paymentUpdate()->refunded()->save() with no expected status,
@@ -1635,9 +1615,9 @@ final class Standard extends PaymentsPlugin
         // preflight above is an operator courtesy, not the decision, and a
         // figure read out here could already be stale by the time it lands.
         //
-        // No 'gateway_moved': this plugin moves nothing at a gateway, so a
-        // refused audit row MUST roll the flip back, which is what the verb
-        // does when the flag is absent.
+        // No 'gateway_moved': this plugin moves nothing at a gateway, so the
+        // refund is a start, decided under the order's lock with every
+        // reservation counted, and a refused audit row is a plain refusal.
         //
         // FULL OR PARTIAL IS THE LEDGER'S RULE, not a second copy of it here:
         // refunds alone make a refund full, so after a chargeback the rest is
@@ -1763,15 +1743,16 @@ final class Standard extends PaymentsPlugin
      * Partial refund, STEP 2 of 2: write the audit row.
      *
      * Transition: NONE; the original payment stays 'completed' (see the
-     * PARTIAL REFUND block above). Creates only the linked 'refund' row for
-     * the amount the admin typed.
+     * PARTIAL REFUND block above). Books only the linked 'refund' row for
+     * the amount the admin typed, through the ledger's refund verb
+     * (refundPayment()), which decides it as every new refund start.
      *
      * The amount is read from the request, NOT from $event->getData(): the
      * action page builds payment and shipment events with an EMPTY data
      * array, so getData() always returns [] for these two groups.
      *
-     * ->method() matters on a split-payment order: without it the audit row
-     * inherits the ORDER's payment method, not the refunded row's.
+     * The verb writes the audit row with the refunded row's payment method,
+     * not the order's, which differs on a split-payment order.
      *
      * Because the original never leaves 'completed', the refund buttons stay
      * registered and a second partial refund is reachable: the ledger's
@@ -1837,35 +1818,30 @@ final class Standard extends PaymentsPlugin
             return;
         }
 
-        // Gateway plugins call the refund API FIRST and only write the row
-        // once it succeeded: ->transactionId()/->gatewayResponse().
-
-        // SERIALISED ONCE, from the Money every decision above was taken on;
-        // the same rule refundPayment() states for itself. The operator's raw
-        // figure is NOT what gets written: a typed 5.004 on a 2-decimal order
-        // is now REFUSED at the boundary above, so Money::of() only ever
-        // quantises a figure the operator could have typed; writing the raw
-        // float put 5.004 in the books: a quantity that does not exist in that
-        // currency, which every later remainder is then computed from. A bare
-        // float also skips amountForStorage()'s currency check, which only runs
-        // for a Money.
+        // A NEW REFUND START, decided as every other: through the ledger's
+        // refund verb, as handleRefund() books (since 2.1.0). refundPayment()
+        // holds it to what the order and this payment have left once the
+        // pending provider refunds are reserved, waits while the refund block
+        // holds, and decides it again under the order's lock. The audit row it
+        // writes is linked, partial (refunds alone decide full or partial: the
+        // amount is below the remainder here) and carries the refunded row's
+        // method; the original stays 'completed'. The amount is the Money every
+        // decision above was taken on, so a figure the order's currency cannot
+        // carry never reaches the books. Writing the row through the builder
+        // judged it by the books alone: what a pending provider refund reserves
+        // could be paid out twice.
         $writeAmount = $requested->getAmount();
+        $result = $this->refundPayment((int) $payment->id, $requested, [
+            'reason' => Text::sprintf('PLG_ALFA_PAYMENTS_STANDARD_LOG_REFUNDED_PARTIAL', $payment->id),
+        ]);
 
-        // NO step 1: the original row stays 'completed'.
-        $refundId = $this->payment($order)
-            ->refund()                                    // payment_type = 'refund'
-            ->amount($writeAmount)                        // the partial figure, as Money made it
-            ->refunded()
-            ->refundedPayment((int) $payment->id)         // FK -> original
-            ->partialRefund()                             // refund_type = 'partial'
-            ->refundReason(Text::sprintf('PLG_ALFA_PAYMENTS_STANDARD_LOG_REFUNDED_PARTIAL', $payment->id))
-            ->method((int) $payment->id_payment_method)   // the REFUNDED row's method, not the order's
-            ->save();
-
-        if ($refundId === false) {
-            // The ledger already surfaced its precise refusal (warn() ->
-            // admin message area); this adds the action's outcome.
-            $event->setError(Text::sprintf('PLG_ALFA_PAYMENTS_STANDARD_ERROR_REFUND_PARTIAL', $payment->id));
+        if ($result['outcome'] !== self::OUTCOME_OK) {
+            // A start refused for what is reserved or blocked says why, in the
+            // ledger's own sentence, as the action page says a block; any other
+            // outcome keeps this action's message (the ledger logged its reason).
+            $event->setError(\in_array($result['outcome'], [self::OUTCOME_BLOCKED, self::OUTCOME_NOT_REFUNDABLE], true) && (string) ($result['reason'] ?? '') !== ''
+                ? Text::sprintf('COM_ALFA_ACTION_REFUSED_REFUND_BLOCKED', $result['reason'])
+                : Text::sprintf('PLG_ALFA_PAYMENTS_STANDARD_ERROR_REFUND_PARTIAL', $payment->id));
 
             return;
         }

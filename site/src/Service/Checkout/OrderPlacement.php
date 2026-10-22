@@ -575,7 +575,7 @@ class OrderPlacement
                 // cannot be recovered from the rounded amounts, and the carrier
                 // that writes the parcel row freezes it.
                 $this->order->shipping_tax_rate = $this->completedTotals['shipping_rate'];
-                // And how its figures were formed: under the shop's entry mode,
+                // And how its figures were formed: under its method's entry mode,
                 // or as the carrier stated them.
                 $this->order->shipping_charge_basis = $this->completedTotals['shipping_basis'];
                 // And the ordered rates it was calculated with: the combined

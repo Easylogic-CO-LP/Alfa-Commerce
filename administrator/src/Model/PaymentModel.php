@@ -210,7 +210,18 @@ class PaymentModel extends AlfaAdminModel
         $rawData = $input->post->get('jform', [], 'raw');
         $data = MultilingualHelper::mergeValidatedFormData($data, $rawData, $this->getForm($data, false));
 
-        $data['params'] = json_encode($data['paymentsparams']);
+        // The method plugin's settings are written from their group. A REST POST or PATCH that does not send the
+        // group reads nothing: a payment method being created starts with none, and an existing one keeps the
+        // settings it has; empty settings are never written over stored ones over REST (since 2.1.0). On the
+        // method form the group is absent only when every field of it posted nothing (all cleared): that is
+        // saved as no settings.
+        if (\array_key_exists('paymentsparams', $data)) {
+            $data['params'] = json_encode($data['paymentsparams']);
+        } elseif ((int) ($data['id'] ?? 0) > 0 && $app->isClient('api')) {
+            unset($data['params']);
+        } else {
+            $data['params'] = '{}';
+        }
 
         if (!parent::save($data)) {
             return false;

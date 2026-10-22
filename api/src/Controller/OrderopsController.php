@@ -447,7 +447,7 @@ class OrderopsController extends OrdersController
      * tax is the shipping tax that applies to the order (resolved as checkout
      * resolves it): the rate sent must be exactly its combined rate, and a
      * charge sent untaxed stands only where none applies. The charge is read
-     * under the shop's entry mode, which the parcel keeps with its ordered
+     * under its method's entry mode, which the parcel keeps with its ordered
      * rates, and must be exactly what its input makes through them: with tax
      * included the gross is the input (10.00 at 24% is 8.06 + 1.94, so a net
      * of 8.07 is refused), with tax excluded the net is. How a charge was
@@ -504,7 +504,7 @@ class OrderopsController extends OrdersController
      * parcel kept: a figure the body does not carry is the parcel's own, and the
      * whole charge the parcel will hold is judged through the ordered rates it
      * froze; a figure sent as 0 is 0, and its rate cannot change. A change of a
-     * carrier's stated charge is judged on the shop's entry mode, which the
+     * carrier's stated charge is judged on its method's entry mode, which the
      * parcel then keeps; a PATCH that changes nothing in the charge leaves it
      * as it stands.
      *
@@ -580,7 +580,11 @@ class OrderopsController extends OrdersController
      * does not exist, and a zero never means "everything".
      *
      * RECORDS money only; it calls no gateway. Move the money at the provider
-     * first, then post it here.
+     * first, then post it here. While a provider has reported a refund on this
+     * order that the books do not hold, no refund is recorded here: 409 with the
+     * reason (PaymentLedger::refundStartRefusal()). Nor is one beyond what the
+     * order may still refund once its pending provider refunds are reserved: the
+     * refusal names them (PaymentLedger::refundableNow()).
      *
      * @return static
      *
@@ -673,6 +677,18 @@ class OrderopsController extends OrdersController
      * refund row drives no status automation, mail or entitlement, which is
      * what the compare-and-set exists to keep from happening twice.
      *
+     * The verb is a staff entry point: its write, by either door, is held to
+     * the ledger's staff guard (PaymentLedger::staffWriteRefusal(); since
+     * 2.1.0). A gateway payment's provider transaction id is not cleared or
+     * changed here, and a gateway payment's refund is not moved into a
+     * settled status: 422 with the ledger's sentence.
+     *
+     * While a provider has reported a refund on the order that the books do not
+     * hold, a failed or cancelled refund is not brought back: 409 with the
+     * block's reason (PaymentLedger::staffRefundRefusal()); nor beyond what the
+     * order may still refund once its pending provider refunds are reserved:
+     * 409 naming them (PaymentLedger::staffRefundReservedRefusal()).
+     *
      * @return static
      *
      * @since  2.0.0
@@ -726,8 +742,23 @@ class OrderopsController extends OrdersController
             return $this->displayItem($orderId);
         }
 
+        // THE REFUND BLOCK. A failed or cancelled refund brought back into the
+        // books is a refund typed by staff: while a provider has reported a
+        // refund on this order that the books do not hold, it waits; and it
+        // never takes what the order's pending provider refunds reserve.
+        $refusal = PaymentLedger::staffRefundRefusal(stored: $payment, data: ['transaction_status' => $to], orderId: $orderId)
+            ?? PaymentLedger::staffRefundReservedRefusal(stored: $payment, data: ['transaction_status' => $to], orderId: $orderId);
+
+        if ($refusal !== null) {
+            throw new Save($refusal, 409);
+        }
+
         $isRefund = (string) $payment->payment_type === PaymentLedger::TYPE_REFUND;
+
+        // A staff entry point: the write is held to the ledger's staff guard at its door, through update() or the
+        // compare-and-set alike (PaymentLedger::staffWriteRefusal(); since 2.1.0).
         $write = PaymentLedger::load((int) $payment->id)
+            ->asStaff()
             ->set('transaction_status', $to);
 
         if (!$isRefund) {
@@ -766,7 +797,7 @@ class OrderopsController extends OrdersController
                 );
 
             default:
-                $refusal = $isRefund ? $this->ledgerRefusal(told: $told) : '';
+                $refusal = $this->ledgerRefusal(told: $told);
 
                 throw new Save(
                     $refusal !== '' ? $refusal : sprintf(
@@ -995,6 +1026,10 @@ class OrderopsController extends OrdersController
 
             case PaymentLedger::OUTCOME_RACED:
                 throw new Save($reason ?: 'The payment was changed by another writer', 409);
+                // The refund block: the provider has reported refunds on this order
+                // that the books do not hold. They are recorded first.
+            case PaymentLedger::OUTCOME_BLOCKED:
+                throw new Save($reason, 409);
             case PaymentLedger::OUTCOME_NOT_REFUNDABLE:
             case PaymentLedger::OUTCOME_NOTHING_LEFT:
                 throw new Save($reason ?: 'That payment cannot be refunded', 422);

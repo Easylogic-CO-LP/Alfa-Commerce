@@ -23,8 +23,31 @@ CREATE TABLE IF NOT EXISTS `#__alfa_meta` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Alfa Commerce facts it keeps beside its data: the schema version, the download store path and its protection';
 
 INSERT INTO `#__alfa_meta` (`name`, `value`)
-SELECT 'schema_version', '2.0.1' FROM DUAL
+SELECT 'schema_version', '2.1.0' FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `#__alfa_meta` WHERE `name` = 'schema_version');
+
+-- Begin of the Clear everything block, added in 2.1.0. Keep it whole and apart from other tables.
+--
+-- The durable state of Clear everything (Tools > Reset and clear), in one row: the run at work,
+-- paused or failed; what the last finished one left on record; and the outcome of each Alfa
+-- extension's last Clear data. Clear everything never drops this table and an uninstall keeps it,
+-- so a reinstall finds a failed run again. Read by the storefront, the administrator, the REST API
+-- and every Alfa extension's installer (Service\Setup\AlfaInstallerGate).
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_maintenance` (
+  `id` tinyint(3) UNSIGNED NOT NULL COMMENT 'Always 1',
+  `state` mediumtext DEFAULT NULL COMMENT 'The Clear everything at work, paused or failed, as JSON; NULL when idle',
+  `last_clear` mediumtext DEFAULT NULL COMMENT 'What the last finished Clear everything left on record, as JSON',
+  `clear_status` mediumtext DEFAULT NULL COMMENT 'Per extension key: the outcome of its last Clear data, as JSON',
+  `seq` int(10) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Raised by every write',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='The durable state of Clear everything, never dropped by it';
+
+INSERT INTO `#__alfa_maintenance` (`id`) SELECT 1 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM `#__alfa_maintenance` WHERE `id` = 1);
+
+-- End of the Clear everything block.
 
 --
 -- Table structure for table `#__alfa_cart`
@@ -556,8 +579,10 @@ WHERE NOT EXISTS (SELECT 1 FROM `#__alfa_form_fields`);
 -- The en-GB labels for the seeded fields. The per-language sibling tables are
 -- normally created by the multilingual system (utf8mb4_unicode_ci, description
 -- columns LONGTEXT); en-GB is pre-created here with the same shape so the seed
--- ships with readable labels out of the box. Other content languages fall back
--- to the COM_ALFA_SYSTEM_FIELD_<ROLE> language strings until translated.
+-- ships with readable labels out of the box. Every other content language gets
+-- them in its own words when its language table is made (Service\Setup\SeededNames,
+-- the COM_ALFA_SYSTEM_FIELD_<ROLE> language strings); until then the storefront
+-- falls back to those strings.
 CREATE TABLE IF NOT EXISTS `#__alfa_form_fields_en_gb` (
   `id_formfield` int(11) UNSIGNED NOT NULL,
   `name` varchar(255) NOT NULL DEFAULT '',
@@ -1434,7 +1459,12 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
   -- "Waiting for you" counts every order still in the initial status, with no date
   -- bound; it is a queue, not a period. Without this it read the whole table on
   -- every dashboard load, and it is also what the attention signals' NOT IN (...) walk.
-  KEY `idx_status` (`id_order_status`,`state`)
+  KEY `idx_status` (`id_order_status`,`state`),
+  -- Whether an address is on any order (UserInfoHelper::isUsedInOrders(), once per
+  -- address on the customer screen and the cart): without these, a full read of the
+  -- orders for each address.
+  KEY `idx_address_delivery` (`id_address_delivery`),
+  KEY `idx_address_invoice` (`id_address_invoice`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -1478,8 +1508,8 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders_statuses` (
 -- status (the placement falls back to an id=0 stub and logs CRITICAL), so a
 -- fresh install ships a working baseline: Pending (initial) -> Processing ->
 -- Shipped -> Delivered (completed), plus the cancellation family. Names seed
--- in en-GB (always present in Joomla); other content languages are managed
--- through the multilingual system.
+-- in en-GB (always present in Joomla); every other content language gets them
+-- in its own words when its language table is made (Service\Setup\SeededNames).
 INSERT INTO `#__alfa_orders_statuses` (`id`, `color`, `bg_color`, `stock_operation`, `is_initial`, `is_cancelled`, `is_completed`, `notify_customer`, `email_layout_customer`, `email_layout_admin`, `grants_downloads`, `state`, `created_by`, `modified`, `modified_by`, `ordering`)
 SELECT * FROM (
             SELECT 1 AS `id`, '#ffffff' AS `color`, '#f0ad4e' AS `bg_color`, 0 AS `stock_operation`, 1 AS `is_initial`, 0 AS `is_cancelled`, 0 AS `is_completed`, 0 AS `notify_customer`, 'emails.order.default' AS `email_layout_customer`, 'emails.order.default' AS `email_layout_admin`, 0 AS `grants_downloads`, 1 AS `state`, 0 AS `created_by`, NOW() AS `modified`, 0 AS `modified_by`, 1 AS `ordering`
@@ -1820,6 +1850,42 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_payments` (
   -- dashboard dates them by when they were attempted, and that needs its own key.
   KEY `idx_added` (`added`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Table structure for table `#__alfa_refund_report_outcomes`
+--
+-- The outcome of each refund a payment provider reported as made outside Alfa (2.1.0):
+-- booked by Record this refund (with the provider figures, or an amount an authorised
+-- user typed), reconciled to a refund already in the books, or resolved as a duplicate
+-- or invalid report. One row per report of a gateway and payment; every gateway answer
+-- is read through it, so a settled report never holds the refund block again.
+--
+
+CREATE TABLE IF NOT EXISTS `#__alfa_refund_report_outcomes` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `plugin_folder` varchar(100) NOT NULL COMMENT 'The reporting gateway plugin group, alfa-payments',
+  `plugin_element` varchar(100) NOT NULL COMMENT 'The reporting gateway plugin element',
+  `id_payment` int(11) UNSIGNED NOT NULL COMMENT 'The payment the report is about',
+  `id_order` int(11) UNSIGNED NOT NULL COMMENT 'The order of that payment',
+  `report_id` mediumtext NOT NULL COMMENT 'The gateway reference of the report, complete and never cut; equality is on the whole value',
+  `report_id_hash` char(64) CHARACTER SET ascii COLLATE ascii_bin GENERATED ALWAYS AS (SHA2(`report_id`, 256)) STORED COMMENT 'Lowercase hex SHA-256 of report_id, generated by the database: the lookup key, never the identity',
+  `outcome` enum('recorded','reconciled','duplicate_or_invalid') NOT NULL COMMENT 'recorded: a refund row books it; reconciled: a refund already in the books answers it; duplicate_or_invalid: it adds no unbooked money',
+  `id_refund_row` int(11) UNSIGNED DEFAULT NULL COMMENT 'The refund row that books the report (recorded) or that it was reconciled to; NULL for duplicate_or_invalid',
+  `amount_typed` tinyint(1) NOT NULL DEFAULT 0 COMMENT '1 when an authorised user typed the booked amount (no exact provider amount in the order currency)',
+  `booked_amount` decimal(24,8) DEFAULT NULL COMMENT 'The figure in the books: the refund row amount; NULL for duplicate_or_invalid',
+  `booked_currency` varchar(16) DEFAULT NULL COMMENT 'The order currency code of booked_amount',
+  `provider_refund_id` mediumtext DEFAULT NULL COMMENT 'The provider refund id as reported; NULL when the provider gave none',
+  `provider_amount` varchar(64) NOT NULL DEFAULT '' COMMENT 'The refunded amount as the provider stated it, decimal text',
+  `provider_currency` varchar(16) NOT NULL DEFAULT '' COMMENT 'The currency as the provider stated it',
+  `reported_on` varchar(64) NOT NULL DEFAULT '' COMMENT 'When the gateway first kept the report, as it lists it',
+  `reason` text NOT NULL COMMENT 'Why, as the operator stated it (typed amount, reconcile, duplicate or invalid), or the booking reason',
+  `id_user` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Who settled the report',
+  `created` datetime NOT NULL COMMENT 'When, UTC',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_report` (`plugin_folder`, `plugin_element`, `id_payment`, `report_id_hash`),
+  UNIQUE KEY `uq_refund_row` (`id_refund_row`),
+  KEY `idx_order` (`id_order`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='The outcome of each refund a payment provider reported outside Alfa: booked or resolved, once';
 
 --
 -- Table structure for table `#__alfa_order_shipments`
@@ -2548,6 +2614,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_shipments` (
   `bg_color` varchar(50) NOT NULL,
   `params` longtext NOT NULL,
   `show_on_product` tinyint(4) NOT NULL,
+  `price_entry_mode` enum('tax_included','tax_excluded') NOT NULL DEFAULT 'tax_included' COMMENT 'What a price entered for this method means: tax_included (the customer pays it, the tax is inside) or tax_excluded (the tax is added on top). Set on each method; there is no shop default',
   -- Translatable fields (name, description) live ONLY in the per-language
   -- tables #__alfa_shipments_<langtag>. No main-table copy.
   `ordering` int(11) DEFAULT 0,
@@ -2616,11 +2683,11 @@ CREATE TABLE IF NOT EXISTS `#__alfa_shipment_users` (
 --
 -- Table structure for table `#__alfa_shipment_taxes`
 --
--- The tax rules a shipping method's charge is taxed with. No row = the method
--- names none and uses the shop's default shipping taxes (component option
--- shipping_tax_rules). Each rule's places, user groups, users and publish
--- window decide whether it applies to a shipment; its category and
--- manufacturer scopes describe goods and are not read for shipping.
+-- The tax rules a shipping method's charge is taxed with, several allowed. No
+-- row = the method names none: its charge carries no shipping tax (there is no
+-- shop default). Each rule's places, user groups, users and publish window
+-- decide whether it applies to a shipment; its category and manufacturer
+-- scopes describe goods and are not read for shipping.
 --
 
 CREATE TABLE IF NOT EXISTS `#__alfa_shipment_taxes` (
@@ -2772,7 +2839,13 @@ CREATE TABLE IF NOT EXISTS `#__alfa_notifications` (
   `dismissed` DATETIME NULL DEFAULT NULL,
   `expires` DATETIME NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `idx_dedup_key` (`dedup_key`)
+  UNIQUE KEY `idx_dedup_key` (`dedup_key`),
+  -- The bell on every administrator page reads through these three: the distinct view
+  -- rules, the active rows newest first per severity (its panel), and the counts of its
+  -- badge and heading without reading the rows themselves.
+  KEY `idx_view_access` (`view_access`, `view_access_asset`),
+  KEY `idx_active_order` (`dismissed`, `severity`, `created`),
+  KEY `idx_active_counts` (`dismissed`, `readed`, `severity`, `expires`, `view_access`, `view_access_asset`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Frozen cart contributions: the calculated snapshot of the cart

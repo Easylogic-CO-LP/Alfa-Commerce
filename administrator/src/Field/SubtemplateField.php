@@ -135,7 +135,8 @@ class SubtemplateField extends GroupedlistField
                 continue;
             }
 
-            $template = basename(\dirname($file, 3));
+            // templates/<template>/html/com_alfa/<view>/default_<slot>-<variant>.php: the template is four folders up.
+            $template = basename(\dirname($file, 4));
             $groupLabel = Text::sprintf('COM_ALFA_LAYOUT_FROM_TEMPLATE', ucwords(str_replace('_', ' ', $template)));
 
             $label = $this->labelFromSidecar(

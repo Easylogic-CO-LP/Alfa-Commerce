@@ -1,6 +1,6 @@
 {
     "uid": "com_alfa.currencies",
-    "version": 10,
+    "version": 11,
     "title": "COM_ALFA_GUIDEDTOUR_CURRENCIES_TITLE",
     "description": "COM_ALFA_GUIDEDTOUR_CURRENCIES_DESC",
     "extensions": [
@@ -37,21 +37,12 @@
             "url": "administrator/index.php?option=com_alfa&view=currency&layout=edit"
         },
         {
-            "title": "COM_ALFA_GUIDEDTOUR_CURRENCIES_STEP_4_TITLE",
-            "description": "COM_ALFA_GUIDEDTOUR_CURRENCIES_STEP_4_DESC",
+            "title": "COM_ALFA_GUIDEDTOUR_CURRENCIES_END_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_CURRENCIES_END_DESC",
             "position": "bottom",
-            "target": "#save-group-children-save .button-save, .button-save",
-            "type": 2,
-            "interactive_type": 1,
-            "url": "administrator/index.php?option=com_alfa&view=currency&layout=edit"
-        },
-        {
-            "title": "COM_ALFA_GUIDEDTOUR_CURRENCIES_STEP_5_TITLE",
-            "description": "COM_ALFA_GUIDEDTOUR_CURRENCIES_STEP_5_DESC",
-            "position": "center",
-            "target": "",
+            "target": "#toolbar",
             "type": 0,
-            "url": "administrator/index.php?option=com_alfa&view=currencies"
+            "url": "administrator/index.php?option=com_alfa&view=currency&layout=edit"
         }
     ],
     "ordering": 60

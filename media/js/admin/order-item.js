@@ -39,18 +39,6 @@
 
         return match !== null && match[1] === '' && /[1-9]/.test(match[2] + (match[3] || ''));
     };
-    // A two-place percentage rounded to a whole percent, half away from zero.
-    const wholePercent = (text) => {
-        const match = decimal(text);
-
-        if (match === null) {
-            return 0;
-        }
-
-        const whole = parseInt(match[2], 10) + ((match[3] || '0').charAt(0) >= '5' ? 1 : 0);
-
-        return match[1] === '-' ? -whole : whole;
-    };
 
     // PRODUCT SEARCH (a new line only; the layout renders nothing on edit)
     const searchUrlEl = document.getElementById('product-search-url');
@@ -110,8 +98,9 @@
                     setText(clone, '[data-field="tax-info"]', '(' + T('COM_ALFA_TAX_EXCL_SHORT') + ': ' + product.price_tax_excl_text + ')');
                 }
 
-                if (product.has_discount && wholePercent(product.discount_percent) > 0) {
-                    setText(clone, '[data-field="discount-badge"]', ' -' + wholePercent(product.discount_percent) + '%');
+                // The saving is the server's text (2.5%, never rounded to 3%).
+                if (product.has_discount && product.discount_text) {
+                    setText(clone, '[data-field="discount-badge"]', ' -' + product.discount_text);
                 }
 
                 const stockContainer = clone.querySelector('[data-field="stock-container"]');

@@ -114,6 +114,9 @@ final class AlfaLog
         'com_alfa.inventory' => 'com_alfa_inventory.php',
         'com_alfa.downloads' => 'com_alfa_downloads.php',
 
+        // Reset to default and Clear everything: the audit trail that outlives the Alfa tables.
+        'com_alfa.maintenance' => 'com_alfa_maintenance.php',
+
         // Plugin-owned categories
         // These two ALSO register themselves, because their requests can
         // run without com_alfa booting at all (a system plugin's event, a
@@ -151,7 +154,7 @@ final class AlfaLog
         // same lookup slot is reassigned, Log.php:257/:269), so the guard
         // bought a few microseconds at the cost of a silent hole.
         //
-        // Cost when called repeatedly: 28 x (serialize + md5) of a two-key
+        // Cost when called repeatedly: 29 x (serialize + md5) of a two-key
         // array, ~50us total, on a path that runs a handful of times per
         // request. No query, no file, no I/O.
         foreach (self::CATEGORIES as $category => $file) {

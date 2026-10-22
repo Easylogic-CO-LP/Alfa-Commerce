@@ -14,6 +14,7 @@ namespace Alfa\Plugin\Console\Alfainventory\Console;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryIntegrityReader;
+use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
@@ -123,6 +124,13 @@ final class InventoryAuditCommand extends AbstractCommand
             $itemIds = $this->itemIds(values: (array) $input->getOption(name: 'item'));
         } catch (InvalidArgumentException $e) {
             $io->getErrorStyle()->error(message: Text::sprintf('PLG_CONSOLE_ALFAINVENTORY_AUDIT_INVALID_ITEM', $e->getMessage()));
+
+            return self::EXIT_ERROR;
+        }
+
+        // Maintenance (Clear everything): the tables the audit reads are being removed and made again.
+        if (MaintenanceState::active()) {
+            $io->getErrorStyle()->error(message: Text::_('COM_ALFA_MAINTENANCE_API'));
 
             return self::EXIT_ERROR;
         }

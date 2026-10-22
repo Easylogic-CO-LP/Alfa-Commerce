@@ -56,12 +56,14 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Service\Order\ShipmentLedger;
-use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Field\ListField;
+use Throwable;
 
 class OrderItemsField extends ListField
 {
+    use FailClosedOptionsTrait;
+
     protected $type = 'orderItems';
 
     /**
@@ -74,12 +76,36 @@ class OrderItemsField extends ListField
      *
      * When assign_column is empty: shows ALL items for the order.
      *
+     * Items that cannot be read are said on the form, and the field refuses the
+     * save (FailClosedOptionsTrait): saving would take every item off the parcel.
+     *
      * @return array Options for the select field
      * @since  1.0.0
      */
     protected function getOptions()
     {
         $options = parent::getOptions();
+        $rows = $this->loadModelRows();
+
+        if ($rows === null) {
+            $this->reportOptionsNotLoaded();
+
+            return $options;
+        }
+
+        return array_merge($options, $rows);
+    }
+
+    /**
+     * The order's items as options, or null when they could not be read.
+     *
+     * @return array|null The options, empty when the order has none (or none is on offer).
+     *
+     * @since  2.1.0
+     */
+    protected function loadModelRows(): ?array
+    {
+        $options = [];
 
         $app = Factory::getApplication();
         $input = $app->input;
@@ -157,8 +183,8 @@ class OrderItemsField extends ListField
                     'text' => $text,
                 ];
             }
-        } catch (Exception $e) {
-            // Silently fail: field shows no options
+        } catch (Throwable) {
+            return null;
         }
 
         return $options;
@@ -181,7 +207,7 @@ class OrderItemsField extends ListField
      * @param bool $showQuantity Append the available quantity
      * @param bool $showSku Append the SKU
      *
-     * @return array Options for the select field
+     * @return array|null Options for the select field; null when the items cannot be read (since 2.1.0)
      * @since  2.0.0
      */
     private function getShipmentOptions(
@@ -190,7 +216,7 @@ class OrderItemsField extends ListField
         int $shipmentId,
         bool $showQuantity,
         bool $showSku,
-    ): array {
+    ): ?array {
         try {
             // exceptShipmentId already sets THIS parcel's units aside, so what
             // comes back is "free elsewhere, plus whatever this parcel holds"
@@ -230,8 +256,8 @@ class OrderItemsField extends ListField
                     'text' => $text,
                 ];
             }
-        } catch (Exception $e) {
-            // Silently fail: field shows no options
+        } catch (Throwable) {
+            return null;
         }
 
         return $options;

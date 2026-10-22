@@ -330,16 +330,105 @@
     }
   };
 
-  const refreshPreview = async (row, root) => {
-    const itemId = parseInt(root.dataset.itemId || '0', 10);
+  // The item form's pricing context: its default category, categories and
+  // manufacturers. A product not saved yet has none stored, so its preview is
+  // asked without an id and with the ones its form holds now. A saved product
+  // whose form holds other ones than it has stored (data-item-categories and
+  // data-item-manufacturers, rendered from its links) is asked with its id and
+  // them. Either way the engine prices it as it will be once saved with them; a
+  // saved product whose form holds its stored ones is asked as before. Field
+  // name -> the request key item.pricePreview reads.
+  const CONTEXT_FIELDS = {
+    'jform[id_category_default]': 'id_category_default',
+    'jform[categories][]': 'categories[]',
+    'jform[manufacturers][]': 'manufacturers[]',
+  };
 
-    if (!itemId) {
+  const itemIdOf = (root) => parseInt(root.dataset.itemId || '0', 10);
+
+  // The values one context field of the item form holds ([] without the field).
+  const contextValues = (form, name) => [...form.querySelectorAll('[name="' + name + '"]')]
+    .flatMap((field) => (field.tagName === 'SELECT' ? [...field.selectedOptions].map((option) => option.value) : [field.value]));
+
+  // Ids as the save stores them, to compare with the stored ones: each positive id once, ascending.
+  const idList = (values) => [...new Set(values.map((value) => parseInt(value, 10)).filter((id) => id > 0))]
+    .sort((a, b) => a - b)
+    .join(',');
+
+  // Whether an editor's requests carry its item form's context: always for a
+  // product not saved yet; for a saved one while its form differs from what it
+  // has stored (the default category joins the categories, as the save does).
+  const sendsContext = (root) => {
+    if (!itemIdOf(root)) {
+      return true;
+    }
+
+    const form = root.closest('form');
+
+    if (!form || root.dataset.itemCategories === undefined || !form.querySelector('[name="jform[id_category_default]"]')) {
+      return false;
+    }
+
+    const categories = idList([...contextValues(form, 'jform[categories][]'), ...contextValues(form, 'jform[id_category_default]')]);
+
+    return categories !== root.dataset.itemCategories
+      || idList(contextValues(form, 'jform[manufacturers][]')) !== (root.dataset.itemManufacturers || '');
+  };
+
+  // The item form's pricing context, as the save will read it.
+  const appendItemContext = (params, root) => {
+    const form = root.closest('form');
+
+    if (!form) {
       return;
     }
 
+    for (const [name, key] of Object.entries(CONTEXT_FIELDS)) {
+      contextValues(form, name).forEach((value) => params.append(key, value));
+    }
+  };
+
+  // The with-tax box opens once a preview has come: its tax factor is then the
+  // one the product's categories give it (a new product's box is rendered shut).
+  const openFinal = (row) => {
+    const final = row.querySelector('[data-price-final]');
+
+    if (final) {
+      final.disabled = false;
+      final.removeAttribute('title');
+    }
+  };
+
+  // A refused preview of the form's context (no category): the row drops the
+  // figures of a context it no longer has, and the box shuts with the reason.
+  const shutFinal = (row, message) => {
+    const final = row.querySelector('[data-price-final]');
+
+    applyPreview(row, { a: 1, b: 0, taxFactor: 1, decimals: row.dataset.decimals, baseNet: 0, baseSale: false, taxes: [], discounts: [] });
+
+    if (final) {
+      final.disabled = true;
+      final.value = '';
+
+      if (message) {
+        final.title = message;
+      }
+    }
+  };
+
+  const refreshPreview = async (row, root) => {
+    const itemId = itemIdOf(root);
+    const withContext = sendsContext(root);
     const params = new URLSearchParams();
     params.set(Joomla.getOptions('csrf.token', ''), '1');
-    params.set('id', itemId);
+
+    if (itemId) {
+      params.set('id', itemId);
+    }
+
+    if (withContext) {
+      appendItemContext(params, root);
+    }
 
     for (const dimension of DIMENSIONS) {
       const field = row.querySelector('[name$="[' + dimension + ']"]');
@@ -360,13 +449,27 @@
       });
       const json = await response.json();
 
-      if (sequence === row.previewSequence && json && json.data && !json.error) {
+      if (sequence !== row.previewSequence) {
+        return;
+      }
+
+      if (json && json.data && !json.error) {
+        openFinal(row);
         applyPreview(row, json.data);
+      } else if (withContext) {
+        shutFinal(row, json && json.message);
       }
     } catch (error) {
       // Network hiccup: keep the previous coefficients.
     }
   };
+
+  // Every row of the price editors in the scope that follow their item form's
+  // context, with its editor: a product not saved yet's, and a saved product's
+  // item editor (it carries the stored memberships it compares the form with).
+  const contextRows = (scope) => [...scope.querySelectorAll('.alfa-prices')]
+    .filter((root) => !itemIdOf(root) || root.dataset.itemCategories !== undefined)
+    .flatMap((root) => [...root.querySelectorAll('[data-price-rows] > .price-row')].map((row) => [row, root]));
 
   document.addEventListener('change', (event) => {
     const mode = event.target.closest('[data-price-mode]');
@@ -414,6 +517,15 @@
     const row = event.target.closest('.price-row');
     const root = event.target.closest('.alfa-prices');
     const name = event.target.getAttribute('name') || '';
+
+    // The item form's own pricing context changed (the fancy selects announce it
+    // with a change event): every row that follows it asks again, a saved
+    // product's as before once its form holds its stored memberships again.
+    if (Object.hasOwn(CONTEXT_FIELDS, name)) {
+      contextRows(event.target.closest('form') || document).forEach(([contextRow, contextRoot]) => refreshPreview(contextRow, contextRoot));
+
+      return;
+    }
 
     if (row && root && DIMENSIONS.some((dimension) => name.endsWith('[' + dimension + ']'))) {
       refreshPreview(row, root);
@@ -539,7 +651,14 @@
     const add = event.target.closest('[data-price-add]');
 
     if (add && add.closest('.alfa-prices')) {
-      insertRow(add.closest('.alfa-prices'));
+      const root = add.closest('.alfa-prices');
+      const row = insertRow(root);
+
+      // The template's figures are the stored context's (a new product's are
+      // neutral): a row added while the form's context differs asks at once.
+      if (sendsContext(root)) {
+        refreshPreview(row, root);
+      }
 
       return;
     }
@@ -560,12 +679,22 @@
   });
 
   // Initial fill: adjust rows render their final/after empty server-side (the
-  // delta needs the base net), so derive them once the markup exists.
-  const initAdjustRows = () => document.querySelectorAll('.alfa-prices .price-row[data-mode="adjust"]').forEach(refreshAdjustFigures);
+  // delta needs the base net), so derive them once the markup exists. The rows
+  // rendered for a context the form no longer holds ask for the form's: those of
+  // a product not saved yet, and a saved product's when its form, shown again
+  // after a refused save or a reload, holds other memberships than it has stored.
+  const initRows = () => {
+    document.querySelectorAll('.alfa-prices .price-row[data-mode="adjust"]').forEach(refreshAdjustFigures);
+    contextRows(document).forEach(([row, root]) => {
+      if (sendsContext(root)) {
+        refreshPreview(row, root);
+      }
+    });
+  };
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initAdjustRows);
+    document.addEventListener('DOMContentLoaded', initRows);
   } else {
-    initAdjustRows();
+    initRows();
   }
 })();

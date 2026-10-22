@@ -115,9 +115,27 @@
                 query="SELECT `id`, `name` FROM `#__users`" key_field="id" value_field="name"
         />
 
-        <!-- The tax rules this method's charge is taxed with. NO default: an
-             empty list means "use the shop's default shipping taxes", never a
-             wildcard. Each rule's places decide where it applies. -->
+        <!-- What a price entered for this method means: tax included (the
+             customer pays it and the tax is inside) or tax excluded (the tax
+             is added on top). The method's own: there is no shop default. -->
+        <field
+                name="price_entry_mode"
+                type="radio"
+                label="COM_ALFA_FORM_LBL_SHIPMENT_PRICE_ENTRY_MODE"
+                description="COM_ALFA_FORM_DESC_SHIPMENT_PRICE_ENTRY_MODE"
+                class="btn-group"
+                default="tax_included"
+                required="true"
+                validate="options"
+        >
+            <option value="tax_included">COM_ALFA_SHIPMENT_PRICE_ENTRY_MODE_INCLUDED</option>
+            <option value="tax_excluded">COM_ALFA_SHIPMENT_PRICE_ENTRY_MODE_EXCLUDED</option>
+        </field>
+
+        <!-- The tax rules this method's charge is taxed with, several allowed.
+             NO default: an empty list means no shipping tax, never a wildcard
+             and never a shop default. Each rule's places decide where it
+             applies. -->
         <field
                 name="taxes" type="model"
                 model="taxes"

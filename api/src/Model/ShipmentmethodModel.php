@@ -13,6 +13,8 @@ namespace Alfa\Component\Alfa\Api\Model;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Model\ShipmentModel as AdminShipmentModel;
+use Exception;
+use Joomla\CMS\Table\Table;
 
 /**
  * API shipment method model: the admin model plus the full translation map.
@@ -24,6 +26,28 @@ use Alfa\Component\Alfa\Administrator\Model\ShipmentModel as AdminShipmentModel;
  */
 class ShipmentmethodModel extends AdminShipmentModel
 {
+    /**
+     * The shipping method's table: the administrator's Shipment table.
+     *
+     * Joomla names the table after the model, and no table is called Shipmentmethod: without this
+     * every read of one method and every write (a method created, changed or deleted) failed with
+     * "Table shipmentmethod not supported".
+     *
+     * @param string $name The table name.
+     * @param string $prefix The table class prefix.
+     * @param array $options Configuration array for the table.
+     *
+     * @return Table
+     *
+     * @throws Exception When the table cannot be created.
+     *
+     * @since  2.1.0
+     */
+    public function getTable($name = 'Shipment', $prefix = 'Administrator', $options = [])
+    {
+        return parent::getTable($name, $prefix, $options);
+    }
+
     /**
      * Get the item with the per-language translation map attached.
      *

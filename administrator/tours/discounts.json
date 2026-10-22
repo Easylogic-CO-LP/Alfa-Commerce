@@ -1,6 +1,6 @@
 {
     "uid": "com_alfa.discounts",
-    "version": 5,
+    "version": 6,
     "ordering": 180,
     "title": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_TITLE",
     "description": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_DESC",
@@ -148,8 +148,8 @@
             "url": "administrator/index.php?option=com_alfa&view=discount&layout=edit"
         },
         {
-            "title": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_18_TITLE",
-            "description": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_STEP_18_DESC",
+            "title": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_END_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_DISCOUNTS_END_DESC",
             "position": "bottom",
             "target": "#toolbar",
             "type": 0,

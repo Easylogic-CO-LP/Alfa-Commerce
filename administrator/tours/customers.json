@@ -1,6 +1,6 @@
 {
     "uid": "com_alfa.customers",
-    "version": 5,
+    "version": 6,
     "title": "COM_ALFA_GUIDEDTOUR_CUSTOMERS_TITLE",
     "description": "COM_ALFA_GUIDEDTOUR_CUSTOMERS_DESC",
     "extensions": [
@@ -46,20 +46,12 @@
             "url": "administrator/index.php?option=com_alfa&view=user&layout=edit"
         },
         {
-            "title": "COM_ALFA_GUIDEDTOUR_CUSTOMERS_STEP_5_TITLE",
-            "description": "COM_ALFA_GUIDEDTOUR_CUSTOMERS_STEP_5_DESC",
+            "title": "COM_ALFA_GUIDEDTOUR_CUSTOMERS_END_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_CUSTOMERS_END_DESC",
             "position": "bottom",
-            "target": "#save-group-children-save .button-save, .button-save",
-            "type": 2,
-            "interactive_type": 1,
-            "url": "administrator/index.php?option=com_alfa&view=user&layout=edit"
-        },
-        {
-            "title": "COM_ALFA_GUIDEDTOUR_CUSTOMERS_STEP_6_TITLE",
-            "description": "COM_ALFA_GUIDEDTOUR_CUSTOMERS_STEP_6_DESC",
-            "position": "bottom",
+            "target": "#toolbar",
             "type": 0,
-            "url": "administrator/index.php?option=com_alfa&view=users"
+            "url": "administrator/index.php?option=com_alfa&view=user&layout=edit"
         }
     ],
     "ordering": 110

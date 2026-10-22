@@ -116,7 +116,8 @@ $configColspan = $visibleColumns + 1;
 								. $this->escape($value)
 								. '</a>';
 						} elseif (isset($item->{$fieldName . '_formatted'})) {
-							// A unit as the one unit rule prints it, at the order's frozen scale.
+							// A unit as the one unit rule prints it, at the order's frozen scale;
+							// a percentage (discount, tax rate) as AlfaHelper::percentDisplay() prints it.
 							echo $this->escape($item->{$fieldName . '_formatted'});
 						} elseif (is_object($value) && method_exists($value, 'format')) {
 							// Format Money objects

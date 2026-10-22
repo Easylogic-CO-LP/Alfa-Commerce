@@ -14,7 +14,7 @@
          the newest file in sql/updates/mysql, an update runs every file newer than the
          recorded version. A schema change therefore goes into install.mysql.utf8.sql (fresh
          installs) AND into a new sql/updates/mysql/<version>.sql (installed sites). -->
-    <version>2.0.1</version>
+    <version>2.1.0</version>
     <description>The smartest,fastest and easiest ecommerce solution for companies developed with love by Easylogic.</description>
     <namespace path="src">Alfa\Component\Alfa</namespace>
 
@@ -56,6 +56,7 @@
     </media>
     <languages folder="site/languages">
 			<language tag="en-GB">en-GB/com_alfa.ini</language>
+			<language tag="el-GR">el-GR/com_alfa.ini</language>
     </languages>
     <administration>
         <menu>COM_ALFA</menu>
@@ -88,6 +89,8 @@
 
 			<language tag="en-GB">en-GB/com_alfa.ini</language>
 			<language tag="en-GB">en-GB/com_alfa.sys.ini</language>
+			<language tag="el-GR">el-GR/com_alfa.ini</language>
+			<language tag="el-GR">el-GR/com_alfa.sys.ini</language>
         </languages>
     </administration>
 <!--     <config>

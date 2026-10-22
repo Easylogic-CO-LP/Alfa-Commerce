@@ -1,6 +1,6 @@
 {
     "uid": "com_alfa.document-types",
-    "version": 12,
+    "version": 13,
     "title": "COM_ALFA_GUIDEDTOUR_DOCUMENT_TYPES_TITLE",
     "description": "COM_ALFA_GUIDEDTOUR_DOCUMENT_TYPES_DESC",
     "extensions": [
@@ -49,9 +49,8 @@
             "title": "COM_ALFA_GUIDEDTOUR_DOCUMENT_TYPES_STEP_5_TITLE",
             "description": "COM_ALFA_GUIDEDTOUR_DOCUMENT_TYPES_STEP_5_DESC",
             "position": "bottom",
-            "target": ".control-group:not(.hidden):has(#jform_name), #jform_name",
-            "type": 2,
-            "interactive_type": 2,
+            "target": ".control-group:not(.hidden):has([id^=\"jform_name_\"])",
+            "type": 0,
             "url": "administrator/index.php?option=com_alfa&view=documenttype&layout=edit"
         },
         {
@@ -73,20 +72,12 @@
             "url": "administrator/index.php?option=com_alfa&view=documenttype&layout=edit"
         },
         {
-            "title": "COM_ALFA_GUIDEDTOUR_DOCUMENT_TYPES_STEP_8_TITLE",
-            "description": "COM_ALFA_GUIDEDTOUR_DOCUMENT_TYPES_STEP_8_DESC",
+            "title": "COM_ALFA_GUIDEDTOUR_DOCUMENT_TYPES_END_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_DOCUMENT_TYPES_END_DESC",
             "position": "bottom",
-            "target": "#save-group-children-save .button-save, .button-save",
-            "type": 2,
-            "interactive_type": 1,
-            "url": "administrator/index.php?option=com_alfa&view=documenttype&layout=edit"
-        },
-        {
-            "title": "COM_ALFA_GUIDEDTOUR_DOCUMENT_TYPES_STEP_9_TITLE",
-            "description": "COM_ALFA_GUIDEDTOUR_DOCUMENT_TYPES_STEP_9_DESC",
-            "position": "bottom",
+            "target": "#toolbar",
             "type": 0,
-            "url": "administrator/index.php?option=com_alfa&view=documenttypes"
+            "url": "administrator/index.php?option=com_alfa&view=documenttype&layout=edit"
         }
     ],
     "ordering": 160

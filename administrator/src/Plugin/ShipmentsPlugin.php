@@ -33,7 +33,7 @@
  *  A refusal outranks a price.
  *
  *  THE PRICE IS THE MERCHANT'S, AND SO IS ITS TAX. setShippingCost() hands
- *  over the price as configured; whether tax is inside it is the shop's
+ *  over the price as configured; whether tax is inside it is the method's
  *  shipping price entry mode, and the tax is the method's shipping taxes for
  *  the destination. Core applies both. A carrier whose own API already splits
  *  the tax answers with the canonical amounts instead, taken as they are:

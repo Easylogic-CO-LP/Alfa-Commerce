@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Extension\AlfaComponent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
 use Alfa\Component\Alfa\Administrator\View\AlfaHtmlView as BaseHtmlView;
+use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 
@@ -43,6 +44,15 @@ class HtmlView extends BaseHtmlView
     public $activeFilters;
 
     /**
+     * The currency a discount's fixed amount is shown in: the shop's default. A discount
+     * stores a bare per-unit number; the price engine takes it in the visitor's currency,
+     * which is the shop's default unless the session names another (the REST ?currency=).
+     *
+     * @since  2.1.0
+     */
+    public Currency $amountCurrency;
+
+    /**
      * Display the view
      *
      * @param string $tpl The name of the template file to parse; automatically searches through the template paths.
@@ -59,6 +69,7 @@ class HtmlView extends BaseHtmlView
         $this->state = $model->getState();
         $this->filterForm = $model->getFilterForm();
         $this->activeFilters = $model->getActiveFilters();
+        $this->amountCurrency = Currency::getDefault();
 
         $this->addToolbar();
 

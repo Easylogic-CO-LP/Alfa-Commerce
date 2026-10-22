@@ -15,12 +15,14 @@ use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper as AdminAlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
 use Alfa\Component\Alfa\Site\Helper\AlfaHelper;
+use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Field\EditorField;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\LanguageHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Uri\Uri;
+use Joomla\Registry\Registry;
 use SimpleXMLElement;
 use Throwable;
 
@@ -60,6 +62,10 @@ use Throwable;
  */
 class EmailPositionsField extends EditorField
 {
+    use FailClosedOptionsTrait {
+        validate as private failClosedValidate;
+    }
+
     /**
      * Field type id: must match filename + XML `type` attribute.
      *
@@ -86,6 +92,24 @@ class EmailPositionsField extends EditorField
      */
     private ?array $languagesCache = null;
 
+    /**
+     * Whether the stored content could not be read: the form says so and the save is refused.
+     *
+     * @since  2.1.0
+     */
+    private bool $contentNotLoaded = false;
+
+    /**
+     * The id of the record a save is validating, from the data it validates.
+     *
+     * A save validates a form that was never bound (FormController::save() builds it with
+     * getForm($data, false)), so the form holds no id then: the record is the one the data names,
+     * which the controller sets from the request's id.
+     *
+     * @since  2.1.0
+     */
+    private int $validatedId = 0;
+
     //  Lifecycle
 
     /**
@@ -107,10 +131,10 @@ class EmailPositionsField extends EditorField
         $result = parent::setup($element, $value, $group);
 
         $itemId = (int) $this->form->getValue('id', null);
-        $table = (string) ($this->element['multilingual_table'] ?? '');
-        $pk = (string) ($this->element['multilingual_pk'] ?? '');
         $column = $this->fieldname;
         $layoutId = $this->resolveSelectedLayout();
+        $stored = $this->loadModelRows();
+        $this->contentNotLoaded = $stored === null;
 
         $languages = $this->getLanguages();
         $perLang = [];
@@ -136,14 +160,12 @@ class EmailPositionsField extends EditorField
             // reliable "has been saved in this language" flag. Virgin languages
             // seed from the layout's defaults; saved languages NEVER re-seed,
             // so an emptied position stays empty. The "Restore defaults" button
-            // is the only way to reseed after a save.
-            $rowExists = $itemId > 0 && $table !== '' && $pk !== ''
-                && $this->langRowExists(table: $table . '_' . $suffix, pk: $pk, itemId: $itemId);
-
-            if ($rowExists) {
-                $json = $this->loadJsonValue(table: $table . '_' . $suffix, pk: $pk, column: $column, itemId: $itemId);
-                $decoded = $json !== null && $json !== '' ? json_decode($json, true) : null;
-                $perLang[$suffix] = is_array($decoded) ? $decoded : [];
+            // is the only way to reseed after a save. Content that could not be
+            // read shows nothing as if it were stored: the save is refused.
+            if ($stored === null) {
+                $perLang[$suffix] = [];
+            } elseif (\array_key_exists($suffix, $stored)) {
+                $perLang[$suffix] = $stored[$suffix];
             } else {
                 $perLang[$suffix] = EmailService::defaultsForLanguage(layoutId: $layoutId, langTag: (string) $langCode);
             }
@@ -176,6 +198,10 @@ class EmailPositionsField extends EditorField
      */
     protected function getInput(): string
     {
+        if ($this->contentNotLoaded) {
+            $this->reportOptionsNotLoaded();
+        }
+
         $layoutId = $this->resolveSelectedLayout();
         $sequence = EmailService::discoverSequence($layoutId);
         $languages = $this->getLanguages();
@@ -935,27 +961,109 @@ class EmailPositionsField extends EditorField
      *
      *
      * @return string|null Raw JSON, '' when the column is empty, or null
-     *                     on a missing row / error.
+     *                     on a missing row.
+     *
+     * @throws Throwable When it cannot be read (since 2.1.0: not a missing row).
      *
      * @since  1.0.0
      */
     private function loadJsonValue(string $table, string $pk, string $column, int $itemId): ?string
     {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $query = $db->getQuery(true)
+            ->select($db->quoteName($column))
+            ->from($db->quoteName($table))
+            ->where($db->quoteName($pk) . ' = ' . (int) $itemId);
+
+        $db->setQuery(query: $query);
+
+        $result = $db->loadResult();
+
+        return $result === null ? null : (string) $result;
+    }
+
+    /**
+     * Refuse the save while the stored content cannot be read, for the record the save names.
+     *
+     * The record id is taken from the data being validated when the form holds none (a save
+     * validates an unbound form), so the read that decides the refusal is the record's own.
+     *
+     * @param mixed $value The value posted for the field.
+     * @param string|null $group The field's group.
+     * @param Registry|null $input The whole posted data.
+     *
+     * @return bool|Exception True when valid, the reason otherwise.
+     *
+     * @since  2.1.0
+     */
+    public function validate($value, $group = null, ?Registry $input = null)
+    {
+        $this->validatedId = $input instanceof Registry ? (int) $input->get('id', 0) : 0;
+
+        try {
+            return $this->failClosedValidate($value, $group, $input);
+        } finally {
+            $this->validatedId = 0;
+        }
+    }
+
+    /**
+     * The stored content per language, or null when it could not be read.
+     *
+     * A language whose table or row does not exist yet is absent (it seeds the
+     * layout's defaults); a row saved before this composer had its column is
+     * empty, as before.
+     *
+     * @return array|null [ '<lang_snake>' => [ '<position>' => '<html>' ] ], or null.
+     *
+     * @since  2.1.0
+     */
+    protected function loadModelRows(): ?array
+    {
+        $itemId = (int) $this->form->getValue('id', null) ?: $this->validatedId;
+        $table = (string) ($this->element['multilingual_table'] ?? '');
+        $pk = (string) ($this->element['multilingual_pk'] ?? '');
+        $stored = [];
+
+        if ($itemId <= 0 || $table === '' || $pk === '') {
+            return $stored;
+        }
+
         try {
             $db = Factory::getContainer()->get('DatabaseDriver');
-            $query = $db->getQuery(true)
-                ->select($db->quoteName($column))
-                ->from($db->quoteName($table))
-                ->where($db->quoteName($pk) . ' = ' . (int) $itemId);
+            $tables = $db->getTableList();
 
-            $db->setQuery(query: $query);
+            foreach (array_keys($this->getLanguages()) as $langCode) {
+                $suffix = $this->snakeLang(langCode: (string) $langCode);
+                $langTable = $table . '_' . $suffix;
 
-            $result = $db->loadResult();
+                if (!\in_array($db->replacePrefix($langTable), $tables, true)
+                    || !$this->langRowExists(table: $langTable, pk: $pk, itemId: $itemId)) {
+                    continue;
+                }
 
-            return $result === null ? null : (string) $result;
-        } catch (Throwable $e) {
+                $json = isset($db->getTableColumns($langTable)[$this->fieldname])
+                    ? $this->loadJsonValue(table: $langTable, pk: $pk, column: $this->fieldname, itemId: $itemId)
+                    : null;
+                $decoded = $json !== null && $json !== '' ? json_decode($json, true) : null;
+                $stored[$suffix] = \is_array($decoded) ? $decoded : [];
+            }
+        } catch (Throwable) {
             return null;
         }
+
+        return $stored;
+    }
+
+    /**
+     * The sentence for content that could not be read: it is not a list of choices.
+     *
+     *
+     * @since  2.1.0
+     */
+    protected function notLoadedKey(): string
+    {
+        return 'COM_ALFA_FIELD_CONTENT_NOT_LOADED';
     }
 
     /**
@@ -967,25 +1075,23 @@ class EmailPositionsField extends EditorField
      * @param string $pk PK column in the aux table.
      * @param int $itemId Status id.
      *
-     * @return bool True when a row exists; false on absence / error.
+     * @return bool True when a row exists.
+     *
+     * @throws Throwable When it cannot be read (since 2.1.0: not an absent row).
      *
      * @since  1.0.0
      */
     private function langRowExists(string $table, string $pk, int $itemId): bool
     {
-        try {
-            $db = Factory::getContainer()->get('DatabaseDriver');
-            $query = $db->getQuery(true)
-                ->select('1')
-                ->from($db->quoteName($table))
-                ->where($db->quoteName($pk) . ' = ' . (int) $itemId);
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $query = $db->getQuery(true)
+            ->select('1')
+            ->from($db->quoteName($table))
+            ->where($db->quoteName($pk) . ' = ' . (int) $itemId);
 
-            $db->setQuery(query: $query, offset: 0, limit: 1);
+        $db->setQuery(query: $query, offset: 0, limit: 1);
 
-            return $db->loadResult() !== null;
-        } catch (Throwable $e) {
-            return false;
-        }
+        return $db->loadResult() !== null;
     }
 
     /**

@@ -111,6 +111,11 @@ class OrderHelper
                 quantity: $item->quantity,
             );
 
+            // The line's saving and tax rate are percentages: shown as the stored
+            // figures with a % sign, never as bare numbers or rounded.
+            $item->discount_percent_formatted = AlfaHelper::percentDisplay(value: $item->discount_percent);
+            $item->tax_rate_formatted = AlfaHelper::percentDisplay(value: $item->tax_rate);
+
             // Core price fields -> Money objects
             $item->total_price_tax_incl = Money::of($item->total_price_tax_incl ?? 0, $currency);
             $item->total_price_tax_excl = Money::of($item->total_price_tax_excl ?? 0, $currency);

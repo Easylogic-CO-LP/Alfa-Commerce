@@ -13,6 +13,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Field\MultilingualFieldInterface;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
+use Alfa\Component\Alfa\Administrator\Service\Setup\SeededNames;
 use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\OutputFilter;
@@ -120,6 +121,17 @@ class MultilingualHelper
      * @since  2.0.0
      */
     private static ?string $contentLanguageOverride = null;
+
+    /**
+     * Every table of the database, read once per request ({@see self::fetchTableList()}) and kept
+     * current with the language tables this class creates ({@see self::createLangTable()}): a fill
+     * that follows the language sync in the same request sees the tables the sync made. null until read.
+     *
+     * @var string[]|null
+     *
+     * @since  2.1.0
+     */
+    private static ?array $tableList = null;
 
     /**
      * Substrings that map a column to LONGTEXT instead of VARCHAR(255).
@@ -1628,6 +1640,49 @@ class MultilingualHelper
     }
 
     /**
+     * The published content languages as the database holds them now, in Joomla's order:
+     * ['en-GB' => 'en_gb', 'el-GR' => 'el_gr'].
+     *
+     * Joomla's own list (LanguageHelper::getLanguages()) is read once per request, and the
+     * language filter reads it as each request starts, administrator requests included: a
+     * language published or saved later in the same request (Content Languages) is not in it.
+     * What makes a language's tables reads the languages here, so that request makes them.
+     *
+     * @return array<string, string> Language tag => table suffix.
+     *
+     * @throws RuntimeException When the languages cannot be read.
+     *
+     * @since  2.1.0
+     */
+    public static function publishedLanguages(): array
+    {
+        $db = self::getDb();
+
+        try {
+            $tags = $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->qn('lang_code'))
+                    ->from($db->qn('#__languages'))
+                    ->where($db->qn('published') . ' = 1')
+                    ->order($db->qn('ordering') . ' ASC'),
+            )->loadColumn();
+        } catch (Throwable $e) {
+            throw new RuntimeException(
+                '[MultilingualHelper::publishedLanguages] Could not read the content languages: ' . $e->getMessage(),
+                previous: $e,
+            );
+        }
+
+        $languages = [];
+
+        foreach ($tags ?: [] as $tag) {
+            $languages[(string) $tag] = self::normaliseTag(tag: (string) $tag);
+        }
+
+        return $languages;
+    }
+
+    /**
      * Read one field for one record from a single language table, or '' if the
      * table doesn't exist / the row is missing.
      * @since  1.0.0
@@ -1679,6 +1734,10 @@ class MultilingualHelper
      *
      * Idempotent, and remembered per request: a second call for the same table,
      * language and fields costs nothing.
+     *
+     * A language table made here gets the names the installation seeds for that
+     * table and language ({@see SeededNames}), as the language sync gives them: a
+     * save can be the first write of a content language the sync has not reached.
      *
      * @param string $tableName Base table with Joomla prefix (e.g. "#__alfa_taxes").
      * @param string $primaryColumnName PK column for the lang tables (e.g. "id_tax").
@@ -1733,6 +1792,16 @@ class MultilingualHelper
                     message:      'Created language table "' . $langTableName . '".',
                     priority:     Log::INFO,
                 );
+
+                $seeded = (new SeededNames(db: $db))->fill(table: $tableName, language: $langCode);
+
+                foreach ($seeded['errors'] as $error) {
+                    self::log(
+                        callerMethod: __METHOD__,
+                        message:      'The seeded names of "' . $langTableName . '" were not written: ' . $error,
+                        priority:     Log::WARNING,
+                    );
+                }
             } else {
                 self::ensureColumnsExist(
                     db:            $db,
@@ -1753,7 +1822,9 @@ class MultilingualHelper
      * the sync tool / installer can create the lang tables (e.g.
      * #__alfa_categories_en_gb) and their columns up-front from a declared field
      * list, without a record being saved first. Existing tables get any missing
-     * columns added; nothing is dropped or seeded.
+     * columns added; nothing is dropped or seeded. The languages are the ones
+     * published now ({@see self::publishedLanguages()}), so a content language
+     * published earlier in the same request gets its tables.
      *
      * @param string $tableName Base table with Joomla prefix (e.g. "#__alfa_categories").
      * @param string $primaryColumnName PK column for the lang tables (e.g. "id_category").
@@ -1775,9 +1846,7 @@ class MultilingualHelper
 
         $db = self::getDb();
         $existingTables = self::fetchTableList(db: $db);
-        $langCodes = self::buildLangCodeList(
-            languages: LanguageHelper::getLanguages('lang_code'),
-        );
+        $langCodes = array_values(self::publishedLanguages());
 
         // createLangTable() / ensureColumnsExist() read array_keys($fields), so
         // present the (safe) field names as a keyed map; values are irrelevant.
@@ -2410,6 +2479,11 @@ class MultilingualHelper
                 previous: $e,
             );
         }
+
+        // The rest of this request sees the new table (a fill right after the sync).
+        if (self::$tableList !== null && !in_array($langTableName, self::$tableList, true)) {
+            self::$tableList[] = $langTableName;
+        }
     }
 
     /**
@@ -2569,16 +2643,15 @@ class MultilingualHelper
 
     /**
      * Fetch all physical table names from the active database.
-     * Result is statically cached for the duration of the request.
+     * Read once per request ({@see self::$tableList}); a language table this class
+     * creates later in the request is added by createLangTable().
      * @since  1.0.0
      */
     private static function fetchTableList($db): array
     {
-        static $tables = null;
-
-        if ($tables === null) {
+        if (self::$tableList === null) {
             try {
-                $tables = $db->setQuery('SHOW TABLES')->loadColumn();
+                self::$tableList = $db->setQuery('SHOW TABLES')->loadColumn();
             } catch (Throwable $e) {
                 throw new RuntimeException(
                     '[MultilingualHelper::fetchTableList] Could not retrieve table list: '
@@ -2588,7 +2661,7 @@ class MultilingualHelper
             }
         }
 
-        return $tables;
+        return self::$tableList;
     }
 
     /**

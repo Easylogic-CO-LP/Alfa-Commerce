@@ -1,6 +1,6 @@
 {
     "uid": "com_alfa.tools",
-    "version": 3,
+    "version": 4,
     "title": "COM_ALFA_GUIDEDTOUR_TOOLS_TITLE",
     "description": "COM_ALFA_GUIDEDTOUR_TOOLS_DESC",
     "extensions": [
@@ -22,7 +22,7 @@
             "title": "COM_ALFA_GUIDEDTOUR_TOOLS_STEP_2_TITLE",
             "description": "COM_ALFA_GUIDEDTOUR_TOOLS_STEP_2_DESC",
             "position": "bottom",
-            "target": "#alfaToolsTabs, .com-alfa-tools",
+            "target": "joomla-tab#alfaTools, .com-alfa-tools",
             "type": 2,
             "interactive_type": 3,
             "url": "administrator/index.php?option=com_alfa&view=tools"
@@ -46,9 +46,10 @@
             "url": "administrator/index.php?option=com_alfa&view=tools"
         },
         {
-            "title": "COM_ALFA_GUIDEDTOUR_TOOLS_STEP_5_TITLE",
-            "description": "COM_ALFA_GUIDEDTOUR_TOOLS_STEP_5_DESC",
-            "position": "bottom",
+            "title": "COM_ALFA_GUIDEDTOUR_TOOLS_END_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_TOOLS_END_DESC",
+            "position": "center",
+            "target": "",
             "type": 0,
             "url": "administrator/index.php?option=com_alfa&view=tools"
         }

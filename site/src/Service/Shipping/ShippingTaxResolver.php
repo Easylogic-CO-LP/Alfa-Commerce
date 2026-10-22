@@ -13,7 +13,6 @@ use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Site\Service\Pricing\ActiveDateCondition;
 use Alfa\Component\Alfa\Site\Service\Pricing\AppliedTax;
 use Alfa\Component\Alfa\Site\Service\Pricing\PriceComputationEngine;
-use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
@@ -23,11 +22,12 @@ defined('_JEXEC') or die;
 /**
  * Which tax rules a shipping charge carries for one shipment.
  *
- * A METHOD REFERENCES TAX RULES; IT NEVER STATES A RATE. The method's own
- * rules (#__alfa_shipment_taxes), or, for a method that names none, the shop's
- * default shipping taxes. A method that names rules never falls back: a rule
- * that does not reach this destination is the destination answering 0%, not a
- * gap to fill. With neither, carriage is untaxed.
+ * A METHOD OWNS ITS TAXES; IT REFERENCES TAX RULES AND NEVER STATES A RATE.
+ * The rules the method names (#__alfa_shipment_taxes) and nothing else: there
+ * is no shop-level default and no inheritance. A method that names none is
+ * untaxed, which is the merchant's explicit choice, and so is a shipment that
+ * names no method. A rule that does not reach this destination is the
+ * destination answering 0%, not a gap to fill.
  *
  * THE DESTINATION DECIDES. Each rule is read as the catalogue reads it (state,
  * publish window, customer groups, customer) and its places against the
@@ -42,13 +42,6 @@ defined('_JEXEC') or die;
 final class ShippingTaxResolver
 {
     /**
-     * The component option holding the shop's default shipping taxes.
-     *
-     * @since  2.0.0
-     */
-    public const SHOP_DEFAULT = 'shipping_tax_rules';
-
-    /**
      * The tax chain for this shipment, in the order the rates apply.
      *
      * @param ShipmentPricingContext $context The shipment being priced.
@@ -61,10 +54,6 @@ final class ShippingTaxResolver
     {
         $db = Factory::getContainer()->get(DatabaseInterface::class);
         $ids = $this->methodTaxIds(db: $db, methodId: $context->methodId);
-
-        if ($ids === []) {
-            $ids = self::positiveIds((array) ComponentHelper::getParams('com_alfa')->get(self::SHOP_DEFAULT, []));
-        }
 
         if ($ids === []) {
             return [];

@@ -1,6 +1,6 @@
 {
     "uid": "com_alfa.joomla-basics",
-    "version": 2,
+    "version": 3,
     "ordering": 16,
     "title": "COM_ALFA_GUIDEDTOUR_JOOMLA_BASICS_TITLE",
     "description": "COM_ALFA_GUIDEDTOUR_JOOMLA_BASICS_DESC",
@@ -35,8 +35,8 @@
             "url": "administrator/index.php?option=com_config"
         },
         {
-            "title": "COM_ALFA_GUIDEDTOUR_JOOMLA_BASICS_STEP_4_TITLE",
-            "description": "COM_ALFA_GUIDEDTOUR_JOOMLA_BASICS_STEP_4_DESC",
+            "title": "COM_ALFA_GUIDEDTOUR_JOOMLA_BASICS_END_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_JOOMLA_BASICS_END_DESC",
             "position": "bottom",
             "target": "#toolbar",
             "type": 0,

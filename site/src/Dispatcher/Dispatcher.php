@@ -11,8 +11,11 @@ namespace Alfa\Component\Alfa\Site\Dispatcher;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Joomla\CMS\Dispatcher\ComponentDispatcher;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Plugin\PluginHelper;
+use RuntimeException;
 
 /**
  * ComponentDispatcher class for Com_Alfa
@@ -30,6 +33,12 @@ class Dispatcher extends ComponentDispatcher
      */
     public function dispatch()
     {
+        // Maintenance (Clear everything): the storefront answers that the shop is being
+        // maintained, before anything reads an Alfa table.
+        if (MaintenanceState::active()) {
+            throw new RuntimeException(Text::_('COM_ALFA_MAINTENANCE_STOREFRONT'), 503);
+        }
+
         // Register the item-fields plugins' getSubscribedEvents maps with the
         // GLOBAL dispatcher: bootPlugin() alone never does, so without this a
         // plugin could only answer our direct targeted calls. With it, a

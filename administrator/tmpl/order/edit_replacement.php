@@ -50,6 +50,7 @@
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
 use Alfa\Component\Alfa\Administrator\Service\Credit\CustomerCreditLedger;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentMoney;
@@ -219,7 +220,7 @@ $replacementBuyer = $this->replacementCredit ? array_filter([
                         <tbody>
 						<?php foreach ($preview->tax_summary as $taxRow) : ?>
                             <tr>
-                                <td><?php echo $this->escape((string) $taxRow->tax_rate); ?>%</td>
+                                <td><?php echo $this->escape(AlfaHelper::percentDisplay(value: $taxRow->tax_rate)); ?></td>
                                 <td class="text-end"><?php echo $money($taxRow->base_tax_excl); ?></td>
                                 <td class="text-end"><?php echo $money($taxRow->tax_amount); ?></td>
                             </tr>

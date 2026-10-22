@@ -183,37 +183,6 @@
                 <option value="final">COM_ALFA_CONFIG_ADJUST_TARGET_FINAL</option>
                 <option value="start">COM_ALFA_CONFIG_ADJUST_TARGET_START</option>
             </field>
-
-            <!-- What a shipping price typed into a method means. Read only by
-                 ShippingPriceEntryModeResolver: the shop default of a scoped
-                 policy, never a flag the shipping pipeline reads itself. -->
-            <field
-                    name="shipping_price_entry_mode"
-                    type="list"
-                    default="tax_included"
-                    label="COM_ALFA_CONFIG_SHIPPING_PRICE_ENTRY_MODE"
-                    description="COM_ALFA_CONFIG_SHIPPING_PRICE_ENTRY_MODE_DESC"
-            >
-                <option value="tax_included">COM_ALFA_CONFIG_SHIPPING_PRICE_ENTRY_MODE_INCLUDED</option>
-                <option value="tax_excluded">COM_ALFA_CONFIG_SHIPPING_PRICE_ENTRY_MODE_EXCLUDED</option>
-            </field>
-
-            <!-- The tax rules a shipping method that names none of its own is
-                 taxed with. Each rule's places decide where it applies. Empty:
-                 shipping is untaxed until a rule is chosen here or on a method. -->
-            <field
-                    name="shipping_tax_rules"
-                    type="model"
-                    addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
-                    model="taxes"
-                    column_value="id"
-                    column_text="name"
-                    input_type="list"
-                    multiple="true"
-                    layout="joomla.form.field.list-fancy-select"
-                    label="COM_ALFA_CONFIG_SHIPPING_TAX_RULES"
-                    description="COM_ALFA_CONFIG_SHIPPING_TAX_RULES_DESC"
-            />
         </fieldset>
 
         <fieldset name="general_stock" label="COM_ALFA_CONFIG_FIELDSET_STOCK">

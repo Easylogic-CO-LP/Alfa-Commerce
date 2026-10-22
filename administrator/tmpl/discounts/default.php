@@ -193,8 +193,11 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);   // END-on
                             </td>
 
                             <td>
-                                <?php echo AlfaHelper::decimalDisplay($item->value); ?>
-                                <?php if(!$item->is_amount){echo "%";} ?>
+                                <?php // A fixed amount is a stored per-unit figure in the shop's currency (the
+                                      // stored branch of the one unit rule); a percentage by the one percentage rule. ?>
+                                <?php echo $this->escape($item->is_amount
+                                    ? $this->amountCurrency->formatStored(value: $item->value)
+                                    : AlfaHelper::percentDisplay(value: $item->value)); ?>
                             </td>
 
                             <td>

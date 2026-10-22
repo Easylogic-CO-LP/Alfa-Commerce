@@ -9,58 +9,67 @@
 
 namespace Alfa\Component\Alfa\Site\Service\Shipping;
 
-use Joomla\CMS\Component\ComponentHelper;
-use Joomla\CMS\Log\Log;
+use Joomla\CMS\Factory;
+use Joomla\Database\DatabaseInterface;
+use Joomla\Database\ParameterType;
+use UnexpectedValueException;
 
 defined('_JEXEC') or die;
 
 /**
  * What an entered shipping price means for one shipment.
  *
- * THE ONLY READER OF THE SETTING. Shipping money asks this service and never
- * the component configuration, so the answer can come from a narrower scope
- * later (shop default, then a seller's own mode, then a method's) by a change
- * here alone. Today the shop default is the only scope.
+ * THE ONLY READER OF THE SETTING. Each shipping method owns its mode (Shipping
+ * prices entered, #__alfa_shipments.price_entry_mode), and shipping money asks
+ * this service, never the method row itself. There is no shop-level default
+ * and no inheritance: two methods of one shop may enter their prices
+ * differently.
  *
  * @since  2.0.0
  */
 final class ShippingPriceEntryModeResolver
 {
     /**
-     * The component option holding the shop default.
+     * The entry mode for this shipment: its method's own.
      *
-     * @since  2.0.0
-     */
-    public const SHOP_DEFAULT = 'shipping_price_entry_mode';
-
-    /**
-     * The entry mode for this shipment.
-     *
-     * An absent option is the declared default, tax included. A stored value
-     * the list does not offer can only come from a hand edit: it is read as the
-     * declared default and logged, so the shop keeps quoting.
+     * A shipment that names no method, or a method that no longer exists, owns
+     * no taxes either (ShippingTaxResolver): its charge is untaxed, and the
+     * entered price is what the customer pays. A stored value that is neither
+     * mode can only come from a write outside Alfa: it is refused, so the
+     * method prices nothing rather than a price read with a meaning nobody
+     * chose (checkout withdraws the method and logs why).
      *
      * @param ShipmentPricingContext $context The shipment being priced.
+     *
+     * @throws UnexpectedValueException When the method stores a mode that is neither.
      *
      * @since  2.0.0
      */
     public function resolve(ShipmentPricingContext $context): ShippingPriceEntryMode
     {
-        $stored = (string) ComponentHelper::getParams('com_alfa')
-            ->get(self::SHOP_DEFAULT, ShippingPriceEntryMode::TaxIncluded->value);
-        $mode = ShippingPriceEntryMode::tryFrom($stored);
-
-        if ($mode === null) {
-            Log::add(
-                'Unknown shipping price entry mode "' . $stored . '" (method #' . $context->methodId
-                . '); read as tax included.',
-                Log::WARNING,
-                'com_alfa.cart',
-            );
-
+        if ($context->methodId <= 0) {
             return ShippingPriceEntryMode::TaxIncluded;
         }
 
-        return $mode;
+        $methodId = $context->methodId;
+        $db = Factory::getContainer()->get(DatabaseInterface::class);
+        $stored = $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('price_entry_mode'))
+                ->from($db->quoteName('#__alfa_shipments'))
+                ->where($db->quoteName('id') . ' = :methodId')
+                ->bind(':methodId', $methodId, ParameterType::INTEGER),
+        )->loadResult();
+
+        if ($stored === null) {
+            return ShippingPriceEntryMode::TaxIncluded;
+        }
+
+        return ShippingPriceEntryMode::tryFrom((string) $stored)
+            ?? throw new UnexpectedValueException(sprintf(
+                'Shipping method #%d stores the price entry mode "%s", which is neither tax included nor tax excluded.',
+                $methodId,
+                (string) $stored,
+            ));
     }
 }

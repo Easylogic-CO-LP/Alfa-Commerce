@@ -85,7 +85,7 @@ final class CartPluginDispatch
      *
      * THE CHARGE IS NORMALISED HERE, ONCE. What the carrier answered becomes
      * the canonical net, tax and gross before anything else reads it: a price
-     * is read through the shop's entry mode and taxed with the method's
+     * is read through the method's entry mode and taxed with the method's
      * shipping tax for the destination; amounts the carrier stated itself are
      * taken as they are.
      *

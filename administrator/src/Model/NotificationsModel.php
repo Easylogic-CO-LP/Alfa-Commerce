@@ -24,11 +24,12 @@ use Joomla\Database\QueryInterface;
  * uses `filter.scope = history` (everything still retained) with the usual list
  * filters + pagination. Writes go through {@see NotificationHelper}.
  *
- * Programmatic use (e.g. the quick panel), mirroring ModelField:
- *   $model = $component->getMVCFactory()->createModel('Notifications', 'Administrator');
- *   $model->getState('list.ordering');          // force populateState()
+ * Programmatic use (the quick panel, NotificationHelper::renderPanel()):
+ *   $model = $component->getMVCFactory()->createModel('Notifications', 'Administrator', ['ignore_request' => true]);
  *   $model->setState('filter.scope', 'active');
- *   $model->setState('list.limit', 0);
+ *   $model->setState('filter.view_pairs', $visiblePairsAsJson);  // null = the reader sees every rule
+ *   $model->setState('list.limit', NotificationHelper::PANEL_LIMIT);
+ *   $model->setState('list.first_page', true);                    // the first page only, read by index
  *   $items = $model->getItems();
  *
  * @since  1.0.0
@@ -125,7 +126,23 @@ class NotificationsModel extends AlfaListModel
     }
 
     /**
+     * The severities in the order the default list shows them, worst first. A severity
+     * outside this list (none is written: push() and the form allow only these) sorts
+     * before them, as FIELD() puts it.
+     *
+     * @var string[]
+     * @since  2.1.0
+     */
+    private const RANK_ORDER = ['danger', 'warning', 'info', 'success'];
+
+    /**
      * Build the list query.
+     *
+     * Every filter is one condition of a single set, so that the first page of the default
+     * order (state list.first_page, the bell's panel) can be read through the index on
+     * dismissed, severity and created: the newest rows of each severity, at most as many
+     * as the page needs, are the only candidates, and the page is taken from them. The
+     * total of such a query is not the list's total; the panel never asks for it.
      *
      * @return QueryInterface
      *
@@ -133,49 +150,60 @@ class NotificationsModel extends AlfaListModel
      */
     protected function getListQuery()
     {
-        // Drop expired history rows before reading (lazy cleanup: no cron).
-        NotificationHelper::purge();
-
         $db = $this->getDatabase();
         $query = $db->createQuery();
+        $table = $db->quoteName('#__alfa_notifications', 'a');
 
-        $query->select($this->getState('list.select', 'a.*'))
-            ->from($db->quoteName('#__alfa_notifications', 'a'));
+        // An expired row is gone, deleted or not yet (NotificationHelper::purgeThrottled()).
+        $set = [NotificationHelper::unexpired(now: Factory::getDate()->toSql(), column: 'a.expires')];
 
         // Scope: active = not dismissed; history = everything still retained.
         if ($this->getState('filter.scope', 'history') === 'active') {
-            $query->where($db->quoteName('a.dismissed') . ' IS NULL');
+            $set[] = $db->quoteName('a.dismissed') . ' IS NULL';
+        }
+
+        // Only the view rules the reader may see (the bell's panel sets this from
+        // NotificationHelper::visiblePairs(), one JSON pair per rule; unset = no filter),
+        // so a page of rows is a page of rows the reader is shown.
+        $pairs = $this->getState('filter.view_pairs');
+
+        if (\is_array($pairs)) {
+            $pairs = array_map(static fn (string $pair): array => (array) json_decode($pair, true), $pairs);
+            $set[] = $pairs === [] ? '0 = 1' : NotificationHelper::visibilityCondition(pairs: $pairs, alias: 'a');
         }
 
         $group = $this->getState('filter.group');
 
         if ($group !== '' && $group !== null) {
-            $query->where($db->quoteName('a.notify_group') . ' = :grp')->bind(':grp', $group);
+            $set[] = $db->quoteName('a.notify_group') . ' = ' . $db->quote((string) $group);
         }
 
         $severity = $this->getState('filter.severity');
 
         if ($severity !== '' && $severity !== null) {
-            $query->where($db->quoteName('a.severity') . ' = :sev')->bind(':sev', $severity);
+            $set[] = $db->quoteName('a.severity') . ' = ' . $db->quote((string) $severity);
         }
 
         $read = $this->getState('filter.read');
 
         if ($read === 'read') {
-            $query->where($db->quoteName('a.readed') . ' IS NOT NULL');
+            $set[] = $db->quoteName('a.readed') . ' IS NOT NULL';
         } elseif ($read === 'unread') {
-            $query->where($db->quoteName('a.readed') . ' IS NULL');
+            $set[] = $db->quoteName('a.readed') . ' IS NULL';
         }
 
         $search = $this->getState('filter.search');
 
         if (!empty($search)) {
-            $like = '%' . str_replace(' ', '%', trim($search)) . '%';
-            $query->where(
-                '(' . $db->quoteName('a.title') . ' LIKE :s1 OR ' . $db->quoteName('a.message') . ' LIKE :s2)',
-            )
-                ->bind(':s1', $like)
-                ->bind(':s2', $like);
+            $like = $db->quote('%' . str_replace(' ', '%', trim($search)) . '%');
+            $set[] = '(' . $db->quoteName('a.title') . ' LIKE ' . $like . ' OR ' . $db->quoteName('a.message') . ' LIKE ' . $like . ')';
+        }
+
+        $query->select($this->getState('list.select', 'a.*'))
+            ->from($table);
+
+        foreach ($set as $condition) {
+            $query->where($condition);
         }
 
         // Ordering: an explicit column if the list asked for one, else worst-severity-first then newest.
@@ -184,8 +212,32 @@ class NotificationsModel extends AlfaListModel
 
         if ($orderCol !== '') {
             $query->order($db->quoteName($orderCol) . ' ' . (strtoupper((string) $orderDir) === 'DESC' ? 'DESC' : 'ASC'));
-        } else {
-            $query->order("FIELD(a.severity, 'danger', 'warning', 'info', 'success') ASC, a.created DESC");
+
+            return $query;
+        }
+
+        $ranks = implode(', ', array_map([$db, 'quote'], self::RANK_ORDER));
+
+        // The id last: rows created in the same second keep one order, newest first,
+        // so a page of the panel is always the same page.
+        $query->order('FIELD(' . $db->quoteName('a.severity') . ', ' . $ranks . ') ASC, '
+            . $db->quoteName('a.created') . ' DESC, ' . $db->quoteName('a.id') . ' DESC');
+
+        $depth = (int) $this->getState('list.start', 0) + (int) $this->getState('list.limit', 0);
+
+        if ($this->getState('list.first_page') && $depth > 0) {
+            $branches = [];
+
+            foreach (array_merge([null], self::RANK_ORDER) as $rank) {
+                $branches[] = '(SELECT ' . $db->quoteName('a.id') . ' FROM ' . $table
+                    . ' WHERE ' . implode(' AND ', $set) . ' AND ' . $db->quoteName('a.severity')
+                    . ($rank === null ? ' NOT IN (' . $ranks . ')' : ' = ' . $db->quote($rank))
+                    . ' ORDER BY ' . $db->quoteName('a.created') . ' DESC, ' . $db->quoteName('a.id') . ' DESC'
+                    . ' LIMIT ' . $depth . ')';
+            }
+
+            $query->where($db->quoteName('a.id') . ' IN (SELECT ' . $db->quoteName('first.id')
+                . ' FROM (' . implode(' UNION ALL ', $branches) . ') AS ' . $db->quoteName('first') . ')');
         }
 
         return $query;

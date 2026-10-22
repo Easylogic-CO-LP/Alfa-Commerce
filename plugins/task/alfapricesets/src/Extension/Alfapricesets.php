@@ -11,6 +11,7 @@ namespace Alfa\Plugin\Task\Alfapricesets\Extension;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Plugin\CMSPlugin;
@@ -113,14 +114,22 @@ class Alfapricesets extends CMSPlugin implements SubscriberInterface
      *
      * @param ExecuteTaskEvent $event The scheduler execution event.
      *
-     * @return int A Status constant: OK when nothing waits (or another run is at work; products left out of a set do
-     *             not count as a failure), WILL_RESUME when sets still wait after the time given, KNOCKOUT when a chunk
+     * @return int A Status constant: OK when nothing waits (or another run is at work, or Alfa is in maintenance;
+     *             products left out of a set do not count as a failure), WILL_RESUME when sets still wait after the time given, KNOCKOUT when a chunk
      *             failed for another reason.
      *
      * @since  2.0.0
      */
     protected function prepare(ExecuteTaskEvent $event): int
     {
+        // Maintenance (Clear everything): nothing is prepared while the tables are removed and
+        // made again; the next run after it prepares what waits.
+        if (MaintenanceState::active()) {
+            $this->logTask('Alfa Commerce is in maintenance (Clear everything); nothing was prepared.');
+
+            return Status::OK;
+        }
+
         $seconds = max(1, (int) ($event->getArgument('params')->seconds ?? 20));
         $run = (new PriceIndexSyncService())->prepareGroupSets(seconds: (float) $seconds);
 

@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Model\Traits\HasDateRangeFilterTrait;
+use Joomla\Database\DatabaseQuery;
 
 /**
  * Inventory movements list model: the append-only ledger, read-only by
@@ -121,11 +122,17 @@ class InventorymovementsModel extends AlfaListModel
                 $query->where($db->quoteName('a.operation_id') . ' = ' . $db->quote(substr($search, 3)));
             } else {
                 $like = '%' . $db->escape($search, true) . '%';
-                $query->extendWhere('AND', [
-                    $db->quoteName('i.sku') . ' LIKE ' . $db->quote($like),
+                // The SKU through EXISTS, not the display join: every filter stays on the
+                // ledger, which is what lets the count leave the joins out (_getListCount()).
+                // A plain where(): extendWhere() needs a WHERE already there and failed
+                // (HTTP 500) on a search with no date filter.
+                $query->where('(' . implode(' OR ', [
+                    'EXISTS (SELECT 1 FROM ' . $db->quoteName('#__alfa_items', 'si')
+                        . ' WHERE ' . $db->quoteName('si.id') . ' = ' . $db->quoteName('a.item_id')
+                        . ' AND ' . $db->quoteName('si.sku') . ' LIKE ' . $db->quote($like) . ')',
                     $db->quoteName('a.note') . ' LIKE ' . $db->quote($like),
                     $db->quoteName('a.source_type') . ' LIKE ' . $db->quote($like),
-                ], 'OR');
+                ]) . ')');
             }
         }
 
@@ -147,5 +154,30 @@ class InventorymovementsModel extends AlfaListModel
         );
 
         return $query;
+    }
+
+    /**
+     * How many movements the filters match, counted on the ledger alone.
+     *
+     * The location, the product and its name are joined for display only, each to one
+     * row by its primary key, so they cannot change the count; the database still reads
+     * them for every movement (57 ms at 129,000 movements, against 8 ms for the ledger
+     * alone). Every filter is on the ledger (the search reads the SKU through EXISTS, a
+     * plugin filter is an EXISTS by the admin contract), so the count drops the joins.
+     *
+     * @param DatabaseQuery|string $query The finished list query.
+     *
+     * @return int
+     *
+     * @since  2.1.0
+     */
+    protected function _getListCount($query)
+    {
+        if ($query instanceof DatabaseQuery) {
+            $query = clone $query;
+            $query->clear('join');
+        }
+
+        return parent::_getListCount($query);
     }
 }
