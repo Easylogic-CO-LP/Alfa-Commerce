@@ -1,6 +1,6 @@
 {
     "uid": "com_alfa.stock-reservations",
-    "version": 3,
+    "version": 4,
     "title": "COM_ALFA_GUIDEDTOUR_STOCK_RESERVATIONS_TITLE",
     "description": "COM_ALFA_GUIDEDTOUR_STOCK_RESERVATIONS_DESC",
     "extensions": [
@@ -46,9 +46,10 @@
             "url": "administrator/index.php?option=com_alfa&view=reservations"
         },
         {
-            "title": "COM_ALFA_GUIDEDTOUR_STOCK_RESERVATIONS_STEP_5_TITLE",
-            "description": "COM_ALFA_GUIDEDTOUR_STOCK_RESERVATIONS_STEP_5_DESC",
-            "position": "bottom",
+            "title": "COM_ALFA_GUIDEDTOUR_STOCK_RESERVATIONS_END_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_STOCK_RESERVATIONS_END_DESC",
+            "position": "center",
+            "target": "",
             "type": 0,
             "url": "administrator/index.php?option=com_alfa&view=reservations"
         }

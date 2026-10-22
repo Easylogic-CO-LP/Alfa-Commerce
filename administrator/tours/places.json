@@ -1,6 +1,6 @@
 {
     "uid": "com_alfa.places",
-    "version": 5,
+    "version": 6,
     "title": "COM_ALFA_GUIDEDTOUR_PLACES_TITLE",
     "description": "COM_ALFA_GUIDEDTOUR_PLACES_DESC",
     "extensions": [
@@ -64,20 +64,12 @@
             "url": "administrator/index.php?option=com_alfa&view=place&layout=edit"
         },
         {
-            "title": "COM_ALFA_GUIDEDTOUR_PLACES_STEP_7_TITLE",
-            "description": "COM_ALFA_GUIDEDTOUR_PLACES_STEP_7_DESC",
+            "title": "COM_ALFA_GUIDEDTOUR_PLACES_END_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_PLACES_END_DESC",
             "position": "bottom",
-            "target": "#save-group-children-save .button-save, .button-save",
-            "type": 2,
-            "interactive_type": 1,
-            "url": "administrator/index.php?option=com_alfa&view=place&layout=edit"
-        },
-        {
-            "title": "COM_ALFA_GUIDEDTOUR_PLACES_STEP_8_TITLE",
-            "description": "COM_ALFA_GUIDEDTOUR_PLACES_STEP_8_DESC",
-            "position": "bottom",
+            "target": "#toolbar",
             "type": 0,
-            "url": "administrator/index.php?option=com_alfa&view=places"
+            "url": "administrator/index.php?option=com_alfa&view=place&layout=edit"
         }
     ],
     "ordering": 100

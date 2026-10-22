@@ -79,10 +79,40 @@ class PriceDataLoader
      */
     private static array $loaded = [];
 
+    /**
+     * The product as its item form holds it, or null: a loader made by
+     * forUnsavedItem() answers for that product alone, under its id.
+     *
+     * @since  2.1.0
+     */
+    private ?UnsavedItem $unsaved = null;
+
     public function __construct()
     {
         $this->db = Factory::getContainer()->get('DatabaseDriver');
         $this->dateHelper = new ActiveDateCondition();
+    }
+
+    /**
+     * A loader for a product as its item form holds it before it is saved.
+     *
+     * It runs the same queries as for a saved product, with the product's
+     * category and manufacturer links taken from the form in place of the two
+     * link tables, so the taxes and discounts that apply are matched to its
+     * memberships exactly as they will be once it is saved. Its price rows are
+     * read as stored: a product not saved yet (id 0) has none. Ask it for the
+     * product's id ($item->id()).
+     *
+     * @param UnsavedItem $item The product as its item form holds it.
+     *
+     * @since  2.1.0
+     */
+    public static function forUnsavedItem(UnsavedItem $item): self
+    {
+        $loader = new self();
+        $loader->unsaved = $item;
+
+        return $loader;
     }
 
     /**
@@ -113,7 +143,8 @@ class PriceDataLoader
         // them first (forgetLoaded()).
         $ids = array_map('intval', $productIds);
         sort($ids);
-        $cacheKey = implode(',', $ids) . '|' . $context->toCacheKey();
+        $cacheKey = implode(',', $ids) . '|' . $context->toCacheKey()
+            . ($this->unsaved === null ? '' : '|' . $this->unsaved->cacheKey());
 
         if (isset(self::$loaded[$cacheKey])) {
             [$prices, $discounts, $taxes] = self::$loaded[$cacheKey];
@@ -215,6 +246,11 @@ class PriceDataLoader
      */
     protected function fetchPrices(array $productIds, PriceContext $context): array
     {
+        // A product that has not been saved yet has no stored price row.
+        if ($this->unsaved !== null && $this->unsaved->id() <= 0) {
+            return [];
+        }
+
         $db = $this->db;
 
         $query = $db->getQuery(true)
@@ -507,7 +543,7 @@ class PriceDataLoader
             // would receive NO discounts (and, in the tax query, NO taxes: an
             // untaxed sale). A category is required at item save; do not relax
             // this join to compensate for a missing-category data defect.
-            ->join('INNER', '#__alfa_items_categories AS ic ON ic.item_id IN (' . $productIdList . ')')
+            ->join('INNER', $this->categoryLinks() . ' AS ic ON ic.item_id IN (' . $productIdList . ')')
             ->where('(dc.discount_id IS NULL OR dc.category_id = 0 OR dc.category_id = ic.category_id)')
 
             // Scope 2: Manufacturer
@@ -516,7 +552,7 @@ class PriceDataLoader
             // of the item's manufacturers. An item with no manufacturer matches
             // only the first two, as an item outside a category does.
             ->join('LEFT', '#__alfa_discount_manufacturers AS dm ON dm.discount_id = d.id')
-            ->join('LEFT', '#__alfa_items_manufacturers AS im ON im.item_id = ic.item_id')
+            ->join('LEFT', $this->manufacturerLinks() . ' AS im ON im.item_id = ic.item_id')
             ->where('(dm.discount_id IS NULL OR dm.manufacturer_id = 0 OR dm.manufacturer_id = im.manufacturer_id)')
 
             // Scope 3: Place
@@ -611,14 +647,14 @@ class PriceDataLoader
             // INVARIANT: every item has >=1 category (see the discount query).
             // An uncategorised item is dropped by this INNER JOIN and would be
             // sold with NO tax; a category is required at item save.
-            ->join('INNER', '#__alfa_items_categories AS ic ON ic.item_id IN (' . $productIdList . ')')
+            ->join('INNER', $this->categoryLinks() . ' AS ic ON ic.item_id IN (' . $productIdList . ')')
             ->where('(tc.tax_id IS NULL OR tc.category_id = 0 OR tc.category_id = ic.category_id)')
 
             // Scope 2: Manufacturer
             // As for discounts: an item with no manufacturer matches only a tax
             // without a manufacturer restriction or with the applies-to-all (0) row.
             ->join('LEFT', '#__alfa_tax_manufacturers AS tm ON tm.tax_id = t.id')
-            ->join('LEFT', '#__alfa_items_manufacturers AS im ON im.item_id = ic.item_id')
+            ->join('LEFT', $this->manufacturerLinks() . ' AS im ON im.item_id = ic.item_id')
             ->where('(tm.tax_id IS NULL OR tm.manufacturer_id = 0 OR tm.manufacturer_id = im.manufacturer_id)')
 
             // Scope 3: Place
@@ -659,6 +695,62 @@ class PriceDataLoader
     }
 
     // Helpers
+
+    /**
+     * The product-to-category links the tax and discount queries match against:
+     * the link table, or for a product as its form holds it the form's
+     * categories as rows of the same shape (item_id, category_id).
+     *
+     * @since  2.1.0
+     */
+    protected function categoryLinks(): string
+    {
+        return $this->unsaved === null
+            ? '#__alfa_items_categories'
+            : $this->unsavedLinks(column: 'category_id', ids: $this->unsaved->categoryIds());
+    }
+
+    /**
+     * The product-to-manufacturer links the tax and discount queries match
+     * against: the link table, or for a product as its form holds it the form's
+     * manufacturers as rows of the same shape (item_id, manufacturer_id).
+     *
+     * @since  2.1.0
+     */
+    protected function manufacturerLinks(): string
+    {
+        return $this->unsaved === null
+            ? '#__alfa_items_manufacturers'
+            : $this->unsavedLinks(column: 'manufacturer_id', ids: $this->unsaved->manufacturerIds());
+    }
+
+    /**
+     * The form's links as a derived table of the link table's shape: one row
+     * (the product's id, id) per id, or no row at all.
+     *
+     * @param string $column The link column (category_id or manufacturer_id).
+     * @param int[] $ids The linked ids.
+     *
+     * @since  2.1.0
+     */
+    private function unsavedLinks(string $column, array $ids): string
+    {
+        $item = (int) $this->unsaved?->id();
+
+        if ($ids === []) {
+            return '(SELECT ' . $item . ' AS item_id, 0 AS ' . $column . ' FROM DUAL WHERE 1 = 0)';
+        }
+
+        $rows = [];
+
+        foreach (array_values($ids) as $index => $id) {
+            $rows[] = $index === 0
+                ? 'SELECT ' . $item . ' AS item_id, ' . (int) $id . ' AS ' . $column
+                : 'SELECT ' . $item . ', ' . (int) $id;
+        }
+
+        return '(' . implode(' UNION ALL ', $rows) . ')';
+    }
 
     /**
      * Group database result rows by product ID.

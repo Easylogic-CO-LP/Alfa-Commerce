@@ -33,6 +33,7 @@ class JsonApiView extends BaseApiView
         'color',
         'bg_color',
         'show_on_product',
+        'price_entry_mode',
         'categories',
         'manufacturers',
         'places',
@@ -57,6 +58,7 @@ class JsonApiView extends BaseApiView
         'color',
         'bg_color',
         'show_on_product',
+        'price_entry_mode',
         'ordering',
         'state',
     ];

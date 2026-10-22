@@ -11,9 +11,10 @@
  * lets the JS target it; `data-open` + the `show` class carry the open state so a refresh
  * restores it. Visibility is already filtered upstream; this layout only decides, per row,
  * whether to show the link (url-access), and offers read/dismiss only to a user who may
- * change notification state. Styling: notifications.css.
+ * change notification state. Styling: notifications.css. The list holds the first
+ * NotificationHelper::PANEL_LIMIT notifications; the heading counts all of them.
  *
- * @var array $displayData  ['items' => object[], 'is_open' => bool, 'can_change' => bool]
+ * @var array $displayData  ['items' => object[], 'total' => int, 'is_open' => bool, 'can_change' => bool]
  */
 
 defined('_JEXEC') or die;
@@ -31,7 +32,7 @@ $canChange = !empty($displayData['can_change']);
 <div class="alfa-notify-head">
     <span><?php echo Text::_('COM_ALFA_NOTIFY_HISTORY_TITLE'); ?></span>
     <?php if (!empty($items)) : ?>
-        <small><?php echo \count($items); ?></small>
+        <small><?php echo (int) $displayData['total']; ?></small>
     <?php endif; ?>
 </div>
 

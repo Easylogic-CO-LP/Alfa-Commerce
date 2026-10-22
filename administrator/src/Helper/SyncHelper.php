@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Service\Setup\SeededNames;
 use Exception;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Component\ComponentHelper;
@@ -25,8 +26,9 @@ use Throwable;
 /**
  * SyncHelper: single source of truth for all Alfa <-> Joomla sync operations.
  *
- * Used by three consumers:
- *  1. script.php (installer)       - seeds all existing users/groups on install/update.
+ * Used by these consumers:
+ *  1. The installation steps       - seed all existing users/groups on install, update and Clear
+ *                                    everything (Service\Setup\InstallSteps).
  *  2. PlgSystemAlfasync (plugin)   - keeps tables in sync on every save/delete event.
  *  3. Frontend registration logic  - inserts the new user row immediately on sign-up.
  *
@@ -39,7 +41,7 @@ use Throwable;
  * within MySQL's default max_allowed_packet (typically 64 MB - 1 GB).
  *
  * Adding a new price field
- * 1. Add the key + default to $defaultParams in script.php.
+ * 1. Add the key + default to Service\Setup\ComponentOptions::DEFAULTS.
  * 2. Add the key to PRICES_DISPLAY_KEYS below.
  * Done. Every consumer picks it up automatically.
  *
@@ -63,7 +65,7 @@ final class SyncHelper
      * Keys that are copied from com_alfa component params into the
      * prices_display JSON column of every new #__alfa_usergroups row.
      *
-     * Must mirror PRICES_DISPLAY_KEYS in script.php.
+     * Each has its installed default in Service\Setup\ComponentOptions::DEFAULTS.
      *
      * @var string[]
      */
@@ -90,9 +92,9 @@ final class SyncHelper
      *
      * Two modes depending on the caller:
      *
-     *  A) script.php (installer)
-     *     Passes $sourceParams = $this->defaultParams directly because the
-     *     component params may not be committed to DB yet at postflight time.
+     *  A) The installation steps and Reset to default
+     *     Pass $sourceParams = ComponentOptions::DEFAULTS directly: the price
+     *     display an installation gives a group, whatever the Options hold.
      *
      *  B) Plugin / frontend
      *     Passes null -> reads from the already-seeded com_alfa component params
@@ -125,6 +127,31 @@ final class SyncHelper
         }
 
         return json_encode($display);
+    }
+
+    /**
+     * The price display an installation gives every customer group, written to every
+     * #__alfa_usergroups row: the display built from $sourceParams by
+     * {@see self::buildDefaultPricesDisplay()}, and the group's own display switched off, so the
+     * group follows the shop's Options again. Reset to default takes this step.
+     *
+     * @param DatabaseInterface $db The connection.
+     * @param array<string, mixed> $sourceParams The Options the display is built from.
+     *
+     * @return int The groups whose display changed.
+     *
+     * @since  2.1.0
+     */
+    public static function applyDefaultPricesDisplay(DatabaseInterface $db, array $sourceParams): int
+    {
+        $db->setQuery(
+            $db->getQuery(true)
+                ->update($db->quoteName('#__alfa_usergroups'))
+                ->set($db->quoteName('prices_display') . ' = ' . $db->quote(self::buildDefaultPricesDisplay($sourceParams)))
+                ->set($db->quoteName('prices_enable') . ' = 0'),
+        )->execute();
+
+        return (int) $db->getAffectedRows();
     }
 
     // Existence checks (single-row, used by plugin on save events)
@@ -444,15 +471,19 @@ final class SyncHelper
      * {@see self::languageTablesOutsideForms()}; they are made here with the rest.
      *
      * Idempotent: missing lang tables are created, missing columns added; nothing
-     * is dropped or seeded. Shared by the installer (script.php postflight), the
+     * is dropped. Then the names the installation seeds are given to every language
+     * whose table exists, never over a name the shop typed ({@see SeededNames}).
+     * Shared by the installer (script.php postflight), Clear everything, the
      * PlgSystemAlfasync runtime sync, and the admin "Resync languages" button.
      *
-     * @return array ['tables' => [table => ensureLangSchema summary], 'errors' => [table => message]].
+     * @return array ['tables' => [table => ensureLangSchema summary], 'errors' => [table => message]];
+     *               a base table whose seeded names could not be completed is an error
+     *               named "<table> (seeded names)".
      * @since  1.0.0
      */
     public static function syncLanguageSchema(): array
     {
-        $schema = self::getMultilingualSchema() + self::languageTablesOutsideForms();
+        $schema = self::languageSchema();
         $summary = ['tables' => [], 'errors' => []];
 
         foreach ($schema as $table => $definition) {
@@ -467,7 +498,28 @@ final class SyncHelper
             }
         }
 
+        $seeded = (new SeededNames(db: Factory::getContainer()->get(DatabaseInterface::class)))->fill();
+
+        foreach ($seeded['errors'] as $table => $error) {
+            $summary['errors'][$table . ' (seeded names)'] = $error;
+        }
+
         return $summary;
+    }
+
+    /**
+     * Every translatable base table of the component with the key and fields of its per-language
+     * tables (`<base>_<language>`): the tables the form scan finds and the two translated outside any
+     * form. The one list {@see self::syncLanguageSchema()} makes the language tables from, and Clear
+     * everything finds core's language tables by.
+     *
+     * @return array<string, array{pk: string, fields: string[]}>
+     *
+     * @since  2.1.0
+     */
+    public static function languageSchema(): array
+    {
+        return self::getMultilingualSchema() + self::languageTablesOutsideForms();
     }
 
     /**

@@ -323,6 +323,12 @@ $colspan = 10 + count($this->pluginColumns ?? []) + Actions::span($this->pluginR
 													: number_format((float) $item->total_refunded_real, 2); ?>
                                             </small>
 										<?php endif; ?>
+										<?php // Still due: the model's figure, the totals card's Balance Due. ?>
+										<?php if (isset($item->balance_due_money)) : ?>
+                                            <small class="d-block text-danger" style="font-weight:normal;font-size:0.76em">
+                                                <?php echo $this->escape(Text::sprintf('COM_ALFA_ORDERS_DUE', $item->balance_due_money->format())); ?>
+                                            </small>
+										<?php endif; ?>
                                     </div>
 
 									<?php if ($pSts === 'partial') : ?>

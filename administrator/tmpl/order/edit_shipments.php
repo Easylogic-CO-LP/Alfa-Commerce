@@ -134,7 +134,7 @@ $renderMap = [
 
 	// VAT rate the charge was taxed at
 	'shipping_tax_rate' => function ($value) {
-		return '<small>' . Text::sprintf('COM_ALFA_SHIPPING_TAX_RATE_SHORT', htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8')) . '</small>';
+		return '<small>' . Text::sprintf('COM_ALFA_SHIPPING_TAX_RATE_SHORT', htmlspecialchars(AlfaHelper::percentDisplay(value: $value ?? 0), ENT_QUOTES, 'UTF-8')) . '</small>';
 	},
 
 	// Tracking number: monospace code styling

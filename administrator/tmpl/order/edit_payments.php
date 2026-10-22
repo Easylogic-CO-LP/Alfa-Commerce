@@ -40,6 +40,7 @@ use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Layout\LayoutHelper;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Joomla\CMS\Router\Route;
 
@@ -350,6 +351,24 @@ foreach ($conditionalColumns as $primary => $checkCallback) {
         </div>
     </div>
 </div>
+
+<?php
+// THE REFUND BLOCK: the refunds the payment providers report that the books do
+// not hold, from the answer the block is decided on. Empty when there are none.
+echo LayoutHelper::render(
+	'order.unbooked_refunds',
+	['unbooked' => PaymentLedger::unbookedProviderRefunds(orderId: (int) $this->order->id), 'currency' => $this->order->currency],
+	JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'
+);
+
+// A refunded payment set back to completed because its refund became failed or
+// cancelled: what the refund set off earlier was not reversed. Empty when none.
+echo LayoutHelper::render(
+	'order.refund_reevaluations',
+	['reevaluated' => PaymentLedger::refundReevaluations(orderId: (int) $this->order->id)],
+	JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'
+);
+?>
 
 <!--  PAYMENTS TABLE                                                -->
 <?php if (!empty($payments)): ?>

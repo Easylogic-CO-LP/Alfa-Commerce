@@ -1,6 +1,6 @@
 {
     "uid": "com_alfa.orders",
-    "version": 6,
+    "version": 7,
     "title": "COM_ALFA_GUIDEDTOUR_ORDERS_TITLE",
     "description": "COM_ALFA_GUIDEDTOUR_ORDERS_DESC",
     "extensions": [
@@ -76,7 +76,7 @@
             "title": "COM_ALFA_GUIDEDTOUR_ORDERS_STEP_8_TITLE",
             "description": "COM_ALFA_GUIDEDTOUR_ORDERS_STEP_8_DESC",
             "position": "left",
-            "target": ".control-group:not(.hidden):has(#jform_order_status), #jform_order_status",
+            "target": ".control-group:not(.hidden):has(#jform_id_order_status), #jform_id_order_status",
             "type": 2,
             "interactive_type": 3,
             "url": "administrator/index.php?option=com_alfa&view=order&layout=edit"
@@ -112,7 +112,7 @@
             "title": "COM_ALFA_GUIDEDTOUR_ORDERS_STEP_12_TITLE",
             "description": "COM_ALFA_GUIDEDTOUR_ORDERS_STEP_12_DESC",
             "position": "top",
-            "target": "#issueDocumentForm, #order-form",
+            "target": "#document-rows, a[href=\"#issueDocumentModal\"], #order-form",
             "type": 2,
             "interactive_type": 3,
             "url": "administrator/index.php?option=com_alfa&view=order&layout=edit"
@@ -127,20 +127,12 @@
             "url": "administrator/index.php?option=com_alfa&view=order&layout=edit"
         },
         {
-            "title": "COM_ALFA_GUIDEDTOUR_ORDERS_STEP_14_TITLE",
-            "description": "COM_ALFA_GUIDEDTOUR_ORDERS_STEP_14_DESC",
+            "title": "COM_ALFA_GUIDEDTOUR_ORDERS_END_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_ORDERS_END_DESC",
             "position": "bottom",
-            "target": "#save-group-children-save .button-save, .button-save",
-            "type": 2,
-            "interactive_type": 1,
-            "url": "administrator/index.php?option=com_alfa&view=order&layout=edit"
-        },
-        {
-            "title": "COM_ALFA_GUIDEDTOUR_ORDERS_STEP_15_TITLE",
-            "description": "COM_ALFA_GUIDEDTOUR_ORDERS_STEP_15_DESC",
-            "position": "bottom",
+            "target": "#toolbar",
             "type": 0,
-            "url": "administrator/index.php?option=com_alfa&view=orders"
+            "url": "administrator/index.php?option=com_alfa&view=order&layout=edit"
         }
     ],
     "ordering": 130

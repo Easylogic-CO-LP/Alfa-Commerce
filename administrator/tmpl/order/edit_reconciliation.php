@@ -342,6 +342,10 @@ $semantics = [
 
 		<!-- Semantic mismatches: not money, so not in a money table -->
 		<?php if ($rf->mismatches !== []) : ?>
+			<?php // A tax rate is a percentage and is printed as one; the other kinds are ids.
+			$states = static fn (object $mismatch, $value): string => $mismatch->kind === ReconciliationFacts::MISMATCH_TAX_RATE
+				? AlfaHelper::percentDisplay(value: $value)
+				: (string) $value; ?>
 			<h6 class="mt-2 mb-1 text-danger"><?php echo Text::_('COM_ALFA_RECON_MISMATCHES'); ?></h6>
 			<ul class="list-unstyled mb-3" data-alfa-recon-mismatches>
 				<?php foreach ($rf->mismatches as $mismatch) : ?>
@@ -358,9 +362,9 @@ $semantics = [
 							<strong><?php echo htmlspecialchars((string) $mismatch->label, ENT_QUOTES, 'UTF-8'); ?></strong>
 						<?php endif; ?>
 						- <?php echo Text::_('COM_ALFA_RECON_ORDER_STATES'); ?>
-						<strong><?php echo htmlspecialchars((string) $mismatch->order_states, ENT_QUOTES, 'UTF-8'); ?></strong>,
+						<strong><?php echo htmlspecialchars($states($mismatch, $mismatch->order_states), ENT_QUOTES, 'UTF-8'); ?></strong>,
 						<?php echo Text::_('COM_ALFA_RECON_DOCUMENT_STATES'); ?>
-						<strong><?php echo htmlspecialchars((string) $mismatch->document_states, ENT_QUOTES, 'UTF-8'); ?></strong>
+						<strong><?php echo htmlspecialchars($states($mismatch, $mismatch->document_states), ENT_QUOTES, 'UTF-8'); ?></strong>
 					</li>
 				<?php endforeach; ?>
 			</ul>

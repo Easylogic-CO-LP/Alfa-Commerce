@@ -10,10 +10,13 @@
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\ToolRegistry;
+use Alfa\Component\Alfa\Administrator\Service\Maintenance\FactoryReset;
+use Alfa\Component\Alfa\Administrator\Service\Maintenance\ResetToDefault;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Router\Route;
+use Joomla\CMS\Factory;
 use Joomla\CMS\Session\Session;
 
 /** @var \Joomla\CMS\WebAsset\WebAssetManager $wa */
@@ -52,7 +55,8 @@ $renderSurface = static function (string $surface) use ($ajaxBase): string {
 };
 
 /** Tab ids this template renders itself; anything else a plugin names opens its own tab. */
-$coreSurfaces = ['media', 'dbsync', 'github', 'integrity'];
+$coreSurfaces = ['media', 'dbsync', 'github', 'integrity', 'data', 'extensions'];
+$toolsUser = Factory::getApplication()->getIdentity();
 ?>
 <div class="com-alfa-tools p-3">
 
@@ -100,6 +104,57 @@ $coreSurfaces = ['media', 'dbsync', 'github', 'integrity'];
         <?php echo $this->integrityHtml; ?>
 
         <?php echo $renderSurface('integrity'); ?>
+
+    <?php echo HTMLHelper::_('uitab.endTab'); ?>
+
+    <?php /* Reset and clear: each action opens its own page, which shows what it would change
+             before anything is changed. */ ?>
+    <?php echo HTMLHelper::_('uitab.addTab', 'alfaTools', 'data', Text::_('COM_ALFA_TOOLS_TAB_DATA')); ?>
+        <div class="card mb-3">
+            <div class="card-header"><?php echo Text::_('COM_ALFA_RESET_TITLE'); ?></div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><?php echo Text::_('COM_ALFA_TOOLS_RESET_DESC'); ?></p>
+                <?php if (ResetToDefault::permitted($toolsUser)) : ?>
+                    <a class="btn btn-warning" href="<?php echo Route::_('index.php?option=com_alfa&view=resetdefaults'); ?>">
+                        <span class="icon-refresh" aria-hidden="true"></span>
+                        <?php echo Text::_('COM_ALFA_TOOLS_RESET_BTN'); ?>
+                    </a>
+                <?php else : ?>
+                    <p class="small mb-0"><?php echo Text::_('COM_ALFA_TOOLS_RESET_NOT_PERMITTED'); ?></p>
+                <?php endif; ?>
+            </div>
+        </div>
+        <div class="card mb-3 border-danger">
+            <div class="card-header"><?php echo Text::_('COM_ALFA_CLEAR_TITLE'); ?></div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><?php echo Text::_('COM_ALFA_TOOLS_CLEAR_DESC'); ?></p>
+                <?php if (FactoryReset::permitted($toolsUser)) : ?>
+                    <a class="btn btn-danger" href="<?php echo Route::_('index.php?option=com_alfa&view=cleardata'); ?>">
+                        <span class="icon-trash" aria-hidden="true"></span>
+                        <?php echo Text::_('COM_ALFA_TOOLS_CLEAR_BTN'); ?>
+                    </a>
+                <?php else : ?>
+                    <p class="small mb-0"><?php echo Text::_('COM_ALFA_TOOLS_CLEAR_NOT_PERMITTED'); ?></p>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php echo $renderSurface('data'); ?>
+
+    <?php echo HTMLHelper::_('uitab.endTab'); ?>
+
+    <?php /* Extensions: the separately installed Alfa extensions, their Clear Data and their removal. */ ?>
+    <?php echo HTMLHelper::_('uitab.addTab', 'alfaTools', 'extensions', Text::_('COM_ALFA_TOOLS_TAB_EXTENSIONS')); ?>
+        <div class="card mb-3">
+            <div class="card-header"><?php echo Text::_('COM_ALFA_TOOLS_EXTENSIONS_TITLE'); ?></div>
+            <div class="card-body">
+                <p class="text-muted mb-3"><?php echo Text::_('COM_ALFA_TOOLS_EXTENSIONS_DESC'); ?></p>
+                <a class="btn btn-secondary" href="<?php echo Route::_('index.php?option=com_alfa&view=extensions'); ?>">
+                    <span class="icon-puzzle-piece" aria-hidden="true"></span>
+                    <?php echo Text::_('COM_ALFA_TOOLS_EXTENSIONS_BTN'); ?>
+                </a>
+            </div>
+        </div>
+        <?php echo $renderSurface('extensions'); ?>
 
     <?php echo HTMLHelper::_('uitab.endTab'); ?>
 

@@ -1,6 +1,6 @@
 {
     "uid": "com_alfa.notifications",
-    "version": 3,
+    "version": 4,
     "title": "COM_ALFA_GUIDEDTOUR_NOTIFICATIONS_TITLE",
     "description": "COM_ALFA_GUIDEDTOUR_NOTIFICATIONS_DESC",
     "extensions": [
@@ -46,9 +46,10 @@
             "url": "administrator/index.php?option=com_alfa&view=notifications"
         },
         {
-            "title": "COM_ALFA_GUIDEDTOUR_NOTIFICATIONS_STEP_5_TITLE",
-            "description": "COM_ALFA_GUIDEDTOUR_NOTIFICATIONS_STEP_5_DESC",
-            "position": "bottom",
+            "title": "COM_ALFA_GUIDEDTOUR_NOTIFICATIONS_END_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_NOTIFICATIONS_END_DESC",
+            "position": "center",
+            "target": "",
             "type": 0,
             "url": "administrator/index.php?option=com_alfa&view=notifications"
         }

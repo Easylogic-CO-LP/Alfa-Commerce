@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Service\Setup\AlfaVersion;
 use FilesystemIterator;
 use Joomla\CMS\Factory;
 use RecursiveDirectoryIterator;
@@ -177,7 +178,7 @@ class PackageHelper
         self::sweepStaleArchives(tmpDir: $tmpDir);
 
         $workDir = $tmpDir . '/alfa-package-' . bin2hex(random_bytes(6));
-        $version = $manifest['version'] !== '' ? $manifest['version'] : 'dev';
+        $version = AlfaVersion::ofManifest(path: $manifestPath)?->toString() ?? 'dev';
         $filename = $component . '-' . $version . '.zip';
         $zipPath = $tmpDir . '/' . $component . '-' . $version . '-' . bin2hex(random_bytes(4)) . '.zip';
 
@@ -801,19 +802,7 @@ class PackageHelper
      */
     public static function nextVersion(string $installRoot): string
     {
-        $manifestPath = $installRoot . '/administrator/components/com_alfa/alfa.xml';
-
-        if (!is_file($manifestPath)) {
-            return '';
-        }
-
-        $xml = @simplexml_load_file($manifestPath);
-
-        if ($xml === false) {
-            return '';
-        }
-
-        $current = trim((string) $xml->version);
+        $current = AlfaVersion::ofSite(siteRoot: $installRoot)?->toString() ?? '';
 
         if ($current === '') {
             return '';
@@ -997,19 +986,16 @@ class PackageHelper
             'packageOnly' => [],
         ];
 
-        if (!is_file($manifestPath)) {
+        $version = AlfaVersion::ofManifest(path: $manifestPath)?->toString() ?? '';
+
+        if ($version === '') {
             return $out;
         }
 
+        // The version is read; the media destination is the manifest's structure.
         $xml = @simplexml_load_file($manifestPath);
 
         if ($xml === false) {
-            return $out;
-        }
-
-        $version = trim((string) $xml->version);
-
-        if ($version === '') {
             return $out;
         }
 
@@ -1324,7 +1310,10 @@ class PackageHelper
      * @param string $manifestPath Absolute path to alfa.xml.
      *
      * @return array Structured manifest data (folders, languages, plugins,
-     *               modules, libraries, version, scriptfile, manifest filename).
+     *               modules, libraries, scriptfile, manifest filename). The
+     *               version is not part of it: {@see AlfaVersion} reads it, and
+     *               this method stays free of any other class so the copy-clean
+     *               gate can load this file alone.
      *
      * @throws RuntimeException If the file is missing or not a valid <extension>.
      *
@@ -1351,7 +1340,6 @@ class PackageHelper
 
         return [
             'manifestFilename' => basename($manifestPath),
-            'version' => trim((string) $xml->version),
             'scriptfile' => trim((string) $xml->scriptfile),
             'siteFolder' => $siteFolder,
             'adminFolder' => $adminFolder,

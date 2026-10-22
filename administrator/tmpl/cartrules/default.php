@@ -15,6 +15,7 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\Actions;
 use Alfa\Component\Alfa\Administrator\Helper\Columns;
+use Alfa\Component\Alfa\Site\Service\Pricing\Money;
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
@@ -121,10 +122,12 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], ['priority']);  
                                 <td><?php echo Text::_($classLabels[$item->discount_class] ?? $item->discount_class); ?></td>
 
                                 <td>
+									<?php // A fixed amount is money: the figure the engine takes, at the currency's
+									      // scale. A percentage by the one percentage rule. ?>
 									<?php if ($item->action === 'amount') : ?>
-										<?php echo number_format((float) $item->action_value, 2); ?>
+										<?php echo $this->escape(Money::of($item->action_value, $this->amountCurrency)->format()); ?>
 									<?php else : ?>
-										<?php echo rtrim(rtrim(number_format((float) $item->action_value, 2), '0'), '.'); ?>%
+										<?php echo $this->escape(AlfaHelper::percentDisplay(value: $item->action_value)); ?>
 									<?php endif; ?>
 									<?php // Free shipping is derived, never stored: a shipping rule that
                                           // takes the whole cost IS free shipping.

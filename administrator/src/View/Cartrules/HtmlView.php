@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
 use Alfa\Component\Alfa\Administrator\View\AlfaHtmlView as BaseHtmlView;
+use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Toolbar\ToolbarHelper;
 
@@ -41,6 +42,15 @@ class HtmlView extends BaseHtmlView
     public $activeFilters;
 
     /**
+     * The currency a rule's fixed amount is shown in: the shop's default. A rule stores
+     * a bare number; the engine takes it in the cart's currency, and a cart opens in
+     * the shop's default unless its session names another (the REST ?currency=).
+     *
+     * @since  2.1.0
+     */
+    public Currency $amountCurrency;
+
+    /**
      * Display the view.
      *
      * @param string $tpl Template name.
@@ -58,6 +68,7 @@ class HtmlView extends BaseHtmlView
         $this->state = $model->getState();
         $this->filterForm = $model->getFilterForm();
         $this->activeFilters = $model->getActiveFilters();
+        $this->amountCurrency = Currency::getDefault();
 
         $this->addToolbar();
 
@@ -114,6 +125,11 @@ class HtmlView extends BaseHtmlView
                 ->text('JTOOLBAR_DELETE')
                 ->message('JGLOBAL_CONFIRM_DELETE')
                 ->listCheck(true);
+        }
+
+        // Options opens com_config, which itself requires core.admin.
+        if ($user->authorise('core.admin', 'com_alfa')) {
+            $toolbar->preferences('com_alfa');
         }
 
         TourHelper::toolbarHelp($toolbar, $this->getName());

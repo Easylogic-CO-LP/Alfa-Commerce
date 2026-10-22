@@ -1,6 +1,6 @@
 {
     "uid": "com_alfa.item-fields",
-    "version": 13,
+    "version": 14,
     "title": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_TITLE",
     "description": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_DESC",
     "extensions": [
@@ -99,8 +99,8 @@
             "url": "administrator/index.php?option=com_alfa&view=itemfield&layout=edit"
         },
         {
-            "title": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_STEP_12_TITLE",
-            "description": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_STEP_12_DESC",
+            "title": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_END_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_ITEM_FIELDS_END_DESC",
             "position": "bottom",
             "target": "#toolbar",
             "type": 0,

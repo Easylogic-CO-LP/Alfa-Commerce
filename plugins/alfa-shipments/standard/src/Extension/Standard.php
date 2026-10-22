@@ -436,7 +436,7 @@ final class Standard extends ShipmentsPlugin
      *   $event->getCart()->delivery()      -> the address: fields, and where it is going
      *   $event->getMethod()               -> shipment method record (with params)
      *   $event->setShippingCost($cost)     -> the price as configured; core
-     *                                       reads it through the shop's entry
+     *                                       reads it through the method's entry
      *                                       mode and taxes it for the destination
      *   $event->setShippingAmounts(...)    -> only for a carrier that splits the
      *                                       tax itself (net, tax, gross, rate)

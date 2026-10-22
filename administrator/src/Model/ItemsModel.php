@@ -351,11 +351,14 @@ class ItemsModel extends AlfaListModel
         $db = $this->getDatabase();
         $query = $db->getQuery(true);
 
-        // Select the required fields from the table.
+        // Select the required fields from the table. No DISTINCT: every join below is
+        // to one row (users by primary key, the language row by its primary key) and the
+        // relations are correlated subqueries, so no product appears twice. DISTINCT made
+        // the database evaluate every subquery for every product before taking the page.
         $query->select(
             $this->getState(
                 'list.select',
-                'DISTINCT a.*',
+                'a.*',
             ),
         );
         $query->from('`#__alfa_items` AS a');
@@ -384,7 +387,7 @@ class ItemsModel extends AlfaListModel
         );
 
         // RELATIONS: comma-separated category / manufacturer ids per item via
-        // correlated subqueries (no JOIN, so DISTINCT a.* row count is untouched).
+        // correlated subqueries (no JOIN, so the row count is untouched).
         // getItems() resolves these ids to translated names.
         MultilingualHelper::addRelatedIdsToQuery(
             query:         $query,

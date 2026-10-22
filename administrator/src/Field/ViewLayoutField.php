@@ -126,7 +126,8 @@ class ViewLayoutField extends GroupedlistField
                 continue;
             }
 
-            $template = basename(\dirname($file, 3));
+            // templates/<template>/html/com_alfa/<view>/<name>.php: the template is four folders up.
+            $template = basename(\dirname($file, 4));
             $groupLabel = Text::sprintf('COM_ALFA_LAYOUT_FROM_TEMPLATE', ucwords(str_replace('_', ' ', $template)));
             $groups[$groupLabel][] = HTMLHelper::_('select.option', $template . ':' . $name, self::pretty($name) . ' (' . $name . '.php)');
         }

@@ -1,6 +1,6 @@
 {
     "uid": "com_alfa.menu-shop",
-    "version": 3,
+    "version": 4,
     "ordering": 18,
     "title": "COM_ALFA_GUIDEDTOUR_MENU_SHOP_TITLE",
     "description": "COM_ALFA_GUIDEDTOUR_MENU_SHOP_DESC",
@@ -48,7 +48,7 @@
             "title": "COM_ALFA_GUIDEDTOUR_MENU_SHOP_5_TITLE",
             "description": "COM_ALFA_GUIDEDTOUR_MENU_SHOP_5_DESC",
             "position": "bottom",
-            "target": ".input-group:has(#jform_type)",
+            "target": ".input-group:has(#jform_type) button[data-button-action=\"select\"]",
             "type": 2,
             "interactive_type": 1,
             "url": "administrator/index.php?option=com_menus&view=item&layout=edit"
@@ -99,7 +99,7 @@
             "title": "COM_ALFA_GUIDEDTOUR_MENU_SHOP_11_MONO_TITLE",
             "description": "COM_ALFA_GUIDEDTOUR_MENU_SHOP_11_MONO_DESC",
             "position": "left",
-            "target": ".control-group:not(.hidden):has(#jform_language), #jform_language, #item-form",
+            "target": ".control-group:not(.hidden):has(#jform_language), #item-form",
             "type": 0,
             "url": "administrator/index.php?option=com_menus&view=item&layout=edit",
             "when": "monolingual"
@@ -155,21 +155,12 @@
             "when": "multilingual"
         },
         {
-            "title": "COM_ALFA_GUIDEDTOUR_MENU_SHOP_17_TITLE",
-            "description": "COM_ALFA_GUIDEDTOUR_MENU_SHOP_17_DESC",
+            "title": "COM_ALFA_GUIDEDTOUR_MENU_SHOP_END_TITLE",
+            "description": "COM_ALFA_GUIDEDTOUR_MENU_SHOP_END_DESC",
             "position": "bottom",
-            "target": ".button-apply",
-            "type": 2,
-            "interactive_type": 1,
-            "url": "administrator/index.php?option=com_menus&view=item&layout=edit"
-        },
-        {
-            "title": "COM_ALFA_GUIDEDTOUR_MENU_SHOP_18_TITLE",
-            "description": "COM_ALFA_GUIDEDTOUR_MENU_SHOP_18_DESC",
-            "position": "bottom",
-            "target": "",
+            "target": "#toolbar",
             "type": 0,
-            "url": "administrator/index.php?option=com_menus&view=items&menutype="
+            "url": "administrator/index.php?option=com_menus&view=item&layout=edit"
         }
     ]
 }

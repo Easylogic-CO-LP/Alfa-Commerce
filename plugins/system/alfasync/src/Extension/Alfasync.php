@@ -47,11 +47,17 @@ use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
 use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
+use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataExtensions;
+use Alfa\Component\Alfa\Administrator\Service\Maintenance\FactoryReset;
+use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
+use Alfa\Component\Alfa\Administrator\Service\Setup\AlfaInstallerGate;
 use Exception;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Event\Menu\PreprocessMenuItemsEvent;
+use Joomla\CMS\Event\Module\AfterModuleListEvent;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Plugin\CMSPlugin;
 use Joomla\CMS\Plugin\PluginHelper;
@@ -59,6 +65,7 @@ use Joomla\CMS\Router\Route;
 use Joomla\Event\Event;
 use Joomla\Event\SubscriberInterface;
 use Joomla\Registry\Registry;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -115,8 +122,20 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             // Gateway plugins toggled / com_alfa Options saved -> setup verdict stale.
             'onExtensionAfterSave' => 'onExtensionAfterSave',
 
+            // A content language published from the Content Languages list -> its language tables.
+            'onContentChangeState' => 'onContentChangeState',
+
             // A guided tour finished/skipped -> the checklist's tour-first buttons flip.
             'onAfterTourSaveUserState' => 'onAfterTourSaveUserState',
+
+            // Maintenance (Clear everything): the Alfa modules are left out of every page.
+            'onAfterModuleList' => 'onAfterModuleList',
+
+            // Maintenance (Clear everything): the Options of Alfa are not saved until it has finished.
+            'onExtensionBeforeSave' => 'onExtensionBeforeSave',
+
+            // An Alfa extension uninstalled through Joomla: warned that its data stays (never refused).
+            'onExtensionBeforeUninstall' => 'onExtensionBeforeUninstall',
 
             // Custom Alfa events: uncomment + dispatch from component/plugin
             // 'onAlfaProductAfterSave'  => 'onAlfaProductAfterSave',
@@ -144,7 +163,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
         [$user, $isNew] = $this->extractUserArgs(event: $event, isNew: null, success: null);
         $userId = (int) ($user['id'] ?? 0);
 
-        if ($isNew || $userId <= 0) {
+        if ($isNew || $userId <= 0 || $this->paused()) {
             return;
         }
 
@@ -169,7 +188,9 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     {
         [$data, $isNew, $success] = $this->extractUserArgs($event, $isNew, $success);
 
-        if (!$success || empty($data['id'])) {
+        // In maintenance the account is not followed: Clear everything gives every account its
+        // row when it makes the tables again.
+        if (!$success || empty($data['id']) || $this->paused()) {
             return;
         }
 
@@ -254,14 +275,33 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     public function onAfterRoute(): void
     {
         $app = Factory::getApplication();
+        $input = $app->input;
+
+        // Maintenance (Clear everything): a request of an Alfa module or Alfa plugin through
+        // com_ajax is answered 503 (the module's own page is left out in onAfterModuleList), and
+        // the administrator is told on every other screen.
+        if ($input->getCmd('option') === 'com_ajax' && $this->isAlfaAjax(input: $input) && $this->paused()) {
+            $app->getLanguage()->load('com_alfa', JPATH_SITE);
+
+            throw new RuntimeException(Text::_('COM_ALFA_MAINTENANCE_STOREFRONT'), 503);
+        }
+
+        if ($app->isClient('administrator')) {
+            $this->sayMaintenance();
+
+            return;
+        }
 
         if (!$app->isClient('site')) {
             return;
         }
 
-        $input = $app->input;
-
         if ($input->getCmd('option') !== 'com_users' || $input->getCmd('view') !== 'registration') {
+            return;
+        }
+
+        // In maintenance Joomla's own registration page stays: the Alfa one is not served.
+        if ($this->paused()) {
             return;
         }
 
@@ -292,7 +332,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     {
         [$group, $isNew] = $this->extractGroupArgs($event, $isNew);
 
-        if (empty($group['id'])) {
+        if (empty($group['id']) || $this->paused()) {
             return;
         }
 
@@ -324,7 +364,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     {
         [$group] = $this->extractGroupArgs(event: $event, isNew: null);
 
-        if ((int) ($group['id'] ?? 0) > 0) {
+        if ((int) ($group['id'] ?? 0) > 0 && !$this->paused()) {
             $this->followCustomerGroups(caller: 'onUserAfterDeleteGroup');
         }
     }
@@ -398,7 +438,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             ? (string) ($event->getArgument('defaultgroup') ?? '')
             : (string) (((array) $event)['defaultgroup'] ?? '');
 
-        if ($group === 'com_users') {
+        if ($group === 'com_users' && !$this->paused()) {
             $this->followCustomerGroups(caller: 'onContentCleanCache');
         }
     }
@@ -419,7 +459,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             $success = (bool) $success;
         }
 
-        if (!$success || empty($user['id'])) {
+        if (!$success || empty($user['id']) || $this->paused()) {
             return;
         }
 
@@ -512,6 +552,11 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
      */
     private function handleContentSave(string $context): void
     {
+        // In maintenance nothing is followed: Clear everything makes the language tables itself.
+        if (!\in_array($context, ['com_languages.language', 'com_menus.item'], true) || $this->paused()) {
+            return;
+        }
+
         switch ($context) {
             // A content language was added/edited -> (re)create the per-language
             // translation tables for every translatable Alfa entity.
@@ -547,7 +592,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             ? (string) $event->getContext()
             : (string) (is_array($event) ? ($event[0] ?? '') : '');
 
-        if ($context === 'com_menus.item') {
+        if ($context === 'com_menus.item' && !$this->paused()) {
             $this->invalidateSetup('menu item deleted');
         }
     }
@@ -586,6 +631,10 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             return;
         }
 
+        if (!\in_array($context, ['com_config.component', 'com_plugins.plugin'], true) || $this->paused()) {
+            return;
+        }
+
         if ($context === 'com_config.component') {
             $component = (string) ($item->element ?? $item->name ?? '');
 
@@ -604,12 +653,40 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             return;
         }
 
-        if ($context === 'com_plugins.plugin') {
-            $folder = (string) ($item->folder ?? '');
+        // com_plugins.plugin
+        $folder = (string) ($item->folder ?? '');
 
-            if (in_array($folder, ['alfa-payments', 'alfa-shipments'], true)) {
-                $this->invalidateSetup('gateway plugin saved');
-            }
+        if (in_array($folder, ['alfa-payments', 'alfa-shipments'], true)) {
+            $this->invalidateSetup('gateway plugin saved');
+        }
+    }
+
+    /**
+     * Called after records of any component changed state. A content language published
+     * from the Content Languages list (its status toggle, or Publish over the selected rows)
+     * announces itself here, never as a save (AdminModel::publish): it gets its
+     * #__alfa_*_<langtag> tables, as a language saved in its edit form does
+     * ({@see self::onExtensionAfterSave()}). Any other state, or any other record, changes nothing.
+     *
+     * @param Event|array $event
+     * @since  2.1.0
+     */
+    public function onContentChangeState($event): void
+    {
+        if ($event instanceof Event) {
+            $context = method_exists($event, 'getContext')
+                ? (string) $event->getContext()
+                : (string) ($event->getArgument('context') ?? $event->getArgument('0') ?? '');
+            $value = method_exists($event, 'getValue')
+                ? (int) $event->getValue()
+                : (int) ($event->getArgument('value') ?? $event->getArgument('2') ?? 0);
+        } else {
+            $context = (string) ($event[0] ?? '');
+            $value = (int) ($event[2] ?? 0);
+        }
+
+        if ($context === 'com_languages.language' && $value === 1) {
+            $this->handleContentSave($context);
         }
     }
 
@@ -632,7 +709,7 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
                 $tourId = (int) ($event[0] ?? 0);
             }
 
-            if ($tourId <= 0) {
+            if ($tourId <= 0 || $this->paused()) {
                 return;
             }
 
@@ -666,6 +743,167 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             $this->logDebug('invalidateSetup', $why);
         } catch (Throwable $e) {
             $this->logError('invalidateSetup', $e->getMessage(), ['why' => $why]);
+        }
+    }
+
+    // Maintenance (Clear everything)
+
+    /**
+     * Leave the Alfa modules out of the page while Alfa is in maintenance: each reads the Alfa
+     * tables, which Clear everything is removing and making again. A page without one is not
+     * asked about maintenance at all.
+     *
+     * @param AfterModuleListEvent $event The module list event.
+     *
+     * @since  2.1.0
+     */
+    public function onAfterModuleList(AfterModuleListEvent $event): void
+    {
+        $modules = $event->getModules();
+        $isAlfa = static fn (object $module): bool => str_starts_with((string) ($module->module ?? ''), 'mod_alfa_');
+
+        if (array_filter($modules, $isAlfa) === [] || !$this->paused()) {
+            return;
+        }
+
+        $event->updateModules(array_values(array_filter($modules, static fn (object $module): bool => !$isAlfa($module))));
+    }
+
+    /**
+     * Refuse a save of Alfa's Options while Clear everything has not finished (running, paused,
+     * failed or stopped): the Options are part of what it resets, and a merchant who changes them in
+     * between would see them replaced or would set them on a shop that is not whole. Joomla's Options
+     * save stops on a false result (com_config ComponentModel::save()).
+     *
+     * @param Event $event The save event (Joomla's BeforeSaveEvent): context, the extension table.
+     *
+     * @since  2.1.0
+     */
+    public function onExtensionBeforeSave(Event $event): void
+    {
+        $context = (string) ($event->getArgument('context') ?? $event->getArgument('0') ?? '');
+        $item = $event->getArgument('subject') ?? $event->getArgument('1');
+
+        if ($context !== 'com_config.component' || !\is_object($item) || (string) ($item->element ?? '') !== 'com_alfa' || !$this->paused()) {
+            return;
+        }
+
+        Factory::getApplication()->getLanguage()->load('com_alfa', JPATH_ADMINISTRATOR);
+
+        // The save says the table's error when a result is false.
+        if (method_exists($item, 'setError')) {
+            $item->setError(Text::_('COM_ALFA_OPTIONS_REFUSED_MAINTENANCE'));
+        }
+
+        $event->setArgument('result', [...(array) ($event->getArgument('result') ?? []), false]);
+    }
+
+    /**
+     * An Alfa plugin or package is about to be uninstalled through Joomla (Extensions > Manage, the command line,
+     * or Tools > Extensions): say, in the one shared wording, that its data stays
+     * ({@see AlfaInstallerGate::uninstallNotice()}), and write it to the maintenance log. Joomla's own event, which
+     * cannot refuse: the uninstall always goes on. Not said for a module, Alfa Commerce, what it bundles, another
+     * vendor's extension, or an extension whose data this request has just cleared.
+     *
+     * @param Event $event Joomla's BeforeUninstallEvent: the extension's id.
+     *
+     * @since  2.1.0
+     */
+    public function onExtensionBeforeUninstall(Event $event): void
+    {
+        $extensionId = (int) ($event->getArgument('eid') ?? $event->getArgument('0') ?? 0);
+
+        try {
+            $entry = (new ClearDataExtensions())->uninstalling(extensionId: $extensionId);
+
+            if ($entry === null) {
+                return;
+            }
+
+            $app = Factory::getApplication();
+            $app->getLanguage()->load('com_alfa', JPATH_ADMINISTRATOR);
+            $notice = AlfaInstallerGate::uninstallNotice(name: (string) $entry['name'], key: (string) $entry['key']);
+
+            if ($notice !== null) {
+                $app->enqueueMessage($notice, 'warning');
+            }
+        } catch (Throwable) {
+            // A warning only: it never stands in the way of an uninstall.
+        }
+    }
+
+    /**
+     * Whether Alfa is in maintenance, which every handler that works on the Alfa tables asks
+     * first ({@see MaintenanceState}).
+     *
+     * @since  2.1.0
+     */
+    private function paused(): bool
+    {
+        return MaintenanceState::active();
+    }
+
+    /**
+     * Whether a com_ajax request is one of an Alfa module (`module=alfa_...`) or of a plugin of an
+     * Alfa group (`group=alfa...`).
+     *
+     * @param \Joomla\Input\Input $input The request.
+     *
+     * @since  2.1.0
+     */
+    private function isAlfaAjax(\Joomla\Input\Input $input): bool
+    {
+        return str_starts_with($input->getCmd('module', ''), 'alfa_')
+            || str_starts_with($input->getCmd('group', ''), 'alfa');
+    }
+
+    /**
+     * Tell an administrator who manages Alfa, on every screen that is not Alfa's own, that Alfa
+     * is in maintenance and where Clear everything stopped. Alfa's screens say it themselves.
+     *
+     * @since  2.1.0
+     */
+    private function sayMaintenance(): void
+    {
+        try {
+            $app = Factory::getApplication();
+
+            if ($app->getInput()->getCmd('format', 'html') !== 'html' || $app->getInput()->getCmd('option', '') === 'com_alfa') {
+                return;
+            }
+
+            $user = $app->getIdentity();
+
+            if (!$user || $user->guest || !$user->authorise('core.manage', 'com_alfa') || !$this->paused()) {
+                return;
+            }
+
+            $state = MaintenanceState::current() ?? [];
+            $phase = (string) ($state['phase'] ?? '');
+            $app->getLanguage()->load('com_alfa', JPATH_ADMINISTRATOR);
+
+            // The step and the reason (a database message, a server path) only for those who may
+            // clear Alfa data; everyone else is told that Alfa is in maintenance, and no more.
+            if (!FactoryReset::permitted(user: $user)) {
+                $app->enqueueMessage(Text::_('COM_ALFA_MAINTENANCE_NOTICE_PLAIN'), 'warning');
+
+                return;
+            }
+
+            $app->enqueueMessage(
+                Text::sprintf(
+                    match ($phase) {
+                        'failed' => 'COM_ALFA_MAINTENANCE_NOTICE_FAILED',
+                        'paused' => 'COM_ALFA_MAINTENANCE_NOTICE_PAUSED',
+                        default => 'COM_ALFA_MAINTENANCE_NOTICE',
+                    },
+                    Text::_('COM_ALFA_CLEAR_STEP_' . strtoupper((string) ($state['step'] ?? ''))),
+                    htmlspecialchars((string) ($state['error'] ?? ''), ENT_QUOTES, 'UTF-8'),
+                ) . ' ' . Text::_('COM_ALFA_MAINTENANCE_NOTICE_LINK'),
+                $phase === 'failed' ? 'error' : 'warning',
+            );
+        } catch (Throwable) {
+            // The notice never costs a page.
         }
     }
 
