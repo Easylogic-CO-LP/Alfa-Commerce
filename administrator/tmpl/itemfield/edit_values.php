@@ -36,6 +36,8 @@ $values = is_array($this->item->values ?? null) ? $this->item->values : [];
  */
 $renderValueRow = function ($idx, $row = null) {
     $base = 'jform[values][' . $idx . ']';
+    // The row's ids follow its name, as Joomla makes a field id, so the template's index is renumbered in both.
+    $idBase = preg_replace('#\W#', '_', $base);
     $valueId = (int) ($row->id ?? 0);
     ?>
     <div class="card mb-2 alfa-value-row" data-value-id="<?php echo $valueId; ?>">
@@ -48,7 +50,7 @@ $renderValueRow = function ($idx, $row = null) {
                     <div class="d-flex gap-2 flex-wrap">
                         <?php foreach ($this->contentLanguages as $language) : ?>
                             <div>
-                                <label class="form-label small mb-0">
+                                <label class="form-label small mb-0" for="<?php echo $idBase; ?>_name_<?php echo $language->key; ?>">
                                     <?php echo Text::_('COM_ALFA_ITEMFIELDVALUES_NAME'); ?>
                                     <?php if (!empty($language->image)) : ?>
                                         <?php echo HTMLHelper::_('image', 'mod_languages/' . $language->image . '.gif', $language->title_native, ['title' => $language->title_native], true); ?>
@@ -57,6 +59,7 @@ $renderValueRow = function ($idx, $row = null) {
                                     <?php endif; ?>
                                 </label>
                                 <input type="text" class="form-control form-control-sm"
+                                       id="<?php echo $idBase; ?>_name_<?php echo $language->key; ?>"
                                        name="<?php echo $base; ?>[name_<?php echo $language->key; ?>]"
                                        value="<?php echo $this->escape($row->{'name_' . $language->key} ?? ''); ?>">
                                 <?php // Always-blank alias key: saveMultilingualData() regenerates the greeklish slug from the current name on every save. The value alias is search-only (not a stable URL), so it tracks renames instead of sticking. ?>

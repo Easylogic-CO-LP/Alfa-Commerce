@@ -35,6 +35,9 @@ use Throwable;
  *     and not made again);
  *   - minus {@see self::KEEP}: the durable state, never dropped.
  *
+ * The collation check of an update converts a narrower set, the component's own
+ * ({@see self::componentTables()}).
+ *
  * @since  2.1.0
  */
 final class CoreTables
@@ -67,6 +70,15 @@ final class CoreTables
      * @since  2.1.0
      */
     private const FOREIGN_SITE_MARKERS = ['extensions', 'assets', 'session', 'schemas', 'viewlevels'];
+
+    /**
+     * The component's install SQL, relative to the administrator folder.
+     *
+     * @var string
+     *
+     * @since  2.1.1
+     */
+    private const COMPONENT_SQL = 'components/com_alfa/sql/install.mysql.utf8.sql';
 
     /**
      * @param DatabaseInterface $db The site's connection.
@@ -181,6 +193,47 @@ final class CoreTables
         }
 
         return array_values(array_unique($tables));
+    }
+
+    /**
+     * The tables among the given ones that the component itself owns: those its installed install SQL
+     * creates and its per-language tables ({@see self::languageTables()}). A bundled extension's table,
+     * a plugin's log table or any other extension's table is not among them: each belongs to the
+     * extension that made it. The collation check of an update converts these and no other.
+     *
+     * @param array<string, string> $among The tables, lower-case name => name.
+     *
+     * @return list<string> Those the component owns, in the order given.
+     *
+     * @throws RuntimeException When the component's install SQL cannot be read.
+     *
+     * @since  2.1.1
+     */
+    public function componentTables(array $among): array
+    {
+        $file = JPATH_ADMINISTRATOR . '/' . self::COMPONENT_SQL;
+
+        if (!is_file($file) || !is_readable($file)) {
+            throw new RuntimeException('com_alfa: its install SQL cannot be read: ' . $file);
+        }
+
+        $created = [];
+
+        foreach (SchemaRecreator::createdTables(sql: (string) file_get_contents($file)) as $table) {
+            $created[strtolower($this->db->replacePrefix($table))] = true;
+        }
+
+        $rest = array_diff_key($among, $created);
+        $language = $rest === [] ? [] : array_flip(array_map('strtolower', $this->languageTables(existing: $rest)));
+        $owned = [];
+
+        foreach ($among as $lower => $table) {
+            if (isset($created[$lower]) || isset($language[$lower])) {
+                $owned[] = $table;
+            }
+        }
+
+        return $owned;
     }
 
     /**

@@ -36,6 +36,7 @@ use Closure;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
+use LogicException;
 
 // phpcs:disable PSR1.Files.SideEffects
 \defined('_JEXEC') or die;
@@ -310,8 +311,8 @@ final class CartMethods
 
         // Not the shopper's to fix. Telling them to enter an address they may
         // already have entered would be a lie, so this goes where the person
-        // who CAN fix it will read it.
-        $message = Text::sprintf('COM_ALFA_CART_DESTINATION_NOT_RESOLVABLE', $state);
+        // who CAN fix it will read it, with the reason in words.
+        $message = Text::sprintf('COM_ALFA_CART_DESTINATION_NOT_RESOLVABLE', Text::_(self::destinationStateKey(state: $state)));
         Log::add($message, Log::WARNING, 'com_alfa.cart');
 
         $app = Factory::getApplication();
@@ -321,6 +322,30 @@ final class CartMethods
         }
 
         return '';
+    }
+
+    /**
+     * The language key that says why the delivery destination cannot be resolved.
+     *
+     * Only the three states no shopper can fix reach here: a resolvable destination
+     * is answered before this is asked.
+     *
+     * @param string $state FieldsHelper::DESTINATION_MISSING, DESTINATION_AMBIGUOUS or DESTINATION_UNMAPPED.
+     *
+     * @return string The language key.
+     *
+     * @throws LogicException For any other state.
+     *
+     * @since  2.1.1
+     */
+    private static function destinationStateKey(string $state): string
+    {
+        return match ($state) {
+            FieldsHelper::DESTINATION_MISSING => 'COM_ALFA_CART_DESTINATION_STATE_MISSING',
+            FieldsHelper::DESTINATION_AMBIGUOUS => 'COM_ALFA_CART_DESTINATION_STATE_AMBIGUOUS',
+            FieldsHelper::DESTINATION_UNMAPPED => 'COM_ALFA_CART_DESTINATION_STATE_UNMAPPED',
+            default => throw new LogicException('The delivery destination state "' . $state . '" is not one that cannot be resolved.'),
+        };
     }
 
     /**

@@ -31,6 +31,7 @@ use Alfa\Component\Alfa\Administrator\Service\Search\RebuildStore;
 use Alfa\Component\Alfa\Administrator\Service\Search\SearchEngineInterface;
 use Alfa\Component\Alfa\Administrator\Service\Search\SearchEngineRegistry;
 use Alfa\Component\Alfa\Administrator\Service\Search\SearchScope;
+use Alfa\Component\Alfa\Administrator\Service\Setup\ContentLanguageAddedNotice;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
@@ -117,6 +118,23 @@ final class CoreToolProvider
      * @since  2.0.0
      */
     private const STOCK_EFFECTS_CHUNK = 25;
+
+    /**
+     * The language key of each part a search index can cover, in the order Options lists them: the
+     * rebuild's message names the parts in words, never by their codes.
+     *
+     * @var array<string, string>
+     *
+     * @since  2.1.1
+     */
+    private const SCOPE_PART_LABELS = [
+        SearchScope::PART_ALIASES => 'COM_ALFA_SEARCH_PART_ALIASES',
+        SearchScope::PART_MANUFACTURERS => 'COM_ALFA_SEARCH_PART_MANUFACTURERS',
+        SearchScope::PART_CATEGORIES => 'COM_ALFA_SEARCH_PART_CATEGORIES',
+        SearchScope::PART_SHORT_DESC => 'COM_ALFA_SEARCH_PART_SHORT_DESC',
+        SearchScope::PART_FULL_DESC => 'COM_ALFA_SEARCH_PART_FULL_DESC',
+        SearchScope::PART_META_TEXT => 'COM_ALFA_SEARCH_PART_META_TEXT',
+    ];
 
     /**
      * Declare the component's own tools.
@@ -569,6 +587,9 @@ final class CoreToolProvider
      * Language tables does, and stops with its errors when a table could not be made; the chunks
      * are later requests and fill the new tables.
      *
+     * THE COUNTS OF A LANGUAGE ADDED LATER are brought up to date when the run is over
+     * ({@see ContentLanguageAddedNotice::afterBackfill()}): its notice clears when nothing is left.
+     *
      * @param ExecuteToolActionEvent $event The execution event.
      *
      *
@@ -618,6 +639,7 @@ final class CoreToolProvider
                 $event->setMessage(Text::_(
                     $offset > $total ? 'COM_ALFA_TOOLS_BACKFILL_RERUN' : 'COM_ALFA_TOOLS_BACKFILL_DONE',
                 ));
+                ContentLanguageAddedNotice::afterBackfill();
 
                 return;
             }
@@ -653,6 +675,7 @@ final class CoreToolProvider
                     $event->setNextOffset($next);
                 } else {
                     $event->setMessage(Text::_('COM_ALFA_TOOLS_BACKFILL_DONE'));
+                    ContentLanguageAddedNotice::afterBackfill();
                 }
 
                 return;
@@ -660,6 +683,7 @@ final class CoreToolProvider
 
             // Every table boundary consumed the cursor: the catalogue shrank mid-run.
             $event->setMessage(Text::_('COM_ALFA_TOOLS_BACKFILL_DONE'));
+            ContentLanguageAddedNotice::afterBackfill();
         } catch (Throwable $e) {
             $event->setError($e->getMessage());
         }
@@ -994,7 +1018,7 @@ final class CoreToolProvider
         $runner->finish($progress, $this->rebuildTimeout(), $store->writtenDuringRebuild($engine->key()));
         $store->close($engine->key());
 
-        $scope = SearchScope::fromConfig()->enabled();
+        $scope = self::scopeLabels(parts: SearchScope::fromConfig()->enabled());
 
         $event->setTotal($progress->total)
             ->setMessage(Text::sprintf(
@@ -1002,5 +1026,27 @@ final class CoreToolProvider
                 $progress->processed,
                 $scope === [] ? Text::_('COM_ALFA_SEARCH_REBUILD_CORE_ONLY') : implode(', ', $scope),
             ));
+    }
+
+    /**
+     * The parts a rebuilt index covers, each in the operator's language, in the order Options lists them.
+     *
+     * @param string[] $parts The SearchScope parts in scope.
+     *
+     * @return string[] Their labels.
+     *
+     * @since  2.1.1
+     */
+    private static function scopeLabels(array $parts): array
+    {
+        $labels = [];
+
+        foreach (self::SCOPE_PART_LABELS as $part => $key) {
+            if (\in_array($part, $parts, true)) {
+                $labels[] = Text::_($key);
+            }
+        }
+
+        return $labels;
     }
 }

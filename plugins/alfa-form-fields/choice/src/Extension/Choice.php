@@ -81,8 +81,8 @@ final class Choice extends FormFieldsPlugin
         // field prefix so FormHelper finds ButtonField / ButtonmultiField.
         [$type, $multiple, $layout] = match ($renderAs) {
             'multiselect' => ['list',         true,  'joomla.form.field.list-fancy-select'],
-            'radio' => ['radio',        false, null],
-            'checkbox' => ['checkboxes',   false, null],
+            'radio' => ['choiceradio',  false, null],
+            'checkbox' => ['choicecheckboxes', false, null],
             'button' => ['button',       false, null],
             'button-multi' => ['buttonmulti',  false, null],
             default => ['list',         false, null],
@@ -131,9 +131,13 @@ final class Choice extends FormFieldsPlugin
             }
         }
 
-        // Button variants need a class prefix + custom params forwarded as attrs.
-        if (in_array($type, ['button', 'buttonmulti'], true)) {
+        // The group types are the plugin's own classes (named once, by the group's legend: HasGroupCaptionTrait);
+        // button variants also take their custom params as attrs.
+        if (in_array($type, ['button', 'buttonmulti', 'choiceradio', 'choicecheckboxes'], true)) {
             FormHelper::addFieldPrefix('Alfa\\Plugin\\AlfaFormFields\\Choice\\Field');
+        }
+
+        if (in_array($type, ['button', 'buttonmulti'], true)) {
             $node->setAttribute('button_style', $variant);
             $node->setAttribute('layout_mode', $layoutMod);
         }

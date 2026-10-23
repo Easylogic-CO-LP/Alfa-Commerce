@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Search;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
@@ -202,6 +203,22 @@ final class CatalogJoinProvider implements SearchProviderInterface
             return \count($ors) > 1 ? '(' . implode(' OR ', $ors) . ')' : $ors[0];
         };
 
+        // A name matches as the storefront shows it: this language's, else the default
+        // language's while this language has none, as every translatable read
+        // ({@see MultilingualHelper::addMultilingualJoinToQuery()}). Names and aliases only:
+        // a description never borrows another language's prose ({@see SearchDescriptions}).
+        $default = MultilingualHelper::getDefaultLanguageTag();
+        $fallbackTable = static fn (string $base): ?string => $default !== $suffix && MultilingualHelper::hasLanguageTable(tableName: $base, langTag: $default)
+            ? $base . '_' . $default
+            : null;
+        $shown = static function (string $column, ?string $defaultColumn) use ($db, $like): string {
+            if ($defaultColumn === null) {
+                return $like($column);
+            }
+
+            return '(' . $like($column) . ' OR (COALESCE(' . $db->quoteName($column) . ", '') = '' AND " . $like($defaultColumn) . '))';
+        };
+
         // Identifiers live on the item row itself, so they need no subquery: a shopper
         // holding the product reads the code off the label and types it in.
         $branches = [
@@ -210,78 +227,120 @@ final class CatalogJoinProvider implements SearchProviderInterface
             $like('i.mpn'),
         ];
 
-        $branches[] = $this->existsIn(
-            table: '#__alfa_items_' . $suffix,
-            alias: 'l',
-            on:    'l.id_item = i.id',
-            match: $this->textColumns($like),
-        );
+        $itemsDefault = $fallbackTable('#__alfa_items');
+
+        $branches[] = $itemsDefault === null
+            ? $this->existsIn(
+                table: '#__alfa_items_' . $suffix,
+                alias: 'l',
+                on:    'l.id_item = i.id',
+                match: $this->textColumns(like: $like),
+            )
+            // Over the item itself, so an item with no row in this language is still
+            // reached through the default language's.
+            : $this->existsIn(
+                table: '#__alfa_items',
+                alias: 'it',
+                on:    'it.id = i.id',
+                match: [],
+                joins: [
+                    'LEFT JOIN ' . $db->quoteName('#__alfa_items_' . $suffix, 'l') . ' ON l.id_item = it.id',
+                    'LEFT JOIN ' . $db->quoteName($itemsDefault, 'ld') . ' ON ld.id_item = it.id',
+                ],
+                extra: $this->textColumns(like: $like, shown: $shown),
+            );
+
+        $combinationsDefault = $fallbackTable('#__alfa_item_combinations');
 
         $branches[] = $this->existsIn(
             table: '#__alfa_item_combinations',
             alias: 'c',
             on:    'c.item_id = i.id AND c.state = 1',
             match: [$like('c.sku'), $like('c.gtin'), $like('c.mpn')],
-            joins: [
-                'LEFT JOIN ' . $db->quoteName('#__alfa_item_combinations_' . $suffix, 'cl')
-                    . ' ON cl.id_item_combination = c.id',
-            ],
-            extra: [$like('cl.name')],
+            joins: array_merge(
+                [
+                    'LEFT JOIN ' . $db->quoteName('#__alfa_item_combinations_' . $suffix, 'cl')
+                        . ' ON cl.id_item_combination = c.id',
+                ],
+                $combinationsDefault === null ? [] : [
+                    'LEFT JOIN ' . $db->quoteName($combinationsDefault, 'cd')
+                        . ' ON cd.id_item_combination = c.id',
+                ],
+            ),
+            extra: [$shown('cl.name', $combinationsDefault === null ? null : 'cd.name')],
         );
 
         // Only values of fields the merchant already marked searchable: a per-field
         // control that predates this provider and is finer than any global switch.
+        $valuesDefault = $fallbackTable('#__alfa_item_field_values');
+
         $branches[] = $this->existsIn(
             table: '#__alfa_item_field_value_index',
             alias: 'ix',
             on:    'ix.item_id = i.id',
             match: [],
-            joins: [
-                'INNER JOIN ' . $db->quoteName('#__alfa_item_fields', 'f')
-                    . ' ON f.id = ix.field_id AND f.searchable = 1 AND f.state = 1',
-                'INNER JOIN ' . $db->quoteName('#__alfa_item_field_values', 'v')
-                    . ' ON v.id = ix.value_id AND v.state = 1',
-                'LEFT JOIN ' . $db->quoteName('#__alfa_item_field_values_' . $suffix, 'vl')
-                    . ' ON vl.id_item_field_value = ix.value_id',
-            ],
-            extra: $this->scope->aliases
-                ? [$like('vl.name'), $like('vl.alias')]
-                : [$like('vl.name')],
+            joins: array_merge(
+                [
+                    'INNER JOIN ' . $db->quoteName('#__alfa_item_fields', 'f')
+                        . ' ON f.id = ix.field_id AND f.searchable = 1 AND f.state = 1',
+                    'INNER JOIN ' . $db->quoteName('#__alfa_item_field_values', 'v')
+                        . ' ON v.id = ix.value_id AND v.state = 1',
+                    'LEFT JOIN ' . $db->quoteName('#__alfa_item_field_values_' . $suffix, 'vl')
+                        . ' ON vl.id_item_field_value = ix.value_id',
+                ],
+                $valuesDefault === null ? [] : [
+                    'LEFT JOIN ' . $db->quoteName($valuesDefault, 'vd')
+                        . ' ON vd.id_item_field_value = ix.value_id',
+                ],
+            ),
+            extra: $this->nameColumns(shown: $shown, current: 'vl', default: $valuesDefault === null ? null : 'vd'),
         );
 
         if ($this->scope->manufacturers) {
+            $manufacturersDefault = $fallbackTable('#__alfa_manufacturers');
+
             $branches[] = $this->existsIn(
                 table: '#__alfa_items_manufacturers',
                 alias: 'pm',
                 on:    'pm.item_id = i.id',
                 match: [],
-                joins: [
-                    'INNER JOIN ' . $db->quoteName('#__alfa_manufacturers', 'bm')
-                        . ' ON bm.id = pm.manufacturer_id AND bm.state = 1',
-                    'LEFT JOIN ' . $db->quoteName('#__alfa_manufacturers_' . $suffix, 'ml')
-                        . ' ON ml.id_manufacturer = pm.manufacturer_id',
-                ],
-                extra: $this->scope->aliases
-                    ? [$like('ml.name'), $like('ml.alias')]
-                    : [$like('ml.name')],
+                joins: array_merge(
+                    [
+                        'INNER JOIN ' . $db->quoteName('#__alfa_manufacturers', 'bm')
+                            . ' ON bm.id = pm.manufacturer_id AND bm.state = 1',
+                        'LEFT JOIN ' . $db->quoteName('#__alfa_manufacturers_' . $suffix, 'ml')
+                            . ' ON ml.id_manufacturer = pm.manufacturer_id',
+                    ],
+                    $manufacturersDefault === null ? [] : [
+                        'LEFT JOIN ' . $db->quoteName($manufacturersDefault, 'md')
+                            . ' ON md.id_manufacturer = pm.manufacturer_id',
+                    ],
+                ),
+                extra: $this->nameColumns(shown: $shown, current: 'ml', default: $manufacturersDefault === null ? null : 'md'),
             );
         }
 
         if ($this->scope->categories) {
+            $categoriesDefault = $fallbackTable('#__alfa_categories');
+
             $branches[] = $this->existsIn(
                 table: '#__alfa_items_categories',
                 alias: 'pc',
                 on:    'pc.item_id = i.id',
                 match: [],
-                joins: [
-                    'INNER JOIN ' . $db->quoteName('#__alfa_categories', 'bc')
-                        . ' ON bc.id = pc.category_id AND bc.state = 1',
-                    'LEFT JOIN ' . $db->quoteName('#__alfa_categories_' . $suffix, 'gl')
-                        . ' ON gl.id_category = pc.category_id',
-                ],
-                extra: $this->scope->aliases
-                    ? [$like('gl.name'), $like('gl.alias')]
-                    : [$like('gl.name')],
+                joins: array_merge(
+                    [
+                        'INNER JOIN ' . $db->quoteName('#__alfa_categories', 'bc')
+                            . ' ON bc.id = pc.category_id AND bc.state = 1',
+                        'LEFT JOIN ' . $db->quoteName('#__alfa_categories_' . $suffix, 'gl')
+                            . ' ON gl.id_category = pc.category_id',
+                    ],
+                    $categoriesDefault === null ? [] : [
+                        'LEFT JOIN ' . $db->quoteName($categoriesDefault, 'gd')
+                            . ' ON gd.id_category = pc.category_id',
+                    ],
+                ),
+                extra: $this->nameColumns(shown: $shown, current: 'gl', default: $categoriesDefault === null ? null : 'gd'),
             );
         }
 
@@ -292,19 +351,24 @@ final class CatalogJoinProvider implements SearchProviderInterface
      * Which columns of the per-language item table this term may match.
      *
      * @param callable $like Builds a LIKE predicate for a column.
+     * @param callable|null $shown Builds the shown-name predicate (this language, else the
+     *                             default's), or null when the default language is not read.
      *
      * @return string[]
      *
      * @since  2.0.0
      */
-    private function textColumns(callable $like): array
+    private function textColumns(callable $like, ?callable $shown = null): array
     {
         // The name, unconditionally. The alias (the accent-folded, transliterated
         // form of the name, which is what lets an unaccented or Latin-typed query
-        // match) follows the merchant's scope, shipped ON.
-        $columns = [$like('l.name')];
+        // match) follows the merchant's scope, shipped ON. With $shown, both read
+        // the default language's (`ld`) while this language has none.
+        $columns = $shown !== null
+            ? $this->nameColumns(shown: $shown, current: 'l', default: 'ld')
+            : [$like('l.name')];
 
-        if ($this->scope->aliases) {
+        if ($shown === null && $this->scope->aliases) {
             $columns[] = $like('l.alias');
         }
 
@@ -329,6 +393,29 @@ final class CatalogJoinProvider implements SearchProviderInterface
         if ($this->scope->metaText) {
             $columns[] = $like('l.meta_title');
             $columns[] = $like('l.meta_desc');
+        }
+
+        return $columns;
+    }
+
+    /**
+     * The name, and the alias when the merchant's scope includes aliases, of one language-joined
+     * surface, each matched as shown: in this language, else in the default language.
+     *
+     * @param callable $shown Builds the shown-name predicate from two qualified columns.
+     * @param string $current Alias of this language's table.
+     * @param string|null $default Alias of the default language's table, or null when not joined.
+     *
+     * @return string[]
+     *
+     * @since  2.1.1
+     */
+    private function nameColumns(callable $shown, string $current, ?string $default): array
+    {
+        $columns = [$shown($current . '.name', $default === null ? null : $default . '.name')];
+
+        if ($this->scope->aliases) {
+            $columns[] = $shown($current . '.alias', $default === null ? null : $default . '.alias');
         }
 
         return $columns;

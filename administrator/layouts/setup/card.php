@@ -166,7 +166,9 @@ foreach ($status['checks'] ?? [] as $row) {
                                         <?php if (($choice['options'] ?? []) === []) { continue; } ?>
                                         <label class="setup-item-choice">
                                             <span class="visually-hidden"><?php echo Text::_((string) $choice['label']); ?></span>
-                                            <select class="form-select form-select-sm" data-provision-answer="<?php echo htmlspecialchars((string) $choice['name'], ENT_QUOTES, 'UTF-8'); ?>"
+                                            <select class="form-select form-select-sm"
+                                                    id="setup-<?php echo htmlspecialchars((string) $row['id'] . '-' . (string) $choice['name'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                    data-provision-answer="<?php echo htmlspecialchars((string) $choice['name'], ENT_QUOTES, 'UTF-8'); ?>"
                                                     title="<?php echo htmlspecialchars(Text::_((string) $choice['label']), ENT_QUOTES, 'UTF-8'); ?>">
                                                 <?php foreach ($choice['options'] as $value => $text) : ?>
                                                     <option value="<?php echo htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string) $text, ENT_QUOTES, 'UTF-8'); ?></option>

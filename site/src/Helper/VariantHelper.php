@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Event\ItemFields\CalculateItemPriceEvent;
 use Alfa\Component\Alfa\Administrator\Helper\ItemConfigurationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\QuantityDecimal;
@@ -700,32 +701,12 @@ final class VariantHelper
         ));
 
         if ($missing !== []) {
-            $db = Factory::getContainer()->get('DatabaseDriver');
-
-            // Seed every requested id with an empty row FIRST: a combination with
-            // no translation must be remembered as "looked up and has none", or it
-            // would fall through to a per-card query on every render pass: the
-            // very thing this method exists to prevent.
-            foreach ($missing as $id) {
-                self::$overlayTranslations[$langSuffix . '|' . $id] = [];
-            }
-
-            try {
-                $db->setQuery(
-                    $db->getQuery(true)
-                        ->select($db->quoteName(array_merge(['id_item_combination'], self::TRANSLATABLE)))
-                        ->from($db->quoteName('#__alfa_item_combinations_' . $langSuffix))
-                        ->whereIn($db->quoteName('id_item_combination'), $missing),
-                );
-
-                foreach ($db->loadAssocList() ?: [] as $row) {
-                    $id = (int) ($row['id_item_combination'] ?? 0);
-                    unset($row['id_item_combination']);
-                    self::$overlayTranslations[$langSuffix . '|' . $id] = $row;
-                }
-            } catch (Throwable $e) {
-                // A missing per-language table means "no translations", exactly as
-                // the per-card read has always treated it. The empty seeds stand.
+            // Every requested id is remembered, a combination with no translation as an
+            // empty row: it must count as "looked up and has none", or it would fall
+            // through to a per-card query on every render pass: the very thing this
+            // method exists to prevent.
+            foreach (self::readOverlayTranslations(ids: $missing) as $id => $row) {
+                self::$overlayTranslations[$langSuffix . '|' . $id] = $row;
             }
         }
 
@@ -749,7 +730,49 @@ final class VariantHelper
      */
     private static function overlayLangSuffix(): string
     {
-        return strtolower(str_replace('-', '_', Factory::getApplication()->getLanguage()->getTag()));
+        return MultilingualHelper::getCurrentLanguageTag();
+    }
+
+    /**
+     * The translated overrides of these combinations, each field in the visitor's language,
+     * else in the default language, as every translatable read
+     * ({@see MultilingualHelper::getRecordsByIds()}, one query). A field neither overrides
+     * is left out, so the item's own text shows.
+     *
+     * @param int[] $ids Combination ids.
+     *
+     * @return array<int, array<string, string>> Combination id => [field => text], every id present.
+     *
+     * @since  2.1.1
+     */
+    private static function readOverlayTranslations(array $ids): array
+    {
+        $translations = array_fill_keys($ids, []);
+
+        try {
+            $rows = MultilingualHelper::getRecordsByIds(
+                db:                Factory::getContainer()->get('DatabaseDriver'),
+                ids:               $ids,
+                table:             '#__alfa_item_combinations',
+                langTableBase:     '#__alfa_item_combinations',
+                langPrimaryColumn: 'id_item_combination',
+                langFields:        self::TRANSLATABLE,
+            );
+        } catch (Throwable $e) {
+            // A missing per-language table means "no translations", exactly as
+            // the per-card read has always treated it. The empty rows stand.
+            return $translations;
+        }
+
+        foreach ($rows as $id => $row) {
+            foreach (self::TRANSLATABLE as $field) {
+                if ((string) ($row[$field] ?? '') !== '') {
+                    $translations[(int) $id][$field] = (string) $row[$field];
+                }
+            }
+        }
+
+        return $translations;
     }
 
     /**
@@ -761,7 +784,8 @@ final class VariantHelper
      * different combination (a cloned cart line, a variant reload) can never
      * inherit a PREVIOUS combination's values. A combination that does not set
      * a field genuinely inherits the ITEM's own value, not the default
-     * combination's. A quantity rule the combination stores as exactly zero
+     * combination's; a translated field it sets in the default language only is
+     * shown in that language, as every untranslated text is. A quantity rule the combination stores as exactly zero
      * counts as not set, as the cart reads it.
      *
      * @param object $item The item being assembled.
@@ -840,30 +864,17 @@ final class VariantHelper
             return;
         }
 
-        // Translated overrides in the visitor's current language; a missing
-        // row/table simply inherits the item. Memo per (lang, combination): the
-        // same active combination is resolved in several render passes per page.
+        // Translated overrides in the visitor's current language, else the default
+        // language's; a field neither overrides inherits the item. Memo per (lang,
+        // combination): the same active combination is resolved in several render
+        // passes per page.
         $langSuffix = self::overlayLangSuffix();
         $transKey = $langSuffix . '|' . (int) $active->id;
 
         if (isset(self::$overlayTranslations[$transKey])) {
             $translation = self::$overlayTranslations[$transKey];
         } else {
-            $db = Factory::getContainer()->get('DatabaseDriver');
-            $translation = [];
-
-            try {
-                $db->setQuery(
-                    $db->getQuery(true)
-                        ->select($db->quoteName(self::TRANSLATABLE))
-                        ->from($db->quoteName('#__alfa_item_combinations_' . $langSuffix))
-                        ->where($db->quoteName('id_item_combination') . ' = ' . (int) $active->id),
-                );
-                $translation = (array) ($db->loadAssoc() ?? []);
-            } catch (Throwable $e) {
-                $translation = [];
-            }
-
+            $translation = self::readOverlayTranslations(ids: [(int) $active->id])[(int) $active->id];
             self::$overlayTranslations[$transKey] = $translation;
         }
 

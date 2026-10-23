@@ -317,7 +317,7 @@ try {
                                                 <span class="badge bg-primary"><?php echo Text::_('COM_ALFA_LOCATION_BADGE_DEFAULT'); ?></span>
                                             <?php endif; ?>
                                             <?php if (!$stockLocation['published']) : ?>
-                                                <span class="badge bg-secondary"><?php echo Text::_('JUNPUBLISHED'); ?></span>
+                                                <span class="badge bg-secondary"><?php echo Text::_('COM_ALFA_LOCATION_BADGE_DISABLED'); ?></span>
                                             <?php endif; ?>
                                         </td>
                                         <td class="text-end">

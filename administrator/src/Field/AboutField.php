@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataExtensions;
 use Alfa\Component\Alfa\Administrator\Service\Setup\AlfaVersion;
 use Joomla\CMS\Component\ComponentHelper;
@@ -453,12 +454,20 @@ class AboutField extends FormField
     {
         $app = Factory::getApplication();
         $caching = (int) $app->get('caching', 0);
-        $default = (string) ComponentHelper::getParams('com_languages')->get('site', 'en-GB');
+        // The default is the one every untranslated text falls back to. When the configured
+        // site language is not a published content language, another one is used, and the
+        // line says so.
+        $configured = (string) ComponentHelper::getParams('com_languages')->get('site', 'en-GB');
+        $default = MultilingualHelper::getDefaultLanguageCode();
         $codes = [];
 
         foreach (LanguageHelper::getContentLanguages([1]) as $language) {
             $codes[] = $language->lang_code . ($language->lang_code === $default ? ' (default)' : '');
         }
+
+        $mismatch = $configured !== $default
+            ? ', site language ' . $configured . ' is not a published content language'
+            : '';
 
         return [
             'Debug' => (int) $app->get('debug', 0) ? 'On' : 'Off',
@@ -471,6 +480,7 @@ class AboutField extends FormField
             'Site template' => $this->homeTemplate(0),
             'Admin template' => $this->homeTemplate(1),
             'Languages' => ($codes !== [] ? implode(', ', $codes) : $default)
+                . $mismatch
                 . (Multilanguage::isEnabled() ? ', multilingual on' : ', multilingual off'),
             'Database prefix' => (string) $app->get('dbprefix', ''),
         ];

@@ -2,6 +2,7 @@
 
 namespace Alfa\Plugin\AlfaFormFields\Choice\Field;
 
+use Alfa\Plugin\AlfaFormFields\Choice\Field\Traits\HasGroupCaptionTrait;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Field\RadioField;
 
@@ -12,6 +13,8 @@ defined('_JEXEC') or die;
 // the element's button_style attribute and forwarded to the layout.
 class ButtonField extends RadioField
 {
+    use HasGroupCaptionTrait;
+
     protected $type = 'Button';
     protected $layout = 'layouts.button';
 

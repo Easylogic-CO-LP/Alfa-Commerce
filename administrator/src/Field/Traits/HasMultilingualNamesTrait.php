@@ -13,7 +13,6 @@ namespace Alfa\Component\Alfa\Administrator\Field\Traits;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
-use Joomla\CMS\Language\LanguageHelper;
 use Joomla\Registry\Registry;
 
 /**
@@ -51,18 +50,18 @@ trait HasMultilingualNamesTrait
     /**
      * The default language's tag, in the same lower-snake form.
      *
-     * The default is the first installed language, which is what every required-field check and
-     * every alias derivation in the component already treats as the canonical one.
+     * The site's configured default language ({@see MultilingualHelper::getDefaultLanguageTag()}),
+     * the one every read falls back to: the required-field check, the required marker and the
+     * label are on that language's input. Never the first language in Joomla's list, which can be
+     * another one.
      *
-     * @return string Empty only when no language is installed at all.
+     * @return string e.g. 'en_gb'.
      *
      * @since  2.0.0
      */
     protected function defaultLangCode(): string
     {
-        $first = array_key_first(LanguageHelper::getLanguages('lang_code'));
-
-        return $first === null ? '' : $this->formatLangCode($first);
+        return MultilingualHelper::getDefaultLanguageTag();
     }
 
     /**

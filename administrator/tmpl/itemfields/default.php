@@ -58,6 +58,7 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);   // END-on
                         <?php echo Text::_("JGLOBAL_NO_MATCHING_RESULTS"); ?>
                     </div>
                 <?php else : ?>
+                <div class="table-responsive">
                 <table class="table table-striped" id="itemfieldList">
                     <thead>
                     <tr>
@@ -176,7 +177,7 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);   // END-on
                             </td>
 
                             <td class="d-none d-md-table-cell">
-                                <code><?php echo $this->escape($item->field_name); ?></code>
+                                <code class="raw-value"><?php echo $this->escape($item->field_name); ?></code>
                             </td>
 
                             <td class="d-none d-md-table-cell">
@@ -228,6 +229,7 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);   // END-on
                     <?php endforeach; ?>
                     </tbody>
                 </table>
+                </div>
 
                 <?php echo $this->pagination->getListFooter(); ?>
                 <?php endif; ?>

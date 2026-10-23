@@ -9,6 +9,7 @@
 
 namespace Alfa\Component\Alfa\Administrator\Service\ValuePool;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\Factory;
 use Throwable;
 
@@ -17,10 +18,11 @@ use Throwable;
 /**
  * The default, enumerable provider: an item field's `value` domain is its value
  * pool. Loads the field's published values (in pool order) and overlays the
- * active-language labels from the per-language aux table: the same shape
+ * active-language labels from the per-language aux table, else the default
+ * language's: the same shape
  * {@see \Alfa\Component\Alfa\Site\Helper\ItemFieldsHelper} reads at runtime, so the
  * builder offers exactly the ids the engine will compare. Labels are display-only;
- * a value pending translation falls back to '#id'.
+ * a value named in neither falls back to '#id'.
  *
  * @since  2.0.0
  */
@@ -91,22 +93,23 @@ final class FieldValuePoolProvider implements ValuePoolProvider
         }
 
         if ($fieldOf) {
-            $tag = strtolower(str_replace('-', '_', Factory::getApplication()->getLanguage()->getTag()));
-
             try {
-                $db->setQuery(
-                    $db->getQuery(true)
-                        ->select([$db->qn('id_item_field_value'), $db->qn('name')])
-                        ->from($db->qn('#__alfa_item_field_values_' . $tag))
-                        ->whereIn($db->qn('id_item_field_value'), array_keys($fieldOf)),
+                // One query: each value's name in the current language, else the default's.
+                $names = MultilingualHelper::getRecordsByIds(
+                    db:                $db,
+                    ids:               array_keys($fieldOf),
+                    table:             '#__alfa_item_field_values',
+                    langTableBase:     '#__alfa_item_field_values',
+                    langPrimaryColumn: 'id_item_field_value',
                 );
 
-                foreach ($db->loadObjectList() ?: [] as $row) {
-                    $vid = (int) $row->id_item_field_value;
+                foreach ($names as $vid => $row) {
+                    $vid = (int) $vid;
                     $fid = $fieldOf[$vid] ?? 0;
+                    $name = (string) ($row['name'] ?? '');
 
-                    if ((string) $row->name !== '' && isset($byField[$fid][$vid])) {
-                        $byField[$fid][$vid]['label'] = (string) $row->name;
+                    if ($name !== '' && isset($byField[$fid][$vid])) {
+                        $byField[$fid][$vid]['label'] = $name;
                     }
                 }
             } catch (Throwable $e) {

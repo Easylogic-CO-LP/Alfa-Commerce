@@ -1,8 +1,3 @@
-<?php \defined('_JEXEC') or die; ?>
-<label id="batch-user-lbl" for="batch-user-id">
-    User to select:
-</label>
-
 <?php
 
 /**
@@ -12,8 +7,11 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
+\defined('_JEXEC') or die;
+
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
+use Joomla\CMS\Language\Text;
 
 // Get a database connection.
 $db = Factory::getContainer()->get('DatabaseDriver');
@@ -45,13 +43,19 @@ Factory::getApplication()->getDocument()->getWebAssetManager()
 // Create the select list
 ?>
 
+<label id="batch-user-lbl" for="batch-user-id">
+    <?php echo Text::_('COM_ALFA_BATCH_USER_LABEL'); ?>
+</label>
+
 <joomla-field-fancy-select>
     <?php echo HTMLHelper::_(
     'select.genericlist',
     $options,
     'batch[user_id][]',
     array(
-        'list.attr' => 'class="form-select" id="batch-user-id" multiple data-placeholder="- Select a user -"',
+        // The select's id is given as genericlist's own option: an id inside list.attr loses to the one it writes.
+        'id' => 'batch-user-id',
+        'list.attr' => 'class="form-select" multiple data-placeholder="' . htmlspecialchars(Text::_('COM_ALFA_BATCH_USER_PLACEHOLDER'), ENT_QUOTES, 'UTF-8') . '"',
         'list.select' => ''
     ),
 );

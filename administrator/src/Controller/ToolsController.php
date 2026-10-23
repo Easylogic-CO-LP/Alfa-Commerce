@@ -102,7 +102,9 @@ class ToolsController extends BaseController
      * With `&changed=1` the archive is restricted to the files the integrity scan
      * reports as changed against the install/update baseline, but only when that
      * scan is verified and actually reports changes; otherwise nothing is streamed
-     * and the request redirects back to the Tools view with a notice.
+     * and the request redirects back to the Tools view with a notice, as it does when
+     * none of the changed files is part of the package. A failure is logged and
+     * answered with one fixed sentence ({@see self::exportFailed()}).
      *
      *
      * @since  1.0.0
@@ -122,47 +124,91 @@ class ToolsController extends BaseController
         }
 
         $changed = (int) $this->input->getInt('changed', 0);
+        $onlyRelPaths = null;
 
-        try {
-            if ($changed === 1) {
-                // The changed set comes from the signed official CDN checksums
-                // (single source of truth): files that differ from the released
-                // version = modified + injected. ('missing' can't be zipped: a
-                // file the release has and this install does not is a deletion to
-                // make in the repo, not an archive entry.)
+        if ($changed === 1) {
+            // The changed set comes from the signed official CDN checksums
+            // (single source of truth): files that differ from the released
+            // version = modified + injected. ('missing' can't be zipped: a
+            // file the release has and this install does not is a deletion to
+            // make in the repo, not an archive entry.)
+            try {
                 $report = IntegrityHelper::verifyAgainstOfficial();
-                $status = $report['status'] ?? '';
-                $diff = array_merge($report['modified'] ?? [], $report['injected'] ?? []);
+            } catch (Throwable $e) {
+                $this->exportFailed(error: $e);
 
-                // 'modified' = exact-version deviation, 'ahead' = customised/off-catalog
-                // - both have real diffs to export. Anything else (official/unreachable/
-                // bad_signature) has nothing trustworthy to export.
-                if (($status !== 'modified' && $status !== 'ahead') || empty($diff)) {
-                    if ($status === 'official') {
-                        // Verified: this install matches the official release exactly.
-                        $this->setMessage(Text::_('COM_ALFA_TOOLS_CHANGED_NONE'), 'notice');
-                    } else {
-                        // unreachable / bad_signature: can't trust a diff; go online.
-                        $this->setMessage(Text::_('COM_ALFA_TOOLS_CHANGED_UNVERIFIED'), 'warning');
-                    }
+                return;
+            }
 
-                    $this->setRedirect(Route::_('index.php?option=com_alfa&view=tools', false));
+            $status = $report['status'] ?? '';
+            $diff = array_merge($report['modified'] ?? [], $report['injected'] ?? []);
 
-                    return;
+            // 'modified' = exact-version deviation, 'ahead' = customised/off-catalog
+            // - both have real diffs to export. Anything else (official/unreachable/
+            // bad_signature) has nothing trustworthy to export.
+            if (($status !== 'modified' && $status !== 'ahead') || empty($diff)) {
+                if ($status === 'official') {
+                    // Verified: this install matches the official release exactly.
+                    $this->setMessage(Text::_('COM_ALFA_TOOLS_CHANGED_NONE'), 'notice');
+                } else {
+                    // unreachable / bad_signature: can't trust a diff; go online.
+                    $this->setMessage(Text::_('COM_ALFA_TOOLS_CHANGED_UNVERIFIED'), 'warning');
                 }
 
-                $package = PackageHelper::buildPackageZip(installRoot: JPATH_ROOT, onlyRelPaths: $diff);
-            } else {
-                $package = PackageHelper::buildPackageZip(installRoot: JPATH_ROOT);
+                $this->setRedirect(Route::_('index.php?option=com_alfa&view=tools', false));
+
+                return;
             }
+
+            $onlyRelPaths = $diff;
+        }
+
+        $this->deliverPackage(installRoot: JPATH_ROOT, onlyRelPaths: $onlyRelPaths);
+    }
+
+    /**
+     * Build the archive and stream it, or say why there is none. A changed-only export
+     * whose files all lie outside the package (an added file outside the declared
+     * folders, say) has nothing to carry; the Security tab lists those files.
+     *
+     * @param string $installRoot Absolute path to the Joomla installation root to export.
+     * @param string[]|null $onlyRelPaths The changed files to carry, or null for the whole package.
+     *
+     * @since  2.1.1
+     */
+    private function deliverPackage(string $installRoot, ?array $onlyRelPaths): void
+    {
+        try {
+            $package = PackageHelper::buildPackageZip(installRoot: $installRoot, onlyRelPaths: $onlyRelPaths);
         } catch (Throwable $e) {
-            $this->setMessage(Text::sprintf('COM_ALFA_TOOLS_PACKAGE_ERROR', $e->getMessage()), 'error');
+            $this->exportFailed(error: $e);
+
+            return;
+        }
+
+        if ($package === null) {
+            $this->setMessage(Text::_('COM_ALFA_TOOLS_CHANGED_NOT_IN_PACKAGE'), 'notice');
             $this->setRedirect(Route::_('index.php?option=com_alfa&view=tools', false));
 
             return;
         }
 
         $this->streamArchive(path: $package['zip'], filename: $package['filename']);
+    }
+
+    /**
+     * Answer a failed export: the exception goes to the tools log, never to the page,
+     * which shows one fixed sentence saying where the reason is.
+     *
+     * @param Throwable $error What went wrong.
+     *
+     * @since  2.1.1
+     */
+    private function exportFailed(Throwable $error): void
+    {
+        Log::add(entry: 'Package export failed: ' . $error::class . ': ' . $error->getMessage(), priority: Log::ERROR, category: 'com_alfa.tools');
+        $this->setMessage(Text::_('COM_ALFA_TOOLS_PACKAGE_ERROR'), 'error');
+        $this->setRedirect(Route::_('index.php?option=com_alfa&view=tools', false));
     }
 
     /**

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <form>
     <fields name="formfieldsparams">
-        <fieldset name="fieldparams" label="COM_ALFA_FIELDS_PARAMS_TAB">
+        <fieldset name="fieldparams" label="PLG_ALFA_FORM_FIELDS_TEL_PARAMS_TAB">
             <field
                 addfieldprefix="Alfa\Component\Alfa\Administrator\Field"
                 layout="joomla.form.field.list-fancy-select"
@@ -29,7 +29,7 @@
                 default=""
                 label="PLG_ALFA_FORM_FIELDS_TEL_ALLOWED_REGIONS_LABEL"
                 hint="PLG_ALFA_FORM_FIELDS_TEL_SELECT_COUNTRY"
-                description="Let it empty to auto use all countries list"
+                description="PLG_ALFA_FORM_FIELDS_TEL_ALLOWED_REGIONS_DESC"
                 multiple="true"
                 orderBy="name"
                 orderDir="ASC" />

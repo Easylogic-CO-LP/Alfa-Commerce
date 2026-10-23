@@ -241,6 +241,24 @@ class EmailService
     }
 
     /**
+     * The number an order is known by to its customer: its invoice number when it has one, else its id.
+     *
+     * The confirmation e-mail's {order_number} and the order-complete page both show it.
+     *
+     * @param object $order The order row.
+     *
+     * @return string The order number.
+     *
+     * @since  2.1.1
+     */
+    public static function orderNumber(object $order): string
+    {
+        $invoiceNo = (int) ($order->invoice_number ?? 0);
+
+        return $invoiceNo > 0 ? (string) $invoiceNo : (string) (int) ($order->id ?? 0);
+    }
+
+    /**
      * Return the full catalogue of tokens admins can drop into an email
      * subject / body, grouped for the token picker UI.
      *
@@ -1311,8 +1329,7 @@ class EmailService
     private static function buildTokens(object $order, object $status, string $langTag): array
     {
         $orderId = (int) ($order->id ?? 0);
-        $invoiceNo = (int) ($order->invoice_number ?? 0);
-        $orderNumber = $invoiceNo > 0 ? (string) $invoiceNo : (string) $orderId;
+        $orderNumber = self::orderNumber(order: $order);
         $config = Factory::getApplication()->getConfig();
 
         // Prefer the items already attached by OrderModel::getItem (the
@@ -1690,9 +1707,11 @@ class EmailService
      * Load the status row for $statusId joined to its per-language
      * subject / body / name in $langTag.
      *
-     * Falls back to Joomla's default language if no row exists in
-     * $langTag: keeps the email from going out with blank subject
-     * and body when admin only filled in one language.
+     * Each of the names and e-mail texts falls back on its own to the site's
+     * default language ({@see MultilingualHelper::getDefaultLanguageCode()})
+     * while $langTag has none, whether its row is missing or only that text is
+     * empty: keeps the email from going out with blank subject and body when
+     * admin only filled in one language.
      *
      * @param int $statusId Status PK.
      * @param string $langTag Language code (e.g. 'en-GB').
@@ -1729,20 +1748,19 @@ class EmailService
             $status->email_layout_admin = ((string) ($status->email_layout_admin ?? '')) ?: self::LAYOUT_ID;
 
             $langRow = self::loadLangRow(statusId: $statusId, langTag: $langTag);
+            $defaultTag = MultilingualHelper::getDefaultLanguageCode();
+            $defaultRow = null;
 
-            if ($langRow === null) {
-                // Fall back to site default language.
-                $defaultTag = Factory::getApplication()->get('language', 'en-GB');
+            foreach (['name', 'name_customer', 'email_positions_customer', 'email_positions_admin'] as $column) {
+                $value = (string) ($langRow->{$column} ?? '');
 
-                if ($defaultTag !== $langTag) {
-                    $langRow = self::loadLangRow(statusId: $statusId, langTag: $defaultTag);
+                if ($value === '' && $defaultTag !== $langTag) {
+                    $defaultRow ??= self::loadLangRow(statusId: $statusId, langTag: $defaultTag) ?? false;
+                    $value = $defaultRow !== false ? (string) ($defaultRow->{$column} ?? '') : '';
                 }
-            }
 
-            $status->name = (string) ($langRow->name ?? '');
-            $status->name_customer = (string) ($langRow->name_customer ?? '');
-            $status->email_positions_customer = (string) ($langRow->email_positions_customer ?? '');
-            $status->email_positions_admin = (string) ($langRow->email_positions_admin ?? '');
+                $status->{$column} = $value;
+            }
 
             return $status;
         } catch (Exception $e) {
@@ -1792,8 +1810,10 @@ class EmailService
      * Resolve the language tag for an order.
      *
      * `#__alfa_orders.id_language` is the PK from `#__languages`. When
-     * unset (legacy / guest orders) or unresolvable, falls back to the
-     * application's current language.
+     * unset (legacy / guest orders) or unresolvable, the site's default
+     * language ({@see MultilingualHelper::getDefaultLanguageCode()}): never the
+     * language of whoever runs the request, which in the back office is the
+     * operator's.
      *
      * @param int $idLanguage Joomla language id stored on the order.
      *
@@ -1818,11 +1838,11 @@ class EmailService
                     return $tag;
                 }
             } catch (Exception $e) {
-                // Fall through to the application default.
+                // Fall through to the site default.
             }
         }
 
-        return (string) Factory::getApplication()->getLanguage()->getTag();
+        return MultilingualHelper::getDefaultLanguageCode();
     }
 
     /**

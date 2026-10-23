@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\Language\Text;
@@ -172,6 +173,16 @@ class ShipmentModel extends AlfaAdminModel
             $item->users = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_shipment_users', 'shipment_id', 'user_id');
             $item->usergroups = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_shipment_usergroups', 'shipment_id', 'usergroup_id');
 
+            // A new method allows everything until it is restricted: 0, shown as the "All ..." choice, which is what
+            // a save of untouched scope fields stores.
+            if (empty($item->id)) {
+                $item->categories = [0];
+                $item->manufacturers = [0];
+                $item->places = [0];
+                $item->users = [0];
+                $item->usergroups = [0];
+            }
+
             // The tax rules its charge is taxed with; none = no shipping tax.
             $item->taxes = AlfaHelper::getAssocsFromDb($item->id, '#__alfa_shipment_taxes', 'shipment_id', 'tax_id');
         }
@@ -215,6 +226,21 @@ class ShipmentModel extends AlfaAdminModel
             unset($data['params']);
         } else {
             $data['params'] = '{}';
+        }
+
+        // A NEW category must be available (not archived or trashed, not inside an archived or trashed category);
+        // one the record already holds is kept. Refused before anything is written.
+        $categoryRefusal = CategoryPickerPolicy::refusalForSave(
+            recordId:     (int) ($data['id'] ?? 0),
+            posted:       (array) ($data['categories'] ?? []),
+            table:        '#__alfa_shipment_categories',
+            recordColumn: 'shipment_id',
+        );
+
+        if ($categoryRefusal !== null) {
+            $this->setError($categoryRefusal);
+
+            return false;
         }
 
         if (!parent::save($data)) {

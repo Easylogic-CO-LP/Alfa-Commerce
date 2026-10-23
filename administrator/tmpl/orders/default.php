@@ -416,6 +416,8 @@ $colspan = 10 + count($this->pluginColumns ?? []) + Actions::span($this->pluginR
 									<?php if ($canChange) : ?>
                                         <!-- Editable: styled <select> with AJAX on change -->
                                         <select class="alfa-status-select"
+                                                id="order-status-<?php echo (int) $item->id; ?>"
+                                                aria-label="<?php echo $this->escape(Text::_('COM_ALFA_STATUS')); ?>"
                                                 data-order-id="<?php echo (int) $item->id; ?>"
                                                 data-original="<?php echo $currentStatusId; ?>"
                                                 style="background-color:<?php echo $this->escape($currentStatus->bg_color ?? '#f0f0f0'); ?>;

@@ -265,6 +265,23 @@ class CategoryHelper
     }
 
     /**
+     * The language part of a persistent cache key: the language asked for and the default
+     * language, because a name or alias missing in the first is read from the second
+     * ({@see MultilingualHelper::addMultilingualJoinToQuery()}), so a change of either is a
+     * different answer.
+     *
+     * @param string $lang Lower-snake language tag the entry is resolved in.
+     *
+     * @return string e.g. "el_gr_en_gb"
+     *
+     * @since  2.1.1
+     */
+    private static function cacheLanguageKey(string $lang): string
+    {
+        return $lang . '_' . MultilingualHelper::getDefaultLanguageTag();
+    }
+
+    /**
      * Load a single category from the database
      *
      * PUBLIC because it's called by cache controller via callback
@@ -337,7 +354,7 @@ class CategoryHelper
             $category = $cache->get(
                 [self::class, 'loadCategoryFromDatabase'],
                 [$categoryId, $langTag],
-                'cat_' . $lang . '_' . $visitor . '_' . $categoryId,
+                'cat_' . self::cacheLanguageKey(lang: $lang) . '_' . $visitor . '_' . $categoryId,
             );
         } else {
             $category = self::loadCategoryFromDatabase($categoryId, $langTag);
@@ -384,7 +401,7 @@ class CategoryHelper
             $path = $cache->get(
                 [self::class, 'buildCategoryPath'],
                 [$categoryId, $langTag],
-                'path_' . $lang . '_' . $visitor . '_' . $categoryId,
+                'path_' . self::cacheLanguageKey(lang: $lang) . '_' . $visitor . '_' . $categoryId,
             );
         } else {
             $path = self::buildCategoryPath($categoryId, $langTag);
@@ -510,7 +527,7 @@ class CategoryHelper
         if ($cache !== null) {
             // Language-aware key: the tree carries per-language name / alias.
             $lang = MultilingualHelper::getCurrentLanguageTag();
-            $id = 'tree_' . md5($lang . '_' . $cacheKey);
+            $id = 'tree_' . md5(self::cacheLanguageKey(lang: $lang) . '_' . $cacheKey);
 
             $tree = $version !== null
                 ? self::cachedCountTree(cache: $cache, id: $id, version: $version, parentId: $parentId, buildDepth: $buildDepth)

@@ -7,7 +7,7 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
-namespace Alfa\Component\Alfa\Administrator\Field;
+namespace Alfa\Component\Alfa\Administrator\Field\Traits;
 
 \defined('_JEXEC') or die;
 
@@ -30,9 +30,9 @@ use UnexpectedValueException;
  * records, or null when they could not be read. A field whose sentence is not about choices
  * names its own language key in notLoadedKey().
  *
- * @since  2.1.0
+ * @since  2.1.1
  */
-trait FailClosedOptionsTrait
+trait HasFailClosedOptionsTrait
 {
     /**
      * The rows the field's options (or its content) are built from.

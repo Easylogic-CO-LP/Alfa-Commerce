@@ -1,6 +1,6 @@
 <form>
     <fields name="formfieldsparams">
-        <fieldset name="field_settings" label="COM_ALFA_FIELDS_PARAMS_TAB">
+        <fieldset name="field_settings" label="PLG_ALFA_FORM_FIELDS_CHOICE_PARAMS_TAB">
 
             <field name="render_as" type="list" default="select"
                    label="PLG_ALFA_FORM_FIELDS_OPTIONS_PARAMS_RENDER_AS_LABEL"

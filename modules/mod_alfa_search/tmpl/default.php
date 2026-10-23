@@ -49,7 +49,7 @@ $loadingImageInline = $params->get('loadingImageInline', '');
             <div class="loading-img" id="search-container-loading-img">
                 <?php if ($loadingImageType == '0' && !empty($loadingImageFile)) {
                     echo HtmlHelper::image($loadingImageFile, 'loading-img');
-                } elseif ($loadingImageInline == '1' && !empty($loadingImageInline)) {
+                } elseif ($loadingImageType == '1' && !empty($loadingImageInline)) {
                     echo $loadingImageInline;
                 } elseif ($loadingImageType == '3') { ?>
                     <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"

@@ -5,6 +5,7 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Controller\MediaController;
+use Alfa\Component\Alfa\Administrator\Field\Traits\HasCaptionLabelTrait;
 use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Form\FormField;
@@ -17,6 +18,8 @@ use Joomla\CMS\Layout\LayoutHelper;
  */
 class MediaZoneField extends FormField
 {
+    use HasCaptionLabelTrait;
+
     /**
      * Field type
      *

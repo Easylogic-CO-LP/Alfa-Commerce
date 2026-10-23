@@ -25,8 +25,8 @@ use Joomla\CMS\Language\Text;
  *  - Install / update bundled libraries, plugins and modules alongside the component.
  *  - Seed sensible default configuration parameters after install/update (postflight).
  *  - Bulk-sync existing Joomla users and usergroups into Alfa tables on install/update.
- *  - Clean up libraries, plugins, modules and guided tours when the component is
- *    uninstalled, keeping every Alfa table and its data.
+ *  - Clean up libraries, plugins, modules, guided tours and the language files earlier
+ *    versions left when the component is uninstalled, keeping every Alfa table and its data.
  *
  * Sync logic lives entirely in SyncHelper so it is shared with the runtime
  * plugin (PlgSystemAlfasync) and any frontend registration code; there is no
@@ -135,7 +135,7 @@ class com_alfaInstallerScript extends InstallerScript
      *
      * @var string
      */
-    public const SCHEMA_VERSION = '2.1.0';
+    public const SCHEMA_VERSION = '2.1.1';
 
     /**
      * Whether this run completes an install that never finished: preflight ran
@@ -154,6 +154,16 @@ class com_alfaInstallerScript extends InstallerScript
      * @since 2.0.1
      */
     private string $packageVersion = self::CLEAN_INSTALL_FLOOR;
+
+    /**
+     * The Alfa Commerce version installed before this run, read in preflight from the manifest
+     * still on disk ({@see self::installedVersion()}); null on a fresh install. The update removes
+     * the files of {@see self::OBSOLETE_LANGUAGE_FILES} only when it starts below the release
+     * that dropped them.
+     *
+     * @since 2.1.1
+     */
+    private ?string $versionBefore = null;
 
     /**
      * Whether a Clear everything did not finish on this site (it failed, or its process died), read
@@ -364,6 +374,7 @@ class com_alfaInstallerScript extends InstallerScript
         }
 
         $installed = $this->installedVersion();
+        $this->versionBefore = $installed;
 
         if ($installed !== null && !\Alfa\Component\Alfa\Administrator\Service\Setup\AlfaVersion::of(version: $installed)->atLeast(minimum: self::CLEAN_INSTALL_FLOOR)) {
             $app->enqueueMessage(
@@ -1066,7 +1077,9 @@ class com_alfaInstallerScript extends InstallerScript
      *
      * Reverse of install order: remove plugins and modules first (they may
      * reference classes from our libraries), then the libraries themselves,
-     * then the guided tours, which Joomla does not remove with a component.
+     * then the guided tours, which Joomla does not remove with a component,
+     * then the language files earlier versions installed and this one no longer
+     * ships ({@see self::removeObsoleteLanguageFilesOnUninstall()}).
      *
      * Every Alfa table and every row in it stays: orders, documents, payments,
      * credit, customers, stock, the catalogue and its translations, and the
@@ -1089,6 +1102,7 @@ class com_alfaInstallerScript extends InstallerScript
         $this->uninstallModules($parent);
         $this->uninstallLibraries($parent);
         $this->removeGuidedTours();
+        $this->removeObsoleteLanguageFilesOnUninstall();
     }
 
     /**
@@ -1170,6 +1184,13 @@ class com_alfaInstallerScript extends InstallerScript
 
         $db  = Factory::getContainer()->get('DatabaseDriver');
         $app = Factory::getApplication();
+
+        // On update, the files earlier versions left in Alfa's own folders and this version no
+        // longer ships are removed first, so the integrity check below starts from the result.
+        if ($type === 'update')
+        {
+            $this->removeObsoleteFilesOnUpdate(parent: $parent);
+        }
 
         // File integrity is verified online against the signed canonical checksums on the
         // CDN (single source of truth: IntegrityHelper::verifyAgainstOfficial), so there
@@ -1345,7 +1366,40 @@ class com_alfaInstallerScript extends InstallerScript
             }
         }
 
+        // 5. One collation for every Alfa table (2.1.1): what the update files could not convert
+        //    is converted here, once per table, and what is still left is named.
+        if ($type === 'update')
+        {
+            $this->convergeCollation();
+        }
+
         return true;
+    }
+
+    /**
+     * Convert every Alfa table still in another collation than utf8mb4_unicode_ci, once, and
+     * name each one left with the database's error (CollationCheck). A statement of
+     * sql/updates/mysql/2.1.1.sql may fail without stopping the update, and the database view
+     * of Joomla cannot see a collation, so this step is what makes the conversion complete:
+     * every later installation runs it again. It never fails the installation.
+     *
+     * @return  void
+     * @since   2.1.1
+     */
+    private function convergeCollation(): void
+    {
+        try
+        {
+            $check = \Alfa\Component\Alfa\Administrator\Service\Setup\CollationCheck::class;
+            $check::reportOutcome(outcome: $check::converge());
+        }
+        catch (\Throwable $e)
+        {
+            Factory::getApplication()->enqueueMessage(
+                'The collation of the Alfa tables was not checked: ' . $e->getMessage(),
+                'warning'
+            );
+        }
     }
 
     /**
@@ -1364,6 +1418,601 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     // Obsolete-file cleanup (version-keyed, mirrors sql/updates)
+
+    /**
+     * Files that earlier versions left inside Alfa Commerce's own folders and that this version
+     * does not ship, keyed by the release that first removes them. Joomla copies a release's
+     * folders over the old ones but never deletes a file a newer release dropped, so the update
+     * removes these ({@see self::removeObsoleteFiles()}). Each path is exact and relative to the
+     * site root; each lists the content hashes (PackageHelper::contentHash(), sha256-ws) of the copies
+     * a release installed, so a file whose content changed since is kept for the site to check.
+     * A release that stops shipping a file adds it under its own version.
+     *
+     * @var array<string, array<string, string[]>>
+     * @since 2.1.1
+     */
+    public const OBSOLETE_FILES = [
+        '2.1.1' => [
+            // Moved to Field/Traits/HasFailClosedOptionsTrait.php.
+            'administrator/components/com_alfa/src/Field/FailClosedOptionsTrait.php' => ['a8a53876e8486d949288d9390dcc0fca1172f38cdbe3eb82fdcff167281d5f9b'],
+            // Copies of the package layout inside module and plugin folders: Joomla installs these files
+            // into the language and media folders, never there.
+            'modules/mod_alfa_filters/language/en-GB/mod_alfa_filters.ini' => ['f20ff33c28ae0f424555dcdd6afe59bff40901d8c346dc1b23199cb8a7e18a9f'],
+            'modules/mod_alfa_filters/language/en-GB/mod_alfa_filters.sys.ini' => ['3e706480213d7a07b2d96fa83fae2baf615f2bb3b0cb06d700f3df297e1b5398'],
+            'modules/mod_alfa_items/language/en-GB/mod_alfa_items.ini' => ['22a19b248aac1a047a3e9bd50417684f732fcb3ba4f158719bf0f4ba1d0dd1c5'],
+            'modules/mod_alfa_items/language/en-GB/mod_alfa_items.sys.ini' => ['6205bfa314c03dadbf5df2f58d01127306d781b5b2e4c9ceee83eefd90378e17'],
+            'modules/mod_easy_articles/language/en-GB/mod_easy_articles.ini' => ['28240eeac276013c992a5098bcab7895e92b0568afd00cca24482f746a15e3d6'],
+            'modules/mod_easy_articles/language/en-GB/mod_easy_articles.sys.ini' => ['774c5ea856908b86f68f2943461f57b550e53e59b3aafa01256d99cd834d64a2'],
+            'plugins/alfa-payments/standard/media/joomla.asset.json' => ['12378910d1a1bf81fc13b066ea3b5b7af6e7c459466e261f287c2a28cd13a1d7'],
+            'plugins/alfa-payments/standard/media/js/refund-partial.js' => [
+                '80d5742932fe0952fd19dbf10e155c9e14a1d50c816fd4c587289e7e41d1749b',
+                '0eebbb828b0f97ded189b9593d371d0e82ff1cb9ef676062927077f6fbefbca9',
+            ],
+        ],
+    ];
+
+    /**
+     * The folders those copies made inside the module and plugin folders, deepest first. One is
+     * removed only when this update emptied it ({@see self::removeObsoleteFiles()}).
+     *
+     * @var array<string, string[]>
+     * @since 2.1.1
+     */
+    public const OBSOLETE_FOLDERS = [
+        '2.1.1' => [
+            'modules/mod_alfa_filters/language/en-GB',
+            'modules/mod_alfa_filters/language',
+            'modules/mod_alfa_items/language/en-GB',
+            'modules/mod_alfa_items/language',
+            'modules/mod_easy_articles/language/en-GB',
+            'modules/mod_easy_articles/language',
+            'plugins/alfa-payments/standard/media/js',
+            'plugins/alfa-payments/standard/media',
+        ],
+    ];
+
+    /**
+     * The element of a language pack's file extension, up to its language tag: each pack installs
+     * its files through one, files_alfacommerce_<tag>, inside the package pkg_alfacommerce_<tag>.
+     *
+     * @var string
+     * @since 2.1.1
+     */
+    private const LANGUAGE_PACK_FILES = 'files_alfacommerce_';
+
+    /**
+     * Language files a release stopped shipping, keyed by that release. From 2.1.1 on Alfa Commerce
+     * ships English only, and every other language is a separate language pack. Each exact path,
+     * relative to the site root, maps to the sha256 of the file's exact bytes as the last release
+     * that shipped it installed it. They are removed on the update from a version below that release,
+     * where no language pack can be installed yet, and on uninstall; a path an installed language
+     * pack lists and a file whose bytes differ are never removed ({@see self::removeObsoleteFiles()}).
+     *
+     * @var array<string, array<string, string>>
+     * @since 2.1.1
+     */
+    public const OBSOLETE_LANGUAGE_FILES = [
+        '2.1.1' => [
+            // The Greek of 2.1.0: the closing tour steps in the component's own folder, then its texts
+            // in Joomla's language folders.
+            'administrator/components/com_alfa/language/el-GR/com_alfa.cart_rules_steps.ini' => '883d52c68e12ab52458facac6eb19b98773f29728698eb3a60283eed7d79a58f',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.categories_steps.ini' => '3b9372b799fae937be4a8d6d143dfd6fb8399926359472e04e931f233171a190',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.currencies_steps.ini' => '2a92c3128d585f40b6a310ee77b49862d7cc0706552eb46b7f0b4a75a32cad1b',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.customer_groups_steps.ini' => '2b4c1278fd867e26113650bb5debbfa91b317fe2155fd249618e0ed4b9aea912',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.customers_steps.ini' => '62b4557e10aaaf9227b19e2f313c083f19070b79252c12028fca934b2f76a446',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.discounts_steps.ini' => 'c2750d49f87902ca473f4431b16e4eb61d9e3087c79aa72b70acc16c73a28526',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.document_series_steps.ini' => '219c4cc2f98b83db1267844d1b85e9cd88937b8a31a8b9f3ac5efb88902f3a9c',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.document_types_steps.ini' => 'a64d5a69da4d14566f8772a4ab475b357a08f01eca369013498534d6898fa92b',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.form_field_groups_steps.ini' => '70138f31c3efe3838df7945215a2462a44c729a024076db4c5fd0219b4cf042d',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.form_fields_steps.ini' => '23fd678882e1403aeba78c05878ec790f487432574faabc20bf41097836e77e9',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.item_fields_steps.ini' => '276e0a8af2e4f1dbaac65630dabb795f051b4093b96df36789a424ecc68e85b5',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.joomla_basics_steps.ini' => '3033a00b5b890581f25337f7916d86c845d02cea16399d2b638cd1c32286d602',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.manufacturers_steps.ini' => '08416ee60a2ce2d35bcf3b9a0a88479a1cf5b2ffcaeda32ba752228a529cefe7',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.menu_account_steps.ini' => '7b0dda74905668959c312d65898d1f4c4dd085ddb37878655a7a212c431b06d3',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.menu_cart_steps.ini' => 'bcd549028a7000cd426e2b877bf4ff3ef0fbb4b7ea62a6707417b0738b3346b2',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.menu_register_steps.ini' => '609d8923cc050c35a6b2777b5975e3a8c8b94fc3226340d233a083ea91efd5df',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.menu_shop_steps.ini' => '00aadb3fdbb337c476127a9d97da993e7007483bd2447e3a45a956d889db239a',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.notifications_steps.ini' => '57c7cd3c480ca98a9d15a817cce61cdf172022cf25fc4fe220c51a0bf499804f',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.order_statuses_steps.ini' => '2994da3146e97c107be9cb21600825f4630f0d66b96dbee0675d6f36a3e35379',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.orders_steps.ini' => 'f8e51ef24b4ff40f1d39641ee1f49179ec331240bdc031d216a2c5b6fd9ada18',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.payments_steps.ini' => 'd460b5bc976ba824953b3a4078dd76aee418635880a071e9aef04ca662abd664',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.places_steps.ini' => '37990f2adf3c0865c017631d8d942ec5a4144a7d6d9831a2c2ace3965482d305',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.product_steps.ini' => '94130107cf070ec50e44c2233066124a13c72de6902ddaae4870b96455a7a93e',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.sales_documents_steps.ini' => '84dbccb012223c0ca89db475f606bde35de0f259827573b5cfc6ac84edd1acdc',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.shipping_steps.ini' => 'd41e03b5d41154d3f3c1e9be200a91285fda9f23cecb262c7132777a85d31cbf',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.stock_locations_steps.ini' => '008e2592c066e0ac73f38aa44fac6b4c2395cd9886509d5a87afd0315a2d1c12',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.stock_movements_steps.ini' => 'f6b1196f770e2d0034ab0803e22820eaaf87531d680f73b8468784eade0dbe91',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.stock_reservations_steps.ini' => '26f11a1f61405e9e1484b5b14920d96d82368de33de2a9227713dc93cb837ab0',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.store_options_steps.ini' => '6a0c98d26087164b84615d4116138b24b496b3ecfa82628bdac39e554f3ea16d',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.storefront_menu_steps.ini' => '7cca46fd2f595ae536d18bbb730ce32ffd22fbfc02cd52aab6c4550c7570183a',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.taxes_steps.ini' => '4cddc4666d9fdeeac66e86685cf07d239c21d8bde5ec5b1e22bfb7a0e9088508',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.tools_steps.ini' => '8b022b645b3e59a41532a7952f84e2aba6dbf18849da1a939a6e993a522be65e',
+            'administrator/components/com_alfa/language/el-GR/com_alfa.welcome_steps.ini' => 'a0933b2cd579fea77c702c1b0baea4200c8c4e3eaba4f8275d29398edae21981',
+            'administrator/language/el-GR/com_alfa.ini' => '138643c82e70d430ba3c587a11e563ec6d55122f921335ecef6be6521aca8740',
+            'administrator/language/el-GR/com_alfa.sys.ini' => '3e028f3e0d21edd6aa7a941604f69d7f51527041877b2619b599a95274e66628',
+            'language/el-GR/com_alfa.ini' => '1535bd9a3155d63fa6a8cb198b09207c5c79802105a2fc1cc8347ce26f98f942',
+        ],
+    ];
+
+    /**
+     * The folders those language files leave inside Alfa Commerce's own folders. One is removed only
+     * when this run emptied it; Joomla's language folders are never listed.
+     *
+     * @var array<string, string[]>
+     * @since 2.1.1
+     */
+    public const OBSOLETE_LANGUAGE_FOLDERS = [
+        '2.1.1' => [
+            'administrator/components/com_alfa/language/el-GR',
+        ],
+    ];
+
+    /**
+     * Remove the files of {@see self::OBSOLETE_FILES} that are on this site, then the folders of
+     * {@see self::OBSOLETE_FOLDERS} that this leaves empty.
+     *
+     * A path is used only when it is exact ({@see self::obsoletePathAllowed()}) and this package
+     * does not install it. A file is removed only when it is a regular file, not a link, and its
+     * content is one a release installed; a file with other content is kept and named. A folder is
+     * removed only when this run removed something inside it and it is now empty, and never when
+     * it is a link. Nothing else is touched.
+     *
+     * Language files ({@see self::OBSOLETE_LANGUAGE_FILES}) follow the same steps with their own
+     * guard ({@see self::obsoleteLanguagePathAllowed()}): a path an installed language pack lists is
+     * never touched, and a file is removed only when its exact bytes are the ones listed.
+     *
+     * @param string $root The site root, no trailing slash.
+     * @param string[] $shipped The site-relative paths this package installs.
+     * @param array<string, array<string, string[]>> $files The obsolete files, as {@see self::OBSOLETE_FILES}.
+     * @param array<string, string[]> $folders The obsolete folders, as {@see self::OBSOLETE_FOLDERS}.
+     * @param array<string, string> $languageFiles The obsolete language files of this run: path => sha256 of the exact bytes.
+     * @param string[] $languageFolders The obsolete language folders of this run.
+     * @param string[] $owned The paths installed language packs list (a folder with a trailing slash), never touched.
+     *
+     * @return array{removed: string[], folders: string[], kept: string[], failed: string[], shipped: string[], languageKept: string[], languageFailed: string[], owned: string[]}
+     *
+     * @since 2.1.1
+     */
+    protected function removeObsoleteFiles(
+        string $root,
+        array $shipped,
+        array $files = self::OBSOLETE_FILES,
+        array $folders = self::OBSOLETE_FOLDERS,
+        array $languageFiles = [],
+        array $languageFolders = [],
+        array $owned = [],
+    ): array {
+        $shipped = array_flip($shipped);
+        $result = ['removed' => [], 'folders' => [], 'kept' => [], 'failed' => [], 'shipped' => [], 'languageKept' => [], 'languageFailed' => [], 'owned' => []];
+        $emptied = [];
+
+        foreach ($files as $release) {
+            foreach ($release as $rel => $hashes) {
+                $rel = (string) $rel;
+                $abs = $root . '/' . $rel;
+
+                if (!self::obsoletePathAllowed(rel: $rel) || is_link($abs) || !is_file($abs)) {
+                    continue;
+                }
+
+                if (isset($shipped[$rel])) {
+                    $result['shipped'][] = $rel;
+
+                    continue;
+                }
+
+                $hash = \Alfa\Component\Alfa\Administrator\Helper\PackageHelper::contentHash(path: $abs);
+
+                if ($hash === false || !\in_array($hash, (array) $hashes, true)) {
+                    $result['kept'][] = $rel;
+
+                    continue;
+                }
+
+                if (@unlink($abs)) {
+                    $result['removed'][] = $rel;
+                    $emptied[\dirname($rel)] = true;
+                } else {
+                    $result['failed'][] = $rel;
+                }
+            }
+        }
+
+        foreach ($languageFiles as $rel => $sha256) {
+            $rel = (string) $rel;
+            $abs = $root . '/' . $rel;
+
+            if (!self::obsoleteLanguagePathAllowed(rel: $rel) || is_link($abs) || !is_file($abs)) {
+                continue;
+            }
+
+            if (self::listedByLanguagePack(rel: $rel, owned: $owned)) {
+                $result['owned'][] = $rel;
+
+                continue;
+            }
+
+            $hash = @hash_file('sha256', $abs);
+
+            if ($hash === false || !hash_equals((string) $sha256, $hash)) {
+                $result['languageKept'][] = $rel;
+
+                continue;
+            }
+
+            if (@unlink($abs)) {
+                $result['removed'][] = $rel;
+                $emptied[\dirname($rel)] = true;
+            } else {
+                $result['languageFailed'][] = $rel;
+            }
+        }
+
+        foreach ($folders as $release) {
+            foreach ($release as $rel) {
+                $rel = (string) $rel;
+                $abs = $root . '/' . $rel;
+
+                if (
+                    !isset($emptied[$rel])
+                    || !self::obsoletePathAllowed(rel: $rel)
+                    || is_link($abs)
+                    || !is_dir($abs)
+                    || array_diff((array) scandir($abs), ['.', '..']) !== []
+                ) {
+                    continue;
+                }
+
+                if (@rmdir($abs)) {
+                    $result['folders'][] = $rel;
+                    $emptied[\dirname($rel)] = true;
+                } else {
+                    $result['failed'][] = $rel . '/';
+                }
+            }
+        }
+
+        foreach ($languageFolders as $rel) {
+            $rel = (string) $rel;
+            $abs = $root . '/' . $rel;
+
+            if (
+                !isset($emptied[$rel])
+                || !self::obsoleteLanguagePathAllowed(rel: $rel)
+                || is_link($abs)
+                || !is_dir($abs)
+                || array_diff((array) scandir($abs), ['.', '..']) !== []
+            ) {
+                continue;
+            }
+
+            if (@rmdir($abs)) {
+                $result['folders'][] = $rel;
+            } else {
+                $result['languageFailed'][] = $rel . '/';
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Whether an obsolete-file entry may be used: an exact path relative to the site root (no
+     * wildcard, no "." or ".." segment), inside an extension folder, and not a language pack's
+     * file or folder (language/<tag>/ for a tag other than en-GB), which belongs to the site.
+     *
+     * @param string $rel The entry.
+     *
+     * @since 2.1.1
+     */
+    private static function obsoletePathAllowed(string $rel): bool
+    {
+        return strpbrk($rel, '*?[]{}\\') === false
+            && preg_match('#(^|/)\.{1,2}(/|$)#', $rel) !== 1
+            && preg_match('#(^|/)language/(?!en-GB(/|$))[^/]+(/|$)#', $rel) !== 1
+            && preg_match('#^(?:(?:administrator/|api/)?components/[^/]+|media/[^/]+|modules/[^/]+|plugins/[^/]+/[^/]+)/.+#', $rel) === 1;
+    }
+
+    /**
+     * Whether a language entry may be used: it is one of {@see self::OBSOLETE_LANGUAGE_FILES} or
+     * {@see self::OBSOLETE_LANGUAGE_FOLDERS}, the only language paths the cleanup may ever touch.
+     *
+     * @param string $rel The entry.
+     *
+     * @since 2.1.1
+     */
+    private static function obsoleteLanguagePathAllowed(string $rel): bool
+    {
+        foreach (self::OBSOLETE_LANGUAGE_FILES as $entries) {
+            if (\array_key_exists($rel, $entries)) {
+                return true;
+            }
+        }
+
+        foreach (self::OBSOLETE_LANGUAGE_FOLDERS as $entries) {
+            if (\in_array($rel, $entries, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * The entries of the releases newer than a version, merged: on an update, what the releases
+     * after the version it starts from dropped; on uninstall, every release's.
+     *
+     * @param array<string, array> $byRelease Entries keyed by release, as {@see self::OBSOLETE_LANGUAGE_FILES}.
+     * @param string|null $from The version installed before, or null for every release.
+     *
+     * @since 2.1.1
+     */
+    private static function obsoleteSince(array $byRelease, ?string $from): array
+    {
+        $entries = [];
+
+        foreach ($byRelease as $release => $listed) {
+            if ($from === null || \Alfa\Component\Alfa\Administrator\Service\Setup\AlfaVersion::of(version: (string) $release)->isNewerThan(other: $from)) {
+                $entries = [...$entries, ...$listed];
+            }
+        }
+
+        return $entries;
+    }
+
+    /**
+     * Whether an installed language pack lists a path: the path itself, or a folder holding it.
+     *
+     * @param string $rel A site-relative path.
+     * @param string[] $owned The paths installed language packs list, as {@see self::languagePackFiles()}.
+     *
+     * @since 2.1.1
+     */
+    private static function listedByLanguagePack(string $rel, array $owned): bool
+    {
+        foreach ($owned as $listed) {
+            if ($listed === $rel || (str_ends_with($listed, '/') && str_starts_with($rel, $listed))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * The site-relative paths the installed language packs list ({@see self::LANGUAGE_PACK_FILES}):
+     * each file as it is, each folder with a trailing slash. Null when one of their manifests
+     * cannot be read: the cleanup then removes no language file.
+     *
+     * @return string[]|null
+     *
+     * @since 2.1.1
+     */
+    private function languagePackFiles(): ?array
+    {
+        try {
+            $db = Factory::getContainer()->get('DatabaseDriver');
+            $elements = $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName('element'))
+                    ->from($db->quoteName('#__extensions'))
+                    ->where($db->quoteName('type') . ' = ' . $db->quote('file'))
+                    ->where($db->quoteName('element') . ' LIKE ' . $db->quote($db->escape(self::LANGUAGE_PACK_FILES, true) . '%')),
+            )->loadColumn();
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $owned = [];
+
+        foreach ($elements as $element) {
+            $listed = self::manifestFiles(path: JPATH_MANIFESTS . '/files/' . $element . '.xml');
+
+            if ($listed === null) {
+                return null;
+            }
+
+            $owned = [...$owned, ...$listed];
+        }
+
+        return $owned;
+    }
+
+    /**
+     * The site-relative paths a file extension's manifest lists, as Joomla installs them: each
+     * filename and each folder of its fileset under the target of its files element.
+     *
+     * @param string $path The manifest.
+     *
+     * @return string[]|null Null when the manifest cannot be read.
+     *
+     * @since 2.1.1
+     */
+    private static function manifestFiles(string $path): ?array
+    {
+        $xml = is_file($path) ? @simplexml_load_file($path) : false;
+
+        if ($xml === false) {
+            return null;
+        }
+
+        $listed = [];
+
+        foreach ($xml->fileset->files ?? [] as $files) {
+            $target = trim((string) $files['target'], '/');
+            $prefix = $target === '' ? '' : $target . '/';
+
+            foreach ($files->filename ?? [] as $name) {
+                $listed[] = $prefix . trim((string) $name, '/');
+            }
+
+            foreach ($files->folder ?? [] as $name) {
+                $listed[] = $prefix . trim((string) $name, '/') . '/';
+            }
+        }
+
+        return $listed;
+    }
+
+    /**
+     * On update: remove what earlier versions left in Alfa Commerce's folders
+     * ({@see self::removeObsoleteFiles()}) and name every removal on the installation page and
+     * in the maintenance log (com_alfa_maintenance.php). When the package's own file list cannot
+     * be read, nothing is removed. The language files of {@see self::OBSOLETE_LANGUAGE_FILES} go
+     * only on the update from below the release that dropped them, where no language pack can be
+     * installed yet, and only when the files installed language packs list could be read.
+     *
+     * @param object $parent The installer adapter.
+     *
+     * @since 2.1.1
+     */
+    private function removeObsoleteFilesOnUpdate($parent): void
+    {
+        try {
+            $shipped = array_keys(\Alfa\Component\Alfa\Administrator\Helper\PackageHelper::enumerateFromPackage(
+                packageRoot: $parent->getParent()->getPath('source'),
+            ));
+        } catch (\Throwable $e) {
+            $this->reportObsoleteFiles(result: null, problem: $e->getMessage());
+
+            return;
+        }
+
+        $owned = $this->versionBefore === null ? [] : $this->languagePackFiles();
+        $language = $this->versionBefore !== null && $owned !== null;
+
+        $this->reportObsoleteFiles(
+            result: $this->removeObsoleteFiles(
+                root:            JPATH_ROOT,
+                shipped:         $shipped,
+                languageFiles:   $language ? self::obsoleteSince(byRelease: self::OBSOLETE_LANGUAGE_FILES, from: $this->versionBefore) : [],
+                languageFolders: $language ? self::obsoleteSince(byRelease: self::OBSOLETE_LANGUAGE_FOLDERS, from: $this->versionBefore) : [],
+                owned:           $owned ?? [],
+            ),
+            languageProblem: $owned === null ? 'the files installed language packs list could not be read' : '',
+        );
+    }
+
+    /**
+     * On uninstall: remove the language files earlier versions installed and later ones stopped
+     * shipping ({@see self::OBSOLETE_LANGUAGE_FILES}), so none stays behind as an orphan of Alfa
+     * Commerce. A path an installed language pack lists and a file whose bytes changed are never
+     * removed; every outcome is named, as on update.
+     *
+     * @since 2.1.1
+     */
+    private function removeObsoleteLanguageFilesOnUninstall(): void
+    {
+        $this->packageVersion = $this->ownVersion();
+        $owned = $this->languagePackFiles();
+
+        $this->reportObsoleteFiles(
+            result: $this->removeObsoleteFiles(
+                root:            JPATH_ROOT,
+                shipped:         [],
+                files:           [],
+                folders:         [],
+                languageFiles:   $owned === null ? [] : self::obsoleteSince(byRelease: self::OBSOLETE_LANGUAGE_FILES, from: null),
+                languageFolders: $owned === null ? [] : self::obsoleteSince(byRelease: self::OBSOLETE_LANGUAGE_FOLDERS, from: null),
+                owned:           $owned ?? [],
+            ),
+            route: 'uninstall',
+            languageProblem: $owned === null ? 'the files installed language packs list could not be read' : '',
+        );
+    }
+
+    /**
+     * Say what {@see self::removeObsoleteFiles()} did: one message per outcome, naming every
+     * path, and one maintenance log line per path.
+     *
+     * @param array|null $result Its result, or null when nothing was attempted.
+     * @param string $problem Why nothing was attempted.
+     * @param string $route The installer route the removal ran on: update or uninstall.
+     * @param string $languageProblem Why no language file was attempted, or ''.
+     *
+     * @since 2.1.1
+     */
+    protected function reportObsoleteFiles(?array $result, string $problem = '', string $route = 'update', string $languageProblem = ''): void
+    {
+        $app = Factory::getApplication();
+        $log = static function (string $line, int $priority): void {
+            try {
+                \Joomla\CMS\Log\Log::addLogger(['text_file' => 'com_alfa_maintenance.php'], \Joomla\CMS\Log\Log::ALL, ['com_alfa.maintenance']);
+                \Joomla\CMS\Log\Log::add($line, $priority, 'com_alfa.maintenance');
+            } catch (\Throwable) {
+                // The installation page says it; the log is the second copy.
+            }
+        };
+        $version = $this->packageVersion;
+        $prefix = sprintf($route === 'uninstall' ? 'Uninstall of %s' : 'Update to %s', $version);
+
+        if ($result === null) {
+            $app->enqueueMessage(
+                $this->installerText(
+                    key:      'COM_ALFA_INSTALL_OBSOLETE_UNREAD',
+                    fallback: 'Alfa Commerce %1$s removed none of the files earlier versions left in its folders: it could not read'
+                        . ' which files this package installs (%2$s). Tools > Security lists any that remain.',
+                    values:   [$version, $problem],
+                ),
+                'warning',
+            );
+            $log(sprintf('Update to %s: no obsolete file was removed: %s', $version, $problem), \Joomla\CMS\Log\Log::WARNING);
+
+            return;
+        }
+
+        $outcomes = [
+            'removed' => ['COM_ALFA_INSTALL_OBSOLETE_REMOVED', 'Alfa Commerce %1$s removed these files, which an earlier version'
+                . ' left in its folders and this version no longer ships: %2$s.', 'message', 'removed %s: left by an earlier version,'
+                . ' not shipped by this one', \Joomla\CMS\Log\Log::INFO],
+            'folders' => ['COM_ALFA_INSTALL_OBSOLETE_FOLDERS', 'Alfa Commerce %1$s also removed the folders those files leave'
+                . ' empty: %2$s.', 'message', 'removed the empty folder %s', \Joomla\CMS\Log\Log::INFO],
+            'kept' => ['COM_ALFA_INSTALL_OBSOLETE_KEPT', 'Alfa Commerce %1$s kept these files, which an earlier version left in'
+                . ' its folders and this version no longer ships: their content is not what a release installed, so they stay'
+                . ' for you to check in Tools > Security: %2$s.', 'warning', 'kept %s: its content is not one a release installed',
+                \Joomla\CMS\Log\Log::WARNING],
+            'failed' => ['COM_ALFA_INSTALL_OBSOLETE_FAILED', 'Alfa Commerce %1$s could not remove these files, which an earlier'
+                . ' version left in its folders and this version no longer ships: %2$s. Remove them by hand; Tools > Security'
+                . ' lists them until they are gone.', 'warning', 'could not remove %s', \Joomla\CMS\Log\Log::WARNING],
+            // Language files: Tools > Security never lists them (a language pack's files are allowed there).
+            'languageKept' => ['COM_ALFA_INSTALL_OBSOLETE_LANGUAGE_KEPT', 'Alfa Commerce %1$s kept these language files, which an'
+                . ' earlier version installed and this version no longer ships: their content is not what that version installed,'
+                . ' so they may be yours. Remove them by hand if you do not need them: %2$s.', 'warning',
+                'kept %s: its bytes are not the ones the release that shipped it installed', \Joomla\CMS\Log\Log::WARNING],
+            'languageFailed' => ['COM_ALFA_INSTALL_OBSOLETE_LANGUAGE_FAILED', 'Alfa Commerce %1$s could not remove these language'
+                . ' files, which an earlier version installed and this version no longer ships: %2$s. Remove them by hand.',
+                'warning', 'could not remove %s', \Joomla\CMS\Log\Log::WARNING],
+        ];
+
+        foreach ($outcomes as $outcome => [$key, $fallback, $type, $line, $priority]) {
+            $paths = $result[$outcome] ?? [];
+
+            if ($paths === []) {
+                continue;
+            }
+
+            $app->enqueueMessage(
+                $this->installerText(key: $key, fallback: $fallback, values: [$version, implode(separator: ', ', array: $paths)]),
+                $type,
+            );
+
+            foreach ($paths as $rel) {
+                $log($prefix . ': ' . sprintf($line, $rel) . '.', $priority);
+            }
+        }
+
+        foreach ($result['shipped'] ?? [] as $rel) {
+            $log(sprintf('%s: %s is listed as obsolete, but this package installs it: left in place.', $prefix, $rel), \Joomla\CMS\Log\Log::WARNING);
+        }
+
+        foreach ($result['owned'] ?? [] as $rel) {
+            $log(sprintf('%s: %s is a file of an installed language pack: left in place.', $prefix, $rel), \Joomla\CMS\Log\Log::INFO);
+        }
+
+        if ($languageProblem !== '') {
+            $log(sprintf('%s: no obsolete language file was removed: %s.', $prefix, $languageProblem), \Joomla\CMS\Log\Log::WARNING);
+        }
+    }
 
     /**
      * Record {@see self::SCHEMA_VERSION} as the schema the Alfa tables are at,
@@ -1435,6 +2084,23 @@ class com_alfaInstallerScript extends InstallerScript
             return;
         }
 
+        // The rules given and the entry mode are texts of the language files too, so the whole sentence is said in
+        // the installing user's language.
+        $taxes = $moved['rules'] === []
+            ? $this->installerText(
+                key:      'COM_ALFA_INSTALL_SHIPPING_TAXES_NONE',
+                fallback: 'none, so they charge no shipping tax',
+                values:   [],
+            )
+            : $this->installerText(
+                key:      'COM_ALFA_INSTALL_SHIPPING_TAXES_RULES',
+                fallback: 'tax rules %s',
+                values:   ['#' . implode(separator: ', #', array: $moved['rules'])],
+            );
+        $entered = $moved['mode'] === 'tax_excluded'
+            ? $this->installerText(key: 'COM_ALFA_INSTALL_SHIPPING_PRICES_TAX_EXCLUDED', fallback: 'tax excluded', values: [])
+            : $this->installerText(key: 'COM_ALFA_INSTALL_SHIPPING_PRICES_TAX_INCLUDED', fallback: 'tax included', values: []);
+
         Factory::getApplication()->enqueueMessage(
             $this->installerText(
                 key:      'COM_ALFA_INSTALL_SHIPPING_OPTIONS_MOVED',
@@ -1445,8 +2111,8 @@ class com_alfaInstallerScript extends InstallerScript
                 values:   [
                     \count($moved['given']),
                     $moved['methods'],
-                    $moved['rules'] === [] ? 'none, so they charge no shipping tax' : 'tax rules #' . implode(', #', $moved['rules']),
-                    $moved['mode'] === 'tax_excluded' ? 'tax excluded' : 'tax included',
+                    $taxes,
+                    $entered,
                 ],
             ),
         );
@@ -1640,7 +2306,7 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
-     * Where a repaired or left layout choice is, in the words of its form: "Item Main of product #2531".
+     * Where a repaired or left layout choice is, in the words of its form: "Item Main of item #2531".
      *
      * @param   array  $entry  An entry of TemplateLayoutMigration::run() (kind, id, view).
      *
@@ -1662,7 +2328,7 @@ class com_alfaInstallerScript extends InstallerScript
 
         return match ($entry['kind'])
         {
-            'item'     => $this->installerText(key: 'COM_ALFA_INSTALL_LAYOUT_AT_ITEM', fallback: '%1$s of product #%2$d', values: [$label, $entry['id']]),
+            'item'     => $this->installerText(key: 'COM_ALFA_INSTALL_LAYOUT_AT_ITEM', fallback: '%1$s of item #%2$d', values: [$label, $entry['id']]),
             'category' => $this->installerText(key: 'COM_ALFA_INSTALL_LAYOUT_AT_CATEGORY', fallback: '%1$s of category #%2$d', values: [$label, $entry['id']]),
             'menu'     => $this->installerText(key: 'COM_ALFA_INSTALL_LAYOUT_AT_MENU', fallback: '%1$s of menu item #%2$d', values: [$label, $entry['id']]),
             default    => $this->installerText(key: 'COM_ALFA_INSTALL_LAYOUT_AT_OPTIONS', fallback: '%1$s in the Options', values: [$label]),
@@ -1755,7 +2421,7 @@ class com_alfaInstallerScript extends InstallerScript
             \Joomla\CMS\Log\Log::add('Download store setup failed: ' . $e->getMessage(), \Joomla\CMS\Log\Log::ERROR, 'com_alfa.downloads');
             Factory::getApplication()->enqueueMessage(
                 'The download store of Alfa Commerce was not set up: its folder or its recorded path could not be made'
-                . ' (the reason is in the downloads log, com_alfa_downloads.php in the Joomla log folder). Downloadable products cannot be uploaded or downloaded until it'
+                . ' (the reason is in the downloads log, com_alfa_downloads.php in the Joomla log folder). Downloadable items cannot be uploaded or downloaded until it'
                 . ' is: set the path under Options > Downloads, or install again.',
                 'error'
             );

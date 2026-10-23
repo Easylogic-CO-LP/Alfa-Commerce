@@ -17,6 +17,7 @@ use Alfa\Component\Alfa\Administrator\Helper\MediaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualAliasConfig;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\DeleteRefusedException;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\EntityChangeNotifier;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\RuleScopeGuard;
@@ -237,6 +238,24 @@ class CategoryModel extends AlfaAdminModel
             $oldParentId = (int) $table->parent_id;
         }
 
+        // A NEW parent must be available: not archived or trashed, and not inside an archived or trashed category
+        // (CategoryPickerPolicy). A parent the category already has is kept, whatever its state.
+        if ($parentId > 0 && $parentId !== $oldParentId) {
+            $parentRefused = CategoryPickerPolicy::refusedNew(posted: [$parentId], stored: []);
+
+            if ($parentRefused !== []) {
+                $this->setError(Text::sprintf(
+                    'COM_ALFA_CATEGORY_PARENT_REFUSED',
+                    CategoryPickerPolicy::label(
+                        text:   CategoryPickerPolicy::names(ids: [$parentId])[$parentId] ?? '#' . $parentId,
+                        reason: $parentRefused[$parentId],
+                    ),
+                ));
+
+                return false;
+            }
+        }
+
         // Always. The cached category data, path and tree are now filtered by the
         // visitor's allowlist, so editing ONLY "allowed users / user groups" (which
         // changes neither the parent nor newness) must still invalidate them, or a
@@ -250,6 +269,34 @@ class CategoryModel extends AlfaAdminModel
         // Fetch uploads separately so $data (with the lang keys) is not clobbered.
         $newDropped = $input->files->get('jform')['uploads'] ?? [];
 
+        // URL ALIASES, judged before anything is written: a save that would put this category
+        // on another one's address in any language is refused; an address it already shared
+        // is kept and said after the save. A copy takes its own aliases, generated.
+        if ($input->get('task') === 'save2copy') {
+            $data = MultilingualHelper::releaseCopiedAliases(
+                data:              $data,
+                tableName:         '#__alfa_categories',
+                primaryColumnName: 'id_category',
+                originalId:        $input->getInt('id'),
+                aliasFields:       MultilingualAliasConfig::FIELDS['#__alfa_categories'],
+            );
+        }
+
+        $aliasClashes = MultilingualHelper::aliasClashes(
+            tableName:         '#__alfa_categories',
+            primaryColumnName: 'id_category',
+            currentId:         $isNew ? 0 : $pk,
+            data:              $data,
+            aliasFields:       MultilingualAliasConfig::FIELDS['#__alfa_categories'],
+            aliasUniqueScope:  MultilingualAliasConfig::SCOPE['#__alfa_categories'],
+        );
+
+        if ($aliasClashes['refuse'] !== []) {
+            $this->setError(implode(' ', $aliasClashes['refuse']));
+
+            return false;
+        }
+
         if (!parent::save($data)) {
             return false;
         }
@@ -257,8 +304,8 @@ class CategoryModel extends AlfaAdminModel
         $currentId = $isNew ? (int) $this->getState($this->getName() . '.id') : $pk;
 
         // MULTILINGUAL: persist per-language translations (name, alias, desc,
-        // meta_title, meta_desc) to the language tables. The alias slug is
-        // auto-generated, sanitised and made unique within the parent category.
+        // meta_title, meta_desc) to the language tables. A blank alias slug is
+        // generated, sanitised and made unique within the parent category.
         MultilingualHelper::saveMultilingualData(
             currentId:         $currentId,
             primaryColumnName: 'id_category',
@@ -267,6 +314,10 @@ class CategoryModel extends AlfaAdminModel
             aliasFields:       MultilingualAliasConfig::FIELDS['#__alfa_categories'],
             aliasUniqueScope:  MultilingualAliasConfig::SCOPE['#__alfa_categories'] ?? [],
         );
+
+        foreach ($aliasClashes['warn'] as $warning) {
+            $app->enqueueMessage($warning, 'warning');
+        }
 
         if (!empty($data['media'])) {
             $defaultLangTag = MultilingualHelper::getDefaultLanguageTag();
@@ -442,8 +493,12 @@ class CategoryModel extends AlfaAdminModel
 
         // Anything that is neither the root sentinel nor a live category id is a
         // stale or crafted request; do NOT let a junk string cast down to 0 and
-        // silently mean "top level". Trashed/archived destinations are refused too.
-        if (!$isRoot && !\in_array((int) ($nodes[$targetId]['state'] ?? -99), [0, 1], true)) {
+        // silently mean "top level". Trashed/archived destinations are refused too,
+        // and so is a destination inside an archived or trashed category.
+        $tree = array_map(static fn (array $node): array => ['parent' => $node['parent_id'], 'state' => $node['state']], $nodes);
+
+        if (!$isRoot && (!\in_array((int) ($nodes[$targetId]['state'] ?? -99), [0, 1], true)
+            || !CategoryPickerPolicy::offered(CategoryPickerPolicy::reason(id: $targetId, tree: $tree)))) {
             $this->setError(Text::_('COM_ALFA_CATEGORY_BATCH_PARENT_INVALID'));
 
             return false;
@@ -505,9 +560,9 @@ class CategoryModel extends AlfaAdminModel
         }
 
         $clashing = $this->aliasClashesUnderParent(targetId: $targetId, candidates: $eligible);
-        $moved = array_values(array_diff($eligible, $clashing));
+        $moved = array_values(array_diff($eligible, array_keys($clashing)));
 
-        $refused['COM_ALFA_CATEGORY_BATCH_PARENT_REFUSED_ALIAS'] = $clashing;
+        $refused['COM_ALFA_CATEGORY_BATCH_PARENT_REFUSED_ALIAS'] = array_keys($clashing);
 
         if ($moved !== []) {
             $this->applyParentChange(targetId: $targetId, ids: $moved, userId: $userId);
@@ -531,6 +586,20 @@ class CategoryModel extends AlfaAdminModel
             if ($ids !== []) {
                 $app->enqueueMessage(Text::sprintf($key, \count($ids), implode(', ', $ids)), 'warning');
             }
+        }
+
+        // Each address refusal names the language, the alias and the category already there.
+        foreach ($clashing as $id => $clash) {
+            $app->enqueueMessage(
+                Text::sprintf(
+                    'COM_ALFA_CATEGORY_BATCH_PARENT_REFUSED_ALIAS_CLASH',
+                    MultilingualHelper::recordLabel(id: $id, tableName: '#__alfa_categories', primaryColumnName: 'id_category'),
+                    MultilingualHelper::languageLabel(langCode: $clash['language']),
+                    htmlspecialchars($clash['alias'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                    MultilingualHelper::recordLabel(id: $clash['other'], tableName: '#__alfa_categories', primaryColumnName: 'id_category'),
+                ),
+                'warning',
+            );
         }
 
         return true;
@@ -612,17 +681,22 @@ class CategoryModel extends AlfaAdminModel
     }
 
     /**
-     * The candidates whose URL alias is already taken under the destination parent,
-     * in any installed content language.
+     * The candidates whose URL address is already taken under the destination parent, in any
+     * published content language, each with the clash that refuses it.
      *
-     * Alias uniqueness is scoped by parent_id, so a move can put two siblings on the
-     * same slug and leave the router resolving the segment ambiguously. Two queries
-     * per language table, never per row.
+     * Alias uniqueness is scoped by parent_id, so a move can put two siblings on one address
+     * and leave the router resolving the segment ambiguously. Each category counts with the
+     * alias it answers at in a language: its own there, else its default-language alias
+     * ({@see MultilingualHelper::getDefaultLanguageTag()}). Addresses are compared as the edit
+     * form compares a move ({@see MultilingualHelper::aliasHolders()}): in the column's
+     * collation, which reads an accent-only difference as the same address, as the router does.
+     * Two selected categories that would share an address refuse the later one. Each refused id
+     * comes with the first clash found: the language (lower-snake), the alias, the category there.
      *
      * @param int $targetId Destination parent id.
      * @param list<int> $candidates Ids that passed the earlier guards.
      *
-     * @return list<int> The clashing ids.
+     * @return array<int, array{language: string, alias: string, other: int}> The refused ids.
      *
      * @since  2.0.0
      */
@@ -634,61 +708,96 @@ class CategoryModel extends AlfaAdminModel
 
         $db = $this->getDatabase();
         $tables = $db->getTableList() ?: [];
+        $defaultTable = $db->replacePrefix('#__alfa_categories_' . MultilingualHelper::getDefaultLanguageTag());
+        $hasDefault = \in_array($defaultTable, $tables, true);
+        $mineByLanguage = [];
         $clash = [];
 
         foreach (array_keys(LanguageHelper::getLanguages('lang_code')) as $tag) {
-            $langTable = $db->replacePrefix('#__alfa_categories_' . strtolower(str_replace('-', '_', (string) $tag)));
+            $code = MultilingualHelper::normaliseTag(tag: (string) $tag);
+            $langTable = $db->replacePrefix('#__alfa_categories_' . $code);
 
             if (!\in_array($langTable, $tables, true)) {
                 continue;
             }
 
-            $mine = $db->setQuery(
-                $db->getQuery(true)
-                    ->select($db->quoteName(['id_category', 'alias']))
-                    ->from($db->quoteName($langTable))
-                    ->whereIn($db->quoteName('id_category'), $candidates, ParameterType::INTEGER),
-            )->loadAssocList('id_category', 'alias');
+            // Each candidate's address in this language: one query per language.
+            $query = $db->getQuery(true)
+                ->select([$db->quoteName('c.id'), $db->quoteName('l.alias', 'own')])
+                ->from($db->quoteName('#__alfa_categories', 'c'))
+                ->join(
+                    'LEFT',
+                    $db->quoteName($langTable, 'l') . ' ON ' . $db->quoteName('l.id_category') . ' = ' . $db->quoteName('c.id'),
+                )
+                ->whereIn($db->quoteName('c.id'), $candidates, ParameterType::INTEGER);
 
-            if (!$mine) {
-                continue;
+            if ($hasDefault && $defaultTable !== $langTable) {
+                $query->select($db->quoteName('d.alias', 'fallback'))
+                    ->join(
+                        'LEFT',
+                        $db->quoteName($defaultTable, 'd') . ' ON ' . $db->quoteName('d.id_category') . ' = ' . $db->quoteName('c.id'),
+                    );
             }
 
-            $taken = array_map('strval', (array) $db->setQuery(
-                $db->getQuery(true)
-                    ->select($db->quoteName('l.alias'))
-                    ->from($db->quoteName($langTable, 'l'))
-                    ->innerJoin(
-                        $db->quoteName('#__alfa_categories', 'c')
-                        . ' ON ' . $db->quoteName('c.id') . ' = ' . $db->quoteName('l.id_category'),
-                    )
-                    ->where($db->quoteName('c.parent_id') . ' = :targetId')
-                    ->whereNotIn($db->quoteName('l.id_category'), $candidates, ParameterType::INTEGER)
-                    ->bind(':targetId', $targetId, ParameterType::INTEGER),
-            )->loadColumn());
+            foreach ($db->setQuery($query)->loadAssocList() ?: [] as $row) {
+                $alias = (string) ($row['own'] ?? '');
+                $alias = $alias !== '' ? $alias : (string) ($row['fallback'] ?? '');
 
-            $seen = array_fill_keys($taken, true);
+                if ($alias !== '') {
+                    $mineByLanguage[$code][(int) $row['id']] = $alias;
+                }
+            }
 
-            foreach ($mine as $id => $alias) {
-                $alias = (string) $alias;
-
-                if ($alias === '') {
+            // A child of the destination that answers at a candidate's address there.
+            foreach ($candidates as $id) {
+                if (isset($clash[$id]) || !isset($mineByLanguage[$code][$id])) {
                     continue;
                 }
 
-                if (isset($seen[$alias])) {
-                    $clash[(int) $id] = true;
+                $holders = MultilingualHelper::aliasHolders(
+                    tableName:         '#__alfa_categories',
+                    primaryColumnName: 'id_category',
+                    langCode:          $code,
+                    alias:             $mineByLanguage[$code][$id],
+                    exceptId:          $id,
+                    scopeValues:       ['parent_id' => $targetId],
+                );
 
-                    continue;
+                if ($holders !== []) {
+                    $clash[$id] = ['language' => $code, 'alias' => $mineByLanguage[$code][$id], 'other' => $holders[0]];
                 }
-
-                // Two selected siblings can also collide with each other once they
-                // share a parent; first one in keeps the slug.
-                $seen[$alias] = true;
             }
         }
 
-        return array_map('intval', array_keys($clash));
+        // Selected categories that would share an address with each other: the first one in keeps it.
+        foreach ($mineByLanguage as $code => $mine) {
+            $kept = [];
+
+            foreach ($candidates as $id) {
+                if (isset($clash[$id]) || !isset($mine[$id])) {
+                    continue;
+                }
+
+                $holders = $kept === [] ? [] : MultilingualHelper::aliasHolders(
+                    tableName:         '#__alfa_categories',
+                    primaryColumnName: 'id_category',
+                    langCode:          $code,
+                    alias:             $mine[$id],
+                    exceptId:          $id,
+                    onlyIds:           $kept,
+                );
+
+                if ($holders !== []) {
+                    $clash[$id] = ['language' => $code, 'alias' => $mine[$id], 'other' => $holders[0]];
+
+                    continue;
+                }
+
+                $kept[] = $id;
+            }
+        }
+
+        return $clash;
     }
 
     /**

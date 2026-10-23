@@ -27,6 +27,7 @@ extract($displayData);
  * @var string $value
  * @var array $options
  * @var string $dataAttribute
+ * @var string $label        the field's label: the group's legend (its caption beside it is for the eye only)
  *
  * Custom keys injected by ButtonField::getLayoutData():
  * @var string $variant      solid | chip | pill | outline
@@ -54,6 +55,7 @@ if (!empty($dataAttribute)) {
 ?>
 <div class="alfa-choice-wrap">
     <fieldset <?php echo implode(' ', $attribs); ?> class="<?php echo $wrapClass; ?>" role="radiogroup">
+        <legend class="alfa-choice__legend"><?php echo $label; ?></legend>
         <?php foreach ($options as $i => $option) :
             $optDisabled = !empty($option->disable) ? 'disabled' : '';
             $checked = ((string) $option->value === (string) $value) ? 'checked="checked"' : '';

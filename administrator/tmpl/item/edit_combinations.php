@@ -373,8 +373,8 @@ $actionButtonLayout = new \Joomla\CMS\Layout\FileLayout('actions.button', JPATH_
                                         <?php echo Text::_('COM_ALFA_COMBI_BULK'); ?> <span class="badge bg-primary" data-bulk-count hidden>0</span>
                                     </button>
                                     <ul class="dropdown-menu">
-                                        <li><button type="button" class="dropdown-item" data-bulk-state="1"><?php echo Text::_('JENABLED'); ?></button></li>
-                                        <li><button type="button" class="dropdown-item" data-bulk-state="0"><?php echo Text::_('JDISABLED'); ?></button></li>
+                                        <li><button type="button" class="dropdown-item" data-bulk-state="1"><?php echo Text::_('COM_ALFA_COMBINATIONS_BULK_ENABLED'); ?></button></li>
+                                        <li><button type="button" class="dropdown-item" data-bulk-state="0"><?php echo Text::_('COM_ALFA_COMBINATIONS_BULK_DISABLED'); ?></button></li>
                                         <li><button type="button" class="dropdown-item" data-bulk-stock><?php echo Text::_('COM_ALFA_COMBI_BULK_STOCK'); ?></button></li>
                                         <li><hr class="dropdown-divider"></li>
                                         <li><button type="button" class="dropdown-item text-danger" data-bulk-delete><?php echo Text::_('JACTION_DELETE'); ?></button></li>
@@ -444,7 +444,7 @@ $actionButtonLayout = new \Joomla\CMS\Layout\FileLayout('actions.button', JPATH_
                             <thead>
                             <tr>
                                 <th class="w-1"></th>
-                                <th class="w-1"><input type="checkbox" class="form-check-input" data-select-all></th>
+                                <th class="w-1"><input type="checkbox" class="form-check-input" id="combi-select-all" aria-label="<?php echo $this->escape(Text::_('JGLOBAL_CHECK_ALL')); ?>" data-select-all></th>
                                 <th><?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_VARIANT'); ?></th>
                                 <th class="w-15">
                                     <?php echo Text::_('COM_ALFA_ITEM_COMBINATIONS_NAME'); ?>
@@ -515,8 +515,8 @@ $actionButtonLayout = new \Joomla\CMS\Layout\FileLayout('actions.button', JPATH_
                                 $quickSaleType = $quickSaleValue === '' ? '' : ((($quickRow['override_type'] ?? '') === 'final') ? 'final' : 'start');
                                 ?>
                                 <tr data-combination-id="<?php echo $combinationId; ?>" data-values="<?php echo $this->escape($combination->signature); ?>" data-tuple="<?php echo implode('-', array_map('intval', (array) ($combination->value_ids ?? []))); ?>">
-                                    <td class="text-center"><span class="sortable-handler" aria-hidden="true" title="<?php echo $this->escape(Text::_('JGLOBAL_ORDER')); ?>"><span class="icon-ellipsis-v"></span></span></td>
-                                    <td><input type="checkbox" class="form-check-input" data-select-row></td>
+                                    <td class="text-center"><span class="sortable-handler" aria-hidden="true" title="<?php echo $this->escape(Text::_('COM_ALFA_DRAG_TO_REORDER')); ?>"><span class="icon-ellipsis-v"></span></span></td>
+                                    <td><input type="checkbox" class="form-check-input" id="combi-select-<?php echo $combinationId; ?>" aria-label="<?php echo $this->escape($combination->label); ?>" data-select-row></td>
                                     <td>
                                         <span class="variant-label"><?php echo $this->escape($combination->label); ?></span>
                                         <div class="signature"><?php echo $this->escape($combination->signature); ?></div>
@@ -620,7 +620,7 @@ $actionButtonLayout = new \Joomla\CMS\Layout\FileLayout('actions.button', JPATH_
                                                      back-computes the net value/adjust. Not posted (the net
                                                      value is the source). Same meaning as the Prices panel. -->
                                                 <input type="number" step="any" class="form-control form-control-sm quick-final"
-                                                       data-quick-final
+                                                       id="combi-final-<?php echo $combinationId; ?>" data-quick-final
                                                        title="<?php echo $this->escape(Text::_('COM_ALFA_PRICES_FINAL')); ?>"
                                                        placeholder="<?php echo $this->escape(Text::_('COM_ALFA_PRICES_FINAL')); ?>">
                                                 <?php if ($hasDiscounts) : ?>
@@ -737,7 +737,7 @@ $actionButtonLayout = new \Joomla\CMS\Layout\FileLayout('actions.button', JPATH_
                                 <div class="settings-group" data-field-group="<?php echo (int) $optionField->id; ?>">
                                     <div class="group-header d-flex justify-content-between align-items-center">
                                         <span class="group-head-label">
-                                            <span class="sortable-handler group-drag" aria-hidden="true" title="<?php echo $this->escape(Text::_('JGLOBAL_ORDER')); ?>"><span class="icon-ellipsis-v"></span></span>
+                                            <span class="sortable-handler group-drag" aria-hidden="true" title="<?php echo $this->escape(Text::_('COM_ALFA_DRAG_TO_REORDER')); ?>"><span class="icon-ellipsis-v"></span></span>
                                             <?php echo $this->escape($optionField->display_name); ?>
                                             <?php if (!empty($optionField->retired)) : ?>
                                                 <span class="badge bg-secondary fw-normal ms-1"
@@ -760,7 +760,7 @@ $actionButtonLayout = new \Joomla\CMS\Layout\FileLayout('actions.button', JPATH_
                                         }
                                         ?>
                                         <div class="settings-row" data-option-item="<?php echo $valueId; ?>">
-                                            <span class="sortable-handler" aria-hidden="true" title="<?php echo $this->escape(Text::_('JGLOBAL_ORDER')); ?>"><span class="icon-ellipsis-v"></span></span>
+                                            <span class="sortable-handler" aria-hidden="true" title="<?php echo $this->escape(Text::_('COM_ALFA_DRAG_TO_REORDER')); ?>"><span class="icon-ellipsis-v"></span></span>
                                             <span class="chip is-set"><?php echo $this->escape($poolValue->display_name); ?></span>
                                             <span class="quick-adjust">
                                                 <?php echo $opCycle('jform[options][' . $valueId . '][operation]', $optionRow->operation); ?>
@@ -856,7 +856,7 @@ $actionButtonLayout = new \Joomla\CMS\Layout\FileLayout('actions.button', JPATH_
                                 <div class="settings-group" data-field-group="<?php echo (int) $infoField->id; ?>">
                                     <div class="group-header d-flex justify-content-between align-items-center">
                                         <span class="group-head-label">
-                                            <span class="sortable-handler group-drag" aria-hidden="true" title="<?php echo $this->escape(Text::_('JGLOBAL_ORDER')); ?>"><span class="icon-ellipsis-v"></span></span>
+                                            <span class="sortable-handler group-drag" aria-hidden="true" title="<?php echo $this->escape(Text::_('COM_ALFA_DRAG_TO_REORDER')); ?>"><span class="icon-ellipsis-v"></span></span>
                                             <?php echo $this->escape($infoField->display_name); ?>
                                             <?php if (!empty($infoField->retired)) : ?>
                                                 <span class="badge bg-secondary fw-normal ms-1"
@@ -876,7 +876,7 @@ $actionButtonLayout = new \Joomla\CMS\Layout\FileLayout('actions.button', JPATH_
                                         }
                                         ?>
                                         <div class="settings-row" data-info-item="<?php echo $valueId; ?>">
-                                            <span class="sortable-handler" aria-hidden="true" title="<?php echo $this->escape(Text::_('JGLOBAL_ORDER')); ?>"><span class="icon-ellipsis-v"></span></span>
+                                            <span class="sortable-handler" aria-hidden="true" title="<?php echo $this->escape(Text::_('COM_ALFA_DRAG_TO_REORDER')); ?>"><span class="icon-ellipsis-v"></span></span>
                                             <span class="chip is-set"><?php echo $this->escape($poolValue->display_name); ?></span>
                                             <input type="hidden" name="jform[info_values][]" value="<?php echo $valueId; ?>">
                                             <button type="button" class="btn btn-sm btn-outline-danger" data-info-remove

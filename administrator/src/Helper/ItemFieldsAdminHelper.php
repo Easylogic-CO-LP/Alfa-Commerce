@@ -1596,7 +1596,7 @@ class ItemFieldsAdminHelper
         return ShowonSummary::globalSummaries($fields, self::loadValueLabels(array_keys($valueIds)));
     }
 
-    /** Batch-load active-language labels for value ids (id => label, '#id' fallback). */
+    /** Batch-load labels for value ids, active language else the default (id => label, '#id' fallback). */
     private static function loadValueLabels(array $valueIds): array
     {
         $valueIds = array_values(array_unique(array_map('intval', array_filter($valueIds))));
@@ -1611,20 +1611,18 @@ class ItemFieldsAdminHelper
             $labels[$id] = '#' . $id;
         }
 
-        $db = Factory::getContainer()->get('DatabaseDriver');
-        $tag = strtolower(str_replace('-', '_', Factory::getApplication()->getLanguage()->getTag()));
-
         try {
-            $db->setQuery(
-                $db->getQuery(true)
-                    ->select([$db->qn('id_item_field_value'), $db->qn('name')])
-                    ->from($db->qn('#__alfa_item_field_values_' . $tag))
-                    ->whereIn($db->qn('id_item_field_value'), $valueIds),
+            $names = MultilingualHelper::getRecordsByIds(
+                db:                Factory::getContainer()->get('DatabaseDriver'),
+                ids:               $valueIds,
+                table:             '#__alfa_item_field_values',
+                langTableBase:     '#__alfa_item_field_values',
+                langPrimaryColumn: 'id_item_field_value',
             );
 
-            foreach ($db->loadObjectList() ?: [] as $row) {
-                if ((string) $row->name !== '') {
-                    $labels[(int) $row->id_item_field_value] = (string) $row->name;
+            foreach ($names as $id => $row) {
+                if ((string) ($row['name'] ?? '') !== '') {
+                    $labels[(int) $id] = (string) $row['name'];
                 }
             }
         } catch (Throwable $e) {
@@ -1662,8 +1660,8 @@ class ItemFieldsAdminHelper
 
     /**
      * Names of item-field values for the builder, each only for the field its operand names
-     * (<field_name>.value), in the active language, whatever the value's publish state. An id of
-     * another field, and a value with no name in the active language, are left out.
+     * (<field_name>.value), in the active language else the default one, whatever the value's
+     * publish state. An id of another field, and a value named in neither, are left out.
      *
      * @param array<string, int[]> $idsByOperand Operand => value ids.
      *
@@ -1678,16 +1676,21 @@ class ItemFieldsAdminHelper
         }
 
         $db = Factory::getContainer()->get('DatabaseDriver');
-        $tag = strtolower(str_replace('-', '_', Factory::getApplication()->getLanguage()->getTag()));
+        $query = $db->getQuery(true)
+            ->select([$db->qn('v.id'), $db->qn('f.field_name')])
+            ->from($db->qn('#__alfa_item_field_values', 'v'))
+            ->join('INNER', $db->qn('#__alfa_item_fields', 'f'), $db->qn('f.id') . ' = ' . $db->qn('v.item_field_id'))
+            ->whereIn($db->qn('v.id'), array_values(array_unique(array_merge(...array_values($idsByOperand)))));
 
-        $rows = $db->setQuery(
-            $db->getQuery(true)
-                ->select([$db->qn('v.id'), $db->qn('f.field_name'), $db->qn('l.name')])
-                ->from($db->qn('#__alfa_item_field_values', 'v'))
-                ->join('INNER', $db->qn('#__alfa_item_fields', 'f'), $db->qn('f.id') . ' = ' . $db->qn('v.item_field_id'))
-                ->join('INNER', $db->qn('#__alfa_item_field_values_' . $tag, 'l'), $db->qn('l.id_item_field_value') . ' = ' . $db->qn('v.id'))
-                ->whereIn($db->qn('v.id'), array_values(array_unique(array_merge(...array_values($idsByOperand))))),
-        )->loadObjectList() ?: [];
+        MultilingualHelper::addMultilingualJoinToQuery(
+            query:             $query,
+            mainAlias:         'v',
+            mainPrimaryColumn: 'id',
+            langTableBase:     '#__alfa_item_field_values',
+            langPrimaryColumn: 'id_item_field_value',
+        );
+
+        $rows = $db->setQuery($query)->loadObjectList() ?: [];
 
         $names = [];
 
@@ -2572,17 +2575,20 @@ class ItemFieldsAdminHelper
         $names = [];
 
         if ($valueIds) {
-            $langKey = strtolower(str_replace('-', '_', MultilingualHelper::getCurrentLanguageTag()));
-
             try {
-                $db->setQuery(
-                    $db->getQuery(true)
-                        ->select('id_item_field_value, name')
-                        ->from($db->qn('#__alfa_item_field_values_' . $langKey))
-                        ->whereIn($db->qn('id_item_field_value'), $valueIds),
+                // The active language's names, else the default language's.
+                $records = MultilingualHelper::getRecordsByIds(
+                    db:                $db,
+                    ids:               $valueIds,
+                    table:             '#__alfa_item_field_values',
+                    langTableBase:     '#__alfa_item_field_values',
+                    langPrimaryColumn: 'id_item_field_value',
                 );
-                foreach ($db->loadObjectList() ?: [] as $row) {
-                    $names[(int) $row->id_item_field_value] = (string) $row->name;
+
+                foreach ($records as $id => $row) {
+                    if ((string) ($row['name'] ?? '') !== '') {
+                        $names[(int) $id] = (string) $row['name'];
+                    }
                 }
             } catch (Throwable $e) {
                 // Lang aux table pending resync; ids remain.

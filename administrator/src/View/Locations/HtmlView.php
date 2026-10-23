@@ -98,8 +98,9 @@ class HtmlView extends BaseHtmlView
                 ->listCheck(true);
 
             $childBar = $dropdown->getChildToolbar();
-            $childBar->publish('locations.publish')->listCheck(true);
-            $childBar->unpublish('locations.unpublish')->listCheck(true);
+            // A location is enabled or disabled (the location form's words), not published.
+            $childBar->publish('locations.publish', 'COM_ALFA_LOCATIONS_TOOLBAR_ENABLE')->listCheck(true);
+            $childBar->unpublish('locations.unpublish', 'COM_ALFA_LOCATIONS_TOOLBAR_DISABLE')->listCheck(true);
         }
 
         if (AlfaHelper::can(section: 'locations', action: 'delete', user: $user)) {

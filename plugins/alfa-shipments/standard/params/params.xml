@@ -126,9 +126,9 @@
                            orderDir="desc"
                            disableDescendants="true"
                            default="0"
-                           header="COM_ALFA_FORM_PLACE_ALL"
+                           header="PLG_ALFA_SHIPMENTS_STANDARD_FORM_PLACE_ALL"
                            layout="joomla.form.field.list-fancy-select"
-                           label="COM_ALFA_FORM_CATEGORY_PLACE_LBL">
+                           label="PLG_ALFA_SHIPMENTS_STANDARD_FORM_CATEGORY_PLACE_LBL">
                       <!--      <option value="0">COM_ALFA_FROM_PLACE_NO_OPTION</option>-->
                     </field>
 
@@ -150,7 +150,7 @@
                                     type="text"
                                     default="0"
                                     readonly="false"
-                                    label="COM_ALFA_FORM_SHIPMENT_ZIP_START"
+                                    label="PLG_ALFA_SHIPMENTS_STANDARD_FORM_SHIPMENT_ZIP_START"
                             />
 
                             <field
@@ -158,7 +158,7 @@
                                     type="text"
                                     default="0"
                                     readonly="false"
-                                    label="COM_ALFA_FORM_SHIPMENT_ZIP_END"
+                                    label="PLG_ALFA_SHIPMENTS_STANDARD_FORM_SHIPMENT_ZIP_END"
                             />
 
                             <field
@@ -167,7 +167,7 @@
                                     min='0.01'
                                     default="0"
                                     readonly="false"
-                                    label="COM_ALFA_FORM_SHIPMENT_WEIGHT_MAX"
+                                    label="PLG_ALFA_SHIPMENTS_STANDARD_FORM_SHIPMENT_WEIGHT_MAX"
                             />
 
                             <field
@@ -176,7 +176,7 @@
                                     min='0.01'
                                     default="0"
                                     readonly="false"
-                                    label="COM_ALFA_FORM_SHIPMENT_WIDTH_MAX"
+                                    label="PLG_ALFA_SHIPMENTS_STANDARD_FORM_SHIPMENT_WIDTH_MAX"
                             />
 
                             <field
@@ -185,7 +185,7 @@
                                     min='0.01'
                                     default="0"
                                     readonly="false"
-                                    label="COM_ALFA_FORM_SHIPMENT_HEIGHT_MAX"
+                                    label="PLG_ALFA_SHIPMENTS_STANDARD_FORM_SHIPMENT_HEIGHT_MAX"
                             />
 
                             <field
@@ -194,7 +194,7 @@
                                     min='0.01'
                                     default="0"
                                     readonly="false"
-                                    label="COM_ALFA_FORM_SHIPMENT_DEPTH_MAX"
+                                    label="PLG_ALFA_SHIPMENTS_STANDARD_FORM_SHIPMENT_DEPTH_MAX"
                             />
 
                             <field
@@ -203,7 +203,7 @@
                                     min='0.01'
                                     default="0"
                                     readonly="false"
-                                    label="COM_ALFA_FORM_SHIPMENT_AMOUNT_START"
+                                    label="PLG_ALFA_SHIPMENTS_STANDARD_FORM_SHIPMENT_AMOUNT_START"
                             />
 
                             <field
@@ -212,7 +212,7 @@
                                     min='0.01'
                                     default="0"
                                     readonly="false"
-                                    label="COM_ALFA_FORM_SHIPMENT_AMOUNT_END"
+                                    label="PLG_ALFA_SHIPMENTS_STANDARD_FORM_SHIPMENT_AMOUNT_END"
                             />
 
                             <field
@@ -221,7 +221,7 @@
                                     min='0.01'
                                     default="0"
                                     readonly="false"
-                                    label="COM_ALFA_FORM_SHIPMENT_COST"
+                                    label="PLG_ALFA_SHIPMENTS_STANDARD_FORM_SHIPMENT_COST"
                             />
 
                         </form>

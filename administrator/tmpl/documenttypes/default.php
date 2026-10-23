@@ -91,7 +91,7 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);
                                 <?php else : ?>
                                     <strong><?php echo $this->escape($item->name !== null && $item->name !== '' ? $item->name : DocumentHelper::typeLabel((string) $item->alias)); ?></strong>
                                 <?php endif; ?>
-                                <div class="small text-muted"><code><?php echo $this->escape($item->alias); ?></code></div>
+                                <div class="small text-muted"><code class="raw-value"><?php echo $this->escape($item->alias); ?></code></div>
                             </td>
                             <td>
                                 <?php echo Text::_('COM_ALFA_DOCTYPE_FAMILY_' . strtoupper((string) $item->family)); ?>
@@ -117,7 +117,7 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);
                                     <span class="badge bg-info"><?php echo Text::_('COM_ALFA_DOCUMENTTYPE_BADGE_PACKAGE'); ?></span>
                                     <?php if (!empty($item->provider)) : ?>
                                         <div class="small text-muted">
-                                            <code><?php echo $this->escape($item->provider); ?></code>
+                                            <code class="raw-value"><?php echo $this->escape($item->provider); ?></code>
                                             <?php if (!empty($item->provider_version)) : ?>
                                                 <?php echo $this->escape($item->provider_version); ?>
                                             <?php endif; ?>

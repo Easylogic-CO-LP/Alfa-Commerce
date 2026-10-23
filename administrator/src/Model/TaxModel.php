@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
@@ -202,6 +203,21 @@ class TaxModel extends AlfaAdminModel
         $data = MultilingualHelper::mergeValidatedFormData($data, $rawData, $this->getForm($data, false));
 
         // Step 1: save the main tax row
+        // A NEW category must be available (not archived or trashed, not inside an archived or trashed category);
+        // one the record already holds is kept. Refused before anything is written.
+        $categoryRefusal = CategoryPickerPolicy::refusalForSave(
+            recordId:     (int) ($data['id'] ?? 0),
+            posted:       (array) ($data['categories'] ?? []),
+            table:        '#__alfa_tax_categories',
+            recordColumn: 'tax_id',
+        );
+
+        if ($categoryRefusal !== null) {
+            $this->setError($categoryRefusal);
+
+            return false;
+        }
+
         if (!parent::save($data)) {
             return false;
         }

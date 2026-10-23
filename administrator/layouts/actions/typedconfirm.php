@@ -23,7 +23,12 @@
 
 use Joomla\CMS\Language\Text;
 
-$phrase = htmlspecialchars((string) $displayData['phrase'], ENT_QUOTES, 'UTF-8');
+$raw = (string) $displayData['phrase'];
+$phrase = htmlspecialchars($raw, ENT_QUOTES, 'UTF-8');
+// The browser reads pattern as a regular expression, so its syntax characters are escaped and the phrase matches only
+// itself. Only those: the browser compiles the pattern with the v flag, which refuses any other escaped character and
+// then ignores the whole pattern.
+$pattern = htmlspecialchars((string) preg_replace('/[\\\\^$.*+?()[\]{}|\/]/', '\\\\$0', $raw), ENT_QUOTES, 'UTF-8');
 $id = htmlspecialchars((string) $displayData['id'], ENT_QUOTES, 'UTF-8');
 $name = htmlspecialchars((string) ($displayData['name'] ?? 'phrase'), ENT_QUOTES, 'UTF-8');
 $form = htmlspecialchars((string) ($displayData['form'] ?? ''), ENT_QUOTES, 'UTF-8');
@@ -32,4 +37,4 @@ $form = htmlspecialchars((string) ($displayData['form'] ?? ''), ENT_QUOTES, 'UTF
     <?php echo Text::sprintf('COM_ALFA_CLEAR_PHRASE_LABEL', '<code>' . $phrase . '</code>'); ?>
 </label>
 <input type="text" id="<?php echo $id; ?>" name="<?php echo $name; ?>" class="form-control mb-3" required
-       pattern="<?php echo $phrase; ?>" spellcheck="false" autocomplete="off"<?php echo $form !== '' ? ' form="' . $form . '"' : ''; ?>>
+       pattern="<?php echo $pattern; ?>" spellcheck="false" autocomplete="off"<?php echo $form !== '' ? ' form="' . $form . '"' : ''; ?>>

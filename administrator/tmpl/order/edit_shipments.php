@@ -140,7 +140,7 @@ $renderMap = [
 	// Tracking number: monospace code styling
 	'tracking_number' => function ($value, $shipment, $escape) {
 		if (!empty($value)) {
-			return '<code>' . $escape($value) . '</code>';
+			return '<code class="raw-value">' . $escape($value) . '</code>';
 		}
 		return '<span class="text-muted">-</span>';
 	},

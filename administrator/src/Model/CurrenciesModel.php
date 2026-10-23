@@ -66,7 +66,7 @@ class CurrenciesModel extends AlfaListModel
      * @throws Exception
      * @since  1.0.0
      */
-    protected function populateState($ordering = 'a.id', $direction = 'ASC')
+    protected function populateState($ordering = 'a.id', $direction = 'DESC')
     {
         parent::populateState($ordering, $direction);
     }

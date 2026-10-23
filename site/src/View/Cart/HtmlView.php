@@ -15,6 +15,7 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Event\Payments\OrderCompleteViewEvent as PaymentsOrderCompleteViewEvent;
 use Alfa\Component\Alfa\Administrator\Event\Payments\OrderProcessViewEvent as PaymentsOrderProcessViewEvent;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
+use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderIdentity;
 use Alfa\Component\Alfa\Site\Helper\SlotResolver;
 use Alfa\Component\Alfa\Site\Service\Cart\CartService;
@@ -70,6 +71,13 @@ class HtmlView extends BaseHtmlView
     protected $pickedBillingInfoId = 0;
 
     protected $newBillingPicked = false;
+
+    /**
+     * The number the customer knows the completed order by, as its confirmation e-mail gives it.
+     *
+     * @since  2.1.1
+     */
+    protected string $orderNumber = '';
 
     /** @var string Resolved sub-template for the "cart_items" slot */
     protected $cartItemsTpl = 'cart_items';
@@ -303,6 +311,7 @@ class HtmlView extends BaseHtmlView
 
                 // Where the confirmation went: shown so a guest sees a typo at once.
                 $this->customerEmail = OrderIdentity::notificationEmail($orderData);
+                $this->orderNumber = EmailService::orderNumber(order: $orderData);
 
                 // Terminal state: the order is loaded ($orderData) and every consumer
                 // of the session order id has already run (gateway return via

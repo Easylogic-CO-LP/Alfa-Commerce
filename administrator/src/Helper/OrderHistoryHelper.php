@@ -287,7 +287,7 @@ final class OrderHistoryHelper
             return null;
         }
 
-        return $name !== '' ? $name : Text::_('JNONE');
+        return $name !== '' ? $name : Text::_('COM_ALFA_ORDER_HISTORY_NAME_NONE');
     }
 
     /**

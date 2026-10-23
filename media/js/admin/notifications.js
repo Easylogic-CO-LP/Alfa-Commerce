@@ -91,7 +91,9 @@
 
     /**
      * Anchor the position:fixed panel just under the bell, clamped inside the viewport
-     * (it's fixed, so we set explicit top/left/width in viewport coordinates).
+     * (it's fixed, so we set explicit top/left/width in viewport coordinates). The panel
+     * sits in the toolbar's stacking layer, under the administrator's side menu, so its
+     * left edge stays clear of that menu while the menu is shown.
      */
     function position() {
         var b = button();
@@ -103,15 +105,18 @@
 
         var rect  = b.getBoundingClientRect();
         var vw    = window.innerWidth;
-        var width = Math.min(380, vw - 16);
+        var menu  = document.getElementById('sidebar-wrapper');
+        var menuRect = menu ? menu.getBoundingClientRect() : null;
+        var start = menuRect && menuRect.width > 0 && menuRect.right > 0 && menuRect.right < vw ? menuRect.right + 8 : 8;
+        var width = Math.max(0, Math.min(380, vw - 8 - start));
         var left  = rect.right - width;
 
         if (left + width > vw - 8) {
             left = vw - 8 - width;
         }
 
-        if (left < 8) {
-            left = 8;
+        if (left < start) {
+            left = start;
         }
 
         p.style.width = width + 'px';

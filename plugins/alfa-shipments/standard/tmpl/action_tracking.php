@@ -49,15 +49,15 @@ $status = $shipment->status ?? 'pending';
         </h5>
         <dl class="row mb-0">
 
-            <dt class="col-sm-4"><?php echo Text::_('COM_ALFA_CARRIER'); ?></dt>
+            <dt class="col-sm-4"><?php echo Text::_('PLG_ALFA_SHIPMENTS_STANDARD_CARRIER'); ?></dt>
             <dd class="col-sm-8"><?php echo htmlspecialchars($carrierName); ?></dd>
 
-            <dt class="col-sm-4"><?php echo Text::_('COM_ALFA_TRACKING_NUMBER'); ?></dt>
+            <dt class="col-sm-4"><?php echo Text::_('PLG_ALFA_SHIPMENTS_STANDARD_TRACKING_NUMBER'); ?></dt>
             <dd class="col-sm-8"><code><?php echo htmlspecialchars($trackingNumber); ?></code></dd>
 
-            <dt class="col-sm-4"><?php echo Text::_('COM_ALFA_STATUS'); ?></dt>
+            <dt class="col-sm-4"><?php echo Text::_('PLG_ALFA_SHIPMENTS_STANDARD_STATUS'); ?></dt>
             <dd class="col-sm-8">
-                <span class="badge bg-info"><?php echo htmlspecialchars(Text::_('COM_ALFA_STATUS_' . strtoupper($status))); ?></span>
+                <span class="badge bg-info"><?php echo htmlspecialchars(Text::_('PLG_ALFA_SHIPMENTS_STANDARD_STATUS_' . strtoupper($status))); ?></span>
             </dd>
 
             <?php if ($trackingUrl !== '') : ?>

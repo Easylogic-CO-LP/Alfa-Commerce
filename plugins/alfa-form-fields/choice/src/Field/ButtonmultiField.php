@@ -2,6 +2,7 @@
 
 namespace Alfa\Plugin\AlfaFormFields\Choice\Field;
 
+use Alfa\Plugin\AlfaFormFields\Choice\Field\Traits\HasGroupCaptionTrait;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Field\CheckboxesField;
 
@@ -12,6 +13,8 @@ defined('_JEXEC') or die;
 // the layout (for the live hint) and ChoiceRule (for server validation).
 class ButtonmultiField extends CheckboxesField
 {
+    use HasGroupCaptionTrait;
+
     protected $type = 'Buttonmulti';
     protected $layout = 'layouts.buttonmulti';
 

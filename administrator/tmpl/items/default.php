@@ -71,6 +71,7 @@
                 		<?php echo \Joomla\CMS\Language\Text::_("JGLOBAL_NO_MATCHING_RESULTS"); ?>
                 	</div>
                 <?php else : ?>
+                <div class="table-responsive">
                 <table class="table table-striped" id="itemList">
                     <thead>
                     <tr>
@@ -288,6 +289,7 @@
                     <?php endforeach; ?>
                     </tbody>
                 </table>
+                </div>
 
                 <?php echo $this->pagination->getListFooter(); ?>
                 <?php endif; ?>

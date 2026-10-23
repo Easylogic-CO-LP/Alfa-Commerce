@@ -53,9 +53,9 @@
                 default="0"
                 validate="options"
         >
-            <option value="0">Only this tax</option>
-            <option value="1">Combined</option>
-            <option value="2">One after another</option>
+            <option value="0">COM_ALFA_TAX_BEHAVIOR_ONLY_THIS_TAX</option>
+            <option value="1">COM_ALFA_TAX_BEHAVIOR_COMBINED</option>
+            <option value="2">COM_ALFA_TAX_BEHAVIOR_ONE_AFTER_ANOTHER</option>
         </field>
 
         <field

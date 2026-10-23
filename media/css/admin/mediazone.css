@@ -266,14 +266,14 @@
    MEDIA PICKER BUTTON (floating)
    */
 
-#media-picker-thumbnail {
+[data-media-thumbnail-picker] {
     position: absolute;
     bottom: -30px;
     right: 0;
     width: fit-content;
 }
 
-#media-picker-open-btn {
+[data-media-picker-open] {
     height: 70px;
     width: 70px;
     padding: 0 !important;
@@ -284,7 +284,7 @@
     transition: transform 0.15s ease-in-out;
 }
 
-#media-picker-open-btn:hover {
+[data-media-picker-open]:hover {
     transform: scale(1.05);
 }
 
@@ -292,11 +292,11 @@
    URL error
    */
 
-#media-url-error {
+[data-media-url-error] {
     display: none;
 }
 
-#media-url-error.visible {
+[data-media-url-error].visible {
     display: inline-block;
     background-color: red;
     padding: 0.16rem 0.6rem;

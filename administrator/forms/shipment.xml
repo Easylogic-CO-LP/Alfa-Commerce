@@ -58,9 +58,11 @@
             <option value="1">JYES</option>
         </field>
 
+        <!-- 0 is "every category": the option shows it as a chip, as Allowed user groups does. -->
         <field name="categories" type="categories" showPath="true" multiple="true" default="0"
-               layout="joomla.form.field.list-fancy-select" label="COM_ALFA_FORM_LBL_CATEGORIES" description=""
-               header="COM_ALFA_FORM_CATEGORY_ALL"/>
+               layout="joomla.form.field.list-fancy-select" label="COM_ALFA_FORM_LBL_CATEGORIES" description="">
+            <option value="0">COM_ALFA_FORM_CATEGORY_ALL</option>
+        </field>
 
         <field
                 name="manufacturers" type="model"
@@ -74,8 +76,9 @@
                 label="COM_ALFA_FORM_LBL_MANUFACTURERS"
                 description="COM_ALFA_FORM_DESC_MANUFACTURERS"
                 layout="joomla.form.field.list-fancy-select"
-                header="COM_ALFA_FORM_MANUFACTURER_ALL"
-        />
+        >
+            <option value="0">COM_ALFA_FORM_MANUFACTURER_ALL</option>
+        </field>
 
         <field name="places"
                type="categories"
@@ -85,10 +88,9 @@
                orderBy="id"
                orderDir="desc"
                default="0"
-               header="COM_ALFA_FORM_PLACE_ALL"
                layout="joomla.form.field.list-fancy-select"
                label="COM_ALFA_FORM_CATEGORY_PLACE_LBL">
-            <!--      <option value="0">COM_ALFA_FROM_PLACE_NO_OPTION</option>-->
+            <option value="0">COM_ALFA_FORM_PLACE_ALL</option>
         </field>
 
         <field
@@ -109,11 +111,14 @@
                 input_type="list"
                 required="false"
                 multiple="true"
+                default="0"
                 label="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERS_LBL"
                 description="COM_ALFA_FORM_CATEGORY_ALLOWEDUSERS_DESC"
                 layout="joomla.form.field.list-fancy-select"
                 query="SELECT `id`, `name` FROM `#__users`" key_field="id" value_field="name"
-        />
+        >
+            <option value="0">COM_ALFA_FORM_USER_ALL</option>
+        </field>
 
         <!-- What a price entered for this method means: tax included (the
              customer pays it and the tax is inside) or tax excluded (the tax

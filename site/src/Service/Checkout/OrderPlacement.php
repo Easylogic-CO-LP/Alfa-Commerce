@@ -1453,7 +1453,8 @@ class OrderPlacement
     /**
      * The language this customer is written to in, with no request involved.
      *
-     * @return string A language tag, or '' when the shop has no site default.
+     * @return string A language tag: the customer's own, else the site's default language
+     *                ({@see MultilingualHelper::getDefaultLanguageCode()}).
      *
      * @since  2.0.0
      */
@@ -1465,7 +1466,7 @@ class OrderPlacement
             return $chosen;
         }
 
-        return (string) ComponentHelper::getParams('com_languages')->get('site', '');
+        return MultilingualHelper::getDefaultLanguageCode();
     }
 
     protected function resolveLanguageId(): int

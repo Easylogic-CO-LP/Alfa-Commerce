@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Search;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use InvalidArgumentException;
 use Joomla\CMS\Factory;
 use Joomla\Database\DatabaseInterface;
@@ -125,20 +126,22 @@ class SearchDocumentBuilder
             gtin:          (string) ($item->gtin ?? ''),
             mpn:           (string) ($item->mpn ?? ''),
             manufacturers: $this->readFacets(
-                pivotItemId:   $itemId,
-                pivotTable:    '#__alfa_items_manufacturers',
-                pivotColumn:   'manufacturer_id',
-                baseTable:     '#__alfa_manufacturers',
-                langTable:     '#__alfa_manufacturers_' . $suffix,
-                langKeyColumn: 'id_manufacturer',
+                pivotItemId:      $itemId,
+                pivotTable:       '#__alfa_items_manufacturers',
+                pivotColumn:      'manufacturer_id',
+                baseTable:        '#__alfa_manufacturers',
+                langTable:        '#__alfa_manufacturers_' . $suffix,
+                langKeyColumn:    'id_manufacturer',
+                defaultLangTable: $this->defaultLanguageTable(baseTable: '#__alfa_manufacturers', suffix: $suffix),
             ),
             categories:    $this->readFacets(
-                pivotItemId:   $itemId,
-                pivotTable:    '#__alfa_items_categories',
-                pivotColumn:   'category_id',
-                baseTable:     '#__alfa_categories',
-                langTable:     '#__alfa_categories_' . $suffix,
-                langKeyColumn: 'id_category',
+                pivotItemId:      $itemId,
+                pivotTable:       '#__alfa_items_categories',
+                pivotColumn:      'category_id',
+                baseTable:        '#__alfa_categories',
+                langTable:        '#__alfa_categories_' . $suffix,
+                langKeyColumn:    'id_category',
+                defaultLangTable: $this->defaultLanguageTable(baseTable: '#__alfa_categories', suffix: $suffix),
             ),
             itemFields:    $this->readFieldValues($itemId, $suffix),
             combinations:  $this->readCombinations($itemId, $suffix),
@@ -329,42 +332,65 @@ class SearchDocumentBuilder
      */
     private function readFieldValues(int $itemId, string $suffix): array
     {
+        $db = $this->db;
+        $valuesDefault = $this->defaultLanguageTable(baseTable: '#__alfa_item_field_values', suffix: $suffix);
+        $fieldsDefault = $this->defaultLanguageTable(baseTable: '#__alfa_item_fields', suffix: $suffix);
+
+        $query = $db->getQuery(true)
+            ->select([
+                $db->quoteName('f.id', 'field_id'),
+                $db->quoteName('ix.value_id', 'value_id'),
+            ])
+            ->from($db->quoteName('#__alfa_item_field_value_index', 'ix'))
+            ->join(
+                'INNER',
+                $db->quoteName('#__alfa_item_fields', 'f')
+                . ' ON f.id = ix.field_id AND f.searchable = 1 AND f.state = 1',
+            )
+            ->join(
+                'INNER',
+                $db->quoteName('#__alfa_item_field_values', 'v')
+                . ' ON v.id = ix.value_id AND v.state = 1',
+            )
+            // INNER when only this language is read: a value it has no row for is not in
+            // the document. With the default language read too, a row in either will do.
+            ->join(
+                $valuesDefault === null ? 'INNER' : 'LEFT',
+                $db->quoteName('#__alfa_item_field_values_' . $suffix, 'vl')
+                . ' ON vl.id_item_field_value = ix.value_id',
+            )
+            ->join(
+                'LEFT',
+                $db->quoteName('#__alfa_item_fields_' . $suffix, 'fl')
+                . ' ON fl.id_item_field = f.id',
+            )
+            ->where('ix.item_id = ' . $itemId)
+            // Deterministic: a document must not change because MySQL felt
+            // like returning rows in another order.
+            ->order('f.id ASC, ix.value_id ASC');
+
+        if ($valuesDefault === null) {
+            $query->select([
+                $db->quoteName('vl.name', 'value_name'),
+                $db->quoteName('vl.alias', 'value_alias'),
+            ]);
+        } else {
+            // The names the storefront shows: this language's, else the default's.
+            $query->join('LEFT', $db->quoteName($valuesDefault, 'vd') . ' ON vd.id_item_field_value = ix.value_id')
+                ->where('(vl.id_item_field_value IS NOT NULL OR vd.id_item_field_value IS NOT NULL)')
+                ->select("COALESCE(NULLIF(vl.name, ''), vd.name) AS " . $db->quoteName('value_name'))
+                ->select("COALESCE(NULLIF(vl.alias, ''), vd.alias) AS " . $db->quoteName('value_alias'));
+        }
+
+        if ($fieldsDefault === null) {
+            $query->select($db->quoteName('fl.name', 'field_name'));
+        } else {
+            $query->join('LEFT', $db->quoteName($fieldsDefault, 'fd') . ' ON fd.id_item_field = f.id')
+                ->select("COALESCE(NULLIF(fl.name, ''), fd.name) AS " . $db->quoteName('field_name'));
+        }
+
         try {
-            $rows = $this->db->setQuery(
-                $this->db->getQuery(true)
-                    ->select([
-                        $this->db->quoteName('f.id', 'field_id'),
-                        $this->db->quoteName('ix.value_id', 'value_id'),
-                        $this->db->quoteName('fl.name', 'field_name'),
-                        $this->db->quoteName('vl.name', 'value_name'),
-                        $this->db->quoteName('vl.alias', 'value_alias'),
-                    ])
-                    ->from($this->db->quoteName('#__alfa_item_field_value_index', 'ix'))
-                    ->join(
-                        'INNER',
-                        $this->db->quoteName('#__alfa_item_fields', 'f')
-                        . ' ON f.id = ix.field_id AND f.searchable = 1 AND f.state = 1',
-                    )
-                    ->join(
-                        'INNER',
-                        $this->db->quoteName('#__alfa_item_field_values', 'v')
-                        . ' ON v.id = ix.value_id AND v.state = 1',
-                    )
-                    ->join(
-                        'INNER',
-                        $this->db->quoteName('#__alfa_item_field_values_' . $suffix, 'vl')
-                        . ' ON vl.id_item_field_value = ix.value_id',
-                    )
-                    ->join(
-                        'LEFT',
-                        $this->db->quoteName('#__alfa_item_fields_' . $suffix, 'fl')
-                        . ' ON fl.id_item_field = f.id',
-                    )
-                    ->where('ix.item_id = ' . $itemId)
-                    // Deterministic: a document must not change because MySQL felt
-                    // like returning rows in another order.
-                    ->order('f.id ASC, ix.value_id ASC'),
-            )->loadObjectList() ?: [];
+            $rows = $db->setQuery($query)->loadObjectList() ?: [];
         } catch (Throwable $e) {
             return [];
         }
@@ -397,26 +423,36 @@ class SearchDocumentBuilder
      */
     private function readCombinations(int $itemId, string $suffix): array
     {
+        $db = $this->db;
+        $combinationsDefault = $this->defaultLanguageTable(baseTable: '#__alfa_item_combinations', suffix: $suffix);
+
+        $query = $db->getQuery(true)
+            ->select([
+                $db->quoteName('c.id', 'id'),
+                $db->quoteName('c.sku', 'sku'),
+                $db->quoteName('c.gtin', 'gtin'),
+                $db->quoteName('c.mpn', 'mpn'),
+            ])
+            ->from($db->quoteName('#__alfa_item_combinations', 'c'))
+            ->join(
+                'LEFT',
+                $db->quoteName('#__alfa_item_combinations_' . $suffix, 'cl')
+                . ' ON cl.id_item_combination = c.id',
+            )
+            ->where('c.item_id = ' . $itemId)
+            ->where('c.state = 1')
+            ->order('c.id ASC');
+
+        if ($combinationsDefault === null) {
+            $query->select($db->quoteName('cl.name', 'label'));
+        } else {
+            // The label the storefront shows: this language's, else the default's.
+            $query->join('LEFT', $db->quoteName($combinationsDefault, 'cd') . ' ON cd.id_item_combination = c.id')
+                ->select("COALESCE(NULLIF(cl.name, ''), cd.name) AS " . $db->quoteName('label'));
+        }
+
         try {
-            $rows = $this->db->setQuery(
-                $this->db->getQuery(true)
-                    ->select([
-                        $this->db->quoteName('c.id', 'id'),
-                        $this->db->quoteName('c.sku', 'sku'),
-                        $this->db->quoteName('c.gtin', 'gtin'),
-                        $this->db->quoteName('c.mpn', 'mpn'),
-                        $this->db->quoteName('cl.name', 'label'),
-                    ])
-                    ->from($this->db->quoteName('#__alfa_item_combinations', 'c'))
-                    ->join(
-                        'LEFT',
-                        $this->db->quoteName('#__alfa_item_combinations_' . $suffix, 'cl')
-                        . ' ON cl.id_item_combination = c.id',
-                    )
-                    ->where('c.item_id = ' . $itemId)
-                    ->where('c.state = 1')
-                    ->order('c.id ASC'),
-            )->loadObjectList() ?: [];
+            $rows = $db->setQuery($query)->loadObjectList() ?: [];
         } catch (Throwable $e) {
             return [];
         }
@@ -431,6 +467,26 @@ class SearchDocumentBuilder
             ),
             $rows,
         );
+    }
+
+    /**
+     * The default language's table of one translatable entity, read where this document's
+     * language has no name, as the storefront shows it; null when the document is in the
+     * default language or the table does not exist.
+     *
+     * @param string $baseTable Base table (e.g. "#__alfa_categories").
+     * @param string $suffix Normalised language suffix of the document.
+     *
+     *
+     * @since  2.1.1
+     */
+    private function defaultLanguageTable(string $baseTable, string $suffix): ?string
+    {
+        $default = LanguageTag::siteDefault()->tableSuffix();
+
+        return $default !== $suffix && MultilingualHelper::hasLanguageTable(tableName: $baseTable, langTag: $default)
+            ? $baseTable . '_' . $default
+            : null;
     }
 
     /**
@@ -456,6 +512,8 @@ class SearchDocumentBuilder
      *                          which is where publication state lives.
      * @param string $langTable Per-language table of the referenced entity.
      * @param string $langKeyColumn Primary column of that language table.
+     * @param string|null $defaultLangTable The default language's table, whose name and
+     *                                      alias count where $langTable has none, or null.
      *
      * @return FacetRef[]
      *
@@ -468,33 +526,44 @@ class SearchDocumentBuilder
         string $baseTable,
         string $langTable,
         string $langKeyColumn,
+        ?string $defaultLangTable = null,
     ): array {
+        $db = $this->db;
+        $query = $db->getQuery(true)
+            ->select('DISTINCT ' . $db->quoteName('p.' . $pivotColumn, 'id'))
+            ->from($db->quoteName($pivotTable, 'p'))
+            // INNER: no base row, or an unpublished one, means no facet.
+            ->join(
+                'INNER',
+                $db->quoteName($baseTable, 'b')
+                . ' ON b.' . $db->quoteName('id') . ' = p.' . $db->quoteName($pivotColumn)
+                . ' AND b.' . $db->quoteName('state') . ' = 1',
+            )
+            // LEFT: an untranslated entity still belongs to the item; it simply
+            // contributes an empty name, which the projection drops on its own.
+            ->join(
+                'LEFT',
+                $db->quoteName($langTable, 'l')
+                . ' ON l.' . $db->quoteName($langKeyColumn) . ' = p.' . $db->quoteName($pivotColumn),
+            )
+            ->where('p.item_id = ' . $pivotItemId)
+            ->order('p.' . $db->quoteName($pivotColumn) . ' ASC');
+
+        if ($defaultLangTable === null) {
+            $query->select([$db->quoteName('l.name', 'name'), $db->quoteName('l.alias', 'alias')]);
+        } else {
+            // The name the storefront shows: this language's, else the default's.
+            $query->join(
+                'LEFT',
+                $db->quoteName($defaultLangTable, 'd')
+                . ' ON d.' . $db->quoteName($langKeyColumn) . ' = p.' . $db->quoteName($pivotColumn),
+            )
+                ->select("COALESCE(NULLIF(l.name, ''), d.name) AS " . $db->quoteName('name'))
+                ->select("COALESCE(NULLIF(l.alias, ''), d.alias) AS " . $db->quoteName('alias'));
+        }
+
         try {
-            $rows = $this->db->setQuery(
-                $this->db->getQuery(true)
-                    ->select([
-                        'DISTINCT ' . $this->db->quoteName('p.' . $pivotColumn, 'id'),
-                        $this->db->quoteName('l.name', 'name'),
-                        $this->db->quoteName('l.alias', 'alias'),
-                    ])
-                    ->from($this->db->quoteName($pivotTable, 'p'))
-                    // INNER: no base row, or an unpublished one, means no facet.
-                    ->join(
-                        'INNER',
-                        $this->db->quoteName($baseTable, 'b')
-                        . ' ON b.' . $this->db->quoteName('id') . ' = p.' . $this->db->quoteName($pivotColumn)
-                        . ' AND b.' . $this->db->quoteName('state') . ' = 1',
-                    )
-                    // LEFT: an untranslated entity still belongs to the item; it simply
-                    // contributes an empty name, which the projection drops on its own.
-                    ->join(
-                        'LEFT',
-                        $this->db->quoteName($langTable, 'l')
-                        . ' ON l.' . $this->db->quoteName($langKeyColumn) . ' = p.' . $this->db->quoteName($pivotColumn),
-                    )
-                    ->where('p.item_id = ' . $pivotItemId)
-                    ->order('p.' . $this->db->quoteName($pivotColumn) . ' ASC'),
-            )->loadObjectList() ?: [];
+            $rows = $db->setQuery($query)->loadObjectList() ?: [];
         } catch (Throwable $e) {
             return [];
         }

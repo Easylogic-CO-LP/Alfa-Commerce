@@ -38,6 +38,10 @@ $options = (array) $displayData['options'];
 $preview = (array) ($displayData['preview'] ?? []);
 
 $esc = static fn ($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
+
+// The row's control ids, made from its POST base as Joomla makes a field id (the row's calendar fields carry the
+// same prefix), so the template's __PIDX__ is renumbered in the ids along with the names.
+$idBase = preg_replace('#\W#', '_', $base);
 $mode = (string) ($row['_mode'] ?? 'price');
 $operation = (string) ($row['operation'] ?? '+');
 $active = !isset($row['state']) || (int) $row['state'] === 1;
@@ -167,9 +171,9 @@ if ($mode === 'price' && $value !== '') {
     };
 }
 
-$selectHtml = static function (string $name, array $list, $current, string $anyLabel) use ($esc) {
+$selectHtml = static function (string $name, string $id, array $list, $current, string $anyLabel) use ($esc) {
     $current = (string) (int) $current;
-    $html = '<select name="' . $esc($name) . '" class="form-select form-select-sm">';
+    $html = '<select name="' . $esc($name) . '" id="' . $esc($id) . '" class="form-select form-select-sm">';
     $html .= '<option value="0">' . $esc($anyLabel) . '</option>';
 
     foreach ($list as $id => $label) {
@@ -210,7 +214,7 @@ $calendarForm->bind([
         <label class="price-active">
             <input type="hidden" name="<?php echo $esc($base); ?>[price_status]" value="0">
             <input type="checkbox" class="form-check-input" name="<?php echo $esc($base); ?>[price_status]" value="1" <?php echo $active ? 'checked' : ''; ?>>
-            <span><?php echo Text::_('JENABLED'); ?></span>
+            <span><?php echo Text::_('COM_ALFA_PRICES_ROW_ENABLED'); ?></span>
         </label>
         <button type="button" class="btn btn-sm btn-outline-secondary" data-price-copy
                 title="<?php echo Text::_('COM_ALFA_PRICES_COPY_DESC'); ?>" aria-label="<?php echo Text::_('COM_ALFA_PRICES_COPY'); ?>">
@@ -225,7 +229,7 @@ $calendarForm->bind([
         <div class="price-cluster price-cluster-amount" data-caption="<?php echo Text::_('COM_ALFA_PRICES_GROUP_AMOUNT'); ?>">
             <div class="price-cell">
                 <?php if (!$showModify) : ?>
-                    <label>
+                    <label for="<?php echo $esc($idBase . '_value'); ?>">
                         <span class="price-only"><?php echo Text::_('COM_ALFA_PRICES_PRICE'); ?></span>
                         <span class="adjust-only"><?php echo Text::_('COM_ALFA_PRICES_AMOUNT'); ?></span>
                     </label>
@@ -235,7 +239,7 @@ $calendarForm->bind([
                         <span class="adjust-only"><?php echo $opCycle($base . '[operation]', $operation); ?></span>
                     <?php endif; ?>
                     <input type="number" step="<?php echo $storedStep; ?>" name="<?php echo $esc($base); ?>[value]"
-                           value="<?php echo $esc($value); ?>" class="form-control form-control-sm" data-price-value required>
+                           id="<?php echo $esc($idBase . '_value'); ?>" value="<?php echo $esc($value); ?>" class="form-control form-control-sm" data-price-value required>
                 </div>
             </div>
 
@@ -247,7 +251,7 @@ $calendarForm->bind([
                 $targetLabel = $esc($targetLabels[$adjustTarget] ?? $targetLabels['final']);
                 ?>
                 <div class="price-cell price-cell-sm adjust-only">
-                    <label><?php echo Text::_('COM_ALFA_PRICES_ADJUST_ON'); ?></label>
+                    <span class="price-cell-caption"><?php echo Text::_('COM_ALFA_PRICES_ADJUST_ON'); ?></span>
                     <span class="op-cycle">
                         <button type="button" data-price-target-cycle
                                 data-label-final="<?php echo $esc($targetLabels['final']); ?>"
@@ -266,8 +270,8 @@ $calendarForm->bind([
                  frontend breakdown: before-tax discounts -> taxes -> after-tax
                  discounts. No discounts running = just the tax chips. -->
             <div class="price-cell">
-                <label><?php echo Text::_('COM_ALFA_PRICES_FINAL'); ?></label>
-                <input type="number" step="<?php echo $stepOf($decimals); ?>" value="<?php echo $esc($finalValue); ?>"
+                <label for="<?php echo $esc($idBase . '_final'); ?>"><?php echo Text::_('COM_ALFA_PRICES_FINAL'); ?></label>
+                <input type="number" step="<?php echo $stepOf($decimals); ?>" id="<?php echo $esc($idBase . '_final'); ?>" value="<?php echo $esc($finalValue); ?>"
                        class="form-control form-control-sm" data-price-final placeholder="-"
                        <?php echo $taxKnown ? '' : 'disabled title="' . $esc(Text::_('COM_ALFA_PRICES_FINAL_CATEGORY_FIRST')) . '"'; ?>>
                 <?php if (!$showModify) : ?>
@@ -279,9 +283,9 @@ $calendarForm->bind([
                  running discounts. Read-only: it comes and goes with the
                  calendar, the stored prices above do not. -->
             <div class="price-cell" data-price-discounts <?php echo $appliedDiscounts ? '' : 'hidden'; ?>>
-                <label><?php echo Text::_('COM_ALFA_PRICES_DISCOUNTED'); ?></label>
+                <label for="<?php echo $esc($idBase . '_current'); ?>"><?php echo Text::_('COM_ALFA_PRICES_DISCOUNTED'); ?></label>
                 <div class="chip-line">
-                    <strong data-price-current><?php echo $esc($discountedValue); ?></strong>
+                    <output class="fw-bold" id="<?php echo $esc($idBase . '_current'); ?>" data-price-current><?php echo $esc($discountedValue); ?></output>
                 </div>
             </div>
 
@@ -290,7 +294,7 @@ $calendarForm->bind([
                  price (taxes still apply on top) / pins the final gross
                  (tax carved out at runtime, customer pays exactly this). -->
             <div class="price-cell price-only">
-                <label><?php echo Text::_('COM_ALFA_PRICES_OVERRIDE'); ?></label>
+                <label for="<?php echo $esc($idBase . '_override_value'); ?>"><?php echo Text::_('COM_ALFA_PRICES_OVERRIDE'); ?></label>
                 <div class="seg-group">
                     <label class="seg" title="<?php echo Text::_('COM_ALFA_PRICES_OVERRIDE_OFF_DESC'); ?>">
                         <input type="radio" name="<?php echo $esc($base); ?>[override_type]" value="" data-price-override-type <?php echo $overrideOn === '' ? 'checked' : ''; ?>>
@@ -308,7 +312,7 @@ $calendarForm->bind([
                 <!-- A pinned FINAL price is customer-facing money: whole
                      cents only. The net variant keeps 4-decimal precision. -->
                 <input type="number" step="<?php echo $storedStep; ?>"
-                       name="<?php echo $esc($base); ?>[override_value]"
+                       name="<?php echo $esc($base); ?>[override_value]" id="<?php echo $esc($idBase . '_override_value'); ?>"
                        value="<?php echo $esc($override); ?>" class="form-control form-control-sm mt-1"
                        data-price-override placeholder="-" <?php echo $overrideOn === '' ? 'disabled' : ''; ?>>
                 <div class="override-hint" data-price-override-hint <?php echo $overrideHint === '' ? 'hidden' : ''; ?>><?php echo $esc($overrideHint); ?></div>
@@ -318,19 +322,19 @@ $calendarForm->bind([
 
         <div class="price-cluster price-cluster-col" data-caption="<?php echo Text::_('COM_ALFA_PRICES_GROUP_CONDITIONS'); ?>">
             <div class="price-cell">
-                <label><?php echo Text::_('COM_ALFA_PRICES_QTY'); ?></label>
+                <label for="<?php echo $esc($idBase . '_quantity_start'); ?>"><?php echo Text::_('COM_ALFA_PRICES_QTY'); ?></label>
                 <div class="range-pair">
-                    <input type="number" step="any" min="0" name="<?php echo $esc($base); ?>[quantity_start]"
+                    <input type="number" step="any" min="0" name="<?php echo $esc($base); ?>[quantity_start]" id="<?php echo $esc($idBase . '_quantity_start'); ?>"
                            value="<?php echo $esc($row['quantity_start'] ?? ''); ?>" class="form-control form-control-sm"
                            placeholder="<?php echo Text::_('COM_ALFA_PRICES_QTY_FROM'); ?>">
                     <span aria-hidden="true">-</span>
-                    <input type="number" step="any" min="0" name="<?php echo $esc($base); ?>[quantity_end]"
+                    <input type="number" step="any" min="0" name="<?php echo $esc($base); ?>[quantity_end]" id="<?php echo $esc($idBase . '_quantity_end'); ?>"
                            value="<?php echo $esc($row['quantity_end'] ?? ''); ?>" class="form-control form-control-sm"
                            placeholder="<?php echo Text::_('COM_ALFA_PRICES_QTY_TO'); ?>">
                 </div>
             </div>
             <div class="price-cell">
-                <label><?php echo Text::_('COM_ALFA_PRICES_ACTIVE'); ?></label>
+                <label for="<?php echo $esc($idBase . '_publish_up'); ?>"><?php echo Text::_('COM_ALFA_PRICES_ACTIVE'); ?></label>
                 <div class="range-pair">
                     <?php echo $calendarForm->getField('publish_up')->input; ?>
                     <span aria-hidden="true">&rarr;</span>
@@ -341,20 +345,20 @@ $calendarForm->bind([
 
         <div class="price-cluster price-cluster-col" data-caption="<?php echo Text::_('COM_ALFA_PRICES_GROUP_SCOPE'); ?>">
             <div class="price-inline">
-                <label><?php echo Text::_('COM_ALFA_PRICES_CURRENCY'); ?></label>
-                <?php echo $selectHtml($base . '[currency_id]', $options['currencies'], $row['currency_id'] ?? 0, Text::_('COM_ALFA_PRICES_ANY')); ?>
+                <label for="<?php echo $esc($idBase . '_currency_id'); ?>"><?php echo Text::_('COM_ALFA_PRICES_CURRENCY'); ?></label>
+                <?php echo $selectHtml($base . '[currency_id]', $idBase . '_currency_id', $options['currencies'], $row['currency_id'] ?? 0, Text::_('COM_ALFA_PRICES_ANY')); ?>
             </div>
             <div class="price-inline">
-                <label><?php echo Text::_('COM_ALFA_PRICES_COUNTRY'); ?></label>
-                <?php echo $selectHtml($base . '[country_id]', $options['places'], $row['country_id'] ?? 0, Text::_('COM_ALFA_PRICES_ANY')); ?>
+                <label for="<?php echo $esc($idBase . '_country_id'); ?>"><?php echo Text::_('COM_ALFA_PRICES_COUNTRY'); ?></label>
+                <?php echo $selectHtml($base . '[country_id]', $idBase . '_country_id', $options['places'], $row['country_id'] ?? 0, Text::_('COM_ALFA_PRICES_ANY')); ?>
             </div>
             <div class="price-inline">
-                <label title="<?php echo Text::_('COM_ALFA_PRICES_GROUP_DESC'); ?>"><?php echo Text::_('COM_ALFA_PRICES_GROUP'); ?></label>
-                <?php echo $selectHtml($base . '[usergroup_id]', $options['usergroups'], $row['usergroup_id'] ?? 0, Text::_('COM_ALFA_PRICES_ANY')); ?>
+                <label for="<?php echo $esc($idBase . '_usergroup_id'); ?>" title="<?php echo Text::_('COM_ALFA_PRICES_GROUP_DESC'); ?>"><?php echo Text::_('COM_ALFA_PRICES_GROUP'); ?></label>
+                <?php echo $selectHtml($base . '[usergroup_id]', $idBase . '_usergroup_id', $options['usergroups'], $row['usergroup_id'] ?? 0, Text::_('COM_ALFA_PRICES_ANY')); ?>
             </div>
             <div class="price-inline">
-                <label><?php echo Text::_('COM_ALFA_PRICES_USER'); ?></label>
-                <?php echo $selectHtml($base . '[user_id]', $options['users'], $row['user_id'] ?? 0, Text::_('COM_ALFA_PRICES_ANY')); ?>
+                <label for="<?php echo $esc($idBase . '_user_id'); ?>"><?php echo Text::_('COM_ALFA_PRICES_USER'); ?></label>
+                <?php echo $selectHtml($base . '[user_id]', $idBase . '_user_id', $options['users'], $row['user_id'] ?? 0, Text::_('COM_ALFA_PRICES_ANY')); ?>
             </div>
         </div>
     </div>

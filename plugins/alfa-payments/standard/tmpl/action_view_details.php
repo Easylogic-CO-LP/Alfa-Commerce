@@ -50,24 +50,24 @@ $amountDisplay = (is_object($amount) && method_exists($amount, 'format'))
         <dl class="row mb-0">
 
 			<?php if (!empty($payment->payment_method)): ?>
-                <dt class="col-sm-4"><?php echo Text::_('COM_ALFA_PAYMENT_METHOD'); ?></dt>
+                <dt class="col-sm-4"><?php echo Text::_('PLG_ALFA_PAYMENTS_STANDARD_PAYMENT_METHOD'); ?></dt>
                 <dd class="col-sm-8"><?php echo htmlspecialchars($payment->payment_method); ?></dd>
 			<?php endif; ?>
 
-            <dt class="col-sm-4"><?php echo Text::_('COM_ALFA_AMOUNT'); ?></dt>
+            <dt class="col-sm-4"><?php echo Text::_('PLG_ALFA_PAYMENTS_STANDARD_AMOUNT'); ?></dt>
             <dd class="col-sm-8"><?php echo $amountDisplay; ?></dd>
 
 			<?php if (!empty($payment->transaction_id ?? '')): ?>
-                <dt class="col-sm-4"><?php echo Text::_('COM_ALFA_TRANSACTION_ID'); ?></dt>
+                <dt class="col-sm-4"><?php echo Text::_('PLG_ALFA_PAYMENTS_STANDARD_TRANSACTION_ID'); ?></dt>
                 <dd class="col-sm-8"><code><?php echo htmlspecialchars($payment->transaction_id); ?></code></dd>
 			<?php endif; ?>
 
-            <dt class="col-sm-4"><?php echo Text::_('COM_ALFA_STATUS'); ?></dt>
+            <dt class="col-sm-4"><?php echo Text::_('PLG_ALFA_PAYMENTS_STANDARD_STATUS'); ?></dt>
             <dd class="col-sm-8">
-                <span class="badge <?php echo $statusBadge; ?>"><?php echo htmlspecialchars(Text::_('COM_ALFA_STATUS_' . strtoupper($status))); ?></span>
+                <span class="badge <?php echo $statusBadge; ?>"><?php echo htmlspecialchars(Text::_('PLG_ALFA_PAYMENTS_STANDARD_STATUS_' . strtoupper($status))); ?></span>
             </dd>
 
-            <dt class="col-sm-4"><?php echo Text::_('COM_ALFA_DATE_ADDED'); ?></dt>
+            <dt class="col-sm-4"><?php echo Text::_('PLG_ALFA_PAYMENTS_STANDARD_DATE_ADDED'); ?></dt>
             <dd class="col-sm-8"><?php echo htmlspecialchars($payment->added ?? '-'); ?></dd>
 
         </dl>

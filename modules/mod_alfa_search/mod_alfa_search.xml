@@ -129,10 +129,10 @@
                 <field name="loadingImageType" type="radio" class="btn-group" default="3"
                        label="MOD_ALFA_SEARCH_LOADING_IMAGE_TYPE_LBL"
                        description="MOD_ALFA_SEARCH_LOADING_IMAGE_TYPE_DESC">
-                    <option value="0">Image</option>
-                    <option value="1">Inline SVG</option>
-                    <option value="2">None</option>
-                    <option value="3">Default</option>
+                    <option value="0">MOD_ALFA_SEARCH_LOADING_IMAGE_TYPE_IMAGE</option>
+                    <option value="1">MOD_ALFA_SEARCH_LOADING_IMAGE_TYPE_SVG</option>
+                    <option value="2">MOD_ALFA_SEARCH_LOADING_IMAGE_TYPE_NONE</option>
+                    <option value="3">MOD_ALFA_SEARCH_LOADING_IMAGE_TYPE_DEFAULT</option>
                 </field>
 
                 <field

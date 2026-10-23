@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Field\Traits\HasCaptionLabelTrait;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\FormField;
 use Joomla\CMS\HTML\HTMLHelper;
@@ -46,6 +47,8 @@ use Joomla\CMS\Layout\LayoutHelper;
  */
 class ItemfieldsfilterField extends FormField
 {
+    use HasCaptionLabelTrait;
+
     /**
      * @var string
      * @since  2.0.0

@@ -514,8 +514,8 @@ class PriceIndexSyncService
 
     /**
      * The scheduled task that prepares requested sets, as the component's
-     * installer creates it: enabled, every five minutes from now, titled by
-     * its routine.
+     * installer creates it: enabled, every five minutes from now, under the
+     * component's own title for it.
      *
      * @return array The data com_scheduler's Task model saves.
      *
@@ -523,11 +523,12 @@ class PriceIndexSyncService
      */
     public static function preparationTaskData(): array
     {
-        Factory::getApplication()->getLanguage()->load('plg_task_alfapricesets', JPATH_ADMINISTRATOR);
+        // Reloaded: an update's request may have read the previous version's file before this one was copied.
+        Factory::getApplication()->getLanguage()->load(extension: 'com_alfa', basePath: JPATH_ADMINISTRATOR, reload: true);
 
         return [
             'id' => 0,
-            'title' => Text::_('PLG_TASK_ALFAPRICESETS_PREPARE_TITLE'),
+            'title' => Text::_('COM_ALFA_PRICE_SETS_TASK_TITLE'),
             'type' => self::PREPARE_TASK,
             'state' => 1,
             'execution_rules' => [

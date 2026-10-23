@@ -244,11 +244,11 @@
                label="JFIELD_ALIAS_LABEL" description="COM_ALFA_FORM_DESC_ITEM_ALIAS"/>
 
         <field name="id_category_default" type="categories" required="true" showPath="true" multiple="false"
-               layout="joomla.form.field.list-fancy-select" label="Default Category" description="">
+               layout="joomla.form.field.list-fancy-select" label="COM_ALFA_FORM_LBL_ITEM_DEFAULT_CATEGORY" description="">
         </field>
 
         <field name="categories" type="categories" showPath="true" multiple="true"
-               layout="joomla.form.field.list-fancy-select" label="Categories" description="">
+               layout="joomla.form.field.list-fancy-select" label="COM_ALFA_FORM_LBL_CATEGORIES" description="">
         </field>
 
         <field
@@ -278,7 +278,7 @@
         <field
                 name="medias"
                 type="MediaZone"
-                label="Insert Media: "
+                label="COM_ALFA_FORM_LBL_MEDIAS"
                 multiple="true"
                 hiddenLabel="true"
                 types="media,url"

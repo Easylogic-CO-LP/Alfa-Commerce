@@ -40,14 +40,14 @@ class Dispatcher extends AbstractModuleDispatcher
         $input = $data['input'];
         $params = $data['params'];
 
-        // The module reads; it hands the layout a reading, not the cart.
-        $data['snapshot'] = CartService::ambient()->read(CartResolution::Current);
-        $option = $input->getCmd('option'); // Get current component
-
-        // Load language only if we're not in com_alfa
-        if ($option !== 'com_alfa') {
+        // The core layouts this module renders speak com_alfa's language: loaded before anything is read or drawn,
+        // unless com_alfa's own page has loaded it.
+        if ($input->getCmd('option') !== 'com_alfa') {
             $app->getLanguage()->load('com_alfa');
         }
+
+        // The module reads; it hands the layout a reading, not the cart.
+        $data['snapshot'] = CartService::ambient()->read(CartResolution::Current);
 
         $wa = $this->app->getDocument()->getWebAssetManager();
         $wa->getRegistry()->addExtensionRegistryFile('com_alfa');

@@ -64,7 +64,7 @@ echo HTMLHelper::_(
              style="position:absolute;inset:0;display:flex;align-items:center;
                     justify-content:center;background:#fff;z-index:10;">
             <div class="spinner-border text-secondary" role="status">
-                <span class="visually-hidden">Loading...</span>
+                <span class="visually-hidden">' . Text::_('COM_ALFA_LOADING') . '</span>
             </div>
         </div>
         <iframe

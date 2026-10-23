@@ -1529,10 +1529,11 @@ class OrderModel extends AlfaAdminModel
             $payment->params = $paymentModel->getItem($payment->id_payment_method);
 
             // A payment is money in its order's currency, and in no other. Its
-            // popup shows the figure as stored, so a row finer than its order's
-            // money is refused on Save rather than rounded by the display.
+            // popup shows the figure as stored, at the currency's decimal places
+            // (19.40), so a row finer than its order's money is refused on Save
+            // rather than rounded by the display.
             $currency = OrderCurrency::of(orderId: (int) $payment->id_order);
-            $payment->stored_figures = $this->storedFigures($payment, ['amount']);
+            $payment->stored_figures = $this->storedFigures(row: $payment, columns: ['amount'], currency: $currency);
             $payment->amount = $this->toMoney($payment->amount, $currency);
         }
 
@@ -1765,7 +1766,7 @@ class OrderModel extends AlfaAdminModel
             // A shipping cost is money in its order's currency, and in no other;
             // the popup shows the costs as stored (see getPaymentData()).
             $currency = OrderCurrency::of(orderId: (int) $shipment->id_order);
-            $shipment->stored_figures = $this->storedFigures($shipment, ['shipping_cost_tax_incl', 'shipping_cost_tax_excl']);
+            $shipment->stored_figures = $this->storedFigures(row: $shipment, columns: ['shipping_cost_tax_incl', 'shipping_cost_tax_excl'], currency: $currency);
             $shipment->shipping_cost_tax_incl = $this->toMoney($shipment->shipping_cost_tax_incl, $currency);
             $shipment->shipping_cost_tax_excl = $this->toMoney($shipment->shipping_cost_tax_excl, $currency);
         }
@@ -4470,6 +4471,32 @@ class OrderModel extends AlfaAdminModel
     }
 
     /**
+     * What a status change did to the order's stock, in the operator's language.
+     *
+     * One sentence per action, because each says something different: a deduction
+     * counts the order lines it fulfilled; a restore returns what the order took out
+     * and releases its reservations; a reservation holds the order's lines again. The
+     * action's code is never shown. An action the stock policy does not have is not
+     * reported: the order is saved either way, and this runs after the commit.
+     *
+     * @param string $action The stock result's action: 'deducted', 'restored' or 'reserved'.
+     * @param int $count The stock result's count: the order lines a deduction fulfilled.
+     *
+     * @return string|null The message, or null for an action the stock policy does not have.
+     *
+     * @since  2.1.1
+     */
+    private static function stockAdjustedMessage(string $action, int $count): ?string
+    {
+        return match ($action) {
+            'deducted' => Text::plural('COM_ALFA_ORDER_STOCK_ADJUSTED_DEDUCTED', $count),
+            'restored' => Text::_('COM_ALFA_ORDER_STOCK_ADJUSTED_RESTORED'),
+            'reserved' => Text::_('COM_ALFA_ORDER_STOCK_ADJUSTED_RESERVED'),
+            default => null,
+        };
+    }
+
+    /**
      * Move the order, then say what is actually true afterwards.
      *
      * Phase B is committed before this runs, so the order's own details are
@@ -4533,14 +4560,11 @@ class OrderModel extends AlfaAdminModel
             $stockResult = $transition->getStockResult();
 
             if ($stockResult !== null && ($stockResult['action'] ?? 'none') !== 'none') {
-                $app->enqueueMessage(
-                    Text::sprintf(
-                        'COM_ALFA_ORDER_STOCK_ADJUSTED',
-                        $stockResult['action'],
-                        (int) $stockResult['count'],
-                    ),
-                    'message',
-                );
+                $adjusted = self::stockAdjustedMessage(action: (string) $stockResult['action'], count: (int) $stockResult['count']);
+
+                if ($adjusted !== null) {
+                    $app->enqueueMessage($adjusted, 'message');
+                }
             } elseif ($stockResult === null) {
                 // Only reachable now that the transition really ran. A refused
                 // effect is not retried: an order line has no stock identity to
@@ -5007,13 +5031,12 @@ class OrderModel extends AlfaAdminModel
                     continue;
                 }
 
-                // The row's persisted type, not params->type. Reading the live
-                // method meant a DELETED method resolved to '' and the gateway
-                // was never asked: the veto that exists to stop an order being
-                // deleted with money in flight was silently skipped for exactly
-                // the orders most likely to have some. Non-gateway rows (store
-                // credit) have no plugin to ask, and the plugin may be
-                // uninstalled; neither may fatal an order delete.
+                // The row's persisted type: the plugin that took the payment is
+                // asked for its veto, its method deleted or not. A row that
+                // records no type (written before the snapshot existed) has no
+                // plugin to ask, as a store-credit row has none: the core's own
+                // refusals (issued documents, refunds not settled) still stand.
+                // The plugin may be uninstalled; none of it may fatal a delete.
                 $paymentType = ActionRegistry::methodType($payment, 'payment_method_type');
 
                 if (\in_array($paymentType, PaymentLedger::NON_GATEWAY_TYPES, true)) {
@@ -5781,26 +5804,54 @@ class OrderModel extends AlfaAdminModel
     }
 
     /**
-     * The money columns of a row as stored, as exact decimal texts.
+     * The money columns of a row as stored, as exact decimal texts at the order currency's decimal places.
+     *
+     * Only a stored figure is written so: a refused Save's draft, bound over the row, is shown as it was typed (the
+     * popup's field prints the text it is bound with).
      *
      * @param object $row A row as loaded, before its columns become Money.
      * @param string[] $columns The money columns.
+     * @param Currency $currency The order's currency, at the scale the order keeps.
      *
-     * @return array<string, string> Column => its figure (e.g. '5.004'); a column that states none is left out.
+     * @return array<string, string> Column => its figure (e.g. '19.40', or '5.004' when finer than the money); a column
+     *                               that states none is left out.
      *
      * @since  2.0.0
      */
-    private function storedFigures(object $row, array $columns): array
+    private function storedFigures(object $row, array $columns, Currency $currency): array
     {
         $figures = [];
 
         foreach ($columns as $column) {
             if (isset($row->{$column}) && \is_string($row->{$column})) {
-                $figures[$column] = ExactAmount::of($row->{$column})->text();
+                $figures[$column] = self::figureAtScale(figure: ExactAmount::of($row->{$column})->text(), scale: $currency->getDecimalPlaces());
             }
         }
 
         return $figures;
+    }
+
+    /**
+     * A figure with at least the given decimal places, never rounded: zeros are added, no digit is dropped. 19.4 is
+     * 19.40 at two places; 5.004 stays 5.004 (finer than the money: shown as it is, for the rule to refuse on Save).
+     *
+     * @param string $figure A plain decimal in its normal form (ExactAmount::text()).
+     * @param int $scale The decimal places.
+     *
+     * @return string The figure at the scale.
+     *
+     * @since  2.1.1
+     */
+    private static function figureAtScale(string $figure, int $scale): string
+    {
+        $point = strpos($figure, '.');
+        $places = $point === false ? 0 : \strlen($figure) - $point - 1;
+
+        if ($places >= $scale) {
+            return $figure;
+        }
+
+        return ($point === false ? $figure . '.' : $figure) . str_repeat('0', $scale - $places);
     }
 
     /**
@@ -6022,6 +6073,7 @@ class OrderModel extends AlfaAdminModel
      * @param int|null $actorId The acting user; 0 = System; null = the current identity.
      * @param bool $refuseOversize Refuse an oversize context instead of truncating it.
      *
+     * @return int|null The new row's id; null when nothing was written (since 2.1.1).
      *
      * @since  2.0.0
      */
@@ -6034,7 +6086,7 @@ class OrderModel extends AlfaAdminModel
         ?Throwable &$failure,
         ?int $actorId = null,
         bool $refuseOversize = false,
-    ): void {
+    ): ?int {
         try {
             $db = Factory::getContainer()->get('DatabaseDriver');
             $user = null;
@@ -6133,9 +6185,13 @@ class OrderModel extends AlfaAdminModel
             $log->context = $encoded;
             $log->created = Factory::getDate('now', 'UTC')->toSql();
 
-            $db->insertObject('#__alfa_order_activity_log', $log);
+            $db->insertObject('#__alfa_order_activity_log', $log, 'id');
+
+            return (int) $log->id;
         } catch (Throwable $e) {
             $failure = $e;
+
+            return null;
         }
     }
 
@@ -6147,7 +6203,9 @@ class OrderModel extends AlfaAdminModel
      * the write cannot be undone and must not throw. A missing audit record
      * is still never a warning: it is logged CRITICAL and raised as a backend
      * notification, because a timeline with a hole in it is a thing an
-     * operator has to know about.
+     * operator has to know about. The one failure that does reach the caller
+     * is one that ended the caller's transaction (a deadlock): its work is gone
+     * with it and must not go on writing outside any transaction (since 2.1.1).
      *
      * Callers whose mutation is still open (inside a transaction) must use
      * {@see logOrderActivityStrict} instead, so the mutation rolls back with
@@ -6159,6 +6217,7 @@ class OrderModel extends AlfaAdminModel
      * @param array|null $context Structured data.
      * @param int|null $entityId Related entity PK.
      *
+     * @return int|null The record's id; null when it could not be written (since 2.1.1).
      *
      * @since  1.0.0
      */
@@ -6168,15 +6227,19 @@ class OrderModel extends AlfaAdminModel
         string $summary,
         ?array $context = null,
         ?int $entityId = null,
-    ): void {
+    ): ?int {
         $failure = null;
 
-        self::writeActivity($orderId, $event, $summary, $context, $entityId, $failure);
+        $recordId = self::writeActivity($orderId, $event, $summary, $context, $entityId, $failure);
 
         if ($failure === null) {
             self::retractActivityAlert($orderId);
 
-            return;
+            return $recordId;
+        }
+
+        if (TransactionState::endedBy(db: Factory::getContainer()->get('DatabaseDriver'), failure: $failure)) {
+            throw $failure;
         }
 
         Log::add(
@@ -6202,6 +6265,8 @@ class OrderModel extends AlfaAdminModel
         } catch (Throwable $e) {
             // The notifier is itself best-effort; the CRITICAL above stands.
         }
+
+        return null;
     }
 
     /**

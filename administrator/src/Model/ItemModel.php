@@ -23,6 +23,7 @@ use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartQuantityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\StockVisibilityPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\VisibilityNotifier;
 use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
@@ -280,6 +281,22 @@ class ItemModel extends AlfaAdminModel
             $app->enqueueMessage(Text::_('COM_ALFA_CATEGORIES_NOT_CHANGED'), 'info');
 
             return true;
+        }
+
+        // A category newly given to a product must be available (CategoryPickerPolicy): refused for the whole
+        // batch, before anything is written; a category a product already holds is kept.
+        $tree = CategoryPickerPolicy::tree();
+        $refused = [];
+
+        foreach ($pks as $id) {
+            $held = AlfaHelper::getAssocsFromDb($id, '#__alfa_items_categories', 'item_id', 'category_id');
+            $refused += CategoryPickerPolicy::refusedNew(posted: (array) $value, stored: (array) $held, tree: $tree);
+        }
+
+        if ($refused !== []) {
+            $this->setError(CategoryPickerPolicy::refusal(refused: $refused));
+
+            return false;
         }
 
         $affectedCategories = [];
@@ -670,6 +687,27 @@ class ItemModel extends AlfaAdminModel
 
         $newDropped = $input->files->get('jform')['uploads'] ?? [];
 
+        // A NEW category of the product, or a new default category, must be available (not archived or trashed,
+        // not inside an archived or trashed category); a category the product already holds is kept.
+        $db = $this->getDatabase();
+        $storedDefault = $pk > 0
+            ? (int) $db->setQuery(
+                'SELECT ' . $db->quoteName('id_category_default') . ' FROM ' . $db->quoteName('#__alfa_items')
+                . ' WHERE ' . $db->quoteName('id') . ' = ' . $pk,
+            )->loadResult()
+            : 0;
+        $categoryRefusal = CategoryPickerPolicy::refusalForSave(
+            recordId:     $pk,
+            posted:       array_merge((array) ($data['categories'] ?? []), [(int) ($data['id_category_default'] ?? 0)]),
+            table:        '#__alfa_items_categories',
+            recordColumn: 'item_id',
+            alsoHeld:     [$storedDefault],
+        );
+
+        if ($categoryRefusal !== null) {
+            return $this->refuseSave(messages: [$categoryRefusal]);
+        }
+
         // PRE-FLIGHT: every stock, tracking and combination refusal that can be
         // known before the row is written refuses the whole save up front, so a
         // refused request writes nothing at all.
@@ -738,6 +776,31 @@ class ItemModel extends AlfaAdminModel
         // The sale rules as stored before the save, to tell whether it changed them.
         $saleRulesBefore = $pk > 0 ? $this->saleRuleFacts(itemId: $pk) : null;
 
+        // URL ALIASES, judged before anything is written: a save that would put this product
+        // on another one's address in any language is refused; an address it already shared
+        // is kept and said after the save. A copy takes its own aliases, generated.
+        if ($input->get('task') === 'save2copy') {
+            $data = MultilingualHelper::releaseCopiedAliases(
+                data:              $data,
+                tableName:         '#__alfa_items',
+                primaryColumnName: 'id_item',
+                originalId:        $input->getInt('id'),
+                aliasFields:       MultilingualAliasConfig::FIELDS['#__alfa_items'],
+            );
+        }
+
+        $aliasClashes = MultilingualHelper::aliasClashes(
+            tableName:         '#__alfa_items',
+            primaryColumnName: 'id_item',
+            currentId:         $pk,
+            data:              $data,
+            aliasFields:       MultilingualAliasConfig::FIELDS['#__alfa_items'],
+        );
+
+        if ($aliasClashes['refuse'] !== []) {
+            return $this->refuseSave(messages: $aliasClashes['refuse']);
+        }
+
         if (!parent::save($data)) {
             return false;
         }
@@ -764,7 +827,7 @@ class ItemModel extends AlfaAdminModel
         }
 
         // MULTILINGUAL: persist per-language translations (name, alias, short_desc,
-        // full_desc, meta_title, meta_desc). The alias slug is auto-generated,
+        // full_desc, meta_title, meta_desc). A blank alias slug is generated,
         // sanitised and made globally unique (an item can belong to many categories).
         MultilingualHelper::saveMultilingualData(
             currentId:         $currentId,
@@ -773,6 +836,10 @@ class ItemModel extends AlfaAdminModel
             data:              $data,
             aliasFields:       MultilingualAliasConfig::FIELDS['#__alfa_items'],
         );
+
+        foreach ($aliasClashes['warn'] as $warning) {
+            $app->enqueueMessage($warning, 'warning');
+        }
 
         if (!empty($data['media'])) {
             $defaultLangTag = MultilingualHelper::getDefaultLanguageTag();

@@ -62,9 +62,9 @@
             default="0"
             validate="options"
     >
-      <option value="0">Only this discount</option>
-      <option value="1">Combined</option>
-      <option value="2">One after another</option>
+      <option value="0">COM_ALFA_TAX_BEHAVIOR_ONLY_THIS_DISCOUNT</option>
+      <option value="1">COM_ALFA_TAX_BEHAVIOR_COMBINED</option>
+      <option value="2">COM_ALFA_TAX_BEHAVIOR_ONE_AFTER_ANOTHER</option>
     </field>
 
     <field
@@ -75,8 +75,8 @@
             default="1"
             validate="options"
     >
-      <option value="1">Before Tax</option>
-      <option value="0">After Tax</option>
+      <option value="1">COM_ALFA_DISCOUNT_BEFORE_TAX</option>
+      <option value="0">COM_ALFA_DISCOUNT_AFTER_TAX</option>
     </field>
 
     <!-- Sale-tag badge: the discount's name rendered in a surface slot. Two
@@ -174,8 +174,8 @@
             label="COM_ALFA_FORM_LBL_DISCOUNT_IS_AMOUNT"
             default="0"
     >
-      <option value="1">Amount</option>
-      <option value="0">Percentage</option>
+      <option value="1">COM_ALFA_DISCOUNT_TYPE_AMOUNT</option>
+      <option value="0">COM_ALFA_DISCOUNT_TYPE_PERCENTAGE</option>
     </field>
 
     <!--
