@@ -15,11 +15,11 @@ use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Joomla\CMS\Form\Form;
 
 /**
- * Single-notification model: the canonical write path for the notification store.
- * Creating/updating a notification goes through {@see self::save()}, called by the
- * static {@see \Alfa\Component\Alfa\Administrator\Helper\NotificationHelper::push()}.
- * There is no edit form and no webservices route: notifications are raised by code,
- * never typed in. Reads use {@see NotificationsModel}.
+ * Single-notification record model of the admin contract. Notifications are raised by
+ * code, never typed in: {@see \Alfa\Component\Alfa\Administrator\Helper\NotificationHelper::push()}
+ * writes them itself and never saves through this model, so no admin save event fires
+ * for a notification core raises. There is no edit form and no webservices route. Reads
+ * use {@see NotificationsModel}.
  *
  * @since  1.0.0
  */

@@ -34,8 +34,8 @@
                 label="COM_ALFA_BACKGROUND_COLOR_LABEL" />
 
         <field name="stock_operation" default="0" type="radio" label="COM_ALFA_FORM_LBL_STOCK_OPERATION" description="" class="btn-group">
-            <option value="0">Remove from stock</option>
-            <option value="1">Keep in stock</option>
+            <option value="0">COM_ALFA_ORDERSTATUS_STOCK_REMOVE</option>
+            <option value="1">COM_ALFA_ORDERSTATUS_STOCK_KEEP</option>
         </field>
 
         <field name="state" default="1" type="list" label="JSTATUS" description="JFIELD_PUBLISHED_DESC" class="inputbox" size="1">

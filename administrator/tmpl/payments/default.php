@@ -55,6 +55,7 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);   // END-on
 						<?php echo \Joomla\CMS\Language\Text::_("JGLOBAL_NO_MATCHING_RESULTS"); ?>
 					</div>
 				<?php else : ?>
+				<div class="table-responsive">
 				<table class="table table-striped" id="paymentList">
 					<thead>
 					<tr>
@@ -216,6 +217,7 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);   // END-on
 					<?php endforeach; ?>
 					</tbody>
 				</table>
+				</div>
 
 				<?php echo $this->pagination->getListFooter(); ?>
 				<?php endif; ?>

@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Field\Traits\HasCaptionLabelTrait;
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\CombinationState;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryAvailabilityService;
@@ -44,6 +45,8 @@ use Joomla\Database\ParameterType;
  */
 class InventoryStockField extends FormField
 {
+    use HasCaptionLabelTrait;
+
     /**
      * The user-state key the item edit form keeps its post under.
      *
@@ -55,6 +58,66 @@ class InventoryStockField extends FormField
      * @var string Field type.
      */
     protected $type = 'InventoryStock';
+
+    /**
+     * Whether the product has combinations, read once per field.
+     *
+     * @since  2.1.1
+     */
+    private ?bool $hasCombinations = null;
+
+    /**
+     * The locations stock can be corrected at, read once per field.
+     *
+     * @since  2.1.1
+     */
+    private ?array $locations = null;
+
+    /**
+     * The label, or a caption when the field draws a table of locations: no single control to name.
+     *
+     * @return string The label or caption markup.
+     *
+     * @since  2.1.1
+     */
+    protected function getLabel(): string
+    {
+        $itemId = (int) $this->form->getValue('id');
+
+        if (!$this->combinationsOf(itemId: $itemId) && \count($this->locationsOf(itemId: $itemId)) > 1) {
+            return $this->captionLabel();
+        }
+
+        return parent::getLabel();
+    }
+
+    /**
+     * Whether the product has combinations (read once).
+     *
+     * @param int $itemId The product.
+     *
+     * @return bool True when it has.
+     *
+     * @since  2.1.1
+     */
+    private function combinationsOf(int $itemId): bool
+    {
+        return $this->hasCombinations ??= $itemId > 0 && self::countCombinations(itemId: $itemId) > 0;
+    }
+
+    /**
+     * The locations stock can be corrected at (read once).
+     *
+     * @param int $itemId The product.
+     *
+     * @return array The location breakdown.
+     *
+     * @since  2.1.1
+     */
+    private function locationsOf(int $itemId): array
+    {
+        return $this->locations ??= (new InventoryAvailabilityService())->locationBreakdown(itemId: $itemId);
+    }
 
     /**
      * Render the input(s).
@@ -69,8 +132,8 @@ class InventoryStockField extends FormField
 
         // A product with combinations owns no item-level unit: its figure is
         // read-only and summed over its combination units.
-        if ($itemId > 0 && self::countCombinations(itemId: $itemId) > 0) {
-            return self::combinationAggregateInput(itemId: $itemId);
+        if ($this->combinationsOf(itemId: $itemId)) {
+            return self::combinationAggregateInput(itemId: $itemId, id: $this->id);
         }
 
         // THE SIBLING INLINE EDITOR'S LOCATION SET. Counting published locations
@@ -78,7 +141,7 @@ class InventoryStockField extends FormField
         // stock kept counting towards the product's total. A brand-new item has no
         // ledger rows, so it lists the published locations at zero and keeps its
         // shape across the first save; the model adjusts each location up from there.
-        $locations = (new InventoryAvailabilityService())->locationBreakdown(itemId: $itemId);
+        $locations = $this->locationsOf(itemId: $itemId);
 
         // A kept post belongs to the record it was posted for, and only to it.
         $kept = KeptPost::forRecord(stateKey: self::KEPT_POST_KEY, recordId: $itemId);
@@ -161,7 +224,7 @@ class InventoryStockField extends FormField
                 // Listed only because it still holds stock: it can be drained from
                 // here, and the inventory kernel refuses to put new stock into it.
                 . (!$location['published']
-                    ? ' <span class="badge bg-secondary">' . Text::_('JDISABLED') . '</span>'
+                    ? ' <span class="badge bg-secondary">' . Text::_('COM_ALFA_LOCATION_BADGE_DISABLED') . '</span>'
                     : '')
                 . '</td>'
                 . '<td class="text-end"><input type="number" step="any" class="form-control form-control-sm text-end"'
@@ -208,11 +271,12 @@ class InventoryStockField extends FormField
      * cannot be sold while combinations exist, so it is named in a notice.
      *
      * @param int $itemId The product.
+     * @param string $id The field's id, given to the read-only figure so the label names it (since 2.1.1).
      *
      *
      * @since  2.0.0
      */
-    private static function combinationAggregateInput(int $itemId): string
+    private static function combinationAggregateInput(int $itemId, string $id): string
     {
         $aggregate = InventoryAvailabilityService::combinationAggregate(itemId: $itemId);
 
@@ -222,7 +286,7 @@ class InventoryStockField extends FormField
             . ' - ' . Text::_('COM_ALFA_INVENTORY_ABBR_RESERVED') . ' '
             . InventoryAvailabilityService::formatQuantity(value: $aggregate['reserved']);
 
-        $html = '<input type="text" class="form-control" readonly value="' . self::escape(value: $display) . '">'
+        $html = '<input type="text" class="form-control" id="' . self::escape(value: $id) . '" readonly value="' . self::escape(value: $display) . '">'
             . '<div class="form-text">' . Text::_('COM_ALFA_INVENTORY_STOCK_COMBINATIONS_AGGREGATE') . '</div>';
 
         if ($aggregate['item_level_rows_not_zero'] > 0) {

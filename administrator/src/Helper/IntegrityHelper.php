@@ -14,7 +14,9 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 use Alfa\Component\Alfa\Administrator\Service\Setup\AlfaVersion;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Filter\InputFilter;
 use Joomla\CMS\Version;
+use Joomla\Database\DatabaseInterface;
 use Joomla\Http\HttpFactory;
 use Joomla\Http\Transport\Curl as CurlTransport;
 use Throwable;
@@ -36,6 +38,12 @@ use Throwable;
  * is `unreachable`, reported as a plainly NOT-SAFE state, never green, so a blocked
  * connection can't masquerade as healthy. The only defence against a fully-owned
  * server (which can neuter any on-box check) is an external off-box monitor.
+ *
+ * Language packs: Alfa Commerce ships en-GB only, and every other language is a separate
+ * language pack that installs its files beside the en-GB ones. Installing or removing a
+ * pack must never make this check report the installation as changed, so a pack's .ini
+ * file in an extension folder is never counted as injected
+ * ({@see self::isLanguagePackFile()}); every other rule is unchanged.
  *
  * @since  1.0.0
  */
@@ -87,6 +95,70 @@ class IntegrityHelper
         '#^(modules/[^/]+)/#',
         '#^(plugins/[^/]+/[^/]+)/#',
     ];
+
+    /**
+     * A language pack's file, as a path relative to the extension folder the reverse walk
+     * found it in: directly in language/<tag>/ at the top of that folder, where the tag has
+     * Joomla's form (xx-XX or xxx-XX) and is not en-GB, the language the release ships and
+     * signs, and the name ends in .ini and does not start with a dot (.user.ini is PHP's own
+     * per-folder configuration, never a language file).
+     *
+     * @var string
+     * @since  2.1.1
+     */
+    private const LANGUAGE_PACK_FILE = '#^language/(?!en-GB/)[a-z]{2,3}-[A-Z]{2}/(?!\.)[^/]+\.ini$#';
+
+    /**
+     * Desktop clutter the reverse walk ignores, by exact name: .DS_Store (macOS Finder), Thumbs.db
+     * and desktop.ini (Windows Explorer); and the ._<name> files macOS writes beside copied
+     * files (AppleDouble). They hold no code. Every other file is walked, hidden ones included:
+     * .htaccess and .user.ini change how the web server and PHP run the folder.
+     *
+     * @var string[]
+     * @since  2.1.1
+     */
+    private const CLUTTER = ['.ds_store', 'thumbs.db', 'desktop.ini'];
+
+    /**
+     * The #__alfa_meta fact holding the counts of the verdict the Security notification was
+     * last set from, as JSON. The tamper banner reads it beside the notification's severity.
+     *
+     * @var string
+     * @since  2.1.1
+     */
+    public const SUMMARY_META = 'integrity_verdict';
+
+    /**
+     * The tamper banner, character-encoded so a plaintext search for its wording does not
+     * surface it, and kept out of the language files so a language override cannot silence
+     * it. Its lead sentence, then the sentence for changed or missing files, then the ends of
+     * the sentence for extra files only (after their number: one file, several files).
+     *
+     * @var string
+     * @since  2.1.1
+     */
+    private const ALARM_LEAD = "\x3c\x73\x74\x72\x6f\x6e\x67\x3e\x53\x65\x63\x75\x72\x69\x74\x79\x20\x63\x6f\x6e\x63\x65\x72\x6e\x3a\x3c\x2f\x73\x74\x72\x6f\x6e\x67\x3e\x20\x74\x68\x69\x73\x20\x41\x6c\x66\x61\x20\x43\x6f\x6d\x6d\x65\x72\x63\x65\x20\x69\x6e\x73\x74\x61\x6c\x6c\x61\x74\x69\x6f\x6e\x20\x64\x6f\x65\x73\x20\x6e\x6f\x74\x20\x6d\x61\x74\x63\x68\x20\x74\x68\x65\x20\x73\x69\x67\x6e\x65\x64\x20\x6f\x66\x66\x69\x63\x69\x61\x6c\x20\x72\x65\x6c\x65\x61\x73\x65\x2e\x20";
+
+    /** @since  2.1.1 */
+    private const ALARM_CHANGED = "\x49\x74\x73\x20\x66\x69\x6c\x65\x73\x20\x68\x61\x76\x65\x20\x62\x65\x65\x6e\x20\x63\x68\x61\x6e\x67\x65\x64\x2e";
+
+    /** @since  2.1.1 */
+    private const ALARM_EXTRA_ONE = "\x20\x65\x78\x74\x72\x61\x20\x66\x69\x6c\x65\x20\x6e\x6f\x74\x20\x69\x6e\x20\x74\x68\x65\x20\x6f\x66\x66\x69\x63\x69\x61\x6c\x20\x72\x65\x6c\x65\x61\x73\x65\x2e";
+
+    /**
+     * The whole banner when the official checksums could not be verified (bad signature) or could not be
+     * fetched: then nothing is known about the files, so it says what happened instead.
+     *
+     * @var string
+     * @since  2.1.1
+     */
+    private const ALARM_UNVERIFIED = "\x3c\x73\x74\x72\x6f\x6e\x67\x3e\x53\x65\x63\x75\x72\x69\x74\x79\x20\x63\x6f\x6e\x63\x65\x72\x6e\x3a\x3c\x2f\x73\x74\x72\x6f\x6e\x67\x3e\x20\x74\x68\x69\x73\x20\x41\x6c\x66\x61\x20\x43\x6f\x6d\x6d\x65\x72\x63\x65\x20\x69\x6e\x73\x74\x61\x6c\x6c\x61\x74\x69\x6f\x6e\x20\x63\x6f\x75\x6c\x64\x20\x6e\x6f\x74\x20\x62\x65\x20\x63\x68\x65\x63\x6b\x65\x64\x20\x61\x67\x61\x69\x6e\x73\x74\x20\x74\x68\x65\x20\x73\x69\x67\x6e\x65\x64\x20\x6f\x66\x66\x69\x63\x69\x61\x6c\x20\x72\x65\x6c\x65\x61\x73\x65\x3a\x20\x74\x68\x65\x20\x6f\x66\x66\x69\x63\x69\x61\x6c\x20\x63\x68\x65\x63\x6b\x73\x75\x6d\x73\x20\x63\x6f\x75\x6c\x64\x20\x6e\x6f\x74\x20\x62\x65\x20\x76\x65\x72\x69\x66\x69\x65\x64\x2e";
+
+    /** @since  2.1.1 */
+    private const ALARM_UNFETCHED = "\x3c\x73\x74\x72\x6f\x6e\x67\x3e\x53\x65\x63\x75\x72\x69\x74\x79\x20\x63\x6f\x6e\x63\x65\x72\x6e\x3a\x3c\x2f\x73\x74\x72\x6f\x6e\x67\x3e\x20\x74\x68\x69\x73\x20\x41\x6c\x66\x61\x20\x43\x6f\x6d\x6d\x65\x72\x63\x65\x20\x69\x6e\x73\x74\x61\x6c\x6c\x61\x74\x69\x6f\x6e\x20\x63\x6f\x75\x6c\x64\x20\x6e\x6f\x74\x20\x62\x65\x20\x63\x68\x65\x63\x6b\x65\x64\x20\x61\x67\x61\x69\x6e\x73\x74\x20\x74\x68\x65\x20\x73\x69\x67\x6e\x65\x64\x20\x6f\x66\x66\x69\x63\x69\x61\x6c\x20\x72\x65\x6c\x65\x61\x73\x65\x3a\x20\x74\x68\x65\x20\x6f\x66\x66\x69\x63\x69\x61\x6c\x20\x63\x68\x65\x63\x6b\x73\x75\x6d\x73\x20\x63\x6f\x75\x6c\x64\x20\x6e\x6f\x74\x20\x62\x65\x20\x66\x65\x74\x63\x68\x65\x64\x2e";
+
+    /** @since  2.1.1 */
+    private const ALARM_EXTRA_MANY = "\x20\x65\x78\x74\x72\x61\x20\x66\x69\x6c\x65\x73\x20\x6e\x6f\x74\x20\x69\x6e\x20\x74\x68\x65\x20\x6f\x66\x66\x69\x63\x69\x61\x6c\x20\x72\x65\x6c\x65\x61\x73\x65\x2e";
 
     /**
      * Verify this install against the SIGNED canonical checksums on the CDN: the
@@ -354,10 +426,12 @@ class IntegrityHelper
 
     /**
      * Reverse-walk every extension folder the catalog claims and return each file
-     * present on disk whose root-relative path is NOT a key in $known. This is the
+     * present on disk whose root-relative path is NOT a key in $known, apart from a
+     * language pack's files ({@see self::isLanguagePackFile()}). This is the
      * half that surfaces injected files: the expected-set loop alone never visits a
-     * path it doesn't already expect. {@see self::walk()} applies a tight, name-based
-     * ignore (dotfiles/cruft) so genuine intruders can't hide behind a broad rule.
+     * path it doesn't already expect. {@see self::walk()} reports hidden files too and
+     * ignores only desktop clutter by exact name ({@see self::isClutter()}), so genuine
+     * intruders can't hide behind a broad rule.
      *
      * @param string $root Installation root, no trailing slash.
      * @param array<string, mixed> $known The expected file set, root-relative paths as keys.
@@ -373,15 +447,200 @@ class IntegrityHelper
         foreach (self::walkRoots(files: $known) as $relRoot) {
             $absRoot = $root . '/' . $relRoot;
 
-            if (is_dir($absRoot)) {
-                self::walk(absDir: $absRoot, relDir: $relRoot, out: $found);
+            if (!is_dir($absRoot)) {
+                continue;
+            }
+
+            $inRoot = [];
+            self::walk(absDir: $absRoot, relDir: $relRoot, out: $inRoot);
+
+            foreach ($inRoot as $rel) {
+                if (
+                    !\array_key_exists($rel, $known)
+                    && !self::isLanguagePackFile(path: substr($rel, \strlen($relRoot) + 1))
+                ) {
+                    $found[] = $rel;
+                }
             }
         }
 
-        return array_values(array_filter(
-            $found,
-            static fn (string $rel): bool => !\array_key_exists($rel, $known),
-        ));
+        return $found;
+    }
+
+    /**
+     * Whether a file the reverse walk found is a language pack's file, never reported as
+     * injected. $path is relative to the extension folder it was found in, and qualifies
+     * when it matches {@see self::LANGUAGE_PACK_FILE}: directly in language/<tag>/, a tag
+     * in Joomla's form other than en-GB, a name ending in .ini.
+     *
+     * The trade-off: such a file is data, not code. Joomla only parses it as text and
+     * never includes it, so a file planted there cannot run, while a pack's files must not
+     * read as tampering. Every other file stays an intruder: a .php or any other name in a
+     * language folder, an en-GB file the release does not list, a file in a deeper folder.
+     * A name with an executable segment before .ini (x.php.ini) is refused as well: a web
+     * server that maps .php by handler runs such a name as a script, so it is not data. The
+     * segments are Joomla's own list of extensions a web server may execute.
+     *
+     * @param string $path Path relative to the extension folder, no leading slash.
+     *
+     * @since  2.1.1
+     */
+    public static function isLanguagePackFile(string $path): bool
+    {
+        if (preg_match(self::LANGUAGE_PACK_FILE, $path) !== 1) {
+            return false;
+        }
+
+        $segments = \array_slice(explode('.', strtolower(basename($path))), 0, -1);
+
+        return array_intersect($segments, InputFilter::FORBIDDEN_FILE_EXTENSIONS) === [];
+    }
+
+    /**
+     * Whether a file name is desktop clutter the reverse walk ignores ({@see self::CLUTTER},
+     * case-insensitive, and the AppleDouble ._<name>). A name with a segment a web server may
+     * execute is never clutter: ._shell.php runs as a script wherever .php does.
+     *
+     * @param string $name A file name, without its folder.
+     *
+     * @since  2.1.1
+     */
+    public static function isClutter(string $name): bool
+    {
+        $lower = strtolower($name);
+
+        if (!\in_array($lower, self::CLUTTER, true) && !str_starts_with($name, '._')) {
+            return false;
+        }
+
+        return array_intersect(explode('.', $lower), InputFilter::FORBIDDEN_FILE_EXTENSIONS) === [];
+    }
+
+    /**
+     * The counts of a verdict that the tamper banner needs: its status and how many files
+     * are modified, missing and injected.
+     *
+     * @param array $verdict A verdict from {@see self::verifyAgainstOfficial()}.
+     *
+     * @return array{status: string, modified: int, missing: int, injected: int}
+     *
+     * @since  2.1.1
+     */
+    public static function summarise(array $verdict): array
+    {
+        return [
+            'status' => (string) ($verdict['status'] ?? 'unreachable'),
+            'modified' => \count((array) ($verdict['modified'] ?? [])),
+            'missing' => \count((array) ($verdict['missing'] ?? [])),
+            'injected' => \count((array) ($verdict['injected'] ?? [])),
+        ];
+    }
+
+    /**
+     * Record a verdict's counts ({@see self::summarise()}) as the {@see self::SUMMARY_META}
+     * fact, written only when it changed. Best effort: a failure leaves the earlier counts,
+     * and the banner then says what it said before.
+     *
+     * @param array $verdict The verdict the Security notification is being set from.
+     *
+     * @since  2.1.1
+     */
+    public static function recordSummary(array $verdict): void
+    {
+        try {
+            $db = Factory::getContainer()->get(DatabaseInterface::class);
+            $json = json_encode(self::summarise(verdict: $verdict), JSON_THROW_ON_ERROR);
+            $stored = $db->setQuery(
+                $db->createQuery()
+                    ->select($db->quoteName('value'))
+                    ->from($db->quoteName('#__alfa_meta'))
+                    ->where($db->quoteName('name') . ' = ' . $db->quote(self::SUMMARY_META)),
+            )->loadResult();
+
+            if ($stored === $json) {
+                return;
+            }
+
+            $query = $db->createQuery();
+
+            if ($stored === null) {
+                $query->insert($db->quoteName('#__alfa_meta'))
+                    ->columns($db->quoteName(['name', 'value']))
+                    ->values($db->quote(self::SUMMARY_META) . ', ' . $db->quote($json));
+            } else {
+                $query->update($db->quoteName('#__alfa_meta'))
+                    ->set($db->quoteName('value') . ' = ' . $db->quote($json))
+                    ->where($db->quoteName('name') . ' = ' . $db->quote(self::SUMMARY_META));
+            }
+
+            $db->setQuery($query)->execute();
+        } catch (Throwable) {
+            // The counts only shape the banner's wording; the verdict itself is unaffected.
+        }
+    }
+
+    /**
+     * The counts last recorded by {@see self::recordSummary()}, or null when none are.
+     * One indexed read, for the tamper banner.
+     *
+     * @return array{status: string, modified: int, missing: int, injected: int}|null
+     *
+     * @since  2.1.1
+     */
+    public static function recordedSummary(): ?array
+    {
+        try {
+            $db = Factory::getContainer()->get(DatabaseInterface::class);
+            $json = $db->setQuery(
+                $db->createQuery()
+                    ->select($db->quoteName('value'))
+                    ->from($db->quoteName('#__alfa_meta'))
+                    ->where($db->quoteName('name') . ' = ' . $db->quote(self::SUMMARY_META)),
+            )->loadResult();
+            $summary = \is_string($json) ? json_decode($json, true) : null;
+        } catch (Throwable) {
+            return null;
+        }
+
+        return \is_array($summary) && isset($summary['status'], $summary['modified'], $summary['missing'], $summary['injected'])
+            ? $summary
+            : null;
+    }
+
+    /**
+     * The tamper banner's text for the recorded counts. When the official checksums could not
+     * be verified or fetched it says so (nothing is known about the files then); when nothing
+     * is modified or missing and only extra files were found, it names how many; otherwise,
+     * and when no counts are recorded, it says the files have been changed.
+     *
+     * @param array|null $summary Counts from {@see self::recordedSummary()}.
+     *
+     * @since  2.1.1
+     */
+    public static function alarmText(?array $summary): string
+    {
+        $status = (string) ($summary['status'] ?? '');
+
+        if ($status === 'bad_signature') {
+            return self::ALARM_UNVERIFIED;
+        }
+
+        if ($status === 'unreachable') {
+            return self::ALARM_UNFETCHED;
+        }
+
+        $extra = (int) ($summary['injected'] ?? 0);
+
+        if (
+            $status === 'modified'
+            && (int) ($summary['modified'] ?? 0) === 0
+            && (int) ($summary['missing'] ?? 0) === 0
+            && $extra > 0
+        ) {
+            return self::ALARM_LEAD . $extra . ($extra === 1 ? self::ALARM_EXTRA_ONE : self::ALARM_EXTRA_MANY);
+        }
+
+        return self::ALARM_LEAD . self::ALARM_CHANGED;
     }
 
     /**
@@ -435,9 +694,10 @@ class IntegrityHelper
 
     /**
      * Recursively collect every file beneath an absolute directory, keyed by its
-     * root-relative path. Skips '.', '..' and dotfiles/dotfolders at every level
-     * (a tight, name-based ignore; never broad, so an intruder can't hide behind
-     * an over-greedy rule). A missing directory is a silent no-op.
+     * root-relative path, hidden files and folders included (.htaccess, .user.ini, a
+     * dot-named folder). Skips only '.', '..' and desktop clutter ({@see self::isClutter()}):
+     * a tight, name-based ignore, never broad, so an intruder can't hide behind an
+     * over-greedy rule. A missing directory is a silent no-op.
      *
      * @param string $absDir Absolute directory on the live install.
      * @param string $relDir Root-relative path of that directory (no leading slash).
@@ -448,7 +708,7 @@ class IntegrityHelper
     private static function walk(string $absDir, string $relDir, array &$out): void
     {
         foreach ((array) scandir($absDir) as $entry) {
-            if ($entry === '.' || $entry === '..' || str_starts_with($entry, '.')) {
+            if ($entry === '.' || $entry === '..') {
                 continue;
             }
 
@@ -457,7 +717,7 @@ class IntegrityHelper
 
             if (is_dir($abs)) {
                 self::walk(absDir: $abs, relDir: $rel, out: $out);
-            } else {
+            } elseif (!self::isClutter(name: $entry)) {
                 $out[] = $rel;
             }
         }

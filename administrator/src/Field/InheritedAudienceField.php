@@ -11,11 +11,12 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Field\Traits\HasCaptionLabelTrait;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CatalogAccessPolicy;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\FormField;
 use Joomla\CMS\Language\Text;
-use Throwable;
 
 /**
  * Answers "who can see this product right now?", per dimension.
@@ -38,6 +39,8 @@ use Throwable;
  */
 class InheritedAudienceField extends FormField
 {
+    use HasCaptionLabelTrait;
+
     /**
      * Field type id: must match the filename and the XML `type`.
      *
@@ -183,6 +186,8 @@ class InheritedAudienceField extends FormField
     }
 
     /**
+     * The category's name in the current language, else in the default one.
+     *
      * @param int $categoryId The category id.
      *
      *
@@ -190,28 +195,14 @@ class InheritedAudienceField extends FormField
      */
     private function categoryName(int $categoryId): string
     {
-        $db = Factory::getContainer()->get('DatabaseDriver');
-
-        $query = $db->getQuery(true)
-            ->select($db->quoteName('name'))
-            ->from($db->quoteName('#__alfa_categories_' . str_replace('-', '_', strtolower($this->getLanguageTag()))))
-            ->where($db->quoteName('id_category') . ' = ' . $categoryId);
-
-        try {
-            $name = (string) $db->setQuery($query)->loadResult();
-        } catch (Throwable) {
-            $name = '';
-        }
+        $name = MultilingualHelper::getTranslatedValue(
+            id:                $categoryId,
+            tableName:         '#__alfa_categories',
+            primaryColumnName: 'id_category',
+            field:             'name',
+        );
 
         return $name !== '' ? $name : ('#' . $categoryId);
-    }
-
-    /**
-     * @since  2.0.0
-     */
-    private function getLanguageTag(): string
-    {
-        return Factory::getApplication()->getLanguage()->getTag();
     }
 
     /**

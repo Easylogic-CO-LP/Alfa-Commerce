@@ -11,13 +11,14 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Field\Traits\HasFailClosedOptionsTrait;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Field\ListField;
 use Throwable;
 
 class ModelField extends ListField
 {
-    use FailClosedOptionsTrait;
+    use HasFailClosedOptionsTrait;
 
     protected $type = 'model';
 

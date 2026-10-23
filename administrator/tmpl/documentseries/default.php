@@ -49,6 +49,9 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);
                         <?php echo Text::_('JGLOBAL_NO_MATCHING_RESULTS'); ?>
                     </div>
                 <?php else : ?>
+                <?php // Nine columns are wider than the main column at 1280 px with the menu open: the
+                      // list scrolls in its own box, never the page. ?>
+                <div class="table-responsive">
                 <table class="table table-striped" id="seriesList">
                     <thead>
                     <tr>
@@ -101,7 +104,7 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <code><?php echo $this->escape($item->prefix); ?></code>
+                                <code class="raw-value"><?php echo $this->escape($item->prefix); ?></code>
                                 <?php if ((int) $item->year_scoped === 1) : ?>
                                     <span class="badge bg-info"><?php echo Text::_('COM_ALFA_SERIES_BADGE_YEARLY'); ?></span>
                                 <?php endif; ?>
@@ -129,6 +132,7 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);
                     <?php endforeach; ?>
                     </tbody>
                 </table>
+                </div>
 
                 <?php echo $this->pagination->getListFooter(); ?>
                 <?php endif; ?>

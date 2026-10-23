@@ -598,20 +598,20 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      *     booked, never both and never neither. A refund no reservation covers
      *     (made in the provider's portal, found by a check or a notification)
      *     keeps its reportId from pending to settled and is booked once through
-     *     refundPayment() with gateway_moved FIRST, and listed no more only after
-     *     that booking has committed (or both in one database transaction): the
-     *     core's readers take no lock of the plugin's and may read between the
-     *     two steps; booked first, the refund is recognised as booked under its
-     *     provider id while it is still listed, so it is never counted by
-     *     nothing; a plugin that lists it no more before booking it leaves a
-     *     moment in which it is counted by nothing. The core recognises a
-     *     booking only under the provider's refund id, so a refund booked
-     *     without one must be listed no more from that step on: until then it
-     *     is counted twice, which only refuses more. When the provider reports
-     *     that a pending refund failed or was cancelled, the plugin lists it no
-     *     more and releases its reservation when it has one (releaseRefund()):
-     *     nothing is booked. No lock (OrderMoneyLock, a transaction, a row
-     *     lock) is ever held across a call to the provider;
+     *     refundPayment() with gateway_moved FIRST, sent outside any transaction
+     *     of the plugin's, and listed no more only after that booking has
+     *     committed: the core's readers take no lock of the plugin's and may
+     *     read between the two steps; booked first, the refund is recognised as
+     *     booked under its provider id while it is still listed, so it is
+     *     never counted by nothing; a plugin that lists it no more before
+     *     booking it leaves a moment in which it is counted by nothing. The
+     *     core recognises a booking only under the provider's refund id, so a
+     *     refund booked without one must be listed no more from that step on:
+     *     until then it is counted twice, which only refuses more. When the
+     *     provider reports that a pending refund failed or was cancelled, the
+     *     plugin lists it no more and releases its reservation when it has one
+     *     (releaseRefund()): nothing is booked. No lock (OrderMoneyLock, a
+     *     transaction, a row lock) is ever held across a call to the provider;
      *   - a report is listed while the provider says that refund was made or is
      *     being made, no later report says it failed or was cancelled, and the
      *     books hold no refund row of this payment under its provider id (a
@@ -824,6 +824,15 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * reservation. Without 'gateway_moved' it is a refund with no provider
      * call (the bundled Standard method), decided and booked in one locked step.
      *
+     * EVERY PROVIDER WORD (this verb with 'gateway_moved', settleRefund(),
+     * holdRefund(), releaseRefund()) is sent outside any transaction of your
+     * plugin's: sent inside one, it is answered OUTCOME_FAILED and nothing is
+     * written. The core's reads there would be your transaction's snapshot,
+     * taken before the order's lock, and a delivery committed meanwhile could
+     * be booked a second time (since 2.1.1). Any transaction open on the
+     * connection counts, one held by the caller of your hook included: send
+     * the word once that transaction has committed.
+     *
      * Usage:
      *   $result = $this->refundPayment((int) $payment->id, null, [
      *       'gateway_moved'    => true,
@@ -932,7 +941,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * logged (OUTCOME_DUPLICATE). A report staff recorded answers
      * OUTCOME_DUPLICATE with its row. With no provider id, one refund request
      * is one refund: the same figure again is a duplicate, a different one is
-     * kept for staff (OUTCOME_UNRECONCILED).
+     * kept for staff (OUTCOME_UNRECONCILED). Sent outside any transaction of
+     * yours (inside one: OUTCOME_FAILED, nothing written; see refundPayment()).
      *
      * @param int $reservationId The reservation (or a pending refund row split off it).
      * @param Money $amount The provider's figure, in the order's currency.
@@ -953,7 +963,8 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * The provider accepted a reserved refund but has not completed it: it stays
      * reserved, under the provider's refund id ({@see PaymentLedger::holdRefund()}).
      * The provider's figure is held as it is: a larger one grows the reservation
-     * (beyond the ceiling it is kept and every start is refused).
+     * (beyond the ceiling it is kept and every start is refused). Sent outside
+     * any transaction of yours, as settleRefund() is.
      *
      * @param int $reservationId The reservation.
      * @param string|null $providerRefundId The provider's refund id as given; null when it gives none.
@@ -974,6 +985,7 @@ abstract class PaymentsPlugin extends Plugin implements SubscriberInterface
      * Give back what a reservation still holds: the provider definitively refused
      * the refund, or the decision closed with this rest unused
      * ({@see PaymentLedger::releaseRefund()}). Never for an unknown outcome.
+     * Sent outside any transaction of yours, as settleRefund() is.
      *
      * @param int $reservationId The reservation.
      * @param string $reason Why, plain text.

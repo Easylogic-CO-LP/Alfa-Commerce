@@ -188,7 +188,7 @@ $renderMap = [
 	// Transaction ID: monospace code styling
 	'transaction_id' => function ($value, $payment, $escape) {
 		if (!empty($value)) {
-			return '<code>' . $escape($value) . '</code>';
+			return '<code class="raw-value">' . $escape($value) . '</code>';
 		}
 		return '<span class="text-muted">-</span>';
 	},
@@ -199,7 +199,7 @@ $renderMap = [
 			return '';
 		}
 		$preview = mb_strimwidth((string) $value, 0, 30, '...');
-		return '<code title="' . $escape($value) . '" style="cursor:help">'
+		return '<code class="raw-value" title="' . $escape($value) . '" style="cursor:help">'
 			. $escape($preview) . '</code>';
 	},
 

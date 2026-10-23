@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Field\Traits\HasCaptionLabelTrait;
 use Joomla\CMS\Form\FormField;
 use Joomla\CMS\Layout\LayoutHelper;
 
@@ -23,6 +24,8 @@ use Joomla\CMS\Layout\LayoutHelper;
  */
 class DownloadprotectionField extends FormField
 {
+    use HasCaptionLabelTrait;
+
     /**
      * @var string
      */

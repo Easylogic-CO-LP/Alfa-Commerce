@@ -527,3 +527,46 @@ tr.alfa-row-refund > * {
 .joomla-modal:not([data-iframe]) .modal-body {
     padding: 1rem;
 }
+
+/* The administrator's main column may shrink below its content, so a wide list
+   scrolls inside its own .table-responsive box instead of moving the whole page
+   sideways (the template's column keeps the width of its widest content). */
+.com_alfa #wrapper > .container-main {
+    min-width: 0;
+}
+
+/* The box also holds what its cells position (the sort links' hidden captions),
+   so nothing in the table widens the page. */
+.com_alfa .table-responsive {
+    position: relative;
+}
+
+/* The Columns chooser Joomla puts above a list table sits inside that box: while
+   its menu is open the box shows the menu whole instead of cutting it off. */
+.com_alfa .table-responsive:has(> .dropdown .dropdown-menu.show) {
+    overflow: visible;
+}
+
+/* A raw stored value (a path, a key, a transaction id, a SKU): it wraps inside its
+   cell at any character instead of widening the table and the page. */
+.com_alfa .raw-value {
+    overflow-wrap: anywhere;
+}
+
+/* Tools > Reset to default: three columns of fixed widths, so a long stored value
+   wraps inside its cell (raw-value) instead of widening the table and the page. */
+.com-alfa-resetdefaults .changes {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.com-alfa-resetdefaults .changes th:first-child {
+    width: 30%;
+}
+
+
+.com-alfa-resetdefaults .changes .values {
+    margin: 0.25rem 0 0;
+    padding: 0;
+    list-style: none;
+}

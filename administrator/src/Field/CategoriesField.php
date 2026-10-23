@@ -11,7 +11,9 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Field\Traits\HasFailClosedOptionsTrait;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CatalogAccessPolicy;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Field\ListField;
@@ -19,7 +21,7 @@ use Throwable;
 
 class CategoriesField extends ListField
 {
-    use FailClosedOptionsTrait;
+    use HasFailClosedOptionsTrait;
 
     protected $type = 'categories';
     protected $options = [];
@@ -29,6 +31,13 @@ class CategoriesField extends ListField
      * rendered as a depth-indented or full-path tree. When 'disableDescendants'
      * is set on a self-referential picker, disables the current node and its
      * descendants to prevent a category from becoming its own parent (cycle).
+     *
+     * In the administrator a categories picker follows CategoryPickerPolicy: a
+     * category that is archived or trashed, or that sits inside an archived or
+     * trashed category, is listed only while the field already holds it, and
+     * every state other than published (its own or its parents') is named after
+     * the category. A list filter (allStates="true") lists every category,
+     * unmarked.
      *
      * @return array The option set keyed by 'cat-<id>'
      * @since  1.0.0
@@ -57,6 +66,12 @@ class CategoriesField extends ListField
 
         // Resolved once: a per-option membership test would be one query per category.
         $siteVisible = $app->isClient('site') ? self::visibleCategoryIds() : null;
+
+        // The administrator's rule for categories (the storefront narrows on its own, below).
+        $stateRule = $siteVisible === null
+            && (string) ($this->element['model'] ?? 'categories') === 'categories'
+            && (string) ($this->element['allStates'] ?? '') !== 'true';
+        $held = $stateRule ? $this->heldIds() : [];
         $parentOf = [];
         $categories = $this->loadModelRows();
 
@@ -92,6 +107,9 @@ class CategoriesField extends ListField
         foreach ($categories as $category) {
             $parentOf[(int) $category->id] = (int) ($category->parent_id ?? 0);
         }
+
+        // Every category's parent and state, for the picker rule's walk up the tree.
+        $tree = $stateRule ? CategoryPickerPolicy::treeOf(rows: $categories) : [];
 
         foreach ($categories as $category) {
             // Subtree scope: skip everything outside the current category's subtree
@@ -136,9 +154,15 @@ class CategoriesField extends ListField
             // On the SITE this field is a catalogue filter, and it is fed by the
             // ADMIN model with filter.state '*', so without this it publishes the
             // name and full ancestor path of every unpublished AND every restricted
-            // category, on every listing page, to anyone. The admin form keeps the
-            // complete list; only the storefront is narrowed.
+            // category, on every listing page, to anyone. The administrator lists
+            // by the picker rule instead, after the walk above has seen every node.
             if ($siteVisible !== null && !isset($siteVisible[(int) $category->id])) {
+                continue;
+            }
+
+            $reason = $stateRule ? CategoryPickerPolicy::reason(id: (int) $category->id, tree: $tree) : null;
+
+            if ($stateRule && !CategoryPickerPolicy::lists(reason: $reason, held: isset($held[(int) $category->id]))) {
                 continue;
             }
 
@@ -164,13 +188,11 @@ class CategoriesField extends ListField
                 }
             }
 
+            $text = $usePath ? $category->path : str_repeat('-', $category->depth) . $category->name;
+
             $this->options['cat-' . $category->id] = [
                 'value' => $category->id,
-                'text' => (
-                    $usePath
-                    ? $category->path
-                    : str_repeat('-', $category->depth) . $category->name
-                ),
+                'text' => $stateRule ? CategoryPickerPolicy::label(text: (string) $text, reason: $reason) : $text,
                 'disable' => $disableCurrent,
             ];
         }
@@ -216,6 +238,20 @@ class CategoriesField extends ListField
 
         // A list model answers false when its query failed.
         return \is_array($rows) ? $rows : null;
+    }
+
+    /**
+     * The categories the field already holds (the record's own value), as a lookup map.
+     *
+     * @return array<int, true>
+     *
+     * @since  2.1.1
+     */
+    private function heldIds(): array
+    {
+        $ids = array_filter(array_map('intval', (array) $this->value), static fn (int $id): bool => $id > 0);
+
+        return array_fill_keys($ids, true);
     }
 
     /**

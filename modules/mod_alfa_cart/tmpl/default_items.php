@@ -116,7 +116,7 @@ $itemsCount = count($items);
 									<?php endif; ?>
 									<?php echo '&mdash;'; ?>
 									<?php if ($outOfStock): ?>
-										<span class="cart-item-out-of-stock"><?php echo Text::_(string: 'COM_ALFA_ITEM_FIELD_OUT_OF_STOCK'); ?></span>
+										<span class="cart-item-out-of-stock"><?php echo Text::_(string: 'MOD_ALFA_CART_OUT_OF_STOCK'); ?></span>
 									<?php endif; ?>
 								<?php else: ?>
 									<?php

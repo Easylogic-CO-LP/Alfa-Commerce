@@ -158,17 +158,19 @@ class PackageHelper
      *                                    repo layout via that map's `repo` destination, so the
      *                                    archive has the SAME structure as the full export but holds
      *                                    only these files. Paths not in the map (undeclared/added
-     *                                    files) are skipped. null (the default) ships the complete
-     *                                    package; existing callers are unaffected.
+     *                                    files) are skipped, and when none is in it no archive is
+     *                                    built. null (the default) ships the complete package;
+     *                                    existing callers are unaffected.
      *
-     * @return array{zip: string, filename: string, version: string} The archive
-     *                                                               path on disk, the suggested download filename, and the manifest version.
+     * @return array{zip: string, filename: string, version: string}|null The archive
+     *                                                                    path on disk, the suggested download filename, and the manifest version; null when
+     *                                                                    a changed-only export holds no file of the package.
      *
      * @throws RuntimeException If the manifest is missing/invalid or zipping fails.
      *
      * @since  1.0.0
      */
-    public static function buildPackageZip(string $installRoot, ?array $onlyRelPaths = null): array
+    public static function buildPackageZip(string $installRoot, ?array $onlyRelPaths = null): ?array
     {
         $component = 'com_alfa';
         $manifestPath = $installRoot . '/administrator/components/' . $component . '/alfa.xml';
@@ -191,6 +193,12 @@ class PackageHelper
                 // shipped-files map and copy it to its repo destination, reproducing
                 // buildTree's layout for just those files.
                 $map = self::enumerateShippedFiles(installRoot: $installRoot);
+
+                if (array_intersect_key(array_flip($onlyRelPaths), $map) === []) {
+                    // Not one of them is part of the package (each an added file outside the
+                    // declared folders, say): there is nothing to archive.
+                    return null;
+                }
 
                 foreach ($onlyRelPaths as $rel) {
                     if (!isset($map[$rel])) {
@@ -217,9 +225,9 @@ class PackageHelper
     /**
      * Fingerprint every shipped file with {@see self::HASH_METHOD}, keyed by the file's
      * live root-relative path. Built on {@see self::enumerateShippedFiles()} so it
-     * covers exactly the package's file set, and uses ONLY native PHP (no Joomla
-     * runtime), so the standalone signing CLI can reuse it without bootstrapping the
-     * CMS. Unreadable files are skipped.
+     * covers exactly the package's file set. The standalone signing CLI hashes the
+     * package itself with {@see self::hashInstallable()}, which needs native PHP only.
+     * Unreadable files are skipped.
      *
      * @param string $installRoot Absolute path to the Joomla installation root.
      *
@@ -604,7 +612,8 @@ class PackageHelper
      *
      * Missing files/folders are silently skipped, so the map never contains a path
      * that does not exist on disk. Bundled libraries are excluded by design (see
-     * the class docblock).
+     * the class docblock). A file an installed language pack put in an extension
+     * folder is not core's and is left out ({@see self::isInstalledLanguagePackFile()}).
      *
      * @param string $installRoot Absolute path to the Joomla installation root (JPATH_ROOT).
      *
@@ -628,28 +637,31 @@ class PackageHelper
         // Live root-relative key vs repo destination (re-rooted under the manifest
         // folder= names), matching buildTree's copyItems destRoot per area.
         self::collectDeclaredItems(
-            items:    $m['siteItems'],
-            absRoot:  $installRoot . '/components/' . $component,
-            relRoot:  'components/' . $component,
-            repoRoot: $m['siteFolder'],
-            out:      $out,
+            items:        $m['siteItems'],
+            absRoot:      $installRoot . '/components/' . $component,
+            relRoot:      'components/' . $component,
+            repoRoot:     $m['siteFolder'],
+            out:          $out,
+            extensionDir: $installRoot . '/components/' . $component,
         );
 
         self::collectDeclaredItems(
-            items:    $m['adminItems'],
-            absRoot:  $adminCompat,
-            relRoot:  'administrator/components/' . $component,
-            repoRoot: $m['adminFolder'],
-            out:      $out,
+            items:        $m['adminItems'],
+            absRoot:      $adminCompat,
+            relRoot:      'administrator/components/' . $component,
+            repoRoot:     $m['adminFolder'],
+            out:          $out,
+            extensionDir: $adminCompat,
         );
 
         if ($m['hasApi']) {
             self::collectDeclaredItems(
-                items:    $m['apiItems'],
-                absRoot:  $installRoot . '/api/components/' . $component,
-                relRoot:  'api/components/' . $component,
-                repoRoot: $m['apiFolder'],
-                out:      $out,
+                items:        $m['apiItems'],
+                absRoot:      $installRoot . '/api/components/' . $component,
+                relRoot:      'api/components/' . $component,
+                repoRoot:     $m['apiFolder'],
+                out:          $out,
+                extensionDir: $installRoot . '/api/components/' . $component,
             );
         }
 
@@ -684,11 +696,12 @@ class PackageHelper
         //     media/<dest>/<x>, repo <mediaFolder>/<x> per buildTree.
         if ($m['hasMedia']) {
             self::collectDeclaredItems(
-                items:    $m['mediaItems'],
-                absRoot:  $installRoot . '/media/' . $m['mediaDest'],
-                relRoot:  'media/' . $m['mediaDest'],
-                repoRoot: $m['mediaFolder'],
-                out:      $out,
+                items:        $m['mediaItems'],
+                absRoot:      $installRoot . '/media/' . $m['mediaDest'],
+                relRoot:      'media/' . $m['mediaDest'],
+                repoRoot:     $m['mediaFolder'],
+                out:          $out,
+                extensionDir: $installRoot . '/media/' . $m['mediaDest'],
             );
         }
 
@@ -1528,7 +1541,9 @@ class PackageHelper
 
     /**
      * Re-assemble the full repo-layout tree under $destRoot by copying each
-     * declared area from its scattered install location.
+     * declared area from its scattered install location. A file an installed
+     * language pack put in an extension folder is not copied
+     * ({@see self::isInstalledLanguagePackFile()}).
      *
      * @param string $installRoot Joomla installation root.
      * @param array $manifest Parsed manifest (see {@see self::parseManifest()}).
@@ -1563,9 +1578,10 @@ class PackageHelper
 
         // Site component (only the folders/files declared in <files folder="site">)
         self::copyItems(
-            items:    $manifest['siteItems'],
-            srcRoot:  $installRoot . '/components/' . $component,
-            destRoot: $destRoot . '/' . $manifest['siteFolder'],
+            items:        $manifest['siteItems'],
+            srcRoot:      $installRoot . '/components/' . $component,
+            destRoot:     $destRoot . '/' . $manifest['siteFolder'],
+            extensionDir: $installRoot . '/components/' . $component,
         );
 
         // Admin component (manifest, scriptfile and changelog already placed at the repo root)
@@ -1576,27 +1592,30 @@ class PackageHelper
         }
 
         self::copyItems(
-            items:    $manifest['adminItems'],
-            srcRoot:  $adminCompat,
-            destRoot: $destRoot . '/' . $manifest['adminFolder'],
-            skip:     $adminSkip,
+            items:        $manifest['adminItems'],
+            srcRoot:      $adminCompat,
+            destRoot:     $destRoot . '/' . $manifest['adminFolder'],
+            skip:         $adminSkip,
+            extensionDir: $adminCompat,
         );
 
         // API component (declared <api><files>)
         if ($manifest['hasApi']) {
             self::copyItems(
-                items:    $manifest['apiItems'],
-                srcRoot:  $installRoot . '/api/components/' . $component,
-                destRoot: $destRoot . '/' . $manifest['apiFolder'],
+                items:        $manifest['apiItems'],
+                srcRoot:      $installRoot . '/api/components/' . $component,
+                destRoot:     $destRoot . '/' . $manifest['apiFolder'],
+                extensionDir: $installRoot . '/api/components/' . $component,
             );
         }
 
         // Component media (each declared <media> folder/filename)
         if ($manifest['hasMedia']) {
             self::copyItems(
-                items:    $manifest['mediaItems'],
-                srcRoot:  $installRoot . '/media/' . $manifest['mediaDest'],
-                destRoot: $destRoot . '/' . $manifest['mediaFolder'],
+                items:        $manifest['mediaItems'],
+                srcRoot:      $installRoot . '/media/' . $manifest['mediaDest'],
+                destRoot:     $destRoot . '/' . $manifest['mediaFolder'],
+                extensionDir: $installRoot . '/media/' . $manifest['mediaDest'],
             );
         }
 
@@ -1702,11 +1721,13 @@ class PackageHelper
      * @param string $srcRoot Source root directory.
      * @param string $destRoot Destination root.
      * @param string[] $skip Entry names to skip.
+     * @param string|null $extensionDir The extension folder the items are in, so a declared folder
+     *                                  leaves an installed language pack's files out.
      *
      *
      * @since  1.0.0
      */
-    private static function copyItems(array $items, string $srcRoot, string $destRoot, array $skip = []): void
+    private static function copyItems(array $items, string $srcRoot, string $destRoot, array $skip = [], ?string $extensionDir = null): void
     {
         foreach ($items as [$type, $name]) {
             if (\in_array($name, $skip, true)) {
@@ -1714,7 +1735,7 @@ class PackageHelper
             }
 
             if ($type === 'folder') {
-                self::copyDir(source: $srcRoot . '/' . $name, dest: $destRoot . '/' . $name);
+                self::copyDir(source: $srcRoot . '/' . $name, dest: $destRoot . '/' . $name, extensionDir: $extensionDir);
             } else {
                 self::copyFile(source: $srcRoot . '/' . $name, dest: $destRoot . '/' . $name);
             }
@@ -1753,7 +1774,7 @@ class PackageHelper
             $src = $sub !== '' ? $sourceDir . '/' . $sub : $sourceDir;
             $dst = $sub !== '' ? $destBase . '/' . $sub : $destBase;
 
-            self::copyItems(items: self::parseFilesItems(node: $files), srcRoot: $src, destRoot: $dst);
+            self::copyItems(items: self::parseFilesItems(node: $files), srcRoot: $src, destRoot: $dst, extensionDir: $sourceDir);
         }
 
         // The sub-extension's own manifest XML is not a <files> entry; ship it too.
@@ -1798,8 +1819,9 @@ class PackageHelper
 
             if ($destination !== '') {
                 self::copyDir(
-                    source: $installRoot . '/media/' . $destination,
-                    dest:   $destBase . '/' . $folder,
+                    source:       $installRoot . '/media/' . $destination,
+                    dest:         $destBase . '/' . $folder,
+                    extensionDir: $installRoot . '/media/' . $destination,
                 );
             }
         }
@@ -1882,11 +1904,14 @@ class PackageHelper
      * @param string $relRoot Root-relative path of that source root (no leading slash).
      * @param string $repoRoot Repo (destRoot-relative) root buildTree writes this area to.
      * @param array<string, array{abs: string, repo: string}> $out Accumulator: liveRel => {abs, repo} (by ref).
+     * @param string|null $extensionDir On a live install, the extension folder the items are in, so
+     *                                  a declared folder leaves an installed language pack's files
+     *                                  out; null for a package-layout walk.
      *
      *
      * @since  1.0.0
      */
-    private static function collectDeclaredItems(array $items, string $absRoot, string $relRoot, string $repoRoot, array &$out): void
+    private static function collectDeclaredItems(array $items, string $absRoot, string $relRoot, string $repoRoot, array &$out, ?string $extensionDir = null): void
     {
         foreach ($items as [$type, $name]) {
             if (self::isExcluded(name: $name)) {
@@ -1895,10 +1920,11 @@ class PackageHelper
 
             if ($type === 'folder') {
                 self::collectFiles(
-                    absDir:  $absRoot . '/' . $name,
-                    relDir:  $relRoot . '/' . $name,
-                    repoDir: $repoRoot . '/' . $name,
-                    out:     $out,
+                    absDir:       $absRoot . '/' . $name,
+                    relDir:       $relRoot . '/' . $name,
+                    repoDir:      $repoRoot . '/' . $name,
+                    out:          $out,
+                    extensionDir: $extensionDir,
                 );
             } else {
                 self::collectFile(
@@ -1957,11 +1983,12 @@ class PackageHelper
             $relSub = $sub !== '' ? $relSourceDir . '/' . $sub : $relSourceDir;
 
             self::collectDeclaredItems(
-                items:    self::parseFilesItems(node: $files),
-                absRoot:  $absSub,
-                relRoot:  $relSub,
-                repoRoot: $relSub,
-                out:      $out,
+                items:        self::parseFilesItems(node: $files),
+                absRoot:      $absSub,
+                relRoot:      $relSub,
+                repoRoot:     $relSub,
+                out:          $out,
+                extensionDir: $sourceDir,
             );
         }
 
@@ -1982,10 +2009,11 @@ class PackageHelper
 
             if ($destination !== '') {
                 self::collectFiles(
-                    absDir:  $installRoot . '/media/' . $destination,
-                    relDir:  'media/' . $destination,
-                    repoDir: $relSourceDir . '/' . $folder,
-                    out:     $out,
+                    absDir:       $installRoot . '/media/' . $destination,
+                    relDir:       'media/' . $destination,
+                    repoDir:      $relSourceDir . '/' . $folder,
+                    out:          $out,
+                    extensionDir: $installRoot . '/media/' . $destination,
                 );
             }
         }
@@ -2034,11 +2062,14 @@ class PackageHelper
      * @param string $relDir Root-relative path of that directory (no leading slash).
      * @param string $repoDir Repo (destRoot-relative) path of that directory (no leading slash).
      * @param array<string, array{abs: string, repo: string}> $out Accumulator: liveRel => {abs, repo} (by ref).
+     * @param string|null $extensionDir On a live install, the extension folder this directory is in,
+     *                                  so an installed language pack's files are left out; null for
+     *                                  a package-layout walk.
      *
      *
      * @since  1.0.0
      */
-    private static function collectFiles(string $absDir, string $relDir, string $repoDir, array &$out): void
+    private static function collectFiles(string $absDir, string $relDir, string $repoDir, array &$out, ?string $extensionDir = null): void
     {
         if (!is_dir($absDir)) {
             return;
@@ -2054,8 +2085,8 @@ class PackageHelper
             $repo = $repoDir . '/' . $entry;
 
             if (is_dir($abs)) {
-                self::collectFiles(absDir: $abs, relDir: $rel, repoDir: $repo, out: $out);
-            } else {
+                self::collectFiles(absDir: $abs, relDir: $rel, repoDir: $repo, out: $out, extensionDir: $extensionDir);
+            } elseif (!self::isInstalledLanguagePackFile(path: $abs, extensionDir: $extensionDir)) {
                 $out[$rel] = ['abs' => $abs, 'repo' => $repo];
             }
         }
@@ -2090,11 +2121,13 @@ class PackageHelper
      * @param string $source Source directory.
      * @param string $dest Destination directory.
      * @param string[] $skipTop Immediate child names to skip at the source root.
+     * @param string|null $extensionDir The extension folder the source is in, so an installed
+     *                                  language pack's files are not copied.
      *
      *
      * @since  1.0.0
      */
-    private static function copyDir(string $source, string $dest, array $skipTop = []): void
+    private static function copyDir(string $source, string $dest, array $skipTop = [], ?string $extensionDir = null): void
     {
         if (!is_dir($source)) {
             return;
@@ -2109,8 +2142,8 @@ class PackageHelper
             $to = $dest . '/' . $entry;
 
             if (is_dir($from)) {
-                self::copyDir(source: $from, dest: $to);
-            } else {
+                self::copyDir(source: $from, dest: $to, extensionDir: $extensionDir);
+            } elseif (!self::isInstalledLanguagePackFile(path: $from, extensionDir: $extensionDir)) {
                 self::copyFile(source: $from, dest: $to);
             }
         }
@@ -2263,6 +2296,25 @@ class PackageHelper
         }
 
         throw new RuntimeException('No writable temporary directory is available for the export.');
+    }
+
+    /**
+     * Whether a file a live walk or the export finds is an installed language pack's file,
+     * which core never ships: Alfa Commerce ships en-GB only, and every other language is a
+     * separate pack that installs its files beside the en-GB ones. Judged by the integrity
+     * check's own rule ({@see IntegrityHelper::isLanguagePackFile()}), relative to the
+     * extension folder the file is in, so the export and that check always agree.
+     *
+     * @param string $path Absolute path of the file.
+     * @param string|null $extensionDir Absolute path of the extension folder being walked, or null
+     *                                  for a package-layout walk, which this rule never touches.
+     *
+     * @since  2.1.1
+     */
+    private static function isInstalledLanguagePackFile(string $path, ?string $extensionDir): bool
+    {
+        return $extensionDir !== null
+            && IntegrityHelper::isLanguagePackFile(path: substr($path, \strlen($extensionDir) + 1));
     }
 
     /**

@@ -11,16 +11,24 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Event\Notifications\NotificationPushedEvent;
+use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
+use Closure;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
+use Joomla\CMS\Log\Log;
+use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Session\Session;
+use Joomla\Database\DatabaseDriver;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\ParameterType;
-use stdClass;
+use Joomla\Event\DispatcherInterface;
+use ReflectionFunction;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -28,6 +36,15 @@ use Throwable;
  * pushes into and the admin UI reads back from. It knows nothing about WHAT it
  * stores: a new order, low stock, the integrity state ({@see SyncHelper}), or a
  * future producer all call {@see self::push()} the same way.
+ *
+ * The helper writes its rows itself ({@see self::write()}). A notification core
+ * raises is not an administrator's save, so it never passes through an admin record
+ * model and no generic save event fires for it; plugins that react to notifications
+ * listen to {@see NotificationPushedEvent} (onAlfaNotificationPushed), which push()
+ * dispatches once the row is written and no transaction of the caller's is open. The
+ * payment ledger, while it holds an order's lock, hands its own pushes to
+ * {@see PostCommit}: they are written once the lock is released, and a rollback
+ * discards them.
  *
  * Dedup is by `dedup_key` (pushing the same key replaces the row). Lifecycle is told
  * entirely by timestamps:
@@ -117,6 +134,16 @@ class NotificationHelper
      * key updates its content but preserves `created`/`readed`/`dismissed`, so a
      * still-true condition never re-nags an already-seen row.
      *
+     * The row is written at once, by the helper itself ({@see self::write()}), and then
+     * onAlfaNotificationPushed is dispatched ({@see NotificationPushedEvent}): at once with
+     * no transaction open, else once the outermost one has committed, and never when a
+     * rollback discarded the row ({@see PostCommit}). The payment ledger, while it holds
+     * an order's lock, hands its own pushes to PostCommit, so they are written once the
+     * lock is released. First pushes of one key at once land on one row: each later one is
+     * a push of the row the first wrote. A failure to write reaches the caller, as it did
+     * before 2.1.1 (each producer decides whether its work stands without the notice); a
+     * listener's failure never does.
+     *
      * @param string $dedupKey Stable identity, e.g. "order:123" or "alfa.integrity".
      * @param string $title Short headline.
      * @param array $options group|severity|message|url|dismissible(bool)|expires(sql)|
@@ -139,7 +166,6 @@ class NotificationHelper
         $existingId = self::liveIdForKey(dedupKey: $dedupKey);
 
         $data = [
-            'id' => $existingId,
             'dedup_key' => $dedupKey,
             'notify_group' => (string) ($options['group'] ?? Text::_('COM_ALFA_NOTIFY_GROUP_GENERAL')),
             'severity' => $severity,
@@ -155,41 +181,157 @@ class NotificationHelper
         ];
 
         // A constant re-alert (e.g. integrity, while the condition holds) resurfaces as
-        // unread and reflects the latest check; new rows also get a creation timestamp.
-        $isRealert = ($existingId > 0 && !empty($options['constant']));
+        // unread and reflects the latest check.
+        [$id, $change] = self::write(id: $existingId, data: $data, constant: !empty($options['constant']));
 
-        if ($existingId === 0 || $isRealert) {
-            $data['created'] = Factory::getDate()->toSql();
+        // Plugins hear it with no transaction of the caller's open: at once, or once the outermost one has committed
+        // (no listener runs under the caller's locks), and never when a rollback discarded the row.
+        PostCommit::defer(
+            db: self::driver(),
+            label: 'NotificationHelper: ' . NotificationPushedEvent::NAME . ' of ' . $dedupKey,
+            work: static function () use ($id, $data, $change): void {
+                self::announce(id: $id, data: $data, change: $change);
+            },
+        );
+    }
+
+    /**
+     * Tell plugins that a notification was written: onAlfaNotificationPushed, on the
+     * container's dispatcher (the application's), with the `alfa` plugin group loaded.
+     * Each listener runs on its own: a failure is logged with the listener's name and
+     * never reaches the push, and the next listener still hears it. With no application
+     * no plugin can be loaded (Joomla reads the plugin list for a user); the event then
+     * reaches only the listeners already registered on that dispatcher, and one DEBUG
+     * line says so.
+     *
+     * @param int $id The row written.
+     * @param array $data The columns written (as {@see self::push()} assembled them).
+     * @param string $change What the push did (NotificationPushedEvent::CHANGE_*).
+     *
+     *
+     * @since  2.1.1
+     */
+    private static function announce(int $id, array $data, string $change): void
+    {
+        $key = (string) $data['dedup_key'];
+
+        try {
+            $dispatcher = Factory::getContainer()->get(DispatcherInterface::class);
+
+            if (self::hasApplication()) {
+                PluginHelper::importPlugin(type: 'alfa', plugin: null, autocreate: true, dispatcher: $dispatcher);
+            } else {
+                self::log(entry: 'NotificationHelper: no application, so no plugin is loaded for '
+                    . NotificationPushedEvent::NAME . " of '{$key}'; only listeners already registered hear it.", priority: Log::DEBUG);
+            }
+
+            $event = new NotificationPushedEvent(NotificationPushedEvent::NAME, [
+                'id' => $id,
+                'dedupKey' => $key,
+                'group' => (string) $data['notify_group'],
+                'severity' => (string) $data['severity'],
+                'title' => (string) $data['title'],
+                'message' => (string) $data['message'],
+                'url' => (string) $data['url'],
+                'change' => $change,
+            ]);
+            $listeners = $dispatcher->getListeners(NotificationPushedEvent::NAME);
+        } catch (Throwable $e) {
+            self::log(entry: 'NotificationHelper: ' . NotificationPushedEvent::NAME . " of '{$key}' could not be dispatched: "
+                . $e::class . ': ' . $e->getMessage(), priority: Log::ERROR);
+
+            return;
         }
 
-        $model = self::model();
+        foreach ($listeners as $listener) {
+            if ($event->isStopped()) {
+                break;
+            }
 
-        if ($model) {
-            $model->save($data);
-        } else {
-            self::write($data);
+            try {
+                $listener($event);
+            } catch (Throwable $e) {
+                self::log(entry: 'NotificationHelper: ' . self::listenerName(listener: $listener) . ' failed on '
+                    . NotificationPushedEvent::NAME . " of '{$key}' (#{$id}): " . $e::class . ': ' . $e->getMessage()
+                    . ' (' . $e->getFile() . ':' . $e->getLine() . ')', priority: Log::ERROR);
+            }
+        }
+    }
+
+    /**
+     * A listener's name for the log: the class and method it runs.
+     *
+     * @param callable $listener The listener as the dispatcher holds it.
+     *
+     *
+     * @since  2.1.1
+     */
+    private static function listenerName(callable $listener): string
+    {
+        if (\is_array($listener)) {
+            return (\is_object($listener[0]) ? $listener[0]::class : (string) $listener[0]) . '::' . (string) $listener[1];
         }
 
-        // Joomla's Table::store() SKIPS null values, so a re-alert's readed=null would
-        // never persist via save(); clear the read state with a direct update instead.
-        //
-        // `dismissed` and `expires` go with it. A soft clear sets both, and dismissing
-        // is how a merchant says "seen, not now"; neither may outlive the condition.
-        // Leaving them set was why a dismissed warning could never speak again: the row
-        // survived, so push() only ever UPDATED it, and the merchant heard nothing more
-        // about that product until it fully recovered and the row was hard-cleared.
-        if ($isRealert) {
-            $db = self::db();
-            $query = $db->getQuery(true)
-                ->update($db->quoteName(self::TABLE))
-                ->set($db->quoteName('readed') . ' = NULL')
-                ->set($db->quoteName('readed_by') . ' = NULL')
-                ->set($db->quoteName('dismissed') . ' = NULL')
-                ->set($db->quoteName('expires') . ' = NULL')
-                ->where($db->quoteName('id') . ' = :id')
-                ->bind(':id', $existingId, ParameterType::INTEGER);
+        if ($listener instanceof Closure) {
+            $owner = (new ReflectionFunction($listener))->getClosureThis();
 
-            $db->setQuery($query)->execute();
+            return $owner === null ? 'a closure listener' : $owner::class . ' (closure)';
+        }
+
+        if (\is_string($listener)) {
+            return $listener;
+        }
+
+        return \is_object($listener) ? $listener::class : 'a listener';
+    }
+
+    /**
+     * Whether an application runs this request (the web, the Joomla console, the scheduler).
+     *
+     *
+     * @since  2.1.1
+     */
+    private static function hasApplication(): bool
+    {
+        try {
+            Factory::getApplication();
+
+            return true;
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
+    /**
+     * Write one line of the component's log; a log that cannot be written changes nothing. With no application,
+     * Joomla's text logger cannot ask one for the log folder, so the line goes to the same file through a logger
+     * given the folder from the site configuration.
+     *
+     * @param string $entry The line.
+     * @param int $priority The Log priority.
+     *
+     *
+     * @since  2.1.1
+     */
+    private static function log(string $entry, int $priority): void
+    {
+        try {
+            if (self::hasApplication()) {
+                AlfaLog::register();
+            } else {
+                Log::addLogger(
+                    [
+                        'text_file' => AlfaLog::categories()['com_alfa'],
+                        'text_file_path' => (string) Factory::getContainer()->get('config')->get('log_path', JPATH_ADMINISTRATOR . '/logs'),
+                    ],
+                    Log::ALL,
+                    ['com_alfa'],
+                );
+            }
+
+            Log::add(entry: $entry, priority: $priority, category: 'com_alfa');
+        } catch (Throwable) {
+            // An unwritable log changes nothing that already happened.
         }
     }
 
@@ -901,23 +1043,21 @@ class NotificationHelper
     }
 
     /**
-     * Boot a com_alfa admin MVC model by name from the component MVCFactory. Defaults
-     * to the single-notification item model (the canonical write path: push(), the
-     * form controller and the webservices API all save through it); pass 'Notifications'
-     * for the read/list model.
+     * Boot a com_alfa admin MVC model by name from the component MVCFactory: the
+     * Notifications list model the panel reads with. Nothing writes through a model:
+     * push() writes its rows itself ({@see self::write()}).
      *
-     * Returns null when there is no application to boot the component from:
-     * cron, the Joomla console, a queue worker. Writers fall back to
-     * {@see self::write()}; readers have nothing to show in such a context
-     * anyway.
+     * Returns null when there is no application to boot the component from: a script
+     * with no application, a queue worker. Readers have nothing to show in such a
+     * context anyway.
      *
-     * @param string $name The model name ('Notification' or 'Notifications').
+     * @param string $name The model name.
      *
      * @return object|null
      *
      * @since  1.0.0
      */
-    private static function model(string $name = 'Notification')
+    private static function model(string $name)
     {
         try {
             return Factory::getApplication()
@@ -930,46 +1070,163 @@ class NotificationHelper
     }
 
     /**
-     * Write a notification row with nothing but a database connection.
+     * Write a notification row: the store's one write path, whoever pushes and from
+     * wherever (a web request, the Joomla console, a scheduled task, a script with no
+     * application at all). No admin record model and no Table: a notification core
+     * raises is not an administrator's save, so no save event fires for it.
      *
-     * push() goes through the admin model so a web request keeps the
-     * component's own save pipeline. Background work has no application to
-     * boot that from, and skipping the write there is not a small loss: on
-     * one occasion six activity-log failures on this very install wrote their
-     * CRITICAL lines and raised nothing, because the raiser ran from the CLI
-     * and push() quietly did nothing without a model. The panel is the
-     * operator's channel; it must not depend on who is calling.
+     * A new row gets every column that has a value and a creation time. An existing row
+     * gets the columns that have one; a null option keeps what the row holds (its access
+     * rules, a dismissed row's retention). A constant push re-alerts it: a new creation
+     * time, and `readed`, `readed_by`, `dismissed` and `expires` cleared in the same
+     * statement: dismissing is how a merchant says "seen, not now", and neither may
+     * outlive a condition that is raised again.
      *
-     * Table is no help here (its constructor reaches for the application's
-     * dispatcher), so this writes the row directly. Nulls are written on
-     * update because `readed`, `dismissed` and `expires` carry meaning when
-     * empty.
+     * A key no live row carries is written by one statement ({@see self::firstWrite()}),
+     * so first pushes of one key at once land on one row, never on a duplicate key or a
+     * deadlock. Every failure of the store reaches the caller.
      *
-     * @param array $data The row assembled by {@see self::push()}.
+     * @param int $id The live row the key names, or 0 for a new one.
+     * @param array $data The columns assembled by {@see self::push()}.
+     * @param bool $constant A push that re-alerts an existing row.
      *
+     * @return array{0: int, 1: string} The row's id and what the push did (NotificationPushedEvent::CHANGE_*).
+     *
+     * @throws RuntimeException When the write reports no row id.
      *
      * @since  1.0.0
      */
-    private static function write(array $data): void
+    private static function write(int $id, array $data, bool $constant): array
+    {
+        $now = Factory::getDate()->toSql();
+
+        if ($id === 0) {
+            return self::firstWrite(data: $data, constant: $constant, now: $now);
+        }
+
+        self::update(id: $id, data: $constant ? $data + ['created' => $now] : $data, realert: $constant);
+
+        return [$id, $constant ? NotificationPushedEvent::CHANGE_REALERTED : NotificationPushedEvent::CHANGE_UPDATED];
+    }
+
+    /**
+     * The write of a key no live row carries yet: one INSERT .. ON DUPLICATE KEY UPDATE.
+     * First pushes of one key at once queue on its row: the first inserts it, each later
+     * one takes the row's exclusive lock and writes itself as a push of an existing key
+     * (the columns that have a value; a constant push re-alerts it). No shared lock of a
+     * duplicate key is ever upgraded, so they cannot deadlock however many meet (REVIEW-R1
+     * RV-6). The SQL is the same on MariaDB 10.6 and MySQL 8.0: every value a literal, no
+     * VALUES() function (deprecated in MySQL 8.0) and no row alias (MySQL only).
+     *
+     * What it did is read from the affected-rows value, as both servers define it for this
+     * statement when the client does not ask for found rows, which Joomla's mysqli and
+     * PDO MySQL drivers do not (no MYSQLI_CLIENT_FOUND_ROWS, no PDO::MYSQL_ATTR_FOUND_ROWS):
+     * 1 a new row, 2 an existing row it changed, 0 an existing row that already held these
+     * values. LAST_INSERT_ID(id) makes the driver's insert id the row's id in every case.
+     *
+     * @param array $data The columns assembled by {@see self::push()}.
+     * @param bool $constant A push that re-alerts an existing row.
+     * @param string $now The creation time of a new row, or of a re-alert.
+     *
+     * @return array{0: int, 1: string} The row's id and what the push did (NotificationPushedEvent::CHANGE_*).
+     *
+     * @throws RuntimeException When the statement reports no row id.
+     *
+     * @since  2.1.1
+     */
+    private static function firstWrite(array $data, bool $constant, string $now): array
     {
         $db = self::db();
-        $id = (int) ($data['id'] ?? 0);
-        unset($data['id']);
+        $values = array_filter($data + ['created' => $now], static fn ($value): bool => $value !== null);
+        $assignments = [$db->quoteName('id') . ' = LAST_INSERT_ID(' . $db->quoteName('id') . ')'];
 
-        $row = new stdClass();
-
-        foreach ($data as $column => $value) {
-            $row->{$column} = $value;
+        // On the duplicate: what update() writes for a push of an existing key.
+        foreach (array_filter($data, static fn ($value): bool => $value !== null) as $column => $value) {
+            if (!$constant || $column !== 'expires') {
+                $assignments[] = $db->quoteName($column) . ' = ' . $db->quote((string) $value);
+            }
         }
 
-        if ($id > 0) {
-            $row->id = $id;
-            $db->updateObject(self::TABLE, $row, 'id', true);
+        if ($constant) {
+            $assignments[] = $db->quoteName('created') . ' = ' . $db->quote($now);
 
-            return;
+            foreach (['readed', 'readed_by', 'dismissed', 'expires'] as $column) {
+                $assignments[] = $db->quoteName($column) . ' = NULL';
+            }
         }
 
-        $db->insertObject(self::TABLE, $row);
+        $db->setQuery(
+            'INSERT INTO ' . $db->quoteName(self::TABLE) . ' (' . implode(', ', $db->quoteName(array_keys($values))) . ')'
+            . ' VALUES (' . implode(', ', array_map(static fn ($value): string => $db->quote((string) $value), $values)) . ')'
+            . ' ON DUPLICATE KEY UPDATE ' . implode(', ', $assignments),
+        )->execute();
+        $affected = (int) $db->getAffectedRows();
+        $rowId = (int) $db->insertid();
+
+        if ($rowId <= 0) {
+            throw new RuntimeException("The notification '{$data['dedup_key']}' was written but reported no row id.");
+        }
+
+        return [$rowId, match (true) {
+            $affected === 1 => NotificationPushedEvent::CHANGE_NEW,
+            $constant => NotificationPushedEvent::CHANGE_REALERTED,
+            default => NotificationPushedEvent::CHANGE_UPDATED,
+        }];
+    }
+
+    /**
+     * The UPDATE of an existing notification row: the columns that have a value; a
+     * re-alert also clears its read, dismissed and expiry state.
+     *
+     * @param int $id The row.
+     * @param array $data The columns.
+     * @param bool $realert The push raises the row again.
+     *
+     *
+     * @since  2.1.1
+     */
+    private static function update(int $id, array $data, bool $realert): void
+    {
+        $db = self::db();
+        $values = array_filter($data, static fn ($value): bool => $value !== null);
+        $query = $db->getQuery(true)
+            ->update($db->quoteName(self::TABLE))
+            ->where($db->quoteName('id') . ' = ' . $id);
+
+        foreach ($values as $column => $value) {
+            if ($realert && $column === 'expires') {
+                continue;
+            }
+
+            $query->set($db->quoteName($column) . ' = ' . $db->quote((string) $value));
+        }
+
+        if ($realert) {
+            foreach (['readed', 'readed_by', 'dismissed', 'expires'] as $column) {
+                $query->set($db->quoteName($column) . ' = NULL');
+            }
+        }
+
+        $db->setQuery($query)->execute();
+    }
+
+    /**
+     * The component database driver as a driver: what TransactionState takes.
+     *
+     *
+     * @throws RuntimeException When the container holds another kind of database object.
+     *
+     * @since  2.1.1
+     */
+    private static function driver(): DatabaseDriver
+    {
+        $db = self::db();
+
+        if (!$db instanceof DatabaseDriver) {
+            throw new RuntimeException('The notification store needs a database driver; the container holds ' . $db::class . '.');
+        }
+
+        return $db;
     }
 
     /**

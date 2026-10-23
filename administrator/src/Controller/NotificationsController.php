@@ -14,6 +14,8 @@ namespace Alfa\Component\Alfa\Administrator\Controller;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryEffectOutbox;
+use Alfa\Component\Alfa\Administrator\Service\Setup\CollationCheck;
+use Alfa\Component\Alfa\Administrator\Service\Setup\ContentLanguageNotice;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\BaseController;
@@ -67,6 +69,12 @@ class NotificationsController extends BaseController
         // And for expired notifications: deleted here at most once an hour, never on a
         // page render (every read already leaves them out).
         NotificationHelper::purgeThrottled();
+
+        // A site language with no published content language is said here too.
+        ContentLanguageNotice::sync();
+
+        // And an Alfa table an update left in another collation (raised or cleared, never converted).
+        CollationCheck::syncNotice();
 
         $this->app->setHeader('Content-Type', 'text/html; charset=utf-8', true);
         $this->app->sendHeaders();

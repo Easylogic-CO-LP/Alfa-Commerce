@@ -16,6 +16,9 @@ use Joomla\CMS\Router\Route;
 
 /** @var \Alfa\Component\Alfa\Administrator\View\Toolsmedia\HtmlView $this */
 
+// The Alfa administrator stylesheet: raw stored values wrap in their cells (raw-value).
+$this->getDocument()->getWebAssetManager()->useStyle('com_alfa.admin');
+
 $isFiles   = $this->mode === 'files';
 $status    = (string) $this->state->get('filter.status', '');
 $listOrder = $this->escape($this->state->get('list.ordering'));
@@ -99,7 +102,7 @@ if ($isFiles) {
                                         <span class="icon-file" aria-hidden="true"></span>
                                     <?php endif; ?>
                                 </td>
-                                <td><code><?php echo $this->escape($file->path); ?></code></td>
+                                <td><code class="raw-value"><?php echo $this->escape($file->path); ?></code></td>
                                 <td><?php echo HTMLHelper::_('number.bytes', $file->size); ?></td>
                                 <td><?php echo HTMLHelper::_('date', date('c', $file->mtime), Text::_('DATE_FORMAT_LC4')); ?></td>
                             </tr>
@@ -132,7 +135,7 @@ if ($isFiles) {
                                         <span class="badge bg-success"><?php echo Text::_('COM_ALFA_TOOLSMEDIA_BADGE_OK'); ?></span>
                                     <?php endif; ?>
                                 </td>
-                                <td><code><?php echo $this->escape((string) $row->path); ?></code></td>
+                                <td><code class="raw-value"><?php echo $this->escape((string) $row->path); ?></code></td>
                                 <td class="d-none d-lg-table-cell"><?php echo (int) $row->id; ?></td>
                             </tr>
                         <?php endforeach; ?>

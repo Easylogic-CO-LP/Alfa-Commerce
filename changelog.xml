@@ -3,6 +3,96 @@
     <changelog>
         <element>com_alfa</element>
         <type>component</type>
+        <version>2.1.1</version>
+
+        <note>
+            <item>Maintenance release for 2.1.0. It updates an installed shop of 2.0.0 or later in place: Joomla runs its database changes automatically (schema 2.1.1: every Alfa Commerce table now uses one collation, utf8mb4_unicode_ci). Requirements are unchanged.</item>
+            <item>After updating: if System - Page Cache is enabled, clear Joomla's cache (System &gt; Clear Cache), or pages cached by 2.1.0 keep their blank untranslated names; rebuild the index of a search engine so it carries the names as shown.</item>
+        </note>
+
+        <security>
+            <item>Tools &gt; Security now reports hidden files (such as .htaccess or .user.ini) inside Alfa Commerce's folders; only desktop clutter (.DS_Store, ._ files, Thumbs.db, desktop.ini) is ignored.</item>
+        </security>
+
+        <addition>
+            <item>For plugins: onAlfaNotificationPushed (NotificationPushedEvent): one event per notification core writes, after the row is written and outside any transaction of core's, with the notification's id, key, group, severity, title, message, link and whether it was new, updated or raised again. A listener's failure is logged and never undoes the notification.</item>
+            <item>When a content language is published after the shop has content, a warning notification says how many items, categories, manufacturers and other records have no text in it yet and show the default language's, with a link to Tools &gt; Backfill empty translations. It follows the translations as they are saved, clears itself when none is left, and once dismissed stays dismissed.</item>
+        </addition>
+
+        <change>
+            <item>Alfa Commerce ships in English only. Other languages are separate language packs, published on alfacommerce.gr (Greek first) and offered as updates in Joomla.</item>
+            <item>Core writes its notifications directly: the Notifications admin model and its save events (onAlfaAdminBeforeSave, onAlfaAdminAfterSave, Joomla's content and table events) are no longer involved, so a plugin's message about a saved record no longer appears beside a refund answer. Notifications raised while a payment provider's word or a staff refund action holds the order are written once it has finished; one whose work is rolled back is never written.</item>
+            <item>For payment plugins: a provider word (settleRefund(), holdRefund(), releaseRefund(), refundPayment() with gateway_moved) is sent outside any database transaction of the plugin's. Sent inside one it is refused (OUTCOME_FAILED, nothing written) and is sent again outside. The official payment plugins open no transaction.</item>
+            <item>For payment plugins: the 'report_id' a provider word names is checked against the word: it must be a report of the payment's own gateway, name the same provider refund id when both carry one, and state the same figure when no id decides. Otherwise a warning is logged and the word is decided as if it named no report.</item>
+            <item>For plugins and templates: ActionRegistry::methodType() reads the row's recorded method type only; a row that records none is unknown (no type is inferred from its method any more).</item>
+            <item>Saving a record stores only what was entered for each language; empty languages stay empty (and show the default) instead of receiving copies.</item>
+            <item>Alfa generates and makes unique only an empty URL alias, and never renames one that was typed. A save that would give a record an address another record already has, in any language, is refused with a message naming that record and the language; an address two records already shared is kept and named in a warning. Save as Copy gives the copy aliases of its own.</item>
+            <item>When the site language is not a published content language, untranslated content is shown in the content language created first, and the notifications bell warns the administrators until the setting is fixed.</item>
+            <item>Documents issued in the back office, and e-mails for an order without a language of its own, are now in the site's default content language; 2.1.0 used the language of the administrator who issued or sent them.</item>
+            <item>Tools &gt; About marks Alfa's default language and says when Joomla's site language is not a published content language.</item>
+            <item>The update converts only Alfa Commerce's own tables to the new collation. A table of another extension, or one an earlier version left, is left as it is and named once in the setup log.</item>
+            <item>A category inside an archived or trashed category is no longer offered for a new assignment, and every save (items, payment, shipping, discount, tax and item field restrictions, cart rules, the Items batch, the REST API) refuses a new assignment of an unavailable category, naming it; categories a record already holds are kept and marked "(Parent in trash)" or "(Parent archived)". A category can no longer be filed under one inside the archive or the trash.</item>
+            <item>Category pickers offer published and unpublished categories for a new choice, and keep and mark an archived or trashed category a record already holds; parent pickers never offer archived or trashed categories.</item>
+            <item>Stock locations say Enabled and Disabled everywhere: list, filter, toolbar, messages and the combination detail.</item>
+            <item>Wide administrator lists scroll inside their own box instead of moving the whole page; the notifications panel stays clear of the side menu; Cart Rules has the Notifications button.</item>
+            <item>For developers: the fail-closed options trait moved to Field/Traits (HasFailClosedOptionsTrait).</item>
+            <item>Alfa Commerce's own plugins and modules carry every language string they show in their own language files; core's language files hold only the component's strings.</item>
+            <item>The English names the calculated tax "tax" everywhere it is shown, on screen, in e-mails and on printed documents (Tax rate, Includes tax, Excl. tax, Tax %, Tax analysis, Tax amount, Tax total); "VAT" stays only for the VAT number.</item>
+        </change>
+
+        <fix>
+            <item>A provider's hold with no amount, under a new refund id, is no longer taken for a refund already booked without an id: it is refused until the provider's figure is given, so one provider refund is never booked twice.</item>
+            <item>A provider refund kept for staff is always kept with the mark that lists it and holds the refund block: when that mark cannot be written, nothing of the word is kept and the word is sent again; money moved beyond a refund decision on a payment set refunded by hand is now listed and blocking.</item>
+            <item>A provider refund on a payment with no recorded payment method type (an older payment) or paid with the customer's credit is now listed on the order and holds the refund block, like on every other payment.</item>
+            <item>A word repeated about a provider refund kept for staff now says that staff decide it on the payment; "staff resolved before" is said only when they did.</item>
+            <item>After a provider word's work is committed, a status change it causes that makes a plugin send another word about the same order now runs that word under the order's lock, never as part of the finished one.</item>
+            <item>Two notices raised at the same moment about the same new subject no longer make the second action fail (for example two operator orders landing in a status that is missing): they land on one notice, holding the later one's text. This holds for any number of them at once.</item>
+            <item>A payment that records no payment method type (an older payment): a provider refund it holds for staff can always be recorded, reconciled or resolved from its actions, also when its payment method was deleted; no plugin action is guessed for it from its method any more.</item>
+            <item>Record this refund that completes a payment's refunds now changes the order's status, sends its e-mail and calls the plugins' status-change hooks after the order is released; a Record that is rolled back sends and changes nothing.</item>
+            <item>A deadlock on the history entry of a refund the provider just made no longer lets the provider's word go on half written: the word is not kept and is sent again.</item>
+            <item>Tools &gt; Security no longer reports a language pack's files as changes to the installation.</item>
+            <item>When the only differences are extra files, the security warning says how many extra files are not in the official release instead of saying the files have been changed.</item>
+            <item>When the official checksums cannot be verified or fetched, the security warning says so instead of saying the files have been changed.</item>
+            <item>The update removes files that earlier versions left in Alfa Commerce's folders and no longer uses, and names each one; a file whose content was changed is kept and named for you to check.</item>
+            <item>A text not yet translated now shows in the site's default language instead of blank, on every page and list (storefront, back office, API, cart, checkout, order lines and e-mails). The default language is the site language set in Joomla's Language Manager, never the language of the visitor or of the administrator.</item>
+            <item>In another language, a category's listing keeps its category and filter while only the default language has an alias, and category links cached by 2.1.0 are no longer served.</item>
+            <item>A multilingual form requires the default language's name, not the first language in Joomla's list.</item>
+            <item>Order e-mails take each status text from the default language when the order's language has none; an order without a language is written in the default language.</item>
+            <item>Search finds items by the names they show in each language.</item>
+            <item>Every Alfa table now uses one collation, utf8mb4_unicode_ci, as Joomla's tables do. Searching the order statuses in a language other than the site's default, and the REST API with ?lang=, no longer fail. The update converts 25 tables; on a large shop it takes a while.</item>
+            <item>The categories' batch "Set parent category" refuses a move that would put two categories on one address in any language, naming the category already there.</item>
+            <item>If the update cannot convert a table to the new collation (for example, two stored values that a unique key now reads as one), the update still completes, names the table, the key and the rows, and a notification stays until the cause is corrected and the package is installed again, which converts what is left.</item>
+            <item>An update interrupted before it finished (a time limit, a lost connection) is noticed on the next administrator page: a notification names the Alfa Commerce tables left in the old collation until the package is installed again.</item>
+            <item>Payment and shipping methods that allow every category, manufacturer, place, user or shipping method show an "All ..." chip; a new payment or shipping method shows "All ..." for every scope it allows.</item>
+            <item>The order screen shows the order's currency by name.</item>
+            <item>Administrator lists sort as their sort field says, on the first visit and when "ID Descending" is chosen; Usergroups too.</item>
+            <item>The storefront order-complete page shows the order number; Edit Payment shows a stored amount in the order currency's format and a refused amount exactly as it was typed; the customer profile form no longer offers Save &amp; New or Save as Copy, and the server refuses them too.</item>
+            <item>Form markup: every label names a real control, every control has an id or name, media zones no longer share ids.</item>
+            <item>The typed confirmation accepts exactly the phrase shown.</item>
+            <item>Tools &gt; Reset to default no longer scrolls sideways and shows each customer group's price display as readable lines.</item>
+            <item>The customer groups list no longer offers a Status filter that filtered nothing.</item>
+            <item>The order status e-mail help's example layout and banner position have readable names; the banner's default is empty.</item>
+            <item>Choice fields drawn as checkboxes, radios or buttons are announced once, by their group's name.</item>
+            <item>Long stored values (paths, keys, transaction ids, SKUs) wrap in their cells instead of widening the page; the document series list scrolls in its own box.</item>
+            <item>The filters module's Top Center and Bottom Center positions are named, the search module shows an inline SVG loading image, and the stock movements hint shows its search syntax.</item>
+            <item>Translated messages no longer show internal codes or fixed English: the update's message about the moved shipping options, the warning about a delivery destination that cannot be resolved, the message after a status change moved stock, the search index rebuild message, and the states, mismatches and reasons of the order's reconciliation panel.</item>
+            <item>The order-status e-mail is sent only after the change is saved: a status change made as part of a larger payment, shipment or order operation no longer e-mails the customer before that operation is complete or when it is undone, and a slow or unresponsive mail server no longer holds the order.</item>
+            <item>With a language pack installed, Tools &gt; Download package (full or changed files only) no longer puts the pack's files into Alfa Commerce's package: they belong to the pack.</item>
+            <item>Tools &gt; Download package, changed files only, now says there is nothing to download when none of the changed files belongs to the package, instead of failing with an error. Any other export failure shows one plain sentence, and the details go to the tools log.</item>
+            <item>The update from 2.1.0 removes the Greek files 2.1.0 installed, so without the Greek language pack Alfa Commerce shows English throughout. Uninstalling removes any that are left. A file whose content was changed is kept and named, and a language pack's files are never touched.</item>
+            <item>The mini-cart shows why a cart line cannot be bought in words on every page, not as a language key, when the page belongs to another component.</item>
+        </fix>
+
+        <language>
+            <item>The update's link-table error can now be translated.</item>
+            <item>Shopper-facing choice-field errors, the combinations drag handle and several form options are translatable texts; the state words that must agree with a noun are Alfa's own texts.</item>
+            <item>The English texts say "item", never "product": the component, its guided tours, its plugins and its modules.</item>
+            <item>Corrected English texts: the search module's loading image fields, the order number token of the order e-mails, a place's parent field, the cart rule free-shipping message, the categories tour's image tab and the discounts tour's badge step; the Users and Usergroups permissions are named as their screens.</item>
+        </language>
+    </changelog>
+    <changelog>
+        <element>com_alfa</element>
+        <type>component</type>
         <version>2.1.0</version>
 
         <note>

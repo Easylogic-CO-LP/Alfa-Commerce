@@ -10,6 +10,7 @@
 namespace Alfa\Component\Alfa\Administrator\Controller;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderHelper;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartSource;
@@ -1672,11 +1673,12 @@ class CartController extends BaseController
      *
      * @param int $customerId The customer, or 0 for a guest.
      *
-     * @return string|null A language tag, or null to let placement decide.
+     * @return string A language tag: the account's, else the site's default language
+     *                ({@see MultilingualHelper::getDefaultLanguageCode()}).
      *
      * @since  2.0.0
      */
-    private function languageFor(int $customerId): ?string
+    private function languageFor(int $customerId): string
     {
         if ($customerId > 0) {
             $chosen = (string) (new User($customerId))->getParam('language', '');
@@ -1686,8 +1688,6 @@ class CartController extends BaseController
             }
         }
 
-        $site = (string) \Joomla\CMS\Component\ComponentHelper::getParams('com_languages')->get('site', '');
-
-        return $site !== '' ? $site : null;
+        return MultilingualHelper::getDefaultLanguageCode();
     }
 }

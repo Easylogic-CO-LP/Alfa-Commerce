@@ -825,16 +825,16 @@ final class Standard extends ShipmentsPlugin
         // Always available
 
         // View Details: opens a modal with shipment information
-        $event->add('view_details', Text::_('COM_ALFA_VIEW_DETAILS'))
+        $event->add('view_details', Text::_('PLG_ALFA_SHIPMENTS_STANDARD_VIEW_DETAILS'))
             ->icon('eye')->css('btn-outline-secondary')
-            ->modal('action_view_details', Text::_('COM_ALFA_SHIPMENT_DETAILS') . ' #' . $shipment->id)
+            ->modal('action_view_details', Text::_('PLG_ALFA_SHIPMENTS_STANDARD_SHIPMENT_DETAILS') . ' #' . $shipment->id)
             ->readOnly()
             ->priority(10);
 
         // View Logs: opens a modal with this shipment's plugin log history
-        $event->add('view_logs', Text::_('COM_ALFA_VIEW_LOGS'))
+        $event->add('view_logs', Text::_('PLG_ALFA_SHIPMENTS_STANDARD_VIEW_LOGS'))
             ->icon('list')->css('btn-outline-info')
-            ->modal('default_order_logs_view', Text::_('COM_ALFA_SHIPMENT_LOGS') . ' #' . $shipment->id, 'lg')
+            ->modal('default_order_logs_view', Text::_('PLG_ALFA_SHIPMENTS_STANDARD_SHIPMENT_LOGS') . ' #' . $shipment->id, 'lg')
             ->readOnly()
             ->priority(5);
 
@@ -848,7 +848,7 @@ final class Standard extends ShipmentsPlugin
                 ->priority(200);
 
             // Cancel: transitions to cancelled
-            $event->add('cancel', Text::_('COM_ALFA_CANCEL'))
+            $event->add('cancel', Text::_('PLG_ALFA_SHIPMENTS_STANDARD_CANCEL'))
                 ->icon('cancel')->css('btn-outline-danger')
                 ->confirm(Text::_('PLG_ALFA_SHIPMENTS_STANDARD_CONFIRM_CANCEL'))
                 ->priority(50);
@@ -1115,7 +1115,7 @@ final class Standard extends ShipmentsPlugin
             'shipment' => $shipment,
             'order' => $event->getOrder(),
         ]);
-        $event->setModalTitle(Text::_('COM_ALFA_SHIPMENT_DETAILS') . ' #' . $shipment->id);
+        $event->setModalTitle(Text::_('PLG_ALFA_SHIPMENTS_STANDARD_SHIPMENT_DETAILS') . ' #' . $shipment->id);
     }
 
     /**
@@ -1139,7 +1139,7 @@ final class Standard extends ShipmentsPlugin
             'logData' => $logData ?? [],
             'xml' => $this->getLogsSchema(),
         ]);
-        $event->setModalTitle(Text::_('COM_ALFA_SHIPMENT_LOGS') . ' #' . $shipment->id);
+        $event->setModalTitle(Text::_('PLG_ALFA_SHIPMENTS_STANDARD_SHIPMENT_LOGS') . ' #' . $shipment->id);
     }
 
     /**

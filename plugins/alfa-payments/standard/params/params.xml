@@ -27,8 +27,8 @@
 			<field
 					name="statuses_note"
 					type="note"
-					label="COM_ALFA_PAYMENT_SETTINGS_SECTION_STATUSES"
-					description="COM_ALFA_PAYMENT_SETTINGS_SECTION_STATUSES_DESC"
+					label="PLG_ALFA_PAYMENTS_STANDARD_SECTION_STATUSES"
+					description="PLG_ALFA_PAYMENTS_STANDARD_SECTION_STATUSES_DESC"
 			/>
 
 			<field
@@ -38,10 +38,10 @@
 					column_value="id"
 					column_text="name"
 					orderBy="ordering"
-					label="COM_ALFA_PAYMENT_SETTINGS_STATUS_ON_COMPLETED_LABEL"
-					description="COM_ALFA_PAYMENT_SETTINGS_STATUS_ON_COMPLETED_DESC"
+					label="PLG_ALFA_PAYMENTS_STANDARD_STATUS_ON_COMPLETED_LABEL"
+					description="PLG_ALFA_PAYMENTS_STANDARD_STATUS_ON_COMPLETED_DESC"
 			>
-				<option value="">COM_ALFA_PAYMENT_SETTINGS_STATUS_NO_CHANGE</option>
+				<option value="">PLG_ALFA_PAYMENTS_STANDARD_STATUS_NO_CHANGE</option>
 			</field>
 
 			<field
@@ -51,10 +51,10 @@
 					column_value="id"
 					column_text="name"
 					orderBy="ordering"
-					label="COM_ALFA_PAYMENT_SETTINGS_STATUS_ON_CANCELLED_LABEL"
-					description="COM_ALFA_PAYMENT_SETTINGS_STATUS_ON_CANCELLED_DESC"
+					label="PLG_ALFA_PAYMENTS_STANDARD_STATUS_ON_CANCELLED_LABEL"
+					description="PLG_ALFA_PAYMENTS_STANDARD_STATUS_ON_CANCELLED_DESC"
 			>
-				<option value="">COM_ALFA_PAYMENT_SETTINGS_STATUS_NO_CHANGE</option>
+				<option value="">PLG_ALFA_PAYMENTS_STANDARD_STATUS_NO_CHANGE</option>
 			</field>
 
 			<field
@@ -64,10 +64,10 @@
 					column_value="id"
 					column_text="name"
 					orderBy="ordering"
-					label="COM_ALFA_PAYMENT_SETTINGS_STATUS_ON_REFUNDED_LABEL"
-					description="COM_ALFA_PAYMENT_SETTINGS_STATUS_ON_REFUNDED_DESC"
+					label="PLG_ALFA_PAYMENTS_STANDARD_STATUS_ON_REFUNDED_LABEL"
+					description="PLG_ALFA_PAYMENTS_STANDARD_STATUS_ON_REFUNDED_DESC"
 			>
-				<option value="">COM_ALFA_PAYMENT_SETTINGS_STATUS_NO_CHANGE</option>
+				<option value="">PLG_ALFA_PAYMENTS_STANDARD_STATUS_NO_CHANGE</option>
 			</field>
 
 		</fieldset>

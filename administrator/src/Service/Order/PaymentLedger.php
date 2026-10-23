@@ -15,7 +15,8 @@
  *    CREATE:  PaymentLedger::for($order)->pending()->save();
  *    UPDATE:  PaymentLedger::load($id)->completed()->save();
  *    PLUGIN:  $this->payment($order)->pending()->save();
- *    PLUGIN:  $this->paymentUpdate($id)->completed()->transactionId('ch_3M..')->save();
+ *    PLUGIN:  $this->paymentUpdate($id)->expectStatus('pending')->completed()->transactionId('ch_3M..')->save();
+ *             // a provider's id goes on the row through the compare-and-set, as every provider fact does
  *    RACE:    $this->paymentUpdate($id)->expectStatus('pending')->completed()->save();
  *    BOOKS:   $this->paymentUpdate($id)->cancelled()->bookkeeping()->save();
  *    ADMIN:   PaymentLedger::for($order)->amount(50)->pending()->save();
@@ -1958,7 +1959,9 @@ class PaymentLedger
         }
 
         // Post-commit: the money row is durable, so the timeline entry is
-        // best-effort by definition and can no longer affect the write.
+        // best-effort and can no longer affect the write, unless the failure
+        // ended a caller's transaction this write was part of (a deadlock
+        // inside a provider word's frame): that one reaches the caller.
         self::logCreatedRow($newId, $orderId);
 
         // A linked refund born settled (a plugin's builder ->refund()->...->completed()->save()): its payment is
@@ -2548,7 +2551,9 @@ class PaymentLedger
      * that is not settled yet (pending or authorized, a reservation) reads as
      * 'payment.refund_reserved' (since 2.1.0).
      * Non-fatal by contract: the row is committed, so an entry that cannot be
-     * written is logged and never turns a recorded payment into a throw.
+     * written is logged and never turns a recorded payment into a throw, except
+     * a failure that ended the caller's transaction (a deadlock inside a provider
+     * word's frame), which reaches the caller (since 2.1.1).
      *
      * @param int $paymentId Committed payment row PK.
      * @param int $orderId Order PK.
@@ -2561,6 +2566,12 @@ class PaymentLedger
         try {
             self::writeCreatedRowEntry($paymentId, $orderId);
         } catch (Throwable $e) {
+            // The row stands without its entry, unless the failure ended the caller's transaction (a deadlock inside a
+            // provider word's frame): then nothing stands and the caller must not go on.
+            if (TransactionState::endedBy(self::db(), $e)) {
+                throw $e;
+            }
+
             try {
                 self::ensureLogger();
                 Log::add(
@@ -4319,7 +4330,7 @@ class PaymentLedger
 
         // Money moved that the report its gateway listed it under names, and staff recorded that report: it is in
         // the books already (since 2.1.0).
-        $recorded = (bool) ($options['gateway_moved'] ?? false) ? self::recordedReport(payment: $original, options: $options) : null;
+        $recorded = (bool) ($options['gateway_moved'] ?? false) ? self::recordedReport(payment: $original, options: $options, providerRefundId: (string) ($options['transaction_id'] ?? ''), figure: $amount) : null;
 
         if ($recorded !== null) {
             return $recorded;
@@ -4404,7 +4415,7 @@ class PaymentLedger
         // matched by the provider id, else by the report the gateway names) is never booked over that resolution:
         // it comes back once as a new report that holds the refund block (since 2.1.0).
         $reportId = (string) ($options['report_id'] ?? '');
-        $resolved = (bool) ($options['gateway_moved'] ?? false) && ($reference !== '' || $reportId !== '') ? self::resolvedByStaff(paymentId: $paymentId, providerRefundId: $reference, reportId: $reportId) : null;
+        $resolved = (bool) ($options['gateway_moved'] ?? false) && ($reference !== '' || $reportId !== '') ? self::resolvedByStaff(paymentId: $paymentId, providerRefundId: $reference, reportId: $reportId, options: $options) : null;
 
         if ($resolved !== null && $reference === '') {
             // No provider id and no request key: nothing identifies this word to keep it once for staff. Never
@@ -4616,8 +4627,10 @@ class PaymentLedger
             $refundId = static::create(data: $data, refundStart: !$gatewayMoved);
         } catch (Throwable $e) {
             // A failure that ended the caller's transaction is the caller's to
-            // hear: the answers below would be given outside it.
-            if ($nested && !TransactionState::isOpen(self::db())) {
+            // hear: the answers below would be given outside it. That includes a
+            // deadlock after create() released its level (on the row's timeline
+            // entry), which leaves the driver's count open (since 2.1.1).
+            if ($nested && (!TransactionState::isOpen(self::db()) || TransactionState::endedBy(self::db(), $e))) {
                 if ($gatewayMoved) {
                     self::ensureLogger();
                     Log::add(
@@ -5431,14 +5444,20 @@ class PaymentLedger
         try {
             self::ensureLogger();
             Log::add(sprintf('Payment #%d: %s', $paymentId, $summary), Log::WARNING, 'com_alfa.payments');
-        } catch (Throwable) {
-            // The timeline entry above carries the same fact.
+        } catch (Throwable $e) {
+            // The timeline entry above carries the same fact, unless the failure ended the word's transaction.
+            if (TransactionState::endedBy(self::db(), $e)) {
+                throw $e;
+            }
         }
 
         try {
             self::pushUnreconciled(paymentId: $paymentId, orderId: $orderId, realert: true, message: sprintf('Payment #%d: %s', $paymentId, $summary));
-        } catch (Throwable) {
-            // The timeline entry and the listing carry the same fact.
+        } catch (Throwable $e) {
+            // The timeline entry and the listing carry the same fact, unless the failure ended the word's transaction.
+            if (TransactionState::endedBy(self::db(), $e)) {
+                throw $e;
+            }
         }
 
         return self::refundResult(outcome: self::OUTCOME_UNRECONCILED, refundId: (int) $now->id, reason: sprintf('the provider %s (%s)%s about the refund row #%d keeps for staff: added to its report %s, which shows every word, latest first, and holds the refund block until staff decide; nothing in the books changed', $said, $named, $again ? ' again, now its latest word,' : '', (int) $now->id, $report));
@@ -6182,11 +6201,12 @@ class PaymentLedger
      * and written under that lock (rows and their marks together), and the answer is built from what was read or
      * written there: two words about one order queue on its lock and each sees the other's whole outcome. The row the
      * word names is read once before the lock only to find its order, and again under it. A word routed from one entry
-     * to another inside the frame of the same order runs in that frame (null: the caller goes on); inside a caller's
-     * transaction the frame is a savepoint of it. The flip of a payment its settled refunds now cover waits for the
-     * frame's commit when the frame is the connection's outermost transaction ({@see self::flipIfCovered()}): its
-     * status automation then never runs while the lock is held (inside a caller's transaction it runs there, as every
-     * nested write's side effects do). No outgoing call is made inside a frame (a provider's word is inbound).
+     * to another inside the frame of the same order runs in that frame (null: the caller goes on). A word never runs
+     * inside a transaction of its caller's ({@see self::wordLocked()}), except the one core's own staff verbs hold with
+     * the order's lock taken first: the frame is then a savepoint of it. The flip of a payment its settled refunds now
+     * cover waits for the outermost commit when the frame is the connection's outermost transaction or runs inside
+     * core's staff verb ({@see self::flipIfCovered()}): its status automation then never runs while the lock is held.
+     * No outgoing call is made inside a frame (a provider's word is inbound).
      *
      * @param int $rowId The row the word names: the refund row (settle, hold, release) or the payment (refundPayment).
      * @param Closure $word fn(): array The entry itself, called again inside the frame.
@@ -6206,17 +6226,7 @@ class PaymentLedger
             return null;
         }
 
-        $outer = self::$wordOrder;
-        $outerDefers = self::$wordDefersFlip;
-        self::$wordOrder = $orderId;
-        self::$wordDefersFlip = $outer === 0 ? !TransactionState::isOpen(self::db()) : $outerDefers;
-
-        try {
-            return self::wordLocked(orderId: $orderId, rowId: $rowId, word: $word);
-        } finally {
-            self::$wordOrder = $outer;
-            self::$wordDefersFlip = $outerDefers;
-        }
+        return self::wordLocked(orderId: $orderId, rowId: $rowId, word: $word);
     }
 
     /**
@@ -6224,6 +6234,14 @@ class PaymentLedger
      * the commit. The order not locked within the lock wait answers OUTCOME_FAILED, nothing written, to retry; a row
      * moved to another order meanwhile answers OUTCOME_RACED; a failure inside rolls the whole word back and reaches
      * the caller (the ledger's one transaction rule).
+     *
+     * A transaction of the caller's that is open already answers OUTCOME_FAILED, nothing written: its reads would be
+     * those of the snapshot it took before the lock, which cannot see a delivery committed meanwhile, so one provider
+     * refund could be booked twice. The one exception is core's own staff verb ({@see self::settleReport()}), whose
+     * transaction takes the order's lock before it reads anything; a frame inside it defers its flip to the outermost
+     * commit as an outermost frame does, so no status automation runs under the verb's lock (since 2.1.1). The frame
+     * ends before its commit runs the work deferred to it, so a word raised there (the deferred flip's status
+     * automation, a notification's listener) runs in a frame of its own.
      *
      * @param int $orderId The order, as read before the lock.
      * @param int $rowId The row the word names.
@@ -6236,26 +6254,42 @@ class PaymentLedger
     private static function wordLocked(int $orderId, int $rowId, Closure $word): array
     {
         $db = self::db();
-        $db->transactionStart(true);
+        $callerOpen = TransactionState::isOpen($db);
+
+        if ($callerOpen && !isset(self::$lockedOrders[$orderId])) {
+            return self::refundResult(outcome: self::OUTCOME_FAILED, reason: sprintf('a provider word about order #%d was sent inside a transaction of the caller\'s; nothing was written: send it outside any transaction', $orderId));
+        }
+
+        $outer = self::$wordOrder;
+        $outerDefers = self::$wordDefersFlip;
+        self::$wordOrder = $orderId;
+        self::$wordDefersFlip = $outer === 0 ? !$callerOpen : $outerDefers;
 
         try {
-            if (!self::lockOrders($db, $orderId)) {
-                TransactionState::rollBackLevel($db);
+            $db->transactionStart(true);
 
-                return self::refundResult(outcome: self::OUTCOME_FAILED, reason: sprintf('order #%d is held by another writer: the provider\'s word was not processed and nothing was written; try again', $orderId));
+            try {
+                if (!self::lockOrders($db, $orderId)) {
+                    TransactionState::rollBackLevel($db);
+
+                    return self::refundResult(outcome: self::OUTCOME_FAILED, reason: sprintf('order #%d is held by another writer: the provider\'s word was not processed and nothing was written; try again', $orderId));
+                }
+
+                if ((int) (self::getRaw(id: $rowId)->id_order ?? 0) !== $orderId) {
+                    TransactionState::rollBackLevel($db);
+
+                    return self::refundResult(outcome: self::OUTCOME_RACED, reason: sprintf('row #%d moved to another order meanwhile; nothing was written: try again', $rowId));
+                }
+
+                $answer = $word();
+            } catch (Throwable $e) {
+                TransactionState::rollBackLevel($db, $e);
+
+                throw $e;
             }
-
-            if ((int) (self::getRaw(id: $rowId)->id_order ?? 0) !== $orderId) {
-                TransactionState::rollBackLevel($db);
-
-                return self::refundResult(outcome: self::OUTCOME_RACED, reason: sprintf('row #%d moved to another order meanwhile; nothing was written: try again', $rowId));
-            }
-
-            $answer = $word();
-        } catch (Throwable $e) {
-            TransactionState::rollBackLevel($db, $e);
-
-            throw $e;
+        } finally {
+            self::$wordOrder = $outer;
+            self::$wordDefersFlip = $outerDefers;
         }
 
         TransactionState::commitLevel($db);
@@ -6334,7 +6368,7 @@ class PaymentLedger
         }
 
         // A word whose report staff recorded is in the books already.
-        $recorded = !$releasing && $payment !== null ? self::recordedReport(payment: $payment, options: $options) : null;
+        $recorded = !$releasing && $payment !== null ? self::recordedReport(payment: $payment, options: $options, providerRefundId: $providerRefundId, figure: $amount) : null;
 
         if ($recorded !== null) {
             return ['result' => $recorded];
@@ -6364,7 +6398,7 @@ class PaymentLedger
             // A provider refund staff resolved through the way out (a duplicate or invalid report, or reconciled
             // to a refund already booked) is never booked over that resolution: it comes back as a new report
             // that holds the refund block, so staff decide again.
-            $resolved = $owner === null && !$releasing && $payment !== null ? self::resolvedByStaff(paymentId: (int) $payment->id, providerRefundId: $providerRefundId, reportId: $reportId) : null;
+            $resolved = $owner === null && !$releasing && $payment !== null ? self::resolvedByStaff(paymentId: (int) $payment->id, providerRefundId: $providerRefundId, reportId: $reportId, options: $options) : null;
 
             if ($resolved !== null) {
                 $figure = $amount ?? self::money($row->amount, $orderId)->abs();
@@ -6378,7 +6412,7 @@ class PaymentLedger
             // With no provider id, the report the gateway listed it under names the word: staff resolved it, so it
             // is kept for staff on its own row split off the reservation, under the request's key and its figure
             // (once; a word with none and no such report is the request's own refund below).
-            $resolved = self::resolvedByStaff(paymentId: (int) $payment->id, providerRefundId: '', reportId: $reportId);
+            $resolved = self::resolvedByStaff(paymentId: (int) $payment->id, providerRefundId: '', reportId: $reportId, options: $options);
 
             if ($resolved !== null) {
                 $figure = $amount ?? self::money($row->amount, $orderId)->abs();
@@ -6416,10 +6450,11 @@ class PaymentLedger
         // settle is booked on a row of its own when the books take it, else kept there for staff; a hold is held on a
         // row of its own that waits for staff, listed PENDING and blocking (R3-1). Never merged into the reservation.
         if (!$releasing && $providerRefundId !== null && $owner === null && $payment !== null && !\in_array($status, self::REFUND_RESERVING_STATUSES, true)) {
-            // The request's one refund BOOKED with no provider id, named with an id at its figure (a hold with no figure:
-            // its own): that refund being identified (main's decision of round 8d): it takes the id; DUPLICATE.
-            if (\in_array($status, self::REFUND_SETTLED_STATUSES, true) && self::providerIdOf(row: $row) === null && self::oneRefundOfKey(reference: $reference)
-                && ($amount ?? self::money($row->amount, $orderId)->abs())->getMinorUnits() === self::money($row->amount, $orderId)->abs()->getMinorUnits()) {
+            // The request's one refund BOOKED with no provider id, named with an id at its figure: that refund being
+            // identified: it takes the id; DUPLICATE. Only a stated figure identifies it: a hold with none could be
+            // another refund, and the booked row would then carry its id (refused below: name the figure).
+            if ($amount !== null && \in_array($status, self::REFUND_SETTLED_STATUSES, true) && self::providerIdOf(row: $row) === null && self::oneRefundOfKey(reference: $reference)
+                && $amount->getMinorUnits() === self::money($row->amount, $orderId)->abs()->getMinorUnits()) {
                 return ['result' => self::identifyBooked(row: $row, providerRefundId: $providerRefundId)];
             }
 
@@ -6804,6 +6839,8 @@ class PaymentLedger
             default => sprintf('Refund #%d: the provider settled %s (%s), which the books refused; the order holds the refund block until its report %s is recorded, reconciled to an existing refund or resolved as a duplicate or invalid report.', (int) $row->id, $named, $amount->format(), $report),
         };
 
+        // The mark is what lists the row and holds the refund block: a row kept without it would reserve money nobody
+        // sees. A mark that cannot be written rolls the whole word back (every keeper runs inside the word's frame).
         try {
             OrderModel::logOrderActivityStrict(
                 orderId: $orderId,
@@ -6823,22 +6860,35 @@ class PaymentLedger
                 entityId: (int) $row->id,
             );
         } catch (Throwable $e) {
-            $line .= ' The block mark could not be written: ' . $e->getMessage() . '.';
+            try {
+                self::ensureLogger();
+                Log::add($line . ' The block mark could not be written (' . $e->getMessage() . '): the word is rolled back, nothing of it is kept.', Log::CRITICAL, 'com_alfa.payments');
+            } catch (Throwable) {
+                // The failure below reaches the caller either way.
+            }
+
+            throw $e;
         }
 
         try {
             self::ensureLogger();
             Log::add($line, Log::CRITICAL, 'com_alfa.payments');
-        } catch (Throwable) {
-            // The answer below carries the same fact.
+        } catch (Throwable $e) {
+            // The answer below carries the same fact, unless the failure ended the word's transaction.
+            if (TransactionState::endedBy(self::db(), $e)) {
+                throw $e;
+            }
         }
 
         try {
             if ($notify) {
                 self::pushUnreconciled(paymentId: $paymentId, orderId: $orderId, realert: $resolved !== null || $waitForStaff);
             }
-        } catch (Throwable) {
-            // The answer below carries the same fact.
+        } catch (Throwable $e) {
+            // The answer below carries the same fact, unless the failure ended the word's transaction.
+            if (TransactionState::endedBy(self::db(), $e)) {
+                throw $e;
+            }
         }
 
         return self::refundResult(outcome: self::OUTCOME_UNRECONCILED, refundId: (int) $row->id, reason: match (true) {
@@ -6846,6 +6896,31 @@ class PaymentLedger
             $waitForStaff || $booksChecked => sprintf('the provider %s %s, which is not booked: %s; row #%d keeps it and the order holds the refund block until its report %s is recorded, reconciled or resolved on the payment', $held ? 'holds' : 'settled', $amount->format(), $why, (int) $row->id, $report),
             default => sprintf('the provider settled %s, which the books refused; row #%d keeps it and the order holds the refund block until its report %s is recorded, reconciled or resolved on the payment', $amount->format(), (int) $row->id, $report),
         });
+    }
+
+    /**
+     * Write a notification of the ledger's (a push or a clear), or hand it to the commit: while the ledger holds an
+     * order's lock in the connection's outermost transaction (a provider word's frame, core's staff verb) it waits
+     * for that commit ({@see PostCommit}): none is written, and no listener of one runs, while the lock is held; a
+     * rollback discards it; they run in the order they were raised. Otherwise (no lock of the ledger's, or inside a
+     * caller's transaction) it is written at once, as every nested write's side effects are.
+     *
+     * @param string $label What the write is, as a failure's log line names it.
+     * @param Closure $write fn(): void The NotificationHelper call.
+     *
+     * @since  2.1.1
+     */
+    private static function notice(string $label, Closure $write): void
+    {
+        $db = self::db();
+
+        if (TransactionState::isOpen($db) && ((self::$wordOrder !== 0 && self::$wordDefersFlip) || self::$verbDefersNotices)) {
+            PostCommit::defer(db: $db, label: $label, work: $write);
+
+            return;
+        }
+
+        $write();
     }
 
     /**
@@ -6862,19 +6937,21 @@ class PaymentLedger
      */
     private static function pushUnreconciled(int $paymentId, int $orderId, bool $realert = false, string $message = ''): void
     {
-        NotificationHelper::push(
-            'payments.refund.unreconciled.' . $paymentId,
-            'Payment #' . $paymentId . ': refund left unreconciled',
-            [
-                'severity' => 'danger',
-                'group' => 'Payments',
-                'message' => $message !== '' ? $message : 'The provider settled a refund that the books refused. Its reservation stays; this order needs manual reconciliation.',
-                'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
-                'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
-                'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
-                'constant' => $realert,
-            ],
-        );
+        self::notice(label: sprintf('the unreconciled refund notice of payment #%d', $paymentId), write: static function () use ($paymentId, $orderId, $realert, $message): void {
+            NotificationHelper::push(
+                'payments.refund.unreconciled.' . $paymentId,
+                'Payment #' . $paymentId . ': refund left unreconciled',
+                [
+                    'severity' => 'danger',
+                    'group' => 'Payments',
+                    'message' => $message !== '' ? $message : 'The provider settled a refund that the books refused. Its reservation stays; this order needs manual reconciliation.',
+                    'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
+                    'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
+                    'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
+                    'constant' => $realert,
+                ],
+            );
+        });
     }
 
     /**
@@ -6899,25 +6976,33 @@ class PaymentLedger
             return null;
         }
 
-        return self::refundResult(outcome: self::OUTCOME_UNRECONCILED, refundId: (int) $row->id, reason: sprintf('row #%d holds a provider refund staff resolved before, back as its report %s: staff decide it on the payment; nothing was written', (int) $row->id, self::REPORT_RESERVATION_PREFIX . (int) $row->id));
+        // Only a row that came back after a staff resolution was resolved before; the others were kept for staff
+        // and never resolved.
+        return self::refundResult(outcome: self::OUTCOME_UNRECONCILED, refundId: (int) $row->id, reason: $mark['resurfaced']
+            ? sprintf('row #%d holds a provider refund staff resolved before, back as its report %s: staff decide it on the payment; nothing was written', (int) $row->id, self::REPORT_RESERVATION_PREFIX . (int) $row->id)
+            : sprintf('row #%d keeps a provider refund for staff, as its report %s: staff decide it on the payment; nothing was written', (int) $row->id, self::REPORT_RESERVATION_PREFIX . (int) $row->id));
     }
 
     /**
      * The kept outcome by which staff resolved a provider refund of a payment through the way out (a duplicate
      * or invalid report, or reconciled to a refund already in the books), or null. Any report counts: the core's
      * own or one the payment's gateway listed. Matched on the provider's refund id, byte for byte, the latest
-     * first; else, when the gateway names the report it listed the word under ('report_id'), on that report's id.
-     * Never asked while staff themselves take a report through the way out.
+     * first; else, when the gateway names the report it listed the word under ('report_id'), on that report's id,
+     * when the report is the payment's gateway's and names no other provider refund id ({@see self::reportNamesWord()}).
+     * Its figure is not asked here: a resolution answers a word DUPLICATE only through
+     * {@see self::resolutionStands()}, which asks for the same figure itself, and a word at another figure comes back
+     * for staff. Never asked while staff themselves take a report through the way out.
      *
      * @param int $paymentId The payment.
      * @param string $providerRefundId The provider's refund id; '' when it gives none.
      * @param string $reportId The report the gateway listed this word under; '' when it names none.
+     * @param array $options The word's options ('plugin').
      *
      * @return object|null The outcome row (report_id, outcome, provider_refund_id, id_refund_row, created).
      *
      * @since  2.1.0
      */
-    private static function resolvedByStaff(int $paymentId, string $providerRefundId, string $reportId = ''): ?object
+    private static function resolvedByStaff(int $paymentId, string $providerRefundId, string $reportId = '', array $options = []): ?object
     {
         if (self::$staffWayOut || $paymentId <= 0 || ($providerRefundId === '' && $reportId === '')) {
             return null;
@@ -6926,7 +7011,7 @@ class PaymentLedger
         $db = self::db();
         $rows = $db->setQuery(
             $db->getQuery(true)
-                ->select($db->quoteName(['report_id', 'outcome', 'provider_refund_id', 'id_refund_row', 'created']))
+                ->select($db->quoteName(['report_id', 'outcome', 'provider_refund_id', 'id_refund_row', 'created', 'plugin_element', 'booked_amount', 'amount_typed', 'provider_amount', 'provider_currency']))
                 ->from($db->quoteName(self::REPORT_OUTCOMES))
                 ->where($db->quoteName('id_payment') . ' = ' . $paymentId)
                 ->whereIn($db->quoteName('outcome'), [self::REPORT_RECONCILED, self::REPORT_DISMISSED], ParameterType::STRING)
@@ -6939,8 +7024,11 @@ class PaymentLedger
             }
         }
 
+        $payment = $reportId !== '' ? self::getRaw(id: $paymentId) : null;
+
         foreach ($rows as $row) {
-            if ($reportId !== '' && (string) $row->report_id === $reportId) {
+            if ($payment !== null && (string) $row->report_id === $reportId
+                && self::reportNamesWord(outcome: $row, payment: $payment, options: $options, providerRefundId: $providerRefundId, figure: null)) {
                 return $row;
             }
         }
@@ -6951,27 +7039,111 @@ class PaymentLedger
     /**
      * The answer to a provider word whose report (the gateway's 'report_id') staff already RECORDED, or null:
      * that refund is in the books as the row Record this refund booked, so the word is a duplicate of it and
-     * nothing is written, with or without a provider id. Never asked while staff take a report through the way out.
+     * nothing is written, with or without a provider id. Only a report the word can be: one that names another
+     * provider refund or figure does not identify it ({@see self::reportNamesWord()}). Never asked while staff take a
+     * report through the way out.
      *
-     * @param object $payment The payment (id, payment_method_type).
-     * @param array $options The call's options ('report_id').
+     * @param object $payment The payment (id, id_order, payment_method_type).
+     * @param array $options The call's options ('report_id', 'plugin').
+     * @param string|null $providerRefundId The word's provider refund id; null or '' when it gives none.
+     * @param Money|null $figure The word's figure; null when it gives none.
      *
      * @return array{outcome: string, refund_id: int, reason: string, amount: float}|null
      *
      * @since  2.1.0
      */
-    private static function recordedReport(object $payment, array $options): ?array
+    private static function recordedReport(object $payment, array $options, ?string $providerRefundId, ?Money $figure): ?array
     {
         $reportId = (string) ($options['report_id'] ?? '');
         $kept = self::$staffWayOut || $reportId === ''
             ? null
             : self::keptOutcome(element: (string) ($payment->payment_method_type ?? ''), paymentId: (int) $payment->id, reportId: $reportId);
 
-        if ($kept === null || (string) $kept->outcome !== self::REPORT_RECORDED || (int) ($kept->id_refund_row ?? 0) <= 0) {
+        if ($kept === null || (string) $kept->outcome !== self::REPORT_RECORDED || (int) ($kept->id_refund_row ?? 0) <= 0
+            || !self::reportNamesWord(outcome: $kept, payment: $payment, options: $options, providerRefundId: $providerRefundId, figure: $figure)) {
             return null;
         }
 
         return self::refundResult(outcome: self::OUTCOME_DUPLICATE, refundId: (int) $kept->id_refund_row, reason: sprintf('report %s of payment #%d was recorded by staff as refund row #%d: nothing was written', $reportId, (int) $payment->id, (int) $kept->id_refund_row));
+    }
+
+    /**
+     * Whether the report a gateway names for a provider word ('report_id') can be that word's report. The lookup keeps
+     * it to the word's payment; nothing else about the word may contradict it: the report is the payment's gateway's
+     * (and the calling plugin's, when it names itself), it names the same provider refund id when both carry one, and,
+     * when no provider id decides it, the same figure when the report states an exact one in the order's currency.
+     * A report_id that names another refund's report is logged (WARNING) and the word is decided without it.
+     *
+     * @param object $outcome The kept outcome (report_id, plugin_element, provider_refund_id, booked_amount, amount_typed,
+     *                        provider_amount, provider_currency).
+     * @param object $payment The word's payment (id, id_order, payment_method_type).
+     * @param array $options The word's options ('plugin').
+     * @param string|null $providerRefundId The word's provider refund id; null or '' when it gives none.
+     * @param Money|null $figure The word's figure; null when it gives none, or when the caller does not ask for it.
+     *
+     * @since  2.1.1
+     */
+    private static function reportNamesWord(object $outcome, object $payment, array $options, ?string $providerRefundId, ?Money $figure): bool
+    {
+        $element = (string) ($payment->payment_method_type ?? '');
+        $plugin = (string) ($options['plugin'] ?? '');
+        $theirs = (string) ($outcome->provider_refund_id ?? '');
+        $mine = (string) ($providerRefundId ?? '');
+        $stated = $mine === '' || $theirs === '' ? self::reportFigure(outcome: $outcome, orderId: (int) $payment->id_order) : null;
+        $other = null;
+
+        if ((string) ($outcome->plugin_element ?? '') !== $element || ($plugin !== '' && $plugin !== $element)) {
+            $other = sprintf('a report of another gateway (%s)', (string) ($outcome->plugin_element ?? ''));
+        } elseif ($mine !== '' && $theirs !== '' && $mine !== $theirs) {
+            $other = sprintf('the report of provider refund %s', $theirs);
+        } elseif ($figure !== null && $stated !== null && $stated->getMinorUnits() !== $figure->abs()->getMinorUnits()) {
+            $other = sprintf('a report of %s', $stated->format());
+        }
+
+        if ($other === null) {
+            return true;
+        }
+
+        try {
+            self::ensureLogger();
+            Log::add(
+                sprintf('Payment #%d: a provider word (%s, %s) named report %s, which is %s; it is decided without that report.', (int) $payment->id, $mine !== '' ? $mine : 'no provider id', $figure?->format() ?? 'no figure', (string) $outcome->report_id, $other),
+                Log::WARNING,
+                'com_alfa.payments',
+            );
+        } catch (Throwable) {
+            // The answer the word gets does not depend on the line.
+        }
+
+        return false;
+    }
+
+    /**
+     * The figure a kept report states exactly in the order's currency, or null when it states none that way: the
+     * figure booked for it (recorded with the provider's own amount, or the refund it was reconciled to), else the
+     * provider's stated amount when it is in the order's currency and fits its scale.
+     *
+     * @param object $outcome The kept outcome (booked_amount, amount_typed, provider_amount, provider_currency).
+     * @param int $orderId The order of the report's payment.
+     *
+     * @since  2.1.1
+     */
+    private static function reportFigure(object $outcome, int $orderId): ?Money
+    {
+        if ($outcome->booked_amount !== null && (int) ($outcome->amount_typed ?? 0) === 0) {
+            return self::money((string) $outcome->booked_amount, $orderId)->abs();
+        }
+
+        $text = trim((string) ($outcome->provider_amount ?? ''));
+        $currency = self::orderCurrency($orderId);
+
+        if ($text === '' || strtoupper(trim((string) ($outcome->provider_currency ?? ''))) !== $currency->getCode()
+            || preg_match('/^-?\d+(?:\.(\d+))?$/', $text, $parts) !== 1
+            || \strlen(rtrim($parts[1] ?? '', '0')) > $currency->getDecimalPlaces()) {
+            return null;
+        }
+
+        return self::money($text, $orderId)->abs();
     }
 
     /**
@@ -7170,7 +7342,7 @@ class PaymentLedger
         // Nothing under the key yet: booked as the books decide. With no provider id it carries the core's own
         // reference for the request's one such refund, which create() de-duplicates under the order's lock.
         $bookAs = $reference !== '' ? $reference : self::REFUND_BEYOND_PREFIX . $requestKey;
-        $resolvedBefore = $reference !== '' ? self::resolvedByStaff(paymentId: $paymentId, providerRefundId: $reference, reportId: (string) ($options['report_id'] ?? '')) : null;
+        $resolvedBefore = $reference !== '' ? self::resolvedByStaff(paymentId: $paymentId, providerRefundId: $reference, reportId: (string) ($options['report_id'] ?? ''), options: $options) : null;
         $result = self::refundPayment(paymentId: $paymentId, amount: $amount, options: ['transaction_id' => $bookAs] + array_diff_key($options, ['request_key' => true]));
 
         // A provider refund staff resolved before: it came back for staff (its own notice) or the resolution stands.
@@ -7275,7 +7447,9 @@ class PaymentLedger
 
             $id = self::providerFact(static fn (): int|false => static::create(data: $data));
             $row = $id === false ? null : self::getRaw(id: (int) $id);
-            $kept = $row === null ? null : self::unreconciledSettle(row: $row, amount: $amount, providerRefundId: $reference !== '' ? $reference : null, why: 'beyond its decision, refused by the books (' . $refused . ')', notify: false, requestKey: $requestKey);
+            // The books' refusal is the caller's answer, read under this lock: the row is marked whatever the books'
+            // figures alone would say, never left reserving without its mark.
+            $kept = $row === null ? null : self::unreconciledSettle(row: $row, amount: $amount, providerRefundId: $reference !== '' ? $reference : null, why: 'beyond its decision, refused by the books (' . $refused . ')', notify: false, booksChecked: true, requestKey: $requestKey);
         } catch (Throwable $e) {
             TransactionState::rollBackLevel($db, $e);
 
@@ -7401,7 +7575,7 @@ class PaymentLedger
         }
 
         // Else a report the gateway listed this word under (its 'report_id') that staff resolved.
-        $resolved ??= self::resolvedByStaff(paymentId: $paymentId, providerRefundId: '', reportId: (string) ($options['report_id'] ?? ''));
+        $resolved ??= self::resolvedByStaff(paymentId: $paymentId, providerRefundId: '', reportId: (string) ($options['report_id'] ?? ''), options: $options);
 
         if ($resolved === null) {
             return null;
@@ -7713,20 +7887,25 @@ class PaymentLedger
         try {
             self::ensureLogger();
             Log::add($summary, Log::CRITICAL, 'com_alfa.payments');
-            NotificationHelper::push(
-                'payments.refund.beyond.' . $paymentId . '.' . $rowId,
-                'Payment #' . $paymentId . ': the provider refunded beyond the staff decision',
-                [
-                    'severity' => 'danger',
-                    'group' => 'Payments',
-                    'message' => $summary,
-                    'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
-                    'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
-                    'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
-                ],
-            );
-        } catch (Throwable) {
-            // The answer to the gateway carries the outcome.
+            self::notice(label: sprintf('the beyond-decision notice of refund row #%d', $rowId), write: static function () use ($paymentId, $rowId, $orderId, $summary): void {
+                NotificationHelper::push(
+                    'payments.refund.beyond.' . $paymentId . '.' . $rowId,
+                    'Payment #' . $paymentId . ': the provider refunded beyond the staff decision',
+                    [
+                        'severity' => 'danger',
+                        'group' => 'Payments',
+                        'message' => $summary,
+                        'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
+                        'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
+                        'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
+                    ],
+                );
+            });
+        } catch (Throwable $e) {
+            // The answer to the gateway carries the outcome, unless the failure ended the word's transaction.
+            if (TransactionState::endedBy(self::db(), $e)) {
+                throw $e;
+            }
         }
     }
 
@@ -7889,8 +8068,9 @@ class PaymentLedger
     private static function flipIfCovered(int $paymentId, int $orderId): void
     {
         // Inside a provider word's frame the flip waits for the outermost commit: decided then under its own lock,
-        // its status automation runs with no lock held (round 8d, {@see self::inWord()}).
-        if (self::$wordOrder !== 0 && self::$wordDefersFlip && TransactionState::isOpen(self::db())) {
+        // its status automation runs with no lock held (round 8d, {@see self::inWord()}). So does the flip of a
+        // frame inside core's staff verb, whatever transaction the verb runs in (since 2.1.1).
+        if (self::$wordOrder !== 0 && (self::$wordDefersFlip || self::$verbOrder === self::$wordOrder) && TransactionState::isOpen(self::db())) {
             PostCommit::defer(db: self::db(), label: sprintf('flip payment #%d once its settled refunds cover it', $paymentId), work: static function () use ($paymentId, $orderId): void {
                 self::flipIfCovered(paymentId: $paymentId, orderId: $orderId);
             });
@@ -9248,18 +9428,23 @@ class PaymentLedger
             default => ['payments.chargeback.' . $newId, 'COM_ALFA_NOTIFY_CHARGEBACK_TITLE', 'COM_ALFA_NOTIFY_CHARGEBACK_MSG', 'danger'],
         };
 
-        NotificationHelper::push(
-            dedupKey: $key,
-            title:    Text::sprintf($titleKey, $orderId),
-            options:  [
-                'severity' => $severity,
-                'group' => 'Payments',
-                'message' => Text::sprintf($messageKey, $amount->format(), $targetId),
-                'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
-                'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
-                'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
-            ],
-        );
+        $title = Text::sprintf($titleKey, $orderId);
+        $message = Text::sprintf($messageKey, $amount->format(), $targetId);
+
+        self::notice(label: sprintf('the notice of fact row #%d', $newId), write: static function () use ($key, $title, $message, $severity, $orderId): void {
+            NotificationHelper::push(
+                dedupKey: $key,
+                title:    $title,
+                options:  [
+                    'severity' => $severity,
+                    'group' => 'Payments',
+                    'message' => $message,
+                    'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
+                    'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
+                    'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
+                ],
+            );
+        });
     }
 
     /**
@@ -9318,19 +9503,27 @@ class PaymentLedger
                 ),
             };
 
-            NotificationHelper::push(
-                dedupKey: 'payments.refund.unreconciled.' . $refundId,
-                title:    Text::sprintf('COM_ALFA_NOTIFY_REFUND_UNRECONCILED_TITLE', $orderId),
-                options:  [
-                    'severity' => 'danger',
-                    'group' => 'Payments',
-                    'message' => $message,
-                    'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
-                    'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
-                    'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
-                ],
-            );
+            $title = Text::sprintf('COM_ALFA_NOTIFY_REFUND_UNRECONCILED_TITLE', $orderId);
+
+            self::notice(label: sprintf('the unreconciled settle notice of refund #%d', $refundId), write: static function () use ($refundId, $orderId, $title, $message): void {
+                NotificationHelper::push(
+                    dedupKey: 'payments.refund.unreconciled.' . $refundId,
+                    title:    $title,
+                    options:  [
+                        'severity' => 'danger',
+                        'group' => 'Payments',
+                        'message' => $message,
+                        'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
+                        'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
+                        'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
+                    ],
+                );
+            });
         } catch (Throwable $e) {
+            if (TransactionState::endedBy(self::db(), $e)) {
+                throw $e;
+            }
+
             try {
                 Log::add(
                     sprintf('Refund #%d of order #%d: the staff notice of its settle could not be written: %s', $refundId, $orderId, $e->getMessage()),
@@ -9982,13 +10175,43 @@ class PaymentLedger
     private static int $wordOrder = 0;
 
     /**
+     * The orders whose lock core's own staff verb ({@see self::settleReport()}) took as the first statement of its
+     * transaction, while the verb decides: a provider word about one of them may run inside that transaction
+     * ({@see self::wordLocked()}). Never set by a caller.
+     *
+     * @var array<int, true>
+     *
+     * @since  2.1.1
+     */
+    private static array $lockedOrders = [];
+
+    /**
+     * True while core's own staff verb ({@see self::settleReport()}) holds an order's lock in the connection's
+     * outermost transaction: the notifications raised meanwhile wait for its commit ({@see self::notice()}). Never set
+     * by a caller.
+     *
+     * @since  2.1.1
+     */
+    private static bool $verbDefersNotices = false;
+
+    /**
      * True while the outermost provider word frame is the connection's outermost transaction: the flip of a payment
      * then waits for its commit ({@see self::flipIfCovered()}); inside a caller's transaction it runs there, as every
-     * nested write's side effects do. Never set by a caller.
+     * nested write's side effects do, unless the caller is core's own staff verb ({@see self::$verbOrder}). Never set
+     * by a caller.
      *
      * @since  2.1.0
      */
     private static bool $wordDefersFlip = false;
+
+    /**
+     * The order core's own staff verb ({@see self::settleReport()}) is deciding, while it decides; 0 otherwise. A
+     * provider word's frame inside it defers its flip, and so its status automation, to the outermost commit
+     * ({@see self::flipIfCovered()}). Never set by a caller.
+     *
+     * @since  2.1.1
+     */
+    private static int $verbOrder = 0;
 
     /** @var bool The current refundPayment() call's row write threw (a real failure to write: nothing is kept). */
     private static bool $writeThrew = false;
@@ -12713,8 +12936,26 @@ class PaymentLedger
         $paymentId = (int) ($payment->id ?? 0);
         $element = (string) ($payment->payment_method_type ?? '');
 
-        if ($paymentId <= 0 || $element === '' || \in_array($element, self::NON_GATEWAY_TYPES, true)) {
+        if ($paymentId <= 0) {
             return $none;
+        }
+
+        // No gateway to ask (no recorded type, or the customer's credit): the core's own reports of money a provider
+        // moved on this payment, kept for staff, still hold the block until the way out.
+        if ($element === '' || \in_array($element, self::NON_GATEWAY_TYPES, true)) {
+            try {
+                $currency = OrderCurrency::of(orderId: (int) ($payment->id_order ?? 0));
+            } catch (OrderCurrencyException) {
+                return $none;
+            }
+
+            $settled = self::settledReports(element: $element, paymentId: $paymentId);
+            $own = array_values(array_filter(
+                self::unreconciledReports(payment: $payment, currency: $currency),
+                static fn (array $report): bool => !\in_array($report['reportId'], $settled, true),
+            ));
+
+            return ['refunds' => $own] + $none;
         }
 
         try {
@@ -12909,10 +13150,15 @@ class PaymentLedger
                 $providerId = $providerOf[$key] ?? '';
                 $isBooked = isset($bookedKeys[$key]) || ($providerId !== '' && self::refundUnderReference($paymentId, $providerId) !== null);
 
-                NotificationHelper::clear($key, !$isBooked);
+                self::notice(label: sprintf('the retirement of notice %s', $key), write: static function () use ($key, $isBooked): void {
+                    NotificationHelper::clear($key, !$isBooked);
+                });
             }
-        } catch (Throwable) {
-            // The refund block itself does not depend on the notice.
+        } catch (Throwable $e) {
+            // The refund block itself does not depend on the notice, unless the failure ended the caller's transaction.
+            if (TransactionState::endedBy(self::db(), $e)) {
+                throw $e;
+            }
         }
     }
 
@@ -12961,20 +13207,25 @@ class PaymentLedger
                 ],
                 $paymentId,
             );
-            NotificationHelper::push(
-                $key,
-                'Payment #' . $paymentId . ': a refund the provider made is not in the books',
-                [
-                    'severity' => 'danger',
-                    'group' => 'Payments',
-                    'message' => $summary,
-                    'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
-                    'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
-                    'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
-                ],
-            );
-        } catch (Throwable) {
-            // The refund block itself does not depend on the notice.
+            self::notice(label: sprintf('the unbooked report notice of payment #%d', $paymentId), write: static function () use ($key, $paymentId, $summary, $orderId): void {
+                NotificationHelper::push(
+                    $key,
+                    'Payment #' . $paymentId . ': a refund the provider made is not in the books',
+                    [
+                        'severity' => 'danger',
+                        'group' => 'Payments',
+                        'message' => $summary,
+                        'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
+                        'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
+                        'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
+                    ],
+                );
+            });
+        } catch (Throwable $e) {
+            // The refund block itself does not depend on the notice, unless the failure ended the caller's transaction.
+            if (TransactionState::endedBy(self::db(), $e)) {
+                throw $e;
+            }
         }
     }
 
@@ -13333,61 +13584,89 @@ class PaymentLedger
         $payment = $paymentId > 0 ? self::getRaw(id: $paymentId) : null;
         $orderId = (int) ($payment->id_order ?? 0);
         $db = self::db();
+        $outerDefers = self::$verbDefersNotices;
+        $outermost = !TransactionState::isOpen($db);
         $db->transactionStart(true);
 
-        // The ledger's one transaction rule: a refusal inside the try closes its
-        // level and returns at once; the commit comes after the try.
+        // The notifications raised while this transaction holds the order's lock wait for its commit when it is the
+        // connection's outermost ({@see self::notice()}); the flag is put back before the commit runs them.
+        self::$verbDefersNotices = $outermost || $outerDefers;
+
         try {
-            if ($orderId > 0 && !self::lockOrders($db, $orderId)) {
-                TransactionState::rollBackLevel($db);
+            // The ledger's one transaction rule: a refusal inside the try closes its
+            // level and returns at once; the commit comes after the try.
+            try {
+                if ($orderId > 0 && !self::lockOrders($db, $orderId)) {
+                    TransactionState::rollBackLevel($db);
 
-                return self::refundResult(outcome: self::OUTCOME_RACED, reason: sprintf('order #%d could not be locked; nothing was written', $orderId)) + ['reference' => $reportId];
+                    return self::refundResult(outcome: self::OUTCOME_RACED, reason: sprintf('order #%d could not be locked; nothing was written', $orderId)) + ['reference' => $reportId];
+                }
+
+                $found = self::findReport(payment: $payment, paymentId: $paymentId, reportId: $reportId);
+
+                // Already settled, not reported, or unreadable: nothing was written.
+                if ($found['entry'] === null) {
+                    TransactionState::rollBackLevel($db);
+
+                    return $found['result'] + ['reference' => $found['result']['reference'] ?? $reportId];
+                }
+
+                $entry = $found['entry'];
+                $reference = self::reportReference(providerId: $entry['id'], reportId: $reportId);
+                $currency = OrderCurrency::of(orderId: $orderId);
+
+                // This transaction took the order's lock before it read anything: the provider word the verb books
+                // (Record this refund) may run inside it ({@see self::wordLocked()}), and only while the verb decides.
+                // The flip that word may cause waits for the outermost commit, its status automation with it.
+                $outerLocked = self::$lockedOrders;
+                $outerVerbOrder = self::$verbOrder;
+                self::$lockedOrders[$orderId] = true;
+                self::$verbOrder = $orderId;
+
+                try {
+                    [$result, $keep] = $settle($entry, $orderId, $currency);
+                } finally {
+                    self::$lockedOrders = $outerLocked;
+                    self::$verbOrder = $outerVerbOrder;
+                }
+
+                if ($keep !== null) {
+                    $identity = Factory::getApplication()->getIdentity();
+                    $outcome = (object) [
+                        'plugin_folder' => 'alfa-payments',
+                        'plugin_element' => (string) $payment->payment_method_type,
+                        'id_payment' => $paymentId,
+                        'id_order' => $orderId,
+                        'report_id' => $reportId,
+                        'outcome' => $keep['outcome'],
+                        'id_refund_row' => $keep['id_refund_row'] ?? null,
+                        'amount_typed' => (int) ($keep['amount_typed'] ?? 0),
+                        'booked_amount' => $keep['booked_amount'] ?? null,
+                        'booked_currency' => isset($keep['booked_amount']) ? $currency->getCode() : null,
+                        'provider_refund_id' => $entry['id'],
+                        'provider_amount' => $entry['providerAmount'],
+                        'provider_currency' => $entry['providerCurrency'],
+                        'reported_on' => $entry['reportedOn'],
+                        'reason' => (string) $keep['reason'],
+                        'id_user' => $identity === null ? 0 : (int) $identity->id,
+                        'created' => Factory::getDate()->toSql(),
+                    ];
+                    $db->insertObject(self::REPORT_OUTCOMES, $outcome);
+
+                    // Resolved: its notification goes to the history (after the commit when this transaction is
+                    // the outermost: notice()).
+                    $noticeKey = self::unbookedNoticeKey(paymentId: $paymentId, reportId: $reportId);
+                    self::notice(label: sprintf('the archive of notice %s', $noticeKey), write: static function () use ($noticeKey): void {
+                        NotificationHelper::clear($noticeKey);
+                    });
+                }
+            } catch (Throwable $e) {
+                TransactionState::rollBackLevel($db, $e);
+
+                throw $e;
             }
-
-            $found = self::findReport(payment: $payment, paymentId: $paymentId, reportId: $reportId);
-
-            // Already settled, not reported, or unreadable: nothing was written.
-            if ($found['entry'] === null) {
-                TransactionState::rollBackLevel($db);
-
-                return $found['result'] + ['reference' => $found['result']['reference'] ?? $reportId];
-            }
-
-            $entry = $found['entry'];
-            $reference = self::reportReference(providerId: $entry['id'], reportId: $reportId);
-            $currency = OrderCurrency::of(orderId: $orderId);
-            [$result, $keep] = $settle($entry, $orderId, $currency);
-
-            if ($keep !== null) {
-                $identity = Factory::getApplication()->getIdentity();
-                $outcome = (object) [
-                    'plugin_folder' => 'alfa-payments',
-                    'plugin_element' => (string) $payment->payment_method_type,
-                    'id_payment' => $paymentId,
-                    'id_order' => $orderId,
-                    'report_id' => $reportId,
-                    'outcome' => $keep['outcome'],
-                    'id_refund_row' => $keep['id_refund_row'] ?? null,
-                    'amount_typed' => (int) ($keep['amount_typed'] ?? 0),
-                    'booked_amount' => $keep['booked_amount'] ?? null,
-                    'booked_currency' => isset($keep['booked_amount']) ? $currency->getCode() : null,
-                    'provider_refund_id' => $entry['id'],
-                    'provider_amount' => $entry['providerAmount'],
-                    'provider_currency' => $entry['providerCurrency'],
-                    'reported_on' => $entry['reportedOn'],
-                    'reason' => (string) $keep['reason'],
-                    'id_user' => $identity === null ? 0 : (int) $identity->id,
-                    'created' => Factory::getDate()->toSql(),
-                ];
-                $db->insertObject(self::REPORT_OUTCOMES, $outcome);
-
-                // Resolved: its notification goes to the history.
-                NotificationHelper::clear(self::unbookedNoticeKey(paymentId: $paymentId, reportId: $reportId));
-            }
-        } catch (Throwable $e) {
-            TransactionState::rollBackLevel($db, $e);
-
-            throw $e;
+        } finally {
+            self::$verbDefersNotices = $outerDefers;
         }
 
         // What the verb decided stands, booked or refused: a refusal by refundPayment()

@@ -29,7 +29,7 @@ class UsergroupsModel extends AlfaListModel
     }
 
     /**
-     * Populate the model state, defaulting the ordering to the core usergroup title.
+     * Populate the model state, defaulting the ordering to the one its list's sort field shows first: newest first.
      *
      * @param string $ordering The default ordering column.
      * @param string $direction The default ordering direction.
@@ -37,7 +37,7 @@ class UsergroupsModel extends AlfaListModel
      * @return void
      * @since  1.0.0
      */
-    protected function populateState($ordering = 'ug.title', $direction = 'ASC')
+    protected function populateState($ordering = 'a.id', $direction = 'DESC')
     {
         parent::populateState($ordering, $direction);
     }

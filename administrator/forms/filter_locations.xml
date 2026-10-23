@@ -11,11 +11,13 @@
 
         <field
                 name="state"
-                type="status"
+                type="list"
                 label="JOPTION_SELECT_PUBLISHED"
                 onchange="this.form.submit();"
         >
             <option value="">JOPTION_SELECT_PUBLISHED</option>
+            <option value="1">COM_ALFA_LOCATION_STATE_ENABLED</option>
+            <option value="0">COM_ALFA_LOCATION_STATE_DISABLED</option>
         </field>
 
         <field

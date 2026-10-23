@@ -675,7 +675,8 @@ final class SyncHelper
     }
 
     /**
-     * Push/clear the Security notification to match a verdict. Split out so a FRESH
+     * Push/clear the Security notification to match a verdict, and record the verdict's
+     * counts for the tamper banner ({@see IntegrityHelper::recordSummary()}). Split out so a FRESH
      * check (the Tools Security tab) can update the badge IMMEDIATELY instead of waiting
      * for the next 24h sync, and so the tab and the badge never disagree.
      *
@@ -687,6 +688,9 @@ final class SyncHelper
     public static function applyIntegrityVerdict(array $verdict): void
     {
         $status = $verdict['status'] ?? 'unreachable';
+
+        // The tamper banner words itself from the same verdict's counts.
+        IntegrityHelper::recordSummary(verdict: $verdict);
 
         if ($status === 'official') {
             NotificationHelper::clear(dedupKey: 'alfa.integrity', hard: true);

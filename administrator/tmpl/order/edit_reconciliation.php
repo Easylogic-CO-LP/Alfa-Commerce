@@ -139,6 +139,43 @@ $semantics = [
     'sales'  => Text::_('COM_ALFA_RECON_POOL_SALES'),
     'credit' => Text::_('COM_ALFA_RECON_POOL_CREDIT'),
 ];
+
+// The operator reads words, never the facts' codes: each state, mismatch kind and
+// reason is said by its label, and the code stays in a data attribute beside it.
+$stateLabel = static fn (string $state): string => match ($state) {
+    ReconciliationFacts::STATE_NONE => Text::_('COM_ALFA_RECON_STATE_NONE'),
+    ReconciliationFacts::STATE_PARTIAL => Text::_('COM_ALFA_RECON_STATE_PARTIAL'),
+    ReconciliationFacts::STATE_FULL => Text::_('COM_ALFA_RECON_STATE_FULL'),
+    ReconciliationFacts::STATE_OVER => Text::_('COM_ALFA_RECON_STATE_OVER'),
+    ReconciliationFacts::STATE_NOT_APPLICABLE => Text::_('COM_ALFA_RECON_STATE_NOT_APPLICABLE'),
+    default => $state,
+};
+
+$kindLabel = static fn (string $kind): string => match ($kind) {
+    ReconciliationFacts::MISMATCH_TAX_RATE => Text::_('COM_ALFA_RECON_MISMATCH_TAX_RATE'),
+    ReconciliationFacts::MISMATCH_ITEM_IDENTITY => Text::_('COM_ALFA_RECON_MISMATCH_ITEM_IDENTITY'),
+    ReconciliationFacts::MISMATCH_COMBINATION_IDENTITY => Text::_('COM_ALFA_RECON_MISMATCH_COMBINATION_IDENTITY'),
+    default => $kind,
+};
+
+/** A reason is "<code>:<coverage>.<pool>", or "<code>:<mismatch kind>". */
+$reasonLabel = static function (string $reason) use ($semantics, $kindLabel): string {
+    [$code, $subject] = array_pad(explode(':', $reason, 2), 2, '');
+    [$semantic, $pool] = array_pad(explode('.', $subject, 2), 2, '');
+    $where = static fn (string $key): string => Text::sprintf(
+        $key,
+        $semantics[$semantic] ?? $semantic,
+        Text::_('COM_ALFA_RECON_POOL_' . strtoupper($pool)),
+    );
+
+    return match ($code) {
+        ReconciliationFacts::REASON_OVER_CLAIMED => $where('COM_ALFA_RECON_REASON_POOL_OVER_CLAIMED'),
+        ReconciliationFacts::REASON_NEGATIVE_REMAINING => $where('COM_ALFA_RECON_REASON_NEGATIVE_REMAINING'),
+        ReconciliationFacts::REASON_MEMBER_OVER_CLAIMED => $where('COM_ALFA_RECON_REASON_MEMBER_OVER_CLAIMED'),
+        ReconciliationFacts::REASON_SEMANTIC_MISMATCH => Text::sprintf('COM_ALFA_RECON_REASON_SEMANTIC_MISMATCH', $kindLabel($subject)),
+        default => $reason,
+    };
+};
 ?>
 
 <div class="card shadow-sm mt-4" id="alfa-reconciliation-panel">
@@ -230,9 +267,9 @@ $semantics = [
 		<?php if ($rf->reconciliation_reasons !== []) : ?>
 			<ul class="list-unstyled mb-3" data-alfa-recon-reasons>
 				<?php foreach ($rf->reconciliation_reasons as $reason) : ?>
-					<li class="text-danger">
+					<li class="text-danger" data-alfa-recon-reason="<?php echo htmlspecialchars($reason, ENT_QUOTES, 'UTF-8'); ?>">
 						<span class="icon-warning me-1" aria-hidden="true"></span>
-						<code><?php echo htmlspecialchars($reason, ENT_QUOTES, 'UTF-8'); ?></code>
+						<?php echo htmlspecialchars($reasonLabel($reason), ENT_QUOTES, 'UTF-8'); ?>
 					</li>
 				<?php endforeach; ?>
 			</ul>
@@ -244,8 +281,9 @@ $semantics = [
 			<h6 class="mt-2 mb-1">
 				<?php echo $label; ?>
 				<span class="badge <?php echo $stateClass($semantic->state); ?> ms-1"
-				      data-alfa-recon-semantic="<?php echo $key; ?>">
-					<?php echo $semantic->state; ?>
+				      data-alfa-recon-semantic="<?php echo $key; ?>"
+				      data-alfa-recon-state="<?php echo htmlspecialchars($semantic->state, ENT_QUOTES, 'UTF-8'); ?>">
+					<?php echo htmlspecialchars($stateLabel($semantic->state), ENT_QUOTES, 'UTF-8'); ?>
 				</span>
 			</h6>
 			<table class="table table-sm mb-3">
@@ -272,8 +310,9 @@ $semantics = [
 							<?php echo $money($pool->remaining); ?>
 						</td>
 						<td>
-							<span class="badge <?php echo $stateClass($pool->state); ?>">
-								<?php echo $pool->state; ?>
+							<span class="badge <?php echo $stateClass($pool->state); ?>"
+							      data-alfa-recon-state="<?php echo htmlspecialchars($pool->state, ENT_QUOTES, 'UTF-8'); ?>">
+								<?php echo htmlspecialchars($stateLabel($pool->state), ENT_QUOTES, 'UTF-8'); ?>
 							</span>
 						</td>
 					</tr>
@@ -290,8 +329,9 @@ $semantics = [
 							<td class="text-end"><?php echo $money($member->consumed); ?></td>
 							<td class="text-end text-danger fw-bold"><?php echo $money($member->remaining); ?></td>
 							<td>
-								<span class="badge <?php echo $stateClass($member->state); ?>">
-									<?php echo $member->state; ?>
+								<span class="badge <?php echo $stateClass($member->state); ?>"
+								      data-alfa-recon-state="<?php echo htmlspecialchars($member->state, ENT_QUOTES, 'UTF-8'); ?>">
+									<?php echo htmlspecialchars($stateLabel($member->state), ENT_QUOTES, 'UTF-8'); ?>
 								</span>
 							</td>
 						</tr>
@@ -323,7 +363,7 @@ $semantics = [
 						<?php echo htmlspecialchars(DocumentHelper::typeLabel($alias), ENT_QUOTES, 'UTF-8'); ?>:
 						<?php echo $entry->state === ReconciliationFacts::STATE_NONE
 							? Text::_('COM_ALFA_RECON_NOTHING_ISSUED')
-							: $entry->state; ?>
+							: htmlspecialchars($stateLabel($entry->state), ENT_QUOTES, 'UTF-8'); ?>
 					</span>
 				<?php endforeach; ?>
 			</p>
@@ -354,7 +394,7 @@ $semantics = [
 					<?php $charge = $mismatch->line_type === DocumentHelper::LINE_SHIPPING
 						|| $mismatch->line_type === DocumentHelper::LINE_FEE; ?>
 					<li<?php if ($charge) : ?> data-alfa-recon-mismatch-charge="<?php echo htmlspecialchars($mismatch->line_type . ':' . (int) $mismatch->id_source, ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>>
-						<code><?php echo htmlspecialchars($mismatch->kind, ENT_QUOTES, 'UTF-8'); ?></code>
+						<span data-alfa-recon-mismatch-kind="<?php echo htmlspecialchars($mismatch->kind, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($kindLabel($mismatch->kind), ENT_QUOTES, 'UTF-8'); ?></span>
 						<?php if ($charge) : ?>
 							- <?php echo Text::_($mismatch->line_type === DocumentHelper::LINE_FEE
 								? 'COM_ALFA_RECON_POOL_FEES'
@@ -405,7 +445,7 @@ $semantics = [
 					<p class="mb-1" data-alfa-recon-settlement="<?php echo $rf->credit_settlement->state; ?>">
 						<span class="badge <?php echo $rf->credit_settlement->state === ReconciliationFacts::STATE_FULL
 							? 'bg-success' : 'bg-warning text-dark'; ?>">
-							<?php echo $rf->credit_settlement->state; ?>
+							<?php echo htmlspecialchars($stateLabel($rf->credit_settlement->state), ENT_QUOTES, 'UTF-8'); ?>
 						</span>
 						<span class="ms-1">
 							<?php echo Text::_('COM_ALFA_RECON_UNSETTLED'); ?>
@@ -419,7 +459,8 @@ $semantics = [
 							<?php echo $money($note->credit_amount); ?>
 							(<?php echo Text::_('COM_ALFA_RECON_REFUNDED'); ?> <?php echo $money($note->refunded); ?>,
 							<?php echo Text::_('COM_ALFA_RECON_WALLET'); ?> <?php echo $money($note->wallet); ?>)
-							<span class="badge bg-light text-dark"><?php echo $note->state; ?></span>
+							<span class="badge bg-light text-dark"
+							      data-alfa-recon-state="<?php echo htmlspecialchars($note->state, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($stateLabel($note->state), ENT_QUOTES, 'UTF-8'); ?></span>
 						</li>
 					<?php endforeach; ?>
 					</ul>

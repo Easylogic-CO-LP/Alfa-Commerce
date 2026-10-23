@@ -24,6 +24,7 @@ use Alfa\Component\Alfa\Site\Service\Pricing\PriceResult;
 use Alfa\Component\Alfa\Site\Service\Pricing\PricingIntent;
 use Closure;
 use Exception;
+use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\MVC\Factory\MVCFactoryInterface;
@@ -255,6 +256,8 @@ final class CartHydrator
             return [];
         }
 
+        $this->loadStorefrontLanguage();
+
         try {
             $lines = $this->repository->loadLines($cartId);
         } catch (Throwable $e) {
@@ -401,6 +404,18 @@ final class CartHydrator
     {
         return $itemId > 0
             && $this->catalogue(itemIds: [$itemId], quantities: [$itemId => 1], stockVisibility: false) !== [];
+    }
+
+    /**
+     * Load the storefront's language file, which words why a line cannot be bought (out of stock, gone from the
+     * catalogue, a quantity too small to be charged): the cart is read on pages no Alfa view has loaded it for,
+     * such as a module's on a page of another component.
+     *
+     * @since  2.1.1
+     */
+    private function loadStorefrontLanguage(): void
+    {
+        Factory::getApplication()->getLanguage()->load(extension: 'com_alfa', basePath: JPATH_SITE);
     }
 
     /**

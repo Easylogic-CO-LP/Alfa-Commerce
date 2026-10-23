@@ -41,7 +41,13 @@
                 layout="joomla.form.field.list-fancy-select"
         />
 
-        <field name="id_currency" label="COM_ALFA_FORM_LBL_CURRENCY_ID" readonly="true" />
+        <!-- The order's currency by name. Read-only: an order's currency is written once, when it is placed. -->
+        <field name="id_currency" type="sql" readonly="true"
+               query="SELECT `id`, `name` FROM `#__alfa_currencies` ORDER BY `name`"
+               key_field="id" value_field="name"
+               label="COM_ALFA_FORM_LBL_CURRENCY_ID">
+            <option value="">-</option>
+        </field>
 
         <field
                 name="created"

@@ -9,6 +9,7 @@
 
 namespace Alfa\Component\Alfa\Administrator\Field;
 
+use Alfa\Component\Alfa\Administrator\Field\Traits\HasCaptionLabelTrait;
 use Alfa\Component\Alfa\Administrator\Helper\ItemFieldsAdminHelper;
 use Alfa\Component\Alfa\Administrator\Helper\ShowonOperators;
 use Alfa\Component\Alfa\Administrator\Service\ValuePool\ValuePoolRegistry;
@@ -42,6 +43,8 @@ use Joomla\CMS\Language\Text;
  */
 class ShowonField extends FormField
 {
+    use HasCaptionLabelTrait;
+
     protected $type = 'showon';
 
     /** Candidate operands [['value' => 'size.value', 'text' => 'Size'], ...]. */
@@ -320,7 +323,7 @@ class ShowonField extends FormField
     {
         return '<div class="aso-item aso-item--group">'
             . '<button type="button" class="aso-icon aso-icon--danger" data-action="remove" title="'
-            . $this->esc(Text::_('JREMOVE')) . '">&times;</button>'
+            . $this->esc(Text::_('JGLOBAL_FIELD_REMOVE')) . '">&times;</button>'
             . $this->renderGroup($group, false)
             . '</div>';
     }
@@ -395,7 +398,7 @@ class ShowonField extends FormField
             . $operatorSel
             . '<span class="aso-value" data-aso="value" data-value="' . $this->escAttrJsonRaw($value) . '"></span>'
             . '<button type="button" class="aso-icon aso-icon--danger" data-action="remove" title="'
-            . $this->esc(Text::_('JREMOVE')) . '">&times;</button>'
+            . $this->esc(Text::_('JGLOBAL_FIELD_REMOVE')) . '">&times;</button>'
             . '</div>'
             . '</div>';
     }

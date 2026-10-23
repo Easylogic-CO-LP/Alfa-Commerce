@@ -13,6 +13,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Controller\Traits\HasFormPermissions;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\FormController;
@@ -115,10 +116,26 @@ class CartruleController extends FormController
                 $model->setState('list.limit', self::LOOKUP_LIMIT);
                 $model->setState('list.start', 0);
 
+                // A new choice of category follows the picker rule: none archived or trashed, none inside an
+                // archived or trashed category.
+                $tree = $type === 'categories' ? CategoryPickerPolicy::tree() : [];
+
                 foreach ($model->getItems() ?: [] as $row) {
+                    $text = (string) ($row->name ?? $row->title ?? $row->id ?? '');
+
+                    if ($type === 'categories') {
+                        $reason = CategoryPickerPolicy::reason(id: (int) ($row->id ?? 0), tree: $tree);
+
+                        if (!CategoryPickerPolicy::offered($reason)) {
+                            continue;
+                        }
+
+                        $text = CategoryPickerPolicy::label(text: $text, reason: $reason);
+                    }
+
                     $options[] = [
                         'value' => (string) ($row->id ?? ''),
-                        'text' => (string) ($row->name ?? $row->title ?? $row->id ?? ''),
+                        'text' => $text,
                     ];
                 }
             }

@@ -51,7 +51,9 @@ foreach ($groups as $group) {
     $options,
     'batch[group_id]',
     [
-        'list.attr'   => 'class="form-select" id="batch-field-group-id"',
+        // The select's id is given as genericlist's own option: an id inside list.attr loses to the one it writes.
+        'id'          => 'batch-field-group-id',
+        'list.attr'   => 'class="form-select"',
         'list.select' => '',
     ]
 ); ?>

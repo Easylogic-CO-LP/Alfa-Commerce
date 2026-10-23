@@ -41,6 +41,14 @@
 
       if (minQty) {
         minQty.name = `${base}[${gi}][min_quantity]`;
+        // The label names the input by an id made from the same position.
+        minQty.id = `${container.dataset.id}_${gi}_min_quantity`;
+
+        const minQtyLabel = group.querySelector('[data-min-qty-label]');
+
+        if (minQtyLabel) {
+          minQtyLabel.htmlFor = minQty.id;
+        }
       }
 
       group.querySelectorAll('[data-condition]').forEach((condition, ci) => {

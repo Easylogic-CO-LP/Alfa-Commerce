@@ -17,7 +17,8 @@
  * DROPS any node whose parent is missing from the set; a paginated picker would
  * therefore hide most of the tree.
  *
- * Trashed and archived categories are excluded: they are not valid destinations.
+ * Trashed and archived categories, and the categories inside them, are excluded: they are not valid destinations
+ * (the server refuses them too). An unpublished one is marked, as in every category picker.
  *
  * @since  2.0.0
  */
@@ -26,15 +27,16 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 
 $db    = Factory::getContainer()->get('DatabaseDriver');
 $query = $db->getQuery(true)
-    ->select($db->quoteName(['a.id', 'a.parent_id']))
+    ->select($db->quoteName(['a.id', 'a.parent_id', 'a.state']))
     ->from($db->quoteName('#__alfa_categories', 'a'))
-    ->where($db->quoteName('a.state') . ' IN (0, 1)')
+    ->whereIn($db->quoteName('a.state'), CategoryPickerPolicy::OFFERED_STATES)
     ->order($db->quoteName('a.ordering') . ' ASC');
 
 // Name in the active language; translatable columns live in the per-language tables.
@@ -57,11 +59,19 @@ $options[] = HTMLHelper::_('select.option', '', Text::_('JOPTION_SELECT_CATEGORY
 // and the string '0' is empty.
 $options[] = HTMLHelper::_('select.option', 'root', Text::_('COM_ALFA_CATEGORY_BATCH_PARENT_ROOT'));
 
+$tree = CategoryPickerPolicy::tree(db: $db);
+
 foreach ($categories as $category) {
+    $reason = CategoryPickerPolicy::reason(id: (int) $category->id, tree: $tree);
+
+    if (!CategoryPickerPolicy::offered($reason)) {
+        continue;
+    }
+
     $options[] = HTMLHelper::_(
         'select.option',
         (string) (int) $category->id,
-        str_repeat('- ', (int) $category->depth) . $category->name,
+        CategoryPickerPolicy::label(text: str_repeat('- ', (int) $category->depth) . $category->name, reason: $reason),
     );
 }
 
@@ -80,7 +90,9 @@ Factory::getApplication()->getDocument()->getWebAssetManager()
         $options,
         'batch[parent_id]',
         [
-            'list.attr'   => 'class="form-select" id="batch-category-parent-id"',
+            // The select's id is given as genericlist's own option: an id inside list.attr loses to the one it writes.
+            'id'          => 'batch-category-parent-id',
+            'list.attr'   => 'class="form-select"',
             'list.select' => '',
         ],
     ); ?>

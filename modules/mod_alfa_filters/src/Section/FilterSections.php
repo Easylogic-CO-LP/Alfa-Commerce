@@ -9,6 +9,7 @@
 
 namespace Alfa\Module\AlfaFilters\Site\Section;
 
+use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\Database\DatabaseInterface;
@@ -329,18 +330,31 @@ final class FilterSections
             ->order($db->quoteName('f.ordering') . ' ASC')
             ->order($db->quoteName('f.id') . ' ASC');
 
-        // The translated name lives in a per-language aux table. It is the better label,
-        // but a language installed after the fields were created may not have one yet, so
-        // the internal field_name is the fallback rather than the failure.
-        $aux = '#__alfa_item_fields_' . strtolower(str_replace('-', '_', $tag));
-
+        // The translated name lives in a per-language aux table: this language's, else the
+        // default language's, as every translatable read. It is the better label, but a
+        // language installed after the fields were created may not have one yet, so the
+        // internal field_name is the last fallback rather than the failure.
         try {
-            $query->select($db->quoteName('t.name', 'translated'))
-                ->join(
-                    'LEFT',
-                    $db->quoteName($aux, 't'),
-                    $db->quoteName('t.id_item_field') . ' = ' . $db->quoteName('f.id'),
-                );
+            $tables = $db->getTableList();
+            $names = [];
+
+            foreach (array_unique([MultilingualHelper::normaliseTag(tag: $tag), MultilingualHelper::getDefaultLanguageTag()]) as $i => $code) {
+                $aux = '#__alfa_item_fields_' . $code;
+
+                if (\in_array($db->replacePrefix($aux), $tables, true)) {
+                    $alias = 't' . $i;
+                    $query->join(
+                        'LEFT',
+                        $db->quoteName($aux, $alias),
+                        $db->quoteName($alias . '.id_item_field') . ' = ' . $db->quoteName('f.id'),
+                    );
+                    $names[] = 'NULLIF(' . $db->quoteName($alias . '.name') . ", '')";
+                }
+            }
+
+            if ($names !== []) {
+                $query->select('COALESCE(' . implode(', ', $names) . ') AS ' . $db->quoteName('translated'));
+            }
 
             $rows = $db->setQuery($query)->loadObjectList() ?: [];
         } catch (Throwable) {

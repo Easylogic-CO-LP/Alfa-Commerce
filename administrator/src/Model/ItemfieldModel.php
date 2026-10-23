@@ -18,6 +18,7 @@ use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartRepository;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Projection\ProjectionManager;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filter\OutputFilter;
@@ -293,6 +294,21 @@ class ItemfieldModel extends AlfaAdminModel
         // Persist the plugin's params (itemfieldsparams fieldset) as the JSON
         // params column. Core never interprets the plugin's own contents.
         $data['params'] = json_encode($data['itemfieldsparams'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: null;
+
+        // A NEW category must be available (not archived or trashed, not inside an archived or trashed category);
+        // one the record already holds is kept. Refused before anything is written.
+        $categoryRefusal = CategoryPickerPolicy::refusalForSave(
+            recordId:     (int) ($data['id'] ?? 0),
+            posted:       (array) ($data['categories'] ?? []),
+            table:        '#__alfa_item_field_categories',
+            recordColumn: 'item_field_id',
+        );
+
+        if ($categoryRefusal !== null) {
+            $this->setError($categoryRefusal);
+
+            return false;
+        }
 
         if (!parent::save($data)) {
             return false;

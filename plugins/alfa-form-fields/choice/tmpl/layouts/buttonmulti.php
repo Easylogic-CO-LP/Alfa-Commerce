@@ -28,6 +28,7 @@ extract($displayData);
  * @var array $checkedOptions
  * @var bool $hasValue
  * @var string $dataAttribute
+ * @var string $label        the field's label: the group's legend (its caption beside it is for the eye only)
  *
  * Custom keys:
  * @var string $variant
@@ -71,6 +72,7 @@ if (!str_ends_with($inputName, '[]')) {
 ?>
 <div class="alfa-choice-wrap">
     <fieldset <?php echo implode(' ', $attribs); ?> class="<?php echo $wrapClass; ?>" role="group">
+        <legend class="alfa-choice__legend"><?php echo $label; ?></legend>
         <?php foreach ($options as $i => $option) :
             $optDisabled = !empty($option->disable) ? 'disabled' : '';
             $checked = in_array((string) $option->value, array_map('strval', (array) $checkedOptions), true) ? 'checked="checked"' : '';

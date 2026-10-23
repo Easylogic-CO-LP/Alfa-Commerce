@@ -38,7 +38,7 @@ $link = (string) ($item->link ?? '');
 $name = trim((string) ($item->name ?? ''));
 
 if ($name === '') {
-    $name = trim((string) ($item->sku ?? '')) ?: Text::sprintf('COM_ALFA_ITEM_UNNAMED', (int) $item->id);
+    $name = trim((string) ($item->sku ?? '')) ?: Text::sprintf('MOD_ALFA_ITEMS_ITEM_UNNAMED', (int) $item->id);
 }
 ?>
 <article class="item-card" data-look="<?php echo $esc($place); ?>" data-item-id="<?php echo (int) $item->id; ?>">

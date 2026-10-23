@@ -118,7 +118,6 @@ final class InventoryAuditCommand extends AbstractCommand
         $io = new SymfonyStyle(input: $input, output: $output);
         $language = Factory::getApplication()->getLanguage();
         $language->load(extension: 'plg_console_alfainventory', basePath: JPATH_ADMINISTRATOR);
-        $language->load(extension: 'com_alfa', basePath: JPATH_ADMINISTRATOR);
 
         try {
             $itemIds = $this->itemIds(values: (array) $input->getOption(name: 'item'));
@@ -130,7 +129,7 @@ final class InventoryAuditCommand extends AbstractCommand
 
         // Maintenance (Clear everything): the tables the audit reads are being removed and made again.
         if (MaintenanceState::active()) {
-            $io->getErrorStyle()->error(message: Text::_('COM_ALFA_MAINTENANCE_API'));
+            $io->getErrorStyle()->error(message: Text::_('PLG_CONSOLE_ALFAINVENTORY_MAINTENANCE'));
 
             return self::EXIT_ERROR;
         }
@@ -231,13 +230,13 @@ final class InventoryAuditCommand extends AbstractCommand
      */
     private function render(SymfonyStyle $io, array $report, int $total): void
     {
-        $io->title(message: Text::_(string: 'COM_ALFA_TITLE_INVENTORY_AUDIT'));
+        $io->title(message: Text::_(string: 'PLG_CONSOLE_ALFAINVENTORY_AUDIT_TITLE'));
         $io->text(message: Text::sprintf('PLG_CONSOLE_ALFAINVENTORY_AUDIT_SCANNED', $report['scanned']['units'], $report['scanned']['rows']));
 
         $this->renderGroups(io: $io, groups: $report['findings']);
 
         if (array_sum(array_map('count', $report['classifications'])) > 0) {
-            $io->section(message: Text::_(string: 'COM_ALFA_INVENTORY_AUDIT_CLASSIFICATIONS'));
+            $io->section(message: Text::_(string: 'PLG_CONSOLE_ALFAINVENTORY_AUDIT_CLASSIFICATIONS'));
             $this->renderGroups(io: $io, groups: $report['classifications']);
         }
 
@@ -263,7 +262,7 @@ final class InventoryAuditCommand extends AbstractCommand
     private function renderGroups(SymfonyStyle $io, array $groups): void
     {
         $headers = array_map(
-            static fn (string $heading): string => Text::_(string: 'COM_ALFA_INVENTORY_AUDIT_HEADING_' . $heading),
+            static fn (string $heading): string => Text::_(string: 'PLG_CONSOLE_ALFAINVENTORY_AUDIT_HEADING_' . $heading),
             ['ITEM', 'COMBINATION', 'LOCATION', 'UNIT', 'PROJECTION', 'CANONICAL', 'DRIFT', 'DETAIL'],
         );
 
@@ -272,7 +271,7 @@ final class InventoryAuditCommand extends AbstractCommand
                 continue;
             }
 
-            $label = 'COM_ALFA_INVENTORY_AUDIT_CATEGORY_' . strtoupper($category);
+            $label = 'PLG_CONSOLE_ALFAINVENTORY_AUDIT_CATEGORY_' . strtoupper($category);
             $io->section(message: Text::_(string: $label) . ' (' . \count($findings) . ')');
             $io->text(message: Text::_(string: $label . '_DESC'));
             $io->table(
@@ -306,11 +305,11 @@ final class InventoryAuditCommand extends AbstractCommand
         $parts = [];
 
         if (\in_array($finding['category'], [InventoryIntegrityReader::CATEGORY_STRANDED_PARENT, InventoryIntegrityReader::CATEGORY_ARCHIVED_STOCK], true)) {
-            $parts[] = Text::_(string: 'COM_ALFA_INVENTORY_AUDIT_EXCLUDED');
+            $parts[] = Text::_(string: 'PLG_CONSOLE_ALFAINVENTORY_AUDIT_EXCLUDED');
         }
 
         if ($finding['category'] === InventoryIntegrityReader::CATEGORY_UNTRACKED_STOCK) {
-            $parts[] = Text::_(string: 'COM_ALFA_INVENTORY_AUDIT_UNTRACKED_HINT');
+            $parts[] = Text::_(string: 'PLG_CONSOLE_ALFAINVENTORY_AUDIT_UNTRACKED_HINT');
         }
 
         $parts[] = $this->facts(values: $finding['detail'], separator: ', ');

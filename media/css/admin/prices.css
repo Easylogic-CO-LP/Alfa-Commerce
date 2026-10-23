@@ -193,7 +193,8 @@
 }
 
 /* Cells (Amount column) */
-.alfa-prices .price-cell > label {
+.alfa-prices .price-cell > label,
+.alfa-prices .price-cell > .price-cell-caption {
   display: block;
   font-size: 0.72rem;
   color: var(--price-soft);

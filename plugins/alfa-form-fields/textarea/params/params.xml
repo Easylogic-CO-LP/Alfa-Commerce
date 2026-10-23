@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <form>
 	<fields name="formfieldsparams">
-		<fieldset name="field_settings" label="COM_ALFA_FIELDS_PARAMS_TAB">
+		<fieldset name="field_settings" label="PLG_ALFA_FORM_FIELDS_TEXTAREA_PARAMS_TAB">
 			<field
 				name="rows"
 				type="number"

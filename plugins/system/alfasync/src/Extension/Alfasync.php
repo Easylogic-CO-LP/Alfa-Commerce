@@ -52,6 +52,7 @@ use Alfa\Component\Alfa\Administrator\Service\Maintenance\FactoryReset;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Setup\AlfaInstallerGate;
+use Alfa\Component\Alfa\Administrator\Service\Setup\ContentLanguageAddedNotice;
 use Exception;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Event\Menu\PreprocessMenuItemsEvent;
@@ -281,9 +282,9 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
         // com_ajax is answered 503 (the module's own page is left out in onAfterModuleList), and
         // the administrator is told on every other screen.
         if ($input->getCmd('option') === 'com_ajax' && $this->isAlfaAjax(input: $input) && $this->paused()) {
-            $app->getLanguage()->load('com_alfa', JPATH_SITE);
+            $this->loadLanguage();
 
-            throw new RuntimeException(Text::_('COM_ALFA_MAINTENANCE_STOREFRONT'), 503);
+            throw new RuntimeException(Text::_('PLG_SYSTEM_ALFASYNC_MAINTENANCE_STOREFRONT'), 503);
         }
 
         if ($app->isClient('administrator')) {
@@ -559,12 +560,16 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
         switch ($context) {
             // A content language was added/edited -> (re)create the per-language
-            // translation tables for every translatable Alfa entity.
+            // translation tables for every translatable Alfa entity. A language that had
+            // none yet is new to the shop: its notice says what it lacks (never an error,
+            // the default language shows meanwhile), read before the sync makes them.
             case 'com_languages.language':
                 try {
+                    $added = ContentLanguageAddedNotice::newLanguages();
                     $result = SyncHelper::syncLanguageSchema();
                     $this->logDebug('handleContentSave', 'Language schema synced: ' . count($result['tables']) . ' table(s).');
-                } catch (Exception $e) {
+                    ContentLanguageAddedNotice::languagesAdded(codes: $added);
+                } catch (Throwable $e) {
                     $this->logError('handleContentSave', $e->getMessage(), ['context' => $context]);
                 }
                 break;
@@ -788,11 +793,11 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             return;
         }
 
-        Factory::getApplication()->getLanguage()->load('com_alfa', JPATH_ADMINISTRATOR);
+        $this->loadLanguage();
 
         // The save says the table's error when a result is false.
         if (method_exists($item, 'setError')) {
-            $item->setError(Text::_('COM_ALFA_OPTIONS_REFUSED_MAINTENANCE'));
+            $item->setError(Text::_('PLG_SYSTEM_ALFASYNC_OPTIONS_REFUSED_MAINTENANCE'));
         }
 
         $event->setArgument('result', [...(array) ($event->getArgument('result') ?? []), false]);
@@ -880,12 +885,12 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
             $state = MaintenanceState::current() ?? [];
             $phase = (string) ($state['phase'] ?? '');
-            $app->getLanguage()->load('com_alfa', JPATH_ADMINISTRATOR);
+            $this->loadLanguage();
 
             // The step and the reason (a database message, a server path) only for those who may
             // clear Alfa data; everyone else is told that Alfa is in maintenance, and no more.
             if (!FactoryReset::permitted(user: $user)) {
-                $app->enqueueMessage(Text::_('COM_ALFA_MAINTENANCE_NOTICE_PLAIN'), 'warning');
+                $app->enqueueMessage(Text::_('PLG_SYSTEM_ALFASYNC_MAINTENANCE_NOTICE_PLAIN'), 'warning');
 
                 return;
             }
@@ -893,13 +898,13 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             $app->enqueueMessage(
                 Text::sprintf(
                     match ($phase) {
-                        'failed' => 'COM_ALFA_MAINTENANCE_NOTICE_FAILED',
-                        'paused' => 'COM_ALFA_MAINTENANCE_NOTICE_PAUSED',
-                        default => 'COM_ALFA_MAINTENANCE_NOTICE',
+                        'failed' => 'PLG_SYSTEM_ALFASYNC_MAINTENANCE_NOTICE_FAILED',
+                        'paused' => 'PLG_SYSTEM_ALFASYNC_MAINTENANCE_NOTICE_PAUSED',
+                        default => 'PLG_SYSTEM_ALFASYNC_MAINTENANCE_NOTICE',
                     },
-                    Text::_('COM_ALFA_CLEAR_STEP_' . strtoupper((string) ($state['step'] ?? ''))),
+                    Text::_('PLG_SYSTEM_ALFASYNC_CLEAR_STEP_' . strtoupper((string) ($state['step'] ?? ''))),
                     htmlspecialchars((string) ($state['error'] ?? ''), ENT_QUOTES, 'UTF-8'),
-                ) . ' ' . Text::_('COM_ALFA_MAINTENANCE_NOTICE_LINK'),
+                ) . ' ' . Text::_('PLG_SYSTEM_ALFASYNC_MAINTENANCE_NOTICE_LINK'),
                 $phase === 'failed' ? 'error' : 'warning',
             );
         } catch (Throwable) {
