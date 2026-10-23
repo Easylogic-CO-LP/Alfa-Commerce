@@ -43,8 +43,8 @@ final class ItemFieldDisplayResolver
 {
     /**
      * The label map for each field id: {langCode: name} across content
-     * languages, the current language always populated (machine name, then
-     * "#<id>", when there is no translation).
+     * languages, the current language populated (machine name, then "#<id>")
+     * when neither it nor the default language has a translation.
      *
      * @param int[] $fieldIds Field definition ids.
      *
@@ -65,8 +65,9 @@ final class ItemFieldDisplayResolver
 
     /**
      * The value-name map for each value id: {langCode: name} across content
-     * languages, the current language always populated ("#<id>" when there is
-     * no translation; a value carries no machine name of its own).
+     * languages, the current language populated ("#<id>"; a value carries no
+     * machine name of its own) when neither it nor the default language has a
+     * translation.
      *
      * @param int[] $valueIds Field-value ids.
      *
@@ -117,9 +118,11 @@ final class ItemFieldDisplayResolver
 
     /**
      * Build the {langCode: name} map for a set of ids over one field/value
-     * domain. Each id is guaranteed a current-language entry so the map is
-     * never empty: a translation when there is one, otherwise the machine
-     * name (fields) and finally "#<id>".
+     * domain. The map is never empty: when neither the current nor the default
+     * language has a translation, the current language gets the machine name
+     * (fields) and finally "#<id>". A default-language translation is left for
+     * the reader to fall back to ({@see MultilingualHelper::resolveLangMap()}),
+     * never written into the current language.
      *
      * @param int[] $ids Field or value ids.
      * @param string $baseTable The definition table (for the fallback name).
@@ -141,6 +144,7 @@ final class ItemFieldDisplayResolver
 
         $db = Factory::getContainer()->get('DatabaseDriver');
         $current = strtolower(str_replace('-', '_', MultilingualHelper::getCurrentLanguageTag()));
+        $default = MultilingualHelper::getDefaultLanguageTag();
         $maps = [];
 
         // Per-language translated names, across every published content language.
@@ -166,8 +170,10 @@ final class ItemFieldDisplayResolver
             }
         }
 
-        // The one fallback: machine name, then "#<id>", pinned to the current
-        // language so a live read and a frozen snapshot both have something.
+        // The last fallback: machine name, then "#<id>", pinned to the current
+        // language so a live read and a frozen snapshot both have something, but
+        // only where the default language has no name either: that one is read
+        // before any machine name.
         $fallbacks = [];
 
         if ($nameColumn !== null) {
@@ -184,7 +190,7 @@ final class ItemFieldDisplayResolver
         }
 
         foreach ($ids as $id) {
-            if (!isset($maps[$id][$current]) || $maps[$id][$current] === '') {
+            if (($maps[$id][$current] ?? '') === '' && ($maps[$id][$default] ?? '') === '') {
                 $machine = $fallbacks[$id] ?? '';
                 $maps[$id][$current] = $machine !== '' ? $machine : '#' . $id;
             }

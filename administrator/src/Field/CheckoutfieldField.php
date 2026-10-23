@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Field\Traits\HasFailClosedOptionsTrait;
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Joomla\CMS\Form\Field\ListField;
@@ -56,7 +57,7 @@ use Throwable;
  */
 class CheckoutfieldField extends ListField
 {
-    use FailClosedOptionsTrait;
+    use HasFailClosedOptionsTrait;
 
     /**
      * Field type id: must match the XML `type` and this file's name.
@@ -82,7 +83,7 @@ class CheckoutfieldField extends ListField
      *
      * When the catalogue cannot be read, the form still renders, with the
      * XML-declared options alone and an error that says so, and the field
-     * refuses the save (FailClosedOptionsTrait): saving would clear the stored
+     * refuses the save (HasFailClosedOptionsTrait): saving would clear the stored
      * choice. A picker that fails costs the merchant this one dropdown, not the
      * whole shipment-method edit form, and never the setting.
      *

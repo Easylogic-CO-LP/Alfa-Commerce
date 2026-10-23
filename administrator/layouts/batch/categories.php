@@ -1,8 +1,3 @@
-<?php \defined('_JEXEC') or die; ?>
-<label id="batch-manufacturer-lbl" for="batch-manufacturer-id">
-    Category to select:
-</label>
-
 <?php
 
 /**
@@ -12,21 +7,28 @@
  * @license    GNU General Public License version 3 or later; see LICENSE
  */
 
+/**
+ * The categories picker of the Items list's batch dialog: the categories to assign to the selected items.
+ *
+ * A new assignment, so it follows the category picker rule: published and unpublished categories none of whose
+ * parent categories is archived or trashed, an unpublished one marked.
+ */
+
+\defined('_JEXEC') or die;
+
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
+use Joomla\CMS\Language\Text;
 
-// Get a database connection.
 $db = Factory::getContainer()->get('DatabaseDriver');
+$query = $db->getQuery(true)
+    ->select($db->quoteName(['a.id', 'a.state']))
+    ->from($db->quoteName('#__alfa_categories', 'a'))
+    ->whereIn($db->quoteName('a.state'), CategoryPickerPolicy::OFFERED_STATES);
 
-// Create a new query object.
-$query = $db->getQuery(true);
-
-// Select the id; the translatable name is resolved in the active language
-// from the per-language tables (name no longer lives in the main table).
-$query->select($db->quoteName('a.id'))
-    ->from($db->quoteName('#__alfa_categories', 'a'));
-
+// The name in the active language; translatable columns live in the per-language tables.
 MultilingualHelper::addMultilingualJoinToQuery(
     query:             $query,
     mainAlias:         'a',
@@ -36,16 +38,22 @@ MultilingualHelper::addMultilingualJoinToQuery(
     fields:            ['name'],
 );
 
-// Set the query and load the result.
-$db->setQuery($query);
+$options = [];
+$tree = CategoryPickerPolicy::tree(db: $db);
 
-// Load the result as an associative array.
-$categories = $db->loadAssocList();
+foreach ($db->setQuery($query)->loadAssocList() ?: [] as $category) {
+    $reason = CategoryPickerPolicy::reason(id: (int) $category['id'], tree: $tree);
 
-// Create options array for the select list
-$options = array();
-foreach ($categories as $category) {
-    $options[] = HTMLHelper::_('select.option', $category['id'], $category['name']);
+    // A category inside an archived or trashed category is not available either.
+    if (!CategoryPickerPolicy::offered($reason)) {
+        continue;
+    }
+
+    $options[] = HTMLHelper::_(
+        'select.option',
+        $category['id'],
+        CategoryPickerPolicy::label(text: (string) $category['name'], reason: $reason),
+    );
 }
 
 Factory::getApplication()->getDocument()->getWebAssetManager()
@@ -53,15 +61,21 @@ Factory::getApplication()->getDocument()->getWebAssetManager()
     ->useScript('webcomponent.field-fancy-select');
 
 ?>
+<label id="batch-category-lbl" for="batch-category-id">
+    <?php echo Text::_('COM_ALFA_BATCH_CATEGORY_LABEL'); ?>
+</label>
 
 <joomla-field-fancy-select>
     <?php echo HTMLHelper::_(
         'select.genericlist',
         $options,
         'batch[category_id][]',
-        array(
-            'list.attr' => 'class="form-select" id="batch-category-id" multiple data-placeholder="- Select a category -" ',
-            'list.select' => ''
-        ),
+        [
+            // The select's id is given as genericlist's own option: an id inside list.attr loses to the one it writes.
+            'id' => 'batch-category-id',
+            'list.attr' => 'class="form-select" multiple data-placeholder="'
+                . htmlspecialchars(Text::_('COM_ALFA_BATCH_CATEGORY_PLACEHOLDER'), ENT_QUOTES, 'UTF-8') . '"',
+            'list.select' => '',
+        ],
     ); ?>
 </joomla-field-fancy-select>

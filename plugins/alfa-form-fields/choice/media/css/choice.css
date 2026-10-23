@@ -138,3 +138,16 @@
 .alfa-choice__display {
     color: var(--ac-fg);
 }
+
+/* the group's name for assistive technology; the caption beside the group shows it */
+.alfa-choice__legend {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}

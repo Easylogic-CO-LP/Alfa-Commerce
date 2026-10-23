@@ -21,6 +21,9 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Session\Session;
 
+// The Alfa administrator stylesheet: raw stored values wrap in their cells (raw-value).
+$this->getDocument()->getWebAssetManager()->useStyle('com_alfa.admin');
+
 $type = static fn (array $entry): string => match ($entry['type']) {
     'package' => Text::_('COM_ALFA_EXTENSIONS_TYPE_PACKAGE'),
     'plugin' => Text::sprintf('COM_ALFA_EXTENSIONS_TYPE_PLUGIN', $entry['folder']),
@@ -92,7 +95,7 @@ $clearData = function (array $entry): string {
                             <td class="text-center"><?php echo HTMLHelper::_('grid.id', $i, (int) $row['extension_id']); ?></td>
                             <th scope="row">
                                 <?php echo $this->escape((string) $row['label']); ?>
-                                <div class="small text-muted"><code><?php echo $this->escape((string) $row['key']); ?></code></div>
+                                <div class="small text-muted"><code class="raw-value"><?php echo $this->escape((string) $row['key']); ?></code></div>
                                 <?php if ($row['children'] !== []) : ?>
                                     <ul class="small fw-normal mb-0 mt-1">
                                         <?php foreach ($row['children'] as $child) : ?>
@@ -108,8 +111,8 @@ $clearData = function (array $entry): string {
                             <td><?php echo $this->escape($type($row)); ?></td>
                             <td><?php echo $row['version'] !== '' ? $this->escape((string) $row['version']) : '-'; ?></td>
                             <td><?php echo $row['enabled']
-                                ? '<span class="badge bg-success">' . Text::_('JENABLED') . '</span>'
-                                : '<span class="badge bg-secondary">' . Text::_('JDISABLED') . '</span>'; ?></td>
+                                ? '<span class="badge bg-success">' . Text::_('COM_ALFA_EXTENSIONS_STATE_ENABLED') . '</span>'
+                                : '<span class="badge bg-secondary">' . Text::_('COM_ALFA_EXTENSIONS_STATE_DISABLED') . '</span>'; ?></td>
                             <td><?php echo $row['type'] === 'package' && $row['support']['status'] === 'remove_only' ? '' : $clearData($row); ?></td>
                         </tr>
                     <?php endforeach; ?>

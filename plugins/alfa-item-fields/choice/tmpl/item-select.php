@@ -37,7 +37,7 @@ $esc = static fn ($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
         <?php echo $esc($field->display_name); ?>
         <select name="<?php echo $esc($inputName); ?>"
                 class="variant-field-control" data-item-reload="<?php echo $esc($reloadScope); ?>">
-        <option value="0"><?php echo $esc(Text::_('COM_ALFA_ITEM_FIELD_CHOOSE')); ?></option>
+        <option value="0"><?php echo $esc(Text::_('PLG_ALFA_ITEM_FIELDS_CHOICE_CHOOSE')); ?></option>
         <?php foreach ($values as $value) :
             $vid = (int) $value->id;
             $isAvailable = isset($available[$vid]);
@@ -55,7 +55,7 @@ $esc = static fn ($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
                 <?php echo $isAvailable ? '' : 'disabled'; ?>
                 <?php echo $isOutOfStock ? 'data-out-of-stock="1"' : ''; ?>>
                 <?php echo $esc($value->display_name); ?><?php
-            echo $isOutOfStock ? ' - ' . $esc(Text::_('COM_ALFA_ITEM_FIELD_OUT_OF_STOCK')) : ''; ?>
+            echo $isOutOfStock ? ' - ' . $esc(Text::_('PLG_ALFA_ITEM_FIELDS_CHOICE_OUT_OF_STOCK')) : ''; ?>
             </option>
         <?php endforeach; ?>
         </select>

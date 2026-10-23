@@ -11,8 +11,10 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Field\Traits\HasCaptionLabelTrait;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\FormField;
 use Joomla\CMS\HTML\HTMLHelper;
@@ -56,6 +58,8 @@ use Throwable;
  */
 class CartruleGroupsField extends FormField
 {
+    use HasCaptionLabelTrait;
+
     /**
      * The form field type.
      *
@@ -136,7 +140,7 @@ class CartruleGroupsField extends FormField
                 . $this->esc(Text::_('COM_ALFA_CARTRULE_GROUP_ADD')) . '</button>';
 
         return '<div class="alfa-conditions" data-alfa-conditions'
-            . ' data-name="' . $this->esc($this->name) . '">'
+            . ' data-name="' . $this->esc($this->name) . '" data-id="' . $this->esc($this->id) . '">'
             . '<div class="alfa-conditions-groups" data-groups>' . $rows . '</div>'
             . $addGroup
             . $this->templates()
@@ -212,6 +216,8 @@ class CartruleGroupsField extends FormField
     private function groupRow(string $gi, array $group): string
     {
         $base = $this->name . '[' . $gi . ']';
+        // The builder's script renumbers this id with the row, as it does the names.
+        $quantityId = $this->id . '_' . $gi . '_min_quantity';
         $conditions = '';
 
         foreach (array_values($group['conditions'] ?? []) as $ci => $condition) {
@@ -225,8 +231,9 @@ class CartruleGroupsField extends FormField
 
         return '<fieldset class="alfa-condition-group" data-group>'
             . '<div class="alfa-condition-group-head">'
-            . '<label>' . $this->esc(Text::_('COM_ALFA_CARTRULE_GROUP_MIN_QTY_LBL')) . '</label>'
+            . '<label for="' . $this->esc($quantityId) . '" data-min-qty-label>' . $this->esc(Text::_('COM_ALFA_CARTRULE_GROUP_MIN_QTY_LBL')) . '</label>'
             . '<input type="number" min="1" step="1" class="form-control"'
+            . ' id="' . $this->esc($quantityId) . '"'
             . ' name="' . $this->esc($base . '[min_quantity]') . '"'
             . ' value="' . (int) ($group['min_quantity'] ?? 1) . '">'
             . '<span class="alfa-condition-group-hint">'
@@ -402,7 +409,7 @@ class CartruleGroupsField extends FormField
 
         try {
             $query = $db->getQuery(true)
-                ->select($db->quoteName('a.id'))
+                ->select($db->quoteName(['a.id', 'a.state']))
                 ->from($db->quoteName($table, 'a'))
                 ->whereIn($db->quoteName('a.id'), $ids);
 
@@ -416,9 +423,15 @@ class CartruleGroupsField extends FormField
             );
 
             $labels = [];
+            $tree = $type === 'categories' ? CategoryPickerPolicy::tree(db: $db) : [];
 
             foreach ($db->setQuery($query)->loadObjectList() ?: [] as $row) {
-                $labels[(int) $row->id] = (string) ($row->name ?: ('#' . $row->id));
+                $label = (string) ($row->name ?: ('#' . $row->id));
+
+                // A chosen category is kept whatever its state or its parents', and the reason is said.
+                $labels[(int) $row->id] = $type === 'categories'
+                    ? CategoryPickerPolicy::label(text: $label, reason: CategoryPickerPolicy::reason(id: (int) $row->id, tree: $tree))
+                    : $label;
             }
 
             return $labels;
@@ -456,11 +469,26 @@ class CartruleGroupsField extends FormField
             $model->setState('list.start', 0);
 
             $rows = [];
+            // A new choice of category follows the picker rule: none archived or trashed, none inside an archived or
+            // trashed category.
+            $tree = $type === 'categories' ? CategoryPickerPolicy::tree() : [];
 
             foreach ($model->getItems() ?: [] as $row) {
+                $text = (string) ($row->name ?? $row->title ?? $row->id ?? '');
+
+                if ($type === 'categories') {
+                    $reason = CategoryPickerPolicy::reason(id: (int) ($row->id ?? 0), tree: $tree);
+
+                    if (!CategoryPickerPolicy::offered($reason)) {
+                        continue;
+                    }
+
+                    $text = CategoryPickerPolicy::label(text: $text, reason: $reason);
+                }
+
                 $rows[] = [
                     'value' => (string) ($row->id ?? ''),
-                    'text' => (string) ($row->name ?? $row->title ?? $row->id ?? ''),
+                    'text' => $text,
                 ];
             }
 

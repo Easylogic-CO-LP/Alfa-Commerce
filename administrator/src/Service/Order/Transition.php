@@ -15,6 +15,7 @@ use Alfa\Component\Alfa\Administrator\Event\Orders\OrderStatusChangeEvent;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
+use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
 use Alfa\Component\Alfa\Administrator\Service\Document\AutoIssuePolicy;
@@ -24,6 +25,7 @@ use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
+use Joomla\Database\DatabaseDriver;
 use Joomla\Database\ParameterType;
 use Throwable;
 
@@ -55,7 +57,12 @@ use Throwable;
  *   7. activity log  - 'order.status_changed' with old/new + attribution,
  *                      plus 'order.unpaid_exception' when one was allowed
  *   8. documents     - AutoIssuePolicy::handleTransition()
- *   9. email         - EmailService::sendForStatusChange() unless silent()
+ *   9. email         - EmailService::sendForStatusChange() unless silent(),
+ *                      after the outermost commit (PostCommit): at once when
+ *                      save() opened the transaction, after the caller's
+ *                      commit when nested, never after a rollback (2.1.1);
+ *                      one that waited goes only if the change's own
+ *                      timeline record committed
  *  10. event         - onOrderStatusChange, observing FINAL state
  *
  * Steps 5, 6, 8 and 9 are non-blocking (log and continue): a side-effect
@@ -975,7 +982,7 @@ class Transition
         $summary = "Status {$oldStatusId} -> {$this->toStatusId} ({$actor})"
             . ($this->note !== '' ? ': ' . $this->note : '');
 
-        OrderModel::logOrderActivity(
+        $statusRecordId = OrderModel::logOrderActivity(
             $this->orderId,
             'order.status_changed',
             $summary,
@@ -1022,10 +1029,44 @@ class Transition
 
         // Status email (customer flag + admin recipients decided per status
         // inside the helper). Swallows mail errors itself.
+        //
+        // An external call, so it waits for the outermost commit: nested in a
+        // caller's transaction, the order row this save locked stays held until
+        // that commit, and a slow mail server would hold it too. With no
+        // transaction open it runs at once; a rollback discards it (since 2.1.1).
+        //
+        // A plain driver rollback leaves a waiting email queued for the
+        // request's next commit, so one that waited goes only if this change's
+        // own timeline record committed (since 2.1.1).
         if (!$this->silent) {
-            EmailService::sendForStatusChange(
-                orderId:     $this->orderId,
-                newStatusId: $this->toStatusId,
+            $mailOrderId = $this->orderId;
+            $mailStatusId = $this->toStatusId;
+            $mailRecordId = TransactionState::isOpen($db) ? (int) ($statusRecordId ?? 0) : null;
+
+            PostCommit::defer(
+                db:    $db,
+                label: sprintf('the status email of order #%d (status %d)', $mailOrderId, $mailStatusId),
+                work:  static function () use ($mailOrderId, $mailStatusId, $mailRecordId): void {
+                    $connection = Factory::getContainer()->get('DatabaseDriver');
+
+                    if ($mailRecordId !== null && !self::changeCommitted(db: $connection, recordId: $mailRecordId, orderId: $mailOrderId)) {
+                        Log::add(
+                            entry:    'Status email of order ' . $mailOrderId . ' (status ' . $mailStatusId . ') not sent: '
+                                      . ($mailRecordId > 0
+                                          ? 'the change it announces was rolled back (its record #' . $mailRecordId . ' is not committed).'
+                                          : 'the change it announces left no record to confirm its commit.'),
+                            priority: Log::WARNING,
+                            category: 'com_alfa.orders',
+                        );
+
+                        return;
+                    }
+
+                    EmailService::sendForStatusChange(
+                        orderId:     $mailOrderId,
+                        newStatusId: $mailStatusId,
+                    );
+                },
             );
         }
 
@@ -1139,6 +1180,40 @@ class Transition
         );
 
         return false;
+    }
+
+    /**
+     * Whether a status change's own timeline record is committed.
+     *
+     * A status email that waited for a commit asks this before it goes: a
+     * caller that closed its level with a plain driver rollback left it queued,
+     * and the request's next commit runs it. Read with no transaction open, so
+     * only a committed record answers; the order's current status is not asked,
+     * as a later change may have moved it on.
+     *
+     * @param DatabaseDriver $db The connection the change ran on.
+     * @param int $recordId The change's 'order.status_changed' record; 0 when none was written.
+     * @param int $orderId The order.
+     *
+     * @since  2.1.1
+     */
+    private static function changeCommitted(DatabaseDriver $db, int $recordId, int $orderId): bool
+    {
+        if ($recordId <= 0) {
+            return false;
+        }
+
+        $query = $db->getQuery(true)
+            ->select('COUNT(*)')
+            ->from($db->quoteName('#__alfa_order_activity_log'))
+            ->where($db->quoteName('id') . ' = :id')
+            ->where($db->quoteName('id_order') . ' = :order')
+            ->where($db->quoteName('event') . ' = ' . $db->quote('order.status_changed'))
+            ->bind(':id', $recordId, ParameterType::INTEGER)
+            ->bind(':order', $orderId, ParameterType::INTEGER);
+        $db->setQuery(query: $query);
+
+        return (int) $db->loadResult() === 1;
     }
 
     /**

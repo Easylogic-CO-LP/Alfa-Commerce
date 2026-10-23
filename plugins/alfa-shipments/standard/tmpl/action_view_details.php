@@ -52,31 +52,31 @@ $weightVal = is_object($weight) ? (float) ($weight->value ?? 0) : (float) $weigh
     <div class="card-body">
         <dl class="row mb-0">
 
-            <dt class="col-sm-4"><?php echo Text::_('COM_ALFA_SHIPMENT_METHOD'); ?></dt>
+            <dt class="col-sm-4"><?php echo Text::_('PLG_ALFA_SHIPMENTS_STANDARD_SHIPMENT_METHOD'); ?></dt>
             <dd class="col-sm-8"><?php echo htmlspecialchars($shipment->shipment_method_name ?? $shipment->carrier_name ?? '-'); ?></dd>
 
-            <dt class="col-sm-4"><?php echo Text::_('COM_ALFA_TRACKING_NUMBER'); ?></dt>
+            <dt class="col-sm-4"><?php echo Text::_('PLG_ALFA_SHIPMENTS_STANDARD_TRACKING_NUMBER'); ?></dt>
             <dd class="col-sm-8"><?php echo htmlspecialchars($shipment->tracking_number ?? '-'); ?></dd>
 
-            <dt class="col-sm-4"><?php echo Text::_('COM_ALFA_SHIPPING_COST'); ?></dt>
+            <dt class="col-sm-4"><?php echo Text::_('PLG_ALFA_SHIPMENTS_STANDARD_SHIPPING_COST'); ?></dt>
             <dd class="col-sm-8"><?php echo $costDisplay; ?></dd>
 
 			<?php if ($weightVal > 0): ?>
-                <dt class="col-sm-4"><?php echo Text::_('COM_ALFA_WEIGHT'); ?></dt>
+                <dt class="col-sm-4"><?php echo Text::_('PLG_ALFA_SHIPMENTS_STANDARD_WEIGHT'); ?></dt>
                 <dd class="col-sm-8"><?php echo number_format($weightVal, 2); ?> kg</dd>
 			<?php endif; ?>
 
 			<?php if (!empty($shipment->items)): ?>
-                <dt class="col-sm-4"><?php echo Text::_('COM_ALFA_ITEMS'); ?></dt>
+                <dt class="col-sm-4"><?php echo Text::_('PLG_ALFA_SHIPMENTS_STANDARD_ITEMS'); ?></dt>
                 <dd class="col-sm-8"><?php echo htmlspecialchars($shipment->items); ?></dd>
 			<?php endif; ?>
 
-            <dt class="col-sm-4"><?php echo Text::_('COM_ALFA_STATUS'); ?></dt>
+            <dt class="col-sm-4"><?php echo Text::_('PLG_ALFA_SHIPMENTS_STANDARD_STATUS'); ?></dt>
             <dd class="col-sm-8">
-                <span class="badge <?php echo $statusBadge; ?>"><?php echo htmlspecialchars(Text::_('COM_ALFA_STATUS_' . strtoupper($status))); ?></span>
+                <span class="badge <?php echo $statusBadge; ?>"><?php echo htmlspecialchars(Text::_('PLG_ALFA_SHIPMENTS_STANDARD_STATUS_' . strtoupper($status))); ?></span>
             </dd>
 
-            <dt class="col-sm-4"><?php echo Text::_('COM_ALFA_DATE_ADDED'); ?></dt>
+            <dt class="col-sm-4"><?php echo Text::_('PLG_ALFA_SHIPMENTS_STANDARD_DATE_ADDED'); ?></dt>
             <dd class="col-sm-8"><?php echo htmlspecialchars($shipment->added ?? '-'); ?></dd>
 
         </dl>

@@ -15,6 +15,7 @@ use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\KeptPost;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
+use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Alfa\Component\Alfa\Site\Service\CartRules\CartRulesEngine;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Joomla\CMS\Factory;
@@ -107,6 +108,19 @@ class CartruleModel extends AlfaAdminModel
         // (a rule with zero groups is UNCONDITIONAL, wider still). Only the
         // admin can resolve it, so refuse the save and say which group.
         if (!$this->validateConditionGroups((array) ($data['groups'] ?? []))) {
+            return false;
+        }
+
+        // A category NEWLY named by a condition must be available (not archived or trashed, not inside an archived
+        // or trashed category); one the rule's conditions already name is kept. Refused before anything is written.
+        $categoryRefused = CategoryPickerPolicy::refusedNew(
+            posted: $this->conditionCategories(groups: (array) ($data['groups'] ?? [])),
+            stored: $this->storedConditionCategories(ruleId: (int) ($data['id'] ?? 0)),
+        );
+
+        if ($categoryRefused !== []) {
+            $this->setError(CategoryPickerPolicy::refusal(refused: $categoryRefused));
+
             return false;
         }
 
@@ -224,6 +238,57 @@ class CartruleModel extends AlfaAdminModel
         }
 
         return true;
+    }
+
+    /**
+     * The category ids the submitted condition groups name (conditions of the categories type).
+     *
+     * @param array $groups The `groups` subform rows.
+     *
+     * @return int[]
+     *
+     * @since  2.1.1
+     */
+    private function conditionCategories(array $groups): array
+    {
+        $ids = [];
+
+        foreach ($groups as $group) {
+            foreach ((array) (((array) $group)['conditions'] ?? []) as $condition) {
+                $condition = (array) $condition;
+
+                if ((string) ($condition['type'] ?? 'categories') === 'categories') {
+                    array_push($ids, ...array_map('intval', (array) ($condition['values'] ?? [])));
+                }
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
+     * The category ids the rule's stored conditions name now (none for a new rule).
+     *
+     * @param int $ruleId The rule.
+     *
+     * @return int[]
+     *
+     * @since  2.1.1
+     */
+    private function storedConditionCategories(int $ruleId): array
+    {
+        if ($ruleId <= 0) {
+            return [];
+        }
+
+        $db = $this->getDatabase();
+
+        return array_map('intval', $db->setQuery(
+            'SELECT v.id_value FROM ' . $db->quoteName('#__alfa_cart_rule_condition_values', 'v')
+            . ' INNER JOIN ' . $db->quoteName('#__alfa_cart_rule_conditions', 'c') . ' ON c.id = v.id_condition'
+            . ' INNER JOIN ' . $db->quoteName('#__alfa_cart_rule_groups', 'g') . ' ON g.id = c.id_group'
+            . ' WHERE g.id_cart_rule = ' . $ruleId . ' AND c.type = ' . $db->quote('categories'),
+        )->loadColumn() ?: []);
     }
 
     /**

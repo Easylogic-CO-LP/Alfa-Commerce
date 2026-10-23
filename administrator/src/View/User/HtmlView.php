@@ -95,14 +95,8 @@ class HtmlView extends FormView
             ToolbarHelper::save('user.save', 'JTOOLBAR_SAVE');
         }
 
-        if ($canCreate) {
-            ToolbarHelper::custom('user.save2new', 'save-new.png', 'save-new_f2.png', 'JTOOLBAR_SAVE_AND_NEW', false);
-        }
-
-        // Save as Copy reopens the new copy, so it needs edit as well as create.
-        if (!$isNew && $canCreate && $canEdit) {
-            ToolbarHelper::custom('user.save2copy', 'save-copy.png', 'save-copy_f2.png', 'JTOOLBAR_SAVE_AS_COPY', false);
-        }
+        // No Save & New and no Save as Copy: a profile belongs to one Joomla account, so a blank new profile
+        // would belong to none and a copy would give the same account a second profile.
 
         ToolbarHelper::cancel('user.cancel', 'JTOOLBAR_CANCEL');
     }

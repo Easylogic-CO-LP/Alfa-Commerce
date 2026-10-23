@@ -74,7 +74,12 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);   // END-on
                                 <?php echo HTMLHelper::_('grid.id', $i, $item->id, false, 'cid', 'cb', $item->title); ?>
                             </td>
                             <td class="text-center">
-                                <?php echo HTMLHelper::_('jgrid.published', $item->state, $i, 'locations.', $canChange); ?>
+                                <?php
+                                // Enabled or disabled, the location form's words: [task, text, action title, title, tip, class, class].
+                                echo HTMLHelper::_('jgrid.state', [
+                                    1 => ['unpublish', 'COM_ALFA_LOCATION_STATE_ENABLED', 'COM_ALFA_LOCATIONS_TOGGLE_DISABLE', 'COM_ALFA_LOCATION_STATE_ENABLED', true, 'publish', 'publish'],
+                                    0 => ['publish', 'COM_ALFA_LOCATION_STATE_DISABLED', 'COM_ALFA_LOCATIONS_TOGGLE_ENABLE', 'COM_ALFA_LOCATION_STATE_DISABLED', true, 'unpublish', 'unpublish'],
+                                ], $item->state, $i, 'locations.', $canChange); ?>
                             </td>
                             <td>
                                 <?php if ($canEdit) : ?>

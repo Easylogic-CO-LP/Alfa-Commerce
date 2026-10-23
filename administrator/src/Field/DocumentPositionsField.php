@@ -252,7 +252,7 @@ class DocumentPositionsField extends EditorField
     {
         $html = '<div class="aec-bar">';
         $html .= '<nav class="aec-tabs" role="tablist" aria-label="'
-            . htmlspecialchars(Text::_('JLANGUAGE'), ENT_COMPAT, 'UTF-8') . '">';
+            . htmlspecialchars(Text::_('JFIELD_LANGUAGE_LABEL'), ENT_COMPAT, 'UTF-8') . '">';
 
         $first = true;
         foreach ($languages as $langCode => $language) {
@@ -585,8 +585,9 @@ class DocumentPositionsField extends EditorField
         $html .= '<div class="aec-vars-panel">';
         $html .= '<div class="aec-vars-head">' . htmlspecialchars(Text::_('COM_ALFA_ORDEREMAIL_TOKEN_PICKER_TITLE'), ENT_COMPAT, 'UTF-8')
             . ' <small>' . htmlspecialchars(Text::_('COM_ALFA_ORDEREMAIL_TOKEN_PICKER_HINT'), ENT_COMPAT, 'UTF-8') . '</small></div>';
-        $html .= '<input type="text" class="aec-vars-search" placeholder="'
-            . htmlspecialchars(Text::_('JSEARCH_FILTER'), ENT_COMPAT, 'UTF-8') . '">';
+        $html .= '<input type="text" class="aec-vars-search" id="' . htmlspecialchars($this->id . '_vars_search', ENT_COMPAT, 'UTF-8') . '"'
+            . ' aria-label="' . htmlspecialchars(Text::_('JSEARCH_FILTER'), ENT_COMPAT, 'UTF-8') . '"'
+            . ' placeholder="' . htmlspecialchars(Text::_('JSEARCH_FILTER'), ENT_COMPAT, 'UTF-8') . '">';
         $html .= '<div class="aec-vars-scroll">';
 
         $html .= '<div class="aec-vars-group">';

@@ -54,6 +54,7 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Field\Traits\HasFailClosedOptionsTrait;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Service\Order\ShipmentLedger;
 use Joomla\CMS\Factory;
@@ -62,7 +63,7 @@ use Throwable;
 
 class OrderItemsField extends ListField
 {
-    use FailClosedOptionsTrait;
+    use HasFailClosedOptionsTrait;
 
     protected $type = 'orderItems';
 
@@ -77,7 +78,7 @@ class OrderItemsField extends ListField
      * When assign_column is empty: shows ALL items for the order.
      *
      * Items that cannot be read are said on the form, and the field refuses the
-     * save (FailClosedOptionsTrait): saving would take every item off the parcel.
+     * save (HasFailClosedOptionsTrait): saving would take every item off the parcel.
      *
      * @return array Options for the select field
      * @since  1.0.0

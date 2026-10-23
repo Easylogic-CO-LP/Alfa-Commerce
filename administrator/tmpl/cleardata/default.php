@@ -23,6 +23,9 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Router\Route;
 
+// The Alfa administrator stylesheet: raw stored values wrap in their cells (raw-value).
+$this->getDocument()->getWebAssetManager()->useStyle('com_alfa.admin');
+
 $action = Route::_('index.php?option=com_alfa');
 $state = $this->state;
 $preview = $this->preview;
@@ -43,7 +46,7 @@ $statusLine = function (array $extension): string {
     }
 
     if ((string) ($extension['message'] ?? '') !== '') {
-        $html .= '<div class="small"><code>' . $this->escape((string) $extension['message']) . '</code></div>';
+        $html .= '<div class="small"><code class="raw-value">' . $this->escape((string) $extension['message']) . '</code></div>';
     }
 
     return $html . '</li>';
@@ -125,7 +128,7 @@ $statusLine = function (array $extension): string {
                 <p class="small mb-1"><?php echo Text::_('COM_ALFA_CLEAR_LAST_NOT_REMOVED'); ?></p>
                 <ul class="small">
                     <?php foreach ((array) $this->last['files']['not_removed'] as $line) : ?>
-                        <li><code><?php echo $this->escape((string) $line); ?></code></li>
+                        <li><code class="raw-value"><?php echo $this->escape((string) $line); ?></code></li>
                     <?php endforeach; ?>
                 </ul>
             <?php endif; ?>
@@ -141,7 +144,7 @@ $statusLine = function (array $extension): string {
                     <thead><tr><th scope="col"><?php echo Text::_('COM_ALFA_CLEAR_TABLE'); ?></th><th scope="col" class="text-end"><?php echo Text::_('COM_ALFA_CLEAR_ROWS'); ?></th></tr></thead>
                     <tbody>
                     <?php foreach ($preview['tables'] as $table => $rows) : ?>
-                        <tr><td><code><?php echo $this->escape((string) $table); ?></code></td><td class="text-end"><?php echo (int) $rows; ?></td></tr>
+                        <tr><td><code class="raw-value"><?php echo $this->escape((string) $table); ?></code></td><td class="text-end"><?php echo (int) $rows; ?></td></tr>
                     <?php endforeach; ?>
                     </tbody>
                 </table>
@@ -152,14 +155,14 @@ $statusLine = function (array $extension): string {
             <?php if ($store['path'] === null) : ?>
                 <p class="text-muted"><?php echo Text::_('COM_ALFA_CLEAR_AREA_NONE'); ?></p>
             <?php elseif ($store['refused'] !== null) : ?>
-                <p class="text-danger"><?php echo Text::sprintf('COM_ALFA_CLEAR_AREA_REFUSED', '<code>' . $this->escape((string) $store['path']) . '</code>', $this->escape((string) $store['refused'])); ?></p>
+                <p class="text-danger"><?php echo Text::sprintf('COM_ALFA_CLEAR_AREA_REFUSED', '<code class="raw-value">' . $this->escape((string) $store['path']) . '</code>', $this->escape((string) $store['refused'])); ?></p>
             <?php else : ?>
-                <p><?php echo Text::sprintf('COM_ALFA_CLEAR_AREA_FILES', '<code>' . $this->escape((string) $store['path']) . '</code>', (int) $store['files'], FactoryReset::bytes(bytes: (int) $store['bytes'])); ?></p>
+                <p><?php echo Text::sprintf('COM_ALFA_CLEAR_AREA_FILES', '<code class="raw-value">' . $this->escape((string) $store['path']) . '</code>', (int) $store['files'], FactoryReset::bytes(bytes: (int) $store['bytes'])); ?></p>
                 <?php if ($store['left'] !== []) : ?>
                     <p class="text-warning"><?php echo Text::sprintf('COM_ALFA_CLEAR_AREA_LEFT', \count($store['left'])); ?></p>
                     <ul class="small">
                         <?php foreach (\array_slice($store['left'], 0, 20) as $left) : ?>
-                            <li><code><?php echo $this->escape((string) $left['path']); ?></code>: <?php echo $this->escape((string) $left['reason']); ?></li>
+                            <li><code class="raw-value"><?php echo $this->escape((string) $left['path']); ?></code>: <?php echo $this->escape((string) $left['reason']); ?></li>
                         <?php endforeach; ?>
                     </ul>
                 <?php endif; ?>
@@ -171,7 +174,7 @@ $statusLine = function (array $extension): string {
 
             <?php $images = $preview['images']; ?>
             <h3 class="h6"><?php echo Text::_('COM_ALFA_CLEAR_IMAGES_TITLE'); ?></h3>
-            <p class="mb-0"><?php echo Text::sprintf('COM_ALFA_CLEAR_IMAGES_DESC', '<code>' . $this->escape((string) $images['path']) . '</code>', (int) $images['referenced'], (int) $images['present']); ?></p>
+            <p class="mb-0"><?php echo Text::sprintf('COM_ALFA_CLEAR_IMAGES_DESC', '<code class="raw-value">' . $this->escape((string) $images['path']) . '</code>', (int) $images['referenced'], (int) $images['present']); ?></p>
         </div>
     </div>
 

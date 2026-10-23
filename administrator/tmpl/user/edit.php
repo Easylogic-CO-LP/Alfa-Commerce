@@ -53,7 +53,7 @@ $this->editUrl    = $linkedUser
                 <?php if ($linkedUser) : ?>
                     <div class="control-group">
                         <div class="control-label">
-                            <label><?php echo Text::_('COM_ALFA_FIELD_JOOMLA_ACCOUNT_LABEL'); ?></label>
+                            <span><?php echo Text::_('COM_ALFA_FIELD_JOOMLA_ACCOUNT_LABEL'); ?></span>
                         </div>
                         <div class="controls">
                             <?php echo $this->loadTemplate('user_popup'); ?>

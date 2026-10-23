@@ -28,8 +28,10 @@
             <option value="low">COM_ALFA_FILTER_STOCK_LOW</option>
             <option value="out">COM_ALFA_FILTER_STOCK_OUT</option>
         </field>
+        <!-- A list filter, not an assignment: every category, whatever its state. -->
         <field name="category"
                type="categories"
+               allStates="true"
                multiple="true"
                label="COM_ALFA_TITLE_CATEGORIES"
                hint="COM_ALFA_FILTER_SELECT_CATEGORY"

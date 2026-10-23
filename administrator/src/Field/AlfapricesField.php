@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Field;
 // No direct access
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Field\Traits\HasCaptionLabelTrait;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
@@ -47,6 +48,8 @@ use RuntimeException;
  */
 class AlfapricesField extends FormField
 {
+    use HasCaptionLabelTrait;
+
     /**
      * @var string
      */

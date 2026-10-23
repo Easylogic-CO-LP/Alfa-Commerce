@@ -7,6 +7,10 @@
 -- It is not a migration: script.php preflight lets it run over kept tables only
 -- when their recorded schema version is the one this file creates.
 --
+-- Every table is utf8mb4_unicode_ci, as the Joomla tables are, so a column of one
+-- table can be compared with a column of any other. Only a hash or key column that
+-- must compare bytes carries a binary collation of its own.
+--
 
 --
 -- Alfa Commerce facts about its own database, by name. schema_version is the
@@ -23,7 +27,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_meta` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Alfa Commerce facts it keeps beside its data: the schema version, the download store path and its protection';
 
 INSERT INTO `#__alfa_meta` (`name`, `value`)
-SELECT 'schema_version', '2.1.0' FROM DUAL
+SELECT 'schema_version', '2.1.1' FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `#__alfa_meta` WHERE `name` = 'schema_version');
 
 -- Begin of the Clear everything block, added in 2.1.0. Keep it whole and apart from other tables.
@@ -84,7 +88,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_cart` (
   -- lookup scans the whole table on every page that shows the mini-cart.
   KEY `idx_recognize_key` (`recognize_key`),
   KEY `idx_customer` (`id_customer`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Live shopping carts -- operational state only; deleted at placement, never an archive';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Live shopping carts -- operational state only; deleted at placement, never an archive';
 
 --
 -- Table structure for table `#__alfa_cart_items`
@@ -105,7 +109,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_cart_items` (
   -- poolQuantityInCart(), narrow by `id_item` in the same dive instead of
   -- scanning the cart's lines.
   KEY `idx_cart_item` (`id_cart`, `id_item`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Cart lines (live), removed together with their cart when it is cleared or placed';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Cart lines (live), removed together with their cart when it is cleared or placed';
 
 --
 -- Table structure for table `#__alfa_cart_item_fields`
@@ -514,7 +518,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_form_field_groups` (
   `modified_by` int(11) DEFAULT NULL,
   `checked_out` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table structure for table `#__alfa_form_fields`
@@ -557,7 +561,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_form_fields` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `field_name` (`field_name`),
   UNIQUE KEY `idx_role` (`role`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- The identity fields every store needs. `name` and `email` are SYSTEM rows:
 -- a guest order with no email cannot be confirmed, invoiced or served its
@@ -608,7 +612,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_form_fields_usergroups` (
   `field_id` int(11) NOT NULL,
   `usergroup_id` int(11) NOT NULL,
   PRIMARY KEY (`field_id`, `usergroup_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table structure for table `#__alfa_form_fields_users`
@@ -618,7 +622,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_form_fields_users` (
   `field_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   PRIMARY KEY (`field_id`, `user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table structure for table `#__alfa_inventory_movements`
@@ -1396,7 +1400,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_media` (
   PRIMARY KEY (`id`),
   KEY `idx_alfa_media_origin_item` (`origin`, `item_id`),
   KEY `idx_alfa_media_type` (`type`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table structure for table `#__alfa_orders`
@@ -1465,7 +1469,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders` (
   -- orders for each address.
   KEY `idx_address_delivery` (`id_address_delivery`),
   KEY `idx_address_invoice` (`id_address_invoice`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table structure for table `#__alfa_orders_statuses`
@@ -1502,7 +1506,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders_statuses` (
   `modified_by` int(11) DEFAULT 0,
   `ordering` int(11) DEFAULT 0,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Default order-status set. A store cannot place an order without an initial
 -- status (the placement falls back to an id=0 stub and logs CRITICAL), so a
@@ -1536,7 +1540,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orders_statuses_en_gb` (
   `email_positions_admin` longtext DEFAULT NULL,
   `name_customer` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id_orderstatus`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO `#__alfa_orders_statuses_en_gb` (`id_orderstatus`, `name`, `name_customer`)
 SELECT * FROM (
@@ -1575,7 +1579,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_orderstatus_recipients` (
   `id_user` int(11) NOT NULL,
   PRIMARY KEY (`id_orderstatus`, `id_user`),
   KEY `idx_user` (`id_user`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table structure for table `#__alfa_order_activity_log`
@@ -1768,7 +1772,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_order_items` (
   KEY `idx_id_shipment_method` (`id_shipment_method`),
   KEY `idx_id_combination` (`id_combination`),
   KEY `idx_id_item` (`id_item`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Whether each order line's stock identity tracked stock when the line was
@@ -2029,7 +2033,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_payment_categories` (
   `payment_id` int(11) NOT NULL,
   `category_id` int(11) NOT NULL,
   PRIMARY KEY (`payment_id`, `category_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table structure for table `#__alfa_payment_manufacturers`
@@ -2039,7 +2043,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_payment_manufacturers` (
   `payment_id` int(11) NOT NULL,
   `manufacturer_id` int(11) NOT NULL,
   PRIMARY KEY (`payment_id`, `manufacturer_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table structure for table `#__alfa_payment_places`
@@ -2049,7 +2053,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_payment_places` (
   `payment_id` int(11) NOT NULL,
   `place_id` int(11) NOT NULL,
   PRIMARY KEY (`payment_id`, `place_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table structure for table `#__alfa_payment_shipments`
@@ -2060,7 +2064,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_payment_shipments` (
   `shipment_id` int(11) NOT NULL COMMENT 'Shipping method the payment method is offered with; 0 = every shipping method',
   PRIMARY KEY (`payment_id`, `shipment_id`),
   KEY `idx_shipment_id` (`shipment_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table structure for table `#__alfa_payment_usergroups`
@@ -2070,7 +2074,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_payment_usergroups` (
   `payment_id` int(11) NOT NULL,
   `usergroup_id` int(11) NOT NULL,
   PRIMARY KEY (`payment_id`, `usergroup_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table structure for table `#__alfa_payment_users`
@@ -2080,7 +2084,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_payment_users` (
   `payment_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   PRIMARY KEY (`payment_id`, `user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table structure for table `#__alfa_places`
@@ -2638,7 +2642,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_shipment_categories` (
   `shipment_id` int(11) NOT NULL,
   `category_id` int(11) NOT NULL,
   PRIMARY KEY (`shipment_id`, `category_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table structure for table `#__alfa_shipment_manufacturers`
@@ -2648,7 +2652,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_shipment_manufacturers` (
   `shipment_id` int(11) NOT NULL,
   `manufacturer_id` int(11) NOT NULL,
   PRIMARY KEY (`shipment_id`, `manufacturer_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table structure for table `#__alfa_shipment_places`
@@ -2658,7 +2662,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_shipment_places` (
   `shipment_id` int(11) NOT NULL,
   `place_id` int(11) NOT NULL,
   PRIMARY KEY (`shipment_id`, `place_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table structure for table `#__alfa_shipment_usergroups`
@@ -2668,7 +2672,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_shipment_usergroups` (
   `shipment_id` int(11) NOT NULL,
   `usergroup_id` int(11) NOT NULL,
   PRIMARY KEY (`shipment_id`, `usergroup_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table structure for table `#__alfa_shipment_users`
@@ -2678,7 +2682,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_shipment_users` (
   `shipment_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   PRIMARY KEY (`shipment_id`, `user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table structure for table `#__alfa_shipment_taxes`
@@ -2815,7 +2819,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_user_info` (
   `country` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_email` (`email`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Backend notification store (pushed from anywhere, always read from here).
@@ -2846,7 +2850,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_notifications` (
   KEY `idx_view_access` (`view_access`, `view_access_asset`),
   KEY `idx_active_order` (`dismissed`, `severity`, `created`),
   KEY `idx_active_counts` (`dismissed`, `readed`, `severity`, `expires`, `view_access`, `view_access_asset`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Frozen cart contributions: the calculated snapshot of the cart
 -- contribution pipeline (onCartTotals). Full accounting form per row; the

@@ -210,10 +210,11 @@ class ItemFieldsSnapshot
     /**
      * Freeze an order line's DISPLAY NAME as a {lang: text} map across every
      * content language, the effective sellable name: the combination's own
-     * translated name when it has one (the same override the storefront overlay
-     * applies), otherwise the item's name. Stored as JSON in order_items.name so
-     * the line reads correctly in any language and survives a later rename or
-     * delete of the catalog item / combination.
+     * translated name when it has one, in that language or else in the default
+     * language (the same override the storefront overlay applies), otherwise the
+     * item's name. Stored as JSON in order_items.name so the line reads correctly
+     * in any language and survives a later rename or delete of the catalog item /
+     * combination.
      *
      * @param int $itemId The #__alfa_items row id.
      * @param int|null $combinationId The resolved combination, or null.
@@ -236,16 +237,29 @@ class ItemFieldsSnapshot
             // No language rows: fall back below.
         }
 
-        // A combination's own translated name overrides the item's, per language.
+        // A combination's own translated name overrides the item's, per language; in a
+        // language it has none, its default-language name does, as on the storefront.
         if ($combinationId > 0) {
+            $combination = [];
+
             try {
                 foreach (MultilingualHelper::getMultilingualDataFlat($combinationId, 'id_item_combination', '#__alfa_item_combinations') as $key => $value) {
                     if (str_starts_with((string) $key, 'name_') && (string) $value !== '') {
-                        $map[substr((string) $key, 5)] = (string) $value;
+                        $combination[substr((string) $key, 5)] = (string) $value;
                     }
                 }
             } catch (Throwable $e) {
                 // No combination language rows: keep the item name.
+            }
+
+            $defaultName = $combination[MultilingualHelper::getDefaultLanguageTag()] ?? '';
+
+            foreach (array_unique(array_merge(array_keys($map), array_keys($combination), MultilingualHelper::getLanguageTags())) as $lang) {
+                $name = $combination[$lang] ?? $defaultName;
+
+                if ($name !== '') {
+                    $map[$lang] = $name;
+                }
             }
         }
 

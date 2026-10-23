@@ -40,7 +40,8 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);   // END-on
 
                 <div class="alert alert-info">
                     <span class="icon-info-circle" aria-hidden="true"></span>
-                    <?php echo Text::_('COM_ALFA_INVENTORYMOVEMENTS_LEDGER_HINT'); ?>
+                    <?php // Text, not markup: the hint shows its search syntax ("id:<item id>") as written. ?>
+                    <?php echo $this->escape(Text::_('COM_ALFA_INVENTORYMOVEMENTS_LEDGER_HINT')); ?>
                 </div>
 
                 <div class="clearfix"></div><?php echo $this->renderSlot('before-grid'); ?><?php echo Actions::bulkBar($this->pluginBulkActions ?? []); ?>
@@ -76,7 +77,7 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);   // END-on
                             <td>
                                 <strong><?php echo $this->escape($item->name ?: ('#' . (int) $item->item_id)); ?></strong>
                                 <?php if (!empty($item->item_sku)) : ?>
-                                    <div class="small text-muted"><code><?php echo $this->escape($item->item_sku); ?></code></div>
+                                    <div class="small text-muted"><code class="raw-value"><?php echo $this->escape($item->item_sku); ?></code></div>
                                 <?php endif; ?>
                                 <?php if ((int) $item->combination_id > 0) : ?>
                                     <div class="small text-muted"><?php echo Text::sprintf('COM_ALFA_INVENTORY_COMBINATION_N', (int) $item->combination_id); ?></div>
@@ -105,10 +106,10 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);   // END-on
                             </td>
                             <td class="d-none d-lg-table-cell">
                                 <?php if (!empty($item->operation_id)) : ?>
-                                    <code class="small"><?php echo $this->escape($item->operation_id); ?></code>
+                                    <code class="small raw-value"><?php echo $this->escape($item->operation_id); ?></code>
                                 <?php endif; ?>
                                 <?php if (!empty($item->correlation_id)) : ?>
-                                    <div class="small text-muted"><code><?php echo $this->escape($item->correlation_id); ?></code></div>
+                                    <div class="small text-muted"><code class="raw-value"><?php echo $this->escape($item->correlation_id); ?></code></div>
                                 <?php endif; ?>
                             </td>
                             <td class="d-none d-lg-table-cell"><?php echo (int) $item->id; ?></td><?php echo Columns::cells($columnsByAnchor, Columns::END, $item); ?><?php echo Actions::cell($this->pluginRowActions ?? [], $i, $item); ?>

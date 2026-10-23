@@ -5,6 +5,8 @@
  *
  * Media Manager: handles drag-and-drop uploads, media picker integration,
  * URL insertion, sortable grid, thumbnails, and delete actions.
+ * One manager per media zone ([data-media-zone]); every element it reads
+ * is looked up inside its own zone, so two zones on a page never meet.
  */
 
 (function () {
@@ -15,7 +17,7 @@
 
         config: {
             // Containers
-            gridSelector:               '#media-grid',
+            gridSelector:               '[data-media-grid]',
             dropzoneSelector:           '.media-dropzone-inner',
             dropzoneOverlaySelector:    '.media-dropzone-overlay',
             formSelector:               '.adminForm',
@@ -32,24 +34,24 @@
             thumbnailImageSelector:     '.media-thumbnail-img',
             thumbnailButtonSelector:    '.media-thumbnail-btn',
             thumbnailPickerInputSelector: '.media-thumbnail-picker-input',
-            thumbnailOpenBtnSelector:   '#media-thumbnail-open-btn',
+            thumbnailOpenBtnSelector:   '[data-media-thumbnail-open]',
 
             // Media picker (library)
-            pickerInputSelector:        '#media-picker-input',
-            pickerOpenBtnSelector:      '#media-picker-open-btn',
+            pickerInputSelector:        '[data-media-picker-input]',
+            pickerOpenBtnSelector:      '[data-media-picker-open]',
 
             // File input (drag & drop)
-            fileInputSelector:          '#media-file-input',
+            fileInputSelector:          '[data-media-file-input]',
 
             // Toolbar
             mediaOptionsDropdownButton: '.button-media-actions',
             selectLibraryBtnSelector:   '.media-action-select-media',
 
             // URL modal
-            urlModalSelector:           '#selectUrlModal',
-            urlInputSelector:           '#media-url-input',
-            urlErrorSelector:           '#media-url-error',
-            urlSubmitSelector:          '#media-url-submit',
+            urlModalSelector:           '[id$="-url-modal"]',
+            urlInputSelector:           '[data-media-url-input]',
+            urlErrorSelector:           '[data-media-url-error]',
+            urlSubmitSelector:          '[data-media-url-submit]',
             urlThumbnailBtnSelector:    '.media-url-thumbnail-btn',
 
             // Placeholder
@@ -93,15 +95,46 @@
             },
         },
 
-        fileMap: new Map(),
+        fileMap: null,
         sortableInstance: null,
         basePath: '',
+        root: null,
 
         //  Init
+
+        /**
+         * A manager for one zone: its own state, the shared behaviour.
+         *
+         * @param {HTMLElement} root The zone ([data-media-zone]).
+         * @returns {object} The zone's manager.
+         */
+        create(root) {
+            const manager = Object.create(this);
+
+            manager.root = root;
+            manager.fileMap = new Map();
+            manager.sortableInstance = null;
+            manager.config = this.deepMerge(this.config, {});
+
+            return manager;
+        },
 
         init() {
             if (window.MediaManagerConfig) {
                 this.config = this.deepMerge(this.config, window.MediaManagerConfig);
+            }
+
+            // The zone's own settings, as its field rendered them; the page options otherwise.
+            if (this.root.dataset.multiple !== undefined) {
+                this.config.allowMultiple = this.root.dataset.multiple === '1';
+            }
+
+            if (this.root.dataset.types) {
+                try {
+                    this.config.allowedTypes = JSON.parse(this.root.dataset.types);
+                } catch (e) {
+                    // Keep the page option.
+                }
             }
 
             // The config object literal reads Joomla.getOptions at script-parse time,
@@ -123,7 +156,7 @@
             if (allowedTypes.includes('media')) {
                 this.setupDropArea();
             } else {
-                const dropzone = document.querySelector(this.config.dropzoneSelector);
+                const dropzone = this.root.querySelector(this.config.dropzoneSelector);
                 if (dropzone) {
                     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
                         dropzone.addEventListener(evt, (e) => {
@@ -207,8 +240,8 @@
         //  Drop area
 
         setupDropArea() {
-            const dropzone = document.querySelector(this.config.dropzoneSelector);
-            const overlay  = document.querySelector(this.config.dropzoneOverlaySelector);
+            const dropzone = this.root.querySelector(this.config.dropzoneSelector);
+            const overlay  = this.root.querySelector(this.config.dropzoneOverlaySelector);
 
             if (!dropzone || !overlay) return;
 
@@ -303,9 +336,9 @@
         //  MEDIA PICKER (library)
 
         setupMediaPicker() {
-            const toolbarBtn = document.querySelector(this.config.selectLibraryBtnSelector);
-            const hiddenBtn  = document.querySelector(this.config.pickerOpenBtnSelector);
-            const pickerInput = document.querySelector(this.config.pickerInputSelector);
+            const toolbarBtn = this.root.querySelector(this.config.selectLibraryBtnSelector);
+            const hiddenBtn  = this.root.querySelector(this.config.pickerOpenBtnSelector);
+            const pickerInput = this.root.querySelector(this.config.pickerInputSelector);
 
             if (!toolbarBtn || !hiddenBtn || !pickerInput) return;
 
@@ -335,7 +368,7 @@
         //  Sortable
 
         setupSortable() {
-            const container = document.querySelector(this.config.gridSelector);
+            const container = this.root.querySelector(this.config.gridSelector);
             if (!container) return;
 
             this.updatePlaceholder();
@@ -352,7 +385,7 @@
         //  Delete
 
         setupDeleteHandlers() {
-            const container = document.querySelector(this.config.gridSelector);
+            const container = this.root.querySelector(this.config.gridSelector);
             if (!container) return;
 
             container.addEventListener('click', (e) => {
@@ -387,9 +420,9 @@
         //  Thumbnail picker
 
         setupThumbnailPicker() {
-            const sharedInput = document.querySelector(this.config.thumbnailPickerInputSelector);
-            const hiddenBtn   = document.querySelector(this.config.thumbnailOpenBtnSelector);
-            const container   = document.querySelector(this.config.gridSelector);
+            const sharedInput = this.root.querySelector(this.config.thumbnailPickerInputSelector);
+            const hiddenBtn   = this.root.querySelector(this.config.thumbnailOpenBtnSelector);
+            const container   = this.root.querySelector(this.config.gridSelector);
 
             if (!sharedInput || !hiddenBtn || !container) return;
 
@@ -430,13 +463,13 @@
         //  URL modal
 
         setupUrlModal() {
-            const modalEl      = document.querySelector(this.config.urlModalSelector);
-            const urlInput     = document.querySelector(this.config.urlInputSelector);
-            const urlError     = document.querySelector(this.config.urlErrorSelector);
-            const urlSubmit    = document.querySelector(this.config.urlSubmitSelector);
-            const thumbBtn     = document.querySelector(this.config.urlThumbnailBtnSelector);
-            const pickerInput  = document.querySelector(this.config.pickerInputSelector);
-            const pickerOpenBtn = document.querySelector(this.config.pickerOpenBtnSelector);
+            const modalEl      = this.root.querySelector(this.config.urlModalSelector);
+            const urlInput     = this.root.querySelector(this.config.urlInputSelector);
+            const urlError     = this.root.querySelector(this.config.urlErrorSelector);
+            const urlSubmit    = this.root.querySelector(this.config.urlSubmitSelector);
+            const thumbBtn     = this.root.querySelector(this.config.urlThumbnailBtnSelector);
+            const pickerInput  = this.root.querySelector(this.config.pickerInputSelector);
+            const pickerOpenBtn = this.root.querySelector(this.config.pickerOpenBtnSelector);
 
             if (!modalEl || !urlSubmit) return;
 
@@ -499,7 +532,7 @@
         //  Media error handling
 
         mediaErrorHandler() {
-            const mediaThumbnails = document.querySelectorAll(this.config.thumbnailImageSelector);
+            const mediaThumbnails = this.root.querySelectorAll(this.config.thumbnailImageSelector);
 
             mediaThumbnails.forEach(thumb => {
                 const mediaCard = thumb.closest(this.config.cardSelector);
@@ -529,7 +562,7 @@
 
             form.addEventListener('submit', (e) => {
                 const task = form.task.value;
-                const errorCards = Array.from(document.querySelectorAll('.has-thumbnail-error'));
+                const errorCards = Array.from(this.root.querySelectorAll('.has-thumbnail-error'));
                 const mediaThumbnailErrorMsg = this.getText(this.config.messages.thumbnailErrorAlert);
 
                 const actualErrors = errorCards.filter(card => {
@@ -551,7 +584,7 @@
         //  Media upload limiter
 
         mediaLimiter() {
-            const inputs = document.querySelectorAll('input[name^="jform[media]"][name$="[type]"]');
+            const inputs = this.root.querySelectorAll('input[name^="jform[media]"][name$="[type]"]');
 
             const uniqueMediaIds = new Set();
 
@@ -611,7 +644,7 @@
         },
 
         addPreviewToContainer(html) {
-            const container = document.querySelector(this.config.gridSelector);
+            const container = this.root.querySelector(this.config.gridSelector);
             if (!container) return;
 
             const placeholder = container.querySelector(this.config.placeholderSelector);
@@ -623,8 +656,8 @@
         },
 
         updateFileInputOrder() {
-            const container   = document.querySelector(this.config.gridSelector);
-            const hiddenInput = document.querySelector(this.config.fileInputSelector);
+            const container   = this.root.querySelector(this.config.gridSelector);
+            const hiddenInput = this.root.querySelector(this.config.fileInputSelector);
 
             if (!container || !hiddenInput) return;
 
@@ -650,7 +683,7 @@
         },
 
         updatePlaceholder() {
-            const container = document.querySelector(this.config.gridSelector);
+            const container = this.root.querySelector(this.config.gridSelector);
             if (!container) return;
 
             const visibleCards = container.querySelectorAll( `${this.config.cardSelector}:not(.${this.config.deletedCardClass})` );
@@ -680,10 +713,17 @@
         },
     };
 
+    const start = () => {
+        document.querySelectorAll('[data-media-zone]').forEach((zone) => {
+            zone.mediaManager = MediaManager.create(zone);
+            zone.mediaManager.init();
+        });
+    };
+
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => MediaManager.init());
+        document.addEventListener('DOMContentLoaded', start);
     } else {
-        MediaManager.init();
+        start();
     }
 
     window.MediaManager = MediaManager;

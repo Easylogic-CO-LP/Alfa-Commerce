@@ -87,7 +87,7 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);   // END-on
                             <td>
                                 <strong><?php echo $this->escape($item->name ?: ('#' . (int) $item->item_id)); ?></strong>
                                 <?php if (!empty($item->item_sku)) : ?>
-                                    <div class="small text-muted"><code><?php echo $this->escape($item->item_sku); ?></code></div>
+                                    <div class="small text-muted"><code class="raw-value"><?php echo $this->escape($item->item_sku); ?></code></div>
                                 <?php endif; ?>
                                 <?php if ((int) $item->combination_id > 0) : ?>
                                     <div class="small text-muted"><?php echo Text::sprintf('COM_ALFA_INVENTORY_COMBINATION_N', (int) $item->combination_id); ?></div>

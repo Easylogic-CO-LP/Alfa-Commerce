@@ -1235,16 +1235,16 @@ final class Standard extends PaymentsPlugin
         // Always available
 
         // View Details: opens a modal with payment information
-        $event->add('view_details', Text::_('COM_ALFA_VIEW_DETAILS'))
+        $event->add('view_details', Text::_('PLG_ALFA_PAYMENTS_STANDARD_VIEW_DETAILS'))
             ->icon('eye')->css('btn-outline-secondary')
-            ->modal('action_view_details', Text::_('COM_ALFA_PAYMENT_DETAILS') . ' #' . $payment->id)
+            ->modal('action_view_details', Text::_('PLG_ALFA_PAYMENTS_STANDARD_PAYMENT_DETAILS') . ' #' . $payment->id)
             ->readOnly()
             ->priority(10);
 
         // View Logs: opens a modal with this payment's plugin log history
-        $event->add('view_logs', Text::_('COM_ALFA_VIEW_LOGS'))
+        $event->add('view_logs', Text::_('PLG_ALFA_PAYMENTS_STANDARD_VIEW_LOGS'))
             ->icon('list')->css('btn-outline-info')
-            ->modal('default_order_logs_view', Text::_('COM_ALFA_PAYMENT_LOGS') . ' #' . $payment->id, 'lg')
+            ->modal('default_order_logs_view', Text::_('PLG_ALFA_PAYMENTS_STANDARD_PAYMENT_LOGS') . ' #' . $payment->id, 'lg')
             ->readOnly()
             ->priority(5);
 
@@ -1259,7 +1259,7 @@ final class Standard extends PaymentsPlugin
                 ->priority(200);
 
             // Cancel: transitions to cancelled
-            $event->add('cancel', Text::_('COM_ALFA_CANCEL'))
+            $event->add('cancel', Text::_('PLG_ALFA_PAYMENTS_STANDARD_CANCEL'))
                 ->mutating()
                 ->icon('cancel')->css('btn-outline-danger')
                 ->confirm(Text::_('PLG_ALFA_PAYMENTS_STANDARD_CONFIRM_CANCEL'))
@@ -1840,7 +1840,7 @@ final class Standard extends PaymentsPlugin
             // ledger's own sentence, as the action page says a block; any other
             // outcome keeps this action's message (the ledger logged its reason).
             $event->setError(\in_array($result['outcome'], [self::OUTCOME_BLOCKED, self::OUTCOME_NOT_REFUNDABLE], true) && (string) ($result['reason'] ?? '') !== ''
-                ? Text::sprintf('COM_ALFA_ACTION_REFUSED_REFUND_BLOCKED', $result['reason'])
+                ? Text::sprintf('PLG_ALFA_PAYMENTS_STANDARD_ACTION_REFUSED_REFUND_BLOCKED', $result['reason'])
                 : Text::sprintf('PLG_ALFA_PAYMENTS_STANDARD_ERROR_REFUND_PARTIAL', $payment->id));
 
             return;
@@ -1957,7 +1957,7 @@ final class Standard extends PaymentsPlugin
             'payment' => $payment,
             'order' => $event->getOrder(),
         ]);
-        $event->setModalTitle(Text::_('COM_ALFA_PAYMENT_DETAILS') . ' #' . $payment->id);
+        $event->setModalTitle(Text::_('PLG_ALFA_PAYMENTS_STANDARD_PAYMENT_DETAILS') . ' #' . $payment->id);
     }
 
     /**
@@ -1985,7 +1985,7 @@ final class Standard extends PaymentsPlugin
             'logData' => $logData ?? [],
             'xml' => $this->getLogsSchema(),
         ]);
-        $event->setModalTitle(Text::_('COM_ALFA_PAYMENT_LOGS') . ' #' . $payment->id);
+        $event->setModalTitle(Text::_('PLG_ALFA_PAYMENTS_STANDARD_PAYMENT_LOGS') . ' #' . $payment->id);
     }
 
     //  SETUP CHECKUP: the checklist in the method's settings, read-only
@@ -2012,9 +2012,9 @@ final class Standard extends PaymentsPlugin
      * @since  2.0.0
      */
     private const CHECKUP_STATUS_FIELDS = [
-        'status_on_completed' => 'COM_ALFA_PAYMENT_SETTINGS_STATUS_ON_COMPLETED_LABEL',
-        'status_on_cancelled' => 'COM_ALFA_PAYMENT_SETTINGS_STATUS_ON_CANCELLED_LABEL',
-        'status_on_refunded' => 'COM_ALFA_PAYMENT_SETTINGS_STATUS_ON_REFUNDED_LABEL',
+        'status_on_completed' => 'PLG_ALFA_PAYMENTS_STANDARD_STATUS_ON_COMPLETED_LABEL',
+        'status_on_cancelled' => 'PLG_ALFA_PAYMENTS_STANDARD_STATUS_ON_CANCELLED_LABEL',
+        'status_on_refunded' => 'PLG_ALFA_PAYMENTS_STANDARD_STATUS_ON_REFUNDED_LABEL',
     ];
 
     /**

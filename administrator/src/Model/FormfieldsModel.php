@@ -138,18 +138,26 @@ class FormfieldsModel extends AlfaListModel
         $query->from($db->qn('#__alfa_form_fields', 'a'))
             ->join('LEFT', $db->qn('#__alfa_form_field_groups', 'g') . ' ON g.id = a.group_id');
 
-        // The per-language group-title table is created lazily on first save, so it may
-        // not exist yet (e.g. an admin language added after the groups). Join it only
-        // when present; otherwise group_title is NULL rather than erroring the whole
-        // list (the sibling addMultilingualJoinToQuery below does the same check).
-        $groupLangTable = '#__alfa_form_field_groups_' . MultilingualHelper::getCurrentLanguageTag();
+        // The group title in the current language, else in the default one, as every
+        // translatable read. A per-language group-title table is created lazily on first
+        // save, so it may not exist yet (e.g. an admin language added after the groups):
+        // only a table that exists is joined, and with none group_title is NULL rather than
+        // erroring the whole list (the sibling addMultilingualJoinToQuery below does the same
+        // check, and owns the one set of join aliases it uses, hence the joins by hand here).
+        $tables = $db->getTableList();
+        $titles = [];
 
-        if (in_array($db->replacePrefix($groupLangTable), $db->getTableList(), true)) {
-            $query->select('gl.title AS group_title')
-                ->join('LEFT', $db->qn($groupLangTable, 'gl') . ' ON gl.id_form_field_group = g.id');
-        } else {
-            $query->select('NULL AS group_title');
+        foreach (array_unique([MultilingualHelper::getCurrentLanguageTag(), MultilingualHelper::getDefaultLanguageTag()]) as $i => $tag) {
+            $groupLangTable = '#__alfa_form_field_groups_' . $tag;
+
+            if (in_array($db->replacePrefix($groupLangTable), $tables, true)) {
+                $alias = 'gl' . $i;
+                $query->join('LEFT', $db->qn($groupLangTable, $alias) . ' ON ' . $alias . '.id_form_field_group = g.id');
+                $titles[] = 'NULLIF(' . $alias . ".title, '')";
+            }
         }
+
+        $query->select($titles === [] ? 'NULL AS group_title' : 'COALESCE(' . implode(', ', $titles) . ') AS group_title');
 
         // MULTILINGUAL: resolve the field name in the active language from the
         // per-language tables (LEFT JOIN + COALESCE keeps untranslated rows).

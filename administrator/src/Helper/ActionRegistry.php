@@ -508,16 +508,20 @@ class ActionRegistry
                     throw new RuntimeException('Payment not found.', 404);
                 }
 
-                // FAIL CLOSED. getPaymentData() hands over params = false when
-                // the method row is gone (PaymentModel::getItem returns false),
-                // and `false->type ?? 'standard'` evaluates to 'standard' with
-                // no warning, so a deleted card gateway method silently executed
-                // the Standard plugin's actions against a real card payment.
+                // FAIL CLOSED. A payment that records no type has no plugin to
+                // act for it: guessing one (the live method's type, 'standard')
+                // once ran the wrong plugin's actions against a real card payment.
+                // The core's own report actions are the exception: they call the
+                // ledger's verbs and never boot a plugin, and the ledger acts only
+                // on a report it lists for this payment, so staff always have a
+                // way out of the refund block such a payment's kept provider
+                // refund holds (since 2.1.1).
                 $type = self::methodType($payment, 'payment_method_type');
+                $actionId = $input->getCmd('action', '');
 
-                if ($type === '') {
+                if ($type === '' && !self::isReportAction(actionId: $actionId)) {
                     throw new RuntimeException(
-                        'Payment #' . (int) $payment->id . ' has no resolvable gateway: its method was deleted.',
+                        'Payment #' . (int) $payment->id . ' records no payment method type: no plugin can act on it.',
                         409,
                     );
                 }
@@ -527,7 +531,6 @@ class ActionRegistry
                 // DummyPlugin, and booting the ORDER'S gateway instead would
                 // aim a refund at a card that was never charged.
                 $orderForAction = self::orderModel()->getItem((int) $payment->id_order);
-                $actionId = $input->getCmd('action', '');
 
                 // Resolved once and used for both questions. The list is the
                 // authority on WHETHER this action may run at all and on
@@ -618,7 +621,7 @@ class ActionRegistry
 
                 if ($type === '') {
                     throw new RuntimeException(
-                        'Shipment #' . (int) $shipment->id . ' has no resolvable plugin: its method was deleted.',
+                        'Shipment #' . (int) $shipment->id . ' records no shipment method type: no plugin can act on it.',
                         409,
                     );
                 }
@@ -964,16 +967,18 @@ class ActionRegistry
     }
 
     /**
-     * Which plugin element owns this row: snapshot first, live method second.
+     * Which plugin element owns this row: its snapshot column, and nothing else.
      *
      * The snapshot column is the authority: it was written when the row was
      * created and survives the method being deleted, which is the whole point
-     * of having it. The live method's params->type is the fallback for rows
-     * written before the snapshot existed.
+     * of having it. A row that records none (written before the snapshot
+     * existed) is UNKNOWN: its type is never inferred from the live method,
+     * which may have been edited or replaced since (no fallbacks, since 2.1.1).
      *
-     * Returns '' when neither resolves. '' means UNKNOWN, and every caller
-     * must treat it as "refuse", never as "assume standard": a wrong plugin
-     * booted against a real payment is worse than no plugin at all.
+     * Returns '' when the row records none. '' means UNKNOWN: no caller assumes
+     * a plugin for it, never "standard" (a wrong plugin booted against a real
+     * payment is worse than none). The action page refuses it; an order delete
+     * has no plugin to ask for a veto and decides on the core's own refusals.
      *
      * Public because the four order templates need the same answer, and four
      * hand-rolled copies is how `?? 'standard'` got into all of them.
@@ -981,28 +986,13 @@ class ActionRegistry
      * @param object $row Payment or shipment record
      * @param string $column 'payment_method_type' or 'shipment_method_type'
      *
-     * @return string Plugin element, or '' when it cannot be resolved
+     * @return string Plugin element, or '' when the row records none
      *
      * @since  2.0.0
      */
     public static function methodType(object $row, string $column): string
     {
-        $snapshot = (string) ($row->{$column} ?? '');
-
-        if ($snapshot !== '') {
-            return $snapshot;
-        }
-
-        // Fallback: the live method row. params is false when the method was
-        // deleted (PaymentModel::getItem returns false), so is_object(), not
-        // `?->` and not `?? 'standard'`.
-        $params = $row->params ?? null;
-
-        if (is_string($params)) {
-            $params = json_decode($params);
-        }
-
-        return is_object($params) ? (string) ($params->type ?? '') : '';
+        return (string) ($row->{$column} ?? '');
     }
 
     /**
@@ -1166,11 +1156,14 @@ class ActionRegistry
      * The report actions of a payment row, for each refund its gateway reports
      * and the books do not hold: the way out of the refund block.
      *
-     * Offered on a gateway's payment row only (the customer's credit and a
-     * method with no provider channel report nothing), per report, those that
-     * hold the refund block first, then those that reserve their amount, each
-     * in the gateway's order: Record this refund for a settled report with an
-     * exact amount (orders: edit); for an operator who may resolve reports,
+     * A gateway's own reports are offered on its own payment rows. The core's
+     * own reports (money a provider moved that the core keeps for staff,
+     * REPORT_RESERVATION_PREFIX ids) are offered on every payment row, whatever
+     * it records as its type (none, the customer's credit), so staff always
+     * have a way out of the refund block they hold (since 2.1.1). Per report,
+     * those that hold the refund block first, then those that reserve their
+     * amount, each in the order listed: Record this refund for a settled report
+     * with an exact amount (orders: edit); for an operator who may resolve reports,
      * Record this refund with an amount to enter for a settled report with none,
      * and Reconcile to an existing refund and Duplicate or invalid report for
      * every report but a refund request this site sent, which its gateway alone
@@ -1188,18 +1181,20 @@ class ActionRegistry
     private static function reportActions(object $payment): array
     {
         $paymentId = (int) ($payment->id ?? 0);
-        $class = self::methodType(row: $payment, column: 'payment_method_type');
 
-        if ($paymentId <= 0
-            || $class === ''
-            || \in_array($class, PaymentLedger::NON_GATEWAY_TYPES, true)
-            || (int) ($payment->id_credit_transaction ?? 0) > 0
-            || (string) ($payment->payment_type ?? '') !== PaymentLedger::TYPE_PAYMENT) {
+        if ($paymentId <= 0 || (string) ($payment->payment_type ?? '') !== PaymentLedger::TYPE_PAYMENT) {
             return [];
         }
 
+        $class = self::methodType(row: $payment, column: 'payment_method_type');
+        $gatewayRow = $class !== ''
+            && !\in_array($class, PaymentLedger::NON_GATEWAY_TYPES, true)
+            && (int) ($payment->id_credit_transaction ?? 0) <= 0;
         $answer = PaymentLedger::unbookedProviderRefundsOfPayment(paymentId: $paymentId);
-        $refunds = array_merge($answer['refunds'], $answer['reserved']);
+        $refunds = array_values(array_filter(
+            array_merge($answer['refunds'], $answer['reserved']),
+            static fn (array $refund): bool => $gatewayRow || str_starts_with((string) $refund['reportId'], PaymentLedger::REPORT_RESERVATION_PREFIX),
+        ));
 
         if ($refunds === []) {
             return [];
@@ -1758,20 +1753,17 @@ class ActionRegistry
         try {
             // Step 1: Read plugin type
 
-            // The row's OWN snapshot first, the live method only as fallback.
-            // Reading params->type alone meant a deleted method produced no
-            // actions at all, so an orphaned payment could not be refunded
-            // through the very screen that exists to refund it.
+            // The row's OWN snapshot, never the live method: a row's plugin is
+            // the one that took it, which survives its method being deleted or
+            // edited. A row that records none offers no plugin action.
             $pluginType = self::methodType(
                 $entity,
                 $pluginGroup === 'alfa-shipments' ? 'shipment_method_type' : 'payment_method_type',
             );
 
             if ($pluginType === '') {
-                self::warn(
-                    "{$label} #{$entityId}: Cannot resolve plugin: no persisted type and no live method."
-                    . ' Raw params: ' . self::truncate(json_encode($entity->params ?? 'NULL')),
-                );
+                self::warn("{$label} #{$entityId}: no plugin action: the row records no method type.");
+
                 return [];
             }
 
@@ -1894,23 +1886,5 @@ class ActionRegistry
                 // Silently ignore
             }
         }
-    }
-
-    /**
-     * Truncate a string for safe display in messages.
-     *
-     * @param string $string Input string
-     * @param int $max Maximum length
-     *
-     *
-     * @since  1.0.0
-     */
-    private static function truncate(string $string, int $max = 120): string
-    {
-        $string = trim(preg_replace('/\s+/', ' ', $string));
-
-        return (strlen($string) > $max)
-            ? substr($string, 0, $max) . '...'
-            : $string;
     }
 }

@@ -37,4 +37,24 @@ class LocationsController extends AdminController
     {
         return parent::getModel($name, $prefix, $config);
     }
+
+    /**
+     * Enable or disable the selected locations. A location is enabled or disabled, the location form's own words,
+     * never "published": the message after the change says so (COM_ALFA_LOCATIONS_N_ITEMS_PUBLISHED / _UNPUBLISHED).
+     *
+     * @return void
+     *
+     * @since  2.1.1
+     */
+    public function publish()
+    {
+        $prefix = $this->text_prefix;
+        $this->text_prefix = 'COM_ALFA_LOCATIONS';
+
+        try {
+            parent::publish();
+        } finally {
+            $this->text_prefix = $prefix;
+        }
+    }
 }

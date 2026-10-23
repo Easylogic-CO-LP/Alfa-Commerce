@@ -40,9 +40,45 @@ use Throwable;
 class UserController extends FormController
 {
     use HasFormPermissions;
-    use HasFailedCopyRedirect;
+    use HasFailedCopyRedirect {
+        save as private saveWithCopyRedirect;
+    }
 
     protected $view_list = 'users';
+
+    /**
+     * Save the customer profile. Save & New and Save as Copy are refused, as the form no longer offers them: a
+     * profile belongs to exactly one Joomla account, so a new blank profile would belong to none and a copy would
+     * give the account a second profile. A refused request saves nothing and lands back on the profile with what
+     * was typed.
+     *
+     * @param string|null $key The name of the primary key.
+     * @param string|null $urlVar The name of the URL variable for the id.
+     *
+     * @return bool True when saved.
+     *
+     * @since  2.1.1
+     */
+    public function save($key = null, $urlVar = null)
+    {
+        if (!\in_array($this->getTask(), ['save2new', 'save2copy'], true)) {
+            return $this->saveWithCopyRedirect(key: $key, urlVar: $urlVar);
+        }
+
+        $this->checkToken();
+        $urlVar = $urlVar ?: 'id';
+        $recordId = $this->input->getInt($urlVar);
+        $posted = $this->input->post->get('jform', [], 'array');
+        $posted['id'] = $recordId;
+        $this->app->setUserState($this->option . '.edit.' . $this->context . '.data', $posted);
+        $this->setRedirect(
+            Route::_('index.php?option=' . $this->option . '&view=' . $this->view_item . $this->getRedirectToItemAppend($recordId, $urlVar), false),
+            Text::_('COM_ALFA_USER_SAVE_NEW_COPY_REFUSED'),
+            'error',
+        );
+
+        return false;
+    }
 
     /**
      * AJAX (admin user edit, User Info tab): save one saved-info row of the

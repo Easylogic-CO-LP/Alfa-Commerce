@@ -30,7 +30,7 @@ extract($displayData);
 if (empty($xml)) {
     echo '<div class="alert alert-warning">'
         . '<span class="icon-warning-circle" aria-hidden="true"></span> '
-        . Text::_('COM_ALFA_LOGS_NO_SCHEMA')
+        . Text::_('PLG_ALFA_SHIPMENTS_STANDARD_LOGS_NO_SCHEMA')
         . '</div>';
 
     return;
@@ -40,7 +40,7 @@ if (empty($xml)) {
 if (empty($logData)) {
     echo '<div class="alert alert-info">'
         . '<span class="icon-info-circle" aria-hidden="true"></span> '
-        . Text::_('COM_ALFA_LOGS_NO_ENTRIES')
+        . Text::_('PLG_ALFA_SHIPMENTS_STANDARD_LOGS_NO_ENTRIES')
         . '</div>';
 
     return;

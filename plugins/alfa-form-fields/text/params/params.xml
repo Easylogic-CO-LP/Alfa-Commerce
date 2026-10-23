@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <form>
 	<fields name="formfieldsparams">
-		<fieldset name="fieldparams" label="COM_ALFA_FIELDS_PARAMS_TAB">
+		<fieldset name="fieldparams" label="PLG_ALFA_FORM_FIELDS_TEXT_PARAMS_TAB">
 			<field
 				name="filter"
 				type="list"
@@ -42,7 +42,7 @@
 				validate="options"
 				default=""
 				>
-				<option value="">JNONE</option>
+				<option value="">PLG_ALFA_FORM_FIELDS_TEXT_PARAMS_VALIDATION_NONE</option>
 				<option value="email">PLG_ALFA_FORM_FIELDS_TEXT_PARAMS_VALIDATION_EMAIL</option>
 				<option value="url">PLG_ALFA_FORM_FIELDS_TEXT_PARAMS_VALIDATION_URL</option>
 			</field>

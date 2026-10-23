@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\View\Cartrules;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
+use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
 use Alfa\Component\Alfa\Administrator\View\AlfaHtmlView as BaseHtmlView;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
@@ -133,5 +134,6 @@ class HtmlView extends BaseHtmlView
         }
 
         TourHelper::toolbarHelp($toolbar, $this->getName());
+        NotificationHelper::toolbarBadge(toolbar: $toolbar);
     }
 }

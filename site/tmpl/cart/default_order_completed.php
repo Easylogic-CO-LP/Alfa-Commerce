@@ -11,6 +11,10 @@ defined('_JEXEC') or die;
 
     <?php echo \Joomla\CMS\Language\Text::_('COM_ALFA_ORDER_COMPLETED_MESSAGE'); ?><br>
 
+    <?php if ($this->orderNumber !== '') : ?>
+        <p class="order-number"><?php echo \Joomla\CMS\Language\Text::sprintf('COM_ALFA_ORDER_COMPLETED_NUMBER', $this->escape($this->orderNumber)); ?></p>
+    <?php endif; ?>
+
     <?php // The address the confirmation went to; a guest sees a typo at once. ?>
     <?php if (!empty($this->customerEmail)) : ?>
         <p class="order-confirmation-notice">

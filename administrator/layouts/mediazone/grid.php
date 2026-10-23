@@ -78,8 +78,11 @@
 	Text::script('COM_ALFA_MEDIA_FILE_TOO_LARGE');
 	Text::script('COM_ALFA_MEDIA_LIMIT_REACHED');
 
+	// Every id inside the zone starts with the field's own id, so two zones on one page never share one.
+	$zone = htmlspecialchars($fieldId, ENT_QUOTES, 'UTF-8');
+
 	// Toolbar
-	$mediaToolbar = new Toolbar('media-actions-toolbar');
+	$mediaToolbar = new Toolbar($fieldId . '-media-actions-toolbar');
 
 	$dropdown = $mediaToolbar->dropdownButton('media-actions')
 		->text($dropdownText)
@@ -107,7 +110,7 @@
             <button type="button"
                 class="btn media-action-select-url dropdown-item"
                 data-bs-toggle="modal"
-                data-bs-target="#selectUrlModal">
+                data-bs-target="#{$zone}-url-modal">
                 <span class="icon-upload"></span> {$selectUrlText}
             </button>
         HTML
@@ -118,9 +121,9 @@
 	$urlPopup = <<<HTML
     <div class="d-flex flex-column gap-4 mb-3 px-5 py-3">
         <div>
-            <label for="media-url-input" class="form-label">{$urlLabelText}</label>
-            <input type="url" class="form-control" id="media-url-input" placeholder="https://example.com">
-            <small id="media-url-error" class="hidden">-</small>
+            <label for="{$zone}-url-input" class="form-label">{$urlLabelText}</label>
+            <input type="url" class="form-control" id="{$zone}-url-input" data-media-url-input placeholder="https://example.com">
+            <small id="{$zone}-url-error" class="hidden" data-media-url-error>-</small>
         </div>
         <div class="media-url-thumb">
             <small class="media-url-thumb-hint">{$urlThumbnailHintText}</small>
@@ -128,7 +131,7 @@
         </div>
         <div>
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{$closeText}</button>
-            <button type="button" class="btn btn-primary" id="media-url-submit">{$addUrlText}</button>
+            <button type="button" class="btn btn-primary" id="{$zone}-url-submit" data-media-url-submit>{$addUrlText}</button>
         </div>
     </div>
 HTML;
@@ -160,7 +163,9 @@ HTML;
 ?>
 
 
-<div class="media-management-section">
+<div class="media-management-section" data-media-zone
+     data-multiple="<?= $multiple ? '1' : '0'; ?>"
+     data-types="<?= htmlspecialchars(json_encode(array_values($allowedTypes)), ENT_QUOTES, 'UTF-8'); ?>">
     <!-- Toolbar -->
     <div class="media-toolbar-wrapper mb-3">
 		<?= $mediaToolbar->render(); ?>
@@ -180,7 +185,7 @@ HTML;
         <!-- Drop area inner -->
         <div class="media-dropzone-inner">
             <!-- Media Grid (Sortable) -->
-            <div id="media-grid" class="media-grid">
+            <div id="<?= $zone; ?>-grid" class="media-grid" data-media-grid>
 				<?php if (!empty($medias)): ?>
 					<?php foreach ($medias as $media): ?>
 						<?= LayoutHelper::render('mediazone.item', ['media' => $media]); ?>
@@ -204,7 +209,7 @@ HTML;
 
     <!-- URL Modal -->
 	<?= HTMLHelper::_('bootstrap.renderModal',
-		'selectUrlModal',
+		$fieldId . '-url-modal',
 		[
 			'title'    => $insertUrlTitle,
 			'backdrop' => 'static',
@@ -217,23 +222,25 @@ HTML;
 
         <!-- Library picker -->
         <joomla-field-media
-                id="media-picker-library"
+                id="<?= $zone; ?>-picker-library"
 			<?= $pickerAttrString; ?>
                 modal-title="<?= Text::_('COM_ALFA_INSERT_MEDIA_MODAL'); ?>">
             <div class="input-group">
                 <input type="text"
-                       id="media-picker-input"
+                       id="<?= $zone; ?>-picker-input"
+                       data-media-picker-input
                        class="form-control field-media-input"
                        style="display: none;"
                        aria-hidden="true">
                 <button type="button"
                         class="btn btn-success button-select"
-                        id="media-picker-open-btn">
+                        id="<?= $zone; ?>-picker-open"
+                        data-media-picker-open>
                     <span class="icon-images" aria-hidden="true"></span>
                 </button>
                 <button type="button"
                         class="btn btn-danger button-clear"
-                        id="media-picker-clear-btn"
+                        id="<?= $zone; ?>-picker-clear"
                         style="display: none;">
                     <span class="icon-times" aria-hidden="true"></span>
                 </button>
@@ -242,18 +249,20 @@ HTML;
 
         <!-- Thumbnail picker -->
         <joomla-field-media
-                id="media-picker-thumbnail"
+                id="<?= $zone; ?>-picker-thumbnail"
+                data-media-thumbnail-picker
 			<?= $pickerAttrString; ?>
                 modal-title="<?= Text::_('COM_ALFA_SELECT_THUMBNAIL_MODAL_TITLE'); ?>">
             <div class="input-group">
                 <input type="text"
-                       id="media-thumbnail-picker-input"
+                       id="<?= $zone; ?>-thumbnail-input"
                        class="form-control field-media-input media-thumbnail-picker-input"
                        style="display: none;"
                        aria-hidden="true">
                 <button type="button"
                         class="btn btn-success button-select"
-                        id="media-thumbnail-open-btn">
+                        id="<?= $zone; ?>-thumbnail-open"
+                        data-media-thumbnail-open>
                 </button>
                 <button type="button"
                         class="btn btn-danger button-clear"
@@ -268,7 +277,8 @@ HTML;
     <!-- Hidden file input for drag & drop uploads -->
     <input type="file"
            name="jform[uploads][]"
-           id="media-file-input"
+           id="<?= $zone; ?>-file-input"
+           data-media-file-input
            multiple
            accept="image/*"
            style="display: none;"

@@ -125,6 +125,33 @@ class ManufacturerModel extends AlfaAdminModel
         // Fetch uploads separately so $data (with the lang keys) is not clobbered.
         $newDropped = $input->files->get('jform')['uploads'] ?? [];
 
+        // URL ALIASES, judged before anything is written: a save that would put this
+        // manufacturer on another one's address in any language is refused; an address it
+        // already shared is kept and said after the save. A copy takes its own aliases.
+        if ($input->get('task') === 'save2copy') {
+            $data = MultilingualHelper::releaseCopiedAliases(
+                data:              $data,
+                tableName:         '#__alfa_manufacturers',
+                primaryColumnName: 'id_manufacturer',
+                originalId:        $input->getInt('id'),
+                aliasFields:       MultilingualAliasConfig::FIELDS['#__alfa_manufacturers'],
+            );
+        }
+
+        $aliasClashes = MultilingualHelper::aliasClashes(
+            tableName:         '#__alfa_manufacturers',
+            primaryColumnName: 'id_manufacturer',
+            currentId:         $isNew ? 0 : (int) $pk,
+            data:              $data,
+            aliasFields:       MultilingualAliasConfig::FIELDS['#__alfa_manufacturers'],
+        );
+
+        if ($aliasClashes['refuse'] !== []) {
+            $this->setError(implode(' ', $aliasClashes['refuse']));
+
+            return false;
+        }
+
         if (!parent::save($data)) {
             return false;
         }
@@ -132,7 +159,7 @@ class ManufacturerModel extends AlfaAdminModel
         $currentId = $isNew ? (int) $this->getState($this->getName() . '.id') : $pk;
 
         // MULTILINGUAL: persist per-language translations (name, alias, desc,
-        // meta_title, meta_desc). The alias slug is auto-generated, sanitised
+        // meta_title, meta_desc). A blank alias slug is generated, sanitised
         // and made globally unique (manufacturers are not nested -> no scope).
         MultilingualHelper::saveMultilingualData(
             currentId:         $currentId,
@@ -141,6 +168,10 @@ class ManufacturerModel extends AlfaAdminModel
             data:              $data,
             aliasFields:       MultilingualAliasConfig::FIELDS['#__alfa_manufacturers'],
         );
+
+        foreach ($aliasClashes['warn'] as $warning) {
+            $app->enqueueMessage($warning, 'warning');
+        }
 
         if (!empty($data['media'])) {
             $defaultLangTag = MultilingualHelper::getDefaultLanguageTag();

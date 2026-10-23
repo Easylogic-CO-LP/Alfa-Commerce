@@ -13,6 +13,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Field\MultilingualFieldInterface;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
+use Alfa\Component\Alfa\Administrator\Service\Setup\ContentLanguageAddedNotice;
 use Alfa\Component\Alfa\Administrator\Service\Setup\SeededNames;
 use InvalidArgumentException;
 use Joomla\CMS\Factory;
@@ -21,6 +22,7 @@ use Joomla\CMS\Form\Form;
 use Joomla\CMS\Form\FormHelper;
 use Joomla\CMS\Language\LanguageFactoryInterface;
 use Joomla\CMS\Language\LanguageHelper;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\String\StringHelper;
 use RuntimeException;
@@ -132,6 +134,16 @@ class MultilingualHelper
      * @since  2.1.0
      */
     private static ?array $tableList = null;
+
+    /**
+     * The default content language as resolved for this request ({@see self::getDefaultLanguageTag()}):
+     * the configured site language and the language used, both lower-snake (configured '' when unset),
+     * whether the configured one is a published content language, and whether the configuration could
+     * be read at all. null until resolved.
+     * @var array{configured: string, used: string, valid: bool, read: bool, published: bool}|null
+     * @since  2.1.1
+     */
+    private static ?array $defaultLanguage = null;
 
     /**
      * Substrings that map a column to LONGTEXT instead of VARCHAR(255).
@@ -303,16 +315,25 @@ class MultilingualHelper
      * Missing tables / columns are created automatically.
      * All language rows are written inside a single DB transaction.
      *
+     * Each language stores what was entered for it, and nothing else. An empty field
+     * stays empty: reads fall back to the default language while it is, so another
+     * language's text is never copied in, and the edit form keeps showing translators
+     * what is still untranslated.
+     *
      * Prefer passing $data explicitly (the model already has it).
      * The POST fallback exists only for utility / CLI call-sites.
      *
      * Alias / slug fields
-     * Fields listed in $aliasFields are treated as URL slugs: auto-generated
-     * from name/title when blank, sanitised, then made UNIQUE per language
-     * (incrementing -2, -3, ... on collision). Uniqueness is scoped by the
-     * main-table columns in $aliasUniqueScope: pass e.g. ['parent_id'] so a
-     * category alias is only unique within its parent. Pass [] for global
-     * uniqueness across the whole language table, required for entities like
+     * Fields listed in $aliasFields are treated as URL slugs and sanitised. A blank one
+     * is generated from the same language's name/title (left empty when that is empty
+     * too) and made UNIQUE per language (incrementing -2, -3, ... on collision),
+     * counting the default language's alias of every record that has none of its own
+     * in that language, since the router resolves that one there. A typed alias is
+     * written as typed and never renamed: a caller that writes one asks
+     * {@see self::aliasClashes()} before it writes anything.
+     * Uniqueness is scoped by the main-table columns in $aliasUniqueScope: pass e.g.
+     * ['parent_id'] so a category alias is only unique within its parent. Pass [] for
+     * global uniqueness across the whole language table, required for entities like
      * items, which can belong to many categories and so need a site-wide-unique
      * slug for unambiguous routing.
      *
@@ -369,7 +390,7 @@ class MultilingualHelper
             languages: LanguageHelper::getLanguages('lang_code'),
         );
 
-        [$languageData, $fallbackData] = self::extractLanguageData(
+        $languageData = self::extractLanguageData(
             data:      $data,
             langCodes: $langCodes,
         );
@@ -414,22 +435,37 @@ class MultilingualHelper
             data:              $data,
         );
 
+        // Every language's slugs first: the uniqueness of the default language's alias
+        // depends on the languages in which this record has no alias of its own. Only a
+        // slug generated here (the alias was posted blank) is made unique.
+        $resolvedByLang = [];
+        $generatedByLang = [];
+
+        foreach ($languageData as $langCode => $langFields) {
+            $resolvedByLang[$langCode] = self::resolveSlugs(
+                fields:      $langFields,
+                aliasFields: $aliasFields,
+                app:         $app,
+                langCode:    $langCode,
+            );
+
+            foreach ($aliasFields as $aliasField) {
+                if (\array_key_exists($aliasField, $langFields)
+                    && trim((string) $langFields[$aliasField]) === ''
+                    && (string) ($resolvedByLang[$langCode][$aliasField] ?? '') !== '') {
+                    $generatedByLang[$langCode][$aliasField] = true;
+                }
+            }
+        }
+
         $db->transactionStart(true);
 
         try {
-            foreach ($languageData as $langCode => $langFields) {
+            foreach ($resolvedByLang as $langCode => $processedFields) {
                 $langTableName = $db->replacePrefix($tableName . '_' . $langCode);
 
-                $processedFields = self::applyFallbackAndSlugs(
-                    fields:       $langFields,
-                    fallbackData: $fallbackData,
-                    aliasFields:  $aliasFields,
-                    app:          $app,
-                    langCode:     $langCode,
-                );
-
-                // Make each alias slug unique within this language table (scoped
-                // by $uniqueScope), incrementing -2/-3/... on collision.
+                // Make each generated slug unique among the aliases the router resolves in
+                // this language (scoped by $uniqueScope), incrementing -2/-3/... on collision.
                 $processedFields = self::ensureUniqueSlugs(
                     db:                $db,
                     langTableName:     $langTableName,
@@ -440,6 +476,9 @@ class MultilingualHelper
                     mainTableName:     $tableName,
                     mainPrimaryColumn: $mainPrimaryColumn,
                     aliasUniqueScope:  $aliasUniqueScope,
+                    langCode:          $langCode,
+                    savedByLang:       $resolvedByLang,
+                    generated:         $generatedByLang[$langCode] ?? [],
                 );
 
                 self::upsertLangRow(
@@ -473,7 +512,391 @@ class MultilingualHelper
             );
         }
 
+        // A language added later counts what it still lacks: the counts follow what was saved.
+        ContentLanguageAddedNotice::afterSave(tableName: $tableName, langCodes: array_keys($languageData));
+
         return true;
+    }
+
+    /**
+     * The URL addresses a save would share with other records, judged before anything is written.
+     *
+     * A record answers in each content language at its effective alias there: its own alias in
+     * that language, else its default-language alias ({@see self::getDefaultLanguageTag()}). For
+     * every language, the effective alias the posted data leaves the record with is compared with
+     * the effective alias of every other record in the same scope (the same parent category, say).
+     *
+     * - An alias the save GENERATES (posted blank, made from the name in that language) is made
+     *   unique when it is written ({@see self::saveMultilingualData()}), so it never clashes.
+     * - A clash the save would CREATE goes under 'refuse': a typed or changed alias, a language
+     *   left without an alias of its own, or a move to another scope. The caller refuses the save
+     *   before it writes anything.
+     * - A clash that was already there (data from 2.1.0, say) goes under 'warn': the save goes
+     *   ahead, nothing is renamed, and the caller shows the warning after it.
+     *
+     * Alfa generates and makes unique only an empty alias, and never rewrites one that is not.
+     * Each message names the alias, the language and the other record. The scope values are the
+     * posted ones (a new parent_id), else the stored ones.
+     *
+     * @param string $tableName Base main table (e.g. "#__alfa_categories").
+     * @param string $primaryColumnName PK column of the language tables (e.g. "id_category").
+     * @param int $currentId The record; 0 for a new one.
+     * @param array $data The posted data, with its per-language keys (e.g. alias_en_gb).
+     * @param string[] $aliasFields The alias fields ({@see MultilingualAliasConfig::FIELDS}).
+     * @param string[] $aliasUniqueScope Main-table columns scoping uniqueness ([] = global).
+     * @param string $mainPrimaryColumn Main-table PK.
+     *
+     * @return array{refuse: string[], warn: string[]} The messages, translated.
+     *
+     * @since  2.1.1
+     */
+    public static function aliasClashes(
+        string $tableName,
+        string $primaryColumnName,
+        int $currentId,
+        array $data,
+        array $aliasFields,
+        array $aliasUniqueScope = [],
+        string $mainPrimaryColumn = 'id',
+    ): array {
+        $result = ['refuse' => [], 'warn' => []];
+        // [refuse|warn][other record][alias] => the languages, so one message names each clash once.
+        $clashes = ['refuse' => [], 'warn' => []];
+
+        if ($aliasFields === [] || !self::isSafeIdentifier(name: $primaryColumnName)
+            || !self::isSafeIdentifier(name: $mainPrimaryColumn)) {
+            return $result;
+        }
+
+        $db = self::getDb();
+        $app = Factory::getApplication();
+        $languages = LanguageHelper::getLanguages('lang_code');
+        $langCodes = self::buildLangCodeList(languages: $languages);
+        $defaultCode = self::getDefaultLanguageTag();
+        $existingTables = self::fetchTableList(db: $db);
+        $mainTableReal = $db->replacePrefix($tableName);
+        $posted = self::extractLanguageData(data: $data, langCodes: $langCodes);
+
+        $storedScope = $currentId > 0
+            ? self::loadScopeValues(
+                db:                $db,
+                mainTableReal:     $mainTableReal,
+                mainPrimaryColumn: $mainPrimaryColumn,
+                currentId:         $currentId,
+                aliasUniqueScope:  $aliasUniqueScope,
+            )
+            : [];
+        $postedScope = [];
+
+        foreach ($aliasUniqueScope as $column) {
+            if (\array_key_exists($column, $data) && \is_scalar($data[$column]) && self::isSafeIdentifier(name: $column)) {
+                $postedScope[$column] = $data[$column];
+            } elseif (\array_key_exists($column, $storedScope)) {
+                $postedScope[$column] = $storedScope[$column];
+            }
+        }
+
+        $tables = [];
+
+        foreach ($langCodes as $code) {
+            $table = $db->replacePrefix($tableName . '_' . $code);
+
+            if (\in_array($table, $existingTables, true)) {
+                $tables[$code] = $table;
+            }
+        }
+
+        $defaultTable = $tables[$defaultCode] ?? '';
+
+        foreach ($aliasFields as $field) {
+            if (!self::isSafeIdentifier(name: $field)) {
+                continue;
+            }
+
+            $stored = [];
+            $after = [];
+            $generated = [];
+
+            foreach ($tables as $code => $table) {
+                $stored[$code] = $currentId > 0
+                    ? self::readStoredValue(
+                        db:                $db,
+                        table:             $table,
+                        primaryColumnName: $primaryColumnName,
+                        id:                $currentId,
+                        field:             $field,
+                    )
+                    : '';
+
+                if (\array_key_exists($field, $posted[$code] ?? [])) {
+                    $raw = trim((string) $posted[$code][$field]);
+                    $after[$code] = self::resolveSlugValue(
+                        rawValue: $raw,
+                        fields:   $posted[$code],
+                        app:      $app,
+                        langCode: $code,
+                    );
+                    $generated[$code] = $raw === '' && $after[$code] !== '';
+                } else {
+                    $after[$code] = $stored[$code];
+                    $generated[$code] = false;
+                }
+            }
+
+            foreach ($tables as $code => $table) {
+                $own = $after[$code] !== '';
+                $effective = $own ? $after[$code] : ($after[$defaultCode] ?? '');
+
+                // A generated alias is made unique as it is written.
+                if ($effective === '' || ($own ? $generated[$code] : ($generated[$defaultCode] ?? false))) {
+                    continue;
+                }
+
+                $holders = self::effectiveAliasHolders(
+                    db:                $db,
+                    mainTableReal:     $mainTableReal,
+                    mainPrimaryColumn: $mainPrimaryColumn,
+                    langTable:         $table,
+                    defaultTable:      $defaultTable,
+                    primaryColumnName: $primaryColumnName,
+                    field:             $field,
+                    alias:             $effective,
+                    currentId:         $currentId,
+                    scopeValues:       $postedScope,
+                );
+
+                if ($holders === []) {
+                    continue;
+                }
+
+                // A clash this save found: the other record answered at this record's address before
+                // it too, in the same scope (the column's collation decides what one address is).
+                $before = [];
+                $effectiveBefore = $currentId > 0 ? ($stored[$code] !== '' ? $stored[$code] : ($stored[$defaultCode] ?? '')) : '';
+
+                if ($effectiveBefore !== '') {
+                    $before = self::effectiveAliasHolders(
+                        db:                $db,
+                        mainTableReal:     $mainTableReal,
+                        mainPrimaryColumn: $mainPrimaryColumn,
+                        langTable:         $table,
+                        defaultTable:      $defaultTable,
+                        primaryColumnName: $primaryColumnName,
+                        field:             $field,
+                        alias:             $effectiveBefore,
+                        currentId:         $currentId,
+                        scopeValues:       $storedScope,
+                    );
+                }
+
+                foreach ($holders as $otherId) {
+                    $kept = \in_array($otherId, $before, true);
+                    $clashes[$kept ? 'warn' : 'refuse'][$otherId][$effective][] = self::languageLabel(langCode: $code);
+                }
+            }
+        }
+
+        foreach ($clashes as $kind => $byRecord) {
+            foreach ($byRecord as $otherId => $byAlias) {
+                foreach ($byAlias as $alias => $languages) {
+                    $result[$kind][] = Text::sprintf(
+                        $kind === 'warn' ? 'COM_ALFA_ALIAS_CLASH_KEPT' : 'COM_ALFA_ALIAS_CLASH_REFUSED',
+                        htmlspecialchars((string) $alias, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                        implode(', ', array_unique($languages)),
+                        self::recordLabel(id: (int) $otherId, tableName: $tableName, primaryColumnName: $primaryColumnName),
+                    );
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Blank the aliases a Save as Copy carries over unchanged from the record it copies, so
+     * that the copy gets its own, generated from its name and made unique, as Joomla does for
+     * a copied article. An alias typed for the copy is kept and judged like any other
+     * ({@see self::aliasClashes()}); the original's aliases are never touched.
+     *
+     * @param array $data The posted data of the copy.
+     * @param string $tableName Base main table (e.g. "#__alfa_items").
+     * @param string $primaryColumnName PK column of the language tables (e.g. "id_item").
+     * @param int $originalId The record copied.
+     * @param string[] $aliasFields The alias fields.
+     *
+     * @return array $data, with those aliases blank.
+     *
+     * @since  2.1.1
+     */
+    public static function releaseCopiedAliases(
+        array $data,
+        string $tableName,
+        string $primaryColumnName,
+        int $originalId,
+        array $aliasFields,
+    ): array {
+        if ($originalId <= 0 || !self::isSafeIdentifier(name: $primaryColumnName)) {
+            return $data;
+        }
+
+        $db = self::getDb();
+        $existingTables = self::fetchTableList(db: $db);
+
+        foreach (self::buildLangCodeList(languages: LanguageHelper::getLanguages('lang_code')) as $code) {
+            $table = $db->replacePrefix($tableName . '_' . $code);
+
+            if (!\in_array($table, $existingTables, true)) {
+                continue;
+            }
+
+            foreach ($aliasFields as $field) {
+                $key = $field . '_' . $code;
+
+                if (!self::isSafeIdentifier(name: $field) || !isset($data[$key]) || !\is_scalar($data[$key])
+                    || trim((string) $data[$key]) === '') {
+                    continue;
+                }
+
+                // The original's own alias, compared in the column's collation as the router compares.
+                try {
+                    $same = (bool) $db->setQuery(
+                        $db->getQuery(true)
+                            ->select('1')
+                            ->from($db->qn($table))
+                            ->where($db->qn($primaryColumnName) . ' = ' . (int) $originalId)
+                            ->where($db->qn($field) . ' = ' . $db->q(trim((string) $data[$key]))),
+                        0,
+                        1,
+                    )->loadResult();
+                } catch (Throwable $e) {
+                    $same = false;
+                }
+
+                if ($same) {
+                    $data[$key] = '';
+                }
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * The records that answer at an address in one language, judged as a save is judged
+     * ({@see self::aliasClashes()}): their own alias there, else their default-language alias,
+     * compared in the column's collation, as the router finds a record by its alias.
+     *
+     * @param string $tableName Base main table (e.g. "#__alfa_categories").
+     * @param string $primaryColumnName PK column of the language tables (e.g. "id_category").
+     * @param string $langCode The language, lower-snake ("el_gr") or Joomla's form ("el-GR").
+     * @param string $alias The address.
+     * @param int $exceptId A record left out (0 for none).
+     * @param array $scopeValues [column => value] of the scope ([] = global).
+     * @param int[] $onlyIds When given, only these records are looked at.
+     * @param string $field The alias field.
+     * @param string $mainPrimaryColumn Main-table PK.
+     *
+     * @return int[] Their ids, lowest first, at most ten; none when the language has no table.
+     *
+     * @since  2.1.1
+     */
+    public static function aliasHolders(
+        string $tableName,
+        string $primaryColumnName,
+        string $langCode,
+        string $alias,
+        int $exceptId = 0,
+        array $scopeValues = [],
+        array $onlyIds = [],
+        string $field = 'alias',
+        string $mainPrimaryColumn = 'id',
+    ): array {
+        if ($alias === '' || !self::isSafeIdentifier(name: $primaryColumnName) || !self::isSafeIdentifier(name: $field)
+            || !self::isSafeIdentifier(name: $mainPrimaryColumn)) {
+            return [];
+        }
+
+        $db = self::getDb();
+        $existingTables = self::fetchTableList(db: $db);
+        $langTable = $db->replacePrefix($tableName . '_' . self::normaliseTag(tag: $langCode));
+        $defaultTable = $db->replacePrefix($tableName . '_' . self::getDefaultLanguageTag());
+
+        if (!\in_array($langTable, $existingTables, true)) {
+            return [];
+        }
+
+        return self::effectiveAliasHolders(
+            db:                $db,
+            mainTableReal:     $db->replacePrefix($tableName),
+            mainPrimaryColumn: $mainPrimaryColumn,
+            langTable:         $langTable,
+            defaultTable:      \in_array($defaultTable, $existingTables, true) ? $defaultTable : '',
+            primaryColumnName: $primaryColumnName,
+            field:             $field,
+            alias:             $alias,
+            currentId:         $exceptId,
+            scopeValues:       $scopeValues,
+            onlyIds:           $onlyIds,
+        );
+    }
+
+    /**
+     * A record as a message names it: its name in the current language, or else in the
+     * default one, with its id; the id alone when it has no name. HTML-escaped.
+     *
+     * @param int $id The record.
+     * @param string $tableName Base main table (e.g. "#__alfa_categories").
+     * @param string $primaryColumnName PK column of the language tables (e.g. "id_category").
+     *
+     * @return string e.g. '"Hats" (#5)'.
+     *
+     * @since  2.1.1
+     */
+    public static function recordLabel(int $id, string $tableName, string $primaryColumnName): string
+    {
+        try {
+            $name = trim(strip_tags(self::getTranslatedValue(
+                id:                $id,
+                tableName:         $tableName,
+                primaryColumnName: $primaryColumnName,
+                field:             'name',
+            )));
+        } catch (Throwable) {
+            $name = '';
+        }
+
+        return $name !== ''
+            ? '"' . htmlspecialchars($name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" (#' . $id . ')'
+            : '#' . $id;
+    }
+
+    /**
+     * A content language as a message names it: its title in the Content Languages manager,
+     * with its tag when the title does not carry it. HTML-escaped.
+     *
+     * The title is read from the database when asked: Joomla's own list is read once per request,
+     * before a language the same request publishes, and holds published languages only.
+     *
+     * @param string $langCode The language, lower-snake ("el_gr") or Joomla's form ("el-GR").
+     *
+     * @return string e.g. "Greek (el-GR)".
+     *
+     * @since  2.1.1
+     */
+    public static function languageLabel(string $langCode): string
+    {
+        $tag = self::displayTag(tag: self::normaliseTag(tag: $langCode));
+        $db = self::getDb();
+        $title = trim((string) $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('title'))
+                ->from($db->quoteName('#__languages'))
+                ->where($db->quoteName('lang_code') . ' = :tag')
+                ->bind(':tag', $tag),
+        )->loadResult());
+        $label = $title === '' ? $tag : (str_contains($title, $tag) ? $title : $title . ' (' . $tag . ')');
+
+        return htmlspecialchars($label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 
     /**
@@ -1201,23 +1624,34 @@ class MultilingualHelper
     }
 
     /**
-     * Return the site's default language tag in lower-snake format.
+     * Return the site's default CONTENT language tag in lower-snake format.
      *
-     * Resolved from the site configuration, confirmed against the published content
-     * languages, and only then falling back: first to the lowest-ordered published
-     * content language, finally to "en_gb".
+     * THE ONE DEFINITION of the default content language: the language in which a product,
+     * category, manufacturer or other record's text and URL alias are read when the current
+     * language has none. It is the site language configured in Joomla's Language Manager
+     * (com_languages "site") when that is a published content language, as Joomla's language
+     * filter itself assumes. Every other place that needs the default content language asks
+     * this method. It is never the language of Alfa's own interface texts: that Alfa is
+     * written in English plays no part in it ({@see self::languageFallbackChain()} is that
+     * other axis).
      *
-     * The previous implementation looked for a `default` flag on the rows returned by
-     * LanguageHelper::getLanguages(). Those rows come from `SELECT *` on `#__languages`,
-     * which has no such column, so the test was never true and this method always
-     * returned "en_gb", correct only by coincidence on installs whose default already
-     * is en-GB, and silently wrong everywhere else. Since this tag drives every
-     * multilingual fallback, a wrong answer here surfaces as missing translations
-     * rather than as an error.
+     * NEVER THE REQUEST'S LANGUAGE. The application's "language" setting is not the
+     * configuration in a web request: Joomla sets it to the language of the request, so
+     * reading it made the fallback language the current one, and an untranslated name read
+     * blank instead of falling back.
      *
-     * Reads the configuration and the database directly rather than through
-     * LanguageHelper, which requires a running application: this must stay callable
-     * from CLI and cron, where index rebuilds run.
+     * AN INVALID CONFIGURATION (no site language set, or one that is not a published content
+     * language) reads untranslated content in the published content language created first,
+     * the lowest lang_id: the Language Manager's ordering cannot move it (Joomla's installer
+     * puts every newly installed pack first), nor can installing another language. The
+     * administrators are told through the notifications bell until the configuration is valid
+     * again ({@see self::contentLanguageProblem()}). With no published content language at all,
+     * the configured site language is kept, and "en_gb", Joomla's own value for an unset site
+     * language, only when none is configured either or nothing can be read.
+     *
+     * Reads the database directly rather than through ComponentHelper or LanguageHelper,
+     * which require a running application: this must stay callable from CLI and cron,
+     * where index rebuilds run.
      *
      * @return string e.g. "en_gb"
      *
@@ -1225,13 +1659,13 @@ class MultilingualHelper
      */
     public static function getDefaultLanguageTag(): string
     {
-        static $resolved = null;
-
-        if ($resolved !== null) {
-            return $resolved;
+        if (self::$defaultLanguage !== null) {
+            return self::$defaultLanguage['used'];
         }
 
         $published = [];
+        $configured = '';
+        $read = true;
 
         try {
             $db = Factory::getContainer()->get('DatabaseDriver');
@@ -1239,39 +1673,104 @@ class MultilingualHelper
                 ->select($db->quoteName('lang_code'))
                 ->from($db->quoteName('#__languages'))
                 ->where($db->quoteName('published') . ' = 1')
-                ->order($db->quoteName('ordering') . ' ASC');
+                ->order($db->quoteName('lang_id') . ' ASC');
 
             foreach ((array) $db->setQuery($query)->loadColumn() as $langCode) {
                 $published[] = self::normaliseTag(tag: (string) $langCode);
             }
+
+            $configured = self::normaliseTag(tag: self::configuredSiteLanguage(db: $db));
         } catch (Throwable $e) {
-            Log::add('Alfa: unable to read content languages: ' . $e->getMessage(), Log::WARNING, 'com_alfa');
+            $read = false;
+            Log::add('Alfa: unable to read the content languages: ' . $e->getMessage(), Log::WARNING, 'com_alfa');
         }
 
-        $configured = '';
+        $valid = $configured !== '' && \in_array($configured, $published, true);
+        $used = $valid ? $configured : ($published[0] ?? ($configured !== '' ? $configured : 'en_gb'));
 
-        try {
-            $configured = (string) Factory::getContainer()->get('config')->get('language', '');
-        } catch (Throwable) {
-            // No configuration available; fall through to the default below.
+        self::$defaultLanguage = [
+            'configured' => $configured,
+            'used' => $used,
+            'valid' => $valid,
+            'read' => $read,
+            'published' => $published !== [],
+        ];
+
+        return $used;
+    }
+
+    /**
+     * The default language in Joomla's own form ("en-GB"), for the callers that hand a
+     * language to Joomla or store it as a language code: {@see self::getDefaultLanguageTag()}.
+     *
+     * @return string e.g. "en-GB"
+     *
+     * @since  2.1.1
+     */
+    public static function getDefaultLanguageCode(): string
+    {
+        return self::displayTag(tag: self::getDefaultLanguageTag());
+    }
+
+    /**
+     * Why the configured site language is not the default content language, or null when it is.
+     *
+     * The case {@see self::getDefaultLanguageTag()} resolves with a fallback: no site language
+     * set, or one that is not a published content language. Null as well when the
+     * configuration could not be read, since nothing can then be said about it. The answer names,
+     * in Joomla's form, the configured tag ('' when none is set) and the language used instead,
+     * and says whether any content language is published.
+     *
+     * @return array{configured: string, used: string, published: bool}|null The case, or null.
+     *
+     * @since  2.1.1
+     */
+    public static function contentLanguageProblem(): ?array
+    {
+        self::getDefaultLanguageTag();
+        $state = self::$defaultLanguage;
+
+        if ($state === null || $state['valid'] || !$state['read']) {
+            return null;
         }
 
-        // An absent setting is not "unknown": Joomla itself treats the site language as
-        // en-GB when it is not configured, and this must not disagree with the CMS.
-        $configured = $configured !== '' ? self::normaliseTag(tag: $configured) : 'en_gb';
+        return [
+            'configured' => $state['configured'] !== '' ? self::displayTag(tag: $state['configured']) : '',
+            'used' => self::displayTag(tag: $state['used']),
+            'published' => $state['published'],
+        ];
+    }
 
-        if (\in_array($configured, $published, true)) {
-            return $resolved = $configured;
-        }
+    /**
+     * The site language as configured in the Language Manager (com_languages "site"),
+     * read from its extension row.
+     *
+     * @param object $db Joomla DatabaseDriver.
+     *
+     * @return string The configured tag ("el-GR"), or '' when none is set.
+     *
+     * @since  2.1.1
+     */
+    private static function configuredSiteLanguage(object $db): string
+    {
+        $params = (string) $db->setQuery(
+            $db->getQuery(true)
+                ->select($db->quoteName('params'))
+                ->from($db->quoteName('#__extensions'))
+                ->where($db->quoteName('type') . ' = ' . $db->quote('component'))
+                ->where($db->quoteName('element') . ' = ' . $db->quote('com_languages')),
+            0,
+            1,
+        )->loadResult();
 
-        // Configured language is not a published content language; prefer a real one
-        // over a tag nothing is translated into.
-        return $resolved = ($published[0] ?? 'en_gb');
+        $decoded = json_decode($params, true);
+
+        return \is_array($decoded) ? trim((string) ($decoded['site'] ?? '')) : '';
     }
 
     /**
      * Resolve a language key to the first non-empty translation across the
-     * fallback chain: requested -> en-GB -> first installed content language.
+     * fallback chain: requested -> en-GB -> the site's default language.
      *
      * The untranslated-key guard applies: a language that echoes the key back
      * (no .ini entry) counts as no translation. Returns '' when nothing in the
@@ -1303,8 +1802,9 @@ class MultilingualHelper
     }
 
     /**
-     * Language fallback chain for default resolution: requested -> en-GB ->
-     * first installed content language. Deduped, empties dropped.
+     * Language fallback chain for default resolution: requested -> en-GB (the
+     * language the packaged texts are written in) -> the site's default language
+     * ({@see self::getDefaultLanguageCode()}). Deduped, empties dropped.
      *
      * @param string $langTag Requested language tag.
      *
@@ -1314,13 +1814,7 @@ class MultilingualHelper
      */
     private static function languageFallbackChain(string $langTag): array
     {
-        $chain = [$langTag, 'en-GB'];
-
-        $installed = array_keys(LanguageHelper::getLanguages('lang_code') ?: []);
-
-        if (!empty($installed)) {
-            $chain[] = (string) $installed[0];
-        }
+        $chain = [$langTag, 'en-GB', self::getDefaultLanguageCode()];
 
         return array_values(array_unique(array_filter($chain)));
     }
@@ -1548,21 +2042,68 @@ class MultilingualHelper
         $default = self::getDefaultLanguageTag();
 
         // Target language first, then the default; first non-empty wins.
-        foreach (array_unique([$tag, $default]) as $candidate) {
-            $value = self::readFieldFromLangTable(
-                id:                $id,
-                tableName:         $tableName,
-                primaryColumnName: $primaryColumnName,
-                field:             $field,
-                langTag:           $candidate,
-            );
+        return self::readFirstFilledField(
+            id:                $id,
+            tableName:         $tableName,
+            primaryColumnName: $primaryColumnName,
+            field:             $field,
+            langTags:          array_values(array_unique([$tag, $default])),
+        );
+    }
 
-            if ($value !== '') {
-                return $value;
+    /**
+     * Read one field for one record from the first of several language tables that has it,
+     * in ONE statement: the router asks this for every link a page builds, so the default
+     * language's read must not add a statement per link. '' when none has it.
+     *
+     * @param int $id Record id.
+     * @param string $tableName Base table with prefix (e.g. "#__alfa_items").
+     * @param string $primaryColumnName PK column of the lang tables (e.g. "id_item").
+     * @param string $field Field to read.
+     * @param string[] $langTags Lower-snake tags, in the order they are tried.
+     *
+     *
+     * @since  2.1.1
+     */
+    private static function readFirstFilledField(
+        int $id,
+        string $tableName,
+        string $primaryColumnName,
+        string $field,
+        array $langTags,
+    ): string {
+        // Request-level memo, as readFieldFromLangTable(): the same lookups repeat per page.
+        static $cache = [];
+        $cacheKey = $tableName . '|' . implode(',', $langTags) . '|' . $primaryColumnName . '|' . $field . '|' . $id;
+
+        if (isset($cache[$cacheKey])) {
+            return $cache[$cacheKey];
+        }
+
+        $db = self::getDb();
+        $existingTables = self::fetchTableList(db: $db);
+        $reads = [];
+
+        foreach ($langTags as $langTag) {
+            $table = $db->replacePrefix($tableName . '_' . $langTag);
+
+            if (\in_array($table, $existingTables, true) && \in_array($field, self::fetchColumnList(db: $db, table: $table), true)) {
+                $reads[] = 'NULLIF((SELECT ' . $db->qn($field) . ' FROM ' . $db->qn($table)
+                    . ' WHERE ' . $db->qn($primaryColumnName) . ' = ' . (int) $id . " LIMIT 1), '')";
             }
         }
 
-        return '';
+        if ($reads === []) {
+            return $cache[$cacheKey] = '';
+        }
+
+        try {
+            $value = $db->setQuery('SELECT COALESCE(' . implode(', ', $reads) . ", '')")->loadResult();
+        } catch (Throwable $e) {
+            return $cache[$cacheKey] = '';
+        }
+
+        return $cache[$cacheKey] = (string) ($value ?? '');
     }
 
     /**
@@ -1637,6 +2178,27 @@ class MultilingualHelper
     public static function getLanguageTags(): array
     {
         return self::buildLangCodeList(languages: LanguageHelper::getLanguages('lang_code'));
+    }
+
+    /**
+     * Whether one language's table of a translatable entity exists, read from the table list
+     * this class keeps for the request ({@see self::fetchTableList()}).
+     *
+     * @param string $tableName Base table with Joomla prefix (e.g. "#__alfa_items").
+     * @param string $langTag Language (lang_code or snake).
+     *
+     *
+     * @since  2.1.1
+     */
+    public static function hasLanguageTable(string $tableName, string $langTag): bool
+    {
+        $db = self::getDb();
+
+        return \in_array(
+            $db->replacePrefix($tableName . '_' . self::normaliseTag(tag: $langTag)),
+            self::fetchTableList(db: $db),
+            true,
+        );
     }
 
     /**
@@ -1755,7 +2317,7 @@ class MultilingualHelper
 
         self::assertSafeIdentifier(name: $primaryColumnName, callerMethod: __METHOD__);
 
-        [$languageData] = self::extractLanguageData(
+        $languageData = self::extractLanguageData(
             data:      $data,
             langCodes: self::buildLangCodeList(languages: LanguageHelper::getLanguages('lang_code')),
         );
@@ -2076,6 +2638,7 @@ class MultilingualHelper
                             mainTableReal:     $mainTable,
                             mainPrimaryColumn: $mainPrimaryColumn,
                             scopeValues:       $scopeValues,
+                            defaultTable:      $langCode !== $defaultTag ? ($langTables[$defaultTag] ?? '') : '',
                         );
                     }
                 }
@@ -2127,19 +2690,15 @@ class MultilingualHelper
      * Keys following the convention  fieldName_langCode  are split into:
      *   $languageData[$langCode][$fieldName] = $value
      *
-     * Also builds a $fallbackData map (the first non-empty value per field
-     * across all languages), used to fill gaps in sparse translations.
-     *
      * @param array $data Flat input (passed $data or jform POST).
      * @param string[] $langCodes Lower-snake codes  (e.g. ['en_gb', 'el_gr']).
      *
-     * @return array [ $languageData, $fallbackData ]
+     * @return array [ $langCode => [ $fieldName => $value ] ]
      * @since  1.0.0
      */
     private static function extractLanguageData(array $data, array $langCodes): array
     {
         $languageData = [];
-        $fallbackData = [];
 
         foreach ($data as $key => $value) {
             foreach ($langCodes as $langCode) {
@@ -2152,56 +2711,40 @@ class MultilingualHelper
                 $fieldName = substr($key, 0, -strlen($suffix));
                 $languageData[$langCode][$fieldName] = $value;
 
-                if (!empty($value) && !isset($fallbackData[$fieldName])) {
-                    $fallbackData[$fieldName] = $value;
-                }
-
                 break; // Each key can match only one language suffix.
             }
         }
 
-        return [$languageData, $fallbackData];
+        return $languageData;
     }
 
     /**
-     * Fill empty field values from the fallback map and process slug/alias fields.
-     *
-     * Slug fields ($aliasFields): auto-generate from name/title when blank, then sanitise.
-     * All other fields: copy from $fallbackData when blank.
+     * Process the slug/alias fields of one language's row; every other field is kept as given.
      *
      * @param array $fields [ fieldName => value ] for one language.
-     * @param array $fallbackData First non-empty value per field (cross-language).
      * @param string[] $aliasFields Field names to treat as URL slugs.
      * @param object $app Joomla application (for the unicodeslugs setting).
      * @param string $langCode Lower-snake code of the language row being built (e.g. "el_gr").
      *
      * @return array Processed fields.
-     * @since  1.0.0
+     * @since  2.1.1
      */
-    private static function applyFallbackAndSlugs(
+    private static function resolveSlugs(
         array $fields,
-        array $fallbackData,
         array $aliasFields,
         object $app,
         string $langCode,
     ): array {
-        foreach ($fields as $fieldName => &$value) {
-            if (in_array($fieldName, $aliasFields, true)) {
-                $value = self::resolveSlugValue(
-                    rawValue:     $value,
-                    fields:       $fields,
-                    fallbackData: $fallbackData,
-                    app:          $app,
-                    langCode:     $langCode,
+        foreach ($aliasFields as $aliasField) {
+            if (\array_key_exists($aliasField, $fields)) {
+                $fields[$aliasField] = self::resolveSlugValue(
+                    rawValue: (string) $fields[$aliasField],
+                    fields:   $fields,
+                    app:      $app,
+                    langCode: $langCode,
                 );
-                continue;
-            }
-
-            if (empty(trim((string) $value)) && isset($fallbackData[$fieldName])) {
-                $value = $fallbackData[$fieldName];
             }
         }
-        unset($value);
 
         return $fields;
     }
@@ -2212,8 +2755,10 @@ class MultilingualHelper
      * Priority:
      *   1. Use the submitted value if not blank.
      *   2. Fall back to name / title from the same language row.
-     *   3. Fall back to name / title from $fallbackData (another language).
-     *   4. Sanitise the chosen source through OutputFilter.
+     *   3. Sanitise the chosen source through OutputFilter; nothing, when both are blank.
+     *
+     * Never another language's name: while this language has none, the router reads
+     * the default language's alias, and the language gets its own once a name is saved.
      *
      * TRANSLITERATED IN THE ROW'S OWN LANGUAGE, never the request's. A slug for the
      * el_gr row is Greek text, so it must fold through the el-GR rules; omitting the
@@ -2225,27 +2770,21 @@ class MultilingualHelper
      *
      * @param string $rawValue Submitted value (may be empty).
      * @param array $fields All fields for the current language.
-     * @param array $fallbackData Cross-language fallback values.
      * @param object $app Joomla application (for unicodeslugs config).
      * @param string $langCode Lower-snake code of the row's language (e.g. "el_gr").
      *
-     * @return string Sanitised slug.
+     * @return string Sanitised slug, '' when the row has neither an alias nor a name.
      * @since  1.0.0
      */
     private static function resolveSlugValue(
         string $rawValue,
         array $fields,
-        array $fallbackData,
         object $app,
         string $langCode,
     ): string {
         $source = !empty(trim($rawValue))
             ? $rawValue
-            : ($fields['name']
-                ?? $fields['title']
-                ?? $fallbackData['name']
-                ?? $fallbackData['title']
-                ?? '');
+            : (string) ($fields['name'] ?? $fields['title'] ?? '');
 
         // Unicode slugs keep the original script, so they have nothing to transliterate.
         return $app->get('unicodeslugs') == 1
@@ -2256,7 +2795,13 @@ class MultilingualHelper
     //  Private: alias uniqueness
 
     /**
-     * Make every alias field in $fields unique within the given language table.
+     * Make every alias field in $fields that this save generated unique among the aliases
+     * the router resolves in this language. A typed alias is left exactly as typed.
+     *
+     * A record with no alias of its own in a language is routed there by its default
+     * language alias. So in any other language, a record without an alias there counts
+     * with its default language alias; and the default language's alias of this record
+     * also has to be free in every language in which this record has none of its own.
      *
      * Uniqueness is scoped by the main-table columns in $aliasUniqueScope: a
      * collision only counts when another row shares the same scope values (e.g.
@@ -2272,6 +2817,9 @@ class MultilingualHelper
      * @param string $mainTableName Base main table (e.g. #__alfa_categories).
      * @param string $mainPrimaryColumn Main-table PK used for the scope join.
      * @param string[] $aliasUniqueScope Main-table columns scoping uniqueness ([] = global).
+     * @param string $langCode Lower-snake code of this language (e.g. "el_gr").
+     * @param array $savedByLang The same save's resolved fields of every language, by language.
+     * @param array<string, bool> $generated The alias fields this save generated, by name.
      *
      * @return array $fields with unique slug values.
      * @since  1.0.0
@@ -2286,8 +2834,11 @@ class MultilingualHelper
         string $mainTableName,
         string $mainPrimaryColumn,
         array $aliasUniqueScope,
+        string $langCode,
+        array $savedByLang,
+        array $generated = [],
     ): array {
-        if (empty($aliasFields) || $currentId <= 0) {
+        if (empty($aliasFields) || $currentId <= 0 || $generated === []) {
             return $fields;
         }
 
@@ -2300,8 +2851,13 @@ class MultilingualHelper
             aliasUniqueScope:  $aliasUniqueScope,
         );
 
+        $defaultCode = self::getDefaultLanguageTag();
+        $existingTables = self::fetchTableList(db: $db);
+        $defaultTable = $db->replacePrefix($mainTableName . '_' . $defaultCode);
+
         foreach ($aliasFields as $aliasField) {
-            if (!isset($fields[$aliasField]) || !self::isSafeIdentifier(name: $aliasField)) {
+            if (empty($generated[$aliasField]) || !isset($fields[$aliasField])
+                || !self::isSafeIdentifier(name: $aliasField)) {
                 continue;
             }
 
@@ -2310,6 +2866,19 @@ class MultilingualHelper
             if ($base === '') {
                 continue;
             }
+
+            // The default language's alias is this record's alias wherever it has none.
+            $readingTables = $langCode === $defaultCode
+                ? self::languageTablesWithoutOwnSlug(
+                    db:                $db,
+                    mainTableName:     $mainTableName,
+                    primaryColumnName: $primaryColumnName,
+                    currentId:         $currentId,
+                    field:             $aliasField,
+                    savedByLang:       $savedByLang,
+                    exceptLang:        $defaultCode,
+                )
+                : [];
 
             $fields[$aliasField] = self::makeUniqueSlug(
                 db:                $db,
@@ -2321,10 +2890,75 @@ class MultilingualHelper
                 mainTableReal:     $mainTableReal,
                 mainPrimaryColumn: $mainPrimaryColumn,
                 scopeValues:       $scopeValues,
+                readingTables:     $readingTables,
+                defaultTable:      $langCode !== $defaultCode && \in_array($defaultTable, $existingTables, true)
+                    ? $defaultTable
+                    : '',
             );
         }
 
         return $fields;
+    }
+
+    /**
+     * The language tables (other than $exceptLang's) in which one record has no alias of
+     * its own after a save: the value this save writes when it carries that language,
+     * otherwise the stored one.
+     *
+     * @param object $db Joomla DatabaseDriver.
+     * @param string $mainTableName Base main table (e.g. #__alfa_items).
+     * @param string $primaryColumnName PK column of the language tables (e.g. id_item).
+     * @param int $currentId The record.
+     * @param string $field The alias field.
+     * @param array $savedByLang The save's resolved fields, by language.
+     * @param string $exceptLang Lower-snake code of the language left out (the default).
+     *
+     * @return string[] Prefix-resolved table names.
+     *
+     * @since  2.1.1
+     */
+    private static function languageTablesWithoutOwnSlug(
+        $db,
+        string $mainTableName,
+        string $primaryColumnName,
+        int $currentId,
+        string $field,
+        array $savedByLang,
+        string $exceptLang,
+    ): array {
+        $existingTables = self::fetchTableList(db: $db);
+        $tables = [];
+
+        foreach (self::getLanguageTags() as $code) {
+            $table = $db->replacePrefix($mainTableName . '_' . $code);
+
+            if ($code === $exceptLang || !\in_array($table, $existingTables, true)) {
+                continue;
+            }
+
+            if (\array_key_exists($field, $savedByLang[$code] ?? [])) {
+                $own = (string) $savedByLang[$code][$field];
+            } else {
+                try {
+                    $own = (string) $db->setQuery(
+                        $db->getQuery(true)
+                            ->select($db->qn($field))
+                            ->from($db->qn($table))
+                            ->where($db->qn($primaryColumnName) . ' = ' . (int) $currentId),
+                        0,
+                        1,
+                    )->loadResult();
+                } catch (Throwable $e) {
+                    $own = '';
+                }
+            }
+
+            if ($own === '') {
+                $tables[] = $table;
+            }
+        }
+
+        return $tables;
     }
 
     /**
@@ -2364,8 +2998,25 @@ class MultilingualHelper
     }
 
     /**
-     * Return a slug unique within $langTableName for the given scope, appending
-     * -2, -3, ... on collision (capped at 100 attempts, then a time() suffix).
+     * Return a slug unique for the given scope, appending -2, -3, ... on collision
+     * (capped at 100 attempts, then a time() suffix).
+     *
+     * A collision is another record's own alias in $langTableName or in any of
+     * $readingTables, or, with $defaultTable given, the default language alias of
+     * another record that has no alias of its own in $langTableName.
+     *
+     * @param object $db Joomla DatabaseDriver.
+     * @param string $langTableName Prefix-resolved language table the slug is for.
+     * @param string $primaryColumnName PK column of the language tables.
+     * @param int $currentId Record being written (excluded from collision checks).
+     * @param string $field The alias field.
+     * @param string $base The wanted slug.
+     * @param string $mainTableReal Prefix-resolved main table, for the scope join.
+     * @param string $mainPrimaryColumn Main-table PK.
+     * @param array $scopeValues [column => value] of the record's scope ([] = global).
+     * @param string[] $readingTables Further language tables whose own aliases count.
+     * @param string $defaultTable The default language's table, or '' for none.
+     *
      * @since  1.0.0
      */
     private static function makeUniqueSlug(
@@ -2378,38 +3029,60 @@ class MultilingualHelper
         string $mainTableReal,
         string $mainPrimaryColumn,
         array $scopeValues,
+        array $readingTables = [],
+        string $defaultTable = '',
     ): string {
-        $needsJoin = !empty($scopeValues);
         $candidate = $base;
 
         for ($attempt = 0; $attempt < 100; $attempt++) {
-            try {
+            $taken = false;
+
+            foreach (array_merge([$langTableName], $readingTables) as $table) {
                 $query = $db->getQuery(true)
                     ->select('1')
-                    ->from($db->qn($langTableName, 't'))
+                    ->from($db->qn($table, 't'))
                     ->where($db->qn('t.' . $field) . ' = ' . $db->q($candidate))
                     ->where($db->qn('t.' . $primaryColumnName) . ' <> ' . (int) $currentId);
 
-                if ($needsJoin) {
-                    $query->join(
-                        'INNER',
-                        $db->qn($mainTableReal, 'm')
-                        . ' ON ' . $db->qn('m.' . $mainPrimaryColumn)
-                        . ' = ' . $db->qn('t.' . $primaryColumnName),
-                    );
+                $taken = self::slugProbeHits(
+                    db:                $db,
+                    query:             $query,
+                    mainTableReal:     $mainTableReal,
+                    mainPrimaryColumn: $mainPrimaryColumn,
+                    keyColumn:         't.' . $primaryColumnName,
+                    scopeValues:       $scopeValues,
+                );
 
-                    foreach ($scopeValues as $col => $value) {
-                        $query->where($db->qn('m.' . $col) . ' = ' . $db->q($value));
-                    }
+                if ($taken) {
+                    break;
                 }
-
-                $hit = $db->setQuery($query, 0, 1)->loadResult();
-            } catch (Throwable $e) {
-                // Lang table / column not present yet -> nothing can collide.
-                return $candidate;
             }
 
-            if (!$hit) {
+            // Records with no alias of their own here are routed by their default language alias.
+            if (!$taken && $defaultTable !== '') {
+                $query = $db->getQuery(true)
+                    ->select('1')
+                    ->from($db->qn($defaultTable, 'd'))
+                    ->join(
+                        'LEFT',
+                        $db->qn($langTableName, 't')
+                        . ' ON ' . $db->qn('t.' . $primaryColumnName) . ' = ' . $db->qn('d.' . $primaryColumnName),
+                    )
+                    ->where($db->qn('d.' . $field) . ' = ' . $db->q($candidate))
+                    ->where($db->qn('d.' . $primaryColumnName) . ' <> ' . (int) $currentId)
+                    ->where('COALESCE(' . $db->qn('t.' . $field) . ", '') = ''");
+
+                $taken = self::slugProbeHits(
+                    db:                $db,
+                    query:             $query,
+                    mainTableReal:     $mainTableReal,
+                    mainPrimaryColumn: $mainPrimaryColumn,
+                    keyColumn:         'd.' . $primaryColumnName,
+                    scopeValues:       $scopeValues,
+                );
+            }
+
+            if (!$taken) {
                 return $candidate;
             }
 
@@ -2417,6 +3090,153 @@ class MultilingualHelper
         }
 
         return $base . '-' . time();
+    }
+
+    /**
+     * Run one collision probe of {@see self::makeUniqueSlug()}, limited to the record's scope.
+     *
+     * @param object $db Joomla DatabaseDriver.
+     * @param \Joomla\Database\QueryInterface $query The probe.
+     * @param string $mainTableReal Prefix-resolved main table.
+     * @param string $mainPrimaryColumn Main-table PK.
+     * @param string $keyColumn The probe's qualified record key (e.g. "t.id_item").
+     * @param array $scopeValues [column => value] of the record's scope ([] = global).
+     *
+     * @return bool True when another record already holds the slug; false also when a
+     *              language table or column does not exist yet, so nothing can collide.
+     *
+     * @since  2.1.1
+     */
+    private static function slugProbeHits(
+        $db,
+        $query,
+        string $mainTableReal,
+        string $mainPrimaryColumn,
+        string $keyColumn,
+        array $scopeValues,
+    ): bool {
+        if ($scopeValues !== []) {
+            $query->join(
+                'INNER',
+                $db->qn($mainTableReal, 'm')
+                . ' ON ' . $db->qn('m.' . $mainPrimaryColumn) . ' = ' . $db->qn($keyColumn),
+            );
+
+            foreach ($scopeValues as $col => $value) {
+                $query->where($db->qn('m.' . $col) . ' = ' . $db->q($value));
+            }
+        }
+
+        try {
+            return (bool) $db->setQuery($query, 0, 1)->loadResult();
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * The other records whose effective alias in one language is $alias, within a scope: their
+     * own alias in that language, or their default-language alias when they have none there.
+     * One query; at most ten ids, lowest first.
+     *
+     * @param object $db Joomla DatabaseDriver.
+     * @param string $mainTableReal Prefix-resolved main table.
+     * @param string $mainPrimaryColumn Main-table PK.
+     * @param string $langTable Prefix-resolved language table of the language judged.
+     * @param string $defaultTable Prefix-resolved default-language table, '' when there is none.
+     * @param string $primaryColumnName PK column of the language tables.
+     * @param string $field The alias field.
+     * @param string $alias The address.
+     * @param int $currentId The record judged, left out.
+     * @param array $scopeValues [column => value] of the scope ([] = global).
+     * @param int[] $onlyIds When given, only these records are looked at.
+     *
+     * @return int[] The record ids; none also when a table or column does not exist yet.
+     *
+     * @since  2.1.1
+     */
+    private static function effectiveAliasHolders(
+        $db,
+        string $mainTableReal,
+        string $mainPrimaryColumn,
+        string $langTable,
+        string $defaultTable,
+        string $primaryColumnName,
+        string $field,
+        string $alias,
+        int $currentId,
+        array $scopeValues,
+        array $onlyIds = [],
+    ): array {
+        $query = $db->getQuery(true)
+            ->select($db->qn('m.' . $mainPrimaryColumn))
+            ->from($db->qn($mainTableReal, 'm'))
+            ->join(
+                'LEFT',
+                $db->qn($langTable, 't')
+                . ' ON ' . $db->qn('t.' . $primaryColumnName) . ' = ' . $db->qn('m.' . $mainPrimaryColumn),
+            )
+            ->where($db->qn('m.' . $mainPrimaryColumn) . ' <> ' . (int) $currentId)
+            ->order($db->qn('m.' . $mainPrimaryColumn) . ' ASC');
+
+        $own = $db->qn('t.' . $field) . ' = ' . $db->q($alias);
+
+        if ($defaultTable !== '' && $defaultTable !== $langTable) {
+            $query->join(
+                'LEFT',
+                $db->qn($defaultTable, 'd')
+                . ' ON ' . $db->qn('d.' . $primaryColumnName) . ' = ' . $db->qn('m.' . $mainPrimaryColumn),
+            );
+            $query->where(
+                '(' . $own . ' OR (COALESCE(' . $db->qn('t.' . $field) . ", '') = '' AND "
+                . $db->qn('d.' . $field) . ' = ' . $db->q($alias) . '))',
+            );
+        } else {
+            $query->where($own);
+        }
+
+        foreach ($scopeValues as $column => $value) {
+            if (self::isSafeIdentifier(name: (string) $column)) {
+                $query->where($db->qn('m.' . $column) . ' = ' . $db->q((string) $value));
+            }
+        }
+
+        if ($onlyIds !== []) {
+            $query->whereIn($db->qn('m.' . $mainPrimaryColumn), array_map('intval', $onlyIds));
+        }
+
+        try {
+            return array_map('intval', (array) $db->setQuery($query, 0, 10)->loadColumn());
+        } catch (Throwable $e) {
+            return [];
+        }
+    }
+
+    /**
+     * One stored value of one record in one language table, '' when there is none.
+     *
+     * @param object $db Joomla DatabaseDriver.
+     * @param string $table Prefix-resolved language table.
+     * @param string $primaryColumnName PK column of the language table.
+     * @param int $id The record.
+     * @param string $field The column.
+     *
+     * @since  2.1.1
+     */
+    private static function readStoredValue($db, string $table, string $primaryColumnName, int $id, string $field): string
+    {
+        try {
+            return (string) $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->qn($field))
+                    ->from($db->qn($table))
+                    ->where($db->qn($primaryColumnName) . ' = ' . (int) $id),
+                0,
+                1,
+            )->loadResult();
+        } catch (Throwable $e) {
+            return '';
+        }
     }
 
     //  Private: database schema
