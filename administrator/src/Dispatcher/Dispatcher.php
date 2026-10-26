@@ -52,9 +52,6 @@ class Dispatcher extends ComponentDispatcher
         // parent::dispatch() asks again; the answer is the same.
         $this->checkAccess();
 
-        // Said on every Alfa administrator page while plg_system_alfasync is off: nothing of it runs then.
-        $this->warnSyncPluginOff();
-
         // Maintenance (Clear everything): only the Clear everything page and its own requests are
         // served, and none of the housekeeping below runs, since it reads the Alfa tables.
         if (MaintenanceState::active()) {
@@ -75,6 +72,9 @@ class Dispatcher extends ComponentDispatcher
 
             return;
         }
+
+        // Said on every Alfa administrator page while plg_system_alfasync is off: nothing of it runs then.
+        $this->warnSyncPluginOff();
 
         // Register the item-fields plugins' getSubscribedEvents maps with the
         // GLOBAL dispatcher (bootPlugin() alone never does), so a field type
