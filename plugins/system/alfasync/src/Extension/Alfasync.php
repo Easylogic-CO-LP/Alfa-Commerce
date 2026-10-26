@@ -96,6 +96,9 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     public static function getSubscribedEvents(): array
     {
         return [
+            // The texts of Alfa's guided tours, before anything on an administrator request reads them.
+            'onAfterInitialise' => 'onAfterInitialise',
+
             // User events: always active
             'onUserBeforeSave' => 'onUserBeforeSave',
             'onUserAfterSave' => 'onUserAfterSave',
@@ -265,6 +268,31 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
         } catch (Throwable) {
             // Tour polish never costs a page.
         }
+    }
+
+    /**
+     * Loads Alfa's guided-tour texts, com_alfa.tours.ini, for a signed-in user on the administrator
+     * client. Joomla's tour loader looks for one file per tour, so Alfa loads its one file here, the
+     * first event that knows the user's language: before the header's tour menu, the Guided Tours
+     * screens and the tour runner's JSON request read the texts.
+     *
+     * @since  2.1.2
+     */
+    public function onAfterInitialise(): void
+    {
+        $app = Factory::getApplication();
+
+        if (!$app->isClient('administrator')) {
+            return;
+        }
+
+        $user = $app->getIdentity();
+
+        if (!$user || $user->guest) {
+            return;
+        }
+
+        $app->getLanguage()->load('com_alfa.tours', JPATH_ADMINISTRATOR);
     }
 
     /**

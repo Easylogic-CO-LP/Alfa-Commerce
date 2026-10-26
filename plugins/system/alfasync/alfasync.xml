@@ -2,6 +2,7 @@
 <extension type="plugin" group="system" method="upgrade">
     <name>plg_system_alfasync</name>
     <author>Agamemnon Fakas</author>
+    <creationDate>2024-05-10</creationDate>
     <authorEmail>info@easylogic.gr</authorEmail>
     <authorUrl>https://easylogic.gr</authorUrl>
     <copyright>(C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.</copyright>

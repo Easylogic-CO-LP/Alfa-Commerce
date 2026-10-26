@@ -39,12 +39,6 @@ use Throwable;
  * connection can't masquerade as healthy. The only defence against a fully-owned
  * server (which can neuter any on-box check) is an external off-box monitor.
  *
- * Language packs: Alfa Commerce ships en-GB only, and every other language is a separate
- * language pack that installs its files beside the en-GB ones. Installing or removing a
- * pack must never make this check report the installation as changed, so a pack's .ini
- * file in an extension folder is never counted as injected
- * ({@see self::isLanguagePackFile()}); every other rule is unchanged.
- *
  * @since  1.0.0
  */
 class IntegrityHelper
@@ -95,18 +89,6 @@ class IntegrityHelper
         '#^(modules/[^/]+)/#',
         '#^(plugins/[^/]+/[^/]+)/#',
     ];
-
-    /**
-     * A language pack's file, as a path relative to the extension folder the reverse walk
-     * found it in: directly in language/<tag>/ at the top of that folder, where the tag has
-     * Joomla's form (xx-XX or xxx-XX) and is not en-GB, the language the release ships and
-     * signs, and the name ends in .ini and does not start with a dot (.user.ini is PHP's own
-     * per-folder configuration, never a language file).
-     *
-     * @var string
-     * @since  2.1.1
-     */
-    private const LANGUAGE_PACK_FILE = '#^language/(?!en-GB/)[a-z]{2,3}-[A-Z]{2}/(?!\.)[^/]+\.ini$#';
 
     /**
      * Desktop clutter the reverse walk ignores, by exact name: .DS_Store (macOS Finder), Thumbs.db
@@ -426,8 +408,7 @@ class IntegrityHelper
 
     /**
      * Reverse-walk every extension folder the catalog claims and return each file
-     * present on disk whose root-relative path is NOT a key in $known, apart from a
-     * language pack's files ({@see self::isLanguagePackFile()}). This is the
+     * present on disk whose root-relative path is NOT a key in $known. This is the
      * half that surfaces injected files: the expected-set loop alone never visits a
      * path it doesn't already expect. {@see self::walk()} reports hidden files too and
      * ignores only desktop clutter by exact name ({@see self::isClutter()}), so genuine
@@ -447,53 +428,15 @@ class IntegrityHelper
         foreach (self::walkRoots(files: $known) as $relRoot) {
             $absRoot = $root . '/' . $relRoot;
 
-            if (!is_dir($absRoot)) {
-                continue;
-            }
-
-            $inRoot = [];
-            self::walk(absDir: $absRoot, relDir: $relRoot, out: $inRoot);
-
-            foreach ($inRoot as $rel) {
-                if (
-                    !\array_key_exists($rel, $known)
-                    && !self::isLanguagePackFile(path: substr($rel, \strlen($relRoot) + 1))
-                ) {
-                    $found[] = $rel;
-                }
+            if (is_dir($absRoot)) {
+                self::walk(absDir: $absRoot, relDir: $relRoot, out: $found);
             }
         }
 
-        return $found;
-    }
-
-    /**
-     * Whether a file the reverse walk found is a language pack's file, never reported as
-     * injected. $path is relative to the extension folder it was found in, and qualifies
-     * when it matches {@see self::LANGUAGE_PACK_FILE}: directly in language/<tag>/, a tag
-     * in Joomla's form other than en-GB, a name ending in .ini.
-     *
-     * The trade-off: such a file is data, not code. Joomla only parses it as text and
-     * never includes it, so a file planted there cannot run, while a pack's files must not
-     * read as tampering. Every other file stays an intruder: a .php or any other name in a
-     * language folder, an en-GB file the release does not list, a file in a deeper folder.
-     * A name with an executable segment before .ini (x.php.ini) is refused as well: a web
-     * server that maps .php by handler runs such a name as a script, so it is not data. The
-     * segments are Joomla's own list of extensions a web server may execute.
-     *
-     * @param string $path Path relative to the extension folder, no leading slash.
-     *
-     * @since  2.1.1
-     */
-    public static function isLanguagePackFile(string $path): bool
-    {
-        if (preg_match(self::LANGUAGE_PACK_FILE, $path) !== 1) {
-            return false;
-        }
-
-        $segments = \array_slice(explode('.', strtolower(basename($path))), 0, -1);
-
-        return array_intersect($segments, InputFilter::FORBIDDEN_FILE_EXTENSIONS) === [];
+        return array_values(array_filter(
+            $found,
+            static fn (string $rel): bool => !\array_key_exists($rel, $known),
+        ));
     }
 
     /**

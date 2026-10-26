@@ -37,9 +37,9 @@ use Throwable;
  *   - a `com_alfa.*` tour in the DB with NO file any more is removed together with
  *     its user-profile keys, and tours outside our uid prefix are NEVER touched.
  *
- * All human text in the files is LANGUAGE KEYS; the per-tour INIs live in the
- * component's own language folder, exactly where core's
- * GuidedtoursHelper::loadTranslationFiles() looks for `com_*` uids.
+ * All human text in the files is LANGUAGE KEYS. Their texts are one file,
+ * administrator/language/<tag>/com_alfa.tours.ini, which plg_system_alfasync loads for a
+ * signed-in administrator (Joomla's own tour loader looks for a file per tour).
  *
  * @since  2.0.0
  */

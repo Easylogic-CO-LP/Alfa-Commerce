@@ -14,7 +14,7 @@
          the newest file in sql/updates/mysql, an update runs every file newer than the
          recorded version. A schema change therefore goes into install.mysql.utf8.sql (fresh
          installs) AND into a new sql/updates/mysql/<version>.sql (installed sites). -->
-    <version>2.1.1</version>
+    <version>2.1.2</version>
     <description>The smartest,fastest and easiest ecommerce solution for companies developed with love by Easylogic.</description>
     <namespace path="src">Alfa\Component\Alfa</namespace>
 
@@ -81,15 +81,17 @@
             <folder>layouts</folder>
             <folder>sql</folder>
             <!-- Guided tours: the JSON files ARE the source of truth (TourSeeder
-                 deletes any com_alfa tour it cannot find a file for), and core
-                 loads each tour's INI from the component folder. -->
+                 deletes any com_alfa tour it cannot find a file for). Their texts
+                 are com_alfa.tours.ini below, which plg_system_alfasync loads for
+                 a signed-in administrator, on every admin page: Joomla's own tour
+                 loader looks for one file per tour. -->
             <folder>tours</folder>
-            <folder>language</folder>
         </files>
         <languages folder="administrator/languages">
 
 			<language tag="en-GB">en-GB/com_alfa.ini</language>
 			<language tag="en-GB">en-GB/com_alfa.sys.ini</language>
+			<language tag="en-GB">en-GB/com_alfa.tours.ini</language>
         </languages>
     </administration>
 <!--     <config>
