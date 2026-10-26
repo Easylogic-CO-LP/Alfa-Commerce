@@ -3,6 +3,26 @@
     <changelog>
         <element>com_alfa</element>
         <type>component</type>
+        <version>2.1.2</version>
+
+        <note>
+            <item>Maintenance release for 2.1.1 that changes where Alfa Commerce's language files are and how they load. It updates an installed shop of 2.0.0 or later in place, with no change to the database: the schema stays 2.1.1, so data kept after uninstalling 2.1.1 reconnects to a fresh 2.1.2 installation. Requirements are unchanged.</item>
+        </note>
+
+        <change>
+            <item>Every language file of Alfa Commerce is in Joomla's own language folders: administrator/language/&lt;tag&gt;/ for the component, its guided tours and its plugins, language/&lt;tag&gt;/ for the shop and its modules. The component keeps no language folder of its own.</item>
+            <item>The texts of the 33 guided tours are one file per language, com_alfa.tours.ini, beside com_alfa.ini and com_alfa.sys.ini; the 66 files of one tour each are gone. The tours' titles show in the header's tour menu on every administrator page, in Guided Tours and while a tour runs, in the administrator's language.</item>
+            <item>While the System - Alfa Commerce Sync plugin is disabled or not installed, every Alfa Commerce administrator page warns that Alfa Commerce needs it: without it the guided tours show language keys and Alfa Commerce no longer follows Joomla's users and user groups. A user who may manage plugins gets a link that opens the plugin. Installing or updating Alfa Commerce enables it again.</item>
+            <item>The installation and the update remove a language folder inside the component's own folders (administrator/components/com_alfa/language/ and components/com_alfa/language/) with everything in it, and name each one with its number of files. Nothing outside those two folders is touched.</item>
+            <item>A Greek file of Alfa Commerce 2.1.0 that the shop changed in Joomla's language folders is still kept and named by the update, as in 2.1.1.</item>
+            <item>Tools &gt; Security reports a language file inside Alfa Commerce's own folders as an extra file, like any other file the release does not list.</item>
+            <item>The export of GitHub - Commit &amp; Pull Request carries every file of the folders the manifests declare; no file is left out for its language any more.</item>
+            <item>For language pack authors: a pack for 2.1.2 has, for its language, com_alfa.ini, com_alfa.sys.ini, com_alfa.tours.ini and each plugin's two files in administrator/language/&lt;tag&gt;/, and com_alfa.ini and each module's two files in language/&lt;tag&gt;/: 38 files.</item>
+        </change>
+    </changelog>
+    <changelog>
+        <element>com_alfa</element>
+        <type>component</type>
         <version>2.1.1</version>
 
         <note>

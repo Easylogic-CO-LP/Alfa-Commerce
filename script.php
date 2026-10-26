@@ -1185,6 +1185,10 @@ class com_alfaInstallerScript extends InstallerScript
         $db  = Factory::getContainer()->get('DatabaseDriver');
         $app = Factory::getApplication();
 
+        // Every language file belongs in Joomla's language folders: a language folder inside the
+        // component's own folders goes whole, whatever it holds, on install and on update.
+        $this->reportObsoleteFiles(result: $this->removeComponentLanguageFolders(root: JPATH_ROOT), route: $type);
+
         // On update, the files earlier versions left in Alfa's own folders and this version no
         // longer ships are removed first, so the integrity check below starts from the result.
         if ($type === 'update')
@@ -1481,69 +1485,102 @@ class com_alfaInstallerScript extends InstallerScript
     private const LANGUAGE_PACK_FILES = 'files_alfacommerce_';
 
     /**
+     * The language folders inside Alfa Commerce's component folders, relative to the site root. Every
+     * language file belongs in Joomla's language folders (administrator/language and language), so on
+     * install and on update each of these that exists is removed whole, with everything in it
+     * ({@see self::removeComponentLanguageFolders()}). That step touches nothing else.
+     *
+     * @var string[]
+     * @since 2.1.2
+     */
+    public const COMPONENT_LANGUAGE_FOLDERS = [
+        'administrator/components/com_alfa/language',
+        'components/com_alfa/language',
+    ];
+
+    /**
+     * Remove each folder of {@see self::COMPONENT_LANGUAGE_FOLDERS} that exists, whole: its files, its
+     * folders and the folder itself. A link is removed as a link and never followed, so nothing outside
+     * the folder is touched. Each folder is named with the number of files it held.
+     *
+     * @param string $root The site root, no trailing slash.
+     *
+     * @return array{removed: string[], failed: string[]} Each entry as "<folder>/ (<n> files)".
+     *
+     * @since 2.1.2
+     */
+    protected function removeComponentLanguageFolders(string $root): array
+    {
+        $result = ['removed' => [], 'failed' => []];
+
+        foreach (self::COMPONENT_LANGUAGE_FOLDERS as $rel) {
+            $abs = $root . '/' . $rel;
+
+            if (!is_link($abs) && !is_dir($abs)) {
+                continue;
+            }
+
+            $files = 0;
+            $removed = self::removeTree(path: $abs, files: $files);
+            $result[$removed ? 'removed' : 'failed'][] = sprintf('%s/ (%d %s)', $rel, $files, $files === 1 ? 'file' : 'files');
+        }
+
+        return $result;
+    }
+
+    /**
+     * Remove a file, a link or a folder with everything in it, never following a link.
+     *
+     * @param string $path  The absolute path.
+     * @param int    $files Counts every file and link removed (by reference).
+     *
+     * @return bool True when the path is gone.
+     *
+     * @since 2.1.2
+     */
+    private static function removeTree(string $path, int &$files): bool
+    {
+        if (is_link($path) || !is_dir($path)) {
+            $gone = @unlink($path);
+            $files += $gone ? 1 : 0;
+
+            return $gone;
+        }
+
+        $entries = scandir($path);
+
+        if ($entries === false) {
+            return false;
+        }
+
+        $all = true;
+
+        foreach (array_diff($entries, ['.', '..']) as $entry) {
+            $all = self::removeTree(path: $path . '/' . $entry, files: $files) && $all;
+        }
+
+        return $all && @rmdir($path);
+    }
+
+    /**
      * Language files a release stopped shipping, keyed by that release. From 2.1.1 on Alfa Commerce
      * ships English only, and every other language is a separate language pack. Each exact path,
      * relative to the site root, maps to the sha256 of the file's exact bytes as the last release
      * that shipped it installed it. They are removed on the update from a version below that release,
      * where no language pack can be installed yet, and on uninstall; a path an installed language
-     * pack lists and a file whose bytes differ are never removed ({@see self::removeObsoleteFiles()}).
+     * pack lists and a file whose bytes differ are never removed, and no language folder is
+     * ({@see self::removeObsoleteFiles()}).
      *
      * @var array<string, array<string, string>>
      * @since 2.1.1
      */
     public const OBSOLETE_LANGUAGE_FILES = [
         '2.1.1' => [
-            // The Greek of 2.1.0: the closing tour steps in the component's own folder, then its texts
-            // in Joomla's language folders.
-            'administrator/components/com_alfa/language/el-GR/com_alfa.cart_rules_steps.ini' => '883d52c68e12ab52458facac6eb19b98773f29728698eb3a60283eed7d79a58f',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.categories_steps.ini' => '3b9372b799fae937be4a8d6d143dfd6fb8399926359472e04e931f233171a190',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.currencies_steps.ini' => '2a92c3128d585f40b6a310ee77b49862d7cc0706552eb46b7f0b4a75a32cad1b',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.customer_groups_steps.ini' => '2b4c1278fd867e26113650bb5debbfa91b317fe2155fd249618e0ed4b9aea912',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.customers_steps.ini' => '62b4557e10aaaf9227b19e2f313c083f19070b79252c12028fca934b2f76a446',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.discounts_steps.ini' => 'c2750d49f87902ca473f4431b16e4eb61d9e3087c79aa72b70acc16c73a28526',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.document_series_steps.ini' => '219c4cc2f98b83db1267844d1b85e9cd88937b8a31a8b9f3ac5efb88902f3a9c',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.document_types_steps.ini' => 'a64d5a69da4d14566f8772a4ab475b357a08f01eca369013498534d6898fa92b',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.form_field_groups_steps.ini' => '70138f31c3efe3838df7945215a2462a44c729a024076db4c5fd0219b4cf042d',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.form_fields_steps.ini' => '23fd678882e1403aeba78c05878ec790f487432574faabc20bf41097836e77e9',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.item_fields_steps.ini' => '276e0a8af2e4f1dbaac65630dabb795f051b4093b96df36789a424ecc68e85b5',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.joomla_basics_steps.ini' => '3033a00b5b890581f25337f7916d86c845d02cea16399d2b638cd1c32286d602',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.manufacturers_steps.ini' => '08416ee60a2ce2d35bcf3b9a0a88479a1cf5b2ffcaeda32ba752228a529cefe7',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.menu_account_steps.ini' => '7b0dda74905668959c312d65898d1f4c4dd085ddb37878655a7a212c431b06d3',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.menu_cart_steps.ini' => 'bcd549028a7000cd426e2b877bf4ff3ef0fbb4b7ea62a6707417b0738b3346b2',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.menu_register_steps.ini' => '609d8923cc050c35a6b2777b5975e3a8c8b94fc3226340d233a083ea91efd5df',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.menu_shop_steps.ini' => '00aadb3fdbb337c476127a9d97da993e7007483bd2447e3a45a956d889db239a',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.notifications_steps.ini' => '57c7cd3c480ca98a9d15a817cce61cdf172022cf25fc4fe220c51a0bf499804f',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.order_statuses_steps.ini' => '2994da3146e97c107be9cb21600825f4630f0d66b96dbee0675d6f36a3e35379',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.orders_steps.ini' => 'f8e51ef24b4ff40f1d39641ee1f49179ec331240bdc031d216a2c5b6fd9ada18',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.payments_steps.ini' => 'd460b5bc976ba824953b3a4078dd76aee418635880a071e9aef04ca662abd664',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.places_steps.ini' => '37990f2adf3c0865c017631d8d942ec5a4144a7d6d9831a2c2ace3965482d305',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.product_steps.ini' => '94130107cf070ec50e44c2233066124a13c72de6902ddaae4870b96455a7a93e',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.sales_documents_steps.ini' => '84dbccb012223c0ca89db475f606bde35de0f259827573b5cfc6ac84edd1acdc',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.shipping_steps.ini' => 'd41e03b5d41154d3f3c1e9be200a91285fda9f23cecb262c7132777a85d31cbf',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.stock_locations_steps.ini' => '008e2592c066e0ac73f38aa44fac6b4c2395cd9886509d5a87afd0315a2d1c12',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.stock_movements_steps.ini' => 'f6b1196f770e2d0034ab0803e22820eaaf87531d680f73b8468784eade0dbe91',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.stock_reservations_steps.ini' => '26f11a1f61405e9e1484b5b14920d96d82368de33de2a9227713dc93cb837ab0',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.store_options_steps.ini' => '6a0c98d26087164b84615d4116138b24b496b3ecfa82628bdac39e554f3ea16d',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.storefront_menu_steps.ini' => '7cca46fd2f595ae536d18bbb730ce32ffd22fbfc02cd52aab6c4550c7570183a',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.taxes_steps.ini' => '4cddc4666d9fdeeac66e86685cf07d239c21d8bde5ec5b1e22bfb7a0e9088508',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.tools_steps.ini' => '8b022b645b3e59a41532a7952f84e2aba6dbf18849da1a939a6e993a522be65e',
-            'administrator/components/com_alfa/language/el-GR/com_alfa.welcome_steps.ini' => 'a0933b2cd579fea77c702c1b0baea4200c8c4e3eaba4f8275d29398edae21981',
+            // The Greek texts of 2.1.0 in Joomla's language folders. Its closing tour steps were in the
+            // component's own language folder, which goes whole (COMPONENT_LANGUAGE_FOLDERS).
             'administrator/language/el-GR/com_alfa.ini' => '138643c82e70d430ba3c587a11e563ec6d55122f921335ecef6be6521aca8740',
             'administrator/language/el-GR/com_alfa.sys.ini' => '3e028f3e0d21edd6aa7a941604f69d7f51527041877b2619b599a95274e66628',
             'language/el-GR/com_alfa.ini' => '1535bd9a3155d63fa6a8cb198b09207c5c79802105a2fc1cc8347ce26f98f942',
-        ],
-    ];
-
-    /**
-     * The folders those language files leave inside Alfa Commerce's own folders. One is removed only
-     * when this run emptied it; Joomla's language folders are never listed.
-     *
-     * @var array<string, string[]>
-     * @since 2.1.1
-     */
-    public const OBSOLETE_LANGUAGE_FOLDERS = [
-        '2.1.1' => [
-            'administrator/components/com_alfa/language/el-GR',
         ],
     ];
 
@@ -1559,14 +1596,14 @@ class com_alfaInstallerScript extends InstallerScript
      *
      * Language files ({@see self::OBSOLETE_LANGUAGE_FILES}) follow the same steps with their own
      * guard ({@see self::obsoleteLanguagePathAllowed()}): a path an installed language pack lists is
-     * never touched, and a file is removed only when its exact bytes are the ones listed.
+     * never touched, and a file is removed only when its exact bytes are the ones listed. Their
+     * folders are Joomla's and stay.
      *
      * @param string $root The site root, no trailing slash.
      * @param string[] $shipped The site-relative paths this package installs.
      * @param array<string, array<string, string[]>> $files The obsolete files, as {@see self::OBSOLETE_FILES}.
      * @param array<string, string[]> $folders The obsolete folders, as {@see self::OBSOLETE_FOLDERS}.
      * @param array<string, string> $languageFiles The obsolete language files of this run: path => sha256 of the exact bytes.
-     * @param string[] $languageFolders The obsolete language folders of this run.
      * @param string[] $owned The paths installed language packs list (a folder with a trailing slash), never touched.
      *
      * @return array{removed: string[], folders: string[], kept: string[], failed: string[], shipped: string[], languageKept: string[], languageFailed: string[], owned: string[]}
@@ -1579,7 +1616,6 @@ class com_alfaInstallerScript extends InstallerScript
         array $files = self::OBSOLETE_FILES,
         array $folders = self::OBSOLETE_FOLDERS,
         array $languageFiles = [],
-        array $languageFolders = [],
         array $owned = [],
     ): array {
         $shipped = array_flip($shipped);
@@ -1642,7 +1678,6 @@ class com_alfaInstallerScript extends InstallerScript
 
             if (@unlink($abs)) {
                 $result['removed'][] = $rel;
-                $emptied[\dirname($rel)] = true;
             } else {
                 $result['languageFailed'][] = $rel;
             }
@@ -1672,27 +1707,6 @@ class com_alfaInstallerScript extends InstallerScript
             }
         }
 
-        foreach ($languageFolders as $rel) {
-            $rel = (string) $rel;
-            $abs = $root . '/' . $rel;
-
-            if (
-                !isset($emptied[$rel])
-                || !self::obsoleteLanguagePathAllowed(rel: $rel)
-                || is_link($abs)
-                || !is_dir($abs)
-                || array_diff((array) scandir($abs), ['.', '..']) !== []
-            ) {
-                continue;
-            }
-
-            if (@rmdir($abs)) {
-                $result['folders'][] = $rel;
-            } else {
-                $result['languageFailed'][] = $rel . '/';
-            }
-        }
-
         return $result;
     }
 
@@ -1714,8 +1728,8 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
-     * Whether a language entry may be used: it is one of {@see self::OBSOLETE_LANGUAGE_FILES} or
-     * {@see self::OBSOLETE_LANGUAGE_FOLDERS}, the only language paths the cleanup may ever touch.
+     * Whether a language entry may be used: it is one of {@see self::OBSOLETE_LANGUAGE_FILES}, the
+     * only language paths the cleanup may ever touch.
      *
      * @param string $rel The entry.
      *
@@ -1725,12 +1739,6 @@ class com_alfaInstallerScript extends InstallerScript
     {
         foreach (self::OBSOLETE_LANGUAGE_FILES as $entries) {
             if (\array_key_exists($rel, $entries)) {
-                return true;
-            }
-        }
-
-        foreach (self::OBSOLETE_LANGUAGE_FOLDERS as $entries) {
-            if (\in_array($rel, $entries, true)) {
                 return true;
             }
         }
@@ -1886,7 +1894,6 @@ class com_alfaInstallerScript extends InstallerScript
                 root:            JPATH_ROOT,
                 shipped:         $shipped,
                 languageFiles:   $language ? self::obsoleteSince(byRelease: self::OBSOLETE_LANGUAGE_FILES, from: $this->versionBefore) : [],
-                languageFolders: $language ? self::obsoleteSince(byRelease: self::OBSOLETE_LANGUAGE_FOLDERS, from: $this->versionBefore) : [],
                 owned:           $owned ?? [],
             ),
             languageProblem: $owned === null ? 'the files installed language packs list could not be read' : '',
@@ -1913,7 +1920,6 @@ class com_alfaInstallerScript extends InstallerScript
                 files:           [],
                 folders:         [],
                 languageFiles:   $owned === null ? [] : self::obsoleteSince(byRelease: self::OBSOLETE_LANGUAGE_FILES, from: null),
-                languageFolders: $owned === null ? [] : self::obsoleteSince(byRelease: self::OBSOLETE_LANGUAGE_FOLDERS, from: null),
                 owned:           $owned ?? [],
             ),
             route: 'uninstall',
@@ -1922,12 +1928,12 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
-     * Say what {@see self::removeObsoleteFiles()} did: one message per outcome, naming every
-     * path, and one maintenance log line per path.
+     * Say what {@see self::removeObsoleteFiles()} or {@see self::removeComponentLanguageFolders()} did:
+     * one message per outcome, naming every path, and one maintenance log line per path.
      *
      * @param array|null $result Its result, or null when nothing was attempted.
      * @param string $problem Why nothing was attempted.
-     * @param string $route The installer route the removal ran on: update or uninstall.
+     * @param string $route The installer route the removal ran on: install, update or uninstall.
      * @param string $languageProblem Why no language file was attempted, or ''.
      *
      * @since 2.1.1
@@ -1944,7 +1950,7 @@ class com_alfaInstallerScript extends InstallerScript
             }
         };
         $version = $this->packageVersion;
-        $prefix = sprintf($route === 'uninstall' ? 'Uninstall of %s' : 'Update to %s', $version);
+        $prefix = sprintf(['uninstall' => 'Uninstall of %s', 'install' => 'Install of %s'][$route] ?? 'Update to %s', $version);
 
         if ($result === null) {
             $app->enqueueMessage(

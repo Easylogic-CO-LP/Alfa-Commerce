@@ -22,10 +22,12 @@ use Alfa\Component\Alfa\Administrator\Service\Maintenance\FactoryReset;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Dispatcher\ComponentDispatcher;
+use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\BaseController;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Router\Route;
+use Joomla\Database\DatabaseInterface;
 use RuntimeException;
 use Throwable;
 
@@ -49,6 +51,9 @@ class Dispatcher extends ComponentDispatcher
         // Refused before any housekeeping below runs for a request that will not be served.
         // parent::dispatch() asks again; the answer is the same.
         $this->checkAccess();
+
+        // Said on every Alfa administrator page while plg_system_alfasync is off: nothing of it runs then.
+        $this->warnSyncPluginOff();
 
         // Maintenance (Clear everything): only the Clear everything page and its own requests are
         // served, and none of the housekeeping below runs, since it reads the Alfa tables.
@@ -155,6 +160,50 @@ class Dispatcher extends ComponentDispatcher
         }
 
         parent::dispatch();
+    }
+
+    /**
+     * Warn on an Alfa administrator page that renders while plg_system_alfasync is disabled or not installed: the
+     * guided tours' texts and Alfa's following of Joomla's users and user groups run through it. The link to the
+     * plugin is offered only to a user who may manage plugins. Costs nothing while the plugin is enabled.
+     *
+     * @since  2.1.2
+     */
+    private function warnSyncPluginOff(): void
+    {
+        try {
+            $task = strtolower($this->input->getCmd('task', ''));
+
+            if (
+                !$this->app->isClient('administrator')
+                || $this->input->getCmd('format', 'html') !== 'html'
+                || ($task !== '' && $task !== 'display' && !str_ends_with($task, '.display'))
+                || PluginHelper::isEnabled('system', 'alfasync')
+            ) {
+                return;
+            }
+
+            $db = Factory::getContainer()->get(DatabaseInterface::class);
+            $id = (int) $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName('extension_id'))
+                    ->from($db->quoteName('#__extensions'))
+                    ->where($db->quoteName('type') . ' = ' . $db->quote('plugin'))
+                    ->where($db->quoteName('folder') . ' = ' . $db->quote('system'))
+                    ->where($db->quoteName('element') . ' = ' . $db->quote('alfasync')),
+            )->loadResult();
+
+            $message = Text::_($id > 0 ? 'COM_ALFA_SYNC_PLUGIN_DISABLED' : 'COM_ALFA_SYNC_PLUGIN_MISSING');
+
+            if ($id > 0 && $this->app->getIdentity()?->authorise('core.manage', 'com_plugins')) {
+                $message .= ' <a href="' . Route::_('index.php?option=com_plugins&task=plugin.edit&extension_id=' . $id) . '">'
+                    . Text::_('COM_ALFA_SYNC_PLUGIN_OPEN') . '</a>';
+            }
+
+            $this->app->enqueueMessage($message, 'warning');
+        } catch (Throwable) {
+            // Never let the warning break the page.
+        }
     }
 
     /**
