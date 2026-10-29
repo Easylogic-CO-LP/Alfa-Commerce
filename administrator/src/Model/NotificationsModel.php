@@ -195,8 +195,17 @@ class NotificationsModel extends AlfaListModel
         $search = $this->getState('filter.search');
 
         if (!empty($search)) {
-            $like = $db->quote('%' . str_replace(' ', '%', trim($search)) . '%');
-            $set[] = '(' . $db->quoteName('a.title') . ' LIKE ' . $like . ' OR ' . $db->quoteName('a.message') . ' LIKE ' . $like . ')';
+            // The snapshot (the text in the shop's default administrator language) and the keys' parameter values (a
+            // product name in every content language, a provider's words), the same for every reader. Only the values
+            // count: of the paths JSON_SEARCH answers with, one that ends at an array element or under a content
+            // language ("ml") is a value; a key's or a joiner's name ("k", "p", "and", "sep") and the JSON's own words
+            // never match. Both sides are lowered, as the snapshot's collation compares.
+            $pattern = '%' . str_replace(' ', '%', trim($search)) . '%';
+            $like = $db->quote($pattern);
+            $args = $db->quoteName('a.text_args');
+            $set[] = '(' . $db->quoteName('a.title') . ' LIKE ' . $like . ' OR ' . $db->quoteName('a.message') . ' LIKE ' . $like
+                . ' OR IFNULL(CASE WHEN JSON_VALID(' . $args . ') THEN JSON_SEARCH(LOWER(' . $args . "), 'all', " . $db->quote(mb_strtolower($pattern)) . ') END, \'\')'
+                . ' REGEXP ' . $db->quote('\\]"|[.]ml[.]') . ')';
         }
 
         $query->select($this->getState('list.select', 'a.*'))

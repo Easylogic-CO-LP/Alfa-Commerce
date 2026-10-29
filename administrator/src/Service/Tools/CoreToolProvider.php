@@ -32,6 +32,9 @@ use Alfa\Component\Alfa\Administrator\Service\Search\SearchEngineInterface;
 use Alfa\Component\Alfa\Administrator\Service\Search\SearchEngineRegistry;
 use Alfa\Component\Alfa\Administrator\Service\Search\SearchScope;
 use Alfa\Component\Alfa\Administrator\Service\Setup\ContentLanguageAddedNotice;
+use Alfa\Component\Alfa\Administrator\Service\Task\TaskAttention;
+use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
+use Alfa\Component\Alfa\Administrator\Service\Task\TaskStaff;
 use Alfa\Component\Alfa\Site\Helper\CategoryHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
@@ -118,6 +121,15 @@ final class CoreToolProvider
      * @since  2.0.0
      */
     private const STOCK_EFFECTS_CHUNK = 25;
+
+    /**
+     * The wall-clock budget of one chunk of Run outstanding tasks, in milliseconds.
+     *
+     * @var int
+     *
+     * @since  2.1.4
+     */
+    private const TASKS_CHUNK_MS = 3000;
 
     /**
      * The language key of each part a search index can cover, in the order Options lists them: the
@@ -264,6 +276,30 @@ final class CoreToolProvider
             $stockAction->meta('notice', 'COM_ALFA_TOOLS_STOCK_EFFECTS_OWED');
         }
 
+        // WORK A SAVE LEFT UNFINISHED. A save runs what it owes right after its commit; this runs what a request did not
+        // finish and the retries whose time has come, as the notification bell does every few minutes. Recovery
+        // only: a task whose outcome is unknown is never run again here.
+        $tasksOwed = false;
+
+        try {
+            $tasksOwed = Tasks::due();
+        } catch (Throwable) {
+            // A check that fails must not remove the tool that runs them.
+        }
+
+        $tasksAction = $event->add('tasks.run', 'COM_ALFA_TOOLS_TASKS_RUN_TITLE')
+            ->icon('loop')
+            ->mutating()
+            ->css($tasksOwed ? 'btn-warning' : 'btn-secondary')
+            ->priority(100)
+            ->meta('surface', 'tasks')
+            ->meta('chunked', true)
+            ->meta('description', 'COM_ALFA_TOOLS_TASKS_RUN_DESC');
+
+        if ($tasksOwed) {
+            $tasksAction->meta('notice', 'COM_ALFA_TOOLS_TASKS_RUN_OWED');
+        }
+
         // THE PRODUCT INDEX IS THE COMPONENT'S, so the button that rebuilds it is too. The engine
         // is asked only what the component cannot know: what to call this for the engine in use,
         // and whether a rebuild is owed. An engine that maintains itself does not implement
@@ -322,6 +358,7 @@ final class CoreToolProvider
             'tools.projections' => $this->rebuildProjections($event),
             'pricing.groupsets' => $event->setMessage($this->priceSetsState()['text']),
             'inventory.effects' => $this->applyStockEffects($event),
+            'tasks.run' => $this->runOutstandingTasks($event),
             'setup.checklist' => $this->refreshSetupChecklist($event),
             'tours.reseed' => $this->reseedTours($event),
             'tours.export' => $this->exportTours($event),
@@ -387,6 +424,59 @@ final class CoreToolProvider
 
             if ($refused > 0) {
                 $message .= ' ' . Text::sprintf('COM_ALFA_TOOLS_STOCK_EFFECTS_REFUSED', $refused);
+            }
+
+            $event->setMessage($message);
+            $event->setRefresh();
+        } catch (Throwable $e) {
+            $event->setError($e->getMessage());
+        }
+    }
+
+    /**
+     * Run the tasks a save left unfinished and the retries whose time has come ({@see Tasks::sweepSingles()}), a chunk
+     * at a time. The plan is a count, for the progress bar only. A chunk that takes nothing ends the run, and the
+     * message says what still waits: retries whose time has not come, and the tasks that need staff, listed above.
+     *
+     * @param ExecuteToolActionEvent $event The tool request.
+     *
+     * @since  2.1.4
+     */
+    private function runOutstandingTasks(ExecuteToolActionEvent $event): void
+    {
+        try {
+            if ($event->isPlanning()) {
+                $event->setTotal(max(1, Tasks::dueCount()));
+
+                return;
+            }
+
+            $offset = $event->getOffset();
+            $stats = Tasks::sweepSingles(budgetMs: self::TASKS_CHUNK_MS, trigger: 'tools');
+            $remaining = Tasks::dueCount();
+
+            $event->setTotal($offset + $stats['claimed'] + $remaining);
+
+            if ($stats['claimed'] > 0 && $remaining > 0) {
+                $event->setNextOffset($offset + $stats['claimed']);
+
+                return;
+            }
+
+            TaskAttention::sync();
+
+            $message = $remaining === 0
+                ? Text::_('COM_ALFA_TOOLS_TASKS_RUN_DONE')
+                : Text::sprintf('COM_ALFA_TOOLS_TASKS_RUN_REMAINING', $remaining);
+            $waiting = Tasks::waitingCount();
+            $attention = TaskStaff::attentionTotal();
+
+            if ($waiting > 0) {
+                $message .= ' ' . Text::sprintf('COM_ALFA_TOOLS_TASKS_RUN_WAITING', $waiting);
+            }
+
+            if ($attention > 0) {
+                $message .= ' ' . Text::sprintf('COM_ALFA_TOOLS_TASKS_RUN_ATTENTION', $attention);
             }
 
             $event->setMessage($message);

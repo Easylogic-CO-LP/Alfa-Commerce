@@ -11,23 +11,27 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
 
 defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\Event\Orders\OrderStatusChangeEvent;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
+use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
-use Alfa\Component\Alfa\Administrator\Service\Document\AutoIssuePolicy;
-use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryEffectOutbox;
+use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderDocuments;
+use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderEntitlements;
+use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderStatusEmail;
+use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderStatusEvent;
+use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderStock;
+use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Exception;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
-use Joomla\Database\DatabaseDriver;
 use Joomla\Database\ParameterType;
 use Throwable;
+use WeakReference;
 
 /**
  * Transition
@@ -39,7 +43,7 @@ use Throwable;
  * automation map, gateway plugins, the future subscriptions plugin) goes
  * through here, so the side effects can never diverge between paths.
  *
- * save() runs, in order:
+ * save() runs, in order, inside one window under the order row's lock:
  *   1. guards        - unknown order / same status = no-op; leaving the
  *                      is_cancelled family requires force() (a conscious
  *                      admin act, never automation)
@@ -51,23 +55,21 @@ use Throwable;
  *   4. row update    - id_order_status is written BEFORE any side effect:
  *                      each one reads the order back and would otherwise
  *                      reconcile against the status being left
- *   5. stock         - StockPolicy::handleStatusTransition()
- *   6. downloads     - Entitlements::handleStatusTransition() (before the
- *                      email so fresh raw tokens are in the request cache)
- *   7. activity log  - 'order.status_changed' with old/new + attribution,
- *                      plus 'order.unpaid_exception' when one was allowed
- *   8. documents     - AutoIssuePolicy::handleTransition()
- *   9. email         - EmailService::sendForStatusChange() unless silent(),
- *                      after the outermost commit (PostCommit): at once when
- *                      save() opened the transaction, after the caller's
- *                      commit when nested, never after a rollback (2.1.1);
- *                      one that waited goes only if the change's own
- *                      timeline record committed
- *  10. event         - onOrderStatusChange, observing FINAL state
+ *   5. what it owes  - the stock obligation, the timeline records
+ *                      ('order.status_changed', and 'order.unpaid_exception'
+ *                      when one was allowed), and the singles of the change
+ *                      (Tasks): the stock drain, the download entitlements,
+ *                      the documents, the status e-mail unless silent(), and
+ *                      onOrderStatusChange. All of it commits with the status
+ *                      or rolls back with it (2.1.4).
  *
- * Steps 5, 6, 8 and 9 are non-blocking (log and continue): a side-effect
- * failure never leaves the status change half-applied, matching the
- * behaviour the admin save always had.
+ * The singles run once the outermost transaction has committed and Alfa's
+ * named locks are released, in that order, each recorded as it ends: at once
+ * when save() opened the transaction (before it returns, so the stock getters
+ * answer), after the caller's commit when nested (the getters answer null
+ * until then), never after a rollback. A request that dies leaves them to
+ * recovery. An e-mail whose outcome is unknown, and onOrderStatusChange, are
+ * never run twice automatically: staff decide (Tools > Tasks).
  *
  * @since  2.0.0
  */
@@ -152,6 +154,16 @@ class Transition
      * @since  2.0.0
      */
     private bool $retried = false;
+
+    /**
+     * The transitions waiting for their stock drain's outcome, by the drain's task id: the drain runs as the first
+     * single of the change's batch and hands its outcome to the transition that wrote it, when that one still exists.
+     *
+     * @var array<int, WeakReference<self>>
+     *
+     * @since  2.1.4
+     */
+    private static array $awaiting = [];
 
     /**
      * Builders are created through for().
@@ -271,6 +283,10 @@ class Transition
 
     /**
      * Stock adjustment performed by the last save(), for UI messages.
+     *
+     * Answered once the change's stock single ran: before save() returns when
+     * save() opened the transaction; after the caller's commit when nested
+     * (null until then, 2.1.4).
      *
      * @return array|null ['action' => string, 'count' => int], or null when the
      *                    stock effect was not applied: still owed and retried,
@@ -414,24 +430,28 @@ class Transition
      * An effect that waits for stock other claims reserve is owed like any other
      * outstanding one; its notice names that stock in the operator's words.
      *
+     * @param int $orderId The order.
      * @param int $oldStatusId Where the order came from.
+     * @param int $toStatusId Where it went.
      * @param string $reason What the attempt failed with, as the service
      *                       reported it (log and activity record).
      * @param bool $refused Whether the effect was refused in a way a retry
      *                      cannot change.
-     * @param string $notice The same reason as the notification shows it to
-     *                       the operator.
+     * @param mixed $notice The same reason as the notification's parameter:
+     *                      language keys and their values, so every reader and the
+     *                      snapshot say it in one language, or the service's
+     *                      message as written.
      * @param string $noticeKey Language key of the notification's text; it takes
      *                          one value, the notice.
      *
      *
      * @since  2.0.0
      */
-    private function reportStockDeferred(int $oldStatusId, string $reason, bool $refused, string $notice, string $noticeKey): void
+    private static function reportStockDeferred(int $orderId, int $oldStatusId, int $toStatusId, string $reason, bool $refused, mixed $notice, string $noticeKey): void
     {
         Log::add(
-            entry:    'CRITICAL: order ' . $this->orderId . ' transitioned ' . $oldStatusId . ' -> '
-                      . $this->toStatusId
+            entry:    'CRITICAL: order ' . $orderId . ' transitioned ' . $oldStatusId . ' -> '
+                      . $toStatusId
                       . ($refused
                           ? ' but its stock effect was refused: ' . $reason
                             . '. A retry cannot apply it; the order line must be resolved on the Inventory audit page first.'
@@ -442,34 +462,33 @@ class Transition
         );
 
         try {
-            // Raised from any request that moves an order (a storefront payment callback
-            // included), so the administrator strings are loaded explicitly.
-            Factory::getApplication()->getLanguage()->load('com_alfa', JPATH_ADMINISTRATOR);
-
             NotificationHelper::push(
-                dedupKey: InventoryEffectOutbox::orderNoticeKey(orderId: $this->orderId),
-                title:    Text::sprintf('COM_ALFA_NOTIFY_STOCK_ORDER_TITLE', $this->orderId),
+                dedupKey: InventoryEffectOutbox::orderNoticeKey(orderId: $orderId),
+                title:    NotificationText::of('COM_ALFA_NOTIFY_STOCK_ORDER_TITLE', $orderId),
                 options:  InventoryEffectOutbox::noticeOptions(
-                    message: Text::sprintf($noticeKey, $notice),
+                    message: NotificationText::of($noticeKey, $notice),
                     refused: $refused,
                 ),
             );
         } catch (Throwable $notifyError) {
             // Advisory only: a failed notification must never be the reason a
-            // transition reports failure.
+            // transition reports failure, unless it ended a caller's transaction.
+            if (TransactionState::endedBy(db: Factory::getContainer()->get('DatabaseDriver'), failure: $notifyError)) {
+                throw $notifyError;
+            }
         }
 
         OrderModel::logOrderActivity(
-            orderId: $this->orderId,
+            orderId: $orderId,
             event:   'order.stock_failed',
             summary: $refused
-                ? 'Stock was not moved for ' . $oldStatusId . ' -> ' . $this->toStatusId
+                ? 'Stock was not moved for ' . $oldStatusId . ' -> ' . $toStatusId
                   . ' (' . $reason . '); a retry cannot apply it: resolve the order line on the Inventory audit page, and the movement is queued again.'
-                : 'Stock was not adjusted for ' . $oldStatusId . ' -> ' . $this->toStatusId
+                : 'Stock was not adjusted for ' . $oldStatusId . ' -> ' . $toStatusId
                   . ' (' . $reason . '); the order still owes it: Tools -> Database Sync -> Apply outstanding stock movements applies it.',
             context: [
                 'from' => $oldStatusId,
-                'to' => $this->toStatusId,
+                'to' => $toStatusId,
                 'error' => $reason,
                 'refused' => $refused,
             ],
@@ -834,6 +853,12 @@ class Transition
                     restate:    true,
                 );
             }
+
+            // Everything else the change owes, written with it (2.1.4): its timeline records and its singles commit
+            // with the status or roll back with it. Exactly one caller owns them (above).
+            if ($ownsSideEffects) {
+                $this->writeConsequences(oldStatusId: $oldStatusId, unpaidException: $unpaidException, facts: $facts);
+            }
         } catch (Throwable $e) {
             TransactionState::rollBackLevel(db: $db, failure: $e);
 
@@ -865,255 +890,8 @@ class Transition
             return $answer;
         }
 
-        // The consequences run once, for the caller that caused them
-        // Everything below is irreversible or externally visible: stock
-        // movements, a fiscal document that consumes a gapless number, an
-        // email to the customer. None of it can be taken back by a later
-        // rollback, so it may only run for the call that actually moved the
-        // order, which, after the locked re-read above, is exactly one of any
-        // number of concurrent callers.
-        //
-        // The window this closes is real and was measured: two identical
-        // callbacks both passed the pre-lock same-status check, serialised on
-        // the lock, and the second found the row already at the target and
-        // skipped the WRITE, and then ran this entire chain anyway.
-        if (!$ownsSideEffects) {
-            return true;
-        }
-
-        // The effect, through the obligation that now carries it
-        //
-        // Applied here so the ordinary transition is still synchronous, but
-        // applied BY DRAINING the row committed above rather than by calling
-        // the reconciler directly. That is the whole difference: if this fails
-        // (or if the process never gets here at all), the obligation is still
-        // recorded, still outstanding, and Tools -> Database Sync finishes it.
-        //
-        // The drain also picks up an obligation left by an EARLIER transition
-        // that failed, which is why a claim-equal move now heals an order the
-        // short-circuit would once have skipped for ever.
-        $this->stockResult = ['action' => 'none', 'count' => 0];
-
-        try {
-            $drained = InventoryEffectOutbox::drain(
-                limit:          1,
-                onlySourceId:   $this->orderId,
-                onlySourceType: 'order_claim',
-            );
-
-            if (isset($drained['results'][$this->orderId])) {
-                $applied = $drained['results'][$this->orderId];
-                $this->stockResult = [
-                    'action' => (string) ($applied['action'] ?? 'none'),
-                    'count' => (int) ($applied['count'] ?? 0),
-                ];
-            }
-
-            if (isset($drained['refusals'][$this->orderId])) {
-                // Refused, not failed: a retry meets the same refusal, so the
-                // notice asks for the order line to be resolved instead, and
-                // the caller can say so rather than promise a retry.
-                $this->stockResult = null;
-                $this->stockRefusal = (string) $drained['refusalReasons'][$this->orderId];
-
-                $this->reportStockDeferred(
-                    oldStatusId: $oldStatusId,
-                    reason:      (string) $drained['refusals'][$this->orderId],
-                    refused:     true,
-                    notice:      $this->stockRefusal,
-                    noticeKey:   'COM_ALFA_NOTIFY_STOCK_ORDER_REFUSED_MSG',
-                );
-            } elseif (isset($drained['reservedFloor'][$this->orderId])) {
-                // Owed, not refused for good: other claims reserve the stock the
-                // movement needs. The caller and the notice read which stock, in
-                // the operator's words; the log and the activity record keep the
-                // service's own text.
-                $this->stockResult = null;
-                $this->stockReservedFloor = (string) $drained['reservedFloor'][$this->orderId];
-
-                $this->reportStockDeferred(
-                    oldStatusId: $oldStatusId,
-                    reason:      (string) ($drained['errors'][$this->orderId] ?? 'unknown'),
-                    refused:     false,
-                    notice:      $this->stockReservedFloor,
-                    noticeKey:   'COM_ALFA_NOTIFY_STOCK_ORDER_RESERVED_MSG',
-                );
-            } elseif (($drained['failed'] ?? 0) > 0) {
-                $this->stockResult = null;
-                $failure = (string) ($drained['errors'][$this->orderId] ?? 'unknown');
-                $this->stockFailure = $failure;
-
-                $this->reportStockDeferred(
-                    oldStatusId: $oldStatusId,
-                    reason:      $failure,
-                    refused:     false,
-                    notice:      $failure,
-                    noticeKey:   'COM_ALFA_NOTIFY_STOCK_ORDER_MSG',
-                );
-            }
-        } catch (Throwable $e) {
-            // \Throwable, not Exception. The order row is COMMITTED by the
-            // time this runs, so an Error raised anywhere in the stock chain,
-            // a plugin's type error, a missing class, must not escape and
-            // abandon the request with the order half transitioned.
-            $this->stockResult = null;
-            $this->stockFailure = $e->getMessage();
-
-            $this->reportStockDeferred(
-                oldStatusId: $oldStatusId,
-                reason:      $e->getMessage(),
-                refused:     false,
-                notice:      $e->getMessage(),
-                noticeKey:   'COM_ALFA_NOTIFY_STOCK_ORDER_MSG',
-            );
-        }
-
-        // Download entitlements: grant/revoke BEFORE the email so freshly
-        // minted raw tokens are still cached when the email renders links.
-        // Never throws.
-        Entitlements::handleStatusTransition(
-            orderId:     $this->orderId,
-            oldStatusId: $oldStatusId,
-            newStatusId: $this->toStatusId,
-        );
-
-        // Activity log with attribution.
-        $actor = $this->pluginName !== '' ? "plugin:{$this->pluginName}" : 'user:' . $this->resolveUserId();
-        $summary = "Status {$oldStatusId} -> {$this->toStatusId} ({$actor})"
-            . ($this->note !== '' ? ': ' . $this->note : '');
-
-        $statusRecordId = OrderModel::logOrderActivity(
-            $this->orderId,
-            'order.status_changed',
-            $summary,
-            [
-                'old_status' => $oldStatusId,
-                'new_status' => $this->toStatusId,
-                'actor' => $actor,
-                'note' => $this->note,
-            ],
-        );
-
-        // An allowed unpaid completion is an exception, not a silent pass:
-        // it belongs on the timeline, showing money was owed at the time.
-        if ($unpaidException && $facts !== null) {
-            OrderModel::logOrderActivity(
-                $this->orderId,
-                'order.unpaid_exception',
-                'Entered a status requiring payment with '
-                . number_format($facts->balance, (int) $facts->currency_scale) . ' still due',
-                [
-                    'status' => $this->toStatusId,
-                    'balance' => $facts->balance,
-                    'actor' => $actor,
-                ],
-            );
-
-            Log::add(
-                entry:    'Unpaid exception on order ' . $this->orderId . ': entered status '
-                          . $this->toStatusId . ' with '
-                          . number_format($facts->balance, (int) $facts->currency_scale) . ' due.',
-                priority: Log::WARNING,
-                category: 'com_alfa.orders',
-            );
-        }
-
-        // Sales-document auto-issue: BEFORE the email so a doc
-        // issued by THIS transition can attach to THIS status' email
-        // (attach_document_pdf flag). Never blocks: missing data -> skip +
-        // backend notification, own catch inside.
-        AutoIssuePolicy::handleTransition(
-            orderId:     $this->orderId,
-            newStatusId: $this->toStatusId,
-        );
-
-        // Status email (customer flag + admin recipients decided per status
-        // inside the helper). Swallows mail errors itself.
-        //
-        // An external call, so it waits for the outermost commit: nested in a
-        // caller's transaction, the order row this save locked stays held until
-        // that commit, and a slow mail server would hold it too. With no
-        // transaction open it runs at once; a rollback discards it (since 2.1.1).
-        //
-        // A plain driver rollback leaves a waiting email queued for the
-        // request's next commit, so one that waited goes only if this change's
-        // own timeline record committed (since 2.1.1).
-        if (!$this->silent) {
-            $mailOrderId = $this->orderId;
-            $mailStatusId = $this->toStatusId;
-            $mailRecordId = TransactionState::isOpen($db) ? (int) ($statusRecordId ?? 0) : null;
-
-            PostCommit::defer(
-                db:    $db,
-                label: sprintf('the status email of order #%d (status %d)', $mailOrderId, $mailStatusId),
-                work:  static function () use ($mailOrderId, $mailStatusId, $mailRecordId): void {
-                    $connection = Factory::getContainer()->get('DatabaseDriver');
-
-                    if ($mailRecordId !== null && !self::changeCommitted(db: $connection, recordId: $mailRecordId, orderId: $mailOrderId)) {
-                        Log::add(
-                            entry:    'Status email of order ' . $mailOrderId . ' (status ' . $mailStatusId . ') not sent: '
-                                      . ($mailRecordId > 0
-                                          ? 'the change it announces was rolled back (its record #' . $mailRecordId . ' is not committed).'
-                                          : 'the change it announces left no record to confirm its commit.'),
-                            priority: Log::WARNING,
-                            category: 'com_alfa.orders',
-                        );
-
-                        return;
-                    }
-
-                    EmailService::sendForStatusChange(
-                        orderId:     $mailOrderId,
-                        newStatusId: $mailStatusId,
-                    );
-                },
-            );
-        }
-
-        // onOrderStatusChange: THE order-lifecycle event
-        // Terminal position: everything above has persisted, so listeners
-        // (subscriptions, documents, vendor ledger) observe FINAL state.
-        // The event is read-only (getters only) and a listener failure can
-        // never block the transition; log rich context and move on.
-        try {
-            $query = $db->getQuery(true)
-                ->select('*')
-                ->from($db->quoteName('#__alfa_orders'))
-                ->where($db->quoteName('id') . ' = :id')
-                ->bind(':id', $orderId, ParameterType::INTEGER);
-            $db->setQuery(query: $query);
-            $orderRow = $db->loadObject();
-
-            if ($orderRow !== null) {
-                $event = new OrderStatusChangeEvent('onOrderStatusChange', [
-                    'order' => $orderRow,
-                    'previousStatusId' => $oldStatusId,
-                    'newStatusId' => $this->toStatusId,
-                    'enteredCompleted' => !OrderStatusHelper::isCompleted($oldStatusId)
-                        && OrderStatusHelper::isCompleted($this->toStatusId),
-                    'enteredCancelled' => !OrderStatusHelper::isCancelled($oldStatusId)
-                        && OrderStatusHelper::isCancelled($this->toStatusId),
-                    'leftCompleted' => OrderStatusHelper::isCompleted($oldStatusId)
-                        && !OrderStatusHelper::isCompleted($this->toStatusId),
-                    'leftCancelled' => OrderStatusHelper::isCancelled($oldStatusId)
-                        && !OrderStatusHelper::isCancelled($this->toStatusId),
-                    'actor' => $this->pluginName !== '' ? "plugin:{$this->pluginName}" : 'user:' . $this->resolveUserId(),
-                    'note' => $this->note,
-                    'transitionTime' => Factory::getDate('now', 'UTC')->toSql(),
-                ]);
-
-                Factory::getApplication()->getDispatcher()->dispatch('onOrderStatusChange', $event);
-            }
-        } catch (Throwable $e) {
-            Log::add(
-                entry:    'onOrderStatusChange listener failed for order ' . $this->orderId
-                          . ' (' . $oldStatusId . ' -> ' . $this->toStatusId . '): '
-                          . $e->getMessage() . "\n" . $e->getTraceAsString(),
-                priority: Log::ERROR,
-                category: 'com_alfa.orders',
-            );
-        }
-
+        // The singles of the change ran in commitLevel() when save() opened the transaction (the stock drain first,
+        // its outcome handed to this object); nested, they wait for the caller's commit and lock release.
         return true;
     }
 
@@ -1183,37 +961,214 @@ class Transition
     }
 
     /**
-     * Whether a status change's own timeline record is committed.
+     * Write what the change owes, inside its window: the stock drain's single first (the batch runs it before the
+     * rest), the timeline records, then the singles of the change in the order they run.
      *
-     * A status email that waited for a commit asks this before it goes: a
-     * caller that closed its level with a plain driver rollback left it queued,
-     * and the request's next commit runs it. Read with no transaction open, so
-     * only a committed record answers; the order's current status is not asked,
-     * as a later change may have moved it on.
+     * @param int $oldStatusId The status the order left.
+     * @param bool $unpaidException Whether a status requiring payment was entered with money due.
+     * @param object|null $facts The order's payment facts, when the gate read them.
      *
-     * @param DatabaseDriver $db The connection the change ran on.
-     * @param int $recordId The change's 'order.status_changed' record; 0 when none was written.
-     * @param int $orderId The order.
-     *
-     * @since  2.1.1
+     * @since  2.1.4
      */
-    private static function changeCommitted(DatabaseDriver $db, int $recordId, int $orderId): bool
+    private function writeConsequences(int $oldStatusId, bool $unpaidException, ?object $facts): void
     {
-        if ($recordId <= 0) {
-            return false;
+        $orderId = $this->orderId;
+        $toStatusId = $this->toStatusId;
+        $actor = $this->pluginName !== '' ? "plugin:{$this->pluginName}" : 'user:' . $this->resolveUserId();
+
+        // The stock drain (the obligation above, and one an earlier change left owed): first in the batch, its
+        // outcome handed back to this object for the stock getters.
+        $stockTask = Tasks::single(handler: OrderStock::NAME, subjectType: 'order', subjectId: $orderId, payload: ['from' => $oldStatusId, 'to' => $toStatusId]);
+        self::$awaiting[$stockTask] = WeakReference::create($this);
+
+        // The timeline, atomic with the status: a request that dies after the commit cannot lose it. A record that
+        // cannot be written raises the critical staff notice and its log line (logOrderActivity()); the e-mail single
+        // below still commits with the change, so the e-mail is sent.
+        OrderModel::logOrderActivity(
+            $orderId,
+            'order.status_changed',
+            "Status {$oldStatusId} -> {$toStatusId} ({$actor})" . ($this->note !== '' ? ': ' . $this->note : ''),
+            [
+                'old_status' => $oldStatusId,
+                'new_status' => $toStatusId,
+                'actor' => $actor,
+                'note' => $this->note,
+            ],
+        );
+
+        // An allowed unpaid completion is an exception, not a silent pass:
+        // it belongs on the timeline, showing money was owed at the time.
+        if ($unpaidException && $facts !== null) {
+            $due = number_format($facts->balance, (int) $facts->currency_scale);
+
+            OrderModel::logOrderActivity(
+                $orderId,
+                'order.unpaid_exception',
+                'Entered a status requiring payment with ' . $due . ' still due',
+                [
+                    'status' => $toStatusId,
+                    'balance' => $facts->balance,
+                    'actor' => $actor,
+                ],
+            );
+
+            // A log line that claims what happened is written once it committed.
+            PostCommit::defer(
+                db:    Factory::getContainer()->get('DatabaseDriver'),
+                label: 'the unpaid exception log line of order #' . $orderId,
+                work:  static function () use ($orderId, $toStatusId, $due): void {
+                    Log::add(
+                        entry:    'Unpaid exception on order ' . $orderId . ': entered status ' . $toStatusId . ' with ' . $due . ' due.',
+                        priority: Log::WARNING,
+                        category: 'com_alfa.orders',
+                    );
+                },
+            );
         }
 
-        $query = $db->getQuery(true)
-            ->select('COUNT(*)')
-            ->from($db->quoteName('#__alfa_order_activity_log'))
-            ->where($db->quoteName('id') . ' = :id')
-            ->where($db->quoteName('id_order') . ' = :order')
-            ->where($db->quoteName('event') . ' = ' . $db->quote('order.status_changed'))
-            ->bind(':id', $recordId, ParameterType::INTEGER)
-            ->bind(':order', $orderId, ParameterType::INTEGER);
-        $db->setQuery(query: $query);
+        Tasks::single(handler: OrderEntitlements::NAME, subjectType: 'order', subjectId: $orderId, payload: ['status' => $toStatusId]);
+        Tasks::single(handler: OrderDocuments::NAME, subjectType: 'order', subjectId: $orderId, payload: ['status' => $toStatusId]);
 
-        return (int) $db->loadResult() === 1;
+        if (!$this->silent) {
+            Tasks::single(handler: OrderStatusEmail::NAME, subjectType: 'order', subjectId: $orderId, payload: ['status' => $toStatusId]);
+        }
+
+        Tasks::single(handler: OrderStatusEvent::NAME, subjectType: 'order', subjectId: $orderId, payload: [
+            'from' => $oldStatusId,
+            'to' => $toStatusId,
+            'actor' => $actor,
+            'note' => $this->note,
+            'at' => Factory::getDate('now', 'UTC')->toSql(),
+        ]);
+    }
+
+    /**
+     * Drain an order's stock obligation after a status change, and say so when it stays owed or was refused: what
+     * the order's stock single runs ({@see OrderStock}).
+     *
+     * Applied by draining the obligation the change committed rather than by calling the reconciler directly: if
+     * this fails (or the process never gets here), the obligation is still recorded and outstanding, and Tools >
+     * Database Sync finishes it. The drain also picks up an obligation an earlier change left owed, which is why a
+     * claim-equal move heals an order the short-circuit would once have skipped for ever.
+     *
+     * @param int $orderId The order.
+     * @param int $oldStatusId The status it left.
+     * @param int $toStatusId The status it entered.
+     *
+     * @return array{result: array{action: string, count: int}|null, refusal: string|null, reservedFloor: string|null, failure: string|null}
+     *
+     * @since  2.1.4
+     */
+    public static function drainFor(int $orderId, int $oldStatusId, int $toStatusId): array
+    {
+        $outcome = ['result' => ['action' => 'none', 'count' => 0], 'refusal' => null, 'reservedFloor' => null, 'failure' => null];
+
+        try {
+            $drained = InventoryEffectOutbox::drain(
+                limit:          1,
+                onlySourceId:   $orderId,
+                onlySourceType: 'order_claim',
+            );
+
+            if (isset($drained['results'][$orderId])) {
+                $applied = $drained['results'][$orderId];
+                $outcome['result'] = [
+                    'action' => (string) ($applied['action'] ?? 'none'),
+                    'count' => (int) ($applied['count'] ?? 0),
+                ];
+            }
+
+            if (isset($drained['refusals'][$orderId])) {
+                // Refused, not failed: a retry meets the same refusal, so the
+                // notice asks for the order line to be resolved instead, and
+                // the caller can say so rather than promise a retry.
+                $outcome['result'] = null;
+                $outcome['refusal'] = (string) $drained['refusalReasons'][$orderId];
+
+                self::reportStockDeferred(
+                    orderId:     $orderId,
+                    oldStatusId: $oldStatusId,
+                    toStatusId:  $toStatusId,
+                    reason:      (string) $drained['refusals'][$orderId],
+                    refused:     true,
+                    notice:      $drained['refusalNotices'][$orderId] ?? $outcome['refusal'],
+                    noticeKey:   'COM_ALFA_NOTIFY_STOCK_ORDER_REFUSED_MSG',
+                );
+            } elseif (isset($drained['reservedFloor'][$orderId])) {
+                // Owed, not refused for good: other claims reserve the stock the
+                // movement needs. The caller and the notice read which stock, in
+                // the operator's words; the log and the activity record keep the
+                // service's own text.
+                $outcome['result'] = null;
+                $outcome['reservedFloor'] = (string) $drained['reservedFloor'][$orderId];
+
+                self::reportStockDeferred(
+                    orderId:     $orderId,
+                    oldStatusId: $oldStatusId,
+                    toStatusId:  $toStatusId,
+                    reason:      (string) ($drained['errors'][$orderId] ?? 'unknown'),
+                    refused:     false,
+                    notice:      $drained['reservedFloorNotices'][$orderId] ?? $outcome['reservedFloor'],
+                    noticeKey:   'COM_ALFA_NOTIFY_STOCK_ORDER_RESERVED_MSG',
+                );
+            } elseif (($drained['failed'] ?? 0) > 0) {
+                $outcome['result'] = null;
+                $outcome['failure'] = (string) ($drained['errors'][$orderId] ?? 'unknown');
+
+                self::reportStockDeferred(
+                    orderId:     $orderId,
+                    oldStatusId: $oldStatusId,
+                    toStatusId:  $toStatusId,
+                    reason:      $outcome['failure'],
+                    refused:     false,
+                    notice:      $drained['failureNotices'][$orderId] ?? $outcome['failure'],
+                    noticeKey:   'COM_ALFA_NOTIFY_STOCK_ORDER_MSG',
+                );
+            }
+        } catch (Throwable $e) {
+            // \Throwable, not Exception. The order row is COMMITTED by the
+            // time this runs, so an Error raised anywhere in the stock chain,
+            // a plugin's type error, a missing class, must not escape: the
+            // obligation stays owed and is reported.
+            $outcome['result'] = null;
+            $outcome['failure'] = $e->getMessage();
+
+            self::reportStockDeferred(
+                orderId:     $orderId,
+                oldStatusId: $oldStatusId,
+                toStatusId:  $toStatusId,
+                reason:      $e->getMessage(),
+                refused:     false,
+                notice:      $e->getMessage(),
+                noticeKey:   'COM_ALFA_NOTIFY_STOCK_ORDER_MSG',
+            );
+        }
+
+        return $outcome;
+    }
+
+    /**
+     * Hand a stock drain's outcome to the transition that wrote its single, when that one still exists in this
+     * request: what its stock getters answer from then on.
+     *
+     * @param int $taskId The drain's task.
+     * @param array{result: array{action: string, count: int}|null, refusal: string|null, reservedFloor: string|null, failure: string|null} $outcome
+     *
+     * @since  2.1.4
+     */
+    public static function deliverStockOutcome(int $taskId, array $outcome): void
+    {
+        $transition = (self::$awaiting[$taskId] ?? null)?->get();
+        unset(self::$awaiting[$taskId]);
+
+        if ($transition === null) {
+            return;
+        }
+
+        $transition->stockResult = $outcome['result'];
+        $transition->stockRefusal = $outcome['refusal'];
+        $transition->stockReservedFloor = $outcome['reservedFloor'];
+        $transition->stockFailure = $outcome['failure'];
     }
 
     /**

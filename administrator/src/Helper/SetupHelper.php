@@ -527,11 +527,7 @@ final class SetupHelper
                 return;
             }
 
-            // The dispatcher ticks before the component loads its language; load it
-            // here so the stored title/message are text, not keys.
-            Factory::getApplication()->getLanguage()->load('com_alfa', JPATH_ADMINISTRATOR);
-
-            $title = Text::sprintf('COM_ALFA_NOTIFY_SETUP_TITLE', $missing);
+            $title = NotificationText::of('COM_ALFA_NOTIFY_SETUP_TITLE', $missing);
 
             try {
                 $url = Route::_('index.php?option=com_alfa&view=dashboard', false);
@@ -543,14 +539,14 @@ final class SetupHelper
                 dedupKey: self::NOTIFICATION_KEY,
                 title: $title,
                 options: [
-                    'group' => Text::_('COM_ALFA_NOTIFY_GROUP_SETUP'),
+                    'group' => NotificationHelper::GROUP_SETUP,
                     'severity' => 'warning',
-                    'message' => Text::_('COM_ALFA_NOTIFY_SETUP_MESSAGE'),
+                    'message' => NotificationText::of('COM_ALFA_NOTIFY_SETUP_MESSAGE'),
                     'url' => $url,
                     'dismissible' => false,
                     // Re-alert only on a real transition; an unchanged verdict keeps
                     // its read state and stays quiet.
-                    'constant' => self::storedTitle() !== $title,
+                    'constant' => self::storedTitle() !== [$title->key, $title->args],
                     'link' => ['action' => 'alfa.tools', 'asset' => 'com_alfa'],
                 ],
             );
@@ -749,24 +745,25 @@ final class SetupHelper
     }
 
     /**
-     * The currently stored checklist notification title, for transition detection.
+     * The currently stored checklist notification title, for transition detection: its key and parameters, compared
+     * as such (since 2.1.4: the stored text is a snapshot in the shop's default administrator language).
      *
-     * @return string '' when no row carries the key.
+     * @return array{0: string, 1: list<mixed>} ['', []] when no row carries the key.
      *
      * @since  2.0.0
      */
-    private static function storedTitle(): string
+    private static function storedTitle(): array
     {
         $db = Factory::getContainer()->get(DatabaseInterface::class);
         $key = self::NOTIFICATION_KEY;
         $query = $db->getQuery(true)
-            ->select($db->quoteName('title'))
+            ->select($db->quoteName(['title_key', 'text_args']))
             ->from($db->quoteName('#__alfa_notifications'))
             ->where($db->quoteName('dedup_key') . ' = :key')
             ->bind(':key', $key, ParameterType::STRING);
 
-        $db->setQuery($query, 0, 1);
+        $row = $db->setQuery($query, 0, 1)->loadObject();
 
-        return (string) $db->loadResult();
+        return $row === null ? ['', []] : [(string) $row->title_key, NotificationText::arguments(row: $row)['title'] ?? []];
     }
 }

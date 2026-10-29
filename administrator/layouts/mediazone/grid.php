@@ -136,10 +136,9 @@
     </div>
 HTML;
 
-	// Media picker shared attributes
-	$mediaPickerUrl = $app->isClient('administrator')
-		? '/administrator/index.php?option=com_media&view=media&tmpl=component&mediatypes=0&asset=com_alfa&author=' . $user->id . '&path=local-images:/'
-		: '/index.php?option=com_media&view=media&tmpl=component&mediatypes=0';
+	// Media picker shared attributes: the client's own base, so a Joomla in a subfolder keeps its path.
+	$mediaPickerUrl = Uri::base(true) . '/index.php?option=com_media&view=media&tmpl=component&mediatypes=0'
+		. ($app->isClient('administrator') ? '&asset=com_alfa&author=' . $user->id . '&path=local-images:/' : '');
 
 	$pickerAttrs = [
 		'style'                => 'border-radius: 15px',

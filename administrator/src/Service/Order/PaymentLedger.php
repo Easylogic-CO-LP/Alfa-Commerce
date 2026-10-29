@@ -122,14 +122,16 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
+use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Helper\OrderTotalHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
 use Alfa\Component\Alfa\Administrator\Plugin\PaymentsPlugin;
-use Alfa\Component\Alfa\Administrator\Service\Document\AutoIssuePolicy;
-use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
+use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderDocuments;
+use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderEntitlements;
+use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Alfa\Component\Alfa\Site\Service\Data\ValueException;
 use Alfa\Component\Alfa\Site\Service\Order\Order;
 use Alfa\Component\Alfa\Site\Service\Pricing\Currency;
@@ -1457,8 +1459,8 @@ class PaymentLedger
      *     activity entry, SENDS THE STATUS EMAIL and applies stock effects.
      *     On an abandoned attempt that means emailing "your order was
      *     cancelled" to a buyer who is at that moment paying on another tab.
-     *   - Entitlements::handlePaymentTransition(): grants and revokes
-     *     download access for the WHOLE order. A dead attempt must not
+     *   - the order's download access (the order.entitlements single), which
+     *     grants and revokes for the WHOLE order. A dead attempt must not
      *     revoke files the buyer already paid for on another row.
      *
      * Use it ONLY when the write records a fact about the ROW. If the
@@ -1949,13 +1951,19 @@ class PaymentLedger
 
         TransactionState::commitLevel($db);
 
-        // The wallet rows' committed lines, after the COMMIT and never on a
-        // rollback path. Post-commit only when this call owns the
-        // transaction: nested in a caller's (spendOnOrder, or any caller
-        // holding one), transactionStart(true) was a SAVEPOINT and this
-        // commit only released it, as with write()'s own-transaction line.
+        // The wallet rows' committed lines, once they are committed and never on
+        // a rollback path: through PostCommit (2.1.4), so a call nested in a
+        // caller's transaction (spendOnOrder, or any caller holding one), whose
+        // commit only released a SAVEPOINT, logs them at the caller's
+        // outermost commit, not before it.
         foreach ($walletEntries as $entry) {
-            \Alfa\Component\Alfa\Administrator\Service\Credit\CustomerCreditLedger::logCommitted($entry);
+            PostCommit::defer(
+                db:    $db,
+                label: 'a committed wallet line of order #' . $orderId,
+                work:  static function () use ($entry): void {
+                    \Alfa\Component\Alfa\Administrator\Service\Credit\CustomerCreditLedger::logCommitted($entry);
+                },
+            );
         }
 
         // Post-commit: the money row is durable, so the timeline entry is
@@ -2884,13 +2892,17 @@ class PaymentLedger
 
         TransactionState::commitLevel($db);
 
-        // The wallet rows' committed lines, after the COMMIT; the rollback path
-        // above rethrows before reaching them. Post-commit only when this call
-        // owns the transaction: nested in a caller's (any caller holding
-        // one), transactionStart(true) was a SAVEPOINT and this commit only
-        // released it, as with write()'s own-transaction line.
+        // The wallet rows' committed lines, once they are committed; the rollback
+        // path above rethrows before reaching them. Through PostCommit (2.1.4):
+        // nested in a caller's transaction they wait for its outermost commit.
         foreach ($walletEntries as $entry) {
-            \Alfa\Component\Alfa\Administrator\Service\Credit\CustomerCreditLedger::logCommitted($entry);
+            PostCommit::defer(
+                db:    $db,
+                label: 'a committed wallet line of order #' . $orderId,
+                work:  static function () use ($entry): void {
+                    \Alfa\Component\Alfa\Administrator\Service\Credit\CustomerCreditLedger::logCommitted($entry);
+                },
+            );
         }
 
         // POST-COMMIT, deliberately. Status automation dispatches to plugins,
@@ -3166,9 +3178,15 @@ class PaymentLedger
 
         TransactionState::commitLevel($db);
 
-        // After the COMMIT, as in update(), with the same caveat when nested.
+        // Once committed, as in update(): through PostCommit (2.1.4).
         foreach ($walletEntries as $entry) {
-            \Alfa\Component\Alfa\Administrator\Service\Credit\CustomerCreditLedger::logCommitted($entry);
+            PostCommit::defer(
+                db:    $db,
+                label: 'a committed wallet line of order #' . $orderId,
+                work:  static function () use ($entry): void {
+                    \Alfa\Component\Alfa\Administrator\Service\Credit\CustomerCreditLedger::logCommitted($entry);
+                },
+            );
         }
 
         if ($affected < 0) {
@@ -5452,7 +5470,22 @@ class PaymentLedger
         }
 
         try {
-            self::pushUnreconciled(paymentId: $paymentId, orderId: $orderId, realert: true, message: sprintf('Payment #%d: %s', $paymentId, $summary));
+            // The summary in keys, for each reader's language: the same sentence.
+            $notice = NotificationText::of(
+                'COM_ALFA_NOTIFY_KEPT_WORD_MSG' . ($again ? '_AGAIN' : '') . ($takesId ? '_IDENTIFIED' : ''),
+                ...[
+                    $paymentId,
+                    (int) $now->id,
+                    $failure
+                        ? NotificationText::key($kind === self::STATUS_CANCELLED ? 'COM_ALFA_NOTIFY_KEPT_WORD_NOT_MADE' : 'COM_ALFA_NOTIFY_KEPT_WORD_FAILED')
+                        : NotificationText::key($kind === self::REPORT_STATUS_PENDING ? 'COM_ALFA_NOTIFY_KEPT_WORD_HOLDS' : 'COM_ALFA_NOTIFY_KEPT_WORD_SETTLED', $figure->format()),
+                    $id !== '' ? $id : NotificationText::key('COM_ALFA_NOTIFY_NO_PROVIDER_ID'),
+                    ...($takesId ? [$id] : []),
+                    self::wordsNotice(words: $words),
+                    $report,
+                ],
+            );
+            self::pushUnreconciled(paymentId: $paymentId, orderId: $orderId, realert: true, message: $notice);
         } catch (Throwable $e) {
             // The timeline entry and the listing carry the same fact, unless the failure ended the word's transaction.
             if (TransactionState::endedBy(self::db(), $e)) {
@@ -5502,6 +5535,7 @@ class PaymentLedger
      */
     private static function wordsText(array $words): string
     {
+        // A notice says the same words in keys: self::wordsNotice().
         return implode('; ', array_map(
             static fn (array $word): string => sprintf(
                 '%s %s %s (%s) on %s',
@@ -5518,6 +5552,34 @@ class PaymentLedger
             ),
             $words,
         ));
+    }
+
+    /**
+     * A row's words as a notice's parameter: {@see self::wordsText()} in keys, for each reader's language.
+     *
+     * @param list<array{kind: string, amount: string, currency: string, id: string, at: string}> $words The row's words, latest first.
+     *
+     * @return array<string, mixed>
+     *
+     * @since  2.1.4
+     */
+    private static function wordsNotice(array $words): array
+    {
+        return NotificationText::join(items: array_map(
+            static fn (array $word): array => NotificationText::key(
+                match ($word['kind']) {
+                    self::REPORT_STATUS_PENDING => 'COM_ALFA_NOTIFY_WORD_HELD',
+                    self::STATUS_FAILED => 'COM_ALFA_NOTIFY_WORD_FAILED',
+                    self::STATUS_CANCELLED => 'COM_ALFA_NOTIFY_WORD_NOT_MADE',
+                    default => 'COM_ALFA_NOTIFY_WORD_SETTLED',
+                },
+                $word['amount'],
+                $word['currency'],
+                $word['id'] !== '' ? $word['id'] : NotificationText::key('COM_ALFA_NOTIFY_NO_PROVIDER_ID'),
+                $word['at'],
+            ),
+            $words,
+        ), separator: '; ');
     }
 
     /**
@@ -6899,59 +6961,32 @@ class PaymentLedger
     }
 
     /**
-     * Write a notification of the ledger's (a push or a clear), or hand it to the commit: while the ledger holds an
-     * order's lock in the connection's outermost transaction (a provider word's frame, core's staff verb) it waits
-     * for that commit ({@see PostCommit}): none is written, and no listener of one runs, while the lock is held; a
-     * rollback discards it; they run in the order they were raised. Otherwise (no lock of the ledger's, or inside a
-     * caller's transaction) it is written at once, as every nested write's side effects are.
-     *
-     * @param string $label What the write is, as a failure's log line names it.
-     * @param Closure $write fn(): void The NotificationHelper call.
-     *
-     * @since  2.1.1
-     */
-    private static function notice(string $label, Closure $write): void
-    {
-        $db = self::db();
-
-        if (TransactionState::isOpen($db) && ((self::$wordOrder !== 0 && self::$wordDefersFlip) || self::$verbDefersNotices)) {
-            PostCommit::defer(db: $db, label: $label, work: $write);
-
-            return;
-        }
-
-        $write();
-    }
-
-    /**
      * The danger notification of a provider refund the books refused (one per payment, deduplicated by its key).
      *
      * @param int $paymentId The payment.
      * @param int $orderId Its order.
      * @param bool $realert A provider refund that comes back for staff (resolved before, or a word kept for them):
      *                      the notice is raised again, unread, even when staff dismissed it earlier.
-     * @param string $message What the notice says; '' = the standing sentence. A later word about a kept word names
-     *                        every word of its row ({@see self::keptWordAdded()}).
+     * @param NotificationText|null $message What the notice says; null = the standing sentence. A later word about a
+     *                                       kept word names every word of its row ({@see self::keptWordAdded()}).
      *
      * @since  2.1.0
      */
-    private static function pushUnreconciled(int $paymentId, int $orderId, bool $realert = false, string $message = ''): void
+    private static function pushUnreconciled(int $paymentId, int $orderId, bool $realert = false, ?NotificationText $message = null): void
     {
-        self::notice(label: sprintf('the unreconciled refund notice of payment #%d', $paymentId), write: static function () use ($paymentId, $orderId, $realert, $message): void {
-            NotificationHelper::push(
-                'payments.refund.unreconciled.' . $paymentId,
-                'Payment #' . $paymentId . ': refund left unreconciled',
-                [
-                    'severity' => 'danger',
-                    'group' => 'Payments',
-                    'message' => $message !== '' ? $message : 'The provider settled a refund that the books refused. Its reservation stays; this order needs manual reconciliation.',
-                    'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
-                    'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
-                    'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
-                    'constant' => $realert,
-                ],
-            );
-        });
+        NotificationHelper::push(
+            'payments.refund.unreconciled.' . $paymentId,
+            NotificationText::of('COM_ALFA_NOTIFY_PAYMENT_UNRECONCILED_TITLE', $paymentId),
+            [
+                'severity' => 'danger',
+                'group' => NotificationHelper::GROUP_PAYMENTS,
+                'message' => $message ?? NotificationText::of('COM_ALFA_NOTIFY_PAYMENT_UNRECONCILED_MSG'),
+                'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
+                'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
+                'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
+                'constant' => $realert,
+            ],
+        );
     }
 
     /**
@@ -7887,20 +7922,24 @@ class PaymentLedger
         try {
             self::ensureLogger();
             Log::add($summary, Log::CRITICAL, 'com_alfa.payments');
-            self::notice(label: sprintf('the beyond-decision notice of refund row #%d', $rowId), write: static function () use ($paymentId, $rowId, $orderId, $summary): void {
-                NotificationHelper::push(
-                    'payments.refund.beyond.' . $paymentId . '.' . $rowId,
-                    'Payment #' . $paymentId . ': the provider refunded beyond the staff decision',
-                    [
-                        'severity' => 'danger',
-                        'group' => 'Payments',
-                        'message' => $summary,
-                        'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
-                        'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
-                        'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
-                    ],
-                );
-            });
+            // The summary in keys, for each reader's language: the same sentence.
+            $outcome = $booked
+                ? NotificationText::key('COM_ALFA_NOTIFY_REFUND_BEYOND_BOOKED', $rowId)
+                : NotificationText::key('COM_ALFA_NOTIFY_REFUND_BEYOND_REFUSED', $rowId, self::REPORT_RESERVATION_PREFIX . $rowId);
+            NotificationHelper::push(
+                'payments.refund.beyond.' . $paymentId . '.' . $rowId,
+                NotificationText::of('COM_ALFA_NOTIFY_REFUND_BEYOND_TITLE', $paymentId),
+                [
+                    'severity' => 'danger',
+                    'group' => NotificationHelper::GROUP_PAYMENTS,
+                    'message' => $reference !== ''
+                        ? NotificationText::of('COM_ALFA_NOTIFY_REFUND_BEYOND_MSG_REFERENCE', $paymentId, $amount->format(), $requestKey, $reference, $outcome)
+                        : NotificationText::of('COM_ALFA_NOTIFY_REFUND_BEYOND_MSG', $paymentId, $amount->format(), $requestKey, $outcome),
+                    'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
+                    'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
+                    'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
+                ],
+            );
         } catch (Throwable $e) {
             // The answer to the gateway carries the outcome, unless the failure ended the word's transaction.
             if (TransactionState::endedBy(self::db(), $e)) {
@@ -9418,33 +9457,24 @@ class PaymentLedger
      */
     private static function notifyFact(string $kind, int $newId, int $orderId, Money $amount, int $targetId): void
     {
-        // Raised from any request, a gateway webhook included, so the
-        // administrator strings are loaded explicitly.
-        Factory::getApplication()->getLanguage()->load('com_alfa', JPATH_ADMINISTRATOR);
-
         [$key, $titleKey, $messageKey, $severity] = match ($kind) {
             'refund_reversed' => ['payments.refund.reversed.' . $newId, 'COM_ALFA_NOTIFY_REFUND_REVERSED_TITLE', 'COM_ALFA_NOTIFY_REFUND_REVERSED_MSG', 'danger'],
             'chargeback_reversed' => ['payments.chargeback.reversed.' . $newId, 'COM_ALFA_NOTIFY_CHARGEBACK_REVERSED_TITLE', 'COM_ALFA_NOTIFY_CHARGEBACK_REVERSED_MSG', 'success'],
             default => ['payments.chargeback.' . $newId, 'COM_ALFA_NOTIFY_CHARGEBACK_TITLE', 'COM_ALFA_NOTIFY_CHARGEBACK_MSG', 'danger'],
         };
 
-        $title = Text::sprintf($titleKey, $orderId);
-        $message = Text::sprintf($messageKey, $amount->format(), $targetId);
-
-        self::notice(label: sprintf('the notice of fact row #%d', $newId), write: static function () use ($key, $title, $message, $severity, $orderId): void {
-            NotificationHelper::push(
-                dedupKey: $key,
-                title:    $title,
-                options:  [
-                    'severity' => $severity,
-                    'group' => 'Payments',
-                    'message' => $message,
-                    'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
-                    'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
-                    'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
-                ],
-            );
-        });
+        NotificationHelper::push(
+            dedupKey: $key,
+            title:    NotificationText::of($titleKey, $orderId),
+            options:  [
+                'severity' => $severity,
+                'group' => NotificationHelper::GROUP_PAYMENTS,
+                'message' => NotificationText::of($messageKey, $amount->format(), $targetId),
+                'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
+                'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
+                'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
+            ],
+        );
     }
 
     /**
@@ -9485,15 +9515,11 @@ class PaymentLedger
         }
 
         try {
-            // Raised from any request, a gateway webhook included, so the
-            // administrator strings are loaded explicitly.
-            Factory::getApplication()->getLanguage()->load('com_alfa', JPATH_ADMINISTRATOR);
-
             $amount = $refusal['amount']->format();
             $message = match ($refusal['kind']) {
-                'voided' => Text::sprintf('COM_ALFA_NOTIFY_REFUND_UNRECONCILED_VOIDED', $refundId, $amount, $refusal['document']),
-                'order' => Text::sprintf('COM_ALFA_NOTIFY_REFUND_UNRECONCILED_OTHER_ORDER', $refundId, $amount, $refusal['documentId']),
-                default => Text::sprintf(
+                'voided' => NotificationText::of('COM_ALFA_NOTIFY_REFUND_UNRECONCILED_VOIDED', $refundId, $amount, $refusal['document']),
+                'order' => NotificationText::of('COM_ALFA_NOTIFY_REFUND_UNRECONCILED_OTHER_ORDER', $refundId, $amount, $refusal['documentId']),
+                default => NotificationText::of(
                     'COM_ALFA_NOTIFY_REFUND_UNRECONCILED_CEILING',
                     $refundId,
                     $amount,
@@ -9503,22 +9529,20 @@ class PaymentLedger
                 ),
             };
 
-            $title = Text::sprintf('COM_ALFA_NOTIFY_REFUND_UNRECONCILED_TITLE', $orderId);
+            $title = NotificationText::of('COM_ALFA_NOTIFY_REFUND_UNRECONCILED_TITLE', $orderId);
 
-            self::notice(label: sprintf('the unreconciled settle notice of refund #%d', $refundId), write: static function () use ($refundId, $orderId, $title, $message): void {
-                NotificationHelper::push(
-                    dedupKey: 'payments.refund.unreconciled.' . $refundId,
-                    title:    $title,
-                    options:  [
-                        'severity' => 'danger',
-                        'group' => 'Payments',
-                        'message' => $message,
-                        'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
-                        'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
-                        'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
-                    ],
-                );
-            });
+            NotificationHelper::push(
+                dedupKey: 'payments.refund.unreconciled.' . $refundId,
+                title:    $title,
+                options:  [
+                    'severity' => 'danger',
+                    'group' => NotificationHelper::GROUP_PAYMENTS,
+                    'message' => $message,
+                    'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
+                    'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
+                    'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
+                ],
+            );
         } catch (Throwable $e) {
             if (TransactionState::endedBy(self::db(), $e)) {
                 throw $e;
@@ -9609,19 +9633,23 @@ class PaymentLedger
             if (!$bookkeeping && self::takesMoneyIn(row: $oldSnapshot, data: $data)) {
                 // A payment turning completed grants download entitlements;
                 // this catches the admin mark-paid action AND every gateway
-                // plugin writing through this helper. Idempotent, never throws.
-                // Runs BEFORE the automation map so freshly minted raw tokens
-                // are cached when the transition's status email renders links.
-                Entitlements::handlePaymentTransition(
-                    orderId:   $orderId,
-                    oldStatus: (string) ($oldSnapshot->transaction_status ?? ''),
-                    newStatus: (string) $data['transaction_status'],
-                );
+                // plugin writing through this helper. A single of the write
+                // (2.1.4), reconciled to the order's status once the write
+                // committed: payment alone does not entitle. Written BEFORE the
+                // automation map's, so it runs first and freshly minted raw
+                // tokens are cached when the transition's status email renders
+                // links.
+                $newStatus = (string) $data['transaction_status'];
+
+                if ($newStatus === self::STATUS_COMPLETED && (string) ($oldSnapshot->transaction_status ?? '') !== $newStatus) {
+                    Tasks::single(handler: OrderEntitlements::NAME, subjectType: 'order', subjectId: $orderId, payload: ['payment' => $id]);
+                }
 
                 // A status that issues documents only when paid skipped at
                 // transition time while money was due; the order will not
-                // transition again, so settling it is the second chance.
-                AutoIssuePolicy::retryAfterPayment($orderId);
+                // transition again, so settling it is the second chance: for
+                // the status the order is in when it runs (2.1.4, a single).
+                Tasks::single(handler: OrderDocuments::NAME, subjectType: 'order', subjectId: $orderId, payload: ['current' => true]);
 
                 self::applyStatusAutomation(
                     orderId:   $orderId,
@@ -10184,15 +10212,6 @@ class PaymentLedger
      * @since  2.1.1
      */
     private static array $lockedOrders = [];
-
-    /**
-     * True while core's own staff verb ({@see self::settleReport()}) holds an order's lock in the connection's
-     * outermost transaction: the notifications raised meanwhile wait for its commit ({@see self::notice()}). Never set
-     * by a caller.
-     *
-     * @since  2.1.1
-     */
-    private static bool $verbDefersNotices = false;
 
     /**
      * True while the outermost provider word frame is the connection's outermost transaction: the flip of a payment
@@ -13150,9 +13169,7 @@ class PaymentLedger
                 $providerId = $providerOf[$key] ?? '';
                 $isBooked = isset($bookedKeys[$key]) || ($providerId !== '' && self::refundUnderReference($paymentId, $providerId) !== null);
 
-                self::notice(label: sprintf('the retirement of notice %s', $key), write: static function () use ($key, $isBooked): void {
-                    NotificationHelper::clear($key, !$isBooked);
-                });
+                NotificationHelper::clear($key, !$isBooked);
             }
         } catch (Throwable $e) {
             // The refund block itself does not depend on the notice, unless the failure ended the caller's transaction.
@@ -13207,20 +13224,24 @@ class PaymentLedger
                 ],
                 $paymentId,
             );
-            self::notice(label: sprintf('the unbooked report notice of payment #%d', $paymentId), write: static function () use ($key, $paymentId, $summary, $orderId): void {
-                NotificationHelper::push(
-                    $key,
-                    'Payment #' . $paymentId . ': a refund the provider made is not in the books',
-                    [
-                        'severity' => 'danger',
-                        'group' => 'Payments',
-                        'message' => $summary,
-                        'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
-                        'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
-                        'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
-                    ],
-                );
-            });
+            NotificationHelper::push(
+                $key,
+                NotificationText::of('COM_ALFA_NOTIFY_REFUND_UNBOOKED_TITLE', $paymentId),
+                [
+                    'severity' => 'danger',
+                    'group' => NotificationHelper::GROUP_PAYMENTS,
+                    'message' => NotificationText::of(
+                        'COM_ALFA_NOTIFY_REFUND_UNBOOKED_MSG',
+                        $paymentId,
+                        $reference,
+                        (string) $report['providerAmount'],
+                        (string) $report['providerCurrency'],
+                    ),
+                    'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
+                    'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
+                    'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
+                ],
+            );
         } catch (Throwable $e) {
             // The refund block itself does not depend on the notice, unless the failure ended the caller's transaction.
             if (TransactionState::endedBy(self::db(), $e)) {
@@ -13584,89 +13605,77 @@ class PaymentLedger
         $payment = $paymentId > 0 ? self::getRaw(id: $paymentId) : null;
         $orderId = (int) ($payment->id_order ?? 0);
         $db = self::db();
-        $outerDefers = self::$verbDefersNotices;
-        $outermost = !TransactionState::isOpen($db);
         $db->transactionStart(true);
 
-        // The notifications raised while this transaction holds the order's lock wait for its commit when it is the
-        // connection's outermost ({@see self::notice()}); the flag is put back before the commit runs them.
-        self::$verbDefersNotices = $outermost || $outerDefers;
-
+        // The ledger's one transaction rule: a refusal inside the try closes its
+        // level and returns at once; the commit comes after the try.
         try {
-            // The ledger's one transaction rule: a refusal inside the try closes its
-            // level and returns at once; the commit comes after the try.
-            try {
-                if ($orderId > 0 && !self::lockOrders($db, $orderId)) {
-                    TransactionState::rollBackLevel($db);
+            if ($orderId > 0 && !self::lockOrders($db, $orderId)) {
+                TransactionState::rollBackLevel($db);
 
-                    return self::refundResult(outcome: self::OUTCOME_RACED, reason: sprintf('order #%d could not be locked; nothing was written', $orderId)) + ['reference' => $reportId];
-                }
-
-                $found = self::findReport(payment: $payment, paymentId: $paymentId, reportId: $reportId);
-
-                // Already settled, not reported, or unreadable: nothing was written.
-                if ($found['entry'] === null) {
-                    TransactionState::rollBackLevel($db);
-
-                    return $found['result'] + ['reference' => $found['result']['reference'] ?? $reportId];
-                }
-
-                $entry = $found['entry'];
-                $reference = self::reportReference(providerId: $entry['id'], reportId: $reportId);
-                $currency = OrderCurrency::of(orderId: $orderId);
-
-                // This transaction took the order's lock before it read anything: the provider word the verb books
-                // (Record this refund) may run inside it ({@see self::wordLocked()}), and only while the verb decides.
-                // The flip that word may cause waits for the outermost commit, its status automation with it.
-                $outerLocked = self::$lockedOrders;
-                $outerVerbOrder = self::$verbOrder;
-                self::$lockedOrders[$orderId] = true;
-                self::$verbOrder = $orderId;
-
-                try {
-                    [$result, $keep] = $settle($entry, $orderId, $currency);
-                } finally {
-                    self::$lockedOrders = $outerLocked;
-                    self::$verbOrder = $outerVerbOrder;
-                }
-
-                if ($keep !== null) {
-                    $identity = Factory::getApplication()->getIdentity();
-                    $outcome = (object) [
-                        'plugin_folder' => 'alfa-payments',
-                        'plugin_element' => (string) $payment->payment_method_type,
-                        'id_payment' => $paymentId,
-                        'id_order' => $orderId,
-                        'report_id' => $reportId,
-                        'outcome' => $keep['outcome'],
-                        'id_refund_row' => $keep['id_refund_row'] ?? null,
-                        'amount_typed' => (int) ($keep['amount_typed'] ?? 0),
-                        'booked_amount' => $keep['booked_amount'] ?? null,
-                        'booked_currency' => isset($keep['booked_amount']) ? $currency->getCode() : null,
-                        'provider_refund_id' => $entry['id'],
-                        'provider_amount' => $entry['providerAmount'],
-                        'provider_currency' => $entry['providerCurrency'],
-                        'reported_on' => $entry['reportedOn'],
-                        'reason' => (string) $keep['reason'],
-                        'id_user' => $identity === null ? 0 : (int) $identity->id,
-                        'created' => Factory::getDate()->toSql(),
-                    ];
-                    $db->insertObject(self::REPORT_OUTCOMES, $outcome);
-
-                    // Resolved: its notification goes to the history (after the commit when this transaction is
-                    // the outermost: notice()).
-                    $noticeKey = self::unbookedNoticeKey(paymentId: $paymentId, reportId: $reportId);
-                    self::notice(label: sprintf('the archive of notice %s', $noticeKey), write: static function () use ($noticeKey): void {
-                        NotificationHelper::clear($noticeKey);
-                    });
-                }
-            } catch (Throwable $e) {
-                TransactionState::rollBackLevel($db, $e);
-
-                throw $e;
+                return self::refundResult(outcome: self::OUTCOME_RACED, reason: sprintf('order #%d could not be locked; nothing was written', $orderId)) + ['reference' => $reportId];
             }
-        } finally {
-            self::$verbDefersNotices = $outerDefers;
+
+            $found = self::findReport(payment: $payment, paymentId: $paymentId, reportId: $reportId);
+
+            // Already settled, not reported, or unreadable: nothing was written.
+            if ($found['entry'] === null) {
+                TransactionState::rollBackLevel($db);
+
+                return $found['result'] + ['reference' => $found['result']['reference'] ?? $reportId];
+            }
+
+            $entry = $found['entry'];
+            $reference = self::reportReference(providerId: $entry['id'], reportId: $reportId);
+            $currency = OrderCurrency::of(orderId: $orderId);
+
+            // This transaction took the order's lock before it read anything: the provider word the verb books
+            // (Record this refund) may run inside it ({@see self::wordLocked()}), and only while the verb decides.
+            // The flip that word may cause waits for the outermost commit, its status automation with it.
+            $outerLocked = self::$lockedOrders;
+            $outerVerbOrder = self::$verbOrder;
+            self::$lockedOrders[$orderId] = true;
+            self::$verbOrder = $orderId;
+
+            try {
+                [$result, $keep] = $settle($entry, $orderId, $currency);
+            } finally {
+                self::$lockedOrders = $outerLocked;
+                self::$verbOrder = $outerVerbOrder;
+            }
+
+            if ($keep !== null) {
+                $identity = Factory::getApplication()->getIdentity();
+                $outcome = (object) [
+                    'plugin_folder' => 'alfa-payments',
+                    'plugin_element' => (string) $payment->payment_method_type,
+                    'id_payment' => $paymentId,
+                    'id_order' => $orderId,
+                    'report_id' => $reportId,
+                    'outcome' => $keep['outcome'],
+                    'id_refund_row' => $keep['id_refund_row'] ?? null,
+                    'amount_typed' => (int) ($keep['amount_typed'] ?? 0),
+                    'booked_amount' => $keep['booked_amount'] ?? null,
+                    'booked_currency' => isset($keep['booked_amount']) ? $currency->getCode() : null,
+                    'provider_refund_id' => $entry['id'],
+                    'provider_amount' => $entry['providerAmount'],
+                    'provider_currency' => $entry['providerCurrency'],
+                    'reported_on' => $entry['reportedOn'],
+                    'reason' => (string) $keep['reason'],
+                    'id_user' => $identity === null ? 0 : (int) $identity->id,
+                    'created' => Factory::getDate()->toSql(),
+                ];
+                $db->insertObject(self::REPORT_OUTCOMES, $outcome);
+
+                // Resolved: its notification goes to the history (after the commit, as every notice raised inside
+                // a transaction).
+                $noticeKey = self::unbookedNoticeKey(paymentId: $paymentId, reportId: $reportId);
+                NotificationHelper::clear($noticeKey);
+            }
+        } catch (Throwable $e) {
+            TransactionState::rollBackLevel($db, $e);
+
+            throw $e;
         }
 
         // What the verb decided stands, booked or refused: a refusal by refundPayment()

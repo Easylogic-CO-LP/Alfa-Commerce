@@ -20,6 +20,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\OrderLabels;
 use Joomla\CMS\Language\Text;
 
 $item = $this->currentItem;
@@ -49,7 +50,7 @@ $item = $this->currentItem;
                 $oiSts       = $oi->shipment_status ?? '';
                 $oiStsClass  = in_array($oiSts, ['shipped','delivered','pending','cancelled'], true)
                     ? $oiSts : 'unassigned';
-                $oiStsLabel  = $oiSts ?: Text::_('COM_ALFA_UNASSIGNED');
+                $oiStsLabel  = OrderLabels::fulfilment((string) $oiSts);
                 $hasDiscount = ((float) ($oi->discount_percent ?? 0)) > 0
                     || ((float) ($oi->discount_amount_tax_incl ?? 0)) > 0;
                 $hasRefund   = ((int) ($oi->quantity_refunded ?? 0)) > 0;
@@ -110,7 +111,7 @@ $item = $this->currentItem;
 
                     <!-- Fulfillment status + tracking -->
                     <div class="text-center">
-                        <span class="sts sts-<?php echo $oiStsClass; ?>"><?php echo ucfirst($oiStsLabel); ?></span>
+                        <span class="sts sts-<?php echo $oiStsClass; ?>"><?php echo $this->escape($oiStsLabel); ?></span>
                         <?php if (!empty($oi->shipment_tracking)) : ?>
                             <small class="d-block text-mono text-muted">
                                 <?php echo $this->escape($oi->shipment_tracking); ?>

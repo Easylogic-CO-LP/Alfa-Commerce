@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseInterface;
@@ -33,7 +34,8 @@ use Throwable;
 trait NamedLock
 {
     /**
-     * Runs the work while holding the named lock.
+     * Runs the work while holding the named lock. Work deferred while it is held, inside a transaction or not, runs
+     * after its release ({@see PostCommit}).
      *
      * @param string $name The lock's full name, from lockName().
      * @param string $label What the lock guards, for the log and the exception.
@@ -61,14 +63,24 @@ trait NamedLock
             return false;
         }
 
+        // Work deferred while the lock is held (an e-mail, a plugin's reaction, a task) waits for its release.
+        PostCommit::enterLock($db, name: $quoted);
+
         try {
             $work();
         } finally {
+            $released = null;
+
             try {
-                $db->setQuery('SELECT RELEASE_LOCK(' . $quoted . ')')->loadResult();
+                $released = $db->setQuery('SELECT RELEASE_LOCK(' . $quoted . ')')->loadResult();
             } catch (Throwable $e) {
                 // The lock still ends with the connection, at the end of the request.
                 Log::add('The ' . $label . ' could not be released: ' . $e->getMessage(), Log::WARNING, $logCategory);
+            }
+
+            if (!PostCommit::leaveLock($db, name: $quoted, stillHeld: OrderMoneyLock::stillHeld($db, $quoted))) {
+                Log::add('The ' . $label . ' is still held by this connection after its release (answer ' . var_export($released, true)
+                    . '): the work deferred inside it waits, and nothing deferred runs on this connection in this request.', Log::CRITICAL, $logCategory);
             }
         }
 

@@ -1742,6 +1742,33 @@ class MultilingualHelper
     }
 
     /**
+     * The shop's default administrator language: the Language Manager's setting (com_languages "administrator"), read
+     * from its extension row, else en-GB. The language a notification's snapshot is written in (2.1.4).
+     *
+     * @since  2.1.4
+     */
+    public static function defaultAdministratorLanguage(): string
+    {
+        try {
+            $db = self::getDb();
+            $params = json_decode((string) $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName('params'))
+                    ->from($db->quoteName('#__extensions'))
+                    ->where($db->quoteName('type') . ' = ' . $db->quote('component'))
+                    ->where($db->quoteName('element') . ' = ' . $db->quote('com_languages')),
+                0,
+                1,
+            )->loadResult(), true);
+            $tag = \is_array($params) ? trim((string) ($params['administrator'] ?? '')) : '';
+        } catch (Throwable) {
+            $tag = '';
+        }
+
+        return preg_match('/^[a-z]{2,3}-[A-Z]{2}$/', $tag) === 1 ? $tag : 'en-GB';
+    }
+
+    /**
      * The site language as configured in the Language Manager (com_languages "site"),
      * read from its extension row.
      *

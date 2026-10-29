@@ -35,6 +35,7 @@
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
+use Alfa\Component\Alfa\Administrator\Helper\OrderLabels;
 use Alfa\Component\Alfa\Administrator\Helper\PluginLayoutHelper;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
 use Alfa\Component\Alfa\Administrator\Service\Order\PaymentLedger;
@@ -179,10 +180,10 @@ $renderMap = [
 	},
 
 	// Transaction status: coloured badge
-	'transaction_status' => function ($value) use ($statusBadges) {
+	'transaction_status' => function ($value, $payment, $escape) use ($statusBadges) {
 		$badgeClass = $statusBadges[(string) $value] ?? 'bg-secondary';
 		return '<span class="badge ' . $badgeClass . '">'
-			. ucfirst((string) $value) . '</span>';
+			. $escape(OrderLabels::transactionStatus((string) $value)) . '</span>';
 	},
 
 	// Transaction ID: monospace code styling
@@ -212,13 +213,13 @@ $renderMap = [
 	},
 
 	// Refund type: coloured badge
-	'refund_type' => function ($value) use ($refundTypeBadges) {
+	'refund_type' => function ($value, $payment, $escape) use ($refundTypeBadges) {
 		if (empty($value)) {
 			return '<span class="text-muted">-</span>';
 		}
 		$badgeClass = $refundTypeBadges[(string) $value] ?? 'bg-secondary';
 		return '<span class="badge ' . $badgeClass . '" style="font-size:0.85em">'
-			. ucfirst((string) $value) . '</span>';
+			. $escape(OrderLabels::refundType((string) $value)) . '</span>';
 	},
 
 	// Refund reason: small text (empty string if no reason)

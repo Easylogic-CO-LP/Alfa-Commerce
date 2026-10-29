@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Inventory;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
@@ -93,6 +94,23 @@ final class InventoryIntegrityException extends RuntimeException
     public function operatorMessage(): string
     {
         return self::refusalText(stock: $this->stock, available: $this->available, held: $this->held);
+    }
+
+    /**
+     * The same refusal as a notification's parameter ({@see NotificationText}): the
+     * key of {@see self::operatorMessage()} with its figure, so each reader and the
+     * notice's snapshot say it in one language.
+     *
+     * @return array{k: string, a: list<mixed>}
+     *
+     * @since  2.1.4
+     */
+    public function noticeText(): array
+    {
+        return NotificationText::key(
+            $this->held ? 'COM_ALFA_INVENTORY_HELD_REFUSED' : 'COM_ALFA_INVENTORY_LEDGER_MISSING_REFUSED',
+            InventoryAvailabilityService::formatQuantity(value: self::shownFigure(stock: $this->stock, available: $this->available)),
+        );
     }
 
     /**

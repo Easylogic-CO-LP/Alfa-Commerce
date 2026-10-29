@@ -11,10 +11,9 @@ namespace Alfa\Component\Alfa\Administrator\Service\Inventory;
 
 \defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
-use Joomla\CMS\Factory;
-use Joomla\CMS\Language\Text;
+use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
+use Alfa\Component\Alfa\Administrator\Service\Order\ItemFieldsSnapshot;
 use Joomla\CMS\Log\Log;
 use Throwable;
 
@@ -95,23 +94,14 @@ final class InventoryIntegrityNotice
 
         foreach (array_keys($pending) as $itemId) {
             try {
-                Factory::getApplication()->getLanguage()->load('com_alfa', JPATH_ADMINISTRATOR);
-
-                $name = MultilingualHelper::getTranslatedValue(
-                    id: $itemId,
-                    tableName: '#__alfa_items',
-                    primaryColumnName: 'id_item',
-                    field: 'name',
-                ) ?: ('#' . $itemId);
-
                 NotificationHelper::push(
                     dedupKey: self::key(itemId: $itemId),
-                    title: Text::sprintf('COM_ALFA_NOTIFY_STOCK_INTEGRITY_TITLE', $name),
+                    title: NotificationText::of('COM_ALFA_NOTIFY_STOCK_INTEGRITY_TITLE', NotificationText::content(ItemFieldsSnapshot::freezeItemName($itemId, null))),
                     options: [
-                        'group' => Text::_('COM_ALFA_NOTIFY_GROUP_INVENTORY'),
+                        'group' => NotificationHelper::GROUP_INVENTORY,
                         'severity' => 'danger',
                         'constant' => true,
-                        'message' => Text::_('COM_ALFA_NOTIFY_STOCK_INTEGRITY_DESC'),
+                        'message' => NotificationText::of('COM_ALFA_NOTIFY_STOCK_INTEGRITY_DESC'),
                         'url' => 'index.php?option=com_alfa&view=inventoryaudit',
                         'view' => ['action' => 'core.admin', 'asset' => 'com_alfa'],
                         'link' => ['action' => 'core.admin', 'asset' => 'com_alfa'],

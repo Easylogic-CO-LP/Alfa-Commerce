@@ -13,6 +13,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
+use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Joomla\CMS\Factory;
@@ -42,7 +43,8 @@ use Throwable;
  *
  * KEPT CURRENT. Recounted after a save writes the language for a counted table, and after Backfill
  * finishes, only while the notice stands: a dismissed or cleared notice is never touched again.
- * Cleared when nothing is left. Never on a storefront request.
+ * Cleared when nothing is left, and when its language is no longer a content language
+ * ({@see self::languagesRemoved()}). Never on a storefront request.
  *
  * @since  2.1.1
  */
@@ -153,6 +155,49 @@ final class ContentLanguageAddedNotice
             } catch (Throwable $e) {
                 self::warn(message: 'The notice of the added language ' . $code . ' failed: ' . $e->getMessage());
             }
+        }
+    }
+
+    /**
+     * Clear the notice of each language that is no longer a content language: deleted from Content
+     * Languages, or in any other way, which the next language sync finds. The notice is resolved as
+     * one with nothing left is ({@see NotificationHelper::clear()}); a language that is only
+     * unpublished is still a content language and keeps its notice.
+     *
+     * @since  2.1.4
+     */
+    public static function languagesRemoved(): void
+    {
+        try {
+            $keys = NotificationHelper::keys(prefix: self::KEY_PREFIX);
+
+            if ($keys === []) {
+                return;
+            }
+
+            $db = self::db();
+            $languages = array_map(
+                static fn ($tag): string => MultilingualHelper::normaliseTag(tag: (string) $tag),
+                (array) $db->setQuery(
+                    $db->getQuery(true)
+                        ->select($db->quoteName('lang_code'))
+                        ->from($db->quoteName('#__languages')),
+                )->loadColumn(),
+            );
+
+            foreach ($keys as $key) {
+                $code = MultilingualHelper::normaliseTag(tag: substr((string) $key, \strlen(self::KEY_PREFIX)));
+
+                if (!\in_array($code, $languages, true)) {
+                    NotificationHelper::clear(dedupKey: (string) $key);
+
+                    if (self::$standing !== null) {
+                        self::$standing = array_values(array_diff(self::$standing, [$code]));
+                    }
+                }
+            }
+        } catch (Throwable $e) {
+            self::warn(message: 'The notices of removed content languages were not cleared: ' . $e->getMessage());
         }
     }
 
@@ -300,8 +345,8 @@ final class ContentLanguageAddedNotice
      */
     private static function write(string $langCode, array $counts): void
     {
-        Factory::getApplication()->getLanguage()->load('com_alfa', JPATH_ADMINISTRATOR);
-        $label = MultilingualHelper::languageLabel(langCode: $langCode);
+        // The language's title as stored (#__languages), in words; the notice escapes it when shown.
+        $label = htmlspecialchars_decode(MultilingualHelper::languageLabel(langCode: $langCode), ENT_QUOTES);
         $parts = [];
         $lead = array_flip(self::LEAD_TABLES);
         uksort($counts, static fn (string $a, string $b): int => ($lead[$a] ?? PHP_INT_MAX) <=> ($lead[$b] ?? PHP_INT_MAX));
@@ -312,16 +357,15 @@ final class ContentLanguageAddedNotice
             }
         }
 
-        $last = array_pop($parts);
-        $list = $parts === [] ? (string) $last : implode(', ', $parts) . ' ' . Text::_('COM_ALFA_TRANSLATIONS_AND') . ' ' . $last;
+        $list = NotificationText::join(items: $parts, separator: ', ', and: 'COM_ALFA_TRANSLATIONS_AND');
 
         NotificationHelper::push(
             dedupKey: self::key(langCode: $langCode),
-            title:    Text::sprintf('COM_ALFA_NOTIFY_TRANSLATIONS_TITLE', $label),
+            title:    NotificationText::of('COM_ALFA_NOTIFY_TRANSLATIONS_TITLE', $label),
             options:  [
-                'group' => Text::_('COM_ALFA_NOTIFY_GROUP_SETUP'),
+                'group' => NotificationHelper::GROUP_SETUP,
                 'severity' => 'warning',
-                'message' => Text::sprintf('COM_ALFA_NOTIFY_TRANSLATIONS_MSG', $label, $list),
+                'message' => NotificationText::of('COM_ALFA_NOTIFY_TRANSLATIONS_MSG', $label, $list),
                 'url' => self::BACKFILL_URL,
             ],
         );
@@ -329,20 +373,21 @@ final class ContentLanguageAddedNotice
 
     /**
      * "2,503 products": a count of one table's records in words, the number grouped as the
-     * administrator's language groups it.
+     * reader's language groups it, as a notice's parameter (since 2.1.4).
      *
      * @param string $table The base table (e.g. "#__alfa_items").
      * @param int $count The records.
      *
+     * @return array<string, mixed>
+     *
      * @since  2.1.1
      */
-    private static function countText(string $table, int $count): string
+    private static function countText(string $table, int $count): array
     {
         $key = 'COM_ALFA_TRANSLATIONS_N_' . strtoupper(substr($table, \strlen('#__alfa_')));
-        $key = Factory::getApplication()->getLanguage()->hasKey($key) ? $key : 'COM_ALFA_TRANSLATIONS_N_OTHER';
-        $separator = Text::_('THOUSANDS_SEPARATOR');
+        $key = NotificationText::exists(key: $key) ? $key : 'COM_ALFA_TRANSLATIONS_N_OTHER';
 
-        return Text::plural($key, $count, number_format($count, 0, '', $separator === 'THOUSANDS_SEPARATOR' ? ',' : $separator));
+        return NotificationText::plural($key, $count, NotificationText::number($count));
     }
 
     /**

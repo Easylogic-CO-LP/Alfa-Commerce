@@ -20,6 +20,7 @@
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\OrderLabels;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 
@@ -47,7 +48,7 @@ $item = $this->currentItem;
                     <?php endif; ?>
                 </div>
                 <span class="sts sts-<?php echo $this->escape($os->status ?? 'pending'); ?>">
-                    <?php echo $this->escape(ucfirst($os->status ?? 'pending')); ?>
+                    <?php echo $this->escape(OrderLabels::shipmentStatus((string) ($os->status ?? 'pending'))); ?>
                 </span>
             </div>
 

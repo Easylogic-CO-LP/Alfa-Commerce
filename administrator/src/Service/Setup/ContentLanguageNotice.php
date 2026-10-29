@@ -13,8 +13,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
-use Joomla\CMS\Factory;
-use Joomla\CMS\Language\Text;
+use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Joomla\CMS\Log\Log;
 use Throwable;
 
@@ -67,23 +66,21 @@ final class ContentLanguageNotice
                 return;
             }
 
-            Factory::getApplication()->getLanguage()->load('com_alfa', JPATH_ADMINISTRATOR);
-
             if (!$problem['published']) {
-                $message = Text::sprintf('COM_ALFA_NOTIFY_CONTENT_LANGUAGE_MSG_NONE', $problem['used']);
+                $message = NotificationText::of('COM_ALFA_NOTIFY_CONTENT_LANGUAGE_MSG_NONE', $problem['used']);
             } elseif ($problem['configured'] === '') {
-                $message = Text::sprintf('COM_ALFA_NOTIFY_CONTENT_LANGUAGE_MSG_UNSET', $problem['used']);
+                $message = NotificationText::of('COM_ALFA_NOTIFY_CONTENT_LANGUAGE_MSG_UNSET', $problem['used']);
             } else {
-                $message = Text::sprintf('COM_ALFA_NOTIFY_CONTENT_LANGUAGE_MSG', $problem['configured'], $problem['used']);
+                $message = NotificationText::of('COM_ALFA_NOTIFY_CONTENT_LANGUAGE_MSG', $problem['configured'], $problem['used']);
             }
 
             // It cannot be waved away while the setting is wrong; a re-raise after a clear
             // opens it again as new.
             NotificationHelper::push(
                 dedupKey: self::KEY,
-                title:    Text::_('COM_ALFA_NOTIFY_CONTENT_LANGUAGE_TITLE'),
+                title:    NotificationText::of('COM_ALFA_NOTIFY_CONTENT_LANGUAGE_TITLE'),
                 options:  [
-                    'group' => Text::_('COM_ALFA_NOTIFY_GROUP_SETUP'),
+                    'group' => NotificationHelper::GROUP_SETUP,
                     'severity' => 'warning',
                     'message' => $message,
                     'url' => 'index.php?option=com_languages&view=languages',

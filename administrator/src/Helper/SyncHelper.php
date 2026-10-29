@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Service\Setup\ContentLanguageAddedNotice;
 use Alfa\Component\Alfa\Administrator\Service\Setup\SeededNames;
 use Exception;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
@@ -473,6 +474,8 @@ final class SyncHelper
      * Idempotent: missing lang tables are created, missing columns added; nothing
      * is dropped. Then the names the installation seeds are given to every language
      * whose table exists, never over a name the shop typed ({@see SeededNames}).
+     * Last, the "translations missing" notice of a language that is no longer a
+     * content language resolves ({@see ContentLanguageAddedNotice::languagesRemoved()}).
      * Shared by the installer (script.php postflight), Clear everything, the
      * PlgSystemAlfasync runtime sync, and the admin "Resync languages" button.
      *
@@ -503,6 +506,9 @@ final class SyncHelper
         foreach ($seeded['errors'] as $table => $error) {
             $summary['errors'][$table . ' (seeded names)'] = $error;
         }
+
+        // A content language deleted in a way Content Languages did not announce: its notice resolves here.
+        ContentLanguageAddedNotice::languagesRemoved();
 
         return $summary;
     }
@@ -709,11 +715,11 @@ final class SyncHelper
 
         NotificationHelper::push(
             dedupKey: 'alfa.integrity',
-            title: Text::_('COM_ALFA_NOTIFY_INTEGRITY_TITLE'),
+            title: NotificationText::of('COM_ALFA_NOTIFY_INTEGRITY_TITLE'),
             options: [
-                'group' => Text::_('COM_ALFA_NOTIFY_GROUP_SECURITY'),
+                'group' => NotificationHelper::GROUP_SECURITY,
                 'severity' => $severity,
-                'message' => Text::_($messageKey),
+                'message' => NotificationText::of($messageKey),
                 // Raw URL (no &amp;): output encoding adds the entities once, not twice.
                 'url' => Route::_('index.php?option=com_alfa&view=tools', false),
                 'dismissible' => false,

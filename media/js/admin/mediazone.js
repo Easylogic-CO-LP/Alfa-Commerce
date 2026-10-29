@@ -447,7 +447,7 @@
                 const input = selectedCard.querySelector(this.config.thumbnailInputSelector);
 
                 if (img) {
-                    img.src = '/' + safeUrlValue;
+                    img.src = this.siteRoot() + safeUrlValue;
                     img.style.display = '';
 
                     this.mediaErrorHandler();
@@ -458,6 +458,13 @@
                 sharedInput.value = '';
                 selectedCard = null;
             });
+        },
+
+        // The site's root URL (Joomla's system.paths), so a picked path previews on a Joomla in a subfolder too.
+        siteRoot() {
+            const paths = window.Joomla && Joomla.getOptions ? Joomla.getOptions('system.paths') : null;
+
+            return paths && paths.rootFull ? paths.rootFull : '/';
         },
 
         //  URL modal
@@ -485,7 +492,7 @@
                 pickerInput.addEventListener('change', () => {
                     const safePath = encodeURI(pickerInput.value);
 
-                    thumbPreview.src = '/' + safePath;
+                    thumbPreview.src = this.siteRoot() + safePath;
                     thumbBtn.insertAdjacentElement('afterend', thumbPreview);
                 });
             }

@@ -2928,6 +2928,12 @@ class ItemModel extends AlfaAdminModel
         // is kept.
         $deletePks = $existing === [] ? $pks : $existing;
 
+        // Every delete veto, Alfa's and Joomla's, before the transaction and its locks (2.1.4, design 0.2): no plugin code
+        // runs under them.
+        if (!$this->alfaAskBeforeDelete(pks: (array) $deletePks)) {
+            return false;
+        }
+
         $db->transactionStart(true);
 
         try {
@@ -2955,6 +2961,7 @@ class ItemModel extends AlfaAdminModel
 
             // On success $deletePks holds exactly the rows that were removed
             // (uncanDeletable ones are unset by the parent).
+            $this->alfaDeleteAsked = true;
             $result = parent::delete(pks: $deletePks);
 
             if (!$result) {

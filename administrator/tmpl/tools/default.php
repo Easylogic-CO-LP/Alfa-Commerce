@@ -55,7 +55,7 @@ $renderSurface = static function (string $surface) use ($ajaxBase): string {
 };
 
 /** Tab ids this template renders itself; anything else a plugin names opens its own tab. */
-$coreSurfaces = ['media', 'dbsync', 'github', 'integrity', 'data', 'extensions'];
+$coreSurfaces = ['media', 'dbsync', 'tasks', 'github', 'integrity', 'data', 'extensions'];
 $toolsUser = Factory::getApplication()->getIdentity();
 ?>
 <div class="com-alfa-tools p-3">
@@ -83,6 +83,13 @@ $toolsUser = Factory::getApplication()->getIdentity();
     <?php /* Database Sync: registry-only, in declared run order */ ?>
     <?php echo HTMLHelper::_('uitab.addTab', 'alfaTools', 'dbsync', Text::_('COM_ALFA_TOOLS_TAB_DBSYNC')); ?>
         <?php echo $renderSurface('dbsync'); ?>
+
+    <?php echo HTMLHelper::_('uitab.endTab'); ?>
+
+    <?php /* Tasks: what a save left failed or with an unknown outcome, for staff to act on; then the recovery run */ ?>
+    <?php echo HTMLHelper::_('uitab.addTab', 'alfaTools', 'tasks', Text::_('COM_ALFA_TOOLS_TAB_TASKS')); ?>
+        <?php echo LayoutHelper::render('tasks.attention', $this->tasks, JPATH_ADMINISTRATOR . '/components/com_alfa/layouts'); ?>
+        <?php echo $renderSurface('tasks'); ?>
 
     <?php echo HTMLHelper::_('uitab.endTab'); ?>
 

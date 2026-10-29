@@ -17,6 +17,7 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\BaseController;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Router\Route;
+use Joomla\CMS\Uri\Uri;
 
 /**
  * Shipment controller: the component-level entry point carriers come back to.
@@ -61,7 +62,8 @@ class ShipmentController extends BaseController
 
         if ($shipmentType === '' || !PluginHelper::isEnabled('alfa-shipments', $shipmentType)) {
             $app->enqueueMessage(Text::_('COM_ALFA_SHIPMENT_METHOD_MISSING'), 'error');
-            $app->redirect(Route::_('/index.php'));
+            // The shop's home page under its own path (a Joomla in a subfolder keeps it); never the page itself.
+            $app->redirect(Uri::root());
 
             return;
         }

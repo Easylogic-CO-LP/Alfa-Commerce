@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
+use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
@@ -179,11 +180,11 @@ final class OrderCreator
 
             NotificationHelper::push(
                 'orders.creator.badstatus.' . $statusId,
-                'Order status ' . $statusId . ' is missing or unpublished',
+                NotificationText::of('COM_ALFA_NOTIFY_BAD_STATUS_TITLE', $statusId),
                 [
                     'severity' => 'warning',
-                    'group' => 'Orders',
-                    'message' => 'New orders configured to land in that status are being created in the initial status instead, so their stock is claimed the way the initial status claims it.',
+                    'group' => NotificationHelper::GROUP_ORDERS,
+                    'message' => NotificationText::of('COM_ALFA_NOTIFY_BAD_STATUS_MSG'),
                     'url' => 'index.php?option=com_alfa&view=orderstatuses',
                     // The fix is in the status configuration; the link opens its list.
                     'view' => ['action' => 'alfa.orderstatuses.view', 'asset' => 'com_alfa'],
@@ -205,7 +206,11 @@ final class OrderCreator
                     NotificationHelper::clear(dedupKey: $badStatusKey);
                 }
             } catch (Throwable $clearError) {
-                // advisory only: placement never fails over a notification
+                // advisory only: placement never fails over a notification, unless it ended the placement's
+                // transaction
+                if (TransactionState::endedBy(db: $db, failure: $clearError)) {
+                    throw $clearError;
+                }
             }
         }
 

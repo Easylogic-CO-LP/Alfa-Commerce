@@ -309,6 +309,9 @@ class OrderstatusController extends FormController
             $first = false;
         }
 
+        // The administrator template's stylesheet under the site's own path (a Joomla in a subfolder keeps it).
+        $stylesheetUrl = htmlspecialchars(Uri::root(true) . '/media/templates/administrator/atum/css/template.min.css', ENT_COMPAT, 'UTF-8');
+
         return <<<HTML
             <!doctype html>
             <html lang="en">
@@ -316,7 +319,7 @@ class OrderstatusController extends FormController
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width,initial-scale=1">
                 <title>{$titleText}</title>
-                <link rel="stylesheet" href="/media/templates/administrator/atum/css/template.min.css">
+                <link rel="stylesheet" href="{$stylesheetUrl}">
                 <style>
                     html, body { margin: 0; height: 100%; }
                     body { display: flex; flex-direction: column; background: #f3f4f6; }
@@ -566,6 +569,7 @@ class OrderstatusController extends FormController
         $recipientEsc = htmlspecialchars($recipient, ENT_COMPAT, 'UTF-8');
         $langEsc = htmlspecialchars($lang, ENT_COMPAT, 'UTF-8');
         $token = Session::getFormToken();
+        $stylesheetUrl = htmlspecialchars(Uri::root(true) . '/media/templates/administrator/atum/css/template.min.css', ENT_COMPAT, 'UTF-8');
 
         return <<<HTML
             <!doctype html>
@@ -574,7 +578,7 @@ class OrderstatusController extends FormController
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width,initial-scale=1">
                 <title>Send test email</title>
-                <link rel="stylesheet" href="/media/templates/administrator/atum/css/template.min.css">
+                <link rel="stylesheet" href="{$stylesheetUrl}">
             </head>
             <body class="bg-light">
                 <div class="container py-4" style="max-width:560px;">

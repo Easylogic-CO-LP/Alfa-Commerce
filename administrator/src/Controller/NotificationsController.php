@@ -16,6 +16,7 @@ use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Service\Inventory\InventoryEffectOutbox;
 use Alfa\Component\Alfa\Administrator\Service\Setup\CollationCheck;
 use Alfa\Component\Alfa\Administrator\Service\Setup\ContentLanguageNotice;
+use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\BaseController;
@@ -65,6 +66,11 @@ class NotificationsController extends BaseController
         // Same throttled pattern for stock movements still owed: a request that was cut
         // off cannot warn about itself, so the bell fetch notices it; no scheduler needed.
         InventoryEffectOutbox::syncNotice();
+
+        // And for work a save owes and its request did not finish: recovery every few minutes, never the normal path;
+        // finished tasks are pruned at most once an hour.
+        Tasks::recoverThrottled();
+        Tasks::pruneThrottled();
 
         // And for expired notifications: deleted here at most once an hour, never on a
         // page render (every read already leaves them out).

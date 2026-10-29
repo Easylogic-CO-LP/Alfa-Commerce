@@ -2,10 +2,10 @@
 <extension type="plugin" group="alfa-form-fields" method="upgrade">
     <name>PLG_ALFA_FORM_FIELDS_TEL</name>
     <author>Easylogic</author>
-    <creationDate>2026-04</creationDate>
+    <creationDate>2026-05-07</creationDate>
     <copyright>(C) 2024-2026 Easylogic CO LP</copyright>
     <license>GNU General Public License version 3 or later</license>
-    <version>1.0.0</version>
+    <version>2.1.4</version>
     <description>PLG_ALFA_FORM_FIELDS_TEL_XML_DESCRIPTION</description>
     <namespace path="src">Alfa\Plugin\AlfaFormFields\Tel</namespace>
     <files>

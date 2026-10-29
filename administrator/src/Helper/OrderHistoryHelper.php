@@ -25,9 +25,12 @@ use Throwable;
  * facts its context holds, in the administrator's language. An amount is
  * shown in the order's currency as every other admin amount is
  * (Money::format()), a document by its type's label and its number, a status
- * change by the status names and who made it. Where the context lacks a fact
- * the line needs (an old row, another writer's row, a status or a user that no
- * longer exists), the stored summary is shown as it was written.
+ * change by the status names and who made it, the record of an order's task
+ * (an e-mail, a plugin reaction, a task resolved) by the sentence its context
+ * keeps as a language key with its parameters (2.1.4). Where the context lacks
+ * a fact the line needs (an old row, another writer's row, a status or a user
+ * that no longer exists, a key the loaded languages do not have), the stored
+ * summary is shown as it was written.
  *
  * @since  2.1.0
  */
@@ -70,6 +73,8 @@ final class OrderHistoryHelper
                 'shipment.deleted' => self::shipmentDeleted(context: $context, order: $order),
                 'order.status_changed' => self::statusChanged(context: $context, entry: $entry),
                 'order.transition_refused' => self::statusRefused(context: $context, entry: $entry),
+                'order.email_failed', 'order.email_held', 'order.email_resent', 'order.hook_failed', 'order.hook_held',
+                'order.hook_rerun', 'order.task_resolved' => self::text(text: $context['text'] ?? null),
                 default => null,
             };
         } catch (Throwable) {
@@ -220,6 +225,43 @@ final class OrderHistoryHelper
         return $note === ''
             ? Text::sprintf('COM_ALFA_ORDER_HISTORY_STATUS_CHANGED', $from, $to, $actor)
             : Text::sprintf('COM_ALFA_ORDER_HISTORY_STATUS_CHANGED_NOTE', $from, $to, $actor, $note);
+    }
+
+    /**
+     * A sentence an entry keeps as a language key with its parameters: each parameter a literal or a sentence of its
+     * own (the task a record names), translated in the administrator's language.
+     *
+     * @param mixed $text The context's text: {key, args}.
+     * @param int $depth How deep in a sentence this one is.
+     *
+     * @return string|null Null when it is not a sentence the loaded languages can say.
+     *
+     * @since  2.1.4
+     */
+    private static function text(mixed $text, int $depth = 0): ?string
+    {
+        $key = \is_array($text) ? ($text['key'] ?? null) : null;
+
+        if ($depth > 2 || !\is_string($key) || preg_match('/^COM_ALFA_[A-Z0-9_]+$/', $key) !== 1
+            || !Factory::getApplication()->getLanguage()->hasKey($key) || !\is_array($text['args'] ?? null)) {
+            return null;
+        }
+
+        $args = [];
+
+        foreach ($text['args'] as $arg) {
+            if (\is_array($arg)) {
+                $arg = self::text(text: $arg, depth: $depth + 1);
+            }
+
+            if (!\is_string($arg) && !\is_int($arg) && !\is_float($arg)) {
+                return null;
+            }
+
+            $args[] = $arg;
+        }
+
+        return Text::sprintf($key, ...$args);
     }
 
     /**

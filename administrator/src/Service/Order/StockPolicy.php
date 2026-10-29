@@ -331,7 +331,10 @@ class StockPolicy
                 NotificationHelper::clear(dedupKey: $key);
             }
         } catch (Throwable $clearError) {
-            // Advisory only: a failed retraction never fails the reconcile.
+            // Advisory only: a failed retraction never fails the reconcile, unless it ended a caller's transaction.
+            if (TransactionState::endedBy(db: Factory::getContainer()->get('DatabaseDriver'), failure: $clearError)) {
+                throw $clearError;
+            }
         }
 
         return ['action' => $applied['action'], 'count' => $applied['count'],

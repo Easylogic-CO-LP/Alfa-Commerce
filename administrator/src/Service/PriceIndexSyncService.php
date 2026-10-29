@@ -1433,8 +1433,13 @@ class PriceIndexSyncService
             $db->setQuery('SET SESSION group_concat_max_len = 1048576')->execute();
             self::$longLists = true;
         }
+        // The pricing groups are picked inside the aggregate, not in the join's condition: MySQL 8.0 reads a join that
+        // the condition narrows to one listed id as a constant table, and its GROUP_CONCAT then loses that id or adds an
+        // empty one. Every other group of the line gives NULL, which GROUP_CONCAT leaves out.
+        $pricingLine = 'CASE WHEN ' . $db->quoteName('line.id') . ' IN (' . implode(',', $pricing) . ')'
+            . ' THEN ' . $db->quoteName('line.id') . ' END';
         $sql = 'SELECT DISTINCT COALESCE(' . $db->quoteName('held.group_set') . ', ' . $db->quote('') . ') FROM ('
-            . 'SELECT GROUP_CONCAT(DISTINCT ' . $db->quoteName('line.id') . ' ORDER BY ' . $db->quoteName('line.id')
+            . 'SELECT GROUP_CONCAT(DISTINCT ' . $pricingLine . ' ORDER BY ' . $pricingLine
             . ' SEPARATOR ' . $db->quote(',') . ') AS ' . $db->quoteName('group_set')
             . ' FROM ' . $db->quoteName('#__users', 'u')
             . ' LEFT JOIN ' . $db->quoteName('#__user_usergroup_map', 'm')
@@ -1444,7 +1449,6 @@ class PriceIndexSyncService
             . ' LEFT JOIN ' . $db->quoteName('#__usergroups', 'line')
             . ' ON ' . $db->quoteName('line.lft') . ' <= ' . $db->quoteName('g.lft')
             . ' AND ' . $db->quoteName('line.rgt') . ' >= ' . $db->quoteName('g.rgt')
-            . ' AND ' . $db->quoteName('line.id') . ' IN (' . implode(',', $pricing) . ')'
             . ($userId !== null ? ' WHERE ' . $db->quoteName('u.id') . ' = ' . (int) $userId : '')
             . ' GROUP BY ' . $db->quoteName('u.id') . ') AS ' . $db->quoteName('held');
 

@@ -27,6 +27,7 @@
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\ActionRegistry;
+use Alfa\Component\Alfa\Administrator\Helper\OrderLabels;
 use Alfa\Component\Alfa\Administrator\Helper\PluginLayoutHelper;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCurrency;
 use Joomla\CMS\HTML\HTMLHelper;
@@ -108,10 +109,10 @@ $renderMap = [
 	},
 
 	// Status: coloured badge
-	'status' => function ($value) use ($statusBadges) {
+	'status' => function ($value, $shipment, $escape) use ($statusBadges) {
 		$badgeClass = $statusBadges[(string) $value] ?? 'bg-secondary';
 		return '<span class="badge ' . $badgeClass . '" style="font-size:0.9em">'
-			. ucfirst((string) $value) . '</span>';
+			. $escape(OrderLabels::shipmentStatus((string) $value)) . '</span>';
 	},
 
 	// Cost tax incl: bold

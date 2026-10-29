@@ -24,6 +24,7 @@
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\OrderHistoryHelper;
+use Alfa\Component\Alfa\Administrator\Helper\OrderLabels;
 use Alfa\Component\Alfa\Administrator\Service\Document\DocumentMoney;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\HTML\HTMLHelper;
@@ -108,13 +109,13 @@ $actionColors = [
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
 									<span class="badge bg-<?php echo $aColor; ?>">
-										<?php echo ucfirst($this->escape(str_replace('_', ' ', $action))); ?>
+										<?php echo $this->escape(OrderLabels::historyAction($action)); ?>
 									</span>
                                     <?php // -emphasis / -subtle flip with the admin colour scheme; the plain
                                     // contextual pair is tuned for a light page and drops to
                                     // 1.86:1 on a dark card. ?>
                                     <span class="badge text-<?php echo $meta['color']; ?>-emphasis border border-<?php echo $meta['color']; ?>-subtle">
-										<?php echo ucfirst($this->escape($entity)); ?>
+										<?php echo $this->escape(OrderLabels::historyEntity($entity)); ?>
 									</span>
 									<?php if (!empty($entry->status_name)) : ?>
                                         <span class="badge bg-body-tertiary text-body-emphasis border ms-1" title="<?php echo Text::_('COM_ALFA_ORDER_STATUS_AT_TIME'); ?>">
