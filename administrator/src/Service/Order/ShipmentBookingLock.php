@@ -37,7 +37,8 @@ final class ShipmentBookingLock
      * Runs the work while holding the shipment's booking lock.
      *
      * The lock is re-entrant for the connection that holds it, so a request
-     * never refuses itself.
+     * never refuses itself. Work deferred while it is held runs after its
+     * release.
      *
      * @param int $shipmentId The shipment being booked.
      * @param callable $work Called with no arguments.

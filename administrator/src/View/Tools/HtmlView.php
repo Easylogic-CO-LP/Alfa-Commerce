@@ -15,11 +15,16 @@ use Alfa\Component\Alfa\Administrator\Helper\IntegrityHelper;
 use Alfa\Component\Alfa\Administrator\Helper\PackageHelper;
 use Alfa\Component\Alfa\Administrator\Helper\SyncHelper;
 use Alfa\Component\Alfa\Administrator\Helper\TourHelper;
+use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
+use Alfa\Component\Alfa\Administrator\Service\Task\TaskStaff;
 use Joomla\CMS\Access\Exception\NotAllowed;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Log\Log;
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 use Joomla\CMS\Toolbar\ToolbarHelper;
+use Joomla\Database\DatabaseInterface;
+use Throwable;
 
 /**
  * Tools / maintenance view: developer & sync utilities (language-table resync,
@@ -94,6 +99,15 @@ class HtmlView extends BaseHtmlView
     public string $integrityHtml = '';
 
     /**
+     * The Tasks tab: the failed and held tasks ({@see TaskStaff::attentionRows()}), their number, and the names of
+     * the users their histories name.
+     *
+     * @var array{rows: list<array<string, mixed>>, total: int, users: array<int, string>, unreadable: bool}
+     * @since  2.1.4
+     */
+    public array $tasks = ['rows' => [], 'total' => 0, 'users' => [], 'unreadable' => false];
+
+    /**
      * Render the Tools page.
      *
      * @param string|null $tpl The template name.
@@ -124,9 +138,56 @@ class HtmlView extends BaseHtmlView
         include __DIR__ . '/_integrity.php';
         $this->integrityHtml = ob_get_clean();
 
+        $this->tasks = $this->tasks();
+
         $this->addToolbar();
 
         parent::display($tpl);
+    }
+
+    /**
+     * The failed and held tasks for the Tasks tab, with the names of the users their histories name.
+     *
+     * @return array{rows: list<array<string, mixed>>, total: int, users: array<int, string>, unreadable: bool}
+     *
+     * @since  2.1.4
+     */
+    private function tasks(): array
+    {
+        // A tasks table that cannot be read (an update whose SQL did not run, a restore) costs this card only: the
+        // rest of Tools, its repair tools included, stays usable.
+        try {
+            $rows = TaskStaff::attentionRows();
+            $total = TaskStaff::attentionTotal();
+        } catch (Throwable $e) {
+            Tasks::log(entry: 'Tools: the tasks could not be read: ' . $e::class . ': ' . $e->getMessage(), priority: Log::ERROR);
+
+            return ['rows' => [], 'total' => 0, 'users' => [], 'unreadable' => true];
+        }
+
+        $ids = [];
+
+        foreach ($rows as $row) {
+            foreach ($row['history'] as $entry) {
+                if ((int) ($entry['user'] ?? 0) > 0) {
+                    $ids[(int) $entry['user']] = true;
+                }
+            }
+        }
+
+        $users = [];
+
+        if ($ids !== []) {
+            $db = Factory::getContainer()->get(DatabaseInterface::class);
+            $users = $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName(['id', 'name']))
+                    ->from($db->quoteName('#__users'))
+                    ->whereIn($db->quoteName('id'), array_keys($ids)),
+            )->loadAssocList('id', 'name') ?: [];
+        }
+
+        return ['rows' => $rows, 'total' => $total, 'users' => $users, 'unreadable' => false];
     }
 
     /**

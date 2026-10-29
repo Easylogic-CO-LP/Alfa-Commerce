@@ -186,15 +186,25 @@ class SeriesModel extends AlfaAdminModel
             $id = (int) $this->getState($this->getName() . '.id');
             $db = $this->getDatabase();
 
-            $query = $db->getQuery(true)
-                ->update($db->quoteName('#__alfa_document_series'))
-                ->set($db->quoteName('is_default') . ' = 0')
-                ->where([
-                    $db->quoteName('doc_type') . ' = ' . $db->quote((string) $data['doc_type']),
-                    $db->quoteName('id') . ' != ' . $id,
-                ]);
-            $db->setQuery(query: $query);
-            $db->execute();
+            // The type as the row stores it: the form of an existing series does not post it.
+            $docType = (string) $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName('doc_type'))
+                    ->from($db->quoteName('#__alfa_document_series'))
+                    ->where($db->quoteName('id') . ' = ' . $id),
+            )->loadResult();
+
+            if ($docType !== '') {
+                $query = $db->getQuery(true)
+                    ->update($db->quoteName('#__alfa_document_series'))
+                    ->set($db->quoteName('is_default') . ' = 0')
+                    ->where([
+                        $db->quoteName('doc_type') . ' = ' . $db->quote($docType),
+                        $db->quoteName('id') . ' != ' . $id,
+                    ]);
+                $db->setQuery(query: $query);
+                $db->execute();
+            }
         }
 
         return true;

@@ -173,13 +173,28 @@ class LocationModel extends AlfaAdminModel
             $data['state'] = 1;
         }
 
-        $saved = $id > 0
-            ? (new InventoryService())->changeLocationState(
+        if ($id > 0) {
+            // Saved under the inventory locks of its stock records and its row. Alfa's before-save is asked before
+            // them (2.1.4, design 0.2), and the after-events are heard once they are released; Joomla's
+            // onContentBeforeSave stays inside the save, between the record's check and its store.
+            $asked = $this->alfaAskSave(data: $data);
+
+            if ($asked === null) {
+                return false;
+            }
+
+            $saved = (new InventoryService())->changeLocationState(
                 locationIds: [$id],
-                write: fn (): bool => (bool) parent::save($data),
+                write: function () use ($asked): bool {
+                    $this->alfaSaveAsked = $asked;
+
+                    return (bool) parent::save($asked);
+                },
                 context: InventoryContext::ambient(),
-            )
-            : parent::save($data);
+            );
+        } else {
+            $saved = parent::save($data);
+        }
 
         if (!$saved) {
             return false;

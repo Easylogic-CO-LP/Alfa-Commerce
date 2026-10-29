@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Inventory;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
@@ -135,6 +136,44 @@ final class InventoryReservedFloorException extends RuntimeException
             reserved: $this->reserved,
             requested: $this->requested,
         );
+    }
+
+    /**
+     * The same refusal as a notification's parameter ({@see NotificationText}): the
+     * keys of {@see self::operatorMessage()} with their values, so each reader and the
+     * notice's snapshot say it in one language. The figures are written as the
+     * sentence writes them; the unit is named in every content language.
+     *
+     * @return array<string, mixed>
+     *
+     * @since  2.1.4
+     */
+    public function noticeText(): array
+    {
+        $unit = InventoryUnitException::labelText(itemId: $this->itemId, combinationId: $this->combinationId);
+        $location = self::locationTitle(locationId: $this->locationId);
+        $figures = [
+            InventoryAvailabilityService::formatQuantity(value: $this->reserved),
+            InventoryAvailabilityService::formatQuantity(value: self::minimumFor(onHand: $this->onHand, reserved: $this->reserved)),
+            InventoryAvailabilityService::formatQuantity(value: $this->onHand),
+            InventoryAvailabilityService::formatQuantity(value: $this->requested),
+        ];
+
+        if ($this->ahead === []) {
+            return NotificationText::key('COM_ALFA_INVENTORY_RESERVED_FLOOR_REFUSED', $unit, $location, ...$figures);
+        }
+
+        $sources = NotificationText::join(
+            items: array_map(
+                static fn (array $source): array => (string) $source['source_type'] === 'order'
+                    ? NotificationText::key('COM_ALFA_INVENTORY_CLAIM_AHEAD_ORDER', (int) $source['source_id'])
+                    : NotificationText::key('COM_ALFA_INVENTORY_CLAIM_AHEAD_SOURCE', (string) $source['source_type'], (int) $source['source_id']),
+                array_values($this->ahead),
+            ),
+            separator: ', ',
+        );
+
+        return NotificationText::key('COM_ALFA_INVENTORY_CLAIM_ORDER_REFUSED', $unit, $location, $sources, ...$figures);
     }
 
     /**

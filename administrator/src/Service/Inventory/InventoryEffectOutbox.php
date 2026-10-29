@@ -14,6 +14,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Inventory;
 use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
+use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Document\StockBridge;
 use Alfa\Component\Alfa\Administrator\Service\Order\InventoryBridge;
@@ -286,6 +287,12 @@ final class InventoryEffectOutbox
      * the document's notice is raised with it, pointing at the action that
      * applies the movement once that stock is free.
      *
+     * 'refusalNotices', 'reservedFloorNotices' and 'failureNotices' carry the same
+     * reasons as notification parameters (language keys and their values, never a
+     * sentence translated in the request's language), for the notices a caller
+     * raises; 'failureNotices' only for a failure that has its own words (a unit
+     * held or without stock records), the others keep the service's message.
+     *
      * @param int $limit How many to take in one pass.
      * @param int|null $staleSeconds Reclaim window for claims whose worker died.
      * @param int $onlySourceId Restrict to one obligation (the producer's
@@ -294,7 +301,7 @@ final class InventoryEffectOutbox
      *                          is meaningless without $onlySourceType.
      * @param string $onlySourceType Restrict to one producing domain.
      *
-     * @return array{claimed: int, applied: int, failed: int, refused: int, results: array, errors: array, refusals: array, refusalReasons: array, reservedFloor: array}
+     * @return array{claimed: int, applied: int, failed: int, refused: int, results: array, errors: array, refusals: array, refusalReasons: array, reservedFloor: array, refusalNotices: array, reservedFloorNotices: array, failureNotices: array}
      *
      * @since  2.0.0
      */
@@ -316,6 +323,9 @@ final class InventoryEffectOutbox
             'refusals' => [],
             'refusalReasons' => [],
             'reservedFloor' => [],
+            'refusalNotices' => [],
+            'reservedFloorNotices' => [],
+            'failureNotices' => [],
         ];
 
         // Run inside a caller's transaction, a failure that ends it is the caller's
@@ -369,14 +379,16 @@ final class InventoryEffectOutbox
 
                 if ($status === self::STATUS_REFUSED) {
                     $reason = self::refusalReason(failure: $e);
+                    $notice = self::refusalNotice(failure: $e);
 
                     $summary['refused']++;
                     $summary['refusals'][(int) $row->source_id] = $e->getMessage();
                     $summary['refusalReasons'][(int) $row->source_id] = $reason;
+                    $summary['refusalNotices'][(int) $row->source_id] = $notice;
 
                     self::announceRefusal(
                         row:             $row,
-                        reason:          $reason,
+                        reason:          $notice,
                         orderMessage:    'COM_ALFA_NOTIFY_STOCK_ORDER_REFUSED_MSG',
                         documentMessage: 'COM_ALFA_NOTIFY_STOCK_DOCUMENT_REFUSED_MSG',
                         terminal:        true,
@@ -385,16 +397,20 @@ final class InventoryEffectOutbox
                     // Still owed: the movement applies once the other claims let
                     // go of that stock, so the operator is told which stock it is.
                     $sentence = $e->operatorMessage();
+                    $notice = $e->noticeText();
 
                     $summary['reservedFloor'][(int) $row->source_id] = $sentence;
+                    $summary['reservedFloorNotices'][(int) $row->source_id] = $notice;
 
                     self::announceRefusal(
                         row:             $row,
-                        reason:          $sentence,
+                        reason:          $notice,
                         orderMessage:    'COM_ALFA_NOTIFY_STOCK_ORDER_RESERVED_MSG',
                         documentMessage: 'COM_ALFA_NOTIFY_STOCK_DOCUMENT_RESERVED_MSG',
                         terminal:        false,
                     );
+                } elseif ($e instanceof InventoryIntegrityException) {
+                    $summary['failureNotices'][(int) $row->source_id] = $e->noticeText();
                 }
 
                 Log::add(
@@ -630,6 +646,49 @@ final class InventoryEffectOutbox
     }
 
     /**
+     * The same refusal as a notification's parameter: for an order line refusal,
+     * each line's sentence as a language key and its values, joined, so every reader
+     * and the notice's snapshot say it in one language ({@see self::refusalReason()},
+     * whose sentences these are); else the service's own message, as written.
+     *
+     * @param Throwable $failure The refusal.
+     *
+     * @since  2.1.4
+     */
+    private static function refusalNotice(Throwable $failure): mixed
+    {
+        if (!$failure instanceof InventoryLineUnresolvedException || $failure->lines === []) {
+            return $failure->getMessage();
+        }
+
+        $sentences = [];
+
+        foreach ($failure->lines as $line) {
+            $lineId = (int) ($line['line_id'] ?? 0);
+            $itemId = (int) ($line['item_id'] ?? 0);
+            $combinationId = (int) ($line['combination_id'] ?? 0);
+
+            if (InventoryLineUnresolvedException::lineReason(line: $line) === InventoryLineUnresolvedException::REASON_NOT_CURRENT) {
+                $sentences[] = NotificationText::key(
+                    'COM_ALFA_INVENTORY_LINE_NOT_SELLABLE',
+                    $lineId,
+                    $combinationId > 0
+                        ? NotificationText::key('COM_ALFA_INVENTORY_LINE_UNIT_COMBINATION', $combinationId, $itemId)
+                        : NotificationText::key('COM_ALFA_INVENTORY_LINE_UNIT_ITEM', $itemId),
+                );
+
+                continue;
+            }
+
+            $sentences[] = $combinationId > 0
+                ? NotificationText::key('COM_ALFA_INVENTORY_LINE_UNRESOLVED', $lineId, $combinationId)
+                : NotificationText::key('COM_ALFA_INVENTORY_LINE_UNRESOLVED_PARENT', $lineId, $itemId);
+        }
+
+        return NotificationText::join(items: $sentences, separator: ' ');
+    }
+
+    /**
      * Raise the notice of an obligation the inventory service refused: its
      * order's for a status change, its document's for a document.
      *
@@ -644,8 +703,9 @@ final class InventoryEffectOutbox
      * action that applies the movement.
      *
      * @param object $row The outbox row.
-     * @param string $reason The refusal as the operator reads it, raw: the
-     *                       notification screens escape it where they render it.
+     * @param mixed $reason The refusal as a notification parameter: language keys and
+     *                      their values ({@see self::refusalNotice()}), or the service's
+     *                      message as written; the screens escape it where they render it.
      * @param string $orderMessage Language key of an order's notice text; it takes one
      *                             value, the reason.
      * @param string $documentMessage Language key of a document's notice text; it takes
@@ -657,14 +717,12 @@ final class InventoryEffectOutbox
      */
     private static function announceRefusal(
         object $row,
-        string $reason,
+        mixed $reason,
         string $orderMessage,
         string $documentMessage,
         bool $terminal,
     ): void {
         try {
-            Factory::getApplication()->getLanguage()->load('com_alfa', JPATH_ADMINISTRATOR);
-
             if ((string) $row->source_type === 'document') {
                 $documentId = (int) $row->source_id;
                 $db = Factory::getContainer()->get('DatabaseDriver');
@@ -675,9 +733,9 @@ final class InventoryEffectOutbox
 
                 NotificationHelper::push(
                     dedupKey: self::documentNoticeKey(documentId: $documentId),
-                    title:    Text::sprintf('COM_ALFA_NOTIFY_STOCK_DOCUMENT_TITLE', $number !== '' ? $number : '#' . $documentId),
+                    title:    NotificationText::of('COM_ALFA_NOTIFY_STOCK_DOCUMENT_TITLE', $number !== '' ? $number : '#' . $documentId),
                     options:  self::noticeOptions(
-                        message: Text::sprintf($documentMessage, $reason),
+                        message: NotificationText::of($documentMessage, $reason),
                         refused: $terminal,
                     ),
                 );
@@ -686,9 +744,9 @@ final class InventoryEffectOutbox
 
                 NotificationHelper::push(
                     dedupKey: self::orderNoticeKey(orderId: $orderId),
-                    title:    Text::sprintf('COM_ALFA_NOTIFY_STOCK_ORDER_TITLE', $orderId),
+                    title:    NotificationText::of('COM_ALFA_NOTIFY_STOCK_ORDER_TITLE', $orderId),
                     options:  self::noticeOptions(
-                        message: Text::sprintf($orderMessage, $reason),
+                        message: NotificationText::of($orderMessage, $reason),
                         refused: $terminal,
                     ),
                 );
@@ -927,7 +985,7 @@ final class InventoryEffectOutbox
      * archived row only updates it and leaves it dismissed; without this, an order that
      * failed once, was fixed, and failed again would stay silent the second time.
      *
-     * @param string $message The translated message.
+     * @param NotificationText|string $message The message: a key and its parameters (core), or literal text.
      * @param bool $refused Whether the movement was refused and waits for an order
      *                      line to be resolved.
      *
@@ -935,10 +993,10 @@ final class InventoryEffectOutbox
      *
      * @since  2.0.0
      */
-    public static function noticeOptions(string $message, bool $refused = false): array
+    public static function noticeOptions(NotificationText|string $message, bool $refused = false): array
     {
         return [
-            'group' => Text::_('COM_ALFA_NOTIFY_GROUP_INVENTORY'),
+            'group' => NotificationHelper::GROUP_INVENTORY,
             'severity' => 'warning',
             'message' => $message,
             'constant' => true,
@@ -1087,16 +1145,14 @@ final class InventoryEffectOutbox
                 return true;
             }
 
-            Factory::getApplication()->getLanguage()->load('com_alfa', JPATH_ADMINISTRATOR);
-
             // Re-open it only when it is not already standing. A standing notice just gets
             // its count updated: re-alerting on every check would mark it unread again every
             // few minutes for as long as the problem lasts.
             NotificationHelper::push(
                 self::NOTICE_STRANDED,
-                Text::_('COM_ALFA_NOTIFY_STOCK_STRANDED_TITLE'),
+                NotificationText::of('COM_ALFA_NOTIFY_STOCK_STRANDED_TITLE'),
                 ['dismissible' => false, 'constant' => !NotificationHelper::isOpen(dedupKey: self::NOTICE_STRANDED)]
-                    + self::noticeOptions(Text::sprintf('COM_ALFA_NOTIFY_STOCK_STRANDED_MSG', $unannounced)),
+                    + self::noticeOptions(NotificationText::of('COM_ALFA_NOTIFY_STOCK_STRANDED_MSG', $unannounced)),
             );
         } catch (Throwable $e) {
             Log::add('Stock-effect notice check failed: ' . $e->getMessage(), Log::WARNING, 'com_alfa.inventory');

@@ -1,6 +1,6 @@
 {
     "uid": "com_alfa.orders",
-    "version": 7,
+    "version": 8,
     "title": "COM_ALFA_GUIDEDTOUR_ORDERS_TITLE",
     "description": "COM_ALFA_GUIDEDTOUR_ORDERS_DESC",
     "extensions": [
@@ -40,7 +40,7 @@
             "title": "COM_ALFA_GUIDEDTOUR_ORDERS_STEP_4_TITLE",
             "description": "COM_ALFA_GUIDEDTOUR_ORDERS_STEP_4_DESC",
             "position": "right",
-            "target": "#orderList tbody .btn-expand, #orderList, #adminForm",
+            "target": "#orderList tbody .btn-quickview, #orderList, #adminForm",
             "type": 2,
             "interactive_type": 3,
             "url": "administrator/index.php?option=com_alfa&view=orders"

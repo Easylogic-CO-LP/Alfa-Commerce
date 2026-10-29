@@ -1018,6 +1018,12 @@ class CategoryModel extends AlfaAdminModel
         $affectedItems = [];
         $requested = $pks;
 
+        // Every delete veto, Alfa's and Joomla's, before the transaction and its locks (2.1.4, design 0.2): no plugin code
+        // runs under them.
+        if (!$this->alfaAskBeforeDelete(pks: (array) $pks)) {
+            return false;
+        }
+
         $nested = TransactionState::isOpen(db: $db);
         $db->transactionStart(true);
 
@@ -1041,6 +1047,8 @@ class CategoryModel extends AlfaAdminModel
                         ->from($db->quoteName('#__alfa_items_categories'))
                         ->whereIn($db->quoteName('category_id'), $pks),
                 )->loadColumn());
+
+                $this->alfaDeleteAsked = true;
 
                 if (!parent::delete($pks)) {
                     // Every close of this level discards what was deferred inside it.
@@ -1089,6 +1097,8 @@ class CategoryModel extends AlfaAdminModel
 
         // None of the requested categories exists: core answers that itself.
         if ($pks === []) {
+            $this->alfaDeleteAsked = true;
+
             return parent::delete($requested);
         }
 

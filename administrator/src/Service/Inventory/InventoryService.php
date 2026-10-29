@@ -19,12 +19,13 @@ use Alfa\Component\Alfa\Administrator\Event\Inventory\InventoryCommittedEvent;
 use Alfa\Component\Alfa\Administrator\Event\Inventory\InventoryReleasedEvent;
 use Alfa\Component\Alfa\Administrator\Event\Inventory\InventoryReservedEvent;
 use Alfa\Component\Alfa\Administrator\Event\Inventory\InventoryTransferredEvent;
-use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
+use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
+use Alfa\Component\Alfa\Administrator\Service\Order\ItemFieldsSnapshot;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Event\AbstractEvent;
 use Joomla\CMS\Factory;
@@ -300,9 +301,12 @@ final class InventoryService
     /**
      * Request memo of dedup keys KNOWN to carry no notification row, so a healthy shop
      * pays one indexed point read per unit per request instead of a write per operation.
-     * Static because every call site constructs its own service instance.
+     * Static because every call site constructs its own service instance. Each key holds
+     * the connection's rollback count when it was learnt
+     * ({@see TransactionState::rollbacks()}): a rollback since may have undone the clear
+     * it remembers, so the key is read again (2.1.4).
      *
-     * @var array<string, bool>
+     * @var array<string, int>
      * @since  2.0.0
      */
     private static array $noticeAbsent = [];
@@ -6481,22 +6485,20 @@ final class InventoryService
             // In the low band = opted in, a positive threshold, and salable
             // sitting in (0, threshold]. Anything else clears the notice.
             if ($notify === 1 && $threshold > 0 && $salable > 0 && $salable <= $threshold) {
-                Factory::getApplication()->getLanguage()->load('com_alfa', JPATH_ADMINISTRATOR);
-
                 $label = $this->unitLabel(itemId: $itemId, sku: $combinationId > 0 ? ($combo->sku ?? null) : null);
 
                 NotificationHelper::push(
                     dedupKey: $dedupKey,
-                    title: Text::sprintf('COM_ALFA_NOTIFY_LOW_STOCK_TITLE', $label),
+                    title: NotificationText::of('COM_ALFA_NOTIFY_LOW_STOCK_TITLE', $label),
                     options: [
-                        'group' => Text::_('COM_ALFA_NOTIFY_GROUP_INVENTORY'),
+                        'group' => NotificationHelper::GROUP_INVENTORY,
                         'severity' => 'warning',
                         // The band is a standing condition, so the notice re-alerts
                         // while stock stays inside it. Without this a merchant who
                         // dismissed it once was never told again, however far the
                         // quantity then fell.
                         'constant' => true,
-                        'message' => Text::sprintf('COM_ALFA_NOTIFY_LOW_STOCK_DESC', self::trimQty($salable), self::trimQty($threshold)),
+                        'message' => NotificationText::of('COM_ALFA_NOTIFY_LOW_STOCK_DESC', self::trimQty($salable), self::trimQty($threshold)),
                         'url' => 'index.php?option=com_alfa&task=item.edit&id=' . $itemId,
                         'view' => ['action' => 'alfa.items.view', 'asset' => 'com_alfa'],
                         'link' => ['action' => 'alfa.items.edit', 'asset' => 'com_alfa'],
@@ -6591,7 +6593,7 @@ final class InventoryService
     {
         NotificationHelper::clear(dedupKey: $dedupKey, hard: true);
 
-        self::$noticeAbsent[$dedupKey] = true;
+        self::$noticeAbsent[$dedupKey] = TransactionState::rollbacks(Factory::getContainer()->get('DatabaseDriver'));
     }
 
     /**
@@ -6607,40 +6609,40 @@ final class InventoryService
      */
     private static function noticeAbsent(string $dedupKey): bool
     {
-        if (isset(self::$noticeAbsent[$dedupKey])) {
+        $rollbacks = TransactionState::rollbacks(Factory::getContainer()->get('DatabaseDriver'));
+
+        if ((self::$noticeAbsent[$dedupKey] ?? null) === $rollbacks) {
             return true;
         }
 
         if (NotificationHelper::exists(dedupKey: $dedupKey)) {
+            unset(self::$noticeAbsent[$dedupKey]);
+
             return false;
         }
 
-        self::$noticeAbsent[$dedupKey] = true;
+        self::$noticeAbsent[$dedupKey] = $rollbacks;
 
         return true;
     }
 
     /**
-     * Display label for one inventory unit: the item's translated name, with the
-     * combination's SKU appended so a variant notice names the variant rather than
-     * the product it belongs to.
+     * The label of one inventory unit, as a notice's parameter ({@see NotificationText}): the item's name in every
+     * content language, with the combination's SKU so a variant notice names the variant rather than the product it
+     * belongs to. Each reader reads the name in their content language (since 2.1.4).
      *
      * @param int $itemId The owning item.
      * @param string|null $sku The combination SKU, or null for the item unit.
      *
+     * @return array<string, mixed>
      *
      * @since  2.0.0
      */
-    private function unitLabel(int $itemId, ?string $sku = null): string
+    private function unitLabel(int $itemId, ?string $sku = null): array
     {
-        $name = MultilingualHelper::getTranslatedValue(
-            id: $itemId,
-            tableName: '#__alfa_items',
-            primaryColumnName: 'id_item',
-            field: 'name',
-        ) ?: ('#' . $itemId);
+        $name = NotificationText::content(ItemFieldsSnapshot::freezeItemName($itemId, null));
 
-        return ($sku !== null && $sku !== '') ? $name . ' (' . $sku . ')' : $name;
+        return ($sku !== null && $sku !== '') ? NotificationText::key('COM_ALFA_NOTIFY_UNIT_SKU', $name, $sku) : $name;
     }
 
     /**
@@ -10018,8 +10020,6 @@ final class InventoryService
     private function notifyBackorder(int $itemId, int $combinationId, float $shortfall): void
     {
         try {
-            Factory::getApplication()->getLanguage()->load('com_alfa', JPATH_ADMINISTRATOR);
-
             $sku = $combinationId > 0
                 ? (string) $this->db->setQuery(
                     $this->db->getQuery(true)
@@ -10033,14 +10033,14 @@ final class InventoryService
 
             NotificationHelper::push(
                 dedupKey: $dedupKey,
-                title:    Text::sprintf('COM_ALFA_NOTIFY_BACKORDER_TITLE', $this->unitLabel(itemId: $itemId, sku: $sku)),
+                title:    NotificationText::of('COM_ALFA_NOTIFY_BACKORDER_TITLE', $this->unitLabel(itemId: $itemId, sku: $sku)),
                 options:  [
-                    'group' => Text::_('COM_ALFA_NOTIFY_GROUP_INVENTORY'),
+                    'group' => NotificationHelper::GROUP_INVENTORY,
                     'severity' => 'warning',
                     // Owing the customer is a standing condition too: same
                     // re-alert rule as low stock, one vocabulary.
                     'constant' => true,
-                    'message' => Text::sprintf('COM_ALFA_NOTIFY_BACKORDER_DESC', self::trimQty($shortfall)),
+                    'message' => NotificationText::of('COM_ALFA_NOTIFY_BACKORDER_DESC', self::trimQty($shortfall)),
                     'url' => 'index.php?option=com_alfa&task=item.edit&id=' . $itemId,
                     'view' => ['action' => 'alfa.items.view', 'asset' => 'com_alfa'],
                     'link' => ['action' => 'alfa.items.edit', 'asset' => 'com_alfa'],

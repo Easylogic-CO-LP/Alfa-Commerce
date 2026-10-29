@@ -17,6 +17,7 @@ use Alfa\Component\Alfa\Administrator\Event\Documents\DocumentVoidedEvent;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
+use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Model\OrderModel;
@@ -498,12 +499,13 @@ final class DocumentIssuer
         PostCommit::defer(db: $db, label: "DocumentIssuer: after issuing document #{$documentId}", work: static function () use ($db, $documentId, $orderId, $applyStockEffect, $numberFormatted): void {
             $document = self::load(db: $db, documentId: $documentId);
 
-            // The document now exists, so every auto-issue alert waiting on it is
-            // answered. This is the ONE write path: auto-issue on a status change
-            // and a manual issue from the order both land here, so retracting
-            // here also covers a merchant who fixed it by hand. Without it the
-            // warning stood for ever on an order documented minutes later.
-            AutoIssuePolicy::clearFor(orderId: $orderId);
+            // The document now exists, so the auto-issue alerts waiting on it are
+            // answered (those of its type: AutoIssuePolicy::clearFor()). This is
+            // the ONE write path: auto-issue on a status change and a manual issue
+            // from the order both land here, so retracting here also covers a
+            // merchant who fixed it by hand. Without it the warning stood for ever
+            // on an order documented minutes later.
+            AutoIssuePolicy::clearFor(orderId: $orderId, docType: (string) ($document->doc_type ?? ''));
 
             // Stock effect of the issued type: through the kernel's single
             // fulfilment entry, anchored on the REAL document id (idempotent:
@@ -547,6 +549,7 @@ final class DocumentIssuer
                             documentId: $documentId,
                             number:     (string) $numberFormatted,
                             reason:     (string) ($drained['errors'][$documentId] ?? 'unknown'),
+                            notice:     $drained['failureNotices'][$documentId] ?? null,
                         );
                     }
                 } catch (Throwable $e) {
@@ -3747,11 +3750,13 @@ final class DocumentIssuer
      * @param int $documentId The issued document.
      * @param string $number Its formatted number, for the title.
      * @param string $reason Why the movement failed.
+     * @param mixed $notice The same reason as the notification's parameter, when it has its own words (language keys
+     *                      and their values); null for the reason as written.
      *
      *
      * @since  2.0.0
      */
-    private static function reportStockDeferred(int $documentId, string $number, string $reason): void
+    private static function reportStockDeferred(int $documentId, string $number, string $reason, mixed $notice = null): void
     {
         self::logQuietly(
             entry:    "Document #{$documentId}: stock effect deferred: {$reason}"
@@ -3761,12 +3766,10 @@ final class DocumentIssuer
         );
 
         try {
-            Factory::getApplication()->getLanguage()->load('com_alfa', JPATH_ADMINISTRATOR);
-
             NotificationHelper::push(
                 InventoryEffectOutbox::documentNoticeKey($documentId),
-                Text::sprintf('COM_ALFA_NOTIFY_STOCK_DOCUMENT_TITLE', $number !== '' ? $number : '#' . $documentId),
-                InventoryEffectOutbox::noticeOptions(Text::sprintf('COM_ALFA_NOTIFY_STOCK_DOCUMENT_MSG', $reason)),
+                NotificationText::of('COM_ALFA_NOTIFY_STOCK_DOCUMENT_TITLE', $number !== '' ? $number : '#' . $documentId),
+                InventoryEffectOutbox::noticeOptions(NotificationText::of('COM_ALFA_NOTIFY_STOCK_DOCUMENT_MSG', $notice ?? $reason)),
             );
         } catch (Throwable) {
             // Advisory only: a failed notification never un-issues a document.

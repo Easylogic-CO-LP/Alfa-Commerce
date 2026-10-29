@@ -99,7 +99,9 @@ final class NotificationPushedEvent extends AbstractImmutableEvent
     }
 
     /**
-     * The group the notification is listed under.
+     * The group the notification is listed under: a group key (COM_ALFA_NOTIFY_GROUP_ORDERS) since 2.1.4, or literal
+     * text a third party gave ({@see \Alfa\Component\Alfa\Administrator\Helper\NotificationText::group()} says it in
+     * a reader's language).
      *
      *
      * @since  2.1.1
@@ -121,7 +123,8 @@ final class NotificationPushedEvent extends AbstractImmutableEvent
     }
 
     /**
-     * The headline.
+     * The headline as stored: since 2.1.4 the snapshot in the shop's default administrator language of
+     * {@see self::titleKey()} and {@see self::arguments()}, or the literal text a third party gave.
      *
      *
      * @since  2.1.1
@@ -132,7 +135,8 @@ final class NotificationPushedEvent extends AbstractImmutableEvent
     }
 
     /**
-     * The message, '' when the notification has none.
+     * The message as stored ('' when the notification has none): the snapshot of {@see self::messageKey()}, or literal
+     * text.
      *
      *
      * @since  2.1.1
@@ -162,5 +166,50 @@ final class NotificationPushedEvent extends AbstractImmutableEvent
     public function change(): string
     {
         return (string) ($this->arguments['change'] ?? '');
+    }
+
+    /**
+     * The language key of the headline; '' when the headline is literal text.
+     *
+     *
+     * @since  2.1.4
+     */
+    public function titleKey(): string
+    {
+        return (string) ($this->arguments['titleKey'] ?? '');
+    }
+
+    /**
+     * The language key of the message; '' when the message is literal text or there is none.
+     *
+     *
+     * @since  2.1.4
+     */
+    public function messageKey(): string
+    {
+        return (string) ($this->arguments['messageKey'] ?? '');
+    }
+
+    /**
+     * The keys' parameters: {title: [...], message: [...]}, as NotificationText keeps them; empty for literal text.
+     *
+     * @return array<string, list<mixed>>
+     *
+     * @since  2.1.4
+     */
+    public function arguments(): array
+    {
+        return (array) ($this->arguments['textArgs'] ?? []);
+    }
+
+    /**
+     * The extension whose language files hold the keys, e.g. com_alfa; '' for literal text.
+     *
+     *
+     * @since  2.1.4
+     */
+    public function textDomain(): string
+    {
+        return (string) ($this->arguments['textDomain'] ?? '');
     }
 }

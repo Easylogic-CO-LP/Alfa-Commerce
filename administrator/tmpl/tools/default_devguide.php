@@ -291,7 +291,7 @@ HTML;
                 <?php echo HTMLHelper::_('uitab.startTabSet', 'alfaPrGuide', ['active' => 'desktop']); ?>
 
                 <?php /* GitHub Desktop */ ?>
-                <?php echo HTMLHelper::_('uitab.addTab', 'alfaPrGuide', 'desktop', 'GitHub Desktop (easiest)'); ?>
+                <?php echo HTMLHelper::_('uitab.addTab', 'alfaPrGuide', 'desktop', Text::_('COM_ALFA_TOOLS_PR_GUIDE_TAB_DESKTOP')); ?>
                     <p class="small text-muted">No terminal. The neat part: after step 3 you extract the zip over the repo
                         folder and Desktop's <strong>Changes</strong> tab instantly shows everything that changed.</p>
 
@@ -346,7 +346,7 @@ HTML;
                 <?php echo HTMLHelper::_('uitab.endTab'); ?>
 
                 <?php /* Git commands */ ?>
-                <?php echo HTMLHelper::_('uitab.addTab', 'alfaPrGuide', 'cli', 'Git commands'); ?>
+                <?php echo HTMLHelper::_('uitab.addTab', 'alfaPrGuide', 'cli', Text::_('COM_ALFA_TOOLS_PR_GUIDE_TAB_CLI')); ?>
                     <p class="small text-muted">Prefer the terminal? Same flow, as commands.</p>
 
                     <details class="border rounded p-2 mb-3 small">

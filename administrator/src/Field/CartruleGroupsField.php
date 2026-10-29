@@ -469,30 +469,17 @@ class CartruleGroupsField extends FormField
             $model->setState('list.start', 0);
 
             $rows = [];
-            // A new choice of category follows the picker rule: none archived or trashed, none inside an archived or
-            // trashed category.
-            $tree = $type === 'categories' ? CategoryPickerPolicy::tree() : [];
 
             foreach ($model->getItems() ?: [] as $row) {
-                $text = (string) ($row->name ?? $row->title ?? $row->id ?? '');
-
-                if ($type === 'categories') {
-                    $reason = CategoryPickerPolicy::reason(id: (int) ($row->id ?? 0), tree: $tree);
-
-                    if (!CategoryPickerPolicy::offered($reason)) {
-                        continue;
-                    }
-
-                    $text = CategoryPickerPolicy::label(text: $text, reason: $reason);
-                }
-
                 $rows[] = [
                     'value' => (string) ($row->id ?? ''),
-                    'text' => $text,
+                    'text' => (string) ($row->name ?? $row->title ?? $row->id ?? ''),
                 ];
             }
 
-            return $rows;
+            // A new choice of category follows the picker rule: none archived or trashed, none inside an archived or
+            // trashed category.
+            return $type === 'categories' ? CategoryPickerPolicy::offeredOptions(candidates: $rows) : $rows;
         } catch (Throwable $e) {
             return [];
         }

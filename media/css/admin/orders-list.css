@@ -14,7 +14,6 @@
     border-radius: 3px;
     font-size: 0.78em;
     font-weight: 600;
-    text-transform: capitalize;
 }
 .sts-shipped   { background: var(--info-bg-subtle, #d1ecf1); color: var(--info-text-emphasis, #0c5460); }
 .sts-delivered  { background: var(--success-bg-subtle, #d4edda); color: var(--success-text-emphasis, #155724); }
@@ -86,14 +85,22 @@
     margin: 0 4px;
 }
 
-/* Expand toggle                                                   */
-.btn-expand {
-    border: none; background: none; padding: 2px 6px;
-    font-size: 0.85em; color: var(--secondary-color, #6c757d); cursor: pointer;
-    transition: transform 0.2s; line-height: 1;
+/* Quick view: opens the detail panel under the order number; the
+   label never breaks and the arrow stays beside it */
+.btn-quickview {
+    display: block;
+    margin: 4px auto 0;
+    padding: 0 2px;
+    font-size: 0.8em;
+    white-space: nowrap;
+    text-decoration: none;
 }
-.btn-expand:hover { color: var(--emphasis-color, #212529); }
-.btn-expand[aria-expanded="true"] { transform: rotate(90deg); color: var(--link-color, #0d6efd); }
+.btn-quickview-arrow {
+    display: inline-block;
+    font-size: 0.85em;
+    transition: transform 0.2s;
+}
+.btn-quickview[aria-expanded="true"] .btn-quickview-arrow { transform: rotate(90deg); }
 
 /* Detail panel - div-based grid (avoids table.columns script)     */
 tr.detail-row > td { padding: 0 !important; border-top: none !important; }

@@ -53,11 +53,13 @@ use Alfa\Component\Alfa\Administrator\Service\Maintenance\MaintenanceState;
 use Alfa\Component\Alfa\Administrator\Service\PriceIndexSyncService;
 use Alfa\Component\Alfa\Administrator\Service\Setup\AlfaInstallerGate;
 use Alfa\Component\Alfa\Administrator\Service\Setup\ContentLanguageAddedNotice;
+use Alfa\Component\Alfa\Administrator\Service\Setup\LanguagePacks;
 use Exception;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Event\Menu\PreprocessMenuItemsEvent;
 use Joomla\CMS\Event\Module\AfterModuleListEvent;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Installer\Installer;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
 use Joomla\CMS\Plugin\CMSPlugin;
@@ -140,6 +142,10 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
             // An Alfa extension uninstalled through Joomla: warned that its data stays (never refused).
             'onExtensionBeforeUninstall' => 'onExtensionBeforeUninstall',
+
+            // An Alfa language pack installed or updated: core's language sync, Joomla's own language checked.
+            'onExtensionAfterInstall' => 'onExtensionAfterInstall',
+            'onExtensionAfterUpdate' => 'onExtensionAfterInstall',
 
             // Custom Alfa events: uncomment + dispatch from component/plugin
             // 'onAlfaProductAfterSave'  => 'onAlfaProductAfterSave',
@@ -613,8 +619,9 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
     }
 
     /**
-     * Called after any content item is deleted. Only storefront menu items matter
-     * here: removing the shop or cart link must un-tick the setup checklist.
+     * Called after any content item is deleted. Storefront menu items: removing the shop
+     * or cart link must un-tick the setup checklist. Content languages: the notice of
+     * a language that is no longer one resolves ({@see ContentLanguageAddedNotice::languagesRemoved()}).
      *
      * @param Event|array $event
      * @since  2.0.0
@@ -627,6 +634,10 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
 
         if ($context === 'com_menus.item' && !$this->paused()) {
             $this->invalidateSetup('menu item deleted');
+        }
+
+        if ($context === 'com_languages.language' && !$this->paused()) {
+            ContentLanguageAddedNotice::languagesRemoved();
         }
     }
 
@@ -862,6 +873,28 @@ class Alfasync extends CMSPlugin implements SubscriberInterface
             }
         } catch (Throwable) {
             // A warning only: it never stands in the way of an uninstall.
+        }
+    }
+
+    /**
+     * An extension installed or updated through Joomla: when it is an Alfa language pack, core's language sync names
+     * the seeded records in its language and Joomla's own language of that tag is checked
+     * ({@see LanguagePacks::afterInstall()}). It never fails the installation.
+     *
+     * @param Event $event Joomla's AfterInstallEvent or AfterUpdateEvent: the installer and the extension's id.
+     *
+     * @since  2.1.4
+     */
+    public function onExtensionAfterInstall(Event $event): void
+    {
+        try {
+            $installer = $event->getArgument('installer');
+            LanguagePacks::afterInstall(
+                extensionId: (int) $event->getArgument('eid'),
+                manifest:    $installer instanceof Installer ? $installer->getManifest() : null,
+            );
+        } catch (Throwable $e) {
+            $this->logError(caller: 'onExtensionAfterInstall', message: $e->getMessage());
         }
     }
 

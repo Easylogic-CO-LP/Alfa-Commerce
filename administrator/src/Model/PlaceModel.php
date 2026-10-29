@@ -219,6 +219,13 @@ class PlaceModel extends AlfaAdminModel
         // can empty a scope between it and the delete, and a refusal or a failure
         // leaves every row where it was.
         $requested = $pks;
+
+        // Every delete veto, Alfa's and Joomla's, before the transaction and its locks (2.1.4, design 0.2): no plugin code
+        // runs under them.
+        if (!$this->alfaAskBeforeDelete(pks: (array) $pks)) {
+            return false;
+        }
+
         $nested = TransactionState::isOpen(db: $db);
         $db->transactionStart(true);
 
@@ -232,6 +239,8 @@ class PlaceModel extends AlfaAdminModel
                 // "everywhere". A discount or tax whose last place is in the set would
                 // apply in every place, so the delete is refused, naming the rules.
                 RuleScopeGuard::assertScopesSurvive(db: $db, axis: RuleScopeGuard::AXIS_PLACE, ids: $pks);
+
+                $this->alfaDeleteAsked = true;
 
                 if (!parent::delete($pks)) {
                     // Every close of this level discards what was deferred inside it.
@@ -269,6 +278,8 @@ class PlaceModel extends AlfaAdminModel
 
         // None of the requested places exists: core answers that itself.
         if ($pks === []) {
+            $this->alfaDeleteAsked = true;
+
             return parent::delete($requested);
         }
 

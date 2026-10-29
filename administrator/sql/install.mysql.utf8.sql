@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_meta` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Alfa Commerce facts it keeps beside its data: the schema version, the download store path and its protection';
 
 INSERT INTO `#__alfa_meta` (`name`, `value`)
-SELECT 'schema_version', '2.1.1' FROM DUAL
+SELECT 'schema_version', '2.1.4' FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `#__alfa_meta` WHERE `name` = 'schema_version');
 
 -- Begin of the Clear everything block, added in 2.1.0. Keep it whole and apart from other tables.
@@ -2828,9 +2828,13 @@ CREATE TABLE IF NOT EXISTS `#__alfa_notifications` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `dedup_key` VARCHAR(191) NOT NULL DEFAULT '',
   `notify_group` VARCHAR(64) NOT NULL DEFAULT '',
+  `text_domain` VARCHAR(100) NOT NULL DEFAULT '' COMMENT 'The extension whose language files hold the keys, e.g. com_alfa, plg_alfa_subscriptions; empty = literal text',
   `severity` VARCHAR(16) NOT NULL DEFAULT 'info',
   `title` VARCHAR(255) NOT NULL DEFAULT '',
+  `title_key` VARCHAR(191) NOT NULL DEFAULT '' COMMENT 'Language key of the title (canonical); empty = title is literal text',
   `message` TEXT NULL,
+  `message_key` VARCHAR(191) NOT NULL DEFAULT '' COMMENT 'Language key of the message (canonical); empty = message is literal text',
+  `text_args` TEXT NULL COMMENT 'JSON {"title": [...], "message": [...]}: the keys'' parameters',
   `url` VARCHAR(1024) NOT NULL DEFAULT '',
   `dismissible` TINYINT(1) NOT NULL DEFAULT 1,
   `view_access` VARCHAR(128) NULL DEFAULT NULL,
@@ -2842,6 +2846,7 @@ CREATE TABLE IF NOT EXISTS `#__alfa_notifications` (
   `readed_by` INT UNSIGNED NULL DEFAULT NULL,
   `dismissed` DATETIME NULL DEFAULT NULL,
   `expires` DATETIME NULL DEFAULT NULL,
+  `modified` DATETIME(6) NULL DEFAULT NULL COMMENT 'When its last write was raised, server UTC: an older notice is not applied',
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_dedup_key` (`dedup_key`),
   -- The bell on every administrator page reads through these three: the distinct view
@@ -3213,3 +3218,59 @@ CREATE TABLE IF NOT EXISTS `#__alfa_action_once` (
   PRIMARY KEY (`id_user`, `key_hash`),
   KEY `idx_claimed` (`claimed`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='One-time action keys already used, per user';
+
+--
+-- The tasks table (2.1.4): a single is one thing a change owes after its commit (an e-mail, a
+-- plugin's reaction, a notice), written in the change's own transaction and run once the outermost
+-- transaction has committed and Alfa's named locks are released; a job is long work with steps and a
+-- checkpoint (from 2.2.0, whose columns are here already). The slots table holds the concurrency
+-- classes of jobs (one heavy job at a time), used from 2.2.0.
+--
+CREATE TABLE IF NOT EXISTS `#__alfa_tasks` (
+  `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `type` varchar(8) NOT NULL COMMENT 'single: one thing a change owes after its commit, born in that transaction | job: long work with steps and a checkpoint',
+  `handler` varchar(64) NOT NULL COMMENT 'What runs it, e.g. notice, order.status_email, order.status_event, price.set.prepare, stock.effects.drain',
+  `state` varchar(12) NOT NULL DEFAULT 'pending' COMMENT 'pending | running | done | failed | held | resolved | cancelled (per type: section 2.3)',
+  `batch` char(32) DEFAULT NULL COMMENT 'single: the business transaction that wrote it; its singles run together, in id order. NULL for a job',
+  `subject_type` varchar(32) NOT NULL DEFAULT '' COMMENT 'What the task is about, e.g. order; empty = nothing',
+  `subject_id` int UNSIGNED NOT NULL DEFAULT 0,
+  `scope_key` varchar(190) DEFAULT NULL COMMENT 'job: what it covers, e.g. price.set:<digest>; one active job per scope. NULL for a single',
+  `active_key` varchar(190) GENERATED ALWAYS AS (IF(`state` IN ('pending','running'), `scope_key`, NULL)) STORED,
+  `weight` varchar(8) NOT NULL DEFAULT 'light' COMMENT 'light | heavy: one heavy job runs at a time. A single is light',
+  `priority` smallint NOT NULL DEFAULT 0 COMMENT 'job claim order; a single runs in id order',
+  `rerun` tinyint NOT NULL DEFAULT 0 COMMENT 'job: its scope changed again while it was active',
+  `payload` mediumtext NOT NULL COMMENT 'JSON: what the handler needs, with the handler version',
+  `checkpoint` mediumtext DEFAULT NULL COMMENT 'job: owned by the handler, written in the chunk transaction',
+  `history` mediumtext DEFAULT NULL COMMENT 'single: JSON audit of every attempt and staff action (when, trigger, user, recipient or listener, outcome)',
+  `done_units` bigint UNSIGNED NOT NULL DEFAULT 0,
+  `total_units` bigint UNSIGNED NOT NULL DEFAULT 0,
+  `run_after` datetime(3) NOT NULL COMMENT 'Not before this, UTC: a single''s creation or retry backoff; a job''s schedule or backoff',
+  `lease_owner` char(32) DEFAULT NULL COMMENT 'The claim: only its owner settles the task',
+  `lease_until` datetime(3) DEFAULT NULL COMMENT 'A running task whose lease passed: a job is reclaimable; a single is reclaimable only when its handler is idempotent, else held',
+  `claims` int UNSIGNED NOT NULL DEFAULT 0,
+  `failures` int UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Consecutive known failures; drives the backoff',
+  `max_failures` int UNSIGNED NOT NULL DEFAULT 6,
+  `last_error` varchar(1000) NOT NULL DEFAULT '',
+  `last_trigger` varchar(16) NOT NULL DEFAULT '' COMMENT 'request | bell | tools | staff | runner | processnow | cli',
+  `origin` varchar(32) NOT NULL DEFAULT '' COMMENT 'admin | site | api | cli | event',
+  `created_by` int UNSIGNED NOT NULL DEFAULT 0,
+  `created_at` datetime(6) NOT NULL COMMENT 'Server UTC with microseconds: a notice single is compared with the notification row''s modified',
+  `updated_at` datetime(3) NOT NULL,
+  `started_at` datetime(3) DEFAULT NULL,
+  `finished_at` datetime(3) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_active_key` (`active_key`),
+  KEY `idx_due` (`type`, `state`, `run_after`),
+  KEY `idx_lease` (`type`, `state`, `lease_until`),
+  KEY `idx_batch` (`batch`),
+  KEY `idx_subject` (`subject_type`, `subject_id`, `id`),
+  KEY `idx_handler_state` (`handler`, `state`),
+  KEY `idx_finished` (`finished_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Alfa tasks: singles a change owes after its commit, and jobs with steps';
+
+CREATE TABLE IF NOT EXISTS `#__alfa_task_slots` (
+  `name` varchar(32) NOT NULL COMMENT 'heavy, and any later concurrency class (used from 2.2.0)',
+  `owner` char(32) DEFAULT NULL,
+  `lease_until` datetime(3) DEFAULT NULL,
+  PRIMARY KEY (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Concurrency slots of jobs: one heavy job at a time';

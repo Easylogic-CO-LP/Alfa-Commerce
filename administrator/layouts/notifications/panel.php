@@ -20,6 +20,7 @@
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
+use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
@@ -49,13 +50,16 @@ $canChange = !empty($displayData['can_change']);
             $unread   = empty($n->readed);
             $safeUrl  = NotificationHelper::safeUrl((string) $n->url);
             $hasLink  = $safeUrl !== '' && NotificationHelper::canUseLink(notification: $n);
+            // In the reader's language: the key, else the snapshot; literal text as written.
+            $title    = NotificationText::title($n);
+            $message  = NotificationText::message($n);
             ?>
             <li class="alfa-notify-item<?php echo $unread ? ' is-unread' : ''; ?>" data-id="<?php echo (int) $n->id; ?>">
                 <span class="alfa-notify-dot sev-<?php echo $severity; ?>" aria-hidden="true"></span>
                 <div class="alfa-notify-body">
-                    <div class="alfa-notify-title"><?php echo htmlspecialchars((string) $n->title, ENT_QUOTES, 'UTF-8'); ?></div>
-                    <?php if ((string) $n->message !== '') : ?>
-                        <div class="alfa-notify-msg"><?php echo htmlspecialchars((string) $n->message, ENT_QUOTES, 'UTF-8'); ?></div>
+                    <div class="alfa-notify-title"><?php echo htmlspecialchars($title, ENT_QUOTES, 'UTF-8'); ?></div>
+                    <?php if ($message !== '') : ?>
+                        <div class="alfa-notify-msg"><?php echo htmlspecialchars($message, ENT_QUOTES, 'UTF-8'); ?></div>
                     <?php endif; ?>
                     <div class="alfa-notify-meta">
                         <?php if ($hasLink) : ?>

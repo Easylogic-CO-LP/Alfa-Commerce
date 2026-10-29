@@ -11,6 +11,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Order;
 
 \defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Log\Log;
 use Joomla\Database\DatabaseInterface;
@@ -50,7 +51,9 @@ final class OrderMoneyLock
      * Runs the work while holding the order's money lock.
      *
      * The lock is re-entrant for the connection that holds it, so a request
-     * never refuses itself.
+     * never refuses itself. Work deferred while it is held, inside a
+     * transaction or not, runs after its release ({@see PostCommit}), so no
+     * e-mail or plugin keeps a second operation on the order refused as busy.
      *
      * @param int $orderId The order the operation is on.
      * @param callable $work Called with no arguments.
@@ -80,18 +83,46 @@ final class OrderMoneyLock
             return false;
         }
 
+        // Work deferred while the lock is held (an e-mail, a plugin's reaction, a task) waits for its release.
+        PostCommit::enterLock($db, name: $name);
+
         try {
             $work();
         } finally {
+            $released = null;
+
             try {
-                $db->setQuery('SELECT RELEASE_LOCK(' . $name . ')')->loadResult();
+                $released = $db->setQuery('SELECT RELEASE_LOCK(' . $name . ')')->loadResult();
             } catch (Throwable $e) {
                 // The lock still ends with the connection, at the end of the request.
                 Log::add('The money lock of order #' . $orderId . ' could not be released: ' . $e->getMessage(), Log::WARNING, 'com_alfa.payments');
             }
+
+            if (!PostCommit::leaveLock($db, name: $name, stillHeld: self::stillHeld($db, $name))) {
+                Log::add('The money lock of order #' . $orderId . ' is still held by this connection after its release (answer '
+                    . var_export($released, true) . '): the work deferred inside it waits, and nothing deferred runs on this connection in this request.', Log::CRITICAL, 'com_alfa.payments');
+            }
         }
 
         return true;
+    }
+
+    /**
+     * Whether this connection still holds a named lock; false when it cannot be asked (the connection is gone, and its
+     * locks with it).
+     *
+     * @param DatabaseInterface $db The connection.
+     * @param string $quoted The lock's name, quoted.
+     *
+     * @since  2.1.4
+     */
+    public static function stillHeld(DatabaseInterface $db, string $quoted): bool
+    {
+        try {
+            return (int) $db->setQuery('SELECT IS_USED_LOCK(' . $quoted . ') = CONNECTION_ID()')->loadResult() === 1;
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     /**

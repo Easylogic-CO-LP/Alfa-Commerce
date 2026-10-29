@@ -135,7 +135,7 @@ class com_alfaInstallerScript extends InstallerScript
      *
      * @var string
      */
-    public const SCHEMA_VERSION = '2.1.1';
+    public const SCHEMA_VERSION = '2.1.4';
 
     /**
      * Whether this run completes an install that never finished: preflight ran
@@ -288,6 +288,12 @@ class com_alfaInstallerScript extends InstallerScript
      *     manifest: Joomla copies it last), which is then completed by running the
      *     install SQL here ({@see self::completeUnfinishedInstall()}).
      *
+     * Joomla takes the update route whenever the component's folder exists. A folder with no
+     * extension row is a stray one, whether or not its manifest is still in it, and the run is
+     * put on Joomla's install route: a fresh install, which runs the install SQL (over kept
+     * tables only after the kept-data check) and records its schema, so no update file runs
+     * from a schema Joomla has no record of.
+     *
      * @param   string  $type    Install route: install, update, discover_install, uninstall.
      * @param   object  $parent  The installer adapter.
      *
@@ -390,6 +396,14 @@ class com_alfaInstallerScript extends InstallerScript
             );
 
             return false;
+        }
+
+        // A stray component folder (a broken uninstall, a folder or a row removed by hand): Joomla takes the
+        // update route because the folder exists, but it has no record of the component, so it would run
+        // every update file from schema 0.0.0. Joomla's install route makes the fresh install it is.
+        if ($type === 'update' && $this->componentExtensionId() === 0) {
+            $parent->setRoute('install');
+            $type = 'install';
         }
 
         // An install that never finished: Joomla takes the update route because the extension row
@@ -618,13 +632,7 @@ class com_alfaInstallerScript extends InstallerScript
         usort($versions, 'version_compare');
         $newest = (string) end($versions);
         $db = Factory::getContainer()->get('DatabaseDriver');
-        $id = (int) $db->setQuery(
-            $db->createQuery()
-                ->select($db->quoteName('extension_id'))
-                ->from($db->quoteName('#__extensions'))
-                ->where($db->quoteName('type') . ' = ' . $db->quote('component'))
-                ->where($db->quoteName('element') . ' = ' . $db->quote('com_alfa'))
-        )->loadResult();
+        $id = $this->componentExtensionId();
 
         if ($id < 1) {
             throw new \RuntimeException('Joomla has no record of the installed component');
@@ -641,6 +649,26 @@ class com_alfaInstallerScript extends InstallerScript
                 ->columns($db->quoteName(['extension_id', 'version_id']))
                 ->values($id . ', ' . $db->quote($newest))
         )->execute();
+    }
+
+    /**
+     * Joomla's record of the component: its extension id, or 0 when #__extensions has no row for it.
+     *
+     * @return  int
+     *
+     * @since   2.1.4
+     */
+    protected function componentExtensionId(): int
+    {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+
+        return (int) $db->setQuery(
+            $db->createQuery()
+                ->select($db->quoteName('extension_id'))
+                ->from($db->quoteName('#__extensions'))
+                ->where($db->quoteName('type') . ' = ' . $db->quote('component'))
+                ->where($db->quoteName('element') . ' = ' . $db->quote('com_alfa'))
+        )->loadResult();
     }
 
     /**
@@ -799,7 +827,9 @@ class com_alfaInstallerScript extends InstallerScript
      * Joomla's own runner (Installer::parseSQLFiles(), the one the install route uses) reads the
      * package's copy: the extension root is pointed at the package's administrator folder for the
      * call and put back after it. The install SQL is re-runnable: it creates what is missing and
-     * changes nothing that exists.
+     * changes nothing that exists. Joomla's record of the schema is then set as its install route
+     * sets it (Installer::setSchemaVersion(), the package's newest update file), so the update route
+     * runs no update file over the completed tables.
      *
      * @param Installer $installer The installer running this package.
      *
@@ -818,7 +848,17 @@ class com_alfaInstallerScript extends InstallerScript
         );
 
         try {
-            return $installer->parseSQLFiles($manifest->install->sql) !== false;
+            if ($installer->parseSQLFiles($manifest->install->sql) === false) {
+                return false;
+            }
+
+            // The schema the install SQL made is recorded as Joomla's install route records it
+            // (InstallerAdapter::parseQueries()), so Joomla runs no update file over it.
+            if ($manifest->update) {
+                $installer->setSchemaVersion($manifest->update->schemas, $this->componentExtensionId());
+            }
+
+            return true;
         } catch (\RuntimeException $e) {
             Factory::getApplication()->enqueueMessage($e->getMessage(), 'error');
 
@@ -1075,11 +1115,13 @@ class com_alfaInstallerScript extends InstallerScript
     /**
      * Uninstall-time hook.
      *
-     * Reverse of install order: remove plugins and modules first (they may
-     * reference classes from our libraries), then the libraries themselves,
-     * then the guided tours, which Joomla does not remove with a component,
-     * then the language files earlier versions installed and this one no longer
-     * ships ({@see self::removeObsoleteLanguageFilesOnUninstall()}).
+     * The Alfa Commerce language packs go first, through Joomla's installer
+     * ({@see self::uninstallLanguagePacks()}): each translates Alfa Commerce and
+     * does not outlive it. Then the reverse of install order: remove plugins and
+     * modules (they may reference classes from our libraries), then the libraries
+     * themselves, then the guided tours, which Joomla does not remove with a
+     * component, then the language files earlier versions installed and this one
+     * no longer ships ({@see self::removeObsoleteLanguageFilesOnUninstall()}).
      *
      * Every Alfa table and every row in it stays: orders, documents, payments,
      * credit, customers, stock, the catalogue and its translations, and the
@@ -1098,11 +1140,82 @@ class com_alfaInstallerScript extends InstallerScript
     public function uninstall($parent): void
     {
         $this->registerComponentNamespace();
+        $this->uninstallLanguagePacks();
         $this->uninstallPlugins($parent);
         $this->uninstallModules($parent);
         $this->uninstallLibraries($parent);
         $this->removeGuidedTours();
         $this->removeObsoleteLanguageFilesOnUninstall();
+    }
+
+    /**
+     * Uninstall every Alfa Commerce language pack through Joomla's installer
+     * ({@see \Alfa\Component\Alfa\Administrator\Service\Setup\LanguagePacks::uninstallAll()}).
+     * Joomla removes each package with its file extensions and every file they list; its own
+     * languages and every other extension stay. Each pack is named on the installation page and
+     * in the maintenance log, removed or not; a pack Joomla removed but whose files stayed is named
+     * as uninstalled with files left, a pack Joomla did not uninstall as not uninstalled, and a pack
+     * with no package manifest as not uninstalled for that reason; the log says why, with the files.
+     *
+     * @return  void
+     * @since   2.1.4
+     */
+    private function uninstallLanguagePacks(): void
+    {
+        $app = Factory::getApplication();
+        $this->packageVersion = $this->ownVersion();
+
+        try {
+            $result = \Alfa\Component\Alfa\Administrator\Service\Setup\LanguagePacks::uninstallAll();
+        } catch (\Throwable $e) {
+            $app->enqueueMessage(
+                $this->installerText(
+                    key: 'COM_ALFA_UNINSTALL_LANGUAGE_PACKS_ERROR',
+                    fallback: 'Alfa Commerce %1$s did not uninstall its language packs, because looking for them failed: %2$s.'
+                        . ' Uninstall them in System > Manage > Extensions.',
+                    values: [$this->packageVersion, $e->getMessage()],
+                ),
+                'warning',
+            );
+            self::maintenanceLog(
+                line: sprintf('Uninstall of %s: the language packs were not uninstalled, because looking for them failed: %s', $this->packageVersion, $e->getMessage()),
+                priority: \Joomla\CMS\Log\Log::WARNING,
+            );
+
+            return;
+        }
+
+        $outcomes = [
+            'removed' => ['COM_ALFA_UNINSTALL_LANGUAGE_PACKS_REMOVED', 'Alfa Commerce %1$s also uninstalled these language packs,'
+                . ' which only work with it: %2$s.', 'message', 'uninstalled the language pack %s', \Joomla\CMS\Log\Log::INFO],
+            'files_left' => ['COM_ALFA_UNINSTALL_LANGUAGE_PACKS_FILES_LEFT', 'Alfa Commerce %1$s uninstalled these language packs, but some'
+                . ' files could not be removed: %2$s. Remove the remaining files manually. The maintenance log (com_alfa_maintenance.php)'
+                . ' lists the files that could not be deleted.', 'warning', 'uninstalled the language pack %s, but files of it stayed',
+                \Joomla\CMS\Log\Log::WARNING],
+            'failed' => ['COM_ALFA_UNINSTALL_LANGUAGE_PACKS_FAILED', 'Alfa Commerce %1$s could not uninstall these language packs:'
+                . ' %2$s. Uninstall them in System > Manage > Extensions.', 'warning', 'could not uninstall the language pack %s',
+                \Joomla\CMS\Log\Log::WARNING],
+            'no_manifest' => ['COM_ALFA_UNINSTALL_LANGUAGE_PACKS_NO_MANIFEST', 'Alfa Commerce %1$s could not uninstall these language packs,'
+                . ' because their package manifest is missing and Joomla cannot uninstall them without it either: %2$s.'
+                . ' The maintenance log (com_alfa_maintenance.php) has the details.', 'warning',
+                'could not uninstall the language pack %s', \Joomla\CMS\Log\Log::WARNING],
+        ];
+
+        foreach ($outcomes as $outcome => [$key, $fallback, $type, $line, $priority]) {
+            if (($result[$outcome] ?? []) === []) {
+                continue;
+            }
+
+            $app->enqueueMessage(
+                $this->installerText(key: $key, fallback: $fallback, values: [$this->packageVersion, implode(separator: ', ', array: $result[$outcome])]),
+                $type,
+            );
+
+            foreach ($result[$outcome] as $element) {
+                $why = implode('; ', $result['reasons'][$element] ?? []);
+                self::maintenanceLog(line: sprintf('Uninstall of %s: ' . $line . '%s.', $this->packageVersion, $element, $why === '' ? '' : ': ' . $why), priority: $priority);
+            }
+        }
     }
 
     /**
@@ -1187,7 +1300,7 @@ class com_alfaInstallerScript extends InstallerScript
 
         // Every language file belongs in Joomla's language folders: a language folder inside the
         // component's own folders goes whole, whatever it holds, on install and on update.
-        $this->reportObsoleteFiles(result: $this->removeComponentLanguageFolders(root: JPATH_ROOT), route: $type);
+        $this->reportLanguageFolders(result: $this->removeComponentLanguageFolders(root: JPATH_ROOT), route: $type);
 
         // On update, the files earlier versions left in Alfa's own folders and this version no
         // longer ships are removed first, so the integrity check below starts from the result.
@@ -1298,6 +1411,10 @@ class com_alfaInstallerScript extends InstallerScript
         // 0c. A layout picked from a template was saved as "html:<name>" up to 2.1.0:
         //     each such choice names its template, where exactly one template has it.
         $this->repairTemplateLayouts();
+
+        // 0d. Notifications keep a language key and its parameters (2.1.4): the rows written
+        //     before are given theirs once, their stored text kept as their snapshot.
+        $this->mapNotificationKeys();
 
         // 1. The installed Options (ComponentOptions::DEFAULTS), missing keys only.
         $this->applyDefaultParams(type: $type);
@@ -1928,8 +2045,68 @@ class com_alfaInstallerScript extends InstallerScript
     }
 
     /**
-     * Say what {@see self::removeObsoleteFiles()} or {@see self::removeComponentLanguageFolders()} did:
-     * one message per outcome, naming every path, and one maintenance log line per path.
+     * Say what {@see self::removeComponentLanguageFolders()} did: one message for the folders removed
+     * and one for those left, each folder named with its number of files, and one maintenance log
+     * line per folder.
+     *
+     * @param array{removed: string[], failed: string[]} $result Its result.
+     * @param string $route The installer route it ran on: install or update.
+     *
+     * @since 2.1.4
+     */
+    protected function reportLanguageFolders(array $result, string $route): void
+    {
+        $app = Factory::getApplication();
+        $prefix = sprintf($route === 'install' ? 'Install of %s' : 'Update to %s', $this->packageVersion);
+        $outcomes = [
+            'removed' => ['COM_ALFA_INSTALL_LANGUAGE_FOLDERS_REMOVED', 'Alfa Commerce %1$s removed these language folders from'
+                . ' inside its own folders, with every file in them, because language files belong in Joomla\'s language folders:'
+                . ' %2$s.', 'message', 'removed the language folder %s', \Joomla\CMS\Log\Log::INFO],
+            'failed' => ['COM_ALFA_INSTALL_LANGUAGE_FOLDERS_FAILED', 'Alfa Commerce %1$s could not remove these language folders'
+                . ' from inside its own folders: %2$s. Remove them by hand, because language files belong in Joomla\'s language'
+                . ' folders.', 'warning', 'could not remove the language folder %s', \Joomla\CMS\Log\Log::WARNING],
+        ];
+
+        foreach ($outcomes as $outcome => [$key, $fallback, $type, $line, $priority]) {
+            $folders = $result[$outcome] ?? [];
+
+            if ($folders === []) {
+                continue;
+            }
+
+            $app->enqueueMessage(
+                $this->installerText(key: $key, fallback: $fallback, values: [$this->packageVersion, implode(separator: ', ', array: $folders)]),
+                $type,
+            );
+
+            foreach ($folders as $folder) {
+                self::maintenanceLog(line: $prefix . ': ' . sprintf($line, $folder) . '.', priority: $priority);
+            }
+        }
+    }
+
+    /**
+     * Write one line to the maintenance log (com_alfa_maintenance.php). The installation page says the
+     * same; the log is the second copy, so a failure to write it is not said.
+     *
+     * @param string $line The line.
+     * @param int $priority Its Log priority.
+     *
+     * @since 2.1.4
+     */
+    private static function maintenanceLog(string $line, int $priority): void
+    {
+        try {
+            \Joomla\CMS\Log\Log::addLogger(['text_file' => 'com_alfa_maintenance.php'], \Joomla\CMS\Log\Log::ALL, ['com_alfa.maintenance']);
+            \Joomla\CMS\Log\Log::add($line, $priority, 'com_alfa.maintenance');
+        } catch (\Throwable) {
+            // The installation page says it; the log is the second copy.
+        }
+    }
+
+    /**
+     * Say what {@see self::removeObsoleteFiles()} did: one message per outcome, naming every path,
+     * and one maintenance log line per path.
      *
      * @param array|null $result Its result, or null when nothing was attempted.
      * @param string $problem Why nothing was attempted.
@@ -1941,14 +2118,7 @@ class com_alfaInstallerScript extends InstallerScript
     protected function reportObsoleteFiles(?array $result, string $problem = '', string $route = 'update', string $languageProblem = ''): void
     {
         $app = Factory::getApplication();
-        $log = static function (string $line, int $priority): void {
-            try {
-                \Joomla\CMS\Log\Log::addLogger(['text_file' => 'com_alfa_maintenance.php'], \Joomla\CMS\Log\Log::ALL, ['com_alfa.maintenance']);
-                \Joomla\CMS\Log\Log::add($line, $priority, 'com_alfa.maintenance');
-            } catch (\Throwable) {
-                // The installation page says it; the log is the second copy.
-            }
-        };
+        $log = static fn (string $line, int $priority) => self::maintenanceLog(line: $line, priority: $priority);
         $version = $this->packageVersion;
         $prefix = sprintf(['uninstall' => 'Uninstall of %s', 'install' => 'Install of %s'][$route] ?? 'Update to %s', $version);
 
@@ -2130,9 +2300,8 @@ class com_alfaInstallerScript extends InstallerScript
      * While the move has not completed, the Options still hold the shop's former shipping settings, but checkout reads
      * only each shipping method's own: shipping tax is not applied as the shop configured it. The notification says so
      * where staff look (the bell and the Notifications list), cannot be dismissed, and goes when an install completes
-     * the move or finds nothing left to move (the Options' two keys gone are the move's done-marker). It is written in
-     * the language of whoever runs the install, from this version's language files. Writing or clearing it never stops
-     * the install.
+     * the move or finds nothing left to move (the Options' two keys gone are the move's done-marker). It keeps its keys
+     * (2.1.4), so each administrator reads it in their language. Writing or clearing it never stops the install.
      *
      * @param   bool  $failed  True when the move failed now; false when it completed or had nothing to move.
      *
@@ -2156,36 +2325,17 @@ class com_alfaInstallerScript extends InstallerScript
                 return;
             }
 
-            // The installer read this extension's texts before it copied this version's language files: read them
-            // again, so the notice has its own texts in the installing user's language (el-GR included).
-            $language = Factory::getLanguage();
-            $language->load(
-                extension: 'com_alfa.sys',
-                basePath:  JPATH_ADMINISTRATOR,
-                lang:      $language->getTag(),
-                reload:    true,
-            );
+            // The notice keeps its keys (com_alfa.sys): each administrator reads it in their language, and its snapshot is
+            // written in the shop's default administrator language from this version's language files.
+            $text = \Alfa\Component\Alfa\Administrator\Helper\NotificationText::class;
 
             $notifications::push(
                 dedupKey: $key,
-                title:    $this->installerText(
-                    key:      'COM_ALFA_NOTIFY_SHIPPING_MOVE_FAILED_TITLE',
-                    fallback: 'Shipping tax is not applied as configured',
-                    values:   [],
-                ),
+                title:    $text::from('com_alfa.sys', 'COM_ALFA_NOTIFY_SHIPPING_MOVE_FAILED_TITLE'),
                 options:  [
                     'severity'    => 'danger',
-                    'group'       => 'Shipping',
-                    'message'     => $this->installerText(
-                        key:      'COM_ALFA_NOTIFY_SHIPPING_MOVE_FAILED_MSG',
-                        fallback: 'An update could not move Default shipping taxes and Shipping prices entered onto the'
-                            . ' shipping methods, so both Options were kept. Until the move completes, shipping tax is not'
-                            . ' applied as they configured it: each shipping method uses only its own Shipping taxes and'
-                            . ' Shipping prices entered. The move runs again at the next install or update of Alfa'
-                            . ' Commerce, and this notice goes when it completes. Until then, check the Shipping taxes and'
-                            . ' Shipping prices entered of every shipping method before taking orders.',
-                        values:   [],
-                    ),
+                    'group'       => $notifications::GROUP_SHIPPING,
+                    'message'     => $text::from('com_alfa.sys', 'COM_ALFA_NOTIFY_SHIPPING_MOVE_FAILED_MSG'),
                     'url'         => 'index.php?option=com_alfa&view=shipments',
                     'dismissible' => false,
                     'constant'    => true,
@@ -2197,6 +2347,37 @@ class com_alfaInstallerScript extends InstallerScript
         catch (\Throwable)
         {
             // The installer's own message (above) already says what failed and what to check.
+        }
+    }
+
+    /**
+     * Give the notifications written before 2.1.4 their language keys and parameters, once
+     * ({@see \Alfa\Component\Alfa\Administrator\Service\Setup\NotificationKeys}): their stored text stays as it
+     * is, as their snapshot. The counts are said here and in the setup log. A failure never stops the install: a row
+     * left without a key is shown as written, and the next install maps it.
+     *
+     * @return  void
+     * @since  2.1.4
+     */
+    private function mapNotificationKeys(): void
+    {
+        try
+        {
+            $counts = \Alfa\Component\Alfa\Administrator\Service\Setup\NotificationKeys::map();
+
+            if ($counts['keyed'] + $counts['grouped'] > 0)
+            {
+                Factory::getApplication()->enqueueMessage($this->installerText(
+                    key:      'COM_ALFA_INSTALL_NOTIFICATIONS_KEYED',
+                    fallback: 'Notifications written before this version: %1$d now show in each administrator\'s language; %2$d keep their text as written.',
+                    values:   [$counts['keyed'], $counts['rows'] - $counts['keyed']],
+                ));
+            }
+        }
+        catch (\Throwable $e)
+        {
+            Factory::getApplication()->enqueueMessage('The notifications written before this version could not be given their language keys: '
+                . $e->getMessage() . ' They are shown as written; the next install tries again.', 'warning');
         }
     }
 

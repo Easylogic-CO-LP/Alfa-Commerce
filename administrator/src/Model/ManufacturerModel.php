@@ -282,6 +282,13 @@ class ManufacturerModel extends AlfaAdminModel
         // can empty a scope between it and the delete, and a refusal or a failure
         // leaves every row where it was.
         $requested = $pks;
+
+        // Every delete veto, Alfa's and Joomla's, before the transaction and its locks (2.1.4, design 0.2): no plugin code
+        // runs under them.
+        if (!$this->alfaAskBeforeDelete(pks: (array) $pks)) {
+            return false;
+        }
+
         $nested = TransactionState::isOpen(db: $db);
         $db->transactionStart(true);
 
@@ -304,6 +311,8 @@ class ManufacturerModel extends AlfaAdminModel
                         ->from($db->quoteName('#__alfa_items_manufacturers'))
                         ->whereIn($db->quoteName('manufacturer_id'), $pks),
                 )->loadColumn());
+
+                $this->alfaDeleteAsked = true;
 
                 if (!parent::delete($pks)) {
                     // Every close of this level discards what was deferred inside it.
@@ -348,6 +357,8 @@ class ManufacturerModel extends AlfaAdminModel
 
         // None of the requested manufacturers exists: core answers that itself.
         if ($pks === []) {
+            $this->alfaDeleteAsked = true;
+
             return parent::delete($requested);
         }
 

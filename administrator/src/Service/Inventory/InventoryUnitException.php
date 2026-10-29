@@ -12,6 +12,8 @@ namespace Alfa\Component\Alfa\Administrator\Service\Inventory;
 \defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
+use Alfa\Component\Alfa\Administrator\Service\Order\ItemFieldsSnapshot;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Log\Log;
@@ -163,6 +165,58 @@ final class InventoryUnitException extends RuntimeException
     }
 
     /**
+     * The same label as a notification's parameter ({@see NotificationText}): the product's name and the variant's
+     * label in every content language, so each reader and the snapshot read it in one language. The English the
+     * notice says is {@see self::labelFor()}'s.
+     *
+     * @param int $itemId The product.
+     * @param int $combinationId The combination, 0 for the product itself.
+     *
+     * @return array<string, mixed>
+     *
+     * @since  2.1.4
+     */
+    public static function labelText(int $itemId, int $combinationId): array
+    {
+        $name = NotificationText::content(ItemFieldsSnapshot::freezeItemName($itemId, null));
+
+        if ($combinationId <= 0) {
+            return $name;
+        }
+
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $valueIds = self::variantValueIds(db: $db, itemId: $itemId, combinationId: $combinationId);
+
+        if ($valueIds === null || $valueIds === []) {
+            return NotificationText::key('COM_ALFA_NOTIFY_UNIT_VARIANT', $name, '#' . $combinationId);
+        }
+
+        $default = MultilingualHelper::getDefaultLanguageTag();
+        $names = [];
+
+        foreach ($valueIds as $valueId) {
+            $names[$valueId] = [];
+
+            foreach (MultilingualHelper::getMultilingualDataFlat($valueId, 'id_item_field_value', '#__alfa_item_field_values') as $key => $value) {
+                if (str_starts_with((string) $key, 'name_') && (string) $value !== '') {
+                    $names[$valueId][substr((string) $key, 5)] = (string) $value;
+                }
+            }
+        }
+
+        $labels = [];
+
+        foreach (array_unique([...MultilingualHelper::getLanguageTags(), $default]) as $tag) {
+            $labels[$tag] = implode(' / ', array_map(
+                static fn (int $valueId): string => $names[$valueId][$tag] ?? $names[$valueId][$default] ?? '#' . $valueId,
+                $valueIds,
+            ));
+        }
+
+        return NotificationText::key('COM_ALFA_NOTIFY_UNIT_VARIANT', $name, NotificationText::content($labels));
+    }
+
+    /**
      * The product's name in the current language, or in the site's default language
      * when it has none there. The product's id stands in only when its row is gone or
      * carries no name in either language.
@@ -209,6 +263,39 @@ final class InventoryUnitException extends RuntimeException
      */
     private static function variantLabel(DatabaseInterface $db, int $itemId, int $combinationId): string
     {
+        $valueIds = self::variantValueIds(db: $db, itemId: $itemId, combinationId: $combinationId);
+
+        if ($valueIds === null) {
+            return '#' . $combinationId;
+        }
+
+        $names = array_map(
+            static fn (int $valueId): string => MultilingualHelper::getTranslatedValue(
+                id: $valueId,
+                tableName: '#__alfa_item_field_values',
+                primaryColumnName: 'id_item_field_value',
+                field: 'name',
+            ) ?: '#' . $valueId,
+            $valueIds,
+        );
+
+        return $names === [] ? '#' . $combinationId : implode(' / ', $names);
+    }
+
+    /**
+     * The values a combination links, in the product's dimension order; null when the combination is gone or belongs
+     * to another product.
+     *
+     * @param DatabaseInterface $db The database driver.
+     * @param int $itemId The product.
+     * @param int $combinationId The combination.
+     *
+     * @return list<int>|null
+     *
+     * @since  2.1.4
+     */
+    private static function variantValueIds(DatabaseInterface $db, int $itemId, int $combinationId): ?array
+    {
         $exists = (int) $db->setQuery(
             $db->getQuery(true)
                 ->select('COUNT(*)')
@@ -218,10 +305,10 @@ final class InventoryUnitException extends RuntimeException
         )->loadResult() > 0;
 
         if (!$exists) {
-            return '#' . $combinationId;
+            return null;
         }
 
-        $valueIds = array_map('intval', $db->setQuery(
+        return array_map('intval', $db->setQuery(
             $db->getQuery(true)
                 ->select($db->quoteName('cv.value_id'))
                 ->from($db->quoteName('#__alfa_item_combination_values', 'cv'))
@@ -235,18 +322,6 @@ final class InventoryUnitException extends RuntimeException
                 ->where($db->quoteName('cv.combination_id') . ' = ' . $combinationId)
                 ->order('COALESCE(ovr.ordering, f.ordering) ASC, f.ordering ASC, v.ordering ASC'),
         )->loadColumn() ?: []);
-
-        $names = array_map(
-            static fn (int $valueId): string => MultilingualHelper::getTranslatedValue(
-                id: $valueId,
-                tableName: '#__alfa_item_field_values',
-                primaryColumnName: 'id_item_field_value',
-                field: 'name',
-            ) ?: '#' . $valueId,
-            $valueIds,
-        );
-
-        return $names === [] ? '#' . $combinationId : implode(' / ', $names);
     }
 
     /**

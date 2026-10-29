@@ -651,7 +651,7 @@ class OrdersModel extends AlfaListModel
      *   Totals:      order_total, order_total_tax_excl, items_total, shipping_total, etc.
      *   Status:      payment_status, fulfillment_status, payment_percentage, etc.
      *   Children:    _items[], _shipments[], _payments[], _discounts[]
-     *   Display:     order_total_money, balance_due_money, formatted_date, order_age_days, etc.
+     *   Display:     order_total_money, still_held_money, held_percentage, charged_back_money, balance_due_money, etc.
      *
      * @return array Fully enriched order items
      * @since  1.0.0
@@ -954,6 +954,16 @@ class OrdersModel extends AlfaListModel
                 $item->order_total_money = Money::of($orderTotal, $currency);
                 $item->order_total_tax_excl_money = Money::of($totals->grand_total_tax_excl, $currency);
                 $item->total_paid_real_money = Money::of($facts->paid_real, $currency);
+                // What the shop holds now: the facts' own figure, the one the
+                // balance is taken from, so held and due add up to the total.
+                $item->still_held_money = $facts->money->still_held;
+                // The list's Partial badge and its bar: the share of the total
+                // held now ({@see self::heldShare()}). The facts'
+                // payment_percentage (paid over total) stays as it is for every
+                // other reader.
+                $item->held_percentage = self::heldShare(held: $facts->money->still_held, total: $facts->money->grand_total);
+                // What the customer's bank took back, when it took anything.
+                $item->charged_back_money = $facts->money->charged_back->isPositive() ? $facts->money->charged_back : null;
                 $item->total_refunded_real_money = Money::of($facts->refunded_real, $currency);
                 $item->items_total_money = Money::of($totals->items_tax_incl, $currency);
                 $item->shipping_total_money = Money::of($totals->shipping_tax_incl, $currency);
@@ -1022,6 +1032,40 @@ class OrdersModel extends AlfaListModel
         // same one-IN-query-per-plugin batch philosophy as the loaders above) and
         // onAlfaAdminListColumns after these rows are fully enriched.
         return $this->alfaEnriched = $items;
+    }
+
+    /**
+     * The share of an order's total the shop holds now, in percent with two
+     * places, ROUNDED DOWN: it reads 100 only when nothing is due, so the list
+     * never shows 100% or a full bar beside a Due line. Never below 0.
+     *
+     * @param Money $held What the shop holds now (OrderFacts still_held).
+     * @param Money $total The order total, at the same scale.
+     *
+     * @return float The percentage, 0 to 100.
+     *
+     * @since  2.1.4
+     */
+    private static function heldShare(Money $held, Money $total): float
+    {
+        $heldUnits = $held->getMinorUnits();
+        $totalUnits = $total->getMinorUnits();
+
+        if ($totalUnits <= 0 || $heldUnits <= 0) {
+            return 0.0;
+        }
+
+        if ($heldUnits >= $totalUnits) {
+            return 100.0;
+        }
+
+        // Hundredths of a percent, exact in integers while the product fits;
+        // otherwise through a float, held below 100 because something is due.
+        $hundredths = $heldUnits <= intdiv(\PHP_INT_MAX, 10000)
+            ? intdiv($heldUnits * 10000, $totalUnits)
+            : min(9999, (int) floor($heldUnits / $totalUnits * 10000));
+
+        return $hundredths / 100;
     }
 
     //  BATCH LOADERS: one indexed query per child table
