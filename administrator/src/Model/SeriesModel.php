@@ -45,9 +45,10 @@ class SeriesModel extends AlfaAdminModel
      * CONTRACT COVERAGE NOTES (decided at migration):
      * - save() merges the composer's raw POST keys and bundles `positions` BEFORE
      *   parent::save(), so onAlfaAdminBeforeSave sees the finished payload; but
-     *   onAlfaAdminAfterSave fires inside parent::save(), i.e. BEFORE the is_default
-     *   cross-row demotion runs: a handler reading sibling rows there sees the
-     *   pre-demotion defaults.
+     *   onAlfaAdminAfterSave is dispatched through PostCommit as parent::save()
+     *   returns (at once, since no transaction is open here), i.e. BEFORE the
+     *   is_default cross-row demotion runs: a handler reading sibling rows there
+     *   sees the pre-demotion defaults.
      * - onAlfaAdminValidate sees the validated data WITHOUT the composer keys:
      *   they are undeclared in the form XML and recovered from the raw POST only
      *   inside save().
