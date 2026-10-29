@@ -67,9 +67,9 @@ CREATE TABLE IF NOT EXISTS `#__alfa_task_slots` (
 -- last write of the row was raised (server UTC, microseconds). A notice raised inside a transaction is written after its
 -- commit, and only when its row holds no write raised after it, so it never overwrites a newer write of the same notice
 -- and applying it twice changes nothing. The rows written before map to keys once, in the install script.
-ALTER TABLE `#__alfa_notifications`
-  ADD COLUMN `text_domain` varchar(100) NOT NULL DEFAULT '' COMMENT 'The extension whose language files hold the keys, e.g. com_alfa, plg_alfa_subscriptions; empty = literal text' AFTER `notify_group`,
-  ADD COLUMN `title_key` varchar(191) NOT NULL DEFAULT '' COMMENT 'Language key of the title (canonical); empty = title is literal text' AFTER `title`,
-  ADD COLUMN `message_key` varchar(191) NOT NULL DEFAULT '' COMMENT 'Language key of the message (canonical); empty = message is literal text' AFTER `message`,
-  ADD COLUMN `text_args` text NULL COMMENT 'JSON {"title": [...], "message": [...]}: the keys'' parameters' AFTER `message_key`,
-  ADD COLUMN `modified` datetime(6) NULL DEFAULT NULL COMMENT 'When its last write was raised, server UTC: an older notice is not applied' AFTER `expires`;
+-- One column per statement: Joomla's database check reads only the first column of an ALTER.
+ALTER TABLE `#__alfa_notifications` ADD COLUMN `text_domain` varchar(100) NOT NULL DEFAULT '' COMMENT 'The extension whose language files hold the keys, e.g. com_alfa, plg_alfa_subscriptions; empty = literal text' AFTER `notify_group`;
+ALTER TABLE `#__alfa_notifications` ADD COLUMN `title_key` varchar(191) NOT NULL DEFAULT '' COMMENT 'Language key of the title (canonical); empty = title is literal text' AFTER `title`;
+ALTER TABLE `#__alfa_notifications` ADD COLUMN `message_key` varchar(191) NOT NULL DEFAULT '' COMMENT 'Language key of the message (canonical); empty = message is literal text' AFTER `message`;
+ALTER TABLE `#__alfa_notifications` ADD COLUMN `text_args` text NULL COMMENT 'JSON {"title": [...], "message": [...]}: the keys'' parameters' AFTER `message_key`;
+ALTER TABLE `#__alfa_notifications` ADD COLUMN `modified` datetime(6) NULL DEFAULT NULL COMMENT 'When its last write was raised, server UTC: an older notice is not applied' AFTER `expires`;

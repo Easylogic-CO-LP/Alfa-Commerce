@@ -199,8 +199,9 @@ class NotificationsModel extends AlfaListModel
             // product name in every content language, a provider's words), the same for every reader. Only the values
             // count: of the paths JSON_SEARCH answers with, one that ends at an array element or under a content
             // language ("ml") is a value; a key's or a joiner's name ("k", "p", "and", "sep") and the JSON's own words
-            // never match. Both sides are lowered, as the snapshot's collation compares.
-            $pattern = '%' . str_replace(' ', '%', trim($search)) . '%';
+            // never match. Both sides are lowered, as the snapshot's collation compares. The term's own % and _ are
+            // escaped: they match only themselves, in LIKE and in JSON_SEARCH (whose escape character is the same \).
+            $pattern = '%' . str_replace(' ', '%', $db->escape(trim($search), true)) . '%';
             $like = $db->quote($pattern);
             $args = $db->quoteName('a.text_args');
             $set[] = '(' . $db->quoteName('a.title') . ' LIKE ' . $like . ' OR ' . $db->quoteName('a.message') . ' LIKE ' . $like
