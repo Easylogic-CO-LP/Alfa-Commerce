@@ -225,6 +225,59 @@ final class CategoryPickerPolicy
     }
 
     /**
+     * The options a picker offers for a new choice of category: each candidate that is available (offered()), its text
+     * followed by its reason in words (label()), in the candidates' order. Without candidates, every category whose own
+     * state may be offered is read, named in the active language: the list of the Items list's batch dialog.
+     *
+     * @param array<int, array{value: string, text: string}>|null $candidates The categories, as value (id) and text.
+     * @param DatabaseInterface|null $db The database; the application's when absent.
+     *
+     * @return array<int, array{value: string, text: string}> The options.
+     *
+     * @since  2.1.4
+     */
+    public static function offeredOptions(?array $candidates = null, ?DatabaseInterface $db = null): array
+    {
+        $db ??= Factory::getContainer()->get('DatabaseDriver');
+
+        if ($candidates === null) {
+            $query = $db->getQuery(true)
+                ->select($db->quoteName(['a.id', 'a.state']))
+                ->from($db->quoteName('#__alfa_categories', 'a'))
+                ->whereIn($db->quoteName('a.state'), self::OFFERED_STATES);
+
+            // The name in the active language; translatable columns live in the per-language tables.
+            MultilingualHelper::addMultilingualJoinToQuery(
+                query:             $query,
+                mainAlias:         'a',
+                mainPrimaryColumn: 'id',
+                langTableBase:     '#__alfa_categories',
+                langPrimaryColumn: 'id_category',
+                fields:            ['name'],
+            );
+
+            $candidates = array_map(
+                static fn (array $category): array => ['value' => (string) $category['id'], 'text' => (string) $category['name']],
+                $db->setQuery($query)->loadAssocList() ?: [],
+            );
+        }
+
+        $tree = self::tree(db: $db);
+        $options = [];
+
+        foreach ($candidates as $candidate) {
+            $reason = self::reason(id: (int) $candidate['value'], tree: $tree);
+
+            // A category inside an archived or trashed category is not available either.
+            if (self::offered($reason)) {
+                $options[] = ['value' => $candidate['value'], 'text' => self::label(text: $candidate['text'], reason: $reason)];
+            }
+        }
+
+        return $options;
+    }
+
+    /**
      * The categories a save would newly assign that are not available: the posted ones the record does not hold yet.
      *
      * @param array $posted The category ids the save asks for.

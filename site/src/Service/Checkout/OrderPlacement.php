@@ -47,6 +47,7 @@ use Alfa\Component\Alfa\Administrator\Event\Shipments\OrderBeforePlaceEvent as S
 use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
+use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CartSubject;
@@ -54,14 +55,15 @@ use Alfa\Component\Alfa\Administrator\Service\Cart\CommercialPlugins;
 use Alfa\Component\Alfa\Administrator\Service\Cart\CustomerDetailsValidator;
 use Alfa\Component\Alfa\Administrator\Service\Cart\OperatorPaymentPolicy;
 use Alfa\Component\Alfa\Administrator\Service\Cart\Plugin\PlacementEventContext;
-use Alfa\Component\Alfa\Administrator\Service\Download\Entitlements;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
-use Alfa\Component\Alfa\Administrator\Service\Order\EmailService;
 use Alfa\Component\Alfa\Administrator\Service\Order\ItemFieldsSnapshot;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderCreator;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderIdentity;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderLineMoney;
 use Alfa\Component\Alfa\Administrator\Service\Order\StockPolicy;
+use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderEntitlements;
+use Alfa\Component\Alfa\Administrator\Service\Order\Task\OrderPlacementEmail;
+use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Alfa\Component\Alfa\Site\Service\Cart\MethodRequirement;
 use Alfa\Component\Alfa\Site\Service\Pricing\ChargeableQuantity;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
@@ -161,6 +163,13 @@ class OrderPlacement
     private ?array $completedTotals = null;
 
     public const DEFAULT_CURRENCY_NUMBER = 978;
+
+    /**
+     * What holds the placement's after-commit work until its own work after the commit is done (PostCommit::hold()).
+     *
+     * @since  2.1.4
+     */
+    private const HOLD = 'order placement';
 
     /**
      * @param PlacementCart|null $cart The cart to convert; the request's when omitted.
@@ -322,6 +331,7 @@ class OrderPlacement
         $this->command = $command;
         $this->deliveryData = $command->delivery;
         $this->billingData = $command->billing;
+        $held = false;
 
         try {
             Log::add('=== Starting V3 order placement ===', Log::INFO, 'com_alfa.orders');
@@ -459,6 +469,13 @@ class OrderPlacement
                 $this->saveOrderContributions($orderId);
                 $this->saveCartRules($orderId);
 
+                // What the placement owes after its commit, written with the order (2.1.4): the download access of
+                // its initial status and its confirmation e-mail. They run once the placement's own work after the
+                // commit (the wallet, the gateway hooks) is done, so the e-mail reads the order as the shopper
+                // completed it; a request that dies leaves them to recovery.
+                Tasks::single(handler: OrderEntitlements::NAME, subjectType: 'order', subjectId: (int) $orderId, payload: ['status' => (int) $this->defaultStatus->id]);
+                Tasks::single(handler: OrderPlacementEmail::NAME, subjectType: 'order', subjectId: (int) $orderId, payload: ['status' => (int) $this->defaultStatus->id]);
+
                 // The last step of conversion, not cleanup
                 //
                 // The order above is now a complete, self-contained record:
@@ -500,7 +517,10 @@ class OrderPlacement
 
             // COMMIT, after the try: what follows it is on the far side of the
             // commit, and a failure there is answered by the net below, never
-            // by rolling back a transaction that is already closed.
+            // by rolling back a transaction that is already closed. What the
+            // commit owes waits for the placement's own work after it (2.1.4).
+            PostCommit::hold(db: $this->db, name: self::HOLD);
+            $held = true;
             TransactionState::commitLevel($this->db);
 
             // THE ORDER NOW EXISTS, AND NOTHING AFTER THIS LINE CAN MAKE
@@ -521,12 +541,11 @@ class OrderPlacement
             // Back-office heads-up: a new order landed. Deduped per order,
             // gated to whoever may see orders, cleared when the order is opened.
             try {
-                Factory::getApplication()->getLanguage()->load('com_alfa', JPATH_ADMINISTRATOR);
                 \Alfa\Component\Alfa\Administrator\Helper\NotificationHelper::push(
                     dedupKey: 'order:' . $orderId,
-                    title: Text::sprintf('COM_ALFA_NOTIFY_NEW_ORDER_TITLE', $orderId),
+                    title: \Alfa\Component\Alfa\Administrator\Helper\NotificationText::of('COM_ALFA_NOTIFY_NEW_ORDER_TITLE', (int) $orderId),
                     options: [
-                        'group' => Text::_('COM_ALFA_NOTIFY_GROUP_ORDERS'),
+                        'group' => \Alfa\Component\Alfa\Administrator\Helper\NotificationHelper::GROUP_ORDERS,
                         'severity' => 'info',
                         'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
                         'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
@@ -623,27 +642,14 @@ class OrderPlacement
             // The cart is already gone: discarded inside the transaction, as
             // the last step of conversion.
 
-            // Instant digital delivery: when the initial status is already in
-            // the is_completed family, grant download entitlements NOW so the
-            // placement email below carries the links (the raw tokens only
-            // live in this request's cache). No-op otherwise; the usual
-            // grant happens on the later paid/completed transition.
-            Entitlements::handleStatusTransition(
-                orderId:     $orderId,
-                oldStatusId: 0,
-                newStatusId: (int) $this->defaultStatus->id,
-            );
-
-            // Frontend order placement is a "no status -> initial status"
-            // transition from the customer's perspective. Reuse the same
-            // helper the admin OrderModel hook calls, so the per-status
-            // notify_customer flag + admin recipient list governs both
-            // paths uniformly. Mail failures are swallowed inside the
-            // helper; they never block order placement.
-            EmailService::sendForStatusChange(
-                orderId:     $orderId,
-                newStatusId: (int) $this->defaultStatus->id,
-            );
+            // What the placement owes runs now, in the order it was written
+            // (2.1.4): the download access of the initial status first (its
+            // fresh raw tokens are cached for the e-mail's links), then the
+            // confirmation e-mail, then whatever a gateway hook's own status
+            // change owes. Each is recorded as it ends; a failure never
+            // blocks the placement.
+            $held = false;
+            PostCommit::resume(db: $this->db, name: self::HOLD);
 
             // onAlfaOrderPlaced: the placement broadcast
             // Terminal position on purpose: everything above has persisted, so listeners
@@ -684,6 +690,12 @@ class OrderPlacement
                 Log::CRITICAL,
                 'com_alfa.orders',
             );
+
+            // What the commit owes is not left held: it runs now, or reaches recovery.
+            if ($held) {
+                $held = false;
+                PostCommit::resume(db: $this->db, name: self::HOLD);
+            }
 
             // WHICH SIDE OF THE COMMIT DID THIS HAPPEN ON?
             //

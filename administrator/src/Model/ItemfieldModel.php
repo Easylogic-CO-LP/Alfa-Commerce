@@ -852,15 +852,25 @@ class ItemfieldModel extends AlfaAdminModel
                 ->whereIn($db->qn('field_id'), $pks),
         )->loadColumn() ?: []);
 
+        // Every delete veto, Alfa's and Joomla's, before the transaction and its locks (2.1.4, design 0.2): no plugin code
+        // runs under them.
+        if (!$this->alfaAskBeforeDelete(pks: (array) $pks)) {
+            return false;
+        }
+
         // The field rows themselves go through the standard pipeline (ACL,
         // checked-out guard, content events); children cascade after, all in
-        // one transaction so a mid-way failure leaves nothing orphaned.
+        // one transaction so a mid-way failure leaves nothing orphaned. Closed
+        // through TransactionState, so what the delete owes after its commit
+        // (its after-events) is heard then, once (2.1.4).
         $nested = TransactionState::isOpen(db: $db);
         $db->transactionStart(true);
 
         try {
+            $this->alfaDeleteAsked = true;
+
             if (!parent::delete($pks)) {
-                $db->transactionRollback(true);
+                TransactionState::rollBackLevel(db: $this->alfaDriver());
 
                 return false;
             }
@@ -899,7 +909,7 @@ class ItemfieldModel extends AlfaAdminModel
                 tableName:         '#__alfa_item_fields',
             );
 
-            $db->transactionCommit(true);
+            TransactionState::commitLevel(db: $this->alfaDriver());
         } catch (Throwable $e) {
             // A failure that ended the transaction this was called inside is
             // that caller's to hear: answered with a refusal, the caller would

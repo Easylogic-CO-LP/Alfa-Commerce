@@ -37,6 +37,7 @@
 
 defined('_JEXEC') or die;
 
+use Alfa\Component\Alfa\Administrator\Helper\OrderLabels;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 
@@ -116,7 +117,7 @@ $item = $this->currentItem;
 
                 <!-- Transaction status badge (right-aligned) -->
                 <span class="badge <?php echo $statusBadge; ?>">
-                    <?php echo ucfirst($txnStatus); ?>
+                    <?php echo $this->escape(OrderLabels::transactionStatus((string) $txnStatus)); ?>
                 </span>
             </div>
 
@@ -150,7 +151,7 @@ $item = $this->currentItem;
                     <!-- [Full] or [Partial] badge -->
                     <?php if (!empty($op->refund_type)) : ?>
                         <span class="badge <?php echo $refundTypeBadge; ?>" style="font-size:0.8em">
-                            <?php echo ucfirst($op->refund_type); ?>
+                            <?php echo $this->escape(OrderLabels::refundType((string) $op->refund_type)); ?>
                         </span>
                     <?php endif; ?>
 

@@ -1,6 +1,6 @@
 .iti {
-    --iti-path-flags-1x: url('/media/plg_alfa-form-fields_tel/img/flags.webp');
-    --iti-path-flags-2x: url('/media/plg_alfa-form-fields_tel/img/flags@2x.webp');
+    --iti-path-flags-1x: url('../img/flags.webp');
+    --iti-path-flags-2x: url('../img/flags@2x.webp');
 }
 
 /* Validation hints: layout pre-renders one <small> per error variant, all

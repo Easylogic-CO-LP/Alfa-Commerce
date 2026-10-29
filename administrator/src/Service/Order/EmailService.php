@@ -25,6 +25,7 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Log\Log;
+use Joomla\CMS\Mail\Mail;
 use Joomla\CMS\Mail\MailerFactoryInterface;
 use Joomla\CMS\Uri\Uri;
 use RuntimeException;
@@ -37,9 +38,14 @@ use Throwable;
  * per-language templates configured on `#__alfa_orders_statuses` +
  * `#__alfa_orders_statuses_<langtag>`.
  *
- * Public entry point:
+ * Public entry points:
  *
+ *   EmailService::deliverForStatus(int $orderId, int $statusId, callable $attempt, callable $outcome): void
+ *     one recipient at a time, each recipient's outcome reported as it comes (sent, failed before or at the
+ *     server's answer, or unknown: handed over with no answer). The order's status e-mail and placement e-mail
+ *     tasks send through it (2.1.4).
  *   EmailService::sendForStatusChange(int $orderId, int $newStatusId): void
+ *     every recipient at once, failures logged only.
  *
  * Hooked from OrderModel::save() right after the stock-transition
  * branch on `$oldStatusId !== $newStatusId`. Wrapped in its own
@@ -68,6 +74,37 @@ use Throwable;
  */
 class EmailService
 {
+    /**
+     * A recipient's outcome: the server accepted the message.
+     *
+     * @since  2.1.4
+     */
+    public const OUTCOME_SENT = 'sent';
+
+    /**
+     * A recipient's outcome: refused before the message was handed over (no mailer, the connection, the sender or
+     * the recipient refused) or refused in the server's answer to it. Nothing was delivered; it may be sent again.
+     *
+     * @since  2.1.4
+     */
+    public const OUTCOME_FAILED = 'failed';
+
+    /**
+     * A recipient's outcome: handed over with no answer (a timeout, a lost connection). It may have been delivered,
+     * so it is never sent again automatically.
+     *
+     * @since  2.1.4
+     */
+    public const OUTCOME_UNKNOWN = 'unknown';
+
+    /**
+     * A recipient's outcome: nothing was sent, because sending mail is switched off for the site (Joomla's Global
+     * Configuration, Send Mail: No). A final failure, never retried by itself; staff resend once mail is on.
+     *
+     * @since  2.1.4
+     */
+    public const OUTCOME_MAIL_OFF = 'mail_off';
+
     /**
      * Default layout id for the order-email wrapper. Order-email layouts
      * live under layouts/emails/order/<name>.php (id emails.order.<name>);
@@ -736,70 +773,15 @@ class EmailService
      */
     public static function sendForStatusChange(int $orderId, int $newStatusId): void
     {
-        if ($orderId <= 0 || $newStatusId <= 0) {
-            return;
-        }
-
         try {
-            $order = self::loadOrder(orderId: $orderId);
-
-            if ($order === null) {
-                return;
-            }
-
-            $langTag = self::resolveLangTag(idLanguage: (int) ($order->id_language ?? 0));
-            $status = self::loadStatusForLanguage(statusId: $newStatusId, langTag: $langTag);
-
-            if ($status === null) {
-                return;
-            }
-
-            $notifyCustomer = (int) ($status->notify_customer ?? 0) === 1;
-            $adminRecipients = self::resolveAdminRecipientEmails(statusId: $newStatusId);
-
-            if (!$notifyCustomer && empty($adminRecipients)) {
-                return;
-            }
-
-            $tokens = self::buildTokens(order: $order, status: $status, langTag: $langTag);
-
-            if ($notifyCustomer) {
-                // Sales-document PDFs (attach_document_pdf status flag):
-                // customer email only; the legal copy goes to the buyer.
-                $attachments = (int) ($status->attach_document_pdf ?? 0) === 1
-                    ? self::collectDocumentAttachments(orderId: $orderId)
-                    : [];
-
-                self::dispatch(
-                    recipient:   self::resolveCustomerEmail(order: $order),
-                    positions:   self::decodePositions(json: $status->email_positions_customer ?? ''),
-                    tokens:      $tokens,
-                    orderId:     $orderId,
-                    statusId:    $newStatusId,
-                    layoutId:    (string) ($status->email_layout_customer ?? self::LAYOUT_ID),
-                    context:     self::buildLayoutContext(order: $order, status: $status, recipient: 'customer', langTag: $langTag, withDownloadLinks: true),
-                    attachments: $attachments,
-                );
-            }
-
-            if (!empty($adminRecipients)) {
-                $adminPositions = self::decodePositions(json: $status->email_positions_admin ?? '');
-
-                $adminLayout = (string) ($status->email_layout_admin ?? self::LAYOUT_ID);
-                $adminContext = self::buildLayoutContext(order: $order, status: $status, recipient: 'admin', langTag: $langTag);
-
-                foreach ($adminRecipients as $adminEmail) {
-                    self::dispatch(
-                        recipient: $adminEmail,
-                        positions: $adminPositions,
-                        tokens:    $tokens,
-                        orderId:   $orderId,
-                        statusId:  $newStatusId,
-                        layoutId:  $adminLayout,
-                        context:   $adminContext,
-                    );
-                }
-            }
+            // Every recipient, each failure logged by dispatch() as it happens.
+            self::deliverForStatus(
+                orderId: $orderId,
+                statusId: $newStatusId,
+                attempt: static fn (string $unit): bool => true,
+                outcome: static function (string $unit, string $outcome, string $error): void {
+                },
+            );
         } catch (Throwable $e) {
             // Mail dispatch must never block the order save: log and move on.
             Log::add(
@@ -812,6 +794,149 @@ class EmailService
                 priority: Log::ERROR,
                 category: 'com_alfa.orderemail',
             );
+        }
+    }
+
+    /**
+     * The status e-mail of an order, one recipient at a time, each recipient's outcome reported as it comes.
+     *
+     * The recipients are the status's: the customer when `notify_customer` is set, and every user in
+     * `admin_recipient_ids`. Each is a unit named by role and address (customer:..., admin:...). A recipient the
+     * caller declines (one recorded sent before) is skipped; every other one is sent to and its outcome reported:
+     * self::OUTCOME_SENT, OUTCOME_FAILED (nothing was delivered) or OUTCOME_UNKNOWN (handed over with no answer).
+     * With sending mail switched off for the site nothing is sent: each recipient is OUTCOME_MAIL_OFF.
+     * A send never throws: an exception from here was raised before any recipient was sent to, so nothing was
+     * delivered. An order or a status that no longer exists owes nothing.
+     *
+     * @param int $orderId The order.
+     * @param int $statusId The status the e-mail is about.
+     * @param callable(string): bool $attempt Whether to send to a recipient, by unit.
+     * @param callable(string, string, string): void $outcome A recipient's unit, outcome and error.
+     *
+     * @throws Throwable When the order or its data cannot be read (nothing was sent).
+     *
+     * @since  2.1.4
+     */
+    public static function deliverForStatus(int $orderId, int $statusId, callable $attempt, callable $outcome): void
+    {
+        if ($orderId <= 0 || $statusId <= 0) {
+            return;
+        }
+
+        // A deleted order owes nothing; one that exists but cannot be read is a failure to retry, never a quiet end.
+        $db = Factory::getContainer()->get('DatabaseDriver');
+        $exists = (int) $db->setQuery(
+            $db->getQuery(true)
+                ->select('COUNT(*)')
+                ->from($db->quoteName('#__alfa_orders'))
+                ->where($db->quoteName('id') . ' = ' . $orderId),
+        )->loadResult();
+
+        if ($exists === 0) {
+            return;
+        }
+
+        $order = self::loadOrder(orderId: $orderId);
+
+        if ($order === null) {
+            throw new RuntimeException('Order #' . $orderId . ' could not be read for its status e-mail.');
+        }
+
+        $langTag = self::resolveLangTag(idLanguage: (int) ($order->id_language ?? 0));
+        $status = self::loadStatusForLanguage(statusId: $statusId, langTag: $langTag);
+
+        if ($status === null) {
+            return;
+        }
+
+        $notifyCustomer = (int) ($status->notify_customer ?? 0) === 1;
+        $adminRecipients = self::resolveAdminRecipientEmails(statusId: $statusId);
+
+        if (!$notifyCustomer && empty($adminRecipients)) {
+            return;
+        }
+
+        $tokens = self::buildTokens(order: $order, status: $status, langTag: $langTag);
+
+        // Mail switched off for the site: nothing is sent, and no download link is minted for the customer. Each
+        // recipient is logged as a failed send, as Joomla's refusal was before 2.1.4.
+        $mailOff = !Factory::getApplication()->get('mailonline', 1);
+        $offError = 'Sending mail is switched off for the site (Global Configuration, Send Mail: No).';
+        $notSent = static function (string $unit) use ($outcome, $offError, $orderId, $statusId): void {
+            Log::add(
+                entry:    Text::sprintf('COM_ALFA_ORDEREMAIL_LOG_SEND_FAILED', $orderId, $statusId, $offError),
+                priority: Log::ERROR,
+                category: 'com_alfa.orderemail',
+            );
+            $outcome($unit, self::OUTCOME_MAIL_OFF, $offError);
+        };
+
+        if ($notifyCustomer) {
+            $address = self::resolveCustomerEmail(order: $order);
+            $unit = 'customer:' . $address;
+
+            if ($address === '') {
+                // A notification with nowhere to go is a fact worth a trace: an order whose customer has no email
+                // is a capture defect, not noise.
+                Log::add(
+                    'Order #' . $orderId . ': no recipient address for the status #' . $statusId . ' notification; nothing sent.',
+                    Log::WARNING,
+                    'com_alfa.orders',
+                );
+            } elseif ($mailOff && $attempt($unit)) {
+                $notSent($unit);
+            } elseif ($attempt($unit)) {
+                // Sales-document PDFs (attach_document_pdf status flag): customer email only; the legal copy goes to
+                // the buyer. The download links are composed here, for the send that carries them.
+                $result = self::dispatch(
+                    recipient:   $address,
+                    positions:   self::decodePositions(json: $status->email_positions_customer ?? ''),
+                    tokens:      $tokens,
+                    orderId:     $orderId,
+                    statusId:    $statusId,
+                    layoutId:    (string) ($status->email_layout_customer ?? self::LAYOUT_ID),
+                    context:     self::buildLayoutContext(order: $order, status: $status, recipient: 'customer', langTag: $langTag, withDownloadLinks: true),
+                    attachments: (int) ($status->attach_document_pdf ?? 0) === 1 ? self::collectDocumentAttachments(orderId: $orderId) : [],
+                );
+
+                if ($result !== null) {
+                    $outcome($unit, $result[0], $result[1]);
+                }
+            }
+        }
+
+        if (!empty($adminRecipients)) {
+            $adminPositions = self::decodePositions(json: $status->email_positions_admin ?? '');
+            $adminLayout = (string) ($status->email_layout_admin ?? self::LAYOUT_ID);
+            $adminContext = self::buildLayoutContext(order: $order, status: $status, recipient: 'admin', langTag: $langTag);
+
+            foreach ($adminRecipients as $adminEmail) {
+                $unit = 'admin:' . $adminEmail;
+
+                if (!$attempt($unit)) {
+                    continue;
+                }
+
+                if ($mailOff) {
+                    $notSent($unit);
+
+                    continue;
+                }
+
+                $result = self::dispatch(
+                    recipient: $adminEmail,
+                    positions: $adminPositions,
+                    tokens:    $tokens,
+                    orderId:   $orderId,
+                    statusId:  $statusId,
+                    layoutId:  $adminLayout,
+                    context:   $adminContext,
+                );
+
+                if ($result !== null) {
+                    $outcome($unit, $result[0], $result[1]);
+                }
+            }
         }
     }
 
@@ -877,7 +1002,10 @@ class EmailService
      * @param array<string, mixed> $context Display data forwarded to
      *                                      the layout (order, items,
      *                                      status, recipient, langTag).
+     * @param array<int, array{name: string, bytes: string}> $attachments In-memory attachments.
      *
+     * @return array{0: string, 1: string}|null The outcome (self::OUTCOME_*) and its error; null when nothing
+     *                                          was to be sent (no address, no positions).
      *
      * @since  1.0.0
      */
@@ -890,7 +1018,7 @@ class EmailService
         string $layoutId = self::LAYOUT_ID,
         array $context = [],
         array $attachments = [],
-    ): void {
+    ): ?array {
         if ($recipient === '') {
             // A notification with nowhere to go is a fact worth a trace: an
             // order whose customer has no email is a capture defect, not noise.
@@ -900,30 +1028,33 @@ class EmailService
                 'com_alfa.orders',
             );
 
-            return;
+            return null;
         }
 
         if (empty($positions)) {
-            return;
+            return null;
         }
 
-        $subjectTpl = (string) ($positions[self::SUBJECT_POSITION] ?? '');
-        $subject = self::applyTokens(template: $subjectTpl, tokens: self::subjectTokens($tokens));
-
-        if ($subject === '') {
-            // Headerless emails are a deliverability red flag: fall back
-            // to a generic subject when admin filled in body positions
-            // but left subject blank.
-            $subject = Text::sprintf(
-                'COM_ALFA_ORDEREMAIL_SUBJECT_FALLBACK',
-                $orderId,
-                $tokens['{status_customer}'] ?? '',
-            );
-        }
-
-        $html = self::renderEmailHtml(positions: $positions, tokens: $tokens, layoutId: $layoutId, context: $context);
+        $watch = null;
+        $sent = false;
 
         try {
+            $subjectTpl = (string) ($positions[self::SUBJECT_POSITION] ?? '');
+            $subject = self::applyTokens(template: $subjectTpl, tokens: self::subjectTokens($tokens));
+
+            if ($subject === '') {
+                // Headerless emails are a deliverability red flag: fall back
+                // to a generic subject when admin filled in body positions
+                // but left subject blank.
+                $subject = Text::sprintf(
+                    'COM_ALFA_ORDEREMAIL_SUBJECT_FALLBACK',
+                    $orderId,
+                    $tokens['{status_customer}'] ?? '',
+                );
+            }
+
+            $html = self::renderEmailHtml(positions: $positions, tokens: $tokens, layoutId: $layoutId, context: $context);
+
             $mailer = Factory::getContainer()
                 ->get(MailerFactoryInterface::class)
                 ->createMailer();
@@ -939,7 +1070,15 @@ class EmailService
                 $mailer->addStringAttachment($attachment['bytes'], $attachment['name']);
             }
 
-            $mailer->Send();
+            // What the server was handed and answered decides a failure's kind (2.1.4).
+            $watch = $mailer instanceof Mail ? MailHandover::watch(mailer: $mailer) : null;
+            $sent = $mailer->Send() !== false;
+
+            if (!$sent) {
+                throw new RuntimeException('The mailer did not send the message.');
+            }
+
+            return [self::OUTCOME_SENT, ''];
         } catch (Throwable $e) {
             Log::add(
                 entry:    Text::sprintf(
@@ -951,6 +1090,9 @@ class EmailService
                 priority: Log::ERROR,
                 category: 'com_alfa.orderemail',
             );
+
+            // Anything before the send (rendering, the mailer) handed nothing over.
+            return [$watch?->outcome(sent: $sent) ?? self::OUTCOME_FAILED, $e->getMessage()];
         }
     }
 

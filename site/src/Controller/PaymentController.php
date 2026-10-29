@@ -17,6 +17,7 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\BaseController;
 use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Router\Route;
+use Joomla\CMS\Uri\Uri;
 
 /**
  * Payment controller: handles the storefront return from a payment gateway.
@@ -46,7 +47,8 @@ class PaymentController extends BaseController
 
         if ($paymentType === '' || !PluginHelper::isEnabled('alfa-payments', $paymentType)) {
             $app->enqueueMessage(Text::_('COM_ALFA_PAYMENT_ORDER_ID_MISSING'), 'error');
-            $app->redirect(Route::_('/index.php'));
+            // The shop's home page under its own path (a Joomla in a subfolder keeps it); never the page itself.
+            $app->redirect(Uri::root());
 
             return;
         }

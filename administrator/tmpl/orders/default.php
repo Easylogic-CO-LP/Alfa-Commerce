@@ -27,6 +27,7 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\Actions;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\Columns;
+use Alfa\Component\Alfa\Administrator\Helper\OrderLabels;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Layout\LayoutHelper;
@@ -52,6 +53,10 @@ Text::script('JCLOSE'); //used by actions modal popups
 // The list view has no tooltips that trigger it implicitly.
 HTMLHelper::_('bootstrap.modal');
 
+// Bootstrap's collapse script drives Quick view; loaded here so the modal list
+// (tmpl=component) has it as well as the full page.
+HTMLHelper::_('bootstrap.collapse');
+
 // View-level variables
 $listOrder     = $this->escape($this->state->get('list.ordering'));
 $listDirn      = $this->escape($this->state->get('list.direction'));
@@ -69,8 +74,9 @@ $columnsByAnchor = Columns::prepare(
     $this->pluginColumns ?? [],
     ['id', 'customer', 'amount', 'date', 'payment', 'shipment', 'status'],
 );
-// 10, not 9: the attention indicator added a column of its own.
-$colspan = 10 + count($this->pluginColumns ?? []) + Actions::span($this->pluginRowActions ?? []);
+// The core columns: checkbox, attention, order (with its Quick view), customer,
+// amount, date, payment, shipment and status.
+$colspan = 9 + count($this->pluginColumns ?? []) + Actions::span($this->pluginRowActions ?? []);
 ?>
 
 <form action="<?php echo Route::_('index.php?option=com_alfa&view=orders'
@@ -128,7 +134,6 @@ $colspan = 10 + count($this->pluginColumns ?? []) + Actions::span($this->pluginR
                     <thead>
                     <tr>
                         <th style="width:1%"  class="text-center"><?php echo HTMLHelper::_('grid.checkall'); ?></th>
-                        <th style="width:1%"  class="text-center"></th>
                         <th style="width:1%"  class="text-center" title="<?php echo Text::_('COM_ALFA_LIST_ATTENTION'); ?>">
 							<span class="icon-info-circle" aria-hidden="true"></span>
                         </th>
@@ -213,16 +218,7 @@ $colspan = 10 + count($this->pluginColumns ?? []) + Actions::span($this->pluginR
 									<?php endif; ?>
                                 </td>
 
-                                <!-- Expand / collapse detail panel -->
-                                <td class="text-center">
-                                    <button class="btn-expand" type="button"
-                                            data-bs-toggle="collapse"
-                                            data-bs-target="#<?php echo $detailId; ?>"
-                                            aria-expanded="false"
-                                            aria-controls="<?php echo $detailId; ?>">&#9654;</button>
-                                </td>
-
-                                <!-- Order ID + reference -->
+                                <!-- Order ID + reference + Quick view -->
                                 <td class="text-center">
 									<?php if (isset($item->checked_out) && $item->checked_out && ($canEdit || $canChange)) : ?>
 										<?php echo HTMLHelper::_('jgrid.checkedout', $i, $item->editor, $item->checked_out_time, 'orders.', $canCheckin); ?>
@@ -231,6 +227,7 @@ $colspan = 10 + count($this->pluginColumns ?? []) + Actions::span($this->pluginR
 									<?php if ($canEdit) : ?>
                                         <a href="<?php echo Route::_('index.php?option=com_alfa&task=order.edit&id=' . (int) $item->id); ?>"
                                            <?php echo $this->isModal ? 'target="_blank" rel="noopener"' : ''; ?>
+                                           title="<?php echo $this->escape(Text::_('COM_ALFA_ORDERS_OPEN_ORDER')); ?>"
                                            class="badge bg-primary text-white" style="font-size:1em">
                                             #<?php echo (int) $item->id; ?>
                                         </a>
@@ -241,6 +238,16 @@ $colspan = 10 + count($this->pluginColumns ?? []) + Actions::span($this->pluginR
 									<?php if (!empty($item->reference)) : ?>
                                         <small class="d-block text-muted"><?php echo $this->escape($item->reference); ?></small>
 									<?php endif; ?>
+
+                                    <?php // Opens the read-only panel below the row; the order number opens the order. ?>
+                                    <button class="btn btn-link btn-sm btn-quickview" type="button"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#<?php echo $detailId; ?>"
+                                            aria-expanded="false"
+                                            aria-controls="<?php echo $detailId; ?>">
+                                        <span class="btn-quickview-arrow" aria-hidden="true">&#9654;</span>
+                                        <?php echo $this->escape(Text::_('COM_ALFA_ORDERS_QUICK_VIEW')); ?>
+                                    </button>
                                 </td>
 
                                 <?php echo Columns::cells($columnsByAnchor, 'id', $item); ?>
@@ -252,7 +259,8 @@ $colspan = 10 + count($this->pluginColumns ?? []) + Actions::span($this->pluginR
                                         <div class="customer-name"><?php echo $this->escape($customer['name']); ?></div>
 									<?php endif; ?>
 									<?php if ($customer['email'] !== '') : ?>
-                                        <div class="customer-email"><?php echo $this->escape($customer['email']); ?></div>
+                                        <?php // A long address may break after its @, so the row still fits the window. ?>
+                                        <div class="customer-email"><?php echo str_replace('@', '@<wbr>', $this->escape($customer['email'])); ?></div>
 									<?php endif; ?>
 									<?php if ($customer['name'] === '' && $customer['email'] === '') : ?>
                                         <span class="text-muted"><?php echo Text::_('COM_ALFA_GUEST'); ?></span>
@@ -265,7 +273,7 @@ $colspan = 10 + count($this->pluginColumns ?? []) + Actions::span($this->pluginR
 
                                 <?php echo Columns::cells($columnsByAnchor, 'customer', $item); ?>
 
-                                <!-- Amount: paid / total + payment status badge -->
+                                <!-- Amount: held / total + payment status badge -->
                                 <td class="text-center">
 									<?php if (($item->currency_notice ?? '') !== '') : ?>
 										<?php // The order names no currency: it has no amount and no payment state to show. ?>
@@ -287,10 +295,13 @@ $colspan = 10 + count($this->pluginColumns ?? []) + Actions::span($this->pluginR
                                     <div class="price-display alfa-tip"
 									     <?php if ($tt) : ?>data-tip="<?php echo $this->escape($tt); ?>"<?php endif; ?>
                                          style="cursor:<?php echo $tt ? 'help' : 'default'; ?>">
+                                        <?php // What the shop holds now: completed payments less refunds and
+                                              // chargebacks. With the Due line it adds up to the total; the gross
+                                              // ever paid stays in the payment rows. ?>
                                         <span class="price-paid">
-                                            <?php echo isset($item->total_paid_real_money)
-	                                            ? $item->total_paid_real_money->format()
-	                                            : number_format((float) ($item->total_paid_real ?? 0), 2); ?>
+                                            <?php echo isset($item->still_held_money)
+	                                            ? $item->still_held_money->format()
+	                                            : number_format((float) ($item->still_held ?? 0), 2); ?>
                                         </span>
                                         <span class="price-total">
                                             / <?php echo isset($item->order_total_money)
@@ -309,7 +320,7 @@ $colspan = 10 + count($this->pluginColumns ?? []) + Actions::span($this->pluginR
                                         <span class="pay-sts badge-<?php echo $pSts; ?>">
                                             <?php switch ($pSts) {
 	                                            case 'paid':    echo Text::_('COM_ALFA_PAID'); break;
-	                                            case 'partial': echo Text::_('COM_ALFA_PARTIAL') . ' (' . ($item->payment_percentage ?? 0) . '%)'; break;
+	                                            case 'partial': echo Text::_('COM_ALFA_PARTIAL') . ' (' . ($item->held_percentage ?? 0) . '%)'; break;
 	                                            case 'refunded':           echo Text::_('COM_ALFA_REFUNDED'); break;
 	                                            case 'partially_refunded': echo Text::_('COM_ALFA_PARTIALLY_REFUNDED'); break;
 	                                            default:        echo Text::_('COM_ALFA_UNPAID');
@@ -323,6 +334,13 @@ $colspan = 10 + count($this->pluginColumns ?? []) + Actions::span($this->pluginR
 													: number_format((float) $item->total_refunded_real, 2); ?>
                                             </small>
 										<?php endif; ?>
+										<?php // What the customer's bank took back: with Refunded it explains the held figure. ?>
+										<?php if (isset($item->charged_back_money)) : ?>
+                                            <small class="d-block text-muted" style="font-weight:normal;font-size:0.76em">
+                                                <?php echo $this->escape(Text::_('COM_ALFA_PAYMENT_TYPE_CHARGEBACK')); ?>:
+                                                &minus;<?php echo $item->charged_back_money->format(); ?>
+                                            </small>
+										<?php endif; ?>
 										<?php // Still due: the model's figure, the totals card's Balance Due. ?>
 										<?php if (isset($item->balance_due_money)) : ?>
                                             <small class="d-block text-danger" style="font-weight:normal;font-size:0.76em">
@@ -333,7 +351,7 @@ $colspan = 10 + count($this->pluginColumns ?? []) + Actions::span($this->pluginR
 
 									<?php if ($pSts === 'partial') : ?>
                                         <div class="bar-wrap">
-                                            <div class="bar-fill yellow" style="width:<?php echo $item->payment_percentage ?? 0; ?>%"></div>
+                                            <div class="bar-fill yellow" style="width:<?php echo $item->held_percentage ?? 0; ?>%"></div>
                                         </div>
 									<?php endif; ?>
 									<?php endif; ?>
@@ -381,7 +399,7 @@ $colspan = 10 + count($this->pluginColumns ?? []) + Actions::span($this->pluginR
                                                 <span class="ship-method">
                                                     <?php echo $this->escape(mb_strimwidth($sh->shipment_method_name ?? '-', 0, 18, '...')); ?>
                                                 </span>
-                                                <span class="sts sts-<?php echo $shStsClass; ?>"><?php echo ucfirst($shStatus); ?></span>
+                                                <span class="sts sts-<?php echo $shStsClass; ?>"><?php echo $this->escape(OrderLabels::shipmentStatus($shStatus)); ?></span>
 												<?php if (!empty($sh->tracking_number)) : ?>
                                                     <small class="d-block text-mono text-muted" style="font-size:0.72em">
 														<?php echo $this->escape($sh->tracking_number); ?>

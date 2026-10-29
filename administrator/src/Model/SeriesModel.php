@@ -45,9 +45,10 @@ class SeriesModel extends AlfaAdminModel
      * CONTRACT COVERAGE NOTES (decided at migration):
      * - save() merges the composer's raw POST keys and bundles `positions` BEFORE
      *   parent::save(), so onAlfaAdminBeforeSave sees the finished payload; but
-     *   onAlfaAdminAfterSave fires inside parent::save(), i.e. BEFORE the is_default
-     *   cross-row demotion runs: a handler reading sibling rows there sees the
-     *   pre-demotion defaults.
+     *   onAlfaAdminAfterSave is dispatched through PostCommit as parent::save()
+     *   returns (at once, since no transaction is open here), i.e. BEFORE the
+     *   is_default cross-row demotion runs: a handler reading sibling rows there
+     *   sees the pre-demotion defaults.
      * - onAlfaAdminValidate sees the validated data WITHOUT the composer keys:
      *   they are undeclared in the form XML and recovered from the raw POST only
      *   inside save().
@@ -186,15 +187,25 @@ class SeriesModel extends AlfaAdminModel
             $id = (int) $this->getState($this->getName() . '.id');
             $db = $this->getDatabase();
 
-            $query = $db->getQuery(true)
-                ->update($db->quoteName('#__alfa_document_series'))
-                ->set($db->quoteName('is_default') . ' = 0')
-                ->where([
-                    $db->quoteName('doc_type') . ' = ' . $db->quote((string) $data['doc_type']),
-                    $db->quoteName('id') . ' != ' . $id,
-                ]);
-            $db->setQuery(query: $query);
-            $db->execute();
+            // The type as the row stores it: the form of an existing series does not post it.
+            $docType = (string) $db->setQuery(
+                $db->getQuery(true)
+                    ->select($db->quoteName('doc_type'))
+                    ->from($db->quoteName('#__alfa_document_series'))
+                    ->where($db->quoteName('id') . ' = ' . $id),
+            )->loadResult();
+
+            if ($docType !== '') {
+                $query = $db->getQuery(true)
+                    ->update($db->quoteName('#__alfa_document_series'))
+                    ->set($db->quoteName('is_default') . ' = 0')
+                    ->where([
+                        $db->quoteName('doc_type') . ' = ' . $db->quote($docType),
+                        $db->quoteName('id') . ' != ' . $id,
+                    ]);
+                $db->setQuery(query: $query);
+                $db->execute();
+            }
         }
 
         return true;

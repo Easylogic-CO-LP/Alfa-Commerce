@@ -25,11 +25,20 @@ use Alfa\Component\Alfa\Administrator\Event\Admin\AlfaAdminContext;
 use Alfa\Component\Alfa\Administrator\Event\Admin\AlfaAdminDispatcher;
 use Alfa\Component\Alfa\Administrator\Helper\AlfaHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
+use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
+use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
+use Joomla\CMS\Event\Model\AfterDeleteEvent;
+use Joomla\CMS\Event\Model\AfterSaveEvent;
+use Joomla\CMS\Event\Model\BeforeDeleteEvent;
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Log\Log;
 use Joomla\CMS\MVC\Model\AdminModel;
+use Joomla\CMS\Plugin\PluginHelper;
 use Joomla\CMS\Table\Table;
+use Joomla\Database\DatabaseDriver;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -72,6 +81,24 @@ use Throwable;
  * A veto is data: before-save and before-delete collect every objection and refuse cleanly through
  * setError(), which is what the controller already knows how to redisplay.
  *
+ * AFTER THE COMMIT, VETOES BEFORE THE LOCK (2.1.4, design 0.2 and 2.9). The admin events of a save
+ * or a delete are moved out of a model's transaction or lock as follows, and no further:
+ *   - Heard after the commit: the after-events, Alfa's (onAlfaAdminAfterSave, onAlfaAdminAfterDelete)
+ *     and Joomla's (onContentAfterSave, onContentAfterDelete), once the record's write has committed
+ *     and Alfa's named locks are released ({@see PostCommit}): at once when no transaction and no
+ *     lock scope is open, else at the outermost commit or the release, and never when it rolls back
+ *     ({@see self::alfaAfterTheCommit()}).
+ *   - Asked before the transaction or lock: every delete veto, Alfa's and Joomla's, by a model that
+ *     deletes inside one ({@see self::alfaAskBeforeDelete()}); Alfa's before-save, by a model that
+ *     saves inside one ({@see self::alfaAskSave()}).
+ *   - Still heard inside: Joomla's onContentBeforeSave, which stays in AdminModel::save() between the
+ *     record's check and its store, where Joomla gives its listeners the record to change; for a
+ *     location saved under its inventory locks it is therefore heard under those locks (a known
+ *     limit). Joomla's Table events (onTableBeforeStore, onTableAfterStore, onTableBeforeDelete,
+ *     onTableAfterDelete, and the behaviour plugins on them) run inside the Table's own store() and
+ *     delete(), so inside every model's transaction, an item's stock lock included. An order's
+ *     before-save events run inside the save's own transaction, which holds no lock of its own.
+ *
  * @since  2.0.0
  */
 abstract class AlfaAdminModel extends AdminModel
@@ -84,6 +111,39 @@ abstract class AlfaAdminModel extends AdminModel
      * @since  2.0.0
      */
     private ?array $alfaPreparedData = null;
+
+    /**
+     * @var bool Whether every delete veto was already asked about this delete, Alfa's and Joomla's, before the
+     *           model's transaction or lock ({@see self::alfaAskBeforeDelete()}), so delete() does not ask them
+     *           again. Set by the model just before its call of delete(), which clears it on entry.
+     * @since  2.1.4
+     */
+    protected bool $alfaDeleteAsked = false;
+
+    /**
+     * @var array|null The data Alfa's before-save gave, asked before the model's transaction or lock
+     *                 ({@see self::alfaAskSave()}), so save() does not ask again. Cleared by save().
+     * @since  2.1.4
+     */
+    protected ?array $alfaSaveAsked = null;
+
+    /**
+     * The name Joomla's before-delete event is dispatched under while delete() deletes records whose vetoes were asked
+     * before the lock: no listener hears this name.
+     *
+     * @var string
+     * @since  2.1.4
+     */
+    private const ASKED_BEFORE_THE_LOCK = 'onAlfaContentDeleteAskedBeforeTheLock';
+
+    /**
+     * The name Joomla's after-events are dispatched under while a record is saved or deleted inside a transaction or a
+     * lock scope: captured there, and heard again under Joomla's name once it has committed.
+     *
+     * @var string
+     * @since  2.1.4
+     */
+    private const AFTER_THE_COMMIT = 'onAlfaContentAfterTheCommit';
 
     /**
      * May the current user delete records of this entity: its own section's delete permission,
@@ -348,32 +408,15 @@ abstract class AlfaAdminModel extends AdminModel
     public function save($data)
     {
         $isNew = $this->alfaIsNew($data);
+        $asked = $this->alfaSaveAsked;
+        $this->alfaSaveAsked = null;
+        $data = $asked ?? $this->alfaAskSave(data: (array) $data);
 
-        if ($this->alfaDispatches(AdminBeforeSaveEvent::NAME)) {
-            $context = new AlfaAdminContext(
-                entity: $this->alfaEntity,
-                view: $this->alfaView(),
-                screen: AlfaAdminContext::SCREEN_SAVE,
-                phase: AlfaAdminContext::PHASE_BEFORE_SAVE,
-                user: $this->alfaUser(),
-                token: $this->alfaToken(),
-                item: $isNew ? null : $this->alfaLoadRecord($this->alfaRecordId($data)),
-                isNew: $isNew,
-                data: (array) $data,
-            );
-
-            try {
-                AlfaAdminDispatcher::dispatch(new AdminBeforeSaveEvent($context));
-            } catch (Throwable $e) {
-                $this->setError($e->getMessage());
-
-                return false;
-            }
-
-            $data = $context->data;
+        if ($data === null) {
+            return false;
         }
 
-        $result = parent::save($data);
+        $result = $this->alfaAfterTheCommit(event: 'event_after_save', name: 'onContentAfterSave', call: fn (): bool => (bool) parent::save($data));
 
         if ($result) {
             SetupHelper::invalidateFor($this->alfaEntity);
@@ -385,19 +428,30 @@ abstract class AlfaAdminModel extends AdminModel
         }
 
         $id = (int) $this->getState($this->getName() . '.id');
+        $entity = $this->alfaEntity;
+        $view = $this->alfaView();
+        $user = $this->alfaUser();
+        $token = $this->alfaToken();
 
-        AlfaAdminDispatcher::dispatch(new AdminAfterSaveEvent(new AlfaAdminContext(
-            entity: $this->alfaEntity,
-            view: $this->alfaView(),
-            screen: AlfaAdminContext::SCREEN_SAVE,
-            phase: AlfaAdminContext::PHASE_AFTER_SAVE,
-            user: $this->alfaUser(),
-            token: $this->alfaToken(),
-            item: $this->alfaLoadRecord($id),
-            ids: $id > 0 ? [$id] : [],
-            isNew: $isNew,
-            data: (array) $data,
-        )));
+        // Heard once the save has committed: the record as it was committed, read then.
+        PostCommit::defer(
+            db: $this->alfaDriver(),
+            label: AdminAfterSaveEvent::NAME . ' of ' . $entity . ' #' . $id,
+            work: function () use ($id, $entity, $view, $user, $token, $isNew, $data): void {
+                AlfaAdminDispatcher::dispatch(new AdminAfterSaveEvent(new AlfaAdminContext(
+                    entity: $entity,
+                    view: $view,
+                    screen: AlfaAdminContext::SCREEN_SAVE,
+                    phase: AlfaAdminContext::PHASE_AFTER_SAVE,
+                    user: $user,
+                    token: $token,
+                    item: $this->alfaLoadRecord($id),
+                    ids: $id > 0 ? [$id] : [],
+                    isNew: $isNew,
+                    data: (array) $data,
+                )));
+            },
+        );
 
         return $result;
     }
@@ -414,6 +468,10 @@ abstract class AlfaAdminModel extends AdminModel
      */
     public function delete(&$pks)
     {
+        // The flag belongs to this call alone, so it is cleared before anything can refuse it.
+        $asked = $this->alfaDeleteAsked;
+        $this->alfaDeleteAsked = false;
+
         // Permission first: a refused delete must not reach the contributors' before-delete
         // handlers, which may do work of their own. The per-record check in parent::delete()
         // still runs, with each model's business rules.
@@ -424,35 +482,24 @@ abstract class AlfaAdminModel extends AdminModel
             return false;
         }
 
-        if ($this->alfaDispatches(AdminBeforeDeleteEvent::NAME)) {
-            $context = new AlfaAdminContext(
-                entity: $this->alfaEntity,
-                view: $this->alfaView(),
-                screen: AlfaAdminContext::SCREEN_DELETE,
-                phase: AlfaAdminContext::PHASE_BEFORE_DELETE,
-                user: $this->alfaUser(),
-                token: $this->alfaToken(),
-                ids: array_map('intval', (array) $pks),
-            );
-
-            try {
-                AlfaAdminDispatcher::dispatch(new AdminBeforeDeleteEvent($context));
-            } catch (Throwable $e) {
-                $this->setError($e->getMessage());
-
-                return false;
-            }
-
-            if ($context->hasErrors()) {
-                foreach ($context->errors as $error) {
-                    $this->setError($error);
-                }
-
-                return false;
-            }
+        if (!$asked && !$this->alfaAskDelete(pks: (array) $pks)) {
+            return false;
         }
 
-        $result = parent::delete($pks);
+        // Joomla's veto was asked with Alfa's, before the lock: the name it is dispatched under in the call is inert.
+        $before = $this->event_before_delete;
+
+        if ($asked) {
+            $this->event_before_delete = self::ASKED_BEFORE_THE_LOCK;
+        }
+
+        try {
+            $result = $this->alfaAfterTheCommit(event: 'event_after_delete', name: 'onContentAfterDelete', call: function () use (&$pks): bool {
+                return (bool) parent::delete($pks);
+            });
+        } finally {
+            $this->event_before_delete = $before;
+        }
 
         if ($result) {
             SetupHelper::invalidateFor($this->alfaEntity);
@@ -463,7 +510,7 @@ abstract class AlfaAdminModel extends AdminModel
             return $result;
         }
 
-        AlfaAdminDispatcher::dispatch(new AdminAfterDeleteEvent(new AlfaAdminContext(
+        $context = new AlfaAdminContext(
             entity: $this->alfaEntity,
             view: $this->alfaView(),
             screen: AlfaAdminContext::SCREEN_DELETE,
@@ -471,9 +518,235 @@ abstract class AlfaAdminModel extends AdminModel
             user: $this->alfaUser(),
             token: $this->alfaToken(),
             ids: array_map('intval', (array) $pks),
-        )));
+        );
+
+        // Heard once the delete has committed.
+        PostCommit::defer(
+            db: $this->alfaDriver(),
+            label: AdminAfterDeleteEvent::NAME . ' of ' . $this->alfaEntity,
+            work: static function () use ($context): void {
+                AlfaAdminDispatcher::dispatch(new AdminAfterDeleteEvent($context));
+            },
+        );
 
         return $result;
+    }
+
+    /**
+     * Ask every delete veto before the model's transaction or lock: Alfa's (onAlfaAdminBeforeDelete) and Joomla's
+     * (onContentBeforeDelete, for each record as AdminModel::delete() asks it). A model that deletes inside a
+     * transaction or a lock of its own asks this before it opens it, then sets {@see self::$alfaDeleteAsked} just before
+     * its call of delete().
+     *
+     * @param array $pks The primary keys to delete.
+     *
+     * @return bool False when a veto refused; the error is set.
+     *
+     * @since  2.1.4
+     */
+    protected function alfaAskBeforeDelete(array $pks): bool
+    {
+        $pks = array_map('intval', $pks);
+
+        return $this->alfaAskDelete(pks: $pks) && $this->alfaAskContentBeforeDelete(pks: $pks);
+    }
+
+    /**
+     * Ask Joomla's before-delete event about each record, as AdminModel::delete() would: a listener that answers false
+     * refuses the whole delete. A listener that throws refuses it too ({@see self::alfaDeleteRefusedBy()}).
+     *
+     * @param list<int> $pks The records.
+     *
+     * @return bool False when a listener refused; the error is set.
+     *
+     * @since  2.1.4
+     */
+    protected function alfaAskContentBeforeDelete(array $pks): bool
+    {
+        try {
+            $table = $this->getTable();
+            $dispatcher = $this->getDispatcher();
+            PluginHelper::importPlugin($this->events_map['delete'], null, true, $dispatcher);
+
+            foreach ($pks as $pk) {
+                if (!$table->load($pk) || !$this->canDelete($table)) {
+                    continue;
+                }
+
+                $event = new BeforeDeleteEvent($this->event_before_delete, ['context' => $this->option . '.' . $this->name, 'subject' => $table]);
+
+                if (\in_array(false, $dispatcher->dispatch($this->event_before_delete, $event)->getArgument('result', []), true)) {
+                    $this->setError($table->getError());
+
+                    return false;
+                }
+            }
+        } catch (Throwable $e) {
+            $this->alfaDeleteRefusedBy(failure: $e, pks: $pks);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * A before-delete listener threw: the delete is refused with its words, as AdminModel::delete() refuses it, and the
+     * words are logged. A model may say it in its own words.
+     *
+     * @param Throwable $failure What the listener threw.
+     * @param list<int> $pks The records.
+     *
+     * @since  2.1.4
+     */
+    protected function alfaDeleteRefusedBy(Throwable $failure, array $pks): void
+    {
+        try {
+            Log::add(
+                entry: ucfirst($this->alfaEntity) . ' ' . implode(separator: ', ', array: $pks) . ' not deleted; a before-delete listener refused: ' . $failure->getMessage(),
+                priority: Log::WARNING,
+                category: 'com_alfa',
+            );
+        } catch (Throwable) {
+            // An unwritable log changes nothing that happened.
+        }
+
+        $this->setError($failure->getMessage());
+    }
+
+    /**
+     * Ask Alfa's before-save (onAlfaAdminBeforeSave): the data the contributors give, or null when one refused (the
+     * error is set). save() asks it; a model that saves inside a transaction or a lock of its own may ask it before it
+     * opens it and set {@see self::$alfaSaveAsked} to the answer for its call of save().
+     *
+     * @param array $data The form data.
+     *
+     * @since  2.1.4
+     */
+    protected function alfaAskSave(array $data): ?array
+    {
+        if (!$this->alfaDispatches(AdminBeforeSaveEvent::NAME)) {
+            return $data;
+        }
+
+        $isNew = $this->alfaIsNew($data);
+        $context = new AlfaAdminContext(
+            entity: $this->alfaEntity,
+            view: $this->alfaView(),
+            screen: AlfaAdminContext::SCREEN_SAVE,
+            phase: AlfaAdminContext::PHASE_BEFORE_SAVE,
+            user: $this->alfaUser(),
+            token: $this->alfaToken(),
+            item: $isNew ? null : $this->alfaLoadRecord($this->alfaRecordId($data)),
+            isNew: $isNew,
+            data: $data,
+        );
+
+        try {
+            AlfaAdminDispatcher::dispatch(new AdminBeforeSaveEvent($context));
+        } catch (Throwable $e) {
+            $this->setError($e->getMessage());
+
+            return null;
+        }
+
+        return (array) $context->data;
+    }
+
+    /**
+     * Run one of Joomla's save or delete calls with its after-event heard after the commit, when a transaction or a
+     * lock scope is open: the model's event name is pointed at a name of its own for the call, each event Joomla builds
+     * is captured, with a copy of its record as it is then (Joomla's delete loads every record into one Table), and it
+     * is dispatched again under Joomla's name through PostCommit, once the outermost transaction has committed and
+     * Alfa's named locks are released, and never after a rollback; in the order Joomla raised them, before Alfa's own
+     * after-event. With nothing open the call runs as Joomla runs it.
+     *
+     * @param string $event The model property that names the event (event_after_save, event_after_delete).
+     * @param string $name Joomla's name for it.
+     * @param callable(): bool $call The call.
+     *
+     * @since  2.1.4
+     */
+    protected function alfaAfterTheCommit(string $event, string $name, callable $call): bool
+    {
+        $db = $this->alfaDriver();
+
+        if (!TransactionState::isOpen($db) && !PostCommit::inLock($db)) {
+            return $call();
+        }
+
+        $dispatcher = $this->getDispatcher();
+        $was = $this->{$event};
+        $label = $name . ' of ' . $this->alfaEntity;
+        $capture = static function ($captured) use ($dispatcher, $db, $name, $label): void {
+            $arguments = $captured->getArguments();
+
+            if (\is_object($arguments['subject'] ?? null)) {
+                $arguments['subject'] = clone $arguments['subject'];
+            }
+
+            PostCommit::defer(
+                db: $db,
+                label: $label,
+                work: static function () use ($dispatcher, $name, $arguments): void {
+                    $dispatcher->dispatch($name, $name === 'onContentAfterSave' ? new AfterSaveEvent($name, $arguments) : new AfterDeleteEvent($name, $arguments));
+                },
+            );
+        };
+        $this->{$event} = self::AFTER_THE_COMMIT;
+        $dispatcher->addListener(self::AFTER_THE_COMMIT, $capture);
+
+        try {
+            return $call();
+        } finally {
+            $dispatcher->removeListener(self::AFTER_THE_COMMIT, $capture);
+            $this->{$event} = $was;
+        }
+    }
+
+    /**
+     * Ask the contributors whether records may be deleted (onAlfaAdminBeforeDelete): the veto delete() asks before it
+     * deletes, unless the model asked every veto before its transaction or lock ({@see self::alfaAskBeforeDelete()}).
+     *
+     * @param array $pks The primary keys to delete.
+     *
+     * @return bool False when a contributor refused; the errors are set.
+     *
+     * @since  2.1.4
+     */
+    protected function alfaAskDelete(array $pks): bool
+    {
+        if (!$this->alfaDispatches(AdminBeforeDeleteEvent::NAME)) {
+            return true;
+        }
+
+        $context = new AlfaAdminContext(
+            entity: $this->alfaEntity,
+            view: $this->alfaView(),
+            screen: AlfaAdminContext::SCREEN_DELETE,
+            phase: AlfaAdminContext::PHASE_BEFORE_DELETE,
+            user: $this->alfaUser(),
+            token: $this->alfaToken(),
+            ids: array_map('intval', $pks),
+        );
+
+        try {
+            AlfaAdminDispatcher::dispatch(new AdminBeforeDeleteEvent($context));
+        } catch (Throwable $e) {
+            $this->setError($e->getMessage());
+
+            return false;
+        }
+
+        if ($context->hasErrors()) {
+            foreach ($context->errors as $error) {
+                $this->setError($error);
+            }
+
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -498,6 +771,24 @@ abstract class AlfaAdminModel extends AdminModel
         }
 
         return $result;
+    }
+
+    /**
+     * The model's connection, as the driver PostCommit takes.
+     *
+     * @throws RuntimeException When the model holds another kind of database object.
+     *
+     * @since  2.1.4
+     */
+    protected function alfaDriver(): DatabaseDriver
+    {
+        $db = $this->getDatabase();
+
+        if (!$db instanceof DatabaseDriver) {
+            throw new RuntimeException('Alfa Commerce needs a database driver; the model holds ' . $db::class . '.');
+        }
+
+        return $db;
     }
 
     /**

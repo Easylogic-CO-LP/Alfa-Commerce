@@ -12,6 +12,7 @@ defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\Actions;
 use Alfa\Component\Alfa\Administrator\Helper\Columns;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
+use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
@@ -69,22 +70,25 @@ $columnsByAnchor = Columns::prepare($this->pluginColumns ?? [], []);   // END-on
                             $severity = \in_array($item->severity, ['success', 'info', 'warning', 'danger'], true) ? $item->severity : 'info';
                             $safeUrl  = NotificationHelper::safeUrl((string) $item->url);
                             $hasLink  = $safeUrl !== '' && NotificationHelper::canUseLink($item, $user);
+                            // In the reader's language: the key, else the snapshot; literal text as written.
+                            $title    = NotificationText::title($item);
+                            $message  = NotificationText::message($item);
                             ?>
                             <tr>
                                 <td class="text-center"><span class="badge text-bg-<?php echo $severity; ?>"><?php echo Text::_($severityLabels[$severity] ?? 'COM_ALFA_NOTIFY_SEVERITY_INFO'); ?></span></td>
                                 <td>
                                     <?php if ($hasLink) : ?>
                                         <a href="<?php echo htmlspecialchars($safeUrl, ENT_QUOTES, 'UTF-8'); ?>">
-                                            <strong><?php echo htmlspecialchars((string) $item->title, ENT_QUOTES, 'UTF-8'); ?></strong>
+                                            <strong><?php echo htmlspecialchars($title, ENT_QUOTES, 'UTF-8'); ?></strong>
                                         </a>
                                     <?php else : ?>
-                                        <strong><?php echo htmlspecialchars((string) $item->title, ENT_QUOTES, 'UTF-8'); ?></strong>
+                                        <strong><?php echo htmlspecialchars($title, ENT_QUOTES, 'UTF-8'); ?></strong>
                                     <?php endif; ?>
-                                    <?php if ((string) $item->message !== '') : ?>
-                                        <div class="small text-muted"><?php echo htmlspecialchars((string) $item->message, ENT_QUOTES, 'UTF-8'); ?></div>
+                                    <?php if ($message !== '') : ?>
+                                        <div class="small text-muted"><?php echo htmlspecialchars($message, ENT_QUOTES, 'UTF-8'); ?></div>
                                     <?php endif; ?>
                                 </td>
-                                <td class="d-none d-md-table-cell"><?php echo htmlspecialchars((string) $item->notify_group, ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td class="d-none d-md-table-cell"><?php echo htmlspecialchars(NotificationText::group($item), ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td class="d-none d-md-table-cell">
                                     <?php echo $item->created ? HTMLHelper::_('date', $item->created, Text::_('DATE_FORMAT_LC5')) : ''; ?>
                                 </td>

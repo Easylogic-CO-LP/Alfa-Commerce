@@ -13,6 +13,7 @@ use Joomla\Database\DatabaseDriver;
 use ReflectionProperty;
 use RuntimeException;
 use Throwable;
+use WeakMap;
 
 defined('_JEXEC') or die;
 
@@ -42,6 +43,28 @@ defined('_JEXEC') or die;
  */
 final class TransactionState
 {
+    /**
+     * How many times each connection rolled a level back.
+     *
+     * @var WeakMap<DatabaseDriver, int>|null
+     *
+     * @since  2.1.4
+     */
+    private static ?WeakMap $rollbacks = null;
+
+    /**
+     * How many times the connection rolled a level back through {@see self::rollBackLevel()}: a request memo of what
+     * the database holds stays valid only while this is unchanged, since a rollback undoes what it remembered.
+     *
+     * @param DatabaseDriver $db The connection.
+     *
+     * @since  2.1.4
+     */
+    public static function rollbacks(DatabaseDriver $db): int
+    {
+        return (self::$rollbacks ??= new WeakMap())[$db] ?? 0;
+    }
+
     /**
      * Whether the connection holds an open transaction or savepoint.
      *
@@ -157,6 +180,9 @@ final class TransactionState
 
             return true;
         }
+
+        $rollbacks = self::$rollbacks ??= new WeakMap();
+        $rollbacks[$db] = ($rollbacks[$db] ?? 0) + 1;
 
         if ($failure === null || MysqlError::number($failure) !== 1213) {
             try {

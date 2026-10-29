@@ -186,6 +186,44 @@ final class DocumentHelper
     }
 
     /**
+     * A type's label as a notification's parameter ({@see NotificationText}): the registry row's names in every content
+     * language, else the shipped key of a core type (COM_ALFA_DOCTYPE_<LAST_SEGMENT>), else the humanised last alias
+     * segment, as {@see self::typeLabel()} chooses them. Each reader reads it in their language.
+     *
+     * @param string $docType The type alias.
+     *
+     * @return array<string, mixed>|string
+     *
+     * @since  2.1.4
+     */
+    public static function typeText(string $docType): array|string
+    {
+        $row = self::typeRow($docType);
+        $names = [];
+
+        if ($row !== null) {
+            try {
+                foreach (MultilingualHelper::getMultilingualDataFlat((int) $row->id, 'id_document_type', '#__alfa_document_types') as $field => $value) {
+                    if (str_starts_with((string) $field, 'name_') && (string) $value !== '') {
+                        $names[substr((string) $field, 5)] = (string) $value;
+                    }
+                }
+            } catch (Throwable) {
+                // Aux tables absent (pre-sync installs): fall through.
+            }
+        }
+
+        if ($names !== []) {
+            return NotificationText::content($names);
+        }
+
+        $segments = explode('.', $docType);
+        $key = 'COM_ALFA_DOCTYPE_' . strtoupper((string) end($segments));
+
+        return NotificationText::exists(key: $key) ? NotificationText::key($key) : ucwords(str_replace(['_', '-'], ' ', (string) end($segments)));
+    }
+
+    /**
      * Every visible type alias, in registry display order.
      *
      * @return string[]

@@ -2,12 +2,12 @@
 <extension type="plugin" group="alfa-form-fields" method="upgrade">
 	<name>PLG_ALFA_FORM_FIELDS_TEXTAREA</name>
 	<author>Agamemnon Fakas</author>
-	<creationDate>2024</creationDate>
+	<creationDate>2025-06-13</creationDate>
 	<copyright>(C) 2024-2026 Easylogic CO LP / Agamemnon Fakas. All rights reserved.</copyright>
 	<license>GNU General Public License version 3 or later; see LICENSE</license>
 	<authorEmail>info@easylogic.gr</authorEmail>
 	<authorUrl>http://easylogic.gr</authorUrl>
-	<version>1.0.0</version>
+	<version>2.1.4</version>
 	<description>PLG_ALFA_FORM_FIELDS_TEXTAREA_XML_DESCRIPTION</description>
 	<namespace path="src">Alfa\Plugin\AlfaFormFields\Textarea</namespace>
 	<files>

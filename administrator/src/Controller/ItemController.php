@@ -1214,22 +1214,29 @@ class ItemController extends FormController
 
         $itemId = $this->input->getInt('id', 0);
 
-        $added = ItemFieldsAdminHelper::addItemOptions(
-            itemId: $itemId,
-            valueIds: array_map('intval', (array) $this->input->get('values', [], 'array')),
-        );
-
-        // These rows are committed by THIS request and feed the item-field value
-        // index, which the search document reads. The follow-up item.reload is core
-        // FormController::reload; it never calls save(), so abandoning the edit form
-        // afterwards would otherwise leave them permanently unprojected.
-        if ($added > 0 && $itemId > 0) {
-            (new ProjectionManager())->syncItem($itemId);
-        }
-
         $app->setHeader('Content-Type', 'application/json; charset=utf-8', true);
         $app->sendHeaders();
-        echo new \Joomla\CMS\Response\JsonResponse(['added' => $added]);
+
+        try {
+            $added = ItemFieldsAdminHelper::addItemOptions(
+                itemId: $itemId,
+                valueIds: array_map('intval', (array) $this->input->get('values', [], 'array')),
+            );
+
+            // These rows are committed by THIS request and feed the item-field value
+            // index, which the search document reads. The follow-up item.reload is core
+            // FormController::reload; it never calls save(), so abandoning the edit form
+            // afterwards would otherwise leave them permanently unprojected.
+            if ($added > 0 && $itemId > 0) {
+                (new ProjectionManager())->syncItem($itemId);
+            }
+
+            echo new \Joomla\CMS\Response\JsonResponse(['added' => $added]);
+        } catch (RuntimeException $e) {
+            // Refused (a database refusal and friends): its words to the picker, as the generator says them.
+            echo new \Joomla\CMS\Response\JsonResponse($e);
+        }
+
         $app->close();
     }
 
@@ -1254,22 +1261,29 @@ class ItemController extends FormController
 
         $itemId = $this->input->getInt('id', 0);
 
-        $added = ItemFieldsAdminHelper::addItemInfoValues(
-            itemId: $itemId,
-            valueIds: array_map('intval', (array) $this->input->get('values', [], 'array')),
-        );
-
-        // These rows are committed by THIS request and feed the item-field value
-        // index, which the search document reads. The follow-up item.reload is core
-        // FormController::reload; it never calls save(), so abandoning the edit form
-        // afterwards would otherwise leave them permanently unprojected.
-        if ($added > 0 && $itemId > 0) {
-            (new ProjectionManager())->syncItem($itemId);
-        }
-
         $app->setHeader('Content-Type', 'application/json; charset=utf-8', true);
         $app->sendHeaders();
-        echo new \Joomla\CMS\Response\JsonResponse(['added' => $added]);
+
+        try {
+            $added = ItemFieldsAdminHelper::addItemInfoValues(
+                itemId: $itemId,
+                valueIds: array_map('intval', (array) $this->input->get('values', [], 'array')),
+            );
+
+            // These rows are committed by THIS request and feed the item-field value
+            // index, which the search document reads. The follow-up item.reload is core
+            // FormController::reload; it never calls save(), so abandoning the edit form
+            // afterwards would otherwise leave them permanently unprojected.
+            if ($added > 0 && $itemId > 0) {
+                (new ProjectionManager())->syncItem($itemId);
+            }
+
+            echo new \Joomla\CMS\Response\JsonResponse(['added' => $added]);
+        } catch (RuntimeException $e) {
+            // Refused (a database refusal and friends): its words to the picker, as the generator says them.
+            echo new \Joomla\CMS\Response\JsonResponse($e);
+        }
+
         $app->close();
     }
 
@@ -1296,28 +1310,35 @@ class ItemController extends FormController
         $itemId = $this->input->getInt('id', 0);
         $fieldId = $this->input->getInt('field_id', 0);
 
-        $saved = ItemFieldsAdminHelper::saveItemShowon(
-            itemId: $itemId,
-            fieldId: $fieldId,
-            rule: (string) $this->input->get('showon', '', 'raw'),
-        );
-
-        // Return the new inline display (state + human summary) so the editor swaps
-        // it in place: no full reload, no JS re-implementation of the wording.
-        $fields = ItemFieldsAdminHelper::getFieldsPopupData(
-            itemId: $itemId,
-            categoryIds: ItemFieldsAdminHelper::getItemCategoryIds(itemId: $itemId),
-        );
-        $display = ItemFieldsAdminHelper::getShowonDisplay(itemId: $itemId, fields: $fields)[$fieldId]
-            ?? ['state' => 'none', 'summary' => ''];
-
         $app->setHeader('Content-Type', 'application/json; charset=utf-8', true);
         $app->sendHeaders();
-        echo new \Joomla\CMS\Response\JsonResponse([
-            'saved' => $saved,
-            'state' => $display['state'],
-            'summary' => $display['summary'],
-        ]);
+
+        try {
+            $saved = ItemFieldsAdminHelper::saveItemShowon(
+                itemId: $itemId,
+                fieldId: $fieldId,
+                rule: (string) $this->input->get('showon', '', 'raw'),
+            );
+
+            // Return the new inline display (state + human summary) so the editor swaps
+            // it in place: no full reload, no JS re-implementation of the wording.
+            $fields = ItemFieldsAdminHelper::getFieldsPopupData(
+                itemId: $itemId,
+                categoryIds: ItemFieldsAdminHelper::getItemCategoryIds(itemId: $itemId),
+            );
+            $display = ItemFieldsAdminHelper::getShowonDisplay(itemId: $itemId, fields: $fields)[$fieldId]
+                ?? ['state' => 'none', 'summary' => ''];
+
+            echo new \Joomla\CMS\Response\JsonResponse([
+                'saved' => $saved,
+                'state' => $display['state'],
+                'summary' => $display['summary'],
+            ]);
+        } catch (RuntimeException $e) {
+            // Refused (a database refusal and friends): its words to the dialog, which stays open.
+            echo new \Joomla\CMS\Response\JsonResponse($e);
+        }
+
         $app->close();
     }
 

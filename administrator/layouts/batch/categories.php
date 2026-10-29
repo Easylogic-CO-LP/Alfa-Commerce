@@ -16,44 +16,15 @@
 
 \defined('_JEXEC') or die;
 
-use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Service\Catalog\CategoryPickerPolicy;
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 
-$db = Factory::getContainer()->get('DatabaseDriver');
-$query = $db->getQuery(true)
-    ->select($db->quoteName(['a.id', 'a.state']))
-    ->from($db->quoteName('#__alfa_categories', 'a'))
-    ->whereIn($db->quoteName('a.state'), CategoryPickerPolicy::OFFERED_STATES);
-
-// The name in the active language; translatable columns live in the per-language tables.
-MultilingualHelper::addMultilingualJoinToQuery(
-    query:             $query,
-    mainAlias:         'a',
-    mainPrimaryColumn: 'id',
-    langTableBase:     '#__alfa_categories',
-    langPrimaryColumn: 'id_category',
-    fields:            ['name'],
-);
-
 $options = [];
-$tree = CategoryPickerPolicy::tree(db: $db);
 
-foreach ($db->setQuery($query)->loadAssocList() ?: [] as $category) {
-    $reason = CategoryPickerPolicy::reason(id: (int) $category['id'], tree: $tree);
-
-    // A category inside an archived or trashed category is not available either.
-    if (!CategoryPickerPolicy::offered($reason)) {
-        continue;
-    }
-
-    $options[] = HTMLHelper::_(
-        'select.option',
-        $category['id'],
-        CategoryPickerPolicy::label(text: (string) $category['name'], reason: $reason),
-    );
+foreach (CategoryPickerPolicy::offeredOptions() as $option) {
+    $options[] = HTMLHelper::_('select.option', $option['value'], $option['text']);
 }
 
 Factory::getApplication()->getDocument()->getWebAssetManager()

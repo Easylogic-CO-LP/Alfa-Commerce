@@ -12,6 +12,7 @@ namespace Alfa\Component\Alfa\Administrator\Service\Setup;
 defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
+use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
 use Alfa\Component\Alfa\Administrator\Service\Maintenance\CoreTables;
@@ -244,6 +245,8 @@ final class CollationCheck
         }
 
         $left = [];
+        // The same lines as the notice says them, in keys: each reader's language, no markup.
+        $notice = [];
 
         foreach ($outcome['failed'] as $table => $failure) {
             $line = self::say(
@@ -264,6 +267,13 @@ final class CollationCheck
                 $logged .= ' (unique index ' . $failure['index'] . ' on ' . implode(', ', $failure['columns']) . ', rows ' . $rows . ')';
             }
 
+            $said = NotificationText::key('COM_ALFA_COLLATION_FAILED', $table, rtrim($failure['error'], '. ') . '.');
+            $notice[] = $failure['index'] === ''
+                ? $said
+                : NotificationText::join(items: [
+                    $said,
+                    NotificationText::key('COM_ALFA_COLLATION_FAILED_KEY', $failure['index'], implode(', ', $failure['columns']), $failure['rows'] !== [] ? implode('; ', $failure['rows']) : '-'),
+                ]);
             $left[] = $line;
             Log::add($logged, Log::WARNING, 'com_alfa.setup');
         }
@@ -275,6 +285,7 @@ final class CollationCheck
                     . ' table would change. Convert its other text columns to utf8mb4_unicode_ci by hand.',
                 values:   [$table],
             );
+            $notice[] = NotificationText::key('COM_ALFA_COLLATION_SKIPPED', $table);
             Log::add('The table ' . $table . ' was not converted to ' . self::COLLATION . ': it holds columns compared byte for byte.', Log::WARNING, 'com_alfa.setup');
         }
 
@@ -301,11 +312,11 @@ final class CollationCheck
         // It stands until an installation converts what is left; raised again as new by every run that leaves some.
         NotificationHelper::push(
             dedupKey: self::KEY,
-            title:    self::say(key: 'COM_ALFA_NOTIFY_COLLATION_TITLE', fallback: 'Some Alfa Commerce tables are not converted'),
+            title:    NotificationText::of('COM_ALFA_NOTIFY_COLLATION_TITLE'),
             options:  [
-                'group' => self::say(key: 'COM_ALFA_NOTIFY_GROUP_SETUP', fallback: 'Setup'),
+                'group' => NotificationHelper::GROUP_SETUP,
                 'severity' => 'warning',
-                'message' => implode(' ', $left) . ' ' . $howto,
+                'message' => NotificationText::sentences(...[...$notice, NotificationText::key('COM_ALFA_COLLATION_HOWTO')]),
                 'url' => 'index.php?option=com_installer&view=install',
                 'dismissible' => false,
                 'constant' => true,
@@ -370,25 +381,16 @@ final class CollationCheck
                 return true;
             }
 
-            Factory::getApplication()->getLanguage()->load('com_alfa', JPATH_ADMINISTRATOR);
-            $howto = self::say(
-                key:      'COM_ALFA_COLLATION_HOWTO',
-                fallback: 'When the cause is corrected, install the Alfa Commerce package again (System -> Install -> Extensions):'
-                    . ' the installation converts the tables that are left.',
-            );
-
             NotificationHelper::push(
                 dedupKey: self::KEY,
-                title:    self::say(key: 'COM_ALFA_NOTIFY_COLLATION_TITLE', fallback: 'Some Alfa Commerce tables are not converted'),
+                title:    NotificationText::of('COM_ALFA_NOTIFY_COLLATION_TITLE'),
                 options:  [
-                    'group' => self::say(key: 'COM_ALFA_NOTIFY_GROUP_SETUP', fallback: 'Setup'),
+                    'group' => NotificationHelper::GROUP_SETUP,
                     'severity' => 'warning',
-                    'message' => self::say(
-                        key:      'COM_ALFA_COLLATION_PENDING',
-                        fallback: 'These Alfa Commerce tables are not in the collation utf8mb4_unicode_ci yet: %1$s. An update may have'
-                            . ' stopped before it finished.',
-                        values:   [implode(', ', $pending)],
-                    ) . ' ' . $howto,
+                    'message' => NotificationText::sentences(
+                        NotificationText::key('COM_ALFA_COLLATION_PENDING', implode(', ', $pending)),
+                        NotificationText::key('COM_ALFA_COLLATION_HOWTO'),
+                    ),
                     'url' => 'index.php?option=com_installer&view=install',
                     'dismissible' => false,
                     'constant' => true,

@@ -11,7 +11,10 @@ namespace Alfa\Component\Alfa\Administrator\Service\Document;
 
 defined('_JEXEC') or die;
 use Alfa\Component\Alfa\Administrator\Helper\DocumentHelper;
+use Alfa\Component\Alfa\Administrator\Helper\MysqlError;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
+use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
+use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderFacts;
 use Alfa\Component\Alfa\Administrator\Service\Order\OrderIdentity;
 use Alfa\Component\Alfa\Site\Service\Pricing\Money;
@@ -40,8 +43,8 @@ final class AutoIssuePolicy
 {
     /**
      * Dedup-key namespace for auto-issue alerts: PREFIX . orderId . '.' . reason.
-     * Order-first so {@see self::clearFor()} can retire an order's alerts with
-     * one prefix read, whatever the reason or document type.
+     * Order-first so {@see self::clearFor()} finds an order's alerts with one
+     * prefix read, whatever the reason or document type.
      *
      * @var string
      * @since  2.0.0
@@ -61,76 +64,112 @@ final class AutoIssuePolicy
     public static function handleTransition(int $orderId, int $newStatusId): void
     {
         try {
-            if (!DocumentHelper::isIssuerEnabled()) {
-                return;
-            }
-
-            $db = Factory::getContainer()->get('DatabaseDriver');
-
-            $query = $db->getQuery(true)
-                ->select($db->quoteName(['issues_doc_rules', 'issues_delivery_note', 'documents_require_paid']))
-                ->from($db->quoteName('#__alfa_orders_statuses'))
-                ->where($db->quoteName('id') . ' = :statusId')
-                ->bind(':statusId', $newStatusId);
-            $db->setQuery(query: $query);
-            $flags = $db->loadObject();
-
-            if ($flags === null) {
-                return;
-            }
-
-            // A fiscal document must not be issued merely because an admin
-            // picked a completed-looking status. Skip and log; issuing never
-            // blocks the transition.
-            if ((int) ($flags->documents_require_paid ?? 0) === 1) {
-                $facts = OrderFacts::forOrder($orderId);
-
-                // The SAME payment fact the status gate reads. A tolerance here
-                // would be a second opinion about what "paid" means, and the
-                // one that used to be here admitted a thousand minor units at
-                // scale 8, the exact thing the comment above says must not
-                // happen.
-                if (!$facts->is_paid) {
-                    Log::add(
-                        entry:    "AutoIssuePolicy: order {$orderId} -> status {$newStatusId}: skipped, "
-                                  . 'the status requires payment and '
-                                  . number_format($facts->balance, (int) $facts->currency_scale) . ' is still due.',
-                        priority: Log::WARNING,
-                        category: 'com_alfa.documents',
-                    );
-
-                    return;
-                }
-            }
-
-            // Sales document: the status' rule rows decide per order.
-            // No rows / no matching row = deliberately no document.
-            $resolved = self::resolveRules(orderId: $orderId, rulesJson: (string) ($flags->issues_doc_rules ?? ''));
-
-            if ($resolved !== null) {
-                self::issueGuarded(orderId: $orderId, docType: $resolved['doc_type'], seriesId: $resolved['id_series']);
-            }
-
-            if ((int) ($flags->issues_delivery_note ?? 0) === 1) {
-                self::issueGuarded(orderId: $orderId, docType: DocumentHelper::TYPE_DELIVERY_NOTE);
-            }
+            self::issueForStatus(orderId: $orderId, newStatusId: $newStatusId);
         } catch (Throwable $e) {
-            Log::add(
-                entry:    "AutoIssuePolicy: order {$orderId} -> status {$newStatusId}: "
-                          . $e->getMessage() . "\n" . $e->getTraceAsString(),
-                priority: Log::ERROR,
-                category: 'com_alfa.documents',
-            );
+            // A failure that ended a caller's transaction reaches the caller: its work is gone with it.
+            if (TransactionState::endedBy(db: Factory::getContainer()->get('DatabaseDriver'), failure: $e)) {
+                throw $e;
+            }
 
-            // Same visibility contract as the no-series/missing-VAT skips: a
-            // failed issuance (e.g. lost a race to a concurrent manual
-            // issue) leaves the order undocumented; a human must follow up.
-            self::notify(
-                orderId: $orderId,
-                key:     self::KEY_PREFIX . $orderId . '.failed',
-                title:   "Order #{$orderId}: automatic document issuance failed. Issue it manually from the order.",
-            );
+            self::reportFailure(orderId: $orderId, newStatusId: $newStatusId, failure: $e);
         }
+    }
+
+    /**
+     * Issue what a status issues for an order: its sales document by the status' rules, its delivery note when it
+     * issues one. A failure reaches the caller: the order's documents task retries it ({@see self::reportFailure()}
+     * tells staff first). Issuing only what is outstanding, so a repeat call issues nothing twice.
+     *
+     * @param int $orderId The order id.
+     * @param int $newStatusId The status the order entered.
+     *
+     * @throws Throwable When issuing failed.
+     *
+     * @since  2.1.4
+     */
+    public static function issueForStatus(int $orderId, int $newStatusId): void
+    {
+        if (!DocumentHelper::isIssuerEnabled()) {
+            return;
+        }
+
+        $db = Factory::getContainer()->get('DatabaseDriver');
+
+        $query = $db->getQuery(true)
+            ->select($db->quoteName(['issues_doc_rules', 'issues_delivery_note', 'documents_require_paid']))
+            ->from($db->quoteName('#__alfa_orders_statuses'))
+            ->where($db->quoteName('id') . ' = :statusId')
+            ->bind(':statusId', $newStatusId);
+        $db->setQuery(query: $query);
+        $flags = $db->loadObject();
+
+        if ($flags === null) {
+            return;
+        }
+
+        // A fiscal document must not be issued merely because an admin
+        // picked a completed-looking status. Skip and log; issuing never
+        // blocks the transition.
+        if ((int) ($flags->documents_require_paid ?? 0) === 1) {
+            $facts = OrderFacts::forOrder($orderId);
+
+            // The SAME payment fact the status gate reads. A tolerance here
+            // would be a second opinion about what "paid" means, and the
+            // one that used to be here admitted a thousand minor units at
+            // scale 8, the exact thing the comment above says must not
+            // happen.
+            if (!$facts->is_paid) {
+                Log::add(
+                    entry:    "AutoIssuePolicy: order {$orderId} -> status {$newStatusId}: skipped, "
+                              . 'the status requires payment and '
+                              . number_format($facts->balance, (int) $facts->currency_scale) . ' is still due.',
+                    priority: Log::WARNING,
+                    category: 'com_alfa.documents',
+                );
+
+                return;
+            }
+        }
+
+        // Sales document: the status' rule rows decide per order.
+        // No rows / no matching row = deliberately no document.
+        $resolved = self::resolveRules(orderId: $orderId, rulesJson: (string) ($flags->issues_doc_rules ?? ''));
+
+        if ($resolved !== null) {
+            self::issueGuarded(orderId: $orderId, docType: $resolved['doc_type'], seriesId: $resolved['id_series']);
+        }
+
+        if ((int) ($flags->issues_delivery_note ?? 0) === 1) {
+            self::issueGuarded(orderId: $orderId, docType: DocumentHelper::TYPE_DELIVERY_NOTE);
+        }
+    }
+
+    /**
+     * Log a failed automatic issue and tell staff, by the order's `failed` alert.
+     *
+     * @param int $orderId The order id.
+     * @param int $newStatusId The status it was for.
+     * @param Throwable $failure What failed.
+     *
+     * @since  2.1.4
+     */
+    public static function reportFailure(int $orderId, int $newStatusId, Throwable $failure): void
+    {
+        Log::add(
+            entry:    "AutoIssuePolicy: order {$orderId} -> status {$newStatusId}: "
+                      . $failure->getMessage() . "\n" . $failure->getTraceAsString(),
+            priority: Log::ERROR,
+            category: 'com_alfa.documents',
+        );
+
+        // Same visibility contract as the no-series/missing-VAT skips: a
+        // failed issuance (e.g. lost a race to a concurrent manual
+        // issue) leaves the order undocumented; a human must follow up.
+        self::notify(
+            orderId: $orderId,
+            key:     self::KEY_PREFIX . $orderId . '.failed',
+            title:   NotificationText::of('COM_ALFA_NOTIFY_AUTOISSUE_FAILED_TITLE', $orderId),
+        );
     }
 
     /**
@@ -356,13 +395,16 @@ final class AutoIssuePolicy
      * WHICH document to go and issue. clearFor() retires them all by order
      * prefix, so the extra segment costs nothing.
      *
-     * Still never throws: the locked contract is that auto-issue cannot fail
-     * a transition.
+     * Still never fails a transition. A deadlock or a lock wait that timed
+     * out is not the document's fault and passes again (2.1.4): it reaches
+     * the caller, and the order's documents task retries it with backoff;
+     * any other failure is this alert, as before.
      *
      * @param int $orderId Order PK.
      * @param string $docType The document to issue.
      * @param int $seriesId Pinned series, 0 = the type's default.
      *
+     * @throws Throwable When the issue met a deadlock or a lock wait timeout.
      *
      * @since  2.0.0
      */
@@ -371,6 +413,10 @@ final class AutoIssuePolicy
         try {
             self::issueFor(orderId: $orderId, docType: $docType, seriesId: $seriesId);
         } catch (Throwable $e) {
+            if (self::transient(failure: $e)) {
+                throw $e;
+            }
+
             Log::add(
                 entry:    "AutoIssuePolicy: order {$orderId}: {$docType} could not be issued: "
                           . $e->getMessage() . "\n" . $e->getTraceAsString(),
@@ -381,9 +427,28 @@ final class AutoIssuePolicy
             self::notify(
                 orderId: $orderId,
                 key:     self::KEY_PREFIX . $orderId . '.failed.' . $docType,
-                title:   "Order #{$orderId}: {$docType} was not issued automatically. Issue it manually from the order.",
+                title:   NotificationText::of('COM_ALFA_NOTIFY_AUTOISSUE_FAILED_TYPE_TITLE', $orderId, DocumentHelper::typeText($docType)),
             );
         }
+    }
+
+    /**
+     * Whether a failure, or one it wraps, is a deadlock or a lock wait that timed out: the database undid the work
+     * for reasons of its own, and the same issue passes when tried again.
+     *
+     * @param Throwable $failure The failure.
+     *
+     * @since  2.1.4
+     */
+    private static function transient(Throwable $failure): bool
+    {
+        for ($step = $failure; $step !== null; $step = $step->getPrevious()) {
+            if (\in_array(needle: MysqlError::number(error: $step), haystack: [1205, 1213], strict: true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static function issueFor(int $orderId, string $docType, int $seriesId = 0): void
@@ -422,8 +487,8 @@ final class AutoIssuePolicy
                 self::notify(
                     orderId: $orderId,
                     key:     self::KEY_PREFIX . $orderId . '.charges.' . $docType,
-                    title:   sprintf(
-                        'Order #%d: %s of shipping/fees is not on any document. The items are fully documented, so issue it manually from the order.',
+                    title:   NotificationText::of(
+                        'COM_ALFA_NOTIFY_AUTOISSUE_CHARGES_TITLE',
                         $orderId,
                         number_format($strandedMoney->getAmount(), $currency->getDecimalPlaces()),
                     ),
@@ -450,7 +515,7 @@ final class AutoIssuePolicy
             self::notify(
                 orderId: $orderId,
                 key:     self::KEY_PREFIX . $orderId . '.noseries.' . $docType,
-                title:   "Order #{$orderId}: cannot auto-issue {$docType}; no default series exists.",
+                title:   NotificationText::of('COM_ALFA_NOTIFY_AUTOISSUE_NOSERIES_TITLE', $orderId, DocumentHelper::typeText($docType)),
             );
 
             return;
@@ -463,7 +528,7 @@ final class AutoIssuePolicy
             self::notify(
                 orderId: $orderId,
                 key:     self::KEY_PREFIX . $orderId . '.vat',
-                title:   "Order #{$orderId}: invoice not auto-issued; the buyer tax/VAT number is missing. Issue it manually from the order.",
+                title:   NotificationText::of('COM_ALFA_NOTIFY_AUTOISSUE_VAT_TITLE', $orderId),
             );
 
             return;
@@ -511,30 +576,44 @@ final class AutoIssuePolicy
     }
 
     /**
-     * Retire every auto-issue alert standing against an order: the document
-     * it was waiting for now exists, so none of the reasons (failed, no
-     * series, missing VAT, undocumented charges) can still be true.
+     * Retire the auto-issue alerts an issued document answers (since 2.1.4): those of its type (failed, no series,
+     * undocumented charges), the missing buyer tax number only when its type needs one, and the untyped `failed`
+     * alert, which names no type and asks staff to act on the order, so any document issued answers it. An alert
+     * about another type stays: a delivery note does not answer the invoice's.
      *
      * The namespace owner exposes this rather than letting callers build keys:
-     * the order-first grammar is an implementation detail of this class, and
-     * one prefix sweep retires every reason without enumerating doc types.
+     * the order-first grammar is an implementation detail of this class.
      *
      * Archived, not deleted: the history of what needed a human is kept.
      * Advisory: never breaks issuance.
      *
      * @param int $orderId The order whose document was just issued.
+     * @param string $docType The type of the document issued.
      *
      * @since  2.0.0
      */
-    public static function clearFor(int $orderId): void
+    public static function clearFor(int $orderId, string $docType): void
     {
         if ($orderId <= 0) {
             return;
         }
 
+        $prefix = self::KEY_PREFIX . $orderId . '.';
+        $answered = [$prefix . 'failed'];
+
+        if ($docType !== '') {
+            array_push($answered, $prefix . 'failed.' . $docType, $prefix . 'noseries.' . $docType, $prefix . 'charges.' . $docType);
+        }
+
         try {
-            foreach (NotificationHelper::keys(prefix: self::KEY_PREFIX . $orderId . '.') as $key) {
-                NotificationHelper::clear(dedupKey: (string) $key);
+            if ($docType !== '' && DocumentHelper::requiresBuyerVat($docType)) {
+                $answered[] = $prefix . 'vat';
+            }
+
+            foreach (NotificationHelper::keys(prefix: $prefix) as $key) {
+                if (\in_array((string) $key, $answered, true)) {
+                    NotificationHelper::clear(dedupKey: (string) $key);
+                }
             }
         } catch (Throwable $clearError) {
             // advisory only
@@ -546,16 +625,16 @@ final class AutoIssuePolicy
      *
      * @param int $orderId The order id.
      * @param string $key Dedup key.
-     * @param string $title Notification title.
+     * @param NotificationText $title Notification title.
      *
      * @since  2.0.0
      */
-    private static function notify(int $orderId, string $key, string $title): void
+    private static function notify(int $orderId, string $key, NotificationText $title): void
     {
         NotificationHelper::push($key, $title, [
             'severity' => 'warning',
-            'group' => 'Documents',
-            'message' => 'Automatic document issuance was skipped and needs your attention.',
+            'group' => NotificationHelper::GROUP_DOCUMENTS,
+            'message' => NotificationText::of('COM_ALFA_NOTIFY_AUTOISSUE_MSG'),
             'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
             'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
             'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],

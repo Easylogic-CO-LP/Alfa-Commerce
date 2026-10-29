@@ -13,6 +13,8 @@ namespace Alfa\Component\Alfa\Administrator\Helper;
 
 use Alfa\Component\Alfa\Administrator\Event\Notifications\NotificationPushedEvent;
 use Alfa\Component\Alfa\Administrator\Service\Log\AlfaLog;
+use Alfa\Component\Alfa\Administrator\Service\Task\NoticeTask;
+use Alfa\Component\Alfa\Administrator\Service\Task\Tasks;
 use Closure;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Component\ComponentHelper;
@@ -41,10 +43,28 @@ use Throwable;
  * raises is not an administrator's save, so it never passes through an admin record
  * model and no generic save event fires for it; plugins that react to notifications
  * listen to {@see NotificationPushedEvent} (onAlfaNotificationPushed), which push()
- * dispatches once the row is written and no transaction of the caller's is open. The
- * payment ledger, while it holds an order's lock, hands its own pushes to
- * {@see PostCommit}: they are written once the lock is released, and a rollback
- * discards them.
+ * dispatches once the row is written and no transaction of the caller's is open.
+ *
+ * Inside a transaction no row is written (2.1.4): push() and clear() record the write
+ * in the transaction's notice journal (a notice single, {@see Tasks::notice()}), a
+ * rollback discards it, and it is written once the outermost transaction has
+ * committed, before any other work, even while Alfa's named locks are held (s71);
+ * onAlfaNotificationPushed still waits for their release. Until a notice is written
+ * every reader counts it ({@see self::exists()}, {@see self::isOpen()},
+ * {@see self::keys()}): its own transaction, and any other request once that
+ * transaction has committed. A key's notices are written in the order raised, each
+ * together with the older ones of the key still owed, from any request, and a write
+ * with no transaction open joins those of its key still owed. Every write sets
+ * `modified` to when it was raised (a journalled write's single was made then, any
+ * other write is raised as it is made), and a journalled write is skipped when its row
+ * holds a write raised after it ({@see self::applyJournal()}).
+ *
+ * A title and a message are a language key and its parameters (2.1.4,
+ * {@see NotificationText}): the key, the parameters and the text domain are stored as
+ * the notification, translated when shown in each reader's language; `title` and
+ * `message` keep a snapshot in the shop's default administrator language, written with
+ * them and never rendered again. `notify_group` holds a group key. Literal text is kept
+ * for third parties and older rows, and shown as written; core uses keys only.
  *
  * Dedup is by `dedup_key` (pushing the same key replaces the row). Lifecycle is told
  * entirely by timestamps:
@@ -113,6 +133,36 @@ class NotificationHelper
     private const DEFAULT_HISTORY_DAYS = 7;
 
     /**
+     * The groups core lists its notifications under: language keys, stored as they are and translated when shown
+     * (2.1.4). A third party may name a group key of its own, or literal text.
+     *
+     * @var string
+     * @since  2.1.4
+     */
+    public const GROUP_GENERAL = 'COM_ALFA_NOTIFY_GROUP_GENERAL';
+
+    /** @since 2.1.4 */
+    public const GROUP_ORDERS = 'COM_ALFA_NOTIFY_GROUP_ORDERS';
+
+    /** @since 2.1.4 */
+    public const GROUP_INVENTORY = 'COM_ALFA_NOTIFY_GROUP_INVENTORY';
+
+    /** @since 2.1.4 */
+    public const GROUP_DOCUMENTS = 'COM_ALFA_NOTIFY_GROUP_DOCUMENTS';
+
+    /** @since 2.1.4 */
+    public const GROUP_PAYMENTS = 'COM_ALFA_NOTIFY_GROUP_PAYMENTS';
+
+    /** @since 2.1.4 */
+    public const GROUP_SHIPPING = 'COM_ALFA_NOTIFY_GROUP_SHIPPING';
+
+    /** @since 2.1.4 */
+    public const GROUP_SETUP = 'COM_ALFA_NOTIFY_GROUP_SETUP';
+
+    /** @since 2.1.4 */
+    public const GROUP_SECURITY = 'COM_ALFA_NOTIFY_GROUP_SECURITY';
+
+    /**
      * The permission that shows the bell, its panel and the history screen.
      *
      * @var string
@@ -134,19 +184,22 @@ class NotificationHelper
      * key updates its content but preserves `created`/`readed`/`dismissed`, so a
      * still-true condition never re-nags an already-seen row.
      *
-     * The row is written at once, by the helper itself ({@see self::write()}), and then
-     * onAlfaNotificationPushed is dispatched ({@see NotificationPushedEvent}): at once with
-     * no transaction open, else once the outermost one has committed, and never when a
-     * rollback discarded the row ({@see PostCommit}). The payment ledger, while it holds
-     * an order's lock, hands its own pushes to PostCommit, so they are written once the
-     * lock is released. First pushes of one key at once land on one row: each later one is
-     * a push of the row the first wrote. A failure to write reaches the caller, as it did
+     * With no transaction open the row is written at once, by the helper itself
+     * ({@see self::write()}), and then onAlfaNotificationPushed is dispatched
+     * ({@see NotificationPushedEvent}). Inside a transaction the push joins the notice
+     * journal: written once the outermost transaction has committed, and dispatched once
+     * no named lock is held either; a rollback discards it. With no transaction open it
+     * also joins the journal while notices of its key are still owed, so it is written
+     * after them ({@see self::journal()}). First pushes of one key
+     * at once land on one row: each later one is a push of the row the first wrote. A
+     * failure to write (the row, or the journal's single) reaches the caller, as it did
      * before 2.1.1 (each producer decides whether its work stands without the notice); a
      * listener's failure never does.
      *
      * @param string $dedupKey Stable identity, e.g. "order:123" or "alfa.integrity".
-     * @param string $title Short headline.
-     * @param array $options group|severity|message|url|dismissible(bool)|expires(sql)|
+     * @param NotificationText|string $title Short headline: a key and its parameters, or literal text.
+     * @param array $options group (a group key, e.g. COM_ALFA_NOTIFY_GROUP_ORDERS)|severity|
+     *                       message (a NotificationText or literal text)|url|dismissible(bool)|expires(sql)|
      *                       constant(bool, re-alert on re-push: clears read state so a
      *                       persistent condition like integrity resurfaces each cycle)|
      *                       view(['action'=>..,'asset'=>..]: who may SEE it; null = all managers)|
@@ -155,8 +208,91 @@ class NotificationHelper
      *
      * @since  1.0.0
      */
-    public static function push(string $dedupKey, string $title, array $options = []): void
+    public static function push(string $dedupKey, NotificationText|string $title, array $options = []): void
     {
+        $db = self::driver();
+
+        if (TransactionState::isOpen($db) || self::owed(dedupKey: $dedupKey)) {
+            // A text is kept as its key and parameters; it is rendered when it is written.
+            if (isset($options['message'])) {
+                $options['message'] = NotificationText::pack(text: $options['message']);
+            }
+
+            self::journal(db: $db, op: ['op' => 'push', 'key' => $dedupKey, 'title' => NotificationText::pack(text: $title), 'options' => $options]);
+
+            return;
+        }
+
+        self::pushNow(dedupKey: $dedupKey, title: $title, options: $options);
+    }
+
+    /**
+     * Record a write in the notice journal: in the open transaction, or with none open (notices of its key are still
+     * owed, so it is written after them) in a transaction of its own, written at its commit.
+     *
+     * @param DatabaseDriver $db The connection.
+     * @param array<string, mixed> $op The write.
+     *
+     * @since  2.1.4
+     */
+    private static function journal(DatabaseDriver $db, array $op): void
+    {
+        if (TransactionState::isOpen($db)) {
+            Tasks::notice(db: $db, op: $op);
+
+            return;
+        }
+
+        $db->transactionStart(true);
+
+        try {
+            Tasks::notice(db: $db, op: $op);
+        } catch (Throwable $e) {
+            TransactionState::rollBackLevel(db: $db, failure: $e);
+
+            throw $e;
+        }
+
+        TransactionState::commitLevel($db);
+    }
+
+    /**
+     * Whether notices of a key raised inside transactions are still owed: pending or running notice singles, of any
+     * request.
+     *
+     * @param string $dedupKey The key.
+     *
+     * @since  2.1.4
+     */
+    private static function owed(string $dedupKey): bool
+    {
+        $db = self::db();
+
+        foreach ($db->setQuery(self::owedSelect(patterns: [Tasks::noticePattern(key: $dedupKey)]))->loadAssocList() ?: [] as $row) {
+            if (self::opOf(payload: $row['payload'])['key'] === $dedupKey) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Write a push now: the row, then onAlfaNotificationPushed once no transaction is open. A text's snapshot is
+     * rendered here, in the shop's default administrator language, with its key and parameters.
+     *
+     * @param string $dedupKey The key.
+     * @param NotificationText|string $title The headline.
+     * @param array $options As {@see self::push()} takes them.
+     * @param string|null $raised When a journalled push was raised (its row's `modified`); null: now.
+     *
+     * @since  2.1.4
+     */
+    private static function pushNow(string $dedupKey, NotificationText|string $title, array $options, ?string $raised = null): void
+    {
+        $message = $options['message'] ?? '';
+        $texts = NotificationText::columns(title: $title, message: $message instanceof NotificationText ? $message : (string) $message);
+
         $severity = \in_array($options['severity'] ?? '', ['success', 'info', 'warning', 'danger'], true)
             ? $options['severity']
             : 'info';
@@ -167,10 +303,14 @@ class NotificationHelper
 
         $data = [
             'dedup_key' => $dedupKey,
-            'notify_group' => (string) ($options['group'] ?? Text::_('COM_ALFA_NOTIFY_GROUP_GENERAL')),
+            'notify_group' => (string) ($options['group'] ?? self::GROUP_GENERAL),
+            'text_domain' => $texts['text_domain'],
             'severity' => $severity,
-            'title' => $title,
-            'message' => (string) ($options['message'] ?? ''),
+            'title' => $texts['title'],
+            'title_key' => $texts['title_key'],
+            'message' => $texts['message'],
+            'message_key' => $texts['message_key'],
+            'text_args' => $texts['text_args'],
             'url' => self::safeUrl((string) ($options['url'] ?? '')),
             'dismissible' => (($options['dismissible'] ?? true) ? 1 : 0),
             'view_access' => $options['view']['action'] ?? null,
@@ -182,7 +322,7 @@ class NotificationHelper
 
         // A constant re-alert (e.g. integrity, while the condition holds) resurfaces as
         // unread and reflects the latest check.
-        [$id, $change] = self::write(id: $existingId, data: $data, constant: !empty($options['constant']));
+        [$id, $change] = self::write(id: $existingId, data: $data, constant: !empty($options['constant']), raised: $raised);
 
         // Plugins hear it with no transaction of the caller's open: at once, or once the outermost one has committed
         // (no listener runs under the caller's locks), and never when a rollback discarded the row.
@@ -234,6 +374,10 @@ class NotificationHelper
                 'message' => (string) $data['message'],
                 'url' => (string) $data['url'],
                 'change' => $change,
+                'textDomain' => (string) ($data['text_domain'] ?? ''),
+                'titleKey' => (string) ($data['title_key'] ?? ''),
+                'messageKey' => (string) ($data['message_key'] ?? ''),
+                'textArgs' => NotificationText::arguments(row: (object) ['text_args' => $data['text_args'] ?? null]),
             ]);
             $listeners = $dispatcher->getListeners(NotificationPushedEvent::NAME);
         } catch (Throwable $e) {
@@ -347,13 +491,17 @@ class NotificationHelper
     public static function markRead(int $id, int $userId = 0): void
     {
         $db = self::db();
-        $row = (object) [
-            'id' => $id,
-            'readed' => Factory::getDate()->toSql(),
-            'readed_by' => $userId > 0 ? $userId : null,
-        ];
+        $now = Factory::getDate()->toSql();
+        $query = $db->getQuery(true)
+            ->update($db->quoteName(self::TABLE))
+            ->set($db->quoteName('readed') . ' = :now')
+            ->set($db->quoteName('readed_by') . ' = ' . ($userId > 0 ? (int) $userId : 'NULL'))
+            ->set($db->quoteName('modified') . ' = UTC_TIMESTAMP(6)')
+            ->where($db->quoteName('id') . ' = :id')
+            ->bind(':now', $now)
+            ->bind(':id', $id, ParameterType::INTEGER);
 
-        $db->updateObject(self::TABLE, $row, 'id');
+        $db->setQuery($query)->execute();
     }
 
     /**
@@ -373,6 +521,7 @@ class NotificationHelper
             ->update($db->quoteName(self::TABLE))
             ->set($db->quoteName('dismissed') . ' = :now')
             ->set($db->quoteName('expires') . ' = :exp')
+            ->set($db->quoteName('modified') . ' = UTC_TIMESTAMP(6)')
             ->where($db->quoteName('id') . ' = :id')
             ->where($db->quoteName('dismissible') . ' = 1')
             ->where($db->quoteName('dismissed') . ' IS NULL')
@@ -392,6 +541,9 @@ class NotificationHelper
      * for history; with $hard = true it is deleted outright, used for fluctuating
      * live states (e.g. integrity) that shouldn't spam history.
      *
+     * Inside a transaction, or while notices of its key are still owed, it joins the notice
+     * journal, as a push does ({@see self::push()}).
+     *
      * @param string $dedupKey The key passed to {@see self::push()}.
      * @param bool $hard True = delete; false = archive to history.
      * @param int|null $historyDays Retention when archiving (null = default).
@@ -400,6 +552,29 @@ class NotificationHelper
      * @since  1.0.0
      */
     public static function clear(string $dedupKey, bool $hard = false, ?int $historyDays = null): void
+    {
+        $db = self::driver();
+
+        if (TransactionState::isOpen($db) || self::owed(dedupKey: $dedupKey)) {
+            self::journal(db: $db, op: ['op' => 'clear', 'key' => $dedupKey, 'hard' => $hard, 'days' => $historyDays]);
+
+            return;
+        }
+
+        self::clearNow(dedupKey: $dedupKey, hard: $hard, historyDays: $historyDays);
+    }
+
+    /**
+     * Write a clear now.
+     *
+     * @param string $dedupKey The key.
+     * @param bool $hard Delete instead of archiving.
+     * @param int|null $historyDays Retention when archiving.
+     * @param string|null $raised When a journalled clear was raised (an archived row's `modified`); null: now.
+     *
+     * @since  2.1.4
+     */
+    private static function clearNow(string $dedupKey, bool $hard, ?int $historyDays, ?string $raised = null): void
     {
         $db = self::db();
 
@@ -420,6 +595,7 @@ class NotificationHelper
             ->update($db->quoteName(self::TABLE))
             ->set($db->quoteName('dismissed') . ' = :now')
             ->set($db->quoteName('expires') . ' = :exp')
+            ->set($db->quoteName('modified') . ' = ' . self::stamp(raised: $raised))
             ->where($db->quoteName('dedup_key') . ' = :key')
             ->where($db->quoteName('dismissed') . ' IS NULL')
             ->bind(':now', $now, ParameterType::STRING)
@@ -440,6 +616,9 @@ class NotificationHelper
      * are exactly what must go: {@see self::push()} updates a dismissed row in place
      * and never un-dismisses it. An expired row does not count: it is gone.
      *
+     * The answer counts the notices of the key still owed ({@see self::push()}): this
+     * transaction's, and those of other requests that have committed, in one statement.
+     *
      * @param string $dedupKey The key passed to {@see self::push()}.
      *
      * @return bool True when a row carries the key.
@@ -448,15 +627,7 @@ class NotificationHelper
      */
     public static function exists(string $dedupKey): bool
     {
-        $db = self::db();
-        $query = $db->getQuery(true)
-            ->select('1')
-            ->from($db->quoteName(self::TABLE))
-            ->where($db->quoteName('dedup_key') . ' = :key')
-            ->bind(':key', $dedupKey, ParameterType::STRING);
-        $query->where(self::unexpired(now: Factory::getDate()->toSql()));
-
-        return (bool) $db->setQuery($query, 0, 1)->loadResult();
+        return self::standing(dedupKey: $dedupKey)['exists'];
     }
 
     /**
@@ -466,6 +637,8 @@ class NotificationHelper
      * an archived notice; a producer deciding whether a warning is still being shown
      * needs this one.
      *
+     * The answer counts the notices of the key still owed, as {@see self::exists()} does.
+     *
      * @param string $dedupKey The producer's key.
      *
      *
@@ -473,16 +646,7 @@ class NotificationHelper
      */
     public static function isOpen(string $dedupKey): bool
     {
-        $db = self::db();
-        $query = $db->getQuery(true)
-            ->select('COUNT(*)')
-            ->from($db->quoteName(self::TABLE))
-            ->where($db->quoteName('dedup_key') . ' = :key')
-            ->where($db->quoteName('dismissed') . ' IS NULL')
-            ->bind(':key', $dedupKey, ParameterType::STRING);
-        $query->where(self::unexpired(now: Factory::getDate()->toSql()));
-
-        return (int) $db->setQuery($query)->loadResult() > 0;
+        return self::standing(dedupKey: $dedupKey)['open'];
     }
 
     /**
@@ -492,7 +656,9 @@ class NotificationHelper
      * still mean something, because only it knows its own key grammar.
      *
      * Archived (dismissed) rows are included: a key worth retiring is worth
-     * retiring whether or not a merchant already waved it away.
+     * retiring whether or not a merchant already waved it away. The notices still owed
+     * count, as for {@see self::exists()}: a push makes its key appear, a hard clear
+     * removes it.
      *
      * @param string $prefix Key namespace, e.g. "subscription:". Empty matches nothing.
      *
@@ -511,14 +677,281 @@ class NotificationHelper
         $pattern = addcslashes($prefix, '%_\\') . '%';
 
         $db = self::db();
-        $query = $db->getQuery(true)
-            ->select($db->quoteName('dedup_key'))
-            ->from($db->quoteName(self::TABLE))
-            ->where($db->quoteName('dedup_key') . ' LIKE :prefix')
-            ->bind(':prefix', $pattern, ParameterType::STRING);
-        $query->where(self::unexpired(now: Factory::getDate()->toSql()));
+        $rows = $db->setQuery(
+            'SELECT 0 AS ' . $db->quoteName('task') . ', ' . $db->quoteName('dedup_key') . ' AS ' . $db->quoteName('k')
+            . ', ' . $db->quoteName('modified') . ' AS ' . $db->quoteName('at') . ', NULL AS ' . $db->quoteName('payload')
+            . ' FROM ' . $db->quoteName(self::TABLE)
+            . ' WHERE ' . $db->quoteName('dedup_key') . ' LIKE ' . $db->quote($pattern) . ' AND ' . self::unexpired(now: Factory::getDate()->toSql())
+            . ' UNION ALL ' . self::owedSelect(patterns: [Tasks::noticePattern(key: $prefix, prefix: true)]),
+        )->loadAssocList() ?: [];
+        $found = [];
+        $modified = [];
+        $owed = [];
 
-        return $db->setQuery($query)->loadColumn() ?: [];
+        foreach ($rows as $row) {
+            if ((int) $row['task'] === 0) {
+                $found[(string) $row['k']] = true;
+                $modified[(string) $row['k']] = (string) ($row['at'] ?? '');
+
+                continue;
+            }
+
+            $op = self::opOf(payload: $row['payload']);
+
+            if (str_starts_with($op['key'], $prefix)) {
+                $owed[(int) $row['task']] = ['raised' => (string) $row['at'], 'op' => $op];
+            }
+        }
+
+        // The writes still owed under the prefix, in the order raised, as they will be written: a push makes its key
+        // appear, a hard clear removes it, one its row was written after is skipped.
+        ksort($owed);
+
+        foreach ($owed as $entry) {
+            $key = $entry['op']['key'];
+
+            if (self::skips(modified: $modified[$key] ?? '', raised: $entry['raised'])) {
+                continue;
+            }
+
+            if ($entry['op']['op'] === 'push') {
+                $found[$key] = true;
+            } elseif (!empty($entry['op']['hard'])) {
+                unset($found[$key]);
+            }
+        }
+
+        return array_map('strval', array_keys($found));
+    }
+
+    /**
+     * Write notices raised inside transactions that have committed, the notice journal's singles: what the tasks
+     * service runs inside its own transaction, which has deleted them first ({@see Tasks::applyJournal()}).
+     *
+     * A key's notices are written only together with every older notice of the key still owed (REVIEW-C3 MAJOR-1):
+     * when the tasks table still holds one, of any request, nothing is written and those singles are answered, for the
+     * caller to take them over and write again. Otherwise the writes are made in the order raised, across keys, as
+     * their listeners then hear them. Each key's `modified` (when its last write was raised) is read once, before any of
+     * them, and a write raised before it is skipped (the same server clock), so a notice written a second time changes
+     * nothing and none overwrites a newer write (a later evaluation, or staff marking it read or dismissing it); a write
+     * made here records when it was raised, so an older notice written late never makes a newer one look older. A
+     * skipped write is logged at DEBUG.
+     *
+     * @param list<array{task: int, raised: string, op: array<string, mixed>}> $ops The writes.
+     *
+     * @return list<int> The older notice singles of their keys still owed, oldest first; empty when they were written.
+     *
+     * @since  2.1.4
+     */
+    public static function applyJournal(array $ops): array
+    {
+        $last = [];
+
+        foreach ($ops as $entry) {
+            $key = (string) ($entry['op']['key'] ?? '');
+
+            if ($key !== '') {
+                $last[$key] = max($last[$key] ?? 0, (int) $entry['task']);
+            }
+        }
+
+        if ($last === []) {
+            return [];
+        }
+
+        $db = self::db();
+        $rows = $db->setQuery(
+            'SELECT 0 AS ' . $db->quoteName('task') . ', ' . $db->quoteName('dedup_key') . ' AS ' . $db->quoteName('k')
+            . ', ' . $db->quoteName('modified') . ' AS ' . $db->quoteName('at') . ', NULL AS ' . $db->quoteName('payload')
+            . ' FROM ' . $db->quoteName(self::TABLE)
+            . ' WHERE ' . $db->quoteName('dedup_key') . ' IN (' . implode(', ', array_map(static fn (string $key): string => $db->quote($key), array_map('strval', array_keys($last)))) . ')'
+            . ' AND ' . self::unexpired(now: Factory::getDate()->toSql())
+            . ' UNION ALL ' . self::owedSelect(patterns: array_map(static fn (string $key): string => Tasks::noticePattern(key: $key), array_map('strval', array_keys($last))))
+            . ' AND ' . $db->quoteName('id') . ' < ' . max($last),
+        )->loadAssocList() ?: [];
+        $modified = [];
+        $older = [];
+
+        foreach ($rows as $row) {
+            if ((int) $row['task'] === 0) {
+                $modified[(string) $row['k']] = (string) ($row['at'] ?? '');
+
+                continue;
+            }
+
+            $key = self::opOf(payload: $row['payload'])['key'];
+
+            if (isset($last[$key]) && (int) $row['task'] < $last[$key]) {
+                $older[] = (int) $row['task'];
+            }
+        }
+
+        if ($older !== []) {
+            sort($older);
+
+            return $older;
+        }
+
+        usort($ops, static fn (array $a, array $b): int => (int) $a['task'] <=> (int) $b['task']);
+
+        foreach ($ops as $entry) {
+            $op = $entry['op'];
+            $key = (string) ($op['key'] ?? '');
+
+            if ($key === '') {
+                continue;
+            }
+
+            if (self::skips(modified: $modified[$key] ?? '', raised: (string) $entry['raised'])) {
+                self::log(entry: "NotificationHelper: the notice write #{$entry['task']} of '{$key}' raised at " . $entry['raised']
+                    . ' was skipped: its row holds a write raised after it, at ' . $modified[$key] . '.', priority: Log::DEBUG);
+
+                continue;
+            }
+
+            if (($op['op'] ?? '') === 'push') {
+                $options = (array) ($op['options'] ?? []);
+
+                if (\array_key_exists('message', $options)) {
+                    $options['message'] = NotificationText::unpack(packed: $options['message']);
+                }
+
+                self::pushNow(dedupKey: $key, title: NotificationText::unpack(packed: $op['title'] ?? ''), options: $options, raised: (string) $entry['raised']);
+            } elseif (($op['op'] ?? '') === 'clear') {
+                self::clearNow(dedupKey: $key, hard: !empty($op['hard']), historyDays: isset($op['days']) ? (int) $op['days'] : null, raised: (string) $entry['raised']);
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * Whether a write raised at a moment is skipped because its row holds a write raised after it: `modified` and the
+     * single's creation, server UTC with microseconds, compared as the strings both are.
+     *
+     * @param string $modified The row's `modified` before the write, '' for no row or none recorded.
+     * @param string $raised When the write was raised.
+     *
+     * @since  2.1.4
+     */
+    private static function skips(string $modified, string $raised): bool
+    {
+        return $modified !== '' && strcmp($modified, $raised) > 0;
+    }
+
+    /**
+     * What a write sets `modified` to: when it was raised, server UTC with microseconds.
+     *
+     * @param string|null $raised When a journalled write was raised; null: a write raised now.
+     *
+     * @since  2.1.4
+     */
+    private static function stamp(?string $raised): string
+    {
+        return $raised === null ? 'UTC_TIMESTAMP(6)' : self::db()->quote($raised);
+    }
+
+    /**
+     * The notice singles still owed whose payload matches one of the patterns, for a UNION ALL after a read of the
+     * notifications table with the same four columns: their id, NULL, their creation and their payload. Pending or
+     * running, of any request; this connection's own uncommitted ones included, one a rollback removed not. Read through
+     * idx_handler_state (a plain read, no lock), whatever else the statement narrows by.
+     *
+     * @param list<string> $patterns LIKE patterns ({@see Tasks::noticePattern()}).
+     *
+     * @since  2.1.4
+     */
+    private static function owedSelect(array $patterns): string
+    {
+        $db = self::db();
+
+        return 'SELECT ' . $db->quoteName('id') . ', NULL, ' . $db->quoteName('created_at') . ', ' . $db->quoteName('payload')
+            . ' FROM ' . $db->quoteName(Tasks::TABLE) . ' FORCE INDEX (' . $db->quoteName('idx_handler_state') . ')'
+            . ' WHERE ' . $db->quoteName('handler') . ' = ' . $db->quote(NoticeTask::NAME)
+            . ' AND ' . $db->quoteName('state') . ' IN (' . $db->quote(Tasks::STATE_PENDING) . ', ' . $db->quote(Tasks::STATE_RUNNING) . ')'
+            . ' AND (' . implode(' OR ', array_map(static fn (string $pattern): string => $db->quoteName('payload') . ' LIKE ' . $db->quote($pattern), $patterns)) . ')';
+    }
+
+    /**
+     * A notice single's write as its payload holds it, with its key and op as strings.
+     *
+     * @param mixed $payload The stored JSON.
+     *
+     * @return array<string, mixed>
+     *
+     * @since  2.1.4
+     */
+    private static function opOf(mixed $payload): array
+    {
+        $op = json_decode((string) $payload, true);
+        $op = \is_array($op) ? $op : [];
+
+        return ['key' => (string) ($op['key'] ?? ''), 'op' => (string) ($op['op'] ?? '')] + $op;
+    }
+
+    /**
+     * A key's notification as every reader sees it: the stored row, with the writes of the key still owed replayed over
+     * it in the order raised, each one the write will skip skipped. One statement.
+     *
+     * @param string $dedupKey The key.
+     *
+     * @return array{exists: bool, open: bool}
+     *
+     * @since  2.1.4
+     */
+    private static function standing(string $dedupKey): array
+    {
+        $db = self::db();
+        $rows = $db->setQuery(
+            'SELECT 0 AS ' . $db->quoteName('task') . ', (' . $db->quoteName('dismissed') . ' IS NULL) AS ' . $db->quoteName('open')
+            . ', ' . $db->quoteName('modified') . ' AS ' . $db->quoteName('at') . ', NULL AS ' . $db->quoteName('payload')
+            . ' FROM ' . $db->quoteName(self::TABLE)
+            . ' WHERE ' . $db->quoteName('dedup_key') . ' = ' . $db->quote($dedupKey) . ' AND ' . self::unexpired(now: Factory::getDate()->toSql())
+            . ' UNION ALL ' . self::owedSelect(patterns: [Tasks::noticePattern(key: $dedupKey)]),
+        )->loadAssocList() ?: [];
+        $state = ['exists' => false, 'open' => false];
+        $modified = '';
+        $owed = [];
+
+        foreach ($rows as $row) {
+            if ((int) $row['task'] === 0) {
+                $state = ['exists' => true, 'open' => (int) $row['open'] === 1];
+                $modified = (string) ($row['at'] ?? '');
+
+                continue;
+            }
+
+            $op = self::opOf(payload: $row['payload']);
+
+            if ($op['key'] === $dedupKey) {
+                $owed[(int) $row['task']] = ['raised' => (string) $row['at'], 'op' => $op];
+            }
+        }
+
+        ksort($owed);
+
+        // As the table will hold it: a push makes a missing row live and open, and re-opens a dismissed one only when
+        // constant; a soft clear dismisses an open row; a hard clear removes it.
+        foreach ($owed as $entry) {
+            $op = $entry['op'];
+
+            if (self::skips(modified: $modified, raised: $entry['raised'])) {
+                continue;
+            }
+
+            if ($op['op'] === 'push') {
+                $state = [
+                    'exists' => true,
+                    'open' => !$state['exists'] || $state['open'] || !empty($op['options']['constant']),
+                ];
+            } elseif (!empty($op['hard'])) {
+                $state = ['exists' => false, 'open' => false];
+            } else {
+                $state['open'] = false;
+            }
+        }
+
+        return $state;
     }
 
     /**
@@ -1089,6 +1522,7 @@ class NotificationHelper
      * @param int $id The live row the key names, or 0 for a new one.
      * @param array $data The columns assembled by {@see self::push()}.
      * @param bool $constant A push that re-alerts an existing row.
+     * @param string|null $raised When a journalled push was raised; null: now.
      *
      * @return array{0: int, 1: string} The row's id and what the push did (NotificationPushedEvent::CHANGE_*).
      *
@@ -1096,15 +1530,15 @@ class NotificationHelper
      *
      * @since  1.0.0
      */
-    private static function write(int $id, array $data, bool $constant): array
+    private static function write(int $id, array $data, bool $constant, ?string $raised = null): array
     {
         $now = Factory::getDate()->toSql();
 
         if ($id === 0) {
-            return self::firstWrite(data: $data, constant: $constant, now: $now);
+            return self::firstWrite(data: $data, constant: $constant, now: $now, raised: $raised);
         }
 
-        self::update(id: $id, data: $constant ? $data + ['created' => $now] : $data, realert: $constant);
+        self::update(id: $id, data: $constant ? $data + ['created' => $now] : $data, realert: $constant, raised: $raised);
 
         return [$id, $constant ? NotificationPushedEvent::CHANGE_REALERTED : NotificationPushedEvent::CHANGE_UPDATED];
     }
@@ -1127,6 +1561,7 @@ class NotificationHelper
      * @param array $data The columns assembled by {@see self::push()}.
      * @param bool $constant A push that re-alerts an existing row.
      * @param string $now The creation time of a new row, or of a re-alert.
+     * @param string|null $raised When a journalled push was raised; null: now.
      *
      * @return array{0: int, 1: string} The row's id and what the push did (NotificationPushedEvent::CHANGE_*).
      *
@@ -1134,17 +1569,22 @@ class NotificationHelper
      *
      * @since  2.1.1
      */
-    private static function firstWrite(array $data, bool $constant, string $now): array
+    private static function firstWrite(array $data, bool $constant, string $now, ?string $raised = null): array
     {
         $db = self::db();
         $values = array_filter($data + ['created' => $now], static fn ($value): bool => $value !== null);
-        $assignments = [$db->quoteName('id') . ' = LAST_INSERT_ID(' . $db->quoteName('id') . ')'];
+        $assignments = [$db->quoteName('id') . ' = LAST_INSERT_ID(' . $db->quoteName('id') . ')', $db->quoteName('modified') . ' = ' . self::stamp(raised: $raised)];
 
         // On the duplicate: what update() writes for a push of an existing key.
         foreach (array_filter($data, static fn ($value): bool => $value !== null) as $column => $value) {
             if (!$constant || $column !== 'expires') {
                 $assignments[] = $db->quoteName($column) . ' = ' . $db->quote((string) $value);
             }
+        }
+
+        // A push of literal text clears the parameters a keyed push left.
+        if (\array_key_exists('text_args', $data) && $data['text_args'] === null) {
+            $assignments[] = $db->quoteName('text_args') . ' = NULL';
         }
 
         if ($constant) {
@@ -1156,8 +1596,8 @@ class NotificationHelper
         }
 
         $db->setQuery(
-            'INSERT INTO ' . $db->quoteName(self::TABLE) . ' (' . implode(', ', $db->quoteName(array_keys($values))) . ')'
-            . ' VALUES (' . implode(', ', array_map(static fn ($value): string => $db->quote((string) $value), $values)) . ')'
+            'INSERT INTO ' . $db->quoteName(self::TABLE) . ' (' . implode(', ', $db->quoteName([...array_keys($values), 'modified'])) . ')'
+            . ' VALUES (' . implode(', ', array_map(static fn ($value): string => $db->quote((string) $value), $values)) . ', ' . self::stamp(raised: $raised) . ')'
             . ' ON DUPLICATE KEY UPDATE ' . implode(', ', $assignments),
         )->execute();
         $affected = (int) $db->getAffectedRows();
@@ -1181,16 +1621,18 @@ class NotificationHelper
      * @param int $id The row.
      * @param array $data The columns.
      * @param bool $realert The push raises the row again.
+     * @param string|null $raised When a journalled push was raised; null: now.
      *
      *
      * @since  2.1.1
      */
-    private static function update(int $id, array $data, bool $realert): void
+    private static function update(int $id, array $data, bool $realert, ?string $raised = null): void
     {
         $db = self::db();
         $values = array_filter($data, static fn ($value): bool => $value !== null);
         $query = $db->getQuery(true)
             ->update($db->quoteName(self::TABLE))
+            ->set($db->quoteName('modified') . ' = ' . self::stamp(raised: $raised))
             ->where($db->quoteName('id') . ' = ' . $id);
 
         foreach ($values as $column => $value) {
@@ -1199,6 +1641,11 @@ class NotificationHelper
             }
 
             $query->set($db->quoteName($column) . ' = ' . $db->quote((string) $value));
+        }
+
+        // A push of literal text clears the parameters a keyed push left.
+        if (\array_key_exists('text_args', $data) && $data['text_args'] === null) {
+            $query->set($db->quoteName('text_args') . ' = NULL');
         }
 
         if ($realert) {

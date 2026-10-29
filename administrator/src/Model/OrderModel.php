@@ -47,9 +47,11 @@ use Alfa\Component\Alfa\Administrator\Helper\FieldsHelper;
 use Alfa\Component\Alfa\Administrator\Helper\ItemConfigurationHelper;
 use Alfa\Component\Alfa\Administrator\Helper\MultilingualHelper;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
+use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Helper\OrderHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderStatusHelper;
 use Alfa\Component\Alfa\Administrator\Helper\OrderTotalHelper;
+use Alfa\Component\Alfa\Administrator\Helper\PostCommit;
 use Alfa\Component\Alfa\Administrator\Helper\RoleRegistry;
 use Alfa\Component\Alfa\Administrator\Helper\TransactionState;
 use Alfa\Component\Alfa\Administrator\Helper\UserInfoHelper;
@@ -158,6 +160,9 @@ class OrderModel extends AlfaAdminModel
      * - A delete batch fully vetoed by the payment/shipment gateways returns before
      *   parent::delete(), so the contract's delete bracket fires only when something
      *   actually reaches the table: nothing was deleted, nothing to observe.
+     * - Since 2.1.4 the delete vetoes (onAlfaAdminBeforeDelete, onContentBeforeDelete)
+     *   are asked before the delete's transaction and lock, with the gateways', and
+     *   the after-events of a save and a delete are heard once it has committed.
      */
 
     // Form methods
@@ -4300,11 +4305,12 @@ class OrderModel extends AlfaAdminModel
         //   F. best-effort tidying
         //
         // Phase B holds a transaction across parent::save(), which dispatches
-        // the admin save events. That is deliberate and it is the reason those
-        // listeners must not perform network or filesystem work: they run
-        // inside this transaction. The shipped listener stamps a key and
-        // enqueues a message. A listener that needs external I/O belongs on
-        // the AFTER-commit surfaces, not here.
+        // the admin save events. The before-events run inside it, before the
+        // order row is written (no lock of the save's own is held yet), so
+        // their listeners must not perform network or filesystem work. The
+        // after-events are heard once the save has committed (2.1.4): Alfa's
+        // own through PostCommit, Joomla's onContentAfterSave captured and
+        // heard again then (AlfaAdminModel::alfaAfterTheCommit()).
         $db = $this->getDatabase();
         $orderId = $pk;
 
@@ -4497,6 +4503,62 @@ class OrderModel extends AlfaAdminModel
     }
 
     /**
+     * Say what a status change did to the stock, once it ran: the movement made, or why it was not made (refused
+     * for good, waiting for stock other claims reserve, failed and owed, or still to be applied).
+     *
+     * @param Transition $transition The change, after save() answered true.
+     *
+     * @since  2.1.4
+     */
+    protected function reportStockOutcome(Transition $transition): void
+    {
+        $app = Factory::getApplication();
+
+        $stockResult = $transition->getStockResult();
+
+        if ($stockResult !== null && ($stockResult['action'] ?? 'none') !== 'none') {
+            $adjusted = self::stockAdjustedMessage(action: (string) $stockResult['action'], count: (int) $stockResult['count']);
+
+            if ($adjusted !== null) {
+                $app->enqueueMessage($adjusted, 'message');
+            }
+        } elseif ($stockResult === null) {
+            // Only reachable now that the transition really ran. A refused
+            // effect is not retried: an order line has no stock identity to
+            // move against until the operator resolves it, so the message
+            // says that instead of promising an automatic retry. Any other
+            // miss is an obligation of this order and is retried until the
+            // movement exists; telling the operator to reconcile by hand
+            // would invite a double adjustment. A movement that waits for
+            // stock other claims reserve names that stock. Each reason is
+            // the inventory service's or the drain's own text, escaped here
+            // once because the message queue renders HTML.
+            $refusal = $transition->getStockRefusal();
+            $reserved = $transition->getStockReservedFloor();
+            $failure = $transition->getStockFailure();
+
+            $app->enqueueMessage(
+                msg:  match (true) {
+                    $refusal !== null => Text::sprintf(
+                        'COM_ALFA_ORDER_STOCK_REFUSED',
+                        htmlspecialchars(string: $refusal, flags: ENT_QUOTES, encoding: 'UTF-8'),
+                    ),
+                    $reserved !== null => Text::sprintf(
+                        'COM_ALFA_ORDER_STOCK_RESERVED_ELSEWHERE',
+                        htmlspecialchars(string: $reserved, flags: ENT_QUOTES, encoding: 'UTF-8'),
+                    ),
+                    $failure !== null => Text::sprintf(
+                        'COM_ALFA_ORDER_STOCK_NOT_MOVED',
+                        htmlspecialchars(string: $failure, flags: ENT_QUOTES, encoding: 'UTF-8'),
+                    ),
+                    default => Text::_('COM_ALFA_ORDER_STOCK_DEFERRED'),
+                },
+                type: 'warning',
+            );
+        }
+    }
+
+    /**
      * Move the order, then say what is actually true afterwards.
      *
      * Phase B is committed before this runs, so the order's own details are
@@ -4557,48 +4619,7 @@ class OrderModel extends AlfaAdminModel
         }
 
         if ($moved) {
-            $stockResult = $transition->getStockResult();
-
-            if ($stockResult !== null && ($stockResult['action'] ?? 'none') !== 'none') {
-                $adjusted = self::stockAdjustedMessage(action: (string) $stockResult['action'], count: (int) $stockResult['count']);
-
-                if ($adjusted !== null) {
-                    $app->enqueueMessage($adjusted, 'message');
-                }
-            } elseif ($stockResult === null) {
-                // Only reachable now that the transition really ran. A refused
-                // effect is not retried: an order line has no stock identity to
-                // move against until the operator resolves it, so the message
-                // says that instead of promising an automatic retry. Any other
-                // miss is an obligation of this order and is retried until the
-                // movement exists; telling the operator to reconcile by hand
-                // would invite a double adjustment. A movement that waits for
-                // stock other claims reserve names that stock. Each reason is
-                // the inventory service's or the drain's own text, escaped here
-                // once because the message queue renders HTML.
-                $refusal = $transition->getStockRefusal();
-                $reserved = $transition->getStockReservedFloor();
-                $failure = $transition->getStockFailure();
-
-                $app->enqueueMessage(
-                    msg:  match (true) {
-                        $refusal !== null => Text::sprintf(
-                            'COM_ALFA_ORDER_STOCK_REFUSED',
-                            htmlspecialchars(string: $refusal, flags: ENT_QUOTES, encoding: 'UTF-8'),
-                        ),
-                        $reserved !== null => Text::sprintf(
-                            'COM_ALFA_ORDER_STOCK_RESERVED_ELSEWHERE',
-                            htmlspecialchars(string: $reserved, flags: ENT_QUOTES, encoding: 'UTF-8'),
-                        ),
-                        $failure !== null => Text::sprintf(
-                            'COM_ALFA_ORDER_STOCK_NOT_MOVED',
-                            htmlspecialchars(string: $failure, flags: ENT_QUOTES, encoding: 'UTF-8'),
-                        ),
-                        default => Text::_('COM_ALFA_ORDER_STOCK_DEFERRED'),
-                    },
-                    type: 'warning',
-                );
-            }
+            $this->reportStockOutcome(transition: $transition);
 
             return;
         }
@@ -4923,6 +4944,25 @@ class OrderModel extends AlfaAdminModel
     }
 
     /**
+     * A before-delete listener of an order threw: the delete is refused with the sentence a failed delete gives, and
+     * its words are logged, as when it threw inside the delete's transaction.
+     *
+     * @param Throwable $failure What the listener threw.
+     * @param list<int> $pks The orders.
+     *
+     * @since  2.1.4
+     */
+    protected function alfaDeleteRefusedBy(Throwable $failure, array $pks): void
+    {
+        Log::add(
+            entry: 'Orders ' . implode(separator: ', ', array: $pks) . ' were not deleted; nothing was changed: ' . $failure->getMessage(),
+            priority: Log::ERROR,
+            category: 'com_alfa.orders',
+        );
+        $this->setError(error: Text::_('COM_ALFA_ERROR_ORDER_DELETE_FAILED'));
+    }
+
+    /**
      * Delete the selected orders. An order that holds a sales document is never
      * deleted, and neither is one with a refund that is not settled (a
      * reservation: PaymentLedger::orderDeleteRefusal()): both are answered
@@ -5091,6 +5131,14 @@ class OrderModel extends AlfaAdminModel
             return true;
         }
 
+        // The admin delete vetoes, asked here with the plugins', before the
+        // transaction and its lock (2.1.4): onAlfaAdminBeforeDelete, then
+        // Joomla's onContentBeforeDelete for each order. A veto refuses the
+        // whole delete and nothing is written.
+        if (!$this->alfaAskBeforeDelete(pks: $pks)) {
+            return false;
+        }
+
         // What the plugins were asked about, compared under the lock below.
         $asked = [];
 
@@ -5153,6 +5201,10 @@ class OrderModel extends AlfaAdminModel
 
             $walletReturns = $this->deleteRelatedData($pks);
 
+            // The vetoes were asked above; the after-events are heard once the
+            // delete has committed.
+            $this->alfaDeleteAsked = true;
+
             if (!parent::delete($pks)) {
                 TransactionState::rollBackLevel($db);
 
@@ -5178,13 +5230,18 @@ class OrderModel extends AlfaAdminModel
             return false;
         }
 
-        // The wallet returns' committed lines, after the COMMIT; every rollback
-        // path above returns before reaching them. Post-commit only when this
-        // call owns the transaction: nested in a caller's, transactionStart(true)
-        // was a SAVEPOINT and this commit only released it, as with
-        // CustomerCreditLedger::write()'s own-transaction line.
+        // The wallet returns' committed lines, once they are committed; every
+        // rollback path above returns before reaching them. Through PostCommit
+        // (2.1.4): nested in a caller's transaction, whose commit only released
+        // a SAVEPOINT here, they wait for its outermost commit.
         foreach ($walletReturns as $entry) {
-            CustomerCreditLedger::logCommitted($entry);
+            PostCommit::defer(
+                db:    Factory::getContainer()->get('DatabaseDriver'),
+                label: 'a committed wallet return of a deleted order',
+                work:  static function () use ($entry): void {
+                    CustomerCreditLedger::logCommitted($entry);
+                },
+            );
         }
 
         return true;
@@ -6203,9 +6260,12 @@ class OrderModel extends AlfaAdminModel
      * the write cannot be undone and must not throw. A missing audit record
      * is still never a warning: it is logged CRITICAL and raised as a backend
      * notification, because a timeline with a hole in it is a thing an
-     * operator has to know about. The one failure that does reach the caller
-     * is one that ended the caller's transaction (a deadlock): its work is gone
-     * with it and must not go on writing outside any transaction (since 2.1.1).
+     * operator has to know about. The notification stays until staff dismiss
+     * it, and a later lost record raises it again, unread (since 2.1.4: a
+     * later record no longer retracts it, as the timeline stays incomplete).
+     * The one failure that does reach the caller is one that ended the
+     * caller's transaction (a deadlock): its work is gone with it and must not
+     * go on writing outside any transaction (since 2.1.1).
      *
      * Callers whose mutation is still open (inside a transaction) must use
      * {@see logOrderActivityStrict} instead, so the mutation rolls back with
@@ -6216,6 +6276,7 @@ class OrderModel extends AlfaAdminModel
      * @param string $summary Human-readable summary.
      * @param array|null $context Structured data.
      * @param int|null $entityId Related entity PK.
+     * @param int|null $actorId The acting user; 0 = System; null = the current identity (since 2.1.4).
      *
      * @return int|null The record's id; null when it could not be written (since 2.1.1).
      *
@@ -6227,18 +6288,19 @@ class OrderModel extends AlfaAdminModel
         string $summary,
         ?array $context = null,
         ?int $entityId = null,
+        ?int $actorId = null,
     ): ?int {
         $failure = null;
 
-        $recordId = self::writeActivity($orderId, $event, $summary, $context, $entityId, $failure);
+        $recordId = self::writeActivity($orderId, $event, $summary, $context, $entityId, $failure, actorId: $actorId);
 
         if ($failure === null) {
-            self::retractActivityAlert($orderId);
-
             return $recordId;
         }
 
-        if (TransactionState::endedBy(db: Factory::getContainer()->get('DatabaseDriver'), failure: $failure)) {
+        $db = Factory::getContainer()->get('DatabaseDriver');
+
+        if (TransactionState::endedBy(db: $db, failure: $failure)) {
             throw $failure;
         }
 
@@ -6251,59 +6313,28 @@ class OrderModel extends AlfaAdminModel
         try {
             NotificationHelper::push(
                 'orders.activitylog.' . $orderId,
-                'Order #' . $orderId . ': an activity record could not be written',
+                NotificationText::of('COM_ALFA_NOTIFY_ACTIVITY_LOST_TITLE', $orderId),
                 [
                     'severity' => 'danger',
-                    'group' => 'Orders',
-                    'message' => 'The order changed but its history entry was not saved, so the timeline is incomplete.',
+                    'group' => NotificationHelper::GROUP_ORDERS,
+                    'message' => NotificationText::of('COM_ALFA_NOTIFY_ACTIVITY_LOST_MSG'),
                     'url' => 'index.php?option=com_alfa&task=order.edit&id=' . $orderId,
                     // Seen by who may view orders; linked only for who may open the edit screen.
                     'view' => ['action' => 'alfa.orders.view', 'asset' => 'com_alfa'],
                     'link' => ['action' => 'alfa.orders.edit', 'asset' => 'com_alfa'],
+                    // Each lost record raises it again, unread, even when staff dismissed it before.
+                    'constant' => true,
                 ],
             );
         } catch (Throwable $e) {
-            // The notifier is itself best-effort; the CRITICAL above stands.
+            // The notifier is itself best-effort; the CRITICAL above stands. A failure that ended the caller's
+            // transaction reaches the caller, whose work is gone with it.
+            if (TransactionState::endedBy(db: $db, failure: $e)) {
+                throw $e;
+            }
         }
 
         return null;
-    }
-
-    /**
-     * Retract the alert {@see logOrderActivity} raises when a record is lost.
-     *
-     * A written record is the proof the log is writable again, so the alert
-     * must not outlive the condition that raised it: the same retraction
-     * contract every other producer follows. The `exists()` probe keeps the
-     * ordinary path (nothing was ever raised) at one point read on the
-     * dedup_key index instead of a write on every activity row, and the
-     * per-request memo keeps a mutation that writes several records from
-     * repeating even that.
-     *
-     * @param int $orderId Order PK.
-     *
-     *
-     * @since  1.0.0
-     */
-    private static function retractActivityAlert(int $orderId): void
-    {
-        static $reconciled = [];
-
-        if (isset($reconciled[$orderId])) {
-            return;
-        }
-
-        $reconciled[$orderId] = true;
-        $dedupKey = 'orders.activitylog.' . $orderId;
-
-        try {
-            if (NotificationHelper::exists(dedupKey: $dedupKey)) {
-                NotificationHelper::clear(dedupKey: $dedupKey);
-            }
-        } catch (Throwable $e) {
-            // Retraction is best-effort: the record is written, which is the
-            // half an operator cannot recover later.
-        }
     }
 
     /**

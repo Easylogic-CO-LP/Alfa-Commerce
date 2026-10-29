@@ -5,10 +5,10 @@
 	<license>GNU General Public License version 3 or later; see LICENSE</license>
 	<author>Agamemnon Fakas</author>
 	<contributor>Athanasios Marios Voukias</contributor>
-	<creationDate>2025-03</creationDate>
+	<creationDate>2025-03-04</creationDate>
 	<authorEmail>info@easylogic.gr</authorEmail>
 	<authorUrl>http://easylogic.gr</authorUrl>
-	<version>1.0.2</version>
+	<version>2.1.4</version>
 	<description>PLG_ALFA_SHIPMENTS_STANDARD_XML_DESCRIPTION</description>
 	<namespace path="src">Alfa\Plugin\AlfaShipments\Standard</namespace>
 	<!-- Completes the log table on every install and update. -->

@@ -25,6 +25,11 @@
 
   window.alfaCombinationsInit = true;
 
+  // A refusal in either of the shapes Joomla answers one: JsonResponse of an exception the endpoint caught (success
+  // false and its message), or the error page of a JSON request for one it did not, such as a 403 (error true, code,
+  // message).
+  const refused = (json) => !!json && (json.success === false || json.error === true);
+
   const modal = () => document.getElementById('combinationStudioModal');
   const frame = () => document.getElementById('combination-frame');
   const itemForm = () => document.getElementById('item-form');
@@ -459,9 +464,11 @@
       });
       const json = await response.json();
 
-      if (json?.error && json.message) {
-        // Server-side guard (depth lock): verbatim to the admin.
-        alert(json.message);
+      if (refused(json)) {
+        // The server refused: verbatim to the admin, never the "all exist" notice.
+        if (json.message) {
+          alert(json.message);
+        }
       } else if (json?.data?.created > 0 || json?.data?.reordered) {
         // Fresh rows created, or the dimension order changed: re-render through
         // item.reload (unsaved item form state survives, scroll is restored).
@@ -866,7 +873,12 @@
       });
       const json = await response.json();
 
-      if (json?.data?.added > 0) {
+      if (refused(json)) {
+        // The server refused: its own words.
+        if (json.message) {
+          alert(json.message);
+        }
+      } else if (json?.data?.added > 0) {
         // New rows exist: re-render through item.reload (the list rows are
         // form fields; unsaved item-form state survives the round-trip).
         reloadItemPage();
@@ -911,7 +923,12 @@
       });
       const json = await response.json();
 
-      if (json?.data?.added > 0) {
+      if (refused(json)) {
+        // The server refused: its own words.
+        if (json.message) {
+          alert(json.message);
+        }
+      } else if (json?.data?.added > 0) {
         reloadItemPage();
 
         return;
@@ -1213,6 +1230,11 @@
 (function () {
   'use strict';
 
+  // A refusal in either of the shapes Joomla answers one: JsonResponse of an exception the endpoint caught (success
+  // false and its message), or the error page of a JSON request for one it did not, such as a 403 (error true, code,
+  // message).
+  const refused = (json) => !!json && (json.success === false || json.error === true);
+
   const token = () => Joomla.getOptions('csrf.token', '');
   const spinner = '<div class="text-center p-4"><span class="spinner-border" role="status" aria-hidden="true"></span></div>';
   const itemId = () => document.querySelector('[data-field-settings]')?.dataset.itemId || '0';
@@ -1292,7 +1314,12 @@
       });
       const json = await response.json();
 
-      if (json?.data?.saved !== undefined) {
+      if (refused(json)) {
+        // The server refused: its own words; the dialog stays open.
+        if (json.message) {
+          alert(json.message);
+        }
+      } else if (json?.data?.saved !== undefined) {
         // Swap the inline control in place from the server's authoritative state +
         // human summary (no reload, no JS re-implementation of the wording).
         const control = current.button.closest('[data-showon-control]');

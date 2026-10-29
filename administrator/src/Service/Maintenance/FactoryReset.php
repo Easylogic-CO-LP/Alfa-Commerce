@@ -13,6 +13,7 @@ defined('_JEXEC') or die;
 
 use Alfa\Component\Alfa\Administrator\Event\Tools\ClearDataEvent;
 use Alfa\Component\Alfa\Administrator\Helper\NotificationHelper;
+use Alfa\Component\Alfa\Administrator\Helper\NotificationText;
 use Alfa\Component\Alfa\Administrator\Helper\SetupHelper;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataExtensions;
 use Alfa\Component\Alfa\Administrator\Service\ClearData\ClearDataStatus;
@@ -800,7 +801,8 @@ final class FactoryReset
         $made = \count($core->declared(count: false));
         $warnings = array_filter((array) ($state['extensions'] ?? []), static fn ($e): bool => \in_array($e['status'] ?? '', self::WARNING_STATUSES, true));
         $clean = $warnings === [];
-        $headline = Text::_($clean ? 'COM_ALFA_CLEAR_HEADLINE' : 'COM_ALFA_CLEAR_HEADLINE_WARNINGS');
+        $headlineKey = $clean ? 'COM_ALFA_CLEAR_HEADLINE' : 'COM_ALFA_CLEAR_HEADLINE_WARNINGS';
+        $headline = Text::_($headlineKey);
         $images = (array) ($state['images'] ?? []);
 
         MaintenanceAudit::record(
@@ -824,7 +826,7 @@ final class FactoryReset
             MaintenanceAudit::detail(run: $run, line: sprintf('warning %s: %s', $key, self::warning(extension: $extension)));
         }
 
-        $this->notify(user: $user, run: $run, headline: $headline, warnings: $warnings, images: $images);
+        $this->notify(user: $user, run: $run, headline: $headlineKey, warnings: $warnings, images: $images);
         SetupHelper::invalidate();
 
         $finished = gmdate('Y-m-d H:i:s');
@@ -1148,7 +1150,7 @@ final class FactoryReset
      *
      * @param User $user Who ran it.
      * @param string $run The run's id.
-     * @param string $headline The headline.
+     * @param string $headline The headline's language key.
      * @param array<string, array<string, mixed>> $warnings The extensions with a warning.
      * @param array<string, mixed> $images The product images kept.
      *
@@ -1156,19 +1158,45 @@ final class FactoryReset
      */
     private function notify(User $user, string $run, string $headline, array $warnings, array $images): void
     {
-        $message = Text::sprintf('COM_ALFA_CLEAR_NOTIFY_MESSAGE', (string) $user->name, (string) $user->username, gmdate('Y-m-d H:i'), $run)
-            . ' ' . $headline . '.';
+        // In keys, each sentence said in the reader's language: the record, the headline, each extension's warning and
+        // the kept images.
+        $sentences = [
+            NotificationText::key('COM_ALFA_CLEAR_NOTIFY_MESSAGE', (string) $user->name, (string) $user->username, gmdate('Y-m-d H:i'), $run),
+            NotificationText::join(items: [NotificationText::key($headline), '.'], separator: ''),
+        ];
 
         foreach ($warnings as $extension) {
-            $message .= ' ' . self::warning(extension: $extension);
+            $sentences[] = self::warningText(extension: $extension);
         }
 
-        $message .= ' ' . Text::sprintf('COM_ALFA_CLEAR_IMAGES_KEPT', (int) ($images['present'] ?? 0), (string) ($images['folder'] ?? ''));
+        $sentences[] = NotificationText::key('COM_ALFA_CLEAR_IMAGES_KEPT', (int) ($images['present'] ?? 0), (string) ($images['folder'] ?? ''));
 
-        NotificationHelper::push(dedupKey: 'alfa.maintenance.cleared', title: Text::_('COM_ALFA_CLEAR_NOTIFY_TITLE'), options: [
+        NotificationHelper::push(dedupKey: 'alfa.maintenance.cleared', title: NotificationText::of('COM_ALFA_CLEAR_NOTIFY_TITLE'), options: [
             'severity' => $warnings === [] ? 'info' : 'warning',
-            'message' => $message,
+            'message' => NotificationText::sentences(...$sentences),
         ]);
+    }
+
+    /**
+     * An extension's warning as a notice's parameter: {@see self::warning()} in keys.
+     *
+     * @param array<string, mixed> $extension The extension: name, status.
+     *
+     * @return array<string, mixed>|string
+     *
+     * @since  2.1.4
+     */
+    private static function warningText(array $extension): array|string
+    {
+        $name = (string) ($extension['name'] ?? '');
+
+        return match ($extension['status'] ?? '') {
+            'failed' => NotificationText::key('COM_ALFA_CLEAR_EXTENSION_FAILED', $name),
+            'unsupported' => NotificationText::key('COM_ALFA_CLEAR_EXTENSION_UNSUPPORTED', $name),
+            'unavailable' => NotificationText::key('COM_ALFA_CLEAR_EXTENSION_UNAVAILABLE', $name),
+            'installed_later' => NotificationText::key('COM_ALFA_CLEAR_EXTENSION_INSTALLED_LATER', $name),
+            default => $name,
+        };
     }
 
     /**

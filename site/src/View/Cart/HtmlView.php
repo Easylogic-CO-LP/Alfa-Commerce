@@ -182,7 +182,8 @@ class HtmlView extends BaseHtmlView
 
             if ($orderId == null) {
                 $app->enqueueMessage(Text::_('COM_ALFA_ORDER_SESSION_ENDED'), 'message');
-                $app->redirect(Route::_('/index.php'));//redirect to home page
+                // The shop's home page under its own path (a Joomla in a subfolder keeps it); never the page itself.
+                $app->redirect(Uri::root());
             }
 
             $ordersModel = Factory::getApplication()->bootComponent('com_alfa')
@@ -192,7 +193,8 @@ class HtmlView extends BaseHtmlView
 
             if ($orderData == null) {
                 $app->enqueueMessage(Text::_('COM_ALFA_ORDER_NOT_AVAILABLE'), 'warning');
-                $app->redirect(Route::_('/index.php'));//redirect to home page
+                // The shop's home page under its own path (a Joomla in a subfolder keeps it); never the page itself.
+                $app->redirect(Uri::root());
             }
 
             // Always present so the layout templates can safely check it.
